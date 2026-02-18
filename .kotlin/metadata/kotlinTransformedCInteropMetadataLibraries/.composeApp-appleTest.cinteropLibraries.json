@@ -1,0 +1,37 @@
+[
+  {
+    "moduleId": "dev.gitlive:firebase-firestore:2.4.0",
+    "file": "C:\\Users\\Renendo\\Documents\\Android\\AppToLast\\Paparcar\\.kotlin\\metadata\\kotlinTransformedCInteropMetadataLibraries\\dev.gitlive-firebase-firestore-2.4.0-iosMain-cinterop\\dev.gitlive_firebase-firestore-cinterop-FirebaseFirestoreInternal-7URPeQ.klib",
+    "sourceSetName": "iosMain"
+  },
+  {
+    "moduleId": "dev.gitlive:firebase-firestore:2.4.0",
+    "file": "C:\\Users\\Renendo\\Documents\\Android\\AppToLast\\Paparcar\\.kotlin\\metadata\\kotlinTransformedCInteropMetadataLibraries\\dev.gitlive-firebase-firestore-2.4.0-iosMain-cinterop\\dev.gitlive_firebase-firestore-cinterop-FirebaseFirestore-7URPeQ.klib",
+    "sourceSetName": "iosMain"
+  },
+  {
+    "moduleId": "dev.gitlive:firebase-auth:2.4.0",
+    "file": "C:\\Users\\Renendo\\Documents\\Android\\AppToLast\\Paparcar\\.kotlin\\metadata\\kotlinTransformedCInteropMetadataLibraries\\dev.gitlive-firebase-auth-2.4.0-iosMain-cinterop\\dev.gitlive_firebase-auth-cinterop-FirebaseAuth-OB0GoA.klib",
+    "sourceSetName": "iosMain"
+  },
+  {
+    "moduleId": "org.jetbrains.kotlinx:atomicfu:0.27.0",
+    "file": "C:\\Users\\Renendo\\Documents\\Android\\AppToLast\\Paparcar\\.kotlin\\metadata\\kotlinTransformedCInteropMetadataLibraries\\org.jetbrains.kotlinx-atomicfu-0.27.0-iosMain-cinterop\\org.jetbrains.kotlinx_atomicfu-cinterop-interop-WOkCig.klib",
+    "sourceSetName": "iosMain"
+  },
+  {
+    "moduleId": "org.jetbrains.compose.ui:ui-uikit:1.8.2",
+    "file": "C:\\Users\\Renendo\\Documents\\Android\\AppToLast\\Paparcar\\.kotlin\\metadata\\kotlinTransformedCInteropMetadataLibraries\\org.jetbrains.compose.ui-ui-uikit-1.8.2-uikitMain-cinterop\\org.jetbrains.compose.ui_ui-uikit-cinterop-utils-RVQtSg.klib",
+    "sourceSetName": "uikitMain"
+  },
+  {
+    "moduleId": "androidx.sqlite:sqlite-framework:2.6.2",
+    "file": "C:\\Users\\Renendo\\Documents\\Android\\AppToLast\\Paparcar\\.kotlin\\metadata\\kotlinTransformedCInteropMetadataLibraries\\androidx.sqlite-sqlite-framework-2.6.2-nativeMain-cinterop\\androidx.sqlite_sqlite-framework-cinterop-sqlite3-5Ubkcg.klib",
+    "sourceSetName": "nativeMain"
+  },
+  {
+    "moduleId": "dev.gitlive:firebase-app:2.4.0",
+    "file": "C:\\Users\\Renendo\\Documents\\Android\\AppToLast\\Paparcar\\.kotlin\\metadata\\kotlinTransformedCInteropMetadataLibraries\\dev.gitlive-firebase-app-2.4.0-iosMain-cinterop\\dev.gitlive_firebase-app-cinterop-FirebaseCore-UFIspw.klib",
+    "sourceSetName": "iosMain"
+  }
+]

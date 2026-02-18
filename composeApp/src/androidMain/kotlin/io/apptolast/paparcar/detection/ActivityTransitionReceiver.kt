@@ -1,0 +1,60 @@
+package io.apptolast.paparcar.detection
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import com.google.android.gms.location.ActivityTransition
+import com.google.android.gms.location.ActivityTransitionResult
+import com.google.android.gms.location.DetectedActivity
+import io.apptolast.paparcar.detection.services.SpotUploadForegroundService
+import io.apptolast.paparcar.domain.usecase.notification.ShowDebugNotificationUseCase
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
+
+class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
+
+    private val showDebugNotificationUseCase: ShowDebugNotificationUseCase by lazy { get() }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (!ActivityTransitionResult.hasResult(intent)) return
+
+        val result = ActivityTransitionResult.extractResult(intent) ?: return
+
+        for (event in result.transitionEvents) {
+            val activityType = toActivityString(event.activityType)
+            val transitionType = toTransitionTypeString(event.transitionType)
+            val message = "Transition: $activityType ($transitionType)"
+
+            showDebugNotificationUseCase(message)
+
+            if (event.activityType == DetectedActivity.IN_VEHICLE &&
+                event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER
+            ) {
+                val serviceIntent = Intent(context, SpotUploadForegroundService::class.java)
+                context.startForegroundService(serviceIntent)
+            }
+        }
+    }
+
+    private fun toActivityString(activity: Int): String {
+        return when (activity) {
+            DetectedActivity.STILL -> "STILL"
+            DetectedActivity.WALKING -> "WALKING"
+            DetectedActivity.RUNNING -> "RUNNING"
+            DetectedActivity.IN_VEHICLE -> "IN_VEHICLE"
+            else -> "UNKNOWN"
+        }
+    }
+
+    private fun toTransitionTypeString(transitionType: Int): String {
+        return when (transitionType) {
+            ActivityTransition.ACTIVITY_TRANSITION_ENTER -> "ENTER"
+            ActivityTransition.ACTIVITY_TRANSITION_EXIT -> "EXIT"
+            else -> "UNKNOWN"
+        }
+    }
+
+    companion object {
+        const val REQUEST_CODE = 101
+    }
+}

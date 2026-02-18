@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "io.apptolast.paparcar.composeApp-mergeDebugResources-68:/values-v30/values-v30.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\Renendo\\.gradle\\caches\\8.13\\transforms\\19ad6a9c57f5f2726b652873a5d21be1\\transformed\\material3-release\\res\\values-v30\\values-v30.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "72",
+                        "endOffsets": "123"
+                    }
+                }
+            ]
+        }
+    ]
+}

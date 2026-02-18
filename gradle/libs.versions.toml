@@ -1,0 +1,134 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PAPARCAR — Version Catalog
+# KMP (Kotlin Multiplatform) + Compose Multiplatform + Clean Architecture
+# ─────────────────────────────────────────────────────────────────────────────
+
+[versions]
+
+# ── Android ──────────────────────────────────────────────────────────────────
+agp = "8.13.2"
+android-compileSdk = "36"
+android-minSdk = "26"      # NotificationChannel (26) + FOREGROUND_SERVICE_LOCATION (29) → mínimo real 26
+android-targetSdk = "36"
+
+# ── Kotlin & KMP ─────────────────────────────────────────────────────────────
+kotlin = "2.1.21"
+ksp = "2.1.21-2.0.1"   # ← formato nuevo: {kotlin}-{ksp_major.minor.patch}
+# ── Compose ──────────────────────────────────────────────────────────────────
+compose-plugin = "1.8.0"
+
+# ── AndroidX ─────────────────────────────────────────────────────────────────
+androidx-activityCompose = "1.12.2"
+androidx-appcompat = "1.7.1"
+androidx-core-ktx = "1.17.0"
+androidx-lifecycle = "2.9.2"
+androidx-material = "1.12.0"
+work-runtime = "2.9.1"
+
+# ── Test ─────────────────────────────────────────────────────────────────────
+junit = "4.13.2"
+androidx-test-junit = "1.2.1"
+androidx-espresso-core = "3.6.1"
+
+# ── Kotlinx ──────────────────────────────────────────────────────────────────
+kotlinx-coroutines = "1.9.0"
+kotlinx-datetime = "0.7.1"
+kotlinx-serialization = "1.8.1"
+
+# ── DI — Koin ────────────────────────────────────────────────────────────────
+# Todos los módulos de Koin usan la misma versión. No hay versión separada.
+koin = "4.1.1"
+
+# ── Persistencia local — Room KMP ────────────────────────────────────────────
+# 2.7.x es la primera línea con soporte KMP completo (commonMain)
+room = "2.8.4"
+
+# ── Firebase ─────────────────────────────────────────────────────────────────
+# GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
+firebase-bom = "34.9.0"
+firebase-gitlive = "2.4.0"
+google-services = "4.4.4"
+
+# ── Android-only ─────────────────────────────────────────────────────────────
+# play-services-location incluye Activity Recognition Transitions desde v17+
+play-services-location = "21.3.0"
+geofire = "3.2.0"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+[libraries]
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Test ─────────────────────────────────────────────────────────────────────
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-test-junit" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidx-espresso-core" }
+
+# ── AndroidX ─────────────────────────────────────────────────────────────────
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidx-core-ktx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidx-appcompat" }
+androidx-material = { group = "com.google.android.material", name = "material", version.ref = "androidx-material" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+# Lifecycle — usamos las tres variantes:
+#   viewmodel        → ViewModel base (commonMain vía KMP)
+#   viewmodel-compose → collectAsStateWithLifecycle, etc. (commonMain vía KMP)
+#   runtime-compose  → lifecycleScope, repeatOnLifecycle (androidMain)
+androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+
+# WorkManager (Android-only, tareas en background)
+work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime" }
+
+# ── Kotlinx ──────────────────────────────────────────────────────────────────
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# ── DI — Koin ────────────────────────────────────────────────────────────────
+# commonMain
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+# commonMain — integración Compose Multiplatform (koinViewModel, get, inject en @Composable)
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
+# commonMain — koinViewModel() con soporte de ViewModel KMP
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
+# androidMain — integración Android específica (AndroidViewModel, SavedStateHandle)
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+# androidMain — koinViewModel() con scoping de Android ViewModel (Activity/Fragment backstack)
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
+
+# ── Persistencia local — Room KMP ────────────────────────────────────────────
+# room-runtime en commonMain, room-compiler solo via KSP (ver bloque dependencies)
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+
+# ── Firebase (GitLive SDK — KMP) ─────────────────────────────────────────────
+# Todos van en commonMain. GitLive wrappea Firebase oficial con expect/actual.
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebase-gitlive" }
+firebase-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebase-gitlive" }
+firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "firebase-gitlive" }
+
+# ── Android-only: Detección ──────────────────────────────────────────────────
+# Incluye FusedLocationProviderClient + Activity Recognition Transitions API
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "play-services-location" }
+# GeoFirestore para queries de proximidad (Firestore + geohash)
+geofire-android = { module = "com.firebase:geofire-android", version.ref = "geofire" }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+[plugins]
+# ─────────────────────────────────────────────────────────────────────────────
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinCocoapods = { id = "org.jetbrains.kotlin.native.cocoapods", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
+room = { id = "androidx.room", version.ref = "room" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

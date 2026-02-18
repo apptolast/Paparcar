@@ -1,0 +1,13 @@
+package io.apptolast.paparcar.domain.usecase.spot
+
+import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.repository.SpotRepository
+import kotlinx.coroutines.flow.Flow
+
+class ObserveNearbySpotsUseCase(private val spotRepository: SpotRepository) {
+
+    operator fun invoke(location: SpotLocation, radiusMeters: Double): Flow<List<Spot>> {
+        return spotRepository.observeNearbySpots(location, radiusMeters)
+    }
+}
