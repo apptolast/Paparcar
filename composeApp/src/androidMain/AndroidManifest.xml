@@ -53,7 +53,8 @@
         <!-- ActivityTransitionReceiver -->
         <receiver
             android:name=".detection.ActivityTransitionReceiver"
-            android:exported="false">
+            android:exported="true"
+            android:permission="com.google.android.gms.permission.ACTIVITY_RECOGNITION">
         </receiver>
 
         <!-- BootCompletedReceiver -->

@@ -98,6 +98,7 @@ class AppNotificationManagerImpl(
             .setSmallIcon(R.drawable.ic_notification_debug)
             .setColor(COLOR_DEBUG)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
             .build()
         notificationManager.notify(NotificationPort.DEBUG_NOTIFICATION_ID, notification)
     }
