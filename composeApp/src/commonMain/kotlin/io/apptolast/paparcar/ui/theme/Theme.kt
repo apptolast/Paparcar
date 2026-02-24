@@ -8,43 +8,48 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryGreen,
-    secondary = PrimaryGreen,
-    background = BackgroundDark,
-    surface = SurfaceDark,
-    onPrimary = TextOnPrimary,
-    onSecondary = TextOnPrimary,
-    onBackground = Color.White,
-    onSurface = Color.White,
-)
-
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryGreen,
-    secondary = PrimaryGreen,
-    background = BackgroundLight,
-    surface = Color.White,
-    onPrimary = TextOnPrimary,
-    onSecondary = TextOnPrimary,
-    onBackground = BackgroundDark,
-    onSurface = BackgroundDark,
+    primary = GreenPrimaryLightActual,
+    onPrimary = GreenOnPrimaryLight,
+    primaryContainer = GreenPrimaryContainerLight,
+    onPrimaryContainer = GreenOnPrimaryContainerLight,
+    secondary = GreenSecondaryLight,
+    secondaryContainer = GreenSecondaryContainerLight,
+    onSecondaryContainer = GreenOnSecondaryContainerLight,
+    background = GreenBackgroundLight,
+    surface = GreenSurfaceLight,
+    surfaceVariant = GreenSurfaceVariantLight,
+    onSurface = GreenOnSurfaceLight,
+    onSurfaceVariant = GreenOnSurfaceVariantLight
 )
 
+private val DarkColorScheme = darkColorScheme(
+    primary = GreenPrimaryDark,
+    onPrimary = GreenOnPrimaryDark,
+    primaryContainer = GreenPrimaryContainerDark,
+    onPrimaryContainer = GreenOnPrimaryContainerDark,
+    secondary = GreenSecondaryDark,
+    secondaryContainer = GreenSecondaryContainerDark,
+    onSecondaryContainer = GreenOnSecondaryContainerDark,
+    background = GreenBackgroundDark,
+    surface = GreenSurfaceDark,
+    surfaceVariant = GreenSurfaceVariantDark,
+    onSurface = GreenOnSurfaceDark,
+    onSurfaceVariant = GreenOnSurfaceVariantDark
+)
+
+// --- 4. THEME COMPOSABLE ---
 @Composable
-fun AppTheme(
+fun PaparcarTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
-        DarkColorScheme
-    } else {
-        LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        shapes = Shapes,
+        typography = AppTypography,
+        shapes = AppShapes,
         content = content
     )
 }

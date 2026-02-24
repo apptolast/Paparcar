@@ -7,6 +7,10 @@ interface LocationRepository {
 
     fun locationFlow(): Flow<SpotLocation>
 
+    fun observeHighAccuracyFlow(): Flow<SpotLocation>
+
+    suspend fun getHighAccuracyLocation(): SpotLocation?
+
     suspend fun saveLocation(location: SpotLocation): Result<Unit>
 
     suspend fun getStoredLocations(): Result<List<SpotLocation>>

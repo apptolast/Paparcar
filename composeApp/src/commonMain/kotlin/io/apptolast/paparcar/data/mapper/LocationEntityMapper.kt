@@ -7,12 +7,14 @@ fun LocationEntity.toDomain(): SpotLocation = SpotLocation(
     latitude = latitude,
     longitude = longitude,
     accuracy = accuracy,
-    timestamp = timestamp
+    timestamp = timestamp,
+    speed = speed
 )
 
 fun SpotLocation.toEntity(): LocationEntity = LocationEntity(
     latitude = latitude,
     longitude = longitude,
     accuracy = accuracy,
-    timestamp = timestamp
+    timestamp = timestamp,
+    speed = speed
 )

@@ -52,7 +52,11 @@ google-services = "4.4.4"
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
 play-services-location = "21.3.0"
+play-services-maps = "19.0.0"
 geofire = "3.2.0"
+lifecycleService = "2.10.0"
+navigation-compose = "2.8.0-alpha08"
+maps-compose = "4.4.1"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -115,8 +119,14 @@ firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "fireb
 # ── Android-only: Detección ──────────────────────────────────────────────────
 # Incluye FusedLocationProviderClient + Activity Recognition Transitions API
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "play-services-location" }
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "play-services-maps" }
 # GeoFirestore para queries de proximidad (Firestore + geohash)
 geofire-android = { module = "com.firebase:geofire-android", version.ref = "geofire" }
+androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+# Compose Navigation KMP
+navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
+# Google Maps Compose
+maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(cd \"C:/Users/Renendo/Documents/Android/AppToLast/Paparcar\" && git add .gitignore CLAUDE.md composeApp/build.gradle.kts composeApp/google-services.json composeApp/schemas/ composeApp/src/ gradle/libs.versions.toml .claude/settings.local.json 2>&1)"
+    ]
+  }
+}

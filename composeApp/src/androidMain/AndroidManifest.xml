@@ -2,9 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Permisos de localización -->
-    <!-- ACCESS_BACKGROUND_LOCATION NO es necesario con ForegroundService -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- Foreground Service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -44,29 +44,39 @@
             </intent-filter>
         </activity>
 
-        <!-- SpotDetectionForegroundService -->
+        <!-- DrivingTrackingService -->
         <service
-            android:name=".detection.SpotDetectionForegroundService"
+            android:name=".detection.services.DrivingTrackingService"
             android:foregroundServiceType="location"
-            android:exported="false" />
-
-        <!-- SpotUploadForegroundService -->
-        <service
-            android:name=".detection.SpotUploadForegroundService"
-            android:foregroundServiceType="dataSync"
             android:exported="false" />
 
         <!-- ActivityTransitionReceiver -->
         <receiver
             android:name=".detection.ActivityTransitionReceiver"
-            android:exported="false" />
+            android:exported="false">
+        </receiver>
 
         <!-- BootCompletedReceiver -->
         <receiver
             android:name=".detection.BootCompletedReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- GeofenceBroadcastReceiver — system delivers via explicit PendingIntent -->
+        <receiver
+            android:name=".detection.GeofenceBroadcastReceiver"
+            android:exported="false" />
+
+        <!-- ParkingConfirmationReceiver — notification action buttons -->
+        <receiver
+            android:name=".detection.ParkingConfirmationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="io.apptolast.paparcar.ACTION_PARKING_CONFIRMED" />
+                <action android:name="io.apptolast.paparcar.ACTION_PARKING_DENIED" />
             </intent-filter>
         </receiver>
 

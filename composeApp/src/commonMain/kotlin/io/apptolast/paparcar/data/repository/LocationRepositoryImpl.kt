@@ -6,23 +6,31 @@ import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
 import io.apptolast.paparcar.domain.model.SpotLocation
 import io.apptolast.paparcar.domain.repository.LocationRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class LocationRepositoryImpl(
     private val platformLocationDataSource: PlatformLocationDataSource,
     private val localLocationDataSource: LocalLocationDataSource
 ) : LocationRepository {
 
-    override fun locationFlow(): Flow<SpotLocation> {
-        return platformLocationDataSource.observeLocation()
-    }
+    override fun locationFlow(): Flow<SpotLocation> =
+        platformLocationDataSource.observeBalancedLocation()
+
+    override fun observeHighAccuracyFlow(): Flow<SpotLocation> =
+        platformLocationDataSource.observeHighAccuracyLocation()
+
+    override suspend fun getHighAccuracyLocation(): SpotLocation? =
+        platformLocationDataSource.getHighAccuracyLocation()
+
 
     override suspend fun saveLocation(location: SpotLocation): Result<Unit> = runCatching {
         localLocationDataSource.insert(
             LocationEntity(
                 latitude = location.latitude,
                 longitude = location.longitude,
-                accuracy = location.accuracy, // Corregido
-                timestamp = location.timestamp
+                accuracy = location.accuracy,
+                timestamp = location.timestamp,
+                speed = location.speed,
             )
         )
     }
@@ -32,8 +40,9 @@ class LocationRepositoryImpl(
             SpotLocation(
                 latitude = it.latitude,
                 longitude = it.longitude,
-                accuracy = it.accuracy, // Corregido
-                timestamp = it.timestamp
+                accuracy = it.accuracy,
+                timestamp = it.timestamp,
+                speed = it.speed,
             )
         }
     }

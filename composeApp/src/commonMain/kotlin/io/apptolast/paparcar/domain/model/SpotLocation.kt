@@ -8,6 +8,7 @@ data class SpotLocation(
     val longitude: Double,
     val accuracy: Float,
     val timestamp: Long,
+    val speed: Float,
 )
 
 //package io.apptolast.paparcar.domain.model

@@ -53,6 +53,7 @@ kotlin {
             // Compose Multiplatform
             implementation(compose.runtime)
             implementation(compose.foundation)
+            implementation(compose.material)
             implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.components.resources)
@@ -72,6 +73,9 @@ kotlin {
             // Persistencia local — Room KMP (todo en commonMain)
             implementation(libs.room.runtime)
 
+            // Navegación — Compose Navigation KMP
+            implementation(libs.navigation.compose)
+
             // Firebase — GitLive SDK (wrapper KMP sobre Firebase oficial)
             // Siempre en commonMain. En Android necesita google-services.json en runtime.
             implementation(libs.firebase.firestore)
@@ -89,6 +93,7 @@ kotlin {
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.material)
+            implementation(libs.androidx.lifecycle.service)
 
             // Coroutines Android dispatcher
             implementation(libs.kotlinx.coroutines.android)
@@ -97,9 +102,6 @@ kotlin {
             implementation(libs.koin.android)
             // Koin AndroidX Compose (koinViewModel con scoping Android ViewModel)
             implementation(libs.koin.androidx.compose)
-
-            // Permissions
-            implementation("com.google.accompanist:accompanist-permissions:0.37.3")
 
             // ── Detección (exclusivo Android) ─────────────────────────────────
             // FusedLocationProviderClient + Activity Recognition Transitions API
@@ -112,6 +114,10 @@ kotlin {
 
             // GeoFirestore — queries de proximidad por geohash
             implementation(libs.geofire.android)
+
+            // Google Maps Compose
+            implementation(libs.maps.compose)
+            implementation(libs.play.services.maps)
         }
 
         // ── commonTest ────────────────────────────────────────────────────────

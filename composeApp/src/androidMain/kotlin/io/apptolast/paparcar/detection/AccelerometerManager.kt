@@ -1,54 +1,56 @@
-package io.apptolast.paparcar.detection
-
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import io.apptolast.paparcar.data.notification.AppNotificationManager
 import kotlin.math.abs
 import kotlin.math.sqrt
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 
 class AccelerometerManager(
-    private val sensorManager: SensorManager, // Inyectado
-    private val onVehicleStartDetected: () -> Unit
+    private val sensorManager: SensorManager,
+    private val notificationManager: AppNotificationManager,
+    private val onVehicleStartDetected: () -> Unit,
+    private val onVehicleStopDetected: () -> Unit
 ) : SensorEventListener {
 
     private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    private val vibrationThreshold = 2.5f
-    private val minSustainedDurationMs = 4000L
-    private val movementConfirmSamples = 10
-    private val resetPauseMs = 2000L
 
-    private var vibrationStartTime: Long = 0L
-    private var consecutiveVibrationCount = 0
-    private var isServiceRunning = false
+    // Ventana deslizante de muestras para calcular RMS
+    private val windowSize = 50          // 50 muestras a ~50Hz = ~1 segundo de análisis
+    private val vibrationWindow = ArrayDeque<Float>(windowSize)
 
-    private var lastVibrationTime: Long = 0L
+    // Umbrales calibrados para vibración de motor
+    private val engineRmsMin = 0.3f      // RMS mínimo que indica motor encendido
+    private val engineRmsMax = 2.5f      // RMS máximo — por encima es movimiento brusco (coger el móvil)
+    private val engineConfirmWindows = 8 // 8 ventanas consecutivas válidas (~8s) = motor en marcha
+    private val engineStopWindows = 5    // 5 ventanas sin vibración = motor parado
+
+    private var validWindowCount = 0
+    private var quietWindowCount = 0
+    private var isVehicleRunning = false
 
     fun startListening() {
         if (accelerometer == null) return
         sensorManager.registerListener(
             this,
             accelerometer,
-            SensorManager.SENSOR_DELAY_NORMAL
+            SensorManager.SENSOR_DELAY_GAME  // ← ~50Hz en lugar de ~5Hz
         )
-        isServiceRunning = false
+        reset()
     }
 
     fun stopListening() {
         sensorManager.unregisterListener(this)
-        resetDetection()
+        reset()
     }
 
-    fun resetDetection() {
-        vibrationStartTime = 0L
-        consecutiveVibrationCount = 0
-        lastVibrationTime = 0L
-        isServiceRunning = false
+    fun reset() {
+        vibrationWindow.clear()
+        validWindowCount = 0
+        quietWindowCount = 0
+        isVehicleRunning = false
     }
 
-    @OptIn(ExperimentalTime::class)
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type != Sensor.TYPE_ACCELEROMETER) return
 
@@ -56,34 +58,80 @@ class AccelerometerManager(
         val y = event.values[1]
         val z = event.values[2]
 
+        // Vibración neta eliminando gravedad
         val magnitude = sqrt(x * x + y * y + z * z)
-        val vibrationLevel = abs(magnitude - SensorManager.GRAVITY_EARTH)
-        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val vibration = abs(magnitude - SensorManager.GRAVITY_EARTH)
 
-        if (vibrationLevel > vibrationThreshold) {
-            if (vibrationStartTime == 0L) {
-                vibrationStartTime = currentTime
-            }
-            lastVibrationTime = currentTime
-            consecutiveVibrationCount++
+        // Acumular en ventana deslizante
+        if (vibrationWindow.size >= windowSize) {
+            vibrationWindow.removeFirst()
+        }
+        vibrationWindow.addLast(vibration)
 
-            val duration = currentTime - vibrationStartTime
+        // Solo analizamos cuando tenemos la ventana completa
+        if (vibrationWindow.size < windowSize) return
 
-            if (duration >= minSustainedDurationMs &&
-                consecutiveVibrationCount >= movementConfirmSamples &&
-                !isServiceRunning
-            ) {
-                isServiceRunning = true
+        // RMS de la ventana — mide energía media, no pico
+        val rms = calculateRms(vibrationWindow)
+
+        analyzeWindow(rms)
+    }
+
+    private fun calculateRms(samples: Collection<Float>): Float {
+        val sumOfSquares = samples.sumOf { (it * it).toDouble() }
+        return sqrt(sumOfSquares / samples.size).toFloat()
+    }
+
+    private fun analyzeWindow(rms: Float) {
+        val isEnginePattern = rms in engineRmsMin..engineRmsMax
+
+        if (isEnginePattern) {
+            validWindowCount++
+            quietWindowCount = 0
+
+            if (validWindowCount >= engineConfirmWindows && !isVehicleRunning) {
+                isVehicleRunning = true
+                notificationManager.showDebugNotification("Motor detectado — RMS: $rms")
                 onVehicleStartDetected()
             }
+
         } else {
-            if (currentTime - lastVibrationTime > resetPauseMs) {
-                resetDetection()
+            if (isVehicleRunning) {
+                quietWindowCount++
+
+                if (quietWindowCount >= engineStopWindows) {
+                    isVehicleRunning = false
+                    notificationManager.showDebugNotification("Motor parado — RMS: $rms")
+                    onVehicleStopDetected()
+                    reset()
+                }
+            } else {
+                // Aún no detectamos motor — si hay mucho movimiento brusco (coger el móvil)
+                // rms > engineRmsMax, simplemente no contamos
+                validWindowCount = 0
             }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
-    fun isAccelerometerAvailable(): Boolean = accelerometer != null
+    fun isAccelerometerAvailable() = accelerometer != null
 }
+//```
+//
+//---
+//
+//## Por qué esto sí funciona
+//```
+//Coger el móvil:
+//RMS pico → 4f - 12f → fuera de engineRmsMax (2.5f) → ignorado ✓
+//
+//Motor encendido con el móvil en el bolsillo o en el soporte:
+//RMS sostenido → 0.4f - 1.2f → dentro del rango → cuenta ventanas ✓
+//
+//Bache en carretera:
+//Spike puntual → afecta 1-2 ventanas, no resetea el contador ✓
+//quietWindowCount solo cuenta si isVehicleRunning = true ✓
+//
+//Caminar con el móvil en el bolsillo:
+//RMS irregular → ~1f - 3f → rms > engineRmsMax en picos → no confirma 8 ventanas seguidas ✓

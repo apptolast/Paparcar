@@ -1,6 +1,8 @@
 package io.apptolast.paparcar
 
 import android.app.Application
+import androidx.work.WorkManager
+import io.apptolast.paparcar.detection.workers.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.di.androidDetectionModule
 import io.apptolast.paparcar.di.androidPlatformModule
 import io.apptolast.paparcar.di.dataModule
@@ -23,5 +25,9 @@ class PaparcarApp : Application() {
                 androidPlatformModule,
             )
         }
+
+        // Re-register Activity Recognition transitions every 12h.
+        // KEEP policy: if already enqueued, don't restart the running job.
+        RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(this))
     }
 }

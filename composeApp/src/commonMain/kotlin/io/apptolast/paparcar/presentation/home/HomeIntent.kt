@@ -10,4 +10,6 @@ sealed class HomeIntent {
     object RefreshSpots : HomeIntent()
     object ToggleDetection : HomeIntent()
     object OpenMap : HomeIntent()
+    object OpenHistory : HomeIntent()
+    object ReportTestSpot : HomeIntent() // Para pruebas
 }

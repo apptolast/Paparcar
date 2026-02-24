@@ -8,5 +8,6 @@ sealed class HomeEffect {
     data class ShowError(val message: String) : HomeEffect()
     data class ShowSuccess(val message: String) : HomeEffect()
     data class NavigateToMap(val spotId: String? = null) : HomeEffect()
+    object NavigateToHistory : HomeEffect()
     object RequestLocationPermission : HomeEffect()
 }
