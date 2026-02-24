@@ -8,16 +8,16 @@ import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
 import io.apptolast.paparcar.domain.service.GeofenceEvent
+import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceService
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
 class GeofenceManagerImpl(
     private val context: Context,
     private val geofencingClient: GeofencingClient,
+    private val geofenceEventBus: GeofenceEventBus,
 ) : GeofenceService {
 
     @SuppressLint("MissingPermission")
@@ -47,7 +47,7 @@ class GeofenceManagerImpl(
         geofencingClient.removeGeofences(listOf(geofenceId)).await()
     }
 
-    override fun getGeofenceEvents(): Flow<GeofenceEvent> = _events.asSharedFlow()
+    override fun getGeofenceEvents(): Flow<GeofenceEvent> = geofenceEventBus.events
 
     private fun buildPendingIntent(): PendingIntent {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
@@ -61,11 +61,5 @@ class GeofenceManagerImpl(
 
     companion object {
         private const val REQUEST_CODE = 9100
-        private val _events = MutableSharedFlow<GeofenceEvent>(extraBufferCapacity = 8)
-
-        /** Called by [GeofenceBroadcastReceiver] to forward events into the flow. */
-        fun emitEvent(event: GeofenceEvent) {
-            _events.tryEmit(event)
-        }
     }
 }

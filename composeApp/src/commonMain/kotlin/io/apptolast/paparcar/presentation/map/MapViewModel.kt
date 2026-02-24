@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -19,6 +20,10 @@ class MapViewModel(
     init {
         observeUserParking()
             .onEach { session -> updateState { copy(userParking = session) } }
+            .catch { e ->
+                updateState { copy(error = e.message) }
+                sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
+            }
             .launchIn(viewModelScope)
 
         observeLocationUpdates()
@@ -26,10 +31,14 @@ class MapViewModel(
                 updateState { copy(isLoading = false, userLocation = location) }
             }
             .flatMapLatest { userLocation ->
-                observeNearbySpots(userLocation, 1000.0)
+                observeNearbySpots(userLocation, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
             }
             .onEach { spots ->
                 updateState { copy(spots = spots) }
+            }
+            .catch { e ->
+                updateState { copy(isLoading = false, error = e.message) }
+                sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
             }
             .launchIn(viewModelScope)
     }

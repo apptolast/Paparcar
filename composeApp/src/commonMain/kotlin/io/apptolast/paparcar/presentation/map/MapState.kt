@@ -9,4 +9,5 @@ data class MapState(
     val userLocation: SpotLocation? = null,
     val spots: List<Spot> = emptyList(),
     val userParking: ParkingSession? = null,
+    val error: String? = null,
 )

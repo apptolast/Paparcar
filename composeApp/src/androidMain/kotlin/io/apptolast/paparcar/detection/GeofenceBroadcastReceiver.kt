@@ -8,28 +8,33 @@ import androidx.work.WorkManager
 import com.google.android.gms.location.GeofencingEvent
 import io.apptolast.paparcar.detection.workers.ReportSpotWorker
 import io.apptolast.paparcar.domain.service.GeofenceEvent
+import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Receives Android Geofencing API transitions.
  *
  * On GEOFENCE_EXIT:
- * 1. Emits a [GeofenceEvent.Exited] into [GeofenceManagerImpl]'s internal SharedFlow
- *    so any in-process observer (e.g. a ViewModel) can react immediately.
+ * 1. Emits a [GeofenceEvent.Exited] into [GeofenceEventBus] so any in-process
+ *    observer (e.g. a ViewModel) can react immediately.
  * 2. Enqueues [ReportSpotWorker] via WorkManager for guaranteed delivery of the
  *    "spot released" report to Firebase, even if the process dies.
  *
  * Registration: AndroidManifest.xml (exported=false — system delivers via PendingIntent).
  */
 @OptIn(ExperimentalTime::class)
-class GeofenceBroadcastReceiver : BroadcastReceiver() {
+class GeofenceBroadcastReceiver : BroadcastReceiver(), KoinComponent {
+
+    private val geofenceEventBus: GeofenceEventBus by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         val geofencingEvent = GeofencingEvent.fromIntent(intent) ?: return
 
         if (geofencingEvent.hasError()) {
-            GeofenceManagerImpl.emitEvent(
+            geofenceEventBus.emit(
                 GeofenceEvent.Error(
                     error = "GeofencingEvent error code: ${geofencingEvent.errorCode}",
                     timestamp = Clock.System.now().toEpochMilliseconds(),
@@ -43,7 +48,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
 
         for (geofence in triggeringGeofences) {
             // 1 — Propagate to in-process observers (ViewModels, etc.)
-            GeofenceManagerImpl.emitEvent(
+            geofenceEventBus.emit(
                 GeofenceEvent.Exited(
                     geofenceId = geofence.requestId,
                     timestamp = now,

@@ -1,13 +1,13 @@
 package io.apptolast.paparcar.detection.services
 
-import android.app.Notification
 import android.content.Intent
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import io.apptolast.paparcar.data.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.notification.NotificationPort
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
-import io.apptolast.paparcar.domain.usecase.notification.BuildSpotDetectionNotificationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DetectAndReportParkingUseCase
+import io.apptolast.paparcar.notification.ForegroundNotificationProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -16,7 +16,8 @@ class DrivingTrackingService : LifecycleService() {
 
     private val detectAndReportParking: DetectAndReportParkingUseCase by inject()
     private val observeAdaptiveLocation: ObserveAdaptiveLocationUseCase by inject()
-    private val buildSpotDetectionNotification: BuildSpotDetectionNotificationUseCase by inject()
+    private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
+    private val notificationPort: NotificationPort by inject()
     private var detectionJob: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -25,8 +26,8 @@ class DrivingTrackingService : LifecycleService() {
         when (intent?.action) {
             ACTION_START_TRACKING -> {
                 if (detectionJob == null) {
-                    val notification = buildSpotDetectionNotification() as Notification
-                    startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
+                    val notification = foregroundNotificationProvider.buildDetectionNotification()
+                    startForeground(NotificationPort.DETECTION_NOTIFICATION_ID, notification)
                     startParkingDetection()
                 }
             }
@@ -49,8 +50,15 @@ class DrivingTrackingService : LifecycleService() {
 
     private fun startParkingDetection() {
         detectionJob = lifecycleScope.launch {
-            detectAndReportParking(observeAdaptiveLocation())
-            stopSelf()
+            try {
+                detectAndReportParking(observeAdaptiveLocation())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notificationPort.showDebug("Detection error: ${e.message}")
+            } finally {
+                stopSelf()
+            }
         }
     }
 

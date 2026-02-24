@@ -10,4 +10,8 @@ class ObserveNearbySpotsUseCase(private val spotRepository: SpotRepository) {
     operator fun invoke(location: SpotLocation, radiusMeters: Double): Flow<List<Spot>> {
         return spotRepository.observeNearbySpots(location, radiusMeters)
     }
+
+    companion object {
+        const val DEFAULT_SEARCH_RADIUS_METERS = 1000.0
+    }
 }

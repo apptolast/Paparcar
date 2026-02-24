@@ -2,10 +2,10 @@ package io.apptolast.paparcar.domain.usecase.notification
 
 import io.apptolast.paparcar.domain.notification.NotificationPort
 
-class DismissNotificationUseCase(
+class NotifyParkingSpotSavedUseCase(
     private val notificationPort: NotificationPort,
 ) {
-    operator fun invoke(notificationId: Int) {
-        notificationPort.dismiss(notificationId)
+    operator fun invoke(latitude: Double, longitude: Double) {
+        notificationPort.showParkingSpotSaved(latitude, longitude)
     }
 }

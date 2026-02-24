@@ -25,7 +25,7 @@ class PermissionManagerImpl(private val context: Context) : PermissionManager {
     private fun hasLocationPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
     }
 

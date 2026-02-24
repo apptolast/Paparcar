@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotLocation
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 class SpotRepositoryImpl(private val firebaseDataSource: FirebaseDataSource) : SpotRepository {
@@ -19,6 +20,7 @@ class SpotRepositoryImpl(private val firebaseDataSource: FirebaseDataSource) : S
     override fun observeNearbySpots(location: SpotLocation, radiusMeters: Double): Flow<List<Spot>> {
         return firebaseDataSource.observeNearbySpots(location.latitude, location.longitude, radiusMeters)
             .map { dtoMap -> dtoMap.map { (id, dto) -> dto.toDomain(id) } }
+            .catch { emit(emptyList()) }
     }
 
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> = runCatching {

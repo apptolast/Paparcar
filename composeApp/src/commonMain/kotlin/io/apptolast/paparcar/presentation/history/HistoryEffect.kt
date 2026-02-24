@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.presentation.history
 
-sealed interface HistoryEffect {
-    data class ShowError(val message: String) : HistoryEffect
-    object NavigateBack : HistoryEffect
+sealed class HistoryEffect {
+    data class ShowError(val message: String) : HistoryEffect()
+    data object NavigateBack : HistoryEffect()
 }

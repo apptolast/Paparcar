@@ -1,40 +1,55 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.ParkingConfidence
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingSignals
 
-class CalculateParkingConfidenceUseCase {
+/**
+ * Computes a [ParkingConfidence] level from the current sensor [ParkingSignals].
+ *
+ * The algorithm has two paths:
+ *
+ * **FAST PATH** — triggered when an activity-exit event is present AND the vehicle
+ * has been stopped for at least [ParkingDetectionConfig.fastPathMinStoppedMs].
+ * This quickly rules out traffic lights and short stops with a strong signal.
+ *
+ * **SLOW PATH** — used when no activity-exit event is available. It gates on a
+ * minimum stopped duration ([ParkingDetectionConfig.slowPathGateMs]) and then
+ * builds a score from time, speed, and GPS accuracy bonuses.
+ *
+ * @param config Thresholds and scoring weights. Can be overridden in tests or
+ *               injected from remote configuration without touching business logic.
+ */
+class CalculateParkingConfidenceUseCase(private val config: ParkingDetectionConfig) {
 
     operator fun invoke(signals: ParkingSignals): ParkingConfidence {
 
-        // FAST PATH: activityExit signal present + 30s stopped → semáforos descartados
-        if (signals.activityExit && signals.stoppedDurationMs >= 30_000L) {
-            var score = 0.45f // activityExit base
-            if (signals.speed < 0.3f) score += 0.15f
-            if (signals.gpsAccuracy < 15f) score += 0.10f
-            return when {
-                score >= 0.75f -> ParkingConfidence.High(score)
-                score >= 0.55f -> ParkingConfidence.Medium(score)
-                else -> ParkingConfidence.Low
-            }
+        // FAST PATH: activityExit signal present + min stop time → traffic lights discarded
+        if (signals.activityExit && signals.stoppedDurationMs >= config.fastPathMinStoppedMs) {
+            var score = config.fastPathBaseScore
+            if (signals.speed < config.maxSpeedMps) score += config.fastPathSpeedBonus
+            if (signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.fastPathAccuracyBonus
+            return toConfidence(score)
         }
 
-        // SLOW PATH: gate at 90s — descarta semáforos (~30-60s) y retenciones breves
-        if (signals.stoppedDurationMs < 90_000L) return ParkingConfidence.NotYet
+        // SLOW PATH: gate at slowPathGateMs — discards traffic lights (~30-60s) and brief holds
+        if (signals.stoppedDurationMs < config.slowPathGateMs) return ParkingConfidence.NotYet
 
         var score = when {
-            signals.stoppedDurationMs >= 300_000L -> 0.70f // 5 min → casi certeza
-            signals.stoppedDurationMs >= 180_000L -> 0.55f // 3 min → probable
-            else -> 0.40f                                   // 1.5 min → posible
+            signals.stoppedDurationMs >= config.slowPath5MinMs -> config.slowPath5MinScore
+            signals.stoppedDurationMs >= config.slowPath3MinMs -> config.slowPath3MinScore
+            else -> config.slowPathBaseScore
         }
-        if (signals.activityStill) score += 0.10f
-        if (signals.speed < 0.3f) score += 0.05f
-        if (signals.gpsAccuracy < 15f) score += 0.05f
+        if (signals.activityStill) score += config.stillBonus
+        if (signals.speed < config.maxSpeedMps) score += config.speedBonus
+        if (signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.accuracyBonus
 
-        return when {
-            score >= 0.75f -> ParkingConfidence.High(score)
-            score >= 0.55f -> ParkingConfidence.Medium(score)
-            else -> ParkingConfidence.Low
-        }
+        return toConfidence(score)
+    }
+
+    private fun toConfidence(score: Float): ParkingConfidence = when {
+        score >= config.highConfidenceThreshold -> ParkingConfidence.High(score)
+        score >= config.mediumConfidenceThreshold -> ParkingConfidence.Medium(score)
+        else -> ParkingConfidence.Low
     }
 }

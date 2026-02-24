@@ -4,12 +4,14 @@ import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotLocation
 import io.apptolast.paparcar.domain.permissions.PermissionManager
+import io.apptolast.paparcar.domain.usecase.location.GetAddressUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveLocationUpdatesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -25,19 +27,23 @@ class HomeViewModel(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val activityRecognitionManager: ActivityRecognitionManager,
     private val observeUserParking: ObserveUserParkingUseCase,
+    private val getAddress: GetAddressUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
-
-    private val simulatedUserId = "user-123"
 
     init {
         // Observe active parking session.
         observeUserParking()
             .onEach { session -> updateState { copy(userParking = session) } }
+            .catch { e ->
+                updateState { copy(error = e.message) }
+                sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
+            }
             .launchIn(viewModelScope)
 
         // Reactive chain: permissions → location → nearby spots.
         permissionManager.permissionState
             .flatMapLatest { permissionState ->
+                updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
                 if (permissionState.allPermissionsGranted) {
                     activityRecognitionManager.registerTransitions()
                     observeLocationUpdates()
@@ -48,13 +54,17 @@ class HomeViewModel(
             }
             .flatMapLatest { userLocation ->
                 updateState { copy(isLoading = false, userLocation = Pair(userLocation.latitude, userLocation.longitude)) }
-                observeNearbySpots(userLocation, 1000.0) // 1km de radio
+                observeNearbySpots(userLocation, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
             }
             .onEach { spots ->
                 updateState { copy(nearbySpots = spots) }
+                fetchAddressesForNewSpots(spots)
+            }
+            .catch { e ->
+                updateState { copy(error = e.message) }
+                sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
             }
             .launchIn(viewModelScope)
-
     }
 
     override fun initState(): HomeState = HomeState()
@@ -70,25 +80,24 @@ class HomeViewModel(
             is HomeIntent.OpenHistory -> sendEffect(HomeEffect.NavigateToHistory)
             is HomeIntent.SpotSelected -> sendEffect(HomeEffect.NavigateToMap(intent.spotId))
             is HomeIntent.ReportTestSpot -> reportTestSpot()
-            else -> { /* Otros intents no se manejan aquí */ }
         }
     }
 
     private fun reportTestSpot() {
         viewModelScope.launch {
             val timestamp = Clock.System.now().toEpochMilliseconds()
-            val spotId = "${simulatedUserId}_$timestamp"
+            val spotId = "${DEBUG_USER_ID}_$timestamp"
 
             val testSpot = Spot(
                 id = spotId,
                 location = SpotLocation(
-                    latitude = 40.416775,
-                    longitude = -3.703790,
+                    latitude = DEBUG_LATITUDE,
+                    longitude = DEBUG_LONGITUDE,
                     accuracy = 10f,
                     timestamp = timestamp,
-                    speed = 0f // Añadido
+                    speed = 0f
                 ),
-                reportedBy = simulatedUserId,
+                reportedBy = DEBUG_USER_ID,
                 isActive = true
             )
 
@@ -100,5 +109,23 @@ class HomeViewModel(
                     sendEffect(HomeEffect.ShowError("Error al reportar spot de prueba: ${it.message}"))
                 }
         }
+    }
+
+    private fun fetchAddressesForNewSpots(spots: List<Spot>) {
+        val knownIds = state.value.spotAddresses.keys
+        spots.filter { it.id !in knownIds }.forEach { spot ->
+            viewModelScope.launch {
+                getAddress(spot.location.latitude, spot.location.longitude)
+                    .onSuccess { address ->
+                        updateState { copy(spotAddresses = spotAddresses + (spot.id to address)) }
+                    }
+            }
+        }
+    }
+
+    companion object {
+        private const val DEBUG_USER_ID = "user-123"
+        private const val DEBUG_LATITUDE = 40.416775
+        private const val DEBUG_LONGITUDE = -3.703790
     }
 }

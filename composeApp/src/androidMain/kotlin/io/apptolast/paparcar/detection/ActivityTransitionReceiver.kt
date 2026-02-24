@@ -6,25 +6,28 @@ import android.content.Intent
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
+import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.services.DrivingTrackingService
-import io.apptolast.paparcar.domain.usecase.notification.ShowDebugNotificationUseCase
-import org.koin.mp.KoinPlatform.getKoin
+import io.apptolast.paparcar.domain.notification.NotificationPort
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class ActivityTransitionReceiver : BroadcastReceiver() {
+class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
+
+    private val notificationPort: NotificationPort by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
 
-        val showDebugNotificationUseCase: ShowDebugNotificationUseCase = getKoin().get()
-
         if (ActivityTransitionResult.hasResult(intent)) {
-//            startDrivingService(context, DrivingTrackingService.ACTION_START_TRACKING)
-
             val result = ActivityTransitionResult.extractResult(intent)
 
             result?.transitionEvents?.forEach { event ->
                 val activityType = toActivityString(event.activityType)
                 val transitionType = toTransitionTypeString(event.transitionType)
-                showDebugNotificationUseCase("Transición real: $activityType ($transitionType)")
+
+                if (BuildConfig.DEBUG) {
+                    notificationPort.showDebug("Transición real: $activityType ($transitionType)")
+                }
 
                 when {
                     event.activityType == DetectedActivity.IN_VEHICLE &&

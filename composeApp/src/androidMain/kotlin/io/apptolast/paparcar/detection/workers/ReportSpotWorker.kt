@@ -8,9 +8,12 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
+import io.apptolast.paparcar.BuildConfig
+import io.apptolast.paparcar.detection.workers.ReportSpotWorker.Companion.MAX_RETRY_ATTEMPTS
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotLocation
-import io.apptolast.paparcar.domain.usecase.notification.ShowDebugNotificationUseCase
+import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.usecase.notification.NotifySpotUploadingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.GetUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -33,7 +36,8 @@ class ReportSpotWorker(
     private val getUserParking: GetUserParkingUseCase by inject()
     private val clearUserParking: ClearUserParkingUseCase by inject()
     private val reportSpotReleased: ReportSpotReleasedUseCase by inject()
-    private val showDebugNotification: ShowDebugNotificationUseCase by inject()
+    private val notifySpotUploading: NotifySpotUploadingUseCase by inject()
+    private val notificationPort: NotificationPort by inject()
 
     override suspend fun doWork(): Result {
         val session = getUserParking()
@@ -52,10 +56,16 @@ class ReportSpotWorker(
             isActive = true, // spot is free for other users
         )
 
+        notifySpotUploading()
+
         return reportSpotReleased(spot).fold(
             onSuccess = {
-                clearUserParking()
-                showDebugNotification("Plaza publicada como libre")
+                val cleared = clearUserParking()
+                if (cleared.isFailure) {
+                    return if (runAttemptCount < MAX_RETRY_ATTEMPTS) Result.retry()
+                    else Result.failure()
+                }
+                if (BuildConfig.DEBUG) { notificationPort.showDebug("Plaza publicada como libre") }
                 Result.success()
             },
             onFailure = {

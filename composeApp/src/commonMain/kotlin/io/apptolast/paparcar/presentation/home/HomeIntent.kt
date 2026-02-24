@@ -7,8 +7,6 @@ package io.apptolast.paparcar.presentation.home
 sealed class HomeIntent {
     object LoadNearbySpots : HomeIntent()
     data class SpotSelected(val spotId: String) : HomeIntent()
-    object RefreshSpots : HomeIntent()
-    object ToggleDetection : HomeIntent()
     object OpenMap : HomeIntent()
     object OpenHistory : HomeIntent()
     object ReportTestSpot : HomeIntent() // Para pruebas

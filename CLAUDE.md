@@ -136,3 +136,29 @@ Location streaming uses `callbackFlow` wrapping FusedLocationProviderClient call
 - **Foreground services only** — background services are not used.
 - **Naming:** Screens → `*Screen`, ViewModels → `*ViewModel`, Repo impls → `*RepositoryImpl`.
 - **Room KSP** is configured for `kspAndroid`, `kspIosX64`, `kspIosArm64`, `kspIosSimulatorArm64`.
+
+## Principles: SOLID & Clean Architecture
+
+Rules enforced across the codebase:
+
+### SRP — Single Responsibility
+- One use case = one responsibility. Do not merge unrelated logic into a single use case.
+- All mutable detection state lives in a single `private data class *State` updated atomically via `MutableStateFlow.update {}`. Never scatter multiple `var` fields across a class.
+
+### OCP — Open/Closed
+- Magic numbers and algorithm thresholds belong in an injectable `*Config` data class (e.g. `ParkingDetectionConfig`). Changing the algorithm does not require touching business logic — only the config.
+
+### ISP — Interface Segregation
+- Interfaces must have ≤ 5 cohesive methods. Split read-only queries from write commands if different clients need different subsets.
+
+### DIP — Dependency Inversion
+- **Zero `getKoin().get()` calls at runtime.** This is the Service Locator anti-pattern: hidden dependencies that are impossible to test.
+- `BroadcastReceiver` subclasses that need DI must implement `KoinComponent` and declare dependencies as `private val foo: Foo by inject()` properties.
+- Cross-component event buses (e.g. `GeofenceEventBus`) are defined as interfaces in `commonMain/domain/` and registered as `single<>` singletons in the DI module so both producer and consumer share the same instance.
+
+### Flows
+- Every `Flow` that is `collect`ed / `collectLatest`-ed / `launchIn`-ed **must** have a `.catch {}` operator immediately before the terminal call to prevent silent termination on upstream errors.
+
+### MVI Intents
+- Never declare an intent subclass without a corresponding `when` branch in `handleIntent`.
+- `handleIntent` must be exhaustive — no `else -> {}` fallback. A sealed class with unhandled branches is a bug waiting to happen.

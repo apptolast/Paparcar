@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
+import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.ParkingSession
 import io.apptolast.paparcar.domain.model.Spot
 
@@ -15,4 +16,5 @@ data class HomeState(
     val userLocation: Pair<Double, Double>? = null,
     val isDetectionActive: Boolean = false,
     val userParking: ParkingSession? = null,
+    val spotAddresses: Map<String, AddressInfo> = emptyMap(),
 )
