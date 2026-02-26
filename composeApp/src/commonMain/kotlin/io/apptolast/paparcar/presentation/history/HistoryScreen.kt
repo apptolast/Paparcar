@@ -40,7 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.domain.model.ParkingSession
+import io.apptolast.paparcar.domain.model.UserParkingSession
 import io.apptolast.paparcar.presentation.util.formatCoords
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
@@ -117,7 +117,7 @@ fun HistoryScreen(
                             items = state.sessions,
                             key = { it.id },
                         ) { session ->
-                            ParkingSessionCard(session = session)
+                            UserParkingSessionCard(session = session)
                         }
                     }
                 }
@@ -154,7 +154,7 @@ private fun EmptyHistoryState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ParkingSessionCard(session: ParkingSession) {
+private fun UserParkingSessionCard(session: UserParkingSession) {
     val dateTime = remember(session.timestamp) {
         Instant.fromEpochMilliseconds(session.timestamp)
             .toLocalDateTime(TimeZone.currentSystemDefault())

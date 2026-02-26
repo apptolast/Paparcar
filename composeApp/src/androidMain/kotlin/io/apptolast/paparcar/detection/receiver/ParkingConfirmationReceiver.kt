@@ -1,9 +1,9 @@
-package io.apptolast.paparcar.detection
+package io.apptolast.paparcar.detection.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import io.apptolast.paparcar.detection.services.DrivingTrackingService
+import io.apptolast.paparcar.detection.service.DrivingTrackingService
 
 /**
  * Handles user responses to the parking-confirmation notification.

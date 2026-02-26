@@ -1,11 +1,10 @@
 package io.apptolast.paparcar.presentation.history
 
-import io.apptolast.paparcar.domain.usecase.parking.GetAllParkingSessionsUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.launch
 
 class HistoryViewModel(
-    private val getAllSessions: GetAllParkingSessionsUseCase,
+//    private val getAllSessions: GetAllParkingSessionsUseCase,
 ) : BaseViewModel<HistoryState, HistoryIntent, HistoryEffect>() {
 
     init {
@@ -24,14 +23,14 @@ class HistoryViewModel(
     private fun loadHistory() {
         viewModelScope.launch {
             updateState { copy(isLoading = true, error = null) }
-            runCatching { getAllSessions() }
-                .onSuccess { sessions ->
-                    updateState { copy(isLoading = false, sessions = sessions) }
-                }
-                .onFailure { t ->
-                    updateState { copy(isLoading = false, error = t.message) }
-                    sendEffect(HistoryEffect.ShowError(t.message ?: "Error al cargar historial"))
-                }
+//            runCatching { getAllSessions() }
+//                .onSuccess { sessions ->
+//                    updateState { copy(isLoading = false, sessions = sessions) }
+//                }
+//                .onFailure { t ->
+//                    updateState { copy(isLoading = false, error = t.message) }
+//                    sendEffect(HistoryEffect.ShowError(t.message ?: "Error al cargar historial"))
+//                }
         }
     }
 }

@@ -1,8 +1,9 @@
 package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.model.AddressInfo
-import io.apptolast.paparcar.domain.model.ParkingSession
+import io.apptolast.paparcar.domain.model.UserParkingSession
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotLocation
 
 /**
  * Estado de la pantalla Home.
@@ -14,7 +15,9 @@ data class HomeState(
     val nearbySpots: List<Spot> = emptyList(),
     val error: String? = null,
     val userLocation: Pair<Double, Double>? = null,
+    val userSpotLocation: SpotLocation? = null,
+    val userAddress: AddressInfo? = null,
     val isDetectionActive: Boolean = false,
-    val userParking: ParkingSession? = null,
+    val userParking: UserParkingSession? = null,
     val spotAddresses: Map<String, AddressInfo> = emptyMap(),
 )

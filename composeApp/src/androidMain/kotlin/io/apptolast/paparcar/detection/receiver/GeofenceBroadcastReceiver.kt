@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.detection
+package io.apptolast.paparcar.detection.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -6,7 +6,7 @@ import android.content.Intent
 import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import com.google.android.gms.location.GeofencingEvent
-import io.apptolast.paparcar.detection.workers.ReportSpotWorker
+import io.apptolast.paparcar.detection.worker.CheckDepartureWorker
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import kotlin.time.Clock
@@ -20,8 +20,10 @@ import org.koin.core.component.inject
  * On GEOFENCE_EXIT:
  * 1. Emits a [GeofenceEvent.Exited] into [GeofenceEventBus] so any in-process
  *    observer (e.g. a ViewModel) can react immediately.
- * 2. Enqueues [ReportSpotWorker] via WorkManager for guaranteed delivery of the
- *    "spot released" report to Firebase, even if the process dies.
+ * 2. Enqueues [CheckDepartureWorker] via WorkManager to decide — combining the
+ *    geofence-exit signal with the IN_VEHICLE_ENTER signal from [ActivityTransitionReceiver]
+ *    and a live speed reading — whether the user actually drove away in their own car.
+ *    Only if confirmed does [CheckDepartureWorker] enqueue [ReportSpotWorker].
  *
  * Registration: AndroidManifest.xml (exported=false — system delivers via PendingIntent).
  */
@@ -55,12 +57,15 @@ class GeofenceBroadcastReceiver : BroadcastReceiver(), KoinComponent {
                 )
             )
 
-            // 2 — Schedule guaranteed Firebase report via WorkManager.
-            //     REPLACE: if the worker is already queued/running for this session, restart it.
+            // 2 — Enqueue departure check. CheckDepartureWorker combines this exit event
+            //     with the IN_VEHICLE_ENTER signal to decide whether to publish the spot.
             WorkManager.getInstance(context).enqueueUniqueWork(
-                "${ReportSpotWorker.TAG}_${geofence.requestId}",
+                "${CheckDepartureWorker.TAG}_${geofence.requestId}",
                 ExistingWorkPolicy.REPLACE,
-                ReportSpotWorker.buildRequest(),
+                CheckDepartureWorker.buildRequest(
+                    geofenceId = geofence.requestId,
+                    exitTimestampMs = now,
+                ),
             )
         }
     }

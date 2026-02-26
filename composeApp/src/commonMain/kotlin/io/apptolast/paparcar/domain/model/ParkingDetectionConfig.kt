@@ -14,8 +14,10 @@ data class ParkingDetectionConfig(
     // ── FAST PATH ─────────────────────────────────────────────────────────────
     /** Minimum stopped duration (ms) required to enter the fast path when an activity-exit event is present. */
     val fastPathMinStoppedMs: Long = 30_000L,
-    /** Base confidence score granted by the activity-exit signal alone. */
-    val fastPathBaseScore: Float = 0.45f,
+    /** Base confidence score granted by the activity-exit signal alone.
+     *  0.50 lets the fast path reach High (0.75) when both speed and GPS-accuracy
+     *  bonuses are present, auto-confirming without requiring user action. */
+    val fastPathBaseScore: Float = 0.50f,
     /** Bonus added when speed is below [maxSpeedMps] in the fast path. */
     val fastPathSpeedBonus: Float = 0.15f,
     /** Bonus added when GPS accuracy is better than [minGpsAccuracyMeters] in the fast path. */
@@ -54,6 +56,18 @@ data class ParkingDetectionConfig(
     // ── GEOFENCE ──────────────────────────────────────────────────────────────
     /** Radius (meters) of the geofence registered around the confirmed parking spot. */
     val geofenceRadiusMeters: Float = 80f,
+
+    // ── DEPARTURE DETECTION ───────────────────────────────────────────────────
+    /** Maximum time (ms) between an IN_VEHICLE_ENTER transition and a GEOFENCE_EXIT for
+     *  the departure to be considered intentional. Default 5 minutes. */
+    val vehicleEnterWindowMs: Long = 5 * 60 * 1_000L,
+    /** Minimum speed (km/h) that confirms the user is driving away. Speed check is skipped
+     *  when GPS is unavailable. Default 10 km/h. */
+    val minimumDepartureSpeedKmh: Float = 10f,
+    /** Speed (km/h) above which [VehicleSpeedCheckWorker] considers the user to be in a
+     *  moving vehicle. Used as a fallback when the Transitions API fails to deliver
+     *  IN_VEHICLE_ENTER for short trips (< ~5 min). Default 25 km/h. */
+    val vehicleSpeedFallbackThresholdKmh: Float = 25f,
 ) {
     init {
         require(highConfidenceThreshold in 0f..1f) {
@@ -70,6 +84,15 @@ data class ParkingDetectionConfig(
         }
         require(geofenceRadiusMeters > 0) {
             "geofenceRadiusMeters must be > 0, was $geofenceRadiusMeters"
+        }
+        require(vehicleEnterWindowMs > 0) {
+            "vehicleEnterWindowMs must be > 0, was $vehicleEnterWindowMs"
+        }
+        require(minimumDepartureSpeedKmh > 0) {
+            "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"
+        }
+        require(vehicleSpeedFallbackThresholdKmh > 0) {
+            "vehicleSpeedFallbackThresholdKmh must be > 0, was $vehicleSpeedFallbackThresholdKmh"
         }
     }
 }

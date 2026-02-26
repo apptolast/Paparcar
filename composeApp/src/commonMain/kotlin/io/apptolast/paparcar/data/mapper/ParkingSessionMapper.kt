@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.data.mapper
 
-import io.apptolast.paparcar.data.datasource.local.room.ParkingSessionEntity
-import io.apptolast.paparcar.domain.model.ParkingSession
+import io.apptolast.paparcar.data.datasource.local.room.UserParkingSessionEntity
+import io.apptolast.paparcar.domain.model.UserParkingSession
 
-fun ParkingSessionEntity.toDomain(): ParkingSession = ParkingSession(
+fun UserParkingSessionEntity.toDomain(): UserParkingSession = UserParkingSession(
     id = id,
     latitude = latitude,
     longitude = longitude,
@@ -14,7 +14,7 @@ fun ParkingSessionEntity.toDomain(): ParkingSession = ParkingSession(
     isActive = isActive,
 )
 
-fun ParkingSession.toEntity(): ParkingSessionEntity = ParkingSessionEntity(
+fun UserParkingSession.toEntity(): UserParkingSessionEntity = UserParkingSessionEntity(
     id = id,
     latitude = latitude,
     longitude = longitude,

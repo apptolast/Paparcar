@@ -13,10 +13,10 @@ class LocationRepositoryImpl(
     private val localLocationDataSource: LocalLocationDataSource
 ) : LocationRepository {
 
-    override fun locationFlow(): Flow<SpotLocation> =
+    override fun observeBalancedLocationFlow(): Flow<SpotLocation> =
         platformLocationDataSource.observeBalancedLocation()
 
-    override fun observeHighAccuracyFlow(): Flow<SpotLocation> =
+    override fun observeHighAccuracyLocationFlow(): Flow<SpotLocation> =
         platformLocationDataSource.observeHighAccuracyLocation()
 
     override suspend fun getHighAccuracyLocation(): SpotLocation? =

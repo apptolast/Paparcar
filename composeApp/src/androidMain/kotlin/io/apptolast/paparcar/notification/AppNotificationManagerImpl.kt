@@ -9,7 +9,7 @@ import android.content.Intent
 import android.graphics.Color
 import androidx.core.app.NotificationCompat
 import io.apptolast.paparcar.R
-import io.apptolast.paparcar.detection.ParkingConfirmationReceiver
+import io.apptolast.paparcar.detection.receiver.ParkingConfirmationReceiver
 import io.apptolast.paparcar.domain.notification.NotificationPort
 
 class AppNotificationManagerImpl(

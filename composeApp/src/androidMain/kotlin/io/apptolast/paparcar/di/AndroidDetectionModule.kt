@@ -3,9 +3,11 @@ package io.apptolast.paparcar.di
 import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.detection.ActivityRecognitionManagerImpl
+import io.apptolast.paparcar.detection.DepartureEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceManagerImpl
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceService
 import org.koin.android.ext.koin.androidContext
@@ -21,5 +23,8 @@ val androidDetectionModule = module {
     single { LocationServices.getGeofencingClient(androidContext()) }
     single<GeofenceEventBus> { GeofenceEventBusImpl() }
     single<GeofenceService> { GeofenceManagerImpl(androidContext(), get(), get()) }
+
+    // --- Departure Detection ---
+    single<DepartureEventBus> { DepartureEventBusImpl() }
 
 }

@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "parking_sessions")
-data class ParkingSessionEntity(
+data class UserParkingSessionEntity(
     @PrimaryKey val id: String,
     val latitude: Double,
     val longitude: Double,

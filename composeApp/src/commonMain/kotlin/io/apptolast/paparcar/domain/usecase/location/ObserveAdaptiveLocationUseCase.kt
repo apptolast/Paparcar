@@ -28,8 +28,8 @@ class ObserveAdaptiveLocationUseCase(
         return mode
             .flatMapLatest { currentMode ->
                 when (currentMode) {
-                    Mode.HighAccuracy -> locationRepository.observeHighAccuracyFlow()
-                    Mode.Balanced -> locationRepository.locationFlow()
+                    Mode.HighAccuracy -> locationRepository.observeHighAccuracyLocationFlow()
+                    Mode.Balanced -> locationRepository.observeBalancedLocationFlow()
                 }
             }
             .onEach { location ->

@@ -1,13 +1,10 @@
 package io.apptolast.paparcar.presentation.home
 
-/**
- * Intents (acciones del usuario) para la pantalla Home.
- * Representan todas las interacciones posibles del usuario con la UI.
- */
 sealed class HomeIntent {
-    object LoadNearbySpots : HomeIntent()
+    data object LoadNearbySpots : HomeIntent()
     data class SpotSelected(val spotId: String) : HomeIntent()
-    object OpenMap : HomeIntent()
-    object OpenHistory : HomeIntent()
-    object ReportTestSpot : HomeIntent() // Para pruebas
+    data object OpenMap : HomeIntent()
+    data object OpenHistory : HomeIntent()
+    data object ReportTestSpot : HomeIntent()
+    data object ReleaseParking : HomeIntent()
 }

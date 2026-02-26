@@ -2,7 +2,7 @@ package io.apptolast.paparcar
 
 import android.app.Application
 import androidx.work.WorkManager
-import io.apptolast.paparcar.detection.workers.RegisterActivityTransitionsWorker
+import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.di.androidDetectionModule
 import io.apptolast.paparcar.di.androidPlatformModule
 import io.apptolast.paparcar.di.dataModule

@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.detection.services
+package io.apptolast.paparcar.detection.service
 
 import android.content.Intent
 import androidx.lifecycle.LifecycleService
@@ -25,19 +25,25 @@ class DrivingTrackingService : LifecycleService() {
 
         when (intent?.action) {
             ACTION_START_TRACKING -> {
-                if (detectionJob == null) {
-                    val notification = foregroundNotificationProvider.buildDetectionNotification()
-                    startForeground(NotificationPort.DETECTION_NOTIFICATION_ID, notification)
-                    startParkingDetection()
-                }
+                // Always restart: a new IN_VEHICLE_ENTER supersedes any in-progress session
+                // (e.g. user parked briefly, got back in car before confirming).
+                // DetectAndReportParkingUseCase.invoke() dismisses any pending confirmation
+                // notification automatically at the start of each new session.
+                detectionJob?.cancel()
+                detectionJob = null
+                val notification = foregroundNotificationProvider.buildDetectionNotification()
+                startForeground(NotificationPort.DETECTION_NOTIFICATION_ID, notification)
+                startParkingDetection()
             }
             ACTION_VEHICLE_EXIT -> {
                 detectAndReportParking.onVehicleExit()
             }
             ACTION_PARKING_CONFIRMED -> {
+                // Notification is dismissed inside onUserConfirmedParking().
                 detectAndReportParking.onUserConfirmedParking()
             }
             ACTION_PARKING_DENIED -> {
+                // Notification is dismissed inside onUserDeniedParking().
                 detectAndReportParking.onUserDeniedParking()
             }
             ACTION_STOP_TRACKING -> {

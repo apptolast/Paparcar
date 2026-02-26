@@ -9,6 +9,7 @@ import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionRequest
 import com.google.android.gms.location.DetectedActivity
+import io.apptolast.paparcar.detection.receiver.ActivityTransitionReceiver
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 
 class ActivityRecognitionManagerImpl(

@@ -7,6 +7,6 @@ import kotlinx.coroutines.flow.Flow
 class ObserveLocationUpdatesUseCase(private val locationRepository: LocationRepository) {
 
     operator fun invoke(): Flow<SpotLocation> {
-        return locationRepository.locationFlow()
+        return locationRepository.observeBalancedLocationFlow()
     }
 }

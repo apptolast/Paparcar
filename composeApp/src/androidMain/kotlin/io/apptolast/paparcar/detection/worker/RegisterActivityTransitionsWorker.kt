@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.detection.workers
+package io.apptolast.paparcar.detection.worker
 
 import android.content.Context
 import androidx.work.CoroutineWorker

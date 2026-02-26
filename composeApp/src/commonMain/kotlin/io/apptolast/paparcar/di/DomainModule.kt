@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.di
 
 import io.apptolast.paparcar.domain.usecase.location.GetAddressUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetStoredLocationsUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveLocationUpdatesUseCase
@@ -12,8 +13,9 @@ import io.apptolast.paparcar.domain.usecase.notification.NotifySpotUploadingUseC
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DetectAndReportParkingUseCase
-import io.apptolast.paparcar.domain.usecase.parking.GetAllParkingSessionsUseCase
+import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.GetUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.SaveUserParkingUseCase
@@ -32,6 +34,7 @@ val domainModule = module {
     // Location UseCases
     factory { GetAddressUseCase(get()) }
     factory { ObserveLocationUpdatesUseCase(get()) }
+    factory { GetOneLocationUseCase(get()) }
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SaveLocationToLocalUseCase(get()) }
     factory { GetStoredLocationsUseCase(get()) }
@@ -42,16 +45,23 @@ val domainModule = module {
     factory { SaveUserParkingUseCase(get()) }
     factory { GetUserParkingUseCase(get()) }
     factory { ObserveUserParkingUseCase(get()) }
-    factory { GetAllParkingSessionsUseCase(get()) }
+//    factory { GetAllParkingSessionsUseCase(get()) }
     factory { ClearUserParkingUseCase(get()) }
+    factory { DetectParkingDepartureUseCase(get(), get(), get()) }
     factory {
-        DetectAndReportParkingUseCase(
-            calculateParkingConfidence = get(),
+        ConfirmParkingUseCase(
             saveUserParking = get(),
             geofenceService = get(),
-            notifyParkingConfirmation = get(),
             notifyParkingSpotSaved = get(),
             config = get(),
+        )
+    }
+    single {
+        DetectAndReportParkingUseCase(
+            calculateParkingConfidence = get(),
+            confirmParking = get(),
+            notifyParkingConfirmation = get(),
+            dismissNotification = get(),
         )
     }
 

@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.detection.workers
+package io.apptolast.paparcar.detection.worker
 
 import android.content.Context
 import androidx.work.BackoffPolicy
@@ -9,7 +9,6 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import io.apptolast.paparcar.BuildConfig
-import io.apptolast.paparcar.detection.workers.ReportSpotWorker.Companion.MAX_RETRY_ATTEMPTS
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotLocation
 import io.apptolast.paparcar.domain.notification.NotificationPort

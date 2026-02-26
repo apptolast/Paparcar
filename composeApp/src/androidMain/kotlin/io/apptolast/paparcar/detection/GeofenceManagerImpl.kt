@@ -7,6 +7,7 @@ import android.content.Intent
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
+import io.apptolast.paparcar.detection.receiver.GeofenceBroadcastReceiver
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceService

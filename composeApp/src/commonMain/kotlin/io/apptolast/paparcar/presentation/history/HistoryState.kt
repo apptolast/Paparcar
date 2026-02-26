@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.presentation.history
 
-import io.apptolast.paparcar.domain.model.ParkingSession
+import io.apptolast.paparcar.domain.model.UserParkingSession
 
 data class HistoryState(
     val isLoading: Boolean = false,
-    val sessions: List<ParkingSession> = emptyList(),
+    val sessions: List<UserParkingSession> = emptyList(),
     val error: String? = null,
 )

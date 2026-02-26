@@ -46,20 +46,20 @@
 
         <!-- DrivingTrackingService -->
         <service
-            android:name=".detection.services.DrivingTrackingService"
+            android:name=".detection.service.DrivingTrackingService"
             android:foregroundServiceType="location"
             android:exported="false" />
 
         <!-- ActivityTransitionReceiver -->
         <receiver
-            android:name=".detection.ActivityTransitionReceiver"
+            android:name=".detection.receiver.ActivityTransitionReceiver"
             android:exported="true"
             android:permission="com.google.android.gms.permission.ACTIVITY_RECOGNITION">
         </receiver>
 
         <!-- BootCompletedReceiver -->
         <receiver
-            android:name=".detection.BootCompletedReceiver"
+            android:name=".detection.receiver.BootCompletedReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -68,7 +68,7 @@
 
         <!-- GeofenceBroadcastReceiver — system delivers via explicit PendingIntent -->
         <receiver
-            android:name=".detection.GeofenceBroadcastReceiver"
+            android:name=".detection.receiver.GeofenceBroadcastReceiver"
             android:exported="false" />
 
         <!-- Google Maps API Key -->
@@ -78,7 +78,7 @@
 
         <!-- ParkingConfirmationReceiver — notification action buttons -->
         <receiver
-            android:name=".detection.ParkingConfirmationReceiver"
+            android:name=".detection.receiver.ParkingConfirmationReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="io.apptolast.paparcar.ACTION_PARKING_CONFIRMED" />

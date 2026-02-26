@@ -5,9 +5,9 @@ import kotlinx.coroutines.flow.Flow
 
 interface LocationRepository {
 
-    fun locationFlow(): Flow<SpotLocation>
+    fun observeBalancedLocationFlow(): Flow<SpotLocation>
 
-    fun observeHighAccuracyFlow(): Flow<SpotLocation>
+    fun observeHighAccuracyLocationFlow(): Flow<SpotLocation>
 
     suspend fun getHighAccuracyLocation(): SpotLocation?
 

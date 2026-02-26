@@ -1,10 +1,10 @@
-package io.apptolast.paparcar.detection
+package io.apptolast.paparcar.detection.receiver
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.work.WorkManager
-import io.apptolast.paparcar.detection.workers.RegisterActivityTransitionsWorker
+import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
