@@ -2,9 +2,13 @@
 
 package io.apptolast.paparcar.presentation.home
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,8 +19,10 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,39 +30,34 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
-import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Campaign
-import androidx.compose.material.icons.outlined.Chat
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Eco
-import androidx.compose.material.icons.outlined.ElectricCar
-import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material.icons.outlined.Fullscreen
-import androidx.compose.material.icons.outlined.FullscreenExit
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Stars
-import androidx.compose.material.icons.outlined.ThumbUp
-import androidx.compose.material.icons.outlined.Verified
-import androidx.compose.material3.Badge
+import androidx.compose.material.icons.outlined.RadioButtonChecked
+import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,43 +70,55 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.SpotLocation
-import io.apptolast.paparcar.domain.model.UserParkingSession
+import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.presentation.map.PlatformMap
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.formatCoords
 import io.apptolast.paparcar.presentation.util.formatDistance
 import io.apptolast.paparcar.presentation.util.formatRelativeTime
 import io.apptolast.paparcar.presentation.util.formatWalkTime
+import io.apptolast.paparcar.ui.theme.AmberAccent
+import io.apptolast.paparcar.ui.theme.EcoForest
+import io.apptolast.paparcar.ui.theme.EcoGreen
+import io.apptolast.paparcar.ui.theme.EcoGreenMuted
+import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_address_loading
+import paparcar.composeapp.generated.resources.home_banner_accuracy
+import paparcar.composeapp.generated.resources.home_cd_profile
+import paparcar.composeapp.generated.resources.home_empty_subtitle
+import paparcar.composeapp.generated.resources.home_empty_title
+import paparcar.composeapp.generated.resources.home_fab_report_spot
+import paparcar.composeapp.generated.resources.home_feed_activity
+import paparcar.composeapp.generated.resources.home_feed_nearby
+import paparcar.composeapp.generated.resources.home_permissions_button
+import paparcar.composeapp.generated.resources.home_permissions_message
+import paparcar.composeapp.generated.resources.home_spot_reported_by
+import paparcar.composeapp.generated.resources.home_spot_status_free
+import paparcar.composeapp.generated.resources.home_spot_status_occupied
+import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
-// ── Design System — brand colors (fixed regardless of theme) ─────────────────
-private val EcoForest = Color(0xFF0D1C14)
-private val EcoForestCard = Color(0xFF102219)
-private val EcoGreen = Color(0xFF25F48C)
-private val EcoMintBorder = Color(0xFFD0EBD9)
-private val EcoGreenMuted = Color(0xFF133D28)
-private val EcoGreenElement = Color(0xFF226D49)
-
-// Warm amber accent — used for "occupied" state to contrast with eco-green
-private val AmberMuted = Color(0xFF3D2A10)
-private val AmberAccent = Color(0xFFF4A825)
+// Peek = pill(22) + address row(74) = 96dp
+private val SheetPeekHeight = 96.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Root composable
+// Root
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 fun EcoHomeScreen(
     onNavigateToMap: () -> Unit = {},
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},   // ← NEW: wired from nav graph
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -118,8 +131,7 @@ fun EcoHomeScreen(
                 is HomeEffect.ShowSuccess -> snackbarHostState.showSnackbar(effect.message)
                 is HomeEffect.NavigateToMap -> onNavigateToMap()
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
-                is HomeEffect.RequestLocationPermission -> { /* handled by platform */
-                }
+                is HomeEffect.RequestLocationPermission -> {}
             }
         }
     }
@@ -127,12 +139,13 @@ fun EcoHomeScreen(
     EcoHomeContent(
         state = state,
         onIntent = viewModel::handleIntent,
+        onNavigateToSettings = onNavigateToSettings,
         snackbarHostState = snackbarHostState,
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Content — stateless layout
+// Content
 // ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -140,153 +153,141 @@ fun EcoHomeScreen(
 private fun EcoHomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
+    onNavigateToSettings: () -> Unit,
     snackbarHostState: SnackbarHostState,
 ) {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
-    val activeSpots = state.nearbySpots.count { it.isActive }
-    var mapExpanded by remember { mutableStateOf(false) }
+    var cameraTarget by remember { mutableStateOf<CameraTarget?>(null) }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = { EcoHeader(scrollBehavior = scrollBehavior) },
-        // ── Single FAB — no duplicate button below ──
-        floatingActionButton = {
-            // Only shown when map is NOT expanded (would overlap map controls)
-            if (!mapExpanded) {
-                androidx.compose.material3.FloatingActionButton(
-                    onClick = { onIntent(HomeIntent.ReportTestSpot) },
-                    containerColor = EcoGreen,
-                    contentColor = EcoForest,
-                    shape = CircleShape,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 18.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.Campaign,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Text(
-                            "Reportar",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            letterSpacing = 0.3.sp,
-                        )
-                    }
-                }
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = { EcoReportBar(onClick = { onIntent(HomeIntent.ReportTestSpot) }) },
+        containerColor = Color.Transparent,
+    ) { scaffoldPadding ->
+
+        val scaffoldState = rememberBottomSheetScaffoldState()
+        val sheetExpanded = scaffoldState.bottomSheetState.currentValue == SheetValue.Expanded
+
+        // ── Helper lambdas for camera moves ───────────────────────────────
+        fun moveToParkingSpot() {
+            state.userParking?.let { p ->
+                cameraTarget = CameraTarget(
+                    lat = p.location.latitude, lon = p.location.longitude, zoom = 17f,
+                    token = (cameraTarget?.token ?: 0) + 1,
+                )
             }
-        },
-    ) { padding ->
-        LazyColumn(
+        }
+
+        fun moveToMidpoint() {
+            val p = state.userParking ?: return
+            val u = state.userLocation ?: return
+            cameraTarget = CameraTarget(
+                lat = (p.location.latitude + u.first) / 2.0,
+                lon = (p.location.longitude + u.second) / 2.0,
+                zoom = 15f,
+                token = (cameraTarget?.token ?: 0) + 1,
+            )
+        }
+
+        fun moveToUserLocation() {
+            state.userLocation?.let { (lat, lon) ->
+                cameraTarget = CameraTarget(
+                    lat = lat, lon = lon, zoom = 17f,
+                    token = (cameraTarget?.token ?: 0) + 1,
+                )
+            }
+        }
+
+        // ── Layout ────────────────────────────────────────────────────────
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(bottom = 96.dp),
-            userScrollEnabled = !mapExpanded,
+                .padding(scaffoldPadding),
         ) {
-
-            // ── Impact stats ──────────────────────────────────────────────
-            item {
-                EcoImpactStats(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                )
-            }
-
-            // ── Weekly green goal ─────────────────────────────────────────
-            item {
-                EcoWeeklyGoal(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
-                )
-            }
-
-            // ── Active parking banner ─────────────────────────────────────
-            state.userParking?.let { parking ->
-                item {
-                    EcoParkingBanner(
-                        timestampMs = parking.timestamp,
-                        onReleaseSpot = { onIntent(HomeIntent.ReleaseParking) },
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+            BottomSheetScaffold(
+                modifier = Modifier.fillMaxSize(),
+                scaffoldState = scaffoldState,
+                containerColor = Color.Transparent,
+                sheetPeekHeight = SheetPeekHeight,
+                sheetContainerColor = MaterialTheme.colorScheme.surface,
+                sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                sheetDragHandle = {
+                    EcoPeekHandle(
+                        state = state,
+                        onParkingClick = { moveToParkingSpot() },
                     )
-                }
-            }
-
-            // ── Nearby spots header ───────────────────────────────────────
-            item {
-                EcoNearbySpotsHeader(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
-                )
-            }
-
-            // ── Map + address bar ─────────────────────────────────────────
-            item {
-                EcoMapSection(
-                    spots = state.nearbySpots,
-                    userSpotLocation = state.userSpotLocation,
-                    userParking = state.userParking,
-                    userAddress = state.userAddress,
-                    activeSpotCount = activeSpots,
-                    onSpotClick = { spotId -> onIntent(HomeIntent.SpotSelected(spotId)) },
-                    expanded = mapExpanded,
-                    onToggleExpand = { mapExpanded = !mapExpanded },
-                )
-            }
-
-            // ── Below-map content (permissions / empty / cards) ───────────
-            when {
-                !state.allPermissionsGranted -> item {
-                    EcoPermissionsCard(
-                        onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                },
+                sheetContent = {
+                    EcoSheetContent(
+                        state = state,
+                        onIntent = onIntent,
+                        onCameraMove = { lat, lon ->
+                            cameraTarget = CameraTarget(
+                                lat = lat, lon = lon, zoom = 17f,
+                                token = (cameraTarget?.token ?: 0) + 1,
+                            )
+                        },
+                        onParkingClick = { moveToParkingSpot() },
                     )
-                }
+                },
+            ) {
+                // ── Map height tracks the sheet's top edge ────────────────
+                Box(modifier = Modifier.fillMaxSize()) {
 
-                state.nearbySpots.isEmpty() -> item {
-                    EcoEmptySpots(
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp),
+                    PlatformMap(
+                        spots = state.nearbySpots,
+                        userLocation = state.userGpsPoint,
+                        userParking = state.userParking,
+                        onSpotClick = {},
+                        cameraTarget = cameraTarget,
+                        contentPadding = PaddingValues(),
+                        showMapControls = false,   // replaced by our custom FABs below
+                        modifier = Modifier.fillMaxSize(),
                     )
-                }
 
-                else -> items(state.nearbySpots, key = { it.id }) { spot ->
-                    EcoSpotCard(
-                        spot = spot,
-                        address = state.spotAddresses[spot.id],
-                        userLocation = state.userLocation,
-                        // First card: flat top (connects under address bar)
-                        // Subsequent cards: flat top + flat bottom to stack flush
-                        // Last card: rounded bottom
-                        isFirst = state.nearbySpots.first() == spot,
-                        isLast = state.nearbySpots.last() == spot,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        onClick = { onIntent(HomeIntent.SpotSelected(spot.id)) },
-                    )
-                }
-            }
+                    // ── Custom FAB column — bottom-end, above peek handle ──
+                    AnimatedVisibility(
+                        visible = !sheetExpanded,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(end = 14.dp, bottom = SheetPeekHeight + 12.dp),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // 1. Go to parked vehicle (only when parked)
+                            if (state.userParking != null) {
+                                EcoMapFab(
+                                    icon = Icons.Outlined.DirectionsCar,
+                                    tint = EcoGreen,
+                                    containerColor = EcoGreenMuted,
+                                    onClick = { moveToParkingSpot() },
+                                )
+                            }
+                            // 2. Go to midpoint between vehicle and user (only when both exist)
+                            if (state.userParking != null && state.userLocation != null) {
+                                EcoMapFab(
+                                    icon = Icons.Outlined.Route,
+                                    onClick = { moveToMidpoint() },
+                                )
+                            }
+                            // 3. Go to user location
+                            EcoMapFab(
+                                icon = Icons.Outlined.MyLocation,
+                                onClick = { moveToUserLocation() },
+                            )
+                        }
+                    }
 
-            // ── Recent activity ───────────────────────────────────────────
-            if (state.nearbySpots.isNotEmpty()) {
-                item {
-                    EcoActivityHeader(
-                        modifier = Modifier.padding(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 24.dp,
-                            bottom = 12.dp,
-                        ),
-                    )
-                }
-
-                items(state.nearbySpots.take(3), key = { "feed_${it.id}" }) { spot ->
-                    EcoFeedItem(
-                        spot = spot,
-                        address = state.spotAddresses[spot.id],
-                        onLike = { /*onIntent(HomeIntent.LikeSpot(spot.id))*/ },
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
+                    // ── Floating header ────────────────────────────────────
+                    EcoFloatingHeader(
+                        onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
+                        onSettingsClick = onNavigateToSettings,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                     )
                 }
             }
@@ -295,493 +296,490 @@ private fun EcoHomeContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Header
+// Reusable circular map FAB
 // ─────────────────────────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun EcoHeader(
-    scrollBehavior: androidx.compose.material3.TopAppBarScrollBehavior,
+private fun EcoMapFab(
+    icon: ImageVector,
+    onClick: () -> Unit,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    containerColor: Color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
 ) {
-    TopAppBar(
-        navigationIcon = {
-            Box(
-                modifier = Modifier
-                    .padding(start = 12.dp)
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Person,
-                    contentDescription = "Perfil",
-                    tint = EcoGreenElement,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        },
-        title = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = containerColor,
+        shadowElevation = 6.dp,
+        modifier = Modifier.size(44.dp),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Peek handle — deliberadamente minimalista (Google Maps style)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun EcoPeekHandle(
+    state: HomeState,
+    onParkingClick: () -> Unit,
+) {
+    val freeCount = state.nearbySpots.count { it.isActive }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+
+        // Drag pill
+        Box(
+            modifier = Modifier
+                .padding(top = 10.dp, bottom = 8.dp)
+                .size(width = 32.dp, height = 4.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+                .align(Alignment.CenterHorizontally),
+        )
+
+        // Fila única: dirección + badge
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                Icons.Outlined.LocationOn,
+                contentDescription = null,
+                tint = EcoGreen,
+                modifier = Modifier.size(20.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "URBANPARK",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = EcoGreenElement,
-                    letterSpacing = 1.2.sp,
+                    text = state.userAddress?.displayLine
+                        ?: stringResource(Res.string.home_address_loading),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                if (state.userAddress?.city != null) {
+                    Text(
+                        text = listOfNotNull(
+                            state.userAddress.city,
+                            state.userAddress.region,
+                        ).joinToString(", "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        maxLines = 1,
+                    )
+                }
+            }
+            // Badge de spots libres
+            Surface(
+                color = if (freeCount > 0) EcoGreenMuted
+                else MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(8.dp),
+            ) {
                 Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (freeCount > 0) EcoGreen
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            ),
+                    )
+                    Text(
+                        stringResource(Res.string.home_stats_free_spots_badge, freeCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (freeCount > 0) EcoGreen
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Floating header — Eco-Driver pill opens a dropdown; each menu item is its
+// own independent pill Surface so they look visually separate from each other.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun EcoFloatingHeader(
+    onHistoryClick: () -> Unit,
+    onSettingsClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var dropdownExpanded by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box {
+            // ── Eco-Driver identity pill ───────────────────────────────────
+            Surface(
+                onClick = { dropdownExpanded = true },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                shadowElevation = 6.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(EcoGreenMuted),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Person,
+                            contentDescription = stringResource(Res.string.home_cd_profile),
+                            tint = EcoGreen,
+                            modifier = Modifier.size(13.dp),
+                        )
+                    }
                     Text(
                         "Eco-Driver",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Icon(
-                        Icons.Outlined.Verified,
+                        imageVector = if (dropdownExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                         contentDescription = null,
-                        tint = EcoGreen,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                         modifier = Modifier.size(16.dp),
                     )
                 }
             }
-        },
-        actions = {
-            Box {
-                IconButton(onClick = {}) {
-                    Icon(
-                        Icons.Outlined.Notifications,
-                        contentDescription = "Notificaciones",
-                        tint = MaterialTheme.colorScheme.onBackground,
+
+            // Inside EcoFloatingHeader (replace your DropdownMenu block):
+
+            var item1Visible by remember { mutableStateOf(false) }
+            var item2Visible by remember { mutableStateOf(false) }
+
+// Stagger open AND close
+            LaunchedEffect(dropdownExpanded) {
+                if (dropdownExpanded) {
+                    item1Visible = false
+                    item2Visible = false
+                    item1Visible = true          // item 1 slides in immediately
+                    delay(90)
+                    item2Visible = true          // item 2 follows 90 ms later
+                } else {
+                    item2Visible = false         // item 2 leaves first
+                    delay(90)
+                    item1Visible = false         // item 1 follows 90 ms later
+                }
+            }
+
+            DropdownMenu(
+                expanded = dropdownExpanded,
+                onDismissRequest = { dropdownExpanded = false },
+                containerColor = Color.Transparent,
+                shadowElevation = 0.dp,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            ) {
+                AnimatedVisibility(
+                    visible = item1Visible,
+                    enter = slideInVertically(
+                        initialOffsetY = { -it },          // comes from above
+                        animationSpec = tween(220),
+                    ) + fadeIn(tween(220)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { -it },
+                        animationSpec = tween(150),
+                    ) + fadeOut(tween(150)),
+                ) {
+                    EcoDropdownPillItem(
+                        icon = Icons.Outlined.History,
+                        label = "Historial",
+                        onClick = { dropdownExpanded = false; onHistoryClick() },
                     )
                 }
-                // Badge with count — replace 3 with real unread count from state
-                Badge(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 8.dp, end = 8.dp),
-                    containerColor = EcoGreen,
-                    contentColor = EcoForest,
+
+                AnimatedVisibility(
+                    visible = item2Visible,
+                    enter = slideInVertically(
+                        initialOffsetY = { -it },
+                        animationSpec = tween(220),
+                    ) + fadeIn(tween(220)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { -it },
+                        animationSpec = tween(150),
+                    ) + fadeOut(tween(150)),
                 ) {
-                    Text(
-                        "3",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
+                    EcoDropdownPillItem(
+                        icon = Icons.Outlined.Settings,
+                        label = "Ajustes",
+                        onClick = { dropdownExpanded = false; onSettingsClick() },
                     )
                 }
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.92f),
-            scrolledContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 0.92f),
-        ),
-        scrollBehavior = scrollBehavior,
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Impact Stats — 2-column cards WITH proper card containers
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EcoImpactStats(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        EcoStatCard(
-            modifier = Modifier.weight(1f),
-            icon = Icons.Outlined.Eco,
-            label = "CO₂ Ahorrado",
-            value = "12.4 kg",
-            subIcon = Icons.AutoMirrored.Outlined.TrendingUp,
-            subLabel = "+15% esta semana",
-        )
-        EcoStatCard(
-            modifier = Modifier.weight(1f),
-            icon = Icons.Outlined.ElectricCar,
-            label = "Eco Puntos",
-            value = "850",
-            subIcon = Icons.Outlined.Stars,
-            subLabel = "Puesto #12",
-        )
+        }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Dropdown pill item — each one is its own Surface(CircleShape) so it has an
+// independent background, identical in language to the Eco-Driver pill.
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
-private fun EcoStatCard(
+private fun EcoDropdownPillItem(
     icon: ImageVector,
     label: String,
-    value: String,
-    subIcon: ImageVector,
-    subLabel: String,
-    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, EcoMintBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+        shadowElevation = 5.dp,
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(EcoGreenMuted),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    icon,
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = EcoGreenElement,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    label,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    tint = EcoGreen,
+                    modifier = Modifier.size(12.dp),
                 )
             }
             Text(
-                value,
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                letterSpacing = (-0.5).sp,
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Icon(
-                    subIcon,
-                    contentDescription = null,
-                    tint = EcoGreenElement,
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(
-                    subLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = EcoGreenElement,
-                )
-            }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Weekly Green Goal
+// Sheet content
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun EcoWeeklyGoal(modifier: Modifier = Modifier) {
-    val progress = 0.75f
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = EcoGreenMuted),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+private fun EcoSheetContent(
+    state: HomeState,
+    onIntent: (HomeIntent) -> Unit,
+    onCameraMove: (Double, Double) -> Unit,
+    onParkingClick: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.navigationBarsPadding(),
+        contentPadding = PaddingValues(bottom = 40.dp),
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Icon(
-                Icons.Outlined.EmojiEvents,
-                contentDescription = null,
-                tint = EcoGreen.copy(alpha = 0.08f),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .size(64.dp),
-            )
 
-            Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(
-                            "Objetivo Semanal",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                        )
-                        Text(
-                            "Reduce la congestión urbana",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = EcoGreen.copy(alpha = 0.8f),
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-                    Text(
-                        "750/1000 pts",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(12.dp)
-                        .clip(CircleShape),
-                    color = EcoGreen,
-                    trackColor = Color.White.copy(alpha = 0.1f),
-                    gapSize = 0.dp,
+        // ── Parking row — solo si está aparcado ───────────────────────────
+        state.userParking?.let { parking ->
+            item {
+                EcoParkingRow(
+                    parking = parking,
+                    address = null,
+                    userLocation = state.userLocation,
+                    onClick = onParkingClick,
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 8.dp,
+                    ),
                 )
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+                )
+            }
+        }
 
-                Spacer(Modifier.height(12.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    Text("🎉", fontSize = 13.sp)
-                    Text(
-                        "¡Casi! Estás en el top 5% de conductores",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = EcoGreen,
+        // ── Sección: Cerca de ti ──────────────────────────────────────────
+        item {
+            EcoSectionHeader(
+                title = stringResource(Res.string.home_feed_nearby),
+                badge = if (state.nearbySpots.isNotEmpty())
+                    stringResource(
+                        Res.string.home_stats_free_spots_badge,
+                        state.nearbySpots.count { it.isActive },
                     )
-                }
+                else null,
+                modifier = Modifier.padding(
+                    start = 20.dp, end = 20.dp,
+                    top = 16.dp, bottom = 8.dp,
+                ),
+            )
+        }
+
+        when {
+            !state.allPermissionsGranted -> item {
+                EcoPermissionsCard(
+                    onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+
+            state.nearbySpots.isEmpty() -> item {
+                EcoEmptySpots(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+
+            else -> items(state.nearbySpots, key = { it.id }) { spot ->
+                EcoSpotRow(
+                    spot = spot,
+                    address = state.spotAddresses[spot.id],
+                    userLocation = state.userLocation,
+                    onClick = { onCameraMove(spot.location.latitude, spot.location.longitude) },
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 72.dp, end = 16.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.06f),
+                )
+            }
+        }
+
+        // ── Sección: Actividad ────────────────────────────────────────────
+        if (state.nearbySpots.isNotEmpty()) {
+            item {
+                EcoSectionHeader(
+                    title = stringResource(Res.string.home_feed_activity),
+                    modifier = Modifier.padding(
+                        start = 20.dp, end = 20.dp,
+                        top = 24.dp, bottom = 8.dp,
+                    ),
+                )
+            }
+            items(state.nearbySpots.take(5), key = { "feed_${it.id}" }) { spot ->
+                EcoActivityRow(
+                    spot = spot,
+                    address = state.spotAddresses[spot.id],
+                    onClick = { onCameraMove(spot.location.latitude, spot.location.longitude) },
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 72.dp, end = 16.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.06f),
+                )
             }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parking Banner — now with "Liberar spot" action
+// Parking row — muestra AddressInfo (o coords como fallback).
+// Al hacer tap la cámara anima directamente al punto de aparcamiento.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun EcoParkingBanner(
-    timestampMs: Long,
-    onReleaseSpot: () -> Unit,
+private fun EcoParkingRow(
+    parking: UserParking,
+    address: AddressInfo?,
+    userLocation: Pair<Double, Double>?,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = EcoForestCard),
-        border = androidx.compose.foundation.BorderStroke(1.dp, EcoGreenMuted),
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(EcoGreenMuted),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Outlined.DirectionsCar,
-                        contentDescription = null,
-                        tint = EcoGreen,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Text(
-                        "Tu coche está aparcado",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                    )
-                    Text(
-                        "Desde ${formatRelativeTime(timestampMs)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.5f),
-                    )
-                }
-                Surface(color = EcoGreenMuted, shape = CircleShape) {
-                    Text(
-                        "Activo",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = EcoGreen,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // ── Liberar spot ──
-            Button(
-                onClick = onReleaseSpot,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = EcoGreen,
-                    contentColor = EcoForest,
-                ),
-                contentPadding = PaddingValues(vertical = 10.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "He dejado el sitio libre",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                )
-            }
-        }
+    val primaryLabel = address?.displayLine ?: "Tu vehículo"
+    val distanceM = userLocation?.let { (uLat, uLon) ->
+        distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
     }
-}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Nearby Spots header
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EcoNearbySpotsHeader(modifier: Modifier = Modifier) {
-    Text(
-        "Spots cercanos",
-        modifier = modifier,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.onBackground,
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Map Section
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EcoMapSection(
-    spots: List<Spot>,
-    userSpotLocation: SpotLocation?,
-    userParking: UserParkingSession?,
-    userAddress: AddressInfo?,
-    activeSpotCount: Int,
-    onSpotClick: (String) -> Unit,
-    expanded: Boolean,
-    onToggleExpand: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val mapHeight by animateDpAsState(
-        targetValue = if (expanded) 480.dp else 260.dp,
-        label = "mapHeight",
-    )
-    val horizontalPadding by animateDpAsState(
-        targetValue = if (expanded) 0.dp else 16.dp,
-        label = "mapPadding",
-    )
-
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(mapHeight)
-                .clip(
-                    RoundedCornerShape(
-                        topStart = 14.dp,
-                        topEnd = 14.dp,
-                        bottomStart = 0.dp,
-                        bottomEnd = 0.dp,
-                    )
-                ),
-        ) {
-            PlatformMap(
-                spots = spots,
-                userLocation = userSpotLocation,
-                userParking = userParking,
-                onSpotClick = onSpotClick,
-                modifier = Modifier.fillMaxSize(),
-            )
-
-            IconButton(
-                onClick = onToggleExpand,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(10.dp)
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.9f)),
-            ) {
-                Icon(
-                    imageVector = if (expanded) Icons.Outlined.FullscreenExit else Icons.Outlined.Fullscreen,
-                    contentDescription = if (expanded) "Reducir mapa" else "Ampliar mapa",
-                    tint = EcoForest,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-
-        // Address bar — connects map to spot cards below
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = EcoGreenMuted.copy(alpha = 0.5f),
+    ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                Icons.Outlined.LocationOn,
+                Icons.Outlined.DirectionsCar,
                 contentDescription = null,
                 tint = EcoGreen,
                 modifier = Modifier.size(18.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = userAddress?.displayLine ?: "Obteniendo ubicación...",
+                    text = primaryLabel,
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold,
+                    color = EcoGreen,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (userAddress?.city != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Text(
-                        text = listOfNotNull(
-                            userAddress.city,
-                            userAddress.region
-                        ).joinToString(", "),
+                        formatRelativeTime(parking.location.timestamp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        color = EcoGreen.copy(alpha = 0.6f),
                     )
+                    if (distanceM != null) {
+                        Text(
+                            "·",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = EcoGreen.copy(alpha = 0.3f),
+                        )
+                        Icon(
+                            Icons.AutoMirrored.Outlined.DirectionsWalk,
+                            contentDescription = null,
+                            modifier = Modifier.size(10.dp),
+                            tint = EcoGreen.copy(alpha = 0.5f),
+                        )
+                        Text(
+                            "${formatDistance(distanceM)} · ${formatWalkTime(distanceM)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = EcoGreen.copy(alpha = 0.6f),
+                        )
+                    }
                 }
             }
-            Surface(color = EcoGreenMuted, shape = CircleShape) {
+            Surface(shape = CircleShape, color = EcoGreenMuted) {
                 Text(
-                    "$activeSpotCount libres",
+                    stringResource(
+                        Res.string.home_banner_accuracy,
+                        parking.location.accuracy.toInt()
+                    ),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
                     color = EcoGreen,
+                    fontSize = 10.sp,
                 )
             }
         }
@@ -789,17 +787,14 @@ private fun EcoMapSection(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Spot Card — stacks flush under the address bar and between each other
+// Spot row
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun EcoSpotCard(
+private fun EcoSpotRow(
     spot: Spot,
     address: AddressInfo?,
     userLocation: Pair<Double, Double>?,
-    isFirst: Boolean,
-    isLast: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val isActive = spot.isActive
@@ -807,103 +802,227 @@ private fun EcoSpotCard(
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
 
-    val shape = RoundedCornerShape(
-        topStart = 0.dp,
-        topEnd = 0.dp,
-        bottomStart = if (isLast) 14.dp else 0.dp,
-        bottomEnd = if (isLast) 14.dp else 0.dp,
-    )
-
-    Card(
-        onClick = { if (isActive) onClick() },
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, EcoMintBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Status dot
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isActive) EcoGreen.copy(0.12f)
-                        else AmberMuted.copy(alpha = 0.4f)
+                        if (isActive) EcoGreenMuted
+                        else MaterialTheme.colorScheme.surfaceVariant,
                     ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Outlined.LocationOn,
-                    contentDescription = if (isActive) "Spot libre" else "Spot ocupado",
-                    tint = if (isActive) EcoGreenElement else AmberAccent.copy(alpha = 0.8f),
-                    modifier = Modifier.size(20.dp),
+                    if (isActive) Icons.Outlined.RadioButtonChecked
+                    else Icons.Outlined.DirectionsCar,
+                    contentDescription = null,
+                    tint = if (isActive) EcoGreen
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(18.dp),
                 )
             }
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = address?.displayLine ?: formatCoords(
-                        spot.location.latitude,
-                        spot.location.longitude,
+                        spot.location.latitude, spot.location.longitude,
                     ),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Spacer(Modifier.height(2.dp))
                 Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
+                    Text(
+                        if (isActive) stringResource(Res.string.home_spot_status_free)
+                        else stringResource(Res.string.home_spot_status_occupied),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (isActive) EcoGreen else AmberAccent,
+                    )
                     if (distanceM != null) {
+                        Text(
+                            "·",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                        )
                         Icon(
                             Icons.AutoMirrored.Outlined.DirectionsWalk,
                             contentDescription = null,
-                            modifier = Modifier.size(11.dp),
+                            modifier = Modifier.size(10.dp),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         )
                         Text(
                             "${formatDistance(distanceM)} · ${formatWalkTime(distanceM)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        )
-                        Text(
-                            "·",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         )
                     }
-                    Text(
-                        formatRelativeTime(spot.location.timestamp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    )
                 }
             }
 
-            // Status pill — green libre / amber ocupado
-            Surface(
-                color = if (isActive) EcoGreenMuted else AmberMuted,
-                shape = CircleShape,
+            Text(
+                formatRelativeTime(spot.location.timestamp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Activity row
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun EcoActivityRow(
+    spot: Spot,
+    address: AddressInfo?,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        color = Color.Transparent,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = if (isActive) "Libre" else "Ocupado",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isActive) EcoGreen else AmberAccent,
+                Icon(
+                    Icons.Outlined.DirectionsCar,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(18.dp),
                 )
             }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = address?.displayLine ?: formatCoords(
+                        spot.location.latitude, spot.location.longitude,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = stringResource(Res.string.home_spot_reported_by, spot.reportedBy),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                formatRelativeTime(spot.location.timestamp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section header
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun EcoSectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    badge: String? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            letterSpacing = 0.8.sp,
+        )
+        if (badge != null) {
+            Text(
+                badge,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = EcoGreen,
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Report bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun EcoReportBar(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        color = EcoGreen,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Campaign,
+                    contentDescription = null,
+                    tint = EcoForest,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(Res.string.home_fab_report_spot),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 15.sp,
+                    color = EcoForest,
+                    letterSpacing = 0.3.sp,
+                )
+            }
+            // navBar inset below the content — keeps the text visually centred
+            // within the clickable zone while the green extends behind the nav bar.
+            Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
 }
@@ -919,8 +1038,10 @@ private fun EcoPermissionsCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(0.dp, 0.dp, 14.dp, 14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
     ) {
         Column(
             modifier = Modifier
@@ -930,9 +1051,8 @@ private fun EcoPermissionsCard(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                "Activa la ubicación para ver spots cerca de ti",
+                stringResource(Res.string.home_permissions_message),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Button(
@@ -943,7 +1063,10 @@ private fun EcoPermissionsCard(
                     contentColor = EcoForest,
                 ),
             ) {
-                Text("Activar permisos", fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(Res.string.home_permissions_button),
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }
@@ -955,164 +1078,29 @@ private fun EcoPermissionsCard(
 
 @Composable
 private fun EcoEmptySpots(modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(0.dp, 0.dp, 14.dp, 14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .padding(32.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                "Sin spots por aquí",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "Sé el primero en reportar uno",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Activity header (renamed from "Live Updates")
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EcoActivityHeader(modifier: Modifier = Modifier) {
-    Text(
-        "Actividad reciente",
-        modifier = modifier,
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.onBackground,
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Feed Item — like now dispatches an intent
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun EcoFeedItem(
-    spot: Spot,
-    address: AddressInfo?,
-    onLike: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // Local optimistic state — toggled immediately, synced via ViewModel
-    var liked by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, EcoMintBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.ElectricCar,
-                    contentDescription = null,
-                    tint = EcoGreenElement,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Text(
-                    "Spot reportado por ${spot.reportedBy}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = address?.displayLine ?: formatCoords(
-                        spot.location.latitude,
-                        spot.location.longitude,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // Like — dispatches intent on click
-                    Row(
-                        modifier = Modifier.clickable {
-                            liked = !liked
-                            if (liked) onLike()
-                        },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.ThumbUp,
-                            contentDescription = if (liked) "Quitar like" else "Dar like",
-                            modifier = Modifier.size(15.dp),
-                            tint = if (liked) EcoGreenElement else MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = 0.4f
-                            ),
-                        )
-                        Text(
-                            if (liked) "25" else "24",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (liked) EcoGreenElement else MaterialTheme.colorScheme.onSurface.copy(
-                                alpha = 0.4f
-                            ),
-                        )
-                    }
-
-                    // Comentarios
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.Chat,
-                            contentDescription = "Comentarios",
-                            modifier = Modifier.size(15.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        )
-                        Text(
-                            "3",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        )
-                    }
-                }
-            }
-            Text(
-                formatRelativeTime(spot.location.timestamp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-            )
-        }
+        Icon(
+            Icons.Outlined.LocationOn,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            modifier = Modifier.size(32.dp),
+        )
+        Text(
+            stringResource(Res.string.home_empty_title),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+        )
+        Text(
+            stringResource(Res.string.home_empty_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+        )
     }
 }

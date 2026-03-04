@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HomeScreen -->
+    <string name="home_fab_report_spot">Report spot</string>
+    <string name="home_cd_profile">Profile</string>
+    <string name="home_search_placeholder">Search an area, street…</string>
+    <string name="home_stats_free_spots_badge">%1$d free</string>
+    <string name="home_banner_since">%1$s</string>
+    <string name="home_banner_accuracy">±%1$dm</string>
+    <string name="home_feed_nearby">Near you</string>
+    <string name="home_feed_activity">Recent activity</string>
+    <string name="home_permissions_message">Enable location to see nearby spots</string>
+    <string name="home_permissions_button">Enable permissions</string>
+    <string name="home_empty_title">No spots nearby</string>
+    <string name="home_empty_subtitle">Be the first to report one</string>
+    <string name="home_spot_status_occupied">Occupied</string>
+    <string name="home_spot_status_free">Free</string>
+    <string name="home_spot_reported_by">%1$s</string>
+    <string name="home_address_loading">Getting address…</string>
+
+    <!-- HistoryScreen -->
+    <string name="history_title">Parking history</string>
+    <string name="history_subtitle">%1$d records</string>
+    <string name="history_cd_back">Back</string>
+    <string name="history_empty_title">No parking yet</string>
+    <string name="history_empty_subtitle">Your records will appear here</string>
+    <string name="history_status_active">Active</string>
+    <string name="history_status_finished">Finished</string>
+    <string name="history_active_section">Currently parked</string>
+    <string name="history_active_since">Parked %1$s</string>
+    <string name="history_ended_section">Previous parkings</string>
+    <string name="history_precision">±%1$dm</string>
+    <string name="history_view_map">View on map</string>
+    <!-- %1$d = day, %2$s = month name, %3$s = hour (padded), %4$s = minute (padded) -->
+    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
+    <string name="history_month_1">January</string>
+    <string name="history_month_2">February</string>
+    <string name="history_month_3">March</string>
+    <string name="history_month_4">April</string>
+    <string name="history_month_5">May</string>
+    <string name="history_month_6">June</string>
+    <string name="history_month_7">July</string>
+    <string name="history_month_8">August</string>
+    <string name="history_month_9">September</string>
+    <string name="history_month_10">October</string>
+    <string name="history_month_11">November</string>
+    <string name="history_month_12">December</string>
+
+    <!-- MapScreen -->
+    <string name="map_title">Spots map</string>
+    <string name="map_cd_back">Back</string>
+</resources>

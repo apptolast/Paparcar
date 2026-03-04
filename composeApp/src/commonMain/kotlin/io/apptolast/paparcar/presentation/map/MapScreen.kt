@@ -18,24 +18,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.map_cd_back
+import paparcar.composeapp.generated.resources.map_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
     onNavigateBack: () -> Unit = {},
+    initialFocus: Pair<Double, Double>? = null,
     viewModel: MapViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Turn initialFocus into a CameraTarget on first composition.
+    var cameraTarget by remember {
+        mutableStateOf(
+            initialFocus?.let { (lat, lon) -> CameraTarget(lat = lat, lon = lon, zoom = 16f) }
+        )
+    }
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is MapEffect.NavigateToSpotDetails -> { /* future: open spot detail */ }
+                is MapEffect.NavigateToSpotDetails -> { /* future */ }
                 is MapEffect.NavigateBack -> onNavigateBack()
                 is MapEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
@@ -45,10 +59,13 @@ fun MapScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mapa de plazas") },
+                title = { Text(stringResource(Res.string.map_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.map_cd_back),
+                        )
                     }
                 },
             )
@@ -66,6 +83,7 @@ fun MapScreen(
                 userLocation = state.userLocation,
                 userParking = state.userParking,
                 onSpotClick = { spotId -> viewModel.handleIntent(MapIntent.OnSpotSelected(spotId)) },
+                cameraTarget = cameraTarget,
                 modifier = Modifier.fillMaxSize(),
             )
 

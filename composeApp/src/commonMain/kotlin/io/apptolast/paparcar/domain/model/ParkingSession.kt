@@ -1,1 +1,0 @@
-package io.apptolast.paparcar.domain.model

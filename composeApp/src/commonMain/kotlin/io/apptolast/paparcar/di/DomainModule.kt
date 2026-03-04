@@ -16,6 +16,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DetectAndReportParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
+import io.apptolast.paparcar.domain.usecase.parking.GetAllUserParkingsUseCase
 import io.apptolast.paparcar.domain.usecase.parking.GetUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.SaveUserParkingUseCase
@@ -45,7 +46,7 @@ val domainModule = module {
     factory { SaveUserParkingUseCase(get()) }
     factory { GetUserParkingUseCase(get()) }
     factory { ObserveUserParkingUseCase(get()) }
-//    factory { GetAllParkingSessionsUseCase(get()) }
+    factory { GetAllUserParkingsUseCase(get()) }
     factory { ClearUserParkingUseCase(get()) }
     factory { DetectParkingDepartureUseCase(get(), get(), get()) }
     factory {
@@ -62,6 +63,7 @@ val domainModule = module {
             confirmParking = get(),
             notifyParkingConfirmation = get(),
             dismissNotification = get(),
+            config = get(),
         )
     }
 

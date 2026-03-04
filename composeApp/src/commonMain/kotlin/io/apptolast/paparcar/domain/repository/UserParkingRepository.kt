@@ -1,12 +1,12 @@
 package io.apptolast.paparcar.domain.repository
 
-import io.apptolast.paparcar.domain.model.UserParkingSession
+import io.apptolast.paparcar.domain.model.UserParking
 import kotlinx.coroutines.flow.Flow
 
 interface UserParkingRepository {
-    suspend fun saveSession(session: UserParkingSession): Result<Unit>
-    suspend fun getActiveSession(): UserParkingSession?
-    fun observeActiveSession(): Flow<UserParkingSession?>
-    suspend fun getAllSessions(): List<UserParkingSession>
+    suspend fun saveSession(session: UserParking): Result<Unit>
+    suspend fun getActiveSession(): UserParking?
+    fun observeActiveSession(): Flow<UserParking?>
+    suspend fun getAllSessions(): List<UserParking>
     suspend fun clearActive(): Result<Unit>
 }

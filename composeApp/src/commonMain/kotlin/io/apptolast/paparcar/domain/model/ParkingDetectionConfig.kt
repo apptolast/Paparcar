@@ -57,6 +57,13 @@ data class ParkingDetectionConfig(
     /** Radius (meters) of the geofence registered around the confirmed parking spot. */
     val geofenceRadiusMeters: Float = 80f,
 
+    // ── FALSE-POSITIVE GUARD ──────────────────────────────────────────────────
+    /** Minimum GPS speed (m/s) that must be reached at least once during a driving session
+     *  before parking detection is allowed. Guards against spurious [IN_VEHICLE_ENTER]
+     *  events fired when the user is stationary (e.g. sitting at a desk or in a parked
+     *  car). A genuine driving session will always exceed this threshold. Default ≈ 11 km/h. */
+    val minimumTripSpeedMps: Float = 3f,
+
     // ── DEPARTURE DETECTION ───────────────────────────────────────────────────
     /** Maximum time (ms) between an IN_VEHICLE_ENTER transition and a GEOFENCE_EXIT for
      *  the departure to be considered intentional. Default 5 minutes. */
@@ -87,6 +94,9 @@ data class ParkingDetectionConfig(
         }
         require(vehicleEnterWindowMs > 0) {
             "vehicleEnterWindowMs must be > 0, was $vehicleEnterWindowMs"
+        }
+        require(minimumTripSpeedMps > 0) {
+            "minimumTripSpeedMps must be > 0, was $minimumTripSpeedMps"
         }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"

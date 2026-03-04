@@ -3,7 +3,7 @@ package io.apptolast.paparcar.data.repository
 import io.apptolast.paparcar.data.datasource.local.LocalLocationDataSource
 import io.apptolast.paparcar.data.datasource.local.room.LocationEntity
 import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.repository.LocationRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,17 +13,17 @@ class LocationRepositoryImpl(
     private val localLocationDataSource: LocalLocationDataSource
 ) : LocationRepository {
 
-    override fun observeBalancedLocationFlow(): Flow<SpotLocation> =
+    override fun observeBalancedLocationFlow(): Flow<GpsPoint> =
         platformLocationDataSource.observeBalancedLocation()
 
-    override fun observeHighAccuracyLocationFlow(): Flow<SpotLocation> =
+    override fun observeHighAccuracyLocationFlow(): Flow<GpsPoint> =
         platformLocationDataSource.observeHighAccuracyLocation()
 
-    override suspend fun getHighAccuracyLocation(): SpotLocation? =
+    override suspend fun getHighAccuracyLocation(): GpsPoint? =
         platformLocationDataSource.getHighAccuracyLocation()
 
 
-    override suspend fun saveLocation(location: SpotLocation): Result<Unit> = runCatching {
+    override suspend fun saveLocation(location: GpsPoint): Result<Unit> = runCatching {
         localLocationDataSource.insert(
             LocationEntity(
                 latitude = location.latitude,
@@ -35,9 +35,9 @@ class LocationRepositoryImpl(
         )
     }
 
-    override suspend fun getStoredLocations(): Result<List<SpotLocation>> = runCatching {
+    override suspend fun getStoredLocations(): Result<List<GpsPoint>> = runCatching {
         localLocationDataSource.getAll().map {
-            SpotLocation(
+            GpsPoint(
                 latitude = it.latitude,
                 longitude = it.longitude,
                 accuracy = it.accuracy,

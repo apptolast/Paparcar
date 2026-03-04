@@ -7,7 +7,12 @@
       "Bash(cd:*)",
       "Bash(cd \"C:/Users/Renendo/Documents/Android/AppToLast/Paparcar\" && git push origin master 2>&1)",
       "Bash(grep:*)",
-      "Bash(cd /c/Users/Renendo/Documents/Android/AppToLast/Paparcar && ./gradlew assembleDebug 2>&1)"
+      "Bash(cd /c/Users/Renendo/Documents/Android/AppToLast/Paparcar && ./gradlew assembleDebug 2>&1)",
+      "mcp__ide__getDiagnostics",
+      "Bash(node:*)",
+      "Bash(sort -k6,7)",
+      "Bash(find:*)",
+      "Bash(cat:*)"
     ]
   }
 }

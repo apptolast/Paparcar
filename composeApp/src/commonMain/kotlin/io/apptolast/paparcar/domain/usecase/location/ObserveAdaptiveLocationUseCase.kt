@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.location
 
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.repository.LocationRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +22,7 @@ class ObserveAdaptiveLocationUseCase(
 ) {
     private enum class Mode { HighAccuracy, Balanced }
 
-    operator fun invoke(): Flow<SpotLocation> {
+    operator fun invoke(): Flow<GpsPoint> {
         val mode = MutableStateFlow(Mode.HighAccuracy)
 
         return mode

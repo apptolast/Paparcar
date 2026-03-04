@@ -1,8 +1,8 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
-import io.apptolast.paparcar.domain.model.UserParkingSession
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.service.GeofenceService
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingSpotSavedUseCase
 import kotlin.time.Clock
@@ -23,14 +23,17 @@ class ConfirmParkingUseCase(
     private val notifyParkingSpotSaved: NotifyParkingSpotSavedUseCase,
     private val config: ParkingDetectionConfig,
 ) {
-    suspend operator fun invoke(location: SpotLocation) {
+    suspend operator fun invoke(location: GpsPoint) {
         val sessionId = Uuid.random().toString()
-        val session = UserParkingSession(
+        val session = UserParking(
             id = sessionId,
-            latitude = location.latitude,
-            longitude = location.longitude,
-            accuracy = location.accuracy,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
+            location = GpsPoint(
+                latitude = location.latitude,
+                longitude = location.longitude,
+                accuracy = location.accuracy,
+                timestamp = Clock.System.now().toEpochMilliseconds(),
+                speed = location.speed,
+            ),
             geofenceId = sessionId,
             isActive = true,
         )

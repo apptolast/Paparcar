@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.location
 
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -17,7 +17,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 class GetOneLocationUseCase(
     private val observeLocationUpdates: ObserveLocationUpdatesUseCase,
 ) {
-    suspend operator fun invoke(): SpotLocation? =
+    suspend operator fun invoke(): GpsPoint? =
         withTimeoutOrNull(TIMEOUT_MS) {
             observeLocationUpdates().first()
         }

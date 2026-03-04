@@ -1,19 +1,19 @@
 package io.apptolast.paparcar.domain.repository
 
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.flow.Flow
 
 interface LocationRepository {
 
-    fun observeBalancedLocationFlow(): Flow<SpotLocation>
+    fun observeBalancedLocationFlow(): Flow<GpsPoint>
 
-    fun observeHighAccuracyLocationFlow(): Flow<SpotLocation>
+    fun observeHighAccuracyLocationFlow(): Flow<GpsPoint>
 
-    suspend fun getHighAccuracyLocation(): SpotLocation?
+    suspend fun getHighAccuracyLocation(): GpsPoint?
 
-    suspend fun saveLocation(location: SpotLocation): Result<Unit>
+    suspend fun saveLocation(location: GpsPoint): Result<Unit>
 
-    suspend fun getStoredLocations(): Result<List<SpotLocation>>
+    suspend fun getStoredLocations(): Result<List<GpsPoint>>
 
     suspend fun clearLocations(): Result<Unit>
 }

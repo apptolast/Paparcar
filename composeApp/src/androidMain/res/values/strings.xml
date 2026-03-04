@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notification: detection foreground service -->
+    <string name="notif_detection_title">Detection active</string>
+    <string name="notif_detection_text">Looking for parking signals…</string>
+
+    <!-- Notification: parking confirmation prompt -->
+    <string name="notif_confirmation_title">Did you park?</string>
+    <string name="notif_confirmation_text">Looks like you parked. Shall we confirm the spot?</string>
+    <string name="notif_action_yes_parked">Yes, I parked</string>
+    <string name="notif_action_keep_driving">Keep driving</string>
+
+    <!-- Notification: spot saved -->
+    <string name="notif_spot_saved_title">Spot saved</string>
+    <!-- %1$s = latitude, %2$s = longitude -->
+    <string name="notif_spot_saved_text">Spot registered at (%1$s, %2$s)</string>
+
+    <!-- Notification: uploading spot -->
+    <string name="notif_uploading_title">Paparcar</string>
+    <string name="notif_uploading_text">Uploading new spot…</string>
+
+    <!-- Notification: debug (dev builds only) -->
+    <string name="notif_debug_title">Paparcar Debug</string>
+
+    <!-- Notification channel names and descriptions -->
+    <string name="channel_detection_name">Spot Detection</string>
+    <string name="channel_detection_desc">Persistent notification while parking detection is active</string>
+    <string name="channel_upload_name">Spot Upload</string>
+    <string name="channel_upload_desc">Spot saved and cloud upload confirmations</string>
+    <string name="channel_debug_name">Debug</string>
+    <string name="channel_debug_desc">Debug messages — development builds only</string>
+</resources>

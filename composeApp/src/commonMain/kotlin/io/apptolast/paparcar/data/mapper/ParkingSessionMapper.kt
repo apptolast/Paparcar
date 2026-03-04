@@ -1,25 +1,29 @@
 package io.apptolast.paparcar.data.mapper
 
-import io.apptolast.paparcar.data.datasource.local.room.UserParkingSessionEntity
-import io.apptolast.paparcar.domain.model.UserParkingSession
+import io.apptolast.paparcar.data.datasource.local.room.UserParkingEntity
+import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.UserParking
 
-fun UserParkingSessionEntity.toDomain(): UserParkingSession = UserParkingSession(
+fun UserParkingEntity.toDomain(): UserParking = UserParking(
     id = id,
-    latitude = latitude,
-    longitude = longitude,
-    accuracy = accuracy,
-    timestamp = timestamp,
+    location = GpsPoint(
+        latitude = latitude,
+        longitude = longitude,
+        accuracy = accuracy,
+        timestamp = timestamp,
+        speed = 0f, // Entity has no speed field; default to 0
+    ),
     spotId = spotId,
     geofenceId = geofenceId,
     isActive = isActive,
 )
 
-fun UserParkingSession.toEntity(): UserParkingSessionEntity = UserParkingSessionEntity(
+fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     id = id,
-    latitude = latitude,
-    longitude = longitude,
-    accuracy = accuracy,
-    timestamp = timestamp,
+    latitude = location.latitude,
+    longitude = location.longitude,
+    accuracy = location.accuracy,
+    timestamp = location.timestamp,
     spotId = spotId,
     geofenceId = geofenceId,
     isActive = isActive,

@@ -189,7 +189,7 @@ private fun HomeScreenContent(
             state.userParking?.let { parking ->
                 item {
                     ActiveParkingBanner(
-                        timestampMs = parking.timestamp,
+                        timestampMs = parking.location.timestamp,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                     )
                 }

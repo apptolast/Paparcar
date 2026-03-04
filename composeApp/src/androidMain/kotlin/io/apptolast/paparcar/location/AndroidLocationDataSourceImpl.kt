@@ -8,7 +8,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +21,7 @@ class AndroidLocationDataSourceImpl(
 ) : PlatformLocationDataSource {
 
     @SuppressLint("MissingPermission")
-    override fun observeHighAccuracyLocation(): Flow<SpotLocation> = callbackFlow {
+    override fun observeHighAccuracyLocation(): Flow<GpsPoint> = callbackFlow {
 
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
@@ -41,7 +41,7 @@ class AndroidLocationDataSourceImpl(
     }
 
     @SuppressLint("MissingPermission")
-    override fun observeBalancedLocation(): Flow<SpotLocation> = callbackFlow {
+    override fun observeBalancedLocation(): Flow<GpsPoint> = callbackFlow {
 
         val request = LocationRequest.Builder(
             Priority.PRIORITY_BALANCED_POWER_ACCURACY,
@@ -61,7 +61,7 @@ class AndroidLocationDataSourceImpl(
     }
 
     @SuppressLint("MissingPermission")
-    override suspend fun getHighAccuracyLocation(): SpotLocation? {
+    override suspend fun getHighAccuracyLocation(): GpsPoint? {
         val location = try {
             fusedLocationClient.getCurrentLocation(
                 Priority.PRIORITY_HIGH_ACCURACY,
@@ -73,7 +73,7 @@ class AndroidLocationDataSourceImpl(
         }
 
         return location?.let {
-            SpotLocation(
+            GpsPoint(
                 latitude = it.latitude,
                 longitude = it.longitude,
                 accuracy = it.accuracy,
@@ -83,12 +83,12 @@ class AndroidLocationDataSourceImpl(
         }
     }
 
-    private fun createCallback(scope: ProducerScope<SpotLocation>) =
+    private fun createCallback(scope: ProducerScope<GpsPoint>) =
         object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 result.lastLocation?.let {
                     scope.trySend(
-                        SpotLocation(
+                        GpsPoint(
                             latitude = it.latitude,
                             longitude = it.longitude,
                             accuracy = it.accuracy,

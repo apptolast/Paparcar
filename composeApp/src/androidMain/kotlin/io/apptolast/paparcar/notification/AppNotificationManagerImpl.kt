@@ -25,8 +25,8 @@ class AppNotificationManagerImpl(
 
     override fun buildDetectionNotification(): Notification {
         return NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
-            .setContentTitle("Detección en curso")
-            .setContentText("Buscando señales de aparcamiento...")
+            .setContentTitle(context.getString(R.string.notif_detection_title))
+            .setContentText(context.getString(R.string.notif_detection_text))
             .setSmallIcon(R.drawable.ic_notification_detection)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setOngoing(true)
@@ -55,13 +55,13 @@ class AppNotificationManagerImpl(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
-            .setContentTitle("¿Has aparcado?")
-            .setContentText("Parece que has aparcado el coche. ¿Confirmamos la plaza?")
+            .setContentTitle(context.getString(R.string.notif_confirmation_title))
+            .setContentText(context.getString(R.string.notif_confirmation_text))
             .setSmallIcon(R.drawable.ic_notification_parking_question)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
-            .addAction(0, "Sí, he aparcado", confirmedPi)
-            .addAction(0, "Sigo conduciendo", deniedPi)
+            .addAction(0, context.getString(R.string.notif_action_yes_parked), confirmedPi)
+            .addAction(0, context.getString(R.string.notif_action_keep_driving), deniedPi)
             .setAutoCancel(true)
             .build()
         notificationManager.notify(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
@@ -69,8 +69,14 @@ class AppNotificationManagerImpl(
 
     override fun showParkingSpotSaved(latitude: Double, longitude: Double) {
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
-            .setContentTitle("Plaza guardada")
-            .setContentText("Spot registrado en (${"%.5f".format(latitude)}, ${"%.5f".format(longitude)})")
+            .setContentTitle(context.getString(R.string.notif_spot_saved_title))
+            .setContentText(
+                context.getString(
+                    R.string.notif_spot_saved_text,
+                    "%.5f".format(latitude),
+                    "%.5f".format(longitude),
+                )
+            )
             .setSmallIcon(R.drawable.ic_notification_parking_saved)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
@@ -81,8 +87,8 @@ class AppNotificationManagerImpl(
 
     override fun showSpotUploading() {
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
-            .setContentTitle("Paparcar")
-            .setContentText("Subiendo nuevo spot...")
+            .setContentTitle(context.getString(R.string.notif_uploading_title))
+            .setContentText(context.getString(R.string.notif_uploading_text))
             .setSmallIcon(R.drawable.ic_notification_upload)
             .setColor(COLOR_UPLOAD)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
@@ -93,7 +99,7 @@ class AppNotificationManagerImpl(
 
     override fun showDebug(message: String) {
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
-            .setContentTitle("Paparcar Debug")
+            .setContentTitle(context.getString(R.string.notif_debug_title))
             .setContentText(message)
             .setSmallIcon(R.drawable.ic_notification_debug)
             .setColor(COLOR_DEBUG)
@@ -112,26 +118,26 @@ class AppNotificationManagerImpl(
     private fun createNotificationChannels() {
         val detectionChannel = NotificationChannel(
             DETECTION_CHANNEL_ID,
-            "Detección de Spot",
+            context.getString(R.string.channel_detection_name),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = "Notificación persistente mientras se detecta aparcamiento"
+            description = context.getString(R.string.channel_detection_desc)
             enableLights(false)
             enableVibration(false)
         }
         val uploadChannel = NotificationChannel(
             UPLOAD_CHANNEL_ID,
-            "Subida de Spot",
+            context.getString(R.string.channel_upload_name),
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
-            description = "Confirmaciones de plaza guardada y subida a la nube"
+            description = context.getString(R.string.channel_upload_desc)
         }
         val debugChannel = NotificationChannel(
             DEBUG_CHANNEL_ID,
-            "Debug",
+            context.getString(R.string.channel_debug_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "Mensajes de depuración — solo en builds de desarrollo"
+            description = context.getString(R.string.channel_debug_desc)
         }
         notificationManager.createNotificationChannels(
             listOf(detectionChannel, uploadChannel, debugChannel)

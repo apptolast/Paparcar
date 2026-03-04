@@ -49,14 +49,24 @@ class DetectParkingDepartureUseCase(
         // Signal 2: the exit must belong to the current session's geofence
         if (session.geofenceId != null && session.geofenceId != geofenceId) return false
 
-        // Signal 3: IN_VEHICLE_ENTER must have occurred within the time window
-        val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt ?: return false
-        val timeDiffMs = abs(exitTimestampMs - vehicleEnteredAt)
-        if (timeDiffMs > config.vehicleEnterWindowMs) return false
+        // Signals 3+4 combined: need either IN_VEHICLE_ENTER within the time window OR
+        // GPS speed confirming movement. The Transitions API can take up to 5 min to
+        // deliver IN_VEHICLE_ENTER; a geofence of 80 m is exited in seconds, so
+        // CheckDepartureWorker often runs before the signal arrives. Speed is the
+        // primary fallback when the transition is missing.
+        val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt
+        val speedConfirmsMovement = currentSpeedKmh != null &&
+                currentSpeedKmh >= config.minimumDepartureSpeedKmh
 
-        // Signal 4 (optional): if speed is known, it must exceed the departure threshold
-        if (currentSpeedKmh != null && currentSpeedKmh < config.minimumDepartureSpeedKmh) {
-            return false
+        if (vehicleEnteredAt != null) {
+            // Signal 3: time window check
+            val timeDiffMs = abs(exitTimestampMs - vehicleEnteredAt)
+            if (timeDiffMs > config.vehicleEnterWindowMs) return false
+            // Signal 4 (belt-and-suspenders): if speed is available it must also confirm movement
+            if (currentSpeedKmh != null && !speedConfirmsMovement) return false
+        } else {
+            // No IN_VEHICLE_ENTER yet — GPS speed is the sole discriminator
+            if (!speedConfirmsMovement) return false
         }
 
         return true

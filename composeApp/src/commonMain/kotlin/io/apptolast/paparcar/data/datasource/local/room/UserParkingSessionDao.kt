@@ -7,20 +7,23 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface UserParkingSessionDao {
+interface UserParkingDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(session: UserParkingSessionEntity)
+    suspend fun insert(session: UserParkingEntity)
 
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
-    suspend fun getActive(): UserParkingSessionEntity?
+    suspend fun getActive(): UserParkingEntity?
 
-    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC")
-    suspend fun getAll(): List<UserParkingSessionEntity>
+    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT 50")
+    suspend fun getAll(): List<UserParkingEntity>
 
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
-    fun observeActive(): Flow<UserParkingSessionEntity?>
+    fun observeActive(): Flow<UserParkingEntity?>
 
     @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1")
     suspend fun clearActive()
+
+    @Query("DELETE FROM parking_sessions WHERE isActive = 0 AND timestamp < :olderThanMs")
+    suspend fun deleteOldSessions(olderThanMs: Long)
 }

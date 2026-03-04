@@ -2,11 +2,11 @@ package io.apptolast.paparcar.data.mapper
 
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 
 fun SpotDto.toDomain(id: String): Spot = Spot(
     id = id,
-    location = SpotLocation(
+    location = GpsPoint(
         latitude = latitude,
         longitude = longitude,
         accuracy = accuracy,

@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.data.mapper
 
 import io.apptolast.paparcar.data.datasource.local.room.LocationEntity
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 
-fun LocationEntity.toDomain(): SpotLocation = SpotLocation(
+fun LocationEntity.toDomain(): GpsPoint = GpsPoint(
     latitude = latitude,
     longitude = longitude,
     accuracy = accuracy,
@@ -11,7 +11,7 @@ fun LocationEntity.toDomain(): SpotLocation = SpotLocation(
     speed = speed
 )
 
-fun SpotLocation.toEntity(): LocationEntity = LocationEntity(
+fun GpsPoint.toEntity(): LocationEntity = LocationEntity(
     latitude = latitude,
     longitude = longitude,
     accuracy = accuracy,

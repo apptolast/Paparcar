@@ -1,14 +1,14 @@
 package io.apptolast.paparcar.domain.repository
 
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.flow.Flow
 
 interface SpotRepository {
 
-    suspend fun getNearbySpots(location: SpotLocation, radiusMeters: Double): Result<List<Spot>>
+    suspend fun getNearbySpots(location: GpsPoint, radiusMeters: Double): Result<List<Spot>>
 
-    fun observeNearbySpots(location: SpotLocation, radiusMeters: Double): Flow<List<Spot>>
+    fun observeNearbySpots(location: GpsPoint, radiusMeters: Double): Flow<List<Spot>>
 
     suspend fun reportSpotReleased(spot: Spot): Result<Unit>
 }

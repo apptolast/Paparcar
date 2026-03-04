@@ -1,13 +1,13 @@
 package io.apptolast.paparcar.data.datasource.platform
 
-import io.apptolast.paparcar.domain.model.SpotLocation
+import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.flow.Flow
 
 interface PlatformLocationDataSource {
 
-    fun observeHighAccuracyLocation(): Flow<SpotLocation>
+    fun observeHighAccuracyLocation(): Flow<GpsPoint>
 
-    fun observeBalancedLocation(): Flow<SpotLocation>
+    fun observeBalancedLocation(): Flow<GpsPoint>
 
-    suspend fun getHighAccuracyLocation(): SpotLocation?
+    suspend fun getHighAccuracyLocation(): GpsPoint?
 }

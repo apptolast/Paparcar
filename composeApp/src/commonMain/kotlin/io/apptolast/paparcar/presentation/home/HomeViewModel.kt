@@ -1,8 +1,8 @@
 package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.SpotLocation
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetAddressUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveLocationUpdatesUseCase
@@ -59,7 +59,7 @@ class HomeViewModel(
                     copy(
                         isLoading = false,
                         userLocation = Pair(userLocation.latitude, userLocation.longitude),
-                        userSpotLocation = userLocation,
+                        userGpsPoint = userLocation,
                     )
                 }
                 geocodeUserLocation(userLocation.latitude, userLocation.longitude)
@@ -102,11 +102,11 @@ class HomeViewModel(
             // Report the freed spot to Firebase.
             val spot = Spot(
                 id = session.id,
-                location = SpotLocation(
-                    latitude = session.latitude,
-                    longitude = session.longitude,
-                    accuracy = session.accuracy,
-                    timestamp = session.timestamp,
+                location = GpsPoint(
+                    latitude = session.location.latitude,
+                    longitude = session.location.longitude,
+                    accuracy = session.location.accuracy,
+                    timestamp = session.location.timestamp,
                     speed = 0f,
                 ),
                 reportedBy = "anonymous",
@@ -125,7 +125,7 @@ class HomeViewModel(
 
             val testSpot = Spot(
                 id = spotId,
-                location = SpotLocation(
+                location = GpsPoint(
                     latitude = DEBUG_LATITUDE,
                     longitude = DEBUG_LONGITUDE,
                     accuracy = 10f,

@@ -9,8 +9,8 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import io.apptolast.paparcar.BuildConfig
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.SpotLocation
 import io.apptolast.paparcar.domain.notification.NotificationPort
 import io.apptolast.paparcar.domain.usecase.notification.NotifySpotUploadingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
@@ -44,11 +44,11 @@ class ReportSpotWorker(
 
         val spot = Spot(
             id = session.id,
-            location = SpotLocation(
-                latitude = session.latitude,
-                longitude = session.longitude,
-                accuracy = session.accuracy,
-                timestamp = session.timestamp,
+            location = GpsPoint(
+                latitude = session.location.latitude,
+                longitude = session.location.longitude,
+                accuracy = session.location.accuracy,
+                timestamp = session.location.timestamp,
                 speed = 0f,
             ),
             reportedBy = "anonymous",

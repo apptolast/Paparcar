@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notificación: servicio foreground de detección -->
+    <string name="notif_detection_title">Detección en curso</string>
+    <string name="notif_detection_text">Buscando señales de aparcamiento…</string>
+
+    <!-- Notificación: confirmación de aparcamiento -->
+    <string name="notif_confirmation_title">¿Has aparcado?</string>
+    <string name="notif_confirmation_text">Parece que has aparcado el coche. ¿Confirmamos la plaza?</string>
+    <string name="notif_action_yes_parked">Sí, he aparcado</string>
+    <string name="notif_action_keep_driving">Sigo conduciendo</string>
+
+    <!-- Notificación: plaza guardada -->
+    <string name="notif_spot_saved_title">Plaza guardada</string>
+    <!-- %1$s = latitud, %2$s = longitud -->
+    <string name="notif_spot_saved_text">Spot registrado en (%1$s, %2$s)</string>
+
+    <!-- Notificación: subiendo spot -->
+    <string name="notif_uploading_title">Paparcar</string>
+    <string name="notif_uploading_text">Subiendo nuevo spot…</string>
+
+    <!-- Notificación: debug (solo builds de desarrollo) -->
+    <string name="notif_debug_title">Paparcar Debug</string>
+
+    <!-- Nombres y descripciones de canales de notificación -->
+    <string name="channel_detection_name">Detección de Spot</string>
+    <string name="channel_detection_desc">Notificación persistente mientras se detecta aparcamiento</string>
+    <string name="channel_upload_name">Subida de Spot</string>
+    <string name="channel_upload_desc">Confirmaciones de plaza guardada y subida a la nube</string>
+    <string name="channel_debug_name">Debug</string>
+    <string name="channel_debug_desc">Mensajes de depuración — solo en builds de desarrollo</string>
+</resources>
