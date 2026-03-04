@@ -463,83 +463,96 @@ private fun EcoFloatingHeader(
                             modifier = Modifier.size(13.dp),
                         )
                     }
-                    Text(
-                        "Eco-Driver",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Icon(
-                        imageVector = if (dropdownExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                        modifier = Modifier.size(16.dp),
-                    )
+                    Column{
+                        Text(
+                            "PAPARCAR",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 8.sp,
+                            letterSpacing = 1.sp,
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
+                            Text(
+                                "Eco-Driver",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Icon(
+                                imageVector = if (dropdownExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
                 }
             }
+        }
+// Inside EcoFloatingHeader (replace your DropdownMenu block):
 
-            // Inside EcoFloatingHeader (replace your DropdownMenu block):
-
-            var item1Visible by remember { mutableStateOf(false) }
-            var item2Visible by remember { mutableStateOf(false) }
+        var item1Visible by remember { mutableStateOf(false) }
+        var item2Visible by remember { mutableStateOf(false) }
 
 // Stagger open AND close
-            LaunchedEffect(dropdownExpanded) {
-                if (dropdownExpanded) {
-                    item1Visible = false
-                    item2Visible = false
-                    item1Visible = true          // item 1 slides in immediately
-                    delay(90)
-                    item2Visible = true          // item 2 follows 90 ms later
-                } else {
-                    item2Visible = false         // item 2 leaves first
-                    delay(90)
-                    item1Visible = false         // item 1 follows 90 ms later
-                }
+        LaunchedEffect(dropdownExpanded) {
+            if (dropdownExpanded) {
+                item1Visible = false
+                item2Visible = false
+                item1Visible = true          // item 1 slides in immediately
+                delay(90)
+                item2Visible = true          // item 2 follows 90 ms later
+            } else {
+                item2Visible = false         // item 2 leaves first
+                delay(90)
+                item1Visible = false         // item 1 follows 90 ms later
+            }
+        }
+        DropdownMenu(
+            expanded = dropdownExpanded,
+            onDismissRequest = { dropdownExpanded = false },
+            containerColor = Color.Transparent,
+            shadowElevation = 0.dp,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        ) {
+            AnimatedVisibility(
+                visible = item1Visible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },          // comes from above
+                    animationSpec = tween(220),
+                ) + fadeIn(tween(220)),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = tween(150),
+                ) + fadeOut(tween(150)),
+            ) {
+                EcoDropdownPillItem(
+                    icon = Icons.Outlined.History,
+                    label = "Historial",
+                    onClick = { dropdownExpanded = false; onHistoryClick() },
+                )
             }
 
-            DropdownMenu(
-                expanded = dropdownExpanded,
-                onDismissRequest = { dropdownExpanded = false },
-                containerColor = Color.Transparent,
-                shadowElevation = 0.dp,
-                modifier = Modifier.padding(horizontal = 4.dp),
+            AnimatedVisibility(
+                visible = item2Visible,
+                enter = slideInVertically(
+                    initialOffsetY = { -it },
+                    animationSpec = tween(220),
+                ) + fadeIn(tween(220)),
+                exit = slideOutVertically(
+                    targetOffsetY = { -it },
+                    animationSpec = tween(150),
+                ) + fadeOut(tween(150)),
             ) {
-                AnimatedVisibility(
-                    visible = item1Visible,
-                    enter = slideInVertically(
-                        initialOffsetY = { -it },          // comes from above
-                        animationSpec = tween(220),
-                    ) + fadeIn(tween(220)),
-                    exit = slideOutVertically(
-                        targetOffsetY = { -it },
-                        animationSpec = tween(150),
-                    ) + fadeOut(tween(150)),
-                ) {
-                    EcoDropdownPillItem(
-                        icon = Icons.Outlined.History,
-                        label = "Historial",
-                        onClick = { dropdownExpanded = false; onHistoryClick() },
-                    )
-                }
-
-                AnimatedVisibility(
-                    visible = item2Visible,
-                    enter = slideInVertically(
-                        initialOffsetY = { -it },
-                        animationSpec = tween(220),
-                    ) + fadeIn(tween(220)),
-                    exit = slideOutVertically(
-                        targetOffsetY = { -it },
-                        animationSpec = tween(150),
-                    ) + fadeOut(tween(150)),
-                ) {
-                    EcoDropdownPillItem(
-                        icon = Icons.Outlined.Settings,
-                        label = "Ajustes",
-                        onClick = { dropdownExpanded = false; onSettingsClick() },
-                    )
-                }
+                EcoDropdownPillItem(
+                    icon = Icons.Outlined.Settings,
+                    label = "Ajustes",
+                    onClick = { dropdownExpanded = false; onSettingsClick() },
+                )
             }
         }
     }
