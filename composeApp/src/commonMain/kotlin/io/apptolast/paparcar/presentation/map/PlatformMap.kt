@@ -17,4 +17,5 @@ expect fun PlatformMap(
     contentPadding: PaddingValues = PaddingValues(),
     showMapControls: Boolean = true,
     cameraTarget: CameraTarget? = null,
+    focusMarker: Pair<Double, Double>? = null,
 )

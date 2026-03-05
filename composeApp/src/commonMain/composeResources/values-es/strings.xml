@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- HomeScreen -->
+    <string name="home_brand_name">PAPARCAR</string>
+    <string name="home_eco_driver_label">Eco-Driver</string>
+    <string name="home_nav_history">Historial</string>
+    <string name="home_nav_settings">Ajustes</string>
+    <string name="home_parking_row_label">Tu vehículo</string>
     <string name="home_fab_report_spot">Reportar spot</string>
     <string name="home_cd_profile">Perfil</string>
     <string name="home_search_placeholder">Busca una zona, calle…</string>
@@ -19,6 +24,11 @@
     <string name="home_address_loading">Obteniendo dirección…</string>
 
     <!-- HistoryScreen -->
+    <string name="history_weekly_title">Actividad semanal</string>
+    <string name="history_weekly_subtitle">aparcamientos esta semana</string>
+    <string name="history_minutes_suffix">min</string>
+    <string name="history_today">Hoy</string>
+    <string name="history_yesterday">Ayer</string>
     <string name="history_title">Historial de aparcamientos</string>
     <string name="history_subtitle">%1$d registros</string>
     <string name="history_cd_back">Volver</string>
@@ -49,4 +59,12 @@
     <!-- MapScreen -->
     <string name="map_title">Mapa de plazas</string>
     <string name="map_cd_back">Volver</string>
+    <string name="map_marker_my_car">Tu coche aparcado</string>
+    <string name="map_marker_car_here">Coche aparcado aquí</string>
+    <string name="map_marker_free">Plaza libre</string>
+    <string name="map_marker_occupied">Plaza ocupada</string>
+    <string name="map_marker_reported_by">Reportado por %1$s</string>
+    <string name="map_cd_midpoint">Punto medio entre mi posición y el coche</string>
+    <string name="map_cd_go_to_car">Ir a mi vehículo aparcado</string>
+    <string name="map_cd_my_location">Centrar en mi ubicación</string>
 </resources>

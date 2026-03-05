@@ -20,7 +20,7 @@ class SpotRepositoryImpl(private val firebaseDataSource: FirebaseDataSource) : S
     override fun observeNearbySpots(location: GpsPoint, radiusMeters: Double): Flow<List<Spot>> {
         return firebaseDataSource.observeNearbySpots(location.latitude, location.longitude, radiusMeters)
             .map { dtoMap -> dtoMap.map { (id, dto) -> dto.toDomain(id) } }
-            .catch { emit(emptyList()) }
+            .catch { e -> emit(emptyList()); throw e }
     }
 
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> = runCatching {

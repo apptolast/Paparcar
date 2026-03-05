@@ -60,9 +60,10 @@ data class ParkingDetectionConfig(
     // ── FALSE-POSITIVE GUARD ──────────────────────────────────────────────────
     /** Minimum GPS speed (m/s) that must be reached at least once during a driving session
      *  before parking detection is allowed. Guards against spurious [IN_VEHICLE_ENTER]
-     *  events fired when the user is stationary (e.g. sitting at a desk or in a parked
-     *  car). A genuine driving session will always exceed this threshold. Default ≈ 11 km/h. */
-    val minimumTripSpeedMps: Float = 3f,
+     *  events fired when the user is stationary or cycling (e.g. sitting at a desk, parked
+     *  car, or casual cycling). A genuine driving session will always exceed this threshold.
+     *  Default ≈ 18 km/h — above comfortable cycling speed, below urban car speed. */
+    val minimumTripSpeedMps: Float = 5f,
 
     // ── DEPARTURE DETECTION ───────────────────────────────────────────────────
     /** Maximum time (ms) between an IN_VEHICLE_ENTER transition and a GEOFENCE_EXIT for

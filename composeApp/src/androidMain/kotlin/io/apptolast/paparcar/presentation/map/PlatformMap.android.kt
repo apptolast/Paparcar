@@ -1,30 +1,17 @@
 package io.apptolast.paparcar.presentation.map
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.MyLocation
-import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,12 +21,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
@@ -49,14 +32,21 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
-import io.apptolast.paparcar.domain.model.Spot
+import androidx.compose.ui.platform.LocalContext
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.presentation.map.components.MapControlButtons
+import io.apptolast.paparcar.ui.theme.EcoForest
+import io.apptolast.paparcar.ui.theme.EcoGreen
 import kotlinx.coroutines.launch
-
-// ── Local design tokens (mirror values from EcoHomeScreen) ────────────────────
-private val EcoGreen = Color(0xFF25F48C)
-private val EcoGreenMuted = Color(0xFF133D28)
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.map_marker_car_here
+import paparcar.composeapp.generated.resources.map_marker_free
+import paparcar.composeapp.generated.resources.map_marker_my_car
+import paparcar.composeapp.generated.resources.map_marker_occupied
+import paparcar.composeapp.generated.resources.map_marker_reported_by
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -70,19 +60,27 @@ actual fun PlatformMap(
     contentPadding: PaddingValues,
     showMapControls: Boolean,
     cameraTarget: CameraTarget?,
+    focusMarker: Pair<Double, Double>?,
 ) {
     val defaultLatLng = LatLng(40.4168, -3.7038) // Madrid fallback
 
+    val context = LocalContext.current
+    // Icons must be created only after the Maps SDK is initialized (onMapLoaded).
+    // Calling BitmapDescriptorFactory before initialization throws NPE.
+    var myCarIcon    by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
+    var freeSpotIcon by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
+    var occupiedIcon by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
+
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(
-            userLocation?.let { LatLng(it.latitude, it.longitude) } ?: defaultLatLng,
-            15f,
+            cameraTarget?.let { LatLng(it.lat, it.lon) }
+                ?: userLocation?.let { LatLng(it.latitude, it.longitude) }
+                ?: defaultLatLng,
+            cameraTarget?.zoom ?: 15f,
         )
     }
 
-    // Animate to user location the first time it becomes available.
-    // Only fires once — does not follow the user while they move.
-    var centeredOnUser by remember { mutableStateOf(userLocation != null) }
+    var centeredOnUser by remember { mutableStateOf(userLocation != null || cameraTarget != null) }
     LaunchedEffect(userLocation) {
         if (userLocation != null && !centeredOnUser) {
             centeredOnUser = true
@@ -95,7 +93,6 @@ actual fun PlatformMap(
         }
     }
 
-    // Animate to externally requested target (banner click, spot click, etc.)
     LaunchedEffect(cameraTarget) {
         if (cameraTarget != null) {
             cameraPositionState.animate(
@@ -107,13 +104,10 @@ actual fun PlatformMap(
         }
     }
 
-    // Track map tile loading to avoid the initial flash.
     var mapLoaded by remember { mutableStateOf(false) }
-
     val isDark = isSystemInDarkTheme()
     val coroutineScope = rememberCoroutineScope()
 
-    // All default Google Maps controls are hidden; replaced by custom FABs below.
     val uiSettings by remember {
         mutableStateOf(
             MapUiSettings(
@@ -134,6 +128,12 @@ actual fun PlatformMap(
         )
     }
 
+    // Marker strings resolved outside GoogleMap composable
+    val markerMyCar     = stringResource(Res.string.map_marker_my_car)
+    val markerCarHere   = stringResource(Res.string.map_marker_car_here)
+    val markerFree      = stringResource(Res.string.map_marker_free)
+    val markerOccupied  = stringResource(Res.string.map_marker_occupied)
+
     Box(modifier = modifier) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
@@ -141,38 +141,53 @@ actual fun PlatformMap(
             uiSettings = uiSettings,
             properties = mapProperties,
             contentPadding = contentPadding,
-            onMapLoaded = { mapLoaded = true },
+            onMapLoaded = {
+                mapLoaded = true
+                myCarIcon    = context.createMyCarMarkerIcon()
+                freeSpotIcon = context.createFreeSpotMarkerIcon()
+                occupiedIcon = context.createOccupiedSpotMarkerIcon()
+            },
         ) {
-            // User's current location is shown by Google Maps' built-in blue dot
-            // (MapProperties.isMyLocationEnabled = true). No custom marker needed.
-
-            // User's parked car marker (violet)
             userParking?.let { session ->
+                val icon = myCarIcon ?: return@let
                 Marker(
                     state = MarkerState(position = LatLng(session.location.latitude, session.location.longitude)),
-                    title = "Tu coche aparcado",
-                    icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_VIOLET),
+                    title = markerMyCar,
+                    icon = icon,
                 )
             }
 
-            // Nearby available spots (green = free, red = taken)
-            spots.forEach { spot ->
-                val hue = if (spot.isActive)
-                    BitmapDescriptorFactory.HUE_GREEN
-                else
-                    BitmapDescriptorFactory.HUE_RED
-                Marker(
-                    state = MarkerState(
-                        position = LatLng(spot.location.latitude, spot.location.longitude)
-                    ),
-                    title = if (spot.isActive) "Plaza libre" else "Plaza ocupada",
-                    snippet = "Reportado por ${spot.reportedBy}",
-                    icon = BitmapDescriptorFactory.defaultMarker(hue),
-                    onClick = {
-                        onSpotClick(spot.id)
-                        false
-                    },
-                )
+            focusMarker?.let { (lat, lon) ->
+                val icon = myCarIcon ?: return@let
+                val sameAsActive = userParking?.let { p ->
+                    p.location.latitude == lat && p.location.longitude == lon
+                } ?: false
+                if (!sameAsActive) {
+                    Marker(
+                        state = MarkerState(position = LatLng(lat, lon)),
+                        title = markerCarHere,
+                        icon = icon,
+                    )
+                }
+            }
+
+            val freeIcon = freeSpotIcon
+            val occIcon  = occupiedIcon
+            if (freeIcon != null && occIcon != null) {
+                spots.forEach { spot ->
+                    Marker(
+                        state = MarkerState(
+                            position = LatLng(spot.location.latitude, spot.location.longitude)
+                        ),
+                        title = if (spot.isActive) markerFree else markerOccupied,
+                        snippet = stringResource(Res.string.map_marker_reported_by, spot.reportedBy),
+                        icon = if (spot.isActive) freeIcon else occIcon,
+                        onClick = {
+                            onSpotClick(spot.id)
+                            false
+                        },
+                    )
+                }
             }
         }
 
@@ -185,18 +200,18 @@ actual fun PlatformMap(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF0D1C14)), // EcoForest — matches app background
+                    .background(EcoForest),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(
-                    color = Color(0xFF25F48C), // EcoGreen
+                    color = EcoGreen,
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(28.dp),
                 )
             }
         }
 
-        // ── Custom map control buttons — slide in/out from the right edge ──
+        // ── Custom map control buttons ─────────────────────────────────────
         AnimatedVisibility(
             visible = showMapControls,
             enter = slideInHorizontally { it },
@@ -242,106 +257,6 @@ actual fun PlatformMap(
                 },
             )
         }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Map control buttons column — replaces all default Google Maps UI controls
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun MapControlButtons(
-    userLocation: GpsPoint?,
-    userParking: UserParking?,
-    sheetBottomPadding: Dp,
-    onMyLocation: () -> Unit,
-    onParkedCar: () -> Unit,
-    onMidpoint: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val hasParking = userParking != null
-    val hasBothPoints = userLocation != null && userParking != null
-
-    Column(
-        modifier = modifier.padding(end = 12.dp, bottom = sheetBottomPadding + 12.dp),
-        horizontalAlignment = Alignment.End,
-    ) {
-        // ── Midpoint — only when both positions are known ─────────────────
-        AnimatedVisibility(
-            visible = hasBothPoints,
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
-        ) {
-            MapControlFab(
-                icon = Icons.Outlined.Route,
-                contentDescription = "Punto medio entre mi posición y el coche",
-                onClick = onMidpoint,
-                modifier = Modifier.padding(bottom = 10.dp),
-            )
-        }
-
-        // ── Parked car — only when an active parking session exists ───────
-        AnimatedVisibility(
-            visible = hasParking,
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
-        ) {
-            MapControlFab(
-                icon = Icons.Outlined.DirectionsCar,
-                contentDescription = "Ir a mi vehículo aparcado",
-                iconTint = EcoGreen,
-                surfaceColor = EcoGreenMuted,
-                onClick = onParkedCar,
-                modifier = Modifier.padding(bottom = 10.dp),
-            )
-        }
-
-        // ── My location — always visible ──────────────────────────────────
-        MapControlFab(
-            icon = Icons.Outlined.MyLocation,
-            contentDescription = "Centrar en mi ubicación",
-            onClick = onMyLocation,
-        )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Individual FAB — consistent style with EcoFloatingHeader action buttons
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun MapControlFab(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    iconTint: Color = Color.Unspecified,
-    surfaceColor: Color = Color.Unspecified,
-) {
-    val resolvedSurface = if (surfaceColor == Color.Unspecified)
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-    else
-        surfaceColor
-    val resolvedTint = if (iconTint == Color.Unspecified)
-        MaterialTheme.colorScheme.onSurface
-    else
-        iconTint
-
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = CircleShape,
-        color = resolvedSurface,
-        shadowElevation = 4.dp,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = resolvedTint,
-            modifier = Modifier
-                .padding(10.dp)
-                .size(22.dp),
-        )
     }
 }
 

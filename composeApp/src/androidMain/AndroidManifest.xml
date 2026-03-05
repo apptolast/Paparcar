@@ -66,10 +66,12 @@
             </intent-filter>
         </receiver>
 
-        <!-- GeofenceBroadcastReceiver — system delivers via explicit PendingIntent -->
+        <!-- GeofenceBroadcastReceiver — Play Services delivers via PendingIntent (external process).
+             exported=true is required on Android 12+ so the OS allows cross-process delivery.
+             The PendingIntent is explicit + FLAG_IMMUTABLE, limiting spoofing risk. -->
         <receiver
             android:name=".detection.receiver.GeofenceBroadcastReceiver"
-            android:exported="false" />
+            android:exported="true" />
 
         <!-- Google Maps API Key -->
         <meta-data

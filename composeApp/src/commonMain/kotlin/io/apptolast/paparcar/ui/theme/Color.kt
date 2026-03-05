@@ -11,6 +11,8 @@ val EcoGreenDark     = Color(0xFF1AC070)   // pressed variant
 // Dark surfaces
 val EcoForest        = Color(0xFF0D1C14)   // deepest background
 val EcoForestMid     = Color(0xFF0F2218)   // card / sheet surface
+val EcoForestDark    = Color(0xFF0D3D2E)   // active-session hero card background
+val EcoForestMedium  = Color(0xFF1A5C40)   // icon box inside hero card
 val EcoGreenMuted    = Color(0xFF133D28)   // container / surface variant
 val EcoGreenElement  = Color(0xFF226D49)   // interactive elements, outline
 

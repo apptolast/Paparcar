@@ -84,6 +84,7 @@ fun MapScreen(
                 userParking = state.userParking,
                 onSpotClick = { spotId -> viewModel.handleIntent(MapIntent.OnSpotSelected(spotId)) },
                 cameraTarget = cameraTarget,
+                focusMarker = initialFocus,
                 modifier = Modifier.fillMaxSize(),
             )
 
