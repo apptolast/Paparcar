@@ -26,6 +26,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.history.BodyMedium
 import io.apptolast.paparcar.presentation.history.BodySmall
@@ -46,9 +46,7 @@ import io.apptolast.paparcar.presentation.history.MONTH_RES
 import io.apptolast.paparcar.presentation.history.TitleBody
 import io.apptolast.paparcar.presentation.util.formatCoords
 import io.apptolast.paparcar.presentation.util.formatRelativeTime
-import io.apptolast.paparcar.ui.theme.EcoForestDark
-import io.apptolast.paparcar.ui.theme.EcoForestMedium
-import io.apptolast.paparcar.ui.theme.EcoGreen
+import io.apptolast.paparcar.ui.theme.PapGreen
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
@@ -61,11 +59,11 @@ import paparcar.composeapp.generated.resources.history_status_active
 import paparcar.composeapp.generated.resources.history_view_map
 import kotlin.time.Instant
 
-private const val PULSE_EXPAND_DURATION   = 900
+private const val PULSE_EXPAND_DURATION = 900
 private const val PULSE_COLLAPSE_DURATION = 400
 
 @Composable
-internal fun PulsingDot(color: Color = EcoGreen, modifier: Modifier = Modifier) {
+internal fun PulsingDot(color: Color = PapGreen, modifier: Modifier = Modifier) {
     val ring = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -86,10 +84,15 @@ internal fun PulsingDot(color: Color = EcoGreen, modifier: Modifier = Modifier) 
 @Composable
 internal fun ActiveSessionHeroCard(
     session: UserParking,
-    address: AddressInfo?,
     onViewOnMap: (Double, Double) -> Unit,
 ) {
-    val relativeTime = remember(session.location.timestamp) { formatRelativeTime(session.location.timestamp) }
+    val cs = MaterialTheme.colorScheme
+    val accentColor = cs.primary
+    val textPrimary = cs.onPrimaryContainer
+    val textMuted = textPrimary.copy(alpha = 0.55f)
+
+    val relativeTime =
+        remember(session.location.timestamp) { formatRelativeTime(session.location.timestamp) }
     val dateTime = remember(session.location.timestamp) {
         Instant.fromEpochMilliseconds(session.location.timestamp)
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -103,15 +106,17 @@ internal fun ActiveSessionHeroCard(
         dateTime.hour.toString().padStart(2, '0'),
         dateTime.minute.toString().padStart(2, '0'),
     )
-    val precisionStr = stringResource(Res.string.history_precision, session.location.accuracy.toInt())
-    val activeSinceStr = stringResource(Res.string.history_active_since, relativeTime)
-    val addressText = address?.displayLine
+    val precisionStr =
+        stringResource(Res.string.history_precision, session.location.accuracy.toInt())
+    val activeSinceStr = stringResource(Res.string.history_active_since, cgghrelativeTime)
+    val addressText = session.placeInfo?.let { "${it.category.emoji} ${it.name}" }
+        ?: session.address?.displayLine
         ?: formatCoords(session.location.latitude, session.location.longitude)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = EcoForestDark),
+        colors = CardDefaults.cardColors(containerColor = cs.primaryContainer),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -121,36 +126,32 @@ internal fun ActiveSessionHeroCard(
                 Box(
                     modifier = Modifier
                         .size(52.dp)
-                        .background(EcoForestMedium, RoundedCornerShape(16.dp)),
+                        .background(accentColor.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Outlined.DirectionsCar,
                         contentDescription = null,
-                        tint = EcoGreen,
+                        tint = accentColor,
                         modifier = Modifier.size(30.dp),
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = activeSinceStr, style = TitleBody, color = Color.White)
-                    Text(
-                        text = dateStr,
-                        style = BodySmall,
-                        color = Color.White.copy(alpha = 0.55f),
-                    )
+                    Text(text = activeSinceStr, style = TitleBody, color = textPrimary)
+                    Text(text = dateStr, style = BodySmall, color = textMuted)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    PulsingDot()
+                    PulsingDot(color = accentColor)
                     Spacer(Modifier.width(6.dp))
                     Surface(
-                        color = EcoGreen.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(8.dp),
+                        color = accentColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             stringResource(Res.string.history_status_active),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             style = LabelBold,
-                            color = EcoGreen,
+                            color = accentColor,
                         )
                     }
                 }
@@ -166,21 +167,18 @@ internal fun ActiveSessionHeroCard(
                 Text(
                     text = addressText,
                     style = BodyMedium.copy(fontWeight = FontWeight.Medium),
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = textPrimary.copy(alpha = 0.85f),
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.width(8.dp))
-                Surface(
-                    color = EcoForestMedium,
-                    shape = RoundedCornerShape(6.dp),
-                ) {
+                Surface(color = accentColor.copy(alpha = 0.12f), shape = RoundedCornerShape(6.dp)) {
                     Text(
                         text = precisionStr,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         style = LabelBold,
-                        color = EcoGreen,
+                        color = accentColor,
                     )
                 }
             }
@@ -191,8 +189,8 @@ internal fun ActiveSessionHeroCard(
                 onClick = { onViewOnMap(session.location.latitude, session.location.longitude) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = EcoGreen,
-                    contentColor = EcoForestDark,
+                    containerColor = accentColor,
+                    contentColor = cs.onPrimary,
                 ),
                 shape = RoundedCornerShape(12.dp),
             ) {

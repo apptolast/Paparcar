@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,8 +40,6 @@ import io.apptolast.paparcar.presentation.history.BodySmall
 import io.apptolast.paparcar.presentation.history.LabelBold
 import io.apptolast.paparcar.presentation.history.TitleBody
 import io.apptolast.paparcar.presentation.history.WeekDayStats
-import io.apptolast.paparcar.ui.theme.EcoForestMid
-import io.apptolast.paparcar.ui.theme.EcoGreen
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_minutes_suffix
@@ -63,10 +62,14 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
     val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(1)
     val textMeasurer = rememberTextMeasurer()
 
+    // Capture theme colors before entering Canvas
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = EcoForestMid),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -78,23 +81,23 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
                     Text(
                         stringResource(Res.string.history_weekly_title),
                         style = TitleBody,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
                         "${data.sumOf { it.sessions }} ${stringResource(Res.string.history_weekly_subtitle)}",
                         style = BodySmall,
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     )
                 }
                 Surface(
-                    color = EcoGreen.copy(alpha = 0.15f),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(8.dp),
                 ) {
                     Text(
                         "${data.sumOf { it.minutes }} ${stringResource(Res.string.history_minutes_suffix)}",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         style = LabelBold,
-                        color = EcoGreen,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -111,6 +114,8 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
                     maxValue = maxSessions,
                     progress = anim,
                     textMeasurer = textMeasurer,
+                    primaryColor = primaryColor,
+                    onSurfaceColor = onSurfaceColor,
                 )
             }
         }
@@ -122,6 +127,8 @@ private fun DrawScope.drawBarChart(
     maxValue: Int,
     progress: Float,
     textMeasurer: TextMeasurer,
+    primaryColor: Color,
+    onSurfaceColor: Color,
 ) {
     if (data.isEmpty()) return
 
@@ -134,7 +141,7 @@ private fun DrawScope.drawBarChart(
     repeat(3) { i ->
         val y = chartHeight * (1f - (i + 1).toFloat() / 3)
         drawLine(
-            color = Color.White.copy(alpha = 0.07f),
+            color = onSurfaceColor.copy(alpha = 0.07f),
             start = Offset(0f, y),
             end = Offset(size.width, y),
             strokeWidth = 1.dp.toPx(),
@@ -146,13 +153,13 @@ private fun DrawScope.drawBarChart(
         fontFamily = BodyFont,
         fontSize = 10.sp,
         fontWeight = FontWeight.Normal,
-        color = Color.White.copy(alpha = 0.4f),
+        color = onSurfaceColor.copy(alpha = 0.4f),
     )
     val countStyle = TextStyle(
         fontFamily = BodyFont,
         fontSize = 9.sp,
         fontWeight = FontWeight.Bold,
-        color = EcoGreen,
+        color = primaryColor,
     )
 
     data.forEachIndexed { index, item ->
@@ -162,7 +169,7 @@ private fun DrawScope.drawBarChart(
         val barHeight = chartHeight * fillRatio * progress
 
         drawRoundRect(
-            color = Color.White.copy(alpha = 0.06f),
+            color = onSurfaceColor.copy(alpha = 0.06f),
             topLeft = Offset(barLeft, 0f),
             size = Size(barWidth, chartHeight),
             cornerRadius = cornerRadius,
@@ -171,7 +178,7 @@ private fun DrawScope.drawBarChart(
         if (barHeight > 0f) {
             val isToday = index == data.size - 1
             drawRoundRect(
-                color = if (isToday) EcoGreen else EcoGreen.copy(alpha = 0.55f),
+                color = if (isToday) primaryColor else primaryColor.copy(alpha = 0.55f),
                 topLeft = Offset(barLeft, chartHeight - barHeight),
                 size = Size(barWidth, barHeight),
                 cornerRadius = cornerRadius,
@@ -191,7 +198,7 @@ private fun DrawScope.drawBarChart(
             val fadeAlpha = ((progress - 0.8f) / 0.2f).coerceIn(0f, 1f)
             val countResult = textMeasurer.measure(
                 item.sessions.toString(),
-                countStyle.copy(color = EcoGreen.copy(alpha = fadeAlpha * 0.9f)),
+                countStyle.copy(color = primaryColor.copy(alpha = fadeAlpha * 0.9f)),
             )
             drawText(
                 textLayoutResult = countResult,

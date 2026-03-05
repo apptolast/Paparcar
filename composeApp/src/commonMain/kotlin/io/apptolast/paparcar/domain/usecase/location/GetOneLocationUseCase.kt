@@ -23,6 +23,6 @@ class GetOneLocationUseCase(
         }
 
     companion object {
-        private const val TIMEOUT_MS = 8_000L
+        private const val TIMEOUT_MS = 15_000L
     }
 }

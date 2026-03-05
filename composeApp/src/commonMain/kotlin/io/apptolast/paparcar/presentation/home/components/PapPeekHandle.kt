@@ -24,15 +24,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.ui.theme.EcoGreen
-import io.apptolast.paparcar.ui.theme.EcoGreenMuted
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_loading
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
 @Composable
-internal fun EcoPeekHandle(
+internal fun PapPeekHandle(
     state: HomeState,
     onParkingClick: () -> Unit,
 ) {
@@ -50,7 +48,7 @@ internal fun EcoPeekHandle(
                 .align(Alignment.CenterHorizontally),
         )
 
-        // Fila única: dirección + badge
+        // Address row + badge
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -61,12 +59,12 @@ internal fun EcoPeekHandle(
             Icon(
                 Icons.Outlined.LocationOn,
                 contentDescription = null,
-                tint = EcoGreen,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = state.userAddress?.displayLine
+                    text = state.userLocationInfo?.address?.displayLine
                         ?: stringResource(Res.string.home_address_loading),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
@@ -74,11 +72,19 @@ internal fun EcoPeekHandle(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (state.userAddress?.city != null) {
-                    Text(
+                val info = state.userLocationInfo
+                when {
+                    info?.placeInfo != null -> Text(
+                        text = "${info.placeInfo.category.emoji} ${info.placeInfo.name}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    info?.address?.city != null -> Text(
                         text = listOfNotNull(
-                            state.userAddress.city,
-                            state.userAddress.region,
+                            info.address.city,
+                            info.address.region,
                         ).joinToString(", "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
@@ -88,7 +94,7 @@ internal fun EcoPeekHandle(
             }
             // Badge de spots libres
             Surface(
-                color = if (freeCount > 0) EcoGreenMuted
+                color = if (freeCount > 0) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(8.dp),
             ) {
@@ -102,7 +108,7 @@ internal fun EcoPeekHandle(
                             .size(6.dp)
                             .clip(CircleShape)
                             .background(
-                                if (freeCount > 0) EcoGreen
+                                if (freeCount > 0) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                             ),
                     )
@@ -110,7 +116,7 @@ internal fun EcoPeekHandle(
                         stringResource(Res.string.home_stats_free_spots_badge, freeCount),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (freeCount > 0) EcoGreen
+                        color = if (freeCount > 0) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                 }

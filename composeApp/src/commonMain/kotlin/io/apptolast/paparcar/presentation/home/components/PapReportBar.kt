@@ -27,8 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.apptolast.paparcar.ui.theme.EcoForest
-import io.apptolast.paparcar.ui.theme.EcoGreen
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_fab_report_spot
@@ -40,14 +38,14 @@ import paparcar.composeapp.generated.resources.home_permissions_message
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoReportBar(
+internal fun PapReportBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        color = EcoGreen,
+        color = MaterialTheme.colorScheme.primary,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -60,7 +58,7 @@ internal fun EcoReportBar(
                 Icon(
                     Icons.Outlined.Campaign,
                     contentDescription = null,
-                    tint = EcoForest,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(8.dp))
@@ -68,12 +66,12 @@ internal fun EcoReportBar(
                     stringResource(Res.string.home_fab_report_spot),
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 15.sp,
-                    color = EcoForest,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     letterSpacing = 0.3.sp,
                 )
             }
             // navBar inset below the content — keeps the text visually centred
-            // within the clickable zone while the green extends behind the nav bar.
+            // within the clickable zone while the primary color extends behind the nav bar.
             Spacer(modifier = Modifier.navigationBarsPadding())
         }
     }
@@ -84,7 +82,7 @@ internal fun EcoReportBar(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoPermissionsCard(
+internal fun PapPermissionsCard(
     onRequestPermissions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,8 +109,8 @@ internal fun EcoPermissionsCard(
                 onClick = onRequestPermissions,
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = EcoGreen,
-                    contentColor = EcoForest,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             ) {
                 Text(

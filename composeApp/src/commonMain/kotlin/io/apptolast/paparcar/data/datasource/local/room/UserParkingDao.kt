@@ -26,4 +26,24 @@ interface UserParkingDao {
 
     @Query("DELETE FROM parking_sessions WHERE isActive = 0 AND timestamp < :olderThanMs")
     suspend fun deleteOldSessions(olderThanMs: Long)
+
+    @Query("""
+        UPDATE parking_sessions SET
+            addressStreet      = :street,
+            addressCity        = :city,
+            addressRegion      = :region,
+            addressCountry     = :country,
+            placeInfoName      = :placeInfoName,
+            placeInfoCategory  = :placeInfoCategory
+        WHERE id = :id
+    """)
+    suspend fun updateLocationInfo(
+        id: String,
+        street: String?,
+        city: String?,
+        region: String?,
+        country: String?,
+        placeInfoName: String?,
+        placeInfoCategory: String?,
+    )
 }

@@ -1,7 +1,10 @@
 package io.apptolast.paparcar.data.mapper
 
 import io.apptolast.paparcar.data.datasource.local.room.UserParkingEntity
+import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.PlaceCategory
+import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.UserParking
 
 fun UserParkingEntity.toDomain(): UserParking = UserParking(
@@ -11,11 +14,28 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
         longitude = longitude,
         accuracy = accuracy,
         timestamp = timestamp,
-        speed = 0f, // Entity has no speed field; default to 0
+        speed = 0f,
     ),
     spotId = spotId,
     geofenceId = geofenceId,
     isActive = isActive,
+    address = if (addressStreet != null || addressCity != null ||
+        addressRegion != null || addressCountry != null
+    ) {
+        AddressInfo(
+            street = addressStreet,
+            city = addressCity,
+            region = addressRegion,
+            country = addressCountry,
+        )
+    } else null,
+    placeInfo = run {
+        val name = placeInfoName
+        val cat  = placeInfoCategory
+        if (name != null && cat != null)
+            runCatching { PlaceInfo(name, PlaceCategory.valueOf(cat)) }.getOrNull()
+        else null
+    },
 )
 
 fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
@@ -27,4 +47,10 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     spotId = spotId,
     geofenceId = geofenceId,
     isActive = isActive,
+    addressStreet = address?.street,
+    addressCity = address?.city,
+    addressRegion = address?.region,
+    addressCountry = address?.country,
+    placeInfoName = placeInfo?.name,
+    placeInfoCategory = placeInfo?.category?.name,
 )

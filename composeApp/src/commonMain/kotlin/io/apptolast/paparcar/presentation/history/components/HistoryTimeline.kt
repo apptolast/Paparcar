@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,20 +31,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.history.BodyMedium
 import io.apptolast.paparcar.presentation.history.BodySmall
 import io.apptolast.paparcar.presentation.history.LabelBold
 import io.apptolast.paparcar.presentation.history.MONTH_RES
 import io.apptolast.paparcar.presentation.util.formatCoords
-import io.apptolast.paparcar.ui.theme.EcoForestMedium
-import io.apptolast.paparcar.ui.theme.EcoForestMid
-import io.apptolast.paparcar.ui.theme.EcoGreen
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
@@ -65,12 +61,12 @@ internal fun DayHeaderRow(label: String) {
         Box(
             modifier = Modifier
                 .size(5.dp)
-                .background(EcoGreen.copy(alpha = 0.4f), CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), CircleShape)
         )
         Text(
             text = label.uppercase(),
             style = LabelBold,
-            color = Color.White.copy(alpha = 0.4f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
         )
     }
 }
@@ -78,7 +74,6 @@ internal fun DayHeaderRow(label: String) {
 @Composable
 internal fun EndedSessionTimelineNode(
     session: UserParking,
-    address: AddressInfo?,
     isLast: Boolean,
     onViewOnMap: (Double, Double) -> Unit,
 ) {
@@ -97,14 +92,14 @@ internal fun EndedSessionTimelineNode(
             Box(
                 Modifier
                     .size(8.dp)
-                    .background(EcoGreen.copy(alpha = 0.65f), CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.65f), CircleShape)
             )
             if (!isLast) {
                 Box(
                     Modifier
                         .width(1.5.dp)
                         .weight(1f)
-                        .background(Color.White.copy(alpha = 0.08f))
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                 )
             }
         }
@@ -113,7 +108,6 @@ internal fun EndedSessionTimelineNode(
 
         EndedSessionCardContent(
             session = session,
-            address = address,
             onViewOnMap = onViewOnMap,
             modifier = Modifier
                 .weight(1f)
@@ -125,7 +119,6 @@ internal fun EndedSessionTimelineNode(
 @Composable
 private fun EndedSessionCardContent(
     session: UserParking,
-    address: AddressInfo?,
     onViewOnMap: (Double, Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -138,14 +131,15 @@ private fun EndedSessionCardContent(
         ?: dateTime.month.number.toString().padStart(2, '0')
     val timeStr = "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}"
     val precisionStr = stringResource(Res.string.history_precision, session.location.accuracy.toInt())
-    val primaryText = address?.displayLine
+    val primaryText = session.placeInfo?.let { "${it.category.emoji} ${it.name}" }
+        ?: session.address?.displayLine
         ?: formatCoords(session.location.latitude, session.location.longitude)
-    val secondaryText = address?.let { "${it.city ?: monthName} · $timeStr" } ?: timeStr
+    val secondaryText = session.address?.let { "${it.city ?: monthName} · $timeStr" } ?: timeStr
 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = EcoForestMid),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -155,7 +149,7 @@ private fun EndedSessionCardContent(
                 Text(
                     text = primaryText,
                     style = BodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -163,20 +157,20 @@ private fun EndedSessionCardContent(
                 Text(
                     text = secondaryText,
                     style = BodySmall,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 )
             }
             Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Surface(
-                    color = EcoForestMedium.copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(6.dp),
                 ) {
                     Text(
                         precisionStr,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                         style = LabelBold,
-                        color = EcoGreen.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                     )
                 }
                 Spacer(Modifier.height(4.dp))

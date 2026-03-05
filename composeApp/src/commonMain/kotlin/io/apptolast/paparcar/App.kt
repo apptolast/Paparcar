@@ -11,7 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import io.apptolast.paparcar.presentation.history.HistoryScreen
-import io.apptolast.paparcar.presentation.home.EcoHomeScreen
+import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.MapScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -35,7 +35,7 @@ fun App() {
                 startDestination = Routes.HOME,
             ) {
                 composable(Routes.HOME) {
-                    EcoHomeScreen(
+                    HomeScreen(
                         onNavigateToMap = { navController.navigate(Routes.MAP) },
                         onNavigateToHistory = { navController.navigate(Routes.HISTORY) },
                     )

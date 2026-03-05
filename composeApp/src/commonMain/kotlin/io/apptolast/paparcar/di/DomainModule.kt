@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.di
 
 import io.apptolast.paparcar.domain.usecase.location.GetAddressUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetNearbyPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetStoredLocationsUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
@@ -34,6 +36,8 @@ val domainModule = module {
 
     // Location UseCases
     factory { GetAddressUseCase(get()) }
+    factory { GetNearbyPlaceUseCase(get()) }
+    factory { GetLocationInfoUseCase(get(), get()) }
     factory { ObserveLocationUpdatesUseCase(get()) }
     factory { GetOneLocationUseCase(get()) }
     factory { ObserveAdaptiveLocationUseCase(get()) }
@@ -54,6 +58,7 @@ val domainModule = module {
             saveUserParking = get(),
             geofenceService = get(),
             notifyParkingSpotSaved = get(),
+            enrichmentScheduler = get(),
             config = get(),
         )
     }

@@ -40,6 +40,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -48,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -63,7 +65,6 @@ import io.apptolast.paparcar.presentation.history.components.StatsRow
 import io.apptolast.paparcar.presentation.history.components.WeeklyActivityCard
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -105,7 +106,7 @@ import kotlin.time.Instant
 // )
 
 internal val TopBarFont = FontFamily.Default   // replace with SyneFontFamily
-internal val BodyFont   = FontFamily.SansSerif // replace with JostFontFamily
+internal val BodyFont = FontFamily.SansSerif // replace with JostFontFamily
 
 internal val BodyMedium = TextStyle(
     fontFamily = BodyFont,
@@ -135,11 +136,11 @@ internal val TitleBody = TextStyle(
 // ─── Month resources ──────────────────────────────────────────────────────────
 
 internal val MONTH_RES: List<StringResource> = listOf(
-    Res.string.history_month_1,  Res.string.history_month_2,
-    Res.string.history_month_3,  Res.string.history_month_4,
-    Res.string.history_month_5,  Res.string.history_month_6,
-    Res.string.history_month_7,  Res.string.history_month_8,
-    Res.string.history_month_9,  Res.string.history_month_10,
+    Res.string.history_month_1, Res.string.history_month_2,
+    Res.string.history_month_3, Res.string.history_month_4,
+    Res.string.history_month_5, Res.string.history_month_6,
+    Res.string.history_month_7, Res.string.history_month_8,
+    Res.string.history_month_9, Res.string.history_month_10,
     Res.string.history_month_11, Res.string.history_month_12,
 )
 
@@ -185,7 +186,7 @@ fun HistoryScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is HistoryEffect.ShowError   -> snackbarHostState.showSnackbar(effect.message)
+                is HistoryEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
                 is HistoryEffect.NavigateBack -> currentOnNavigateBack()
                 is HistoryEffect.NavigateToMap -> currentOnNavigateToMap(effect.lat, effect.lon)
             }
@@ -196,10 +197,10 @@ fun HistoryScreen(
         { lat, lon -> viewModel.handleIntent(HistoryIntent.ViewOnMap(lat, lon)) }
     }
 
-    val todayLabel     = stringResource(Res.string.history_today)
-    val yesterdayLabel = stringResource(Res.string.history_yesterday)
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = {
@@ -220,83 +221,98 @@ fun HistoryScreen(
                         )
                     }
                 },
+                scrollBehavior = scrollBehavior,
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            when {
-                state.isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        HistoryContent(
+            state = state,
+            contentPadding = padding,
+            onViewOnMap = onViewOnMap,
+        )
+    }
+}
+
+@Composable
+internal fun HistoryContent(
+    state: HistoryState,
+    contentPadding: PaddingValues,
+    onViewOnMap: (Double, Double) -> Unit,
+) {
+    val todayLabel = stringResource(Res.string.history_today)
+    val yesterdayLabel = stringResource(Res.string.history_yesterday)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding),
+    ) {
+        when {
+            state.isLoading -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+
+            state.sessions.isEmpty() -> {
+                EmptyHistoryState(modifier = Modifier.align(Alignment.Center))
+            }
+
+            else -> {
+                val active = remember(state.sessions) { state.sessions.firstOrNull { it.isActive } }
+                val ended = remember(state.sessions) { state.sessions.filter { !it.isActive } }
+                val weeklyStats = remember(ended) { buildWeeklyStats(ended) }
+                val timelineItems = remember(ended, todayLabel, yesterdayLabel) {
+                    buildTimeline(ended, todayLabel, yesterdayLabel)
                 }
 
-                state.sessions.isEmpty() -> {
-                    EmptyHistoryState(modifier = Modifier.align(Alignment.Center))
-                }
-
-                else -> {
-                    val active = remember(state.sessions) { state.sessions.firstOrNull { it.isActive } }
-                    val ended  = remember(state.sessions) { state.sessions.filter { !it.isActive } }
-                    val weeklyStats   = remember(ended) { buildWeeklyStats(ended) }
-                    val timelineItems = remember(ended, todayLabel, yesterdayLabel) {
-                        buildTimeline(ended, todayLabel, yesterdayLabel)
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    item(key = "chart") {
+                        WeeklyActivityCard(data = weeklyStats)
                     }
 
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        item(key = "chart") {
-                            WeeklyActivityCard(data = weeklyStats)
-                        }
+                    item(key = "stats") {
+                        Spacer(Modifier.height(8.dp))
+                        StatsRow(sessions = state.sessions)
+                    }
 
-                        item(key = "stats") {
+                    if (active != null) {
+                        item(key = "active_header") {
                             Spacer(Modifier.height(8.dp))
-                            StatsRow(sessions = state.sessions)
+                            HistorySectionHeader(
+                                text = stringResource(Res.string.history_active_section),
+                            )
                         }
+                        item(key = "active_${active.id}") {
+                            Spacer(Modifier.height(4.dp))
+                            ActiveSessionHeroCard(
+                                session = active,
+                                onViewOnMap = onViewOnMap,
+                            )
+                        }
+                    }
 
-                        if (active != null) {
-                            item(key = "active_header") {
-                                Spacer(Modifier.height(8.dp))
-                                HistorySectionHeader(
-                                    text = stringResource(Res.string.history_active_section),
-                                )
-                            }
-                            item(key = "active_${active.id}") {
-                                Spacer(Modifier.height(4.dp))
-                                ActiveSessionHeroCard(
-                                    session = active,
-                                    address = state.addresses[active.id],
+                    if (ended.isNotEmpty()) {
+                        item(key = "ended_header") {
+                            Spacer(Modifier.height(8.dp))
+                            HistorySectionHeader(
+                                text = stringResource(Res.string.history_ended_section),
+                            )
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        items(
+                            items = timelineItems,
+                            key = { it.key },
+                        ) { timelineItem ->
+                            when (timelineItem) {
+                                is TimelineItem.Header -> DayHeaderRow(label = timelineItem.label)
+                                is TimelineItem.Session -> EndedSessionTimelineNode(
+                                    session = timelineItem.parking,
+                                    isLast = timelineItem.isLast,
                                     onViewOnMap = onViewOnMap,
                                 )
-                            }
-                        }
-
-                        if (ended.isNotEmpty()) {
-                            item(key = "ended_header") {
-                                Spacer(Modifier.height(8.dp))
-                                HistorySectionHeader(
-                                    text = stringResource(Res.string.history_ended_section),
-                                )
-                                Spacer(Modifier.height(4.dp))
-                            }
-                            items(
-                                items = timelineItems,
-                                key = { it.key },
-                            ) { timelineItem ->
-                                when (timelineItem) {
-                                    is TimelineItem.Header  -> DayHeaderRow(label = timelineItem.label)
-                                    is TimelineItem.Session -> EndedSessionTimelineNode(
-                                        session = timelineItem.parking,
-                                        address = state.addresses[timelineItem.parking.id],
-                                        isLast  = timelineItem.isLast,
-                                        onViewOnMap = onViewOnMap,
-                                    )
-                                }
                             }
                         }
                     }
@@ -331,7 +347,7 @@ private fun buildTimeline(
 ): List<TimelineItem> {
     val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val today     = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
+    val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
     val yesterday = Instant.fromEpochMilliseconds(nowMs - 86_400_000L).toLocalDateTime(tz).date
 
     val flat = mutableListOf<TimelineItem>()
@@ -344,9 +360,9 @@ private fun buildTimeline(
         }
         .forEach { (date, daySessions) ->
             val label = when (date) {
-                today     -> todayLabel
+                today -> todayLabel
                 yesterday -> yesterdayLabel
-                else      -> "${date.dayOfMonth} ${MONTH_NAMES_SHORT[date.monthNumber - 1]} ${date.year}"
+                else -> "${date.dayOfMonth} ${MONTH_NAMES_SHORT[date.monthNumber - 1]} ${date.year}"
             }
             flat += TimelineItem.Header(label)
             daySessions.forEach { flat += TimelineItem.Session(it, isLast = false) }

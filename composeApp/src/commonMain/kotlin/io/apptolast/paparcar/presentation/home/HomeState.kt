@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.presentation.home
 
-import io.apptolast.paparcar.domain.model.AddressInfo
-import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.LocationInfo
+import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.UserParking
 
 /**
  * Estado de la pantalla Home.
@@ -16,8 +16,8 @@ data class HomeState(
     val error: String? = null,
     val userLocation: Pair<Double, Double>? = null,
     val userGpsPoint: GpsPoint? = null,
-    val userAddress: AddressInfo? = null,
+    /** LocationInfo for the user's current GPS position (geocoded on-demand, not stored). */
+    val userLocationInfo: LocationInfo? = null,
     val isDetectionActive: Boolean = false,
     val userParking: UserParking? = null,
-    val spotAddresses: Map<String, AddressInfo> = emptyMap(),
 )

@@ -4,7 +4,7 @@ import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.permissions.PermissionManager
-import io.apptolast.paparcar.domain.usecase.location.GetAddressUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveLocationUpdatesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
@@ -29,11 +29,10 @@ class HomeViewModel(
     private val activityRecognitionManager: ActivityRecognitionManager,
     observeUserParking: ObserveUserParkingUseCase,
     private val clearUserParking: ClearUserParkingUseCase,
-    private val getAddress: GetAddressUseCase,
+    private val getLocationInfo: GetLocationInfoUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
-        // Observe active parking session.
         observeUserParking()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
@@ -42,7 +41,6 @@ class HomeViewModel(
             }
             .launchIn(viewModelScope)
 
-        // Reactive chain: permissions → location → nearby spots.
         permissionManager.permissionState
             .flatMapLatest { permissionState ->
                 updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
@@ -65,10 +63,7 @@ class HomeViewModel(
                 geocodeUserLocation(userLocation.latitude, userLocation.longitude)
                 observeNearbySpots(userLocation, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
             }
-            .onEach { spots ->
-                updateState { copy(nearbySpots = spots) }
-                fetchAddressesForNewSpots(spots)
-            }
+            .onEach { spots -> updateState { copy(nearbySpots = spots) } }
             .catch { e ->
                 updateState { copy(error = e.message) }
                 sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
@@ -96,10 +91,7 @@ class HomeViewModel(
     private fun releaseParking() {
         val session = state.value.userParking ?: return
         viewModelScope.launch {
-            // Clear locally first so the banner disappears immediately.
             clearUserParking()
-
-            // Report the freed spot to Firebase.
             val spot = Spot(
                 id = session.id,
                 location = GpsPoint(
@@ -111,6 +103,8 @@ class HomeViewModel(
                 ),
                 reportedBy = "anonymous",
                 isActive = true,
+                address = session.address,
+                placeInfo = session.placeInfo,
             )
             reportSpotReleased(spot).onFailure { e ->
                 sendEffect(HomeEffect.ShowError(e.message ?: "Error al liberar la plaza"))
@@ -122,7 +116,6 @@ class HomeViewModel(
         viewModelScope.launch {
             val timestamp = Clock.System.now().toEpochMilliseconds()
             val spotId = "${DEBUG_USER_ID}_$timestamp"
-
             val testSpot = Spot(
                 id = spotId,
                 location = GpsPoint(
@@ -130,38 +123,21 @@ class HomeViewModel(
                     longitude = DEBUG_LONGITUDE,
                     accuracy = 10f,
                     timestamp = timestamp,
-                    speed = 0f
+                    speed = 0f,
                 ),
                 reportedBy = DEBUG_USER_ID,
-                isActive = true
+                isActive = true,
             )
-
             reportSpotReleased(testSpot)
-                .onSuccess {
-                    sendEffect(HomeEffect.ShowSuccess("Spot de prueba reportado con éxito"))
-                }
-                .onFailure {
-                    sendEffect(HomeEffect.ShowError("Error al reportar spot de prueba: ${it.message}"))
-                }
+                .onSuccess { sendEffect(HomeEffect.ShowSuccess("Spot de prueba reportado con éxito")) }
+                .onFailure { sendEffect(HomeEffect.ShowError("Error al reportar spot de prueba: ${it.message}")) }
         }
     }
 
     private fun geocodeUserLocation(lat: Double, lon: Double) {
         viewModelScope.launch {
-            getAddress(lat, lon).onSuccess { address ->
-                updateState { copy(userAddress = address) }
-            }
-        }
-    }
-
-    private fun fetchAddressesForNewSpots(spots: List<Spot>) {
-        val knownIds = state.value.spotAddresses.keys
-        spots.filter { it.id !in knownIds }.forEach { spot ->
-            viewModelScope.launch {
-                getAddress(spot.location.latitude, spot.location.longitude)
-                    .onSuccess { address ->
-                        updateState { copy(spotAddresses = spotAddresses + (spot.id to address)) }
-                    }
+            getLocationInfo(lat, lon).onSuccess { info ->
+                updateState { copy(userLocationInfo = info) }
             }
         }
     }

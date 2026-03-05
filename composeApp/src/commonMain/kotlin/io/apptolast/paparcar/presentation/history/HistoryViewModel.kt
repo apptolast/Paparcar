@@ -1,14 +1,11 @@
 package io.apptolast.paparcar.presentation.history
 
-import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.usecase.location.GetAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.GetAllUserParkingsUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.launch
 
 class HistoryViewModel(
     private val getAllSessions: GetAllUserParkingsUseCase,
-    private val getAddress: GetAddressUseCase,
 ) : BaseViewModel<HistoryState, HistoryIntent, HistoryEffect>() {
 
     init {
@@ -32,24 +29,11 @@ class HistoryViewModel(
             runCatching { getAllSessions() }
                 .onSuccess { sessions ->
                     updateState { copy(isLoading = false, sessions = sessions) }
-                    fetchAddresses(sessions)
                 }
                 .onFailure { t ->
                     updateState { copy(isLoading = false, error = t.message) }
                     sendEffect(HistoryEffect.ShowError(t.message ?: "Error al cargar historial"))
                 }
-        }
-    }
-
-    private fun fetchAddresses(sessions: List<UserParking>) {
-        viewModelScope.launch {
-            sessions.forEach { session ->
-                if (state.value.addresses.containsKey(session.id)) return@forEach
-                getAddress(session.location.latitude, session.location.longitude)
-                    .onSuccess { addr ->
-                        updateState { copy(addresses = addresses + (session.id to addr)) }
-                    }
-            }
         }
     }
 }

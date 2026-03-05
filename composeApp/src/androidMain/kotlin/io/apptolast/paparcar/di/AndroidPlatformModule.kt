@@ -8,9 +8,11 @@ import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderPort
 import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.places.PlacesPort
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.location.AndroidGeocoderDataSource
 import io.apptolast.paparcar.location.AndroidLocationDataSourceImpl
+import io.apptolast.paparcar.location.OverpassPlacesDataSource
 import io.apptolast.paparcar.notification.AppNotificationManagerImpl
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import io.apptolast.paparcar.permissions.PermissionManagerImpl
@@ -32,6 +34,7 @@ val androidPlatformModule = module {
     single { LocationServices.getFusedLocationProviderClient(androidContext()) }
     single<PlatformLocationDataSource> { AndroidLocationDataSourceImpl(get()) }
     single<GeocoderPort> { AndroidGeocoderDataSource(androidContext()) }
+    single<PlacesPort> { OverpassPlacesDataSource() }
 
     // Notification — single instance implements both contracts
     single { androidContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }

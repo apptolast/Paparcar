@@ -13,4 +13,12 @@ data class UserParkingEntity(
     val spotId: String? = null,
     val geofenceId: String? = null,
     val isActive: Boolean,
+    // AddressInfo — populated asynchronously after the parking session is saved
+    val addressStreet: String? = null,
+    val addressCity: String? = null,
+    val addressRegion: String? = null,
+    val addressCountry: String? = null,
+    // PlaceInfo — name + PlaceCategory enum name (e.g. "FUEL")
+    val placeInfoName: String? = null,
+    val placeInfoCategory: String? = null,
 )

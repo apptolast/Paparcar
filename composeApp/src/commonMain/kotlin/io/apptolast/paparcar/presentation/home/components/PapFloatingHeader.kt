@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -40,8 +39,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.apptolast.paparcar.ui.theme.EcoGreen
-import io.apptolast.paparcar.ui.theme.EcoGreenMuted
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -57,7 +54,7 @@ private const val DROPDOWN_ITEM_STAGGER   = 90L
 private const val DROPDOWN_EXIT_DELAY     = 160L
 
 @Composable
-internal fun EcoFloatingHeader(
+internal fun PapFloatingHeader(
     onHistoryClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -69,7 +66,7 @@ internal fun EcoFloatingHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box {
-            // ── Eco-Driver identity pill ───────────────────────────────────
+            // ── Pap-Driver identity pill ───────────────────────────────────
             Surface(
                 onClick = { dropdownExpanded = true },
                 shape = CircleShape,
@@ -85,13 +82,13 @@ internal fun EcoFloatingHeader(
                         modifier = Modifier
                             .size(24.dp)
                             .clip(CircleShape)
-                            .background(EcoGreenMuted),
+                            .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             Icons.Outlined.Person,
                             contentDescription = stringResource(Res.string.home_cd_profile),
-                            tint = EcoGreen,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(13.dp),
                         )
                     }
@@ -118,7 +115,7 @@ internal fun EcoFloatingHeader(
                                 imageVector = if (dropdownExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                                modifier = Modifier.size(16.dp),
+                                modifier = Modifier.size(20.dp),
                             )
                         }
                     }
@@ -130,22 +127,20 @@ internal fun EcoFloatingHeader(
         var item1Visible by remember { mutableStateOf(false) }
         var item2Visible by remember { mutableStateOf(false) }
 
-        // menuShowing stays true during exit animation so DropdownMenu doesn't
-        // collapse instantly and cut off the outgoing AnimatedVisibility transitions.
         LaunchedEffect(dropdownExpanded) {
             if (dropdownExpanded) {
                 menuShowing = true
                 item1Visible = false
                 item2Visible = false
-                item1Visible = true          // item 1 slides in immediately
+                item1Visible = true
                 delay(DROPDOWN_ITEM_STAGGER)
-                item2Visible = true          // item 2 follows 90 ms later
+                item2Visible = true
             } else {
-                item2Visible = false         // item 2 leaves first
+                item2Visible = false
                 delay(DROPDOWN_ITEM_STAGGER)
-                item1Visible = false         // item 1 follows 90 ms later
-                delay(DROPDOWN_EXIT_DELAY)   // wait for item1 exit tween(150) to complete
-                menuShowing = false          // now actually close the popup
+                item1Visible = false
+                delay(DROPDOWN_EXIT_DELAY)
+                menuShowing = false
             }
         }
         DropdownMenu(
@@ -158,7 +153,7 @@ internal fun EcoFloatingHeader(
             AnimatedVisibility(
                 visible = item1Visible,
                 enter = slideInVertically(
-                    initialOffsetY = { -it },          // comes from above
+                    initialOffsetY = { -it },
                     animationSpec = tween(DROPDOWN_ENTER_DURATION),
                 ) + fadeIn(tween(DROPDOWN_ENTER_DURATION)),
                 exit = slideOutVertically(
@@ -166,7 +161,7 @@ internal fun EcoFloatingHeader(
                     animationSpec = tween(DROPDOWN_EXIT_DURATION),
                 ) + fadeOut(tween(DROPDOWN_EXIT_DURATION)),
             ) {
-                EcoDropdownPillItem(
+                PapDropdownPillItem(
                     icon = Icons.Outlined.History,
                     label = stringResource(Res.string.home_nav_history),
                     onClick = { dropdownExpanded = false; onHistoryClick() },
@@ -184,7 +179,7 @@ internal fun EcoFloatingHeader(
                     animationSpec = tween(DROPDOWN_EXIT_DURATION),
                 ) + fadeOut(tween(DROPDOWN_EXIT_DURATION)),
             ) {
-                EcoDropdownPillItem(
+                PapDropdownPillItem(
                     icon = Icons.Outlined.Settings,
                     label = stringResource(Res.string.home_nav_settings),
                     onClick = { dropdownExpanded = false; onSettingsClick() },
@@ -194,13 +189,8 @@ internal fun EcoFloatingHeader(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Dropdown pill item — each one is its own Surface(CircleShape) so it has an
-// independent background, identical in language to the Eco-Driver pill.
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
-internal fun EcoDropdownPillItem(
+internal fun PapDropdownPillItem(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
@@ -220,13 +210,13 @@ internal fun EcoDropdownPillItem(
                 modifier = Modifier
                     .size(22.dp)
                     .clip(CircleShape)
-                    .background(EcoGreenMuted),
+                    .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = EcoGreen,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(12.dp),
                 )
             }
@@ -240,12 +230,8 @@ internal fun EcoDropdownPillItem(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Reusable pill wrapper
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
-internal fun EcoHeaderPill(
+internal fun PapHeaderPill(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {

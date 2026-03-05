@@ -28,16 +28,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.formatCoords
 import io.apptolast.paparcar.presentation.util.formatDistance
 import io.apptolast.paparcar.presentation.util.formatRelativeTime
 import io.apptolast.paparcar.presentation.util.formatWalkTime
-import io.apptolast.paparcar.ui.theme.AmberAccent
-import io.apptolast.paparcar.ui.theme.EcoGreen
-import io.apptolast.paparcar.ui.theme.EcoGreenMuted
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
@@ -51,15 +47,18 @@ import paparcar.composeapp.generated.resources.home_spot_status_occupied
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoSpotRow(
+internal fun PapSpotRow(
     spot: Spot,
-    address: AddressInfo?,
     userLocation: Pair<Double, Double>?,
     onClick: () -> Unit,
 ) {
     val isActive = spot.isActive
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
+    }
+    val displayText = when {
+        spot.placeInfo != null -> "${spot.placeInfo.category.emoji} ${spot.placeInfo.name}"
+        else -> spot.address?.displayLine ?: formatCoords(spot.location.latitude, spot.location.longitude)
     }
 
     Surface(
@@ -78,7 +77,7 @@ internal fun EcoSpotRow(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isActive) EcoGreenMuted
+                        if (isActive) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant,
                     ),
                 contentAlignment = Alignment.Center,
@@ -87,7 +86,7 @@ internal fun EcoSpotRow(
                     if (isActive) Icons.Outlined.RadioButtonChecked
                     else Icons.Outlined.DirectionsCar,
                     contentDescription = null,
-                    tint = if (isActive) EcoGreen
+                    tint = if (isActive) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.size(18.dp),
                 )
@@ -95,9 +94,7 @@ internal fun EcoSpotRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = address?.displayLine ?: formatCoords(
-                        spot.location.latitude, spot.location.longitude,
-                    ),
+                    text = displayText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -114,7 +111,8 @@ internal fun EcoSpotRow(
                         else stringResource(Res.string.home_spot_status_occupied),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isActive) EcoGreen else AmberAccent,
+                        color = if (isActive) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.secondary,
                     )
                     if (distanceM != null) {
                         Text(
@@ -151,11 +149,15 @@ internal fun EcoSpotRow(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoActivityRow(
+internal fun PapActivityRow(
     spot: Spot,
-    address: AddressInfo?,
     onClick: () -> Unit,
 ) {
+    val displayText = when {
+        spot.placeInfo != null -> "${spot.placeInfo.category.emoji} ${spot.placeInfo.name}"
+        else -> spot.address?.displayLine ?: formatCoords(spot.location.latitude, spot.location.longitude)
+    }
+
     Surface(
         onClick = onClick,
         color = Color.Transparent,
@@ -183,9 +185,7 @@ internal fun EcoActivityRow(
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = address?.displayLine ?: formatCoords(
-                        spot.location.latitude, spot.location.longitude,
-                    ),
+                    text = displayText,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -215,7 +215,7 @@ internal fun EcoActivityRow(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoEmptySpots(modifier: Modifier = Modifier) {
+internal fun PapEmptySpots(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()

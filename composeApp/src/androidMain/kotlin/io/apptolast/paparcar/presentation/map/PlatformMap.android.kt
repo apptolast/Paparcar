@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,8 +38,6 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.map.components.MapControlButtons
-import io.apptolast.paparcar.ui.theme.EcoForest
-import io.apptolast.paparcar.ui.theme.EcoGreen
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -65,8 +64,6 @@ actual fun PlatformMap(
     val defaultLatLng = LatLng(40.4168, -3.7038) // Madrid fallback
 
     val context = LocalContext.current
-    // Icons must be created only after the Maps SDK is initialized (onMapLoaded).
-    // Calling BitmapDescriptorFactory before initialization throws NPE.
     var myCarIcon    by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
     var freeSpotIcon by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
     var occupiedIcon by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
@@ -107,6 +104,10 @@ actual fun PlatformMap(
     var mapLoaded by remember { mutableStateOf(false) }
     val isDark = isSystemInDarkTheme()
     val coroutineScope = rememberCoroutineScope()
+
+    // Capture theme colors before entering GoogleMap composable
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     val uiSettings by remember {
         mutableStateOf(
@@ -200,11 +201,11 @@ actual fun PlatformMap(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(EcoForest),
+                    .background(backgroundColor),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(
-                    color = EcoGreen,
+                    color = primaryColor,
                     strokeWidth = 2.dp,
                     modifier = Modifier.size(28.dp),
                 )

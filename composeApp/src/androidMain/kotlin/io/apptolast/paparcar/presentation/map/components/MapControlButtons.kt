@@ -23,8 +23,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.ui.theme.EcoGreen
-import io.apptolast.paparcar.ui.theme.EcoGreenMuted
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.map_cd_go_to_car
@@ -69,8 +67,8 @@ internal fun MapControlButtons(
             MapControlFab(
                 icon = Icons.Outlined.DirectionsCar,
                 contentDescription = stringResource(Res.string.map_cd_go_to_car),
-                iconTint = EcoGreen,
-                surfaceColor = EcoGreenMuted,
+                iconTint = MaterialTheme.colorScheme.primary,
+                surfaceColor = MaterialTheme.colorScheme.primaryContainer,
                 onClick = onParkedCar,
                 modifier = Modifier.padding(bottom = 10.dp),
             )

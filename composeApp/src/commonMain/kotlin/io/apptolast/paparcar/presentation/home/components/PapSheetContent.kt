@@ -1,3 +1,4 @@
+
 package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.ui.theme.EcoGreen
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_activity
@@ -27,7 +27,7 @@ import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
 @Composable
-internal fun EcoSheetContent(
+internal fun PapSheetContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
@@ -41,9 +41,8 @@ internal fun EcoSheetContent(
         // ── Parking row — solo si está aparcado ───────────────────────────
         state.userParking?.let { parking ->
             item {
-                EcoParkingRow(
+                PapParkingRow(
                     parking = parking,
-                    address = null,
                     userLocation = state.userLocation,
                     onClick = onParkingClick,
                     modifier = Modifier.padding(
@@ -59,7 +58,7 @@ internal fun EcoSheetContent(
 
         // ── Sección: Cerca de ti ──────────────────────────────────────────
         item {
-            EcoSectionHeader(
+            PapSectionHeader(
                 title = stringResource(Res.string.home_feed_nearby),
                 badge = if (state.nearbySpots.isNotEmpty())
                     stringResource(
@@ -76,22 +75,21 @@ internal fun EcoSheetContent(
 
         when {
             !state.allPermissionsGranted -> item {
-                EcoPermissionsCard(
+                PapPermissionsCard(
                     onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
 
             state.nearbySpots.isEmpty() -> item {
-                EcoEmptySpots(
+                PapEmptySpots(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
 
             else -> items(state.nearbySpots, key = { it.id }) { spot ->
-                EcoSpotRow(
+                PapSpotRow(
                     spot = spot,
-                    address = state.spotAddresses[spot.id],
                     userLocation = state.userLocation,
                     onClick = { onCameraMove(spot.location.latitude, spot.location.longitude) },
                 )
@@ -105,7 +103,7 @@ internal fun EcoSheetContent(
         // ── Sección: Actividad ────────────────────────────────────────────
         if (state.nearbySpots.isNotEmpty()) {
             item {
-                EcoSectionHeader(
+                PapSectionHeader(
                     title = stringResource(Res.string.home_feed_activity),
                     modifier = Modifier.padding(
                         start = 20.dp, end = 20.dp,
@@ -114,9 +112,8 @@ internal fun EcoSheetContent(
                 )
             }
             items(state.nearbySpots.take(5), key = { "feed_${it.id}" }) { spot ->
-                EcoActivityRow(
+                PapActivityRow(
                     spot = spot,
-                    address = state.spotAddresses[spot.id],
                     onClick = { onCameraMove(spot.location.latitude, spot.location.longitude) },
                 )
                 HorizontalDivider(
@@ -133,7 +130,7 @@ internal fun EcoSheetContent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoSectionHeader(
+internal fun PapSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     badge: String? = null,
@@ -155,7 +152,7 @@ internal fun EcoSectionHeader(
                 badge,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = EcoGreen,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }

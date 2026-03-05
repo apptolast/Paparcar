@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoMapFab(
+internal fun PapMapFab(
     icon: ImageVector,
     onClick: () -> Unit,
     tint: Color = MaterialTheme.colorScheme.onSurface,

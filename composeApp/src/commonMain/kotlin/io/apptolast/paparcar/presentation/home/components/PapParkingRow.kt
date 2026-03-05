@@ -24,14 +24,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.formatDistance
 import io.apptolast.paparcar.presentation.util.formatRelativeTime
 import io.apptolast.paparcar.presentation.util.formatWalkTime
-import io.apptolast.paparcar.ui.theme.EcoGreen
-import io.apptolast.paparcar.ui.theme.EcoGreenMuted
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_banner_accuracy
@@ -43,14 +40,15 @@ import paparcar.composeapp.generated.resources.home_parking_row_label
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun EcoParkingRow(
+internal fun PapParkingRow(
     parking: UserParking,
-    address: AddressInfo?,
     userLocation: Pair<Double, Double>?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val primaryLabel = address?.displayLine ?: stringResource(Res.string.home_parking_row_label)
+    val primaryLabel = parking.placeInfo?.let { "${it.category.emoji} ${it.name}" }
+        ?: parking.address?.displayLine
+        ?: stringResource(Res.string.home_parking_row_label)
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
     }
@@ -59,7 +57,7 @@ internal fun EcoParkingRow(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = EcoGreenMuted.copy(alpha = 0.5f),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -69,7 +67,7 @@ internal fun EcoParkingRow(
             Icon(
                 Icons.Outlined.DirectionsCar,
                 contentDescription = null,
-                tint = EcoGreen,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -77,7 +75,7 @@ internal fun EcoParkingRow(
                     text = primaryLabel,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = EcoGreen,
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -88,29 +86,29 @@ internal fun EcoParkingRow(
                     Text(
                         formatRelativeTime(parking.location.timestamp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = EcoGreen.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                     )
                     if (distanceM != null) {
                         Text(
                             "·",
                             style = MaterialTheme.typography.labelSmall,
-                            color = EcoGreen.copy(alpha = 0.3f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                         )
                         Icon(
                             Icons.AutoMirrored.Outlined.DirectionsWalk,
                             contentDescription = null,
                             modifier = Modifier.size(10.dp),
-                            tint = EcoGreen.copy(alpha = 0.5f),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                         )
                         Text(
                             "${formatDistance(distanceM)} · ${formatWalkTime(distanceM)}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = EcoGreen.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                         )
                     }
                 }
             }
-            Surface(shape = CircleShape, color = EcoGreenMuted) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
                     stringResource(
                         Res.string.home_banner_accuracy,
@@ -118,7 +116,7 @@ internal fun EcoParkingRow(
                     ),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = EcoGreen,
+                    color = MaterialTheme.colorScheme.primary,
                     fontSize = 10.sp,
                 )
             }

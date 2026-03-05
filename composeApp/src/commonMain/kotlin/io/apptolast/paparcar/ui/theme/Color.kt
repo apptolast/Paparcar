@@ -2,39 +2,43 @@ package io.apptolast.paparcar.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ── Eco brand palette ─────────────────────────────────────────────────────────
+// ── Pap brand palette ─────────────────────────────────────────────────────────
 
 // Primary accent
-val EcoGreen         = Color(0xFF25F48C)   // neon green
-val EcoGreenDark     = Color(0xFF1AC070)   // pressed variant
+val PapGreen         = Color(0xFF25F48C)   // neon green
+val PapGreenDark     = Color(0xFF1AC070)   // pressed variant
 
 // Dark surfaces
-val EcoForest        = Color(0xFF0D1C14)   // deepest background
-val EcoForestMid     = Color(0xFF0F2218)   // card / sheet surface
-val EcoForestDark    = Color(0xFF0D3D2E)   // active-session hero card background
-val EcoForestMedium  = Color(0xFF1A5C40)   // icon box inside hero card
-val EcoGreenMuted    = Color(0xFF133D28)   // container / surface variant
-val EcoGreenElement  = Color(0xFF226D49)   // interactive elements, outline
+val PapForest        = Color(0xFF0D1C14)   // deepest background
+val PapForestMid     = Color(0xFF0F2218)   // card / sheet surface
+val PapForestDark    = Color(0xFF0D3D2E)   // active-session hero card background
+val PapForestMedium  = Color(0xFF1A5C40)   // icon box inside hero card
+val PapGreenMuted    = Color(0xFF133D28)   // container / surface variant
+val PapGreenElement  = Color(0xFF226D49)   // interactive elements, outline
 
 // On-dark text
-val EcoOnDark        = Color(0xFFE8F5EC)   // primary text on dark surfaces
-val EcoOnDarkMuted   = Color(0xFF8EB5A0)   // secondary / disabled text
-val EcoOnGreenMuted  = Color(0xFF9CBCAC)   // text on surface variant
+val PapOnDark        = Color(0xFFE8F5EC)   // primary text on dark surfaces
+val PapOnDarkMuted   = Color(0xFF8EB5A0)   // secondary / disabled text
+val PapOnGreenMuted  = Color(0xFF9CBCAC)   // text on surface variant
 
 // Amber (secondary / warning)
-val AmberAccent      = Color(0xFFF4A825)
-val AmberMuted       = Color(0xFF3D2A10)
+val PapAmber         = Color(0xFFF4A825)
+val PapAmberMuted    = Color(0xFF3D2A10)
 
 // Light theme counterparts
-val EcoGreenLight        = Color(0xFF006D38)
-val EcoOnGreenLight      = Color(0xFFFFFFFF)
-val EcoGreenContainerLight   = Color(0xFFB8F5CE)
-val EcoOnGreenContainerLight = Color(0xFF00210E)
-val EcoSurfaceLight      = Color(0xFFF5FBF4)
-val EcoOnSurfaceLight    = Color(0xFF00391A)
-val EcoVariantLight      = Color(0xFFDDE8DA)
-val EcoOnVariantLight    = Color(0xFF3A4A3C)
-val EcoOutlineLight      = Color(0xFF226D49)
-val AmberLight           = Color(0xFFB56000)
-val AmberContainerLight  = Color(0xFFFFDDB3)
-val OnAmberContainerLight = Color(0xFF3D2A10)
+val PapGreenLight            = Color(0xFF006D38)
+val PapOnGreenLight          = Color(0xFFFFFFFF)
+val PapGreenContainerLight   = Color(0xFFB8F5CE)
+val PapOnGreenContainerLight = Color(0xFF00210E)
+val PapSurfaceLight          = Color(0xFFF5FBF4)  // page background (tinted)
+val PapCardLight             = Color(0xFFFFFFFF)  // card / sheet surface — white
+val PapOnSurfaceLight        = Color(0xFF00391A)
+val PapVariantLight          = Color(0xFFDDE8DA)
+val PapOnVariantLight        = Color(0xFF3A4A3C)
+val PapOutlineLight          = Color(0xFF226D49)
+val PapOutlineVariantLight   = Color(0xFFBECBC0)  // subtle dividers
+val PapInverseSurfaceLight   = Color(0xFF0F2218)  // dark surface for Snackbar/Toast
+val PapInverseOnSurfaceLight = Color(0xFFE8F5EC)  // text on inverse surface
+val PapAmberLight            = Color(0xFFB56000)
+val PapAmberContainerLight   = Color(0xFFFFDDB3)
+val PapOnAmberContainerLight = Color(0xFF3D2A10)

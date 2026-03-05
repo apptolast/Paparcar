@@ -54,11 +54,6 @@ class DetectAndReportParkingUseCase(
      *
      * @property stoppedSince Epoch-ms timestamp of the first GPS sample whose
      *   speed was below 1 m/s in the current stop event. `null` while moving.
-     * @property stoppedAtLocation The [GpsPoint] captured at the moment
-     *   the device first stopped (speed < 1 m/s). Preserved as the candidate
-     *   save location so the spot is recorded at the actual parking point, not
-     *   wherever the GPS is when confidence finally validates (up to ~1 min later).
-     *   Reset to `null` when the vehicle starts moving again.
      * @property vehicleExitConfirmed `true` once an `IN_VEHICLE → EXIT` transition
      *   has been received from Activity Recognition.
      * @property activityStillDetected `true` once a `STILL` activity event has been
@@ -70,7 +65,13 @@ class DetectAndReportParkingUseCase(
      */
     private data class ParkingDetectionState(
         val stoppedSince: Long? = null,
-        val stoppedAtLocation: GpsPoint? = null,
+        /**
+         * GPS fixes collected while the vehicle is stopped (speed < 1 m/s), capped at
+         * [MAX_STOPPED_FIXES]. When confirming the parking spot we pick the fix with the
+         * lowest [GpsPoint.accuracy] value (smallest circle = best fix) rather than using
+         * the first reading, which may have been taken under poor satellite coverage.
+         */
+        val stoppedFixes: List<GpsPoint> = emptyList(),
         val vehicleExitConfirmed: Boolean = false,
         val activityStillDetected: Boolean = false,
         val userConfirmedParking: Boolean = false,
@@ -114,7 +115,10 @@ class DetectAndReportParkingUseCase(
                     _detectionState.update {
                         it.copy(
                             stoppedSince = it.stoppedSince ?: now,
-                            stoppedAtLocation = it.stoppedAtLocation ?: location,
+                            stoppedFixes = if (it.stoppedFixes.size < MAX_STOPPED_FIXES)
+                                it.stoppedFixes + location
+                            else
+                                it.stoppedFixes,
                         )
                     }
                     now - (_detectionState.value.stoppedSince ?: 0L)
@@ -122,7 +126,7 @@ class DetectAndReportParkingUseCase(
                     _detectionState.update {
                         it.copy(
                             stoppedSince = null,
-                            stoppedAtLocation = null,
+                            stoppedFixes = emptyList(),
                             mediumNotificationShown = false,
                         )
                     }
@@ -139,7 +143,8 @@ class DetectAndReportParkingUseCase(
                 // location so the spot is saved at the actual parking place rather than
                 // wherever the user is now.
                 if (_detectionState.value.userConfirmedParking) {
-                    val locationToSave = _detectionState.value.stoppedAtLocation ?: location
+                    val locationToSave = _detectionState.value.stoppedFixes
+                        .minByOrNull { it.accuracy } ?: location
                     // Set completed FIRST so takeWhile drops any subsequent items before
                     // confirmParking finishes. NonCancellable ensures the write completes
                     // even if collectLatest receives a new item concurrently.
@@ -173,7 +178,8 @@ class DetectAndReportParkingUseCase(
                         }
                     }
                     is ParkingConfidence.High -> {
-                        val locationToSave = state.stoppedAtLocation ?: location
+                        val locationToSave = state.stoppedFixes
+                            .minByOrNull { it.accuracy } ?: location
                         // Set completed FIRST — same reason as in the user-confirmed branch.
                         completed = true
                         withContext(NonCancellable) { confirmParking(locationToSave) }
@@ -218,5 +224,12 @@ class DetectAndReportParkingUseCase(
     fun onUserDeniedParking() {
         dismissNotification(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
         _detectionState.value = ParkingDetectionState()
+    }
+
+    companion object {
+        /** Maximum number of GPS fixes retained while the vehicle is stopped.
+         *  At HIGH_ACCURACY (2 s interval) this covers ~40 s; enough to pick
+         *  the best fix without growing memory unboundedly. */
+        private const val MAX_STOPPED_FIXES = 20
     }
 }

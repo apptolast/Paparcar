@@ -1,49 +1,61 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.service.GeofenceService
+import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingSpotSavedUseCase
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 /**
- * Persists a confirmed parking spot, registers a geofence around it, and notifies the user.
+ * Persists a confirmed parking spot, registers a geofence, notifies the user,
+ * and schedules background enrichment with geocoder address + POI data.
  *
- * Extracted from [DetectAndReportParkingUseCase] so that the "what happens when parking
- * is confirmed" logic has a single reason to change, independent of the detection loop.
+ * All steps after [saveUserParking] are non-blocking:
+ * - Enrichment is dispatched to [ParkingEnrichmentScheduler] (WorkManager on Android)
+ *   and runs when network is available, with automatic retry.
+ * - Geofence and notification fire immediately after the session is saved.
  */
-@OptIn(ExperimentalTime::class, ExperimentalUuidApi::class)
+@OptIn(ExperimentalUuidApi::class)
 class ConfirmParkingUseCase(
     private val saveUserParking: SaveUserParkingUseCase,
     private val geofenceService: GeofenceService,
     private val notifyParkingSpotSaved: NotifyParkingSpotSavedUseCase,
+    private val enrichmentScheduler: ParkingEnrichmentScheduler,
     private val config: ParkingDetectionConfig,
 ) {
     suspend operator fun invoke(location: GpsPoint) {
         val sessionId = Uuid.random().toString()
-        val session = UserParking(
+        val gpsPoint = GpsPoint(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            accuracy = location.accuracy,
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            speed = location.speed,
+        )
+        val baseSession = UserParking(
             id = sessionId,
-            location = GpsPoint(
-                latitude = location.latitude,
-                longitude = location.longitude,
-                accuracy = location.accuracy,
-                timestamp = Clock.System.now().toEpochMilliseconds(),
-                speed = location.speed,
-            ),
+            location = gpsPoint,
             geofenceId = sessionId,
             isActive = true,
         )
-        saveUserParking(session)
+
+        saveUserParking(baseSession)
+
+        // Schedule address + POI enrichment off the critical path.
+        enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)
+
         geofenceService.createGeofence(
             geofenceId = sessionId,
-            latitude = location.latitude,
-            longitude = location.longitude,
+            latitude = gpsPoint.latitude,
+            longitude = gpsPoint.longitude,
             radiusMeters = config.geofenceRadiusMeters,
         )
-        notifyParkingSpotSaved(location.latitude, location.longitude)
+        notifyParkingSpotSaved(gpsPoint.latitude, gpsPoint.longitude)
     }
 }
