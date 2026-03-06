@@ -26,7 +26,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,7 +42,6 @@ import io.apptolast.paparcar.presentation.home.components.PapMapFab
 import io.apptolast.paparcar.presentation.home.components.PapPeekHandle
 import io.apptolast.paparcar.presentation.home.components.PapReportBar
 import io.apptolast.paparcar.presentation.home.components.PapSheetContent
-import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.presentation.map.PlatformMap
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -114,7 +112,9 @@ private fun HomeContent(
         val mapHeightDp by remember(density) {
             derivedStateOf {
                 runCatching {
-                    with(density) { uiController.scaffoldState.bottomSheetState.requireOffset().toDp() }
+                    with(density) {
+                        uiController.scaffoldState.bottomSheetState.requireOffset().toDp()
+                    }
                 }.getOrNull()
             }
         }
@@ -187,32 +187,32 @@ private fun HomeContent(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                                     onClick = {
                                         state.userParking.let { p ->
-                                            uiController.moveCamera(p.location.latitude, p.location.longitude)
+                                            uiController.moveCamera(
+                                                p.location.latitude,
+                                                p.location.longitude
+                                            )
                                         }
                                     },
                                 )
                             }
-                            if (state.userParking != null && state.userLocation != null) {
+                            if (state.userParking != null && state.userGpsPoint != null) {
                                 PapMapFab(
                                     icon = Icons.Outlined.Route,
                                     onClick = {
-                                        val p = state.userParking
-                                        val u = state.userLocation
-                                        if (p != null && u != null) {
-                                            uiController.moveCamera(
-                                                lat = (p.location.latitude + u.first) / 2.0,
-                                                lon = (p.location.longitude + u.second) / 2.0,
-                                                zoom = 15f,
-                                            )
-                                        }
+                                        uiController.moveCameraToBounds(
+                                            lat1 = state.userParking.location.latitude,
+                                            lon1 = state.userParking.location.longitude,
+                                            lat2 = state.userGpsPoint.latitude,
+                                            lon2 = state.userGpsPoint.longitude,
+                                        )
                                     },
                                 )
                             }
                             PapMapFab(
                                 icon = Icons.Outlined.MyLocation,
                                 onClick = {
-                                    state.userLocation?.let { (lat, lon) ->
-                                        uiController.moveCamera(lat, lon)
+                                    state.userGpsPoint?.let {
+                                        uiController.moveCamera(it.latitude, it.longitude)
                                     }
                                 },
                             )

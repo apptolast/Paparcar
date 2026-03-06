@@ -67,4 +67,20 @@
     <string name="map_cd_midpoint">Punto medio entre mi posición y el coche</string>
     <string name="map_cd_go_to_car">Ir a mi vehículo aparcado</string>
     <string name="map_cd_my_location">Centrar en mi ubicación</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_cd_back">Volver</string>
+    <string name="settings_section_detection">Detección</string>
+    <string name="settings_auto_detect">Detección automática</string>
+    <string name="settings_auto_detect_desc">Guarda automáticamente tu plaza de aparcamiento</string>
+    <string name="settings_section_notifications">Notificaciones</string>
+    <string name="settings_notif_parking">Aparcamiento detectado</string>
+    <string name="settings_notif_parking_desc">Aviso cuando se guarda una plaza</string>
+    <string name="settings_notif_spot">Plaza disponible cerca</string>
+    <string name="settings_notif_spot_desc">Aviso cuando se libera una plaza cerca de ti</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_version">Versión</string>
+    <string name="settings_privacy">Política de privacidad</string>
+    <string name="settings_licenses">Licencias de código abierto</string>
 </resources>

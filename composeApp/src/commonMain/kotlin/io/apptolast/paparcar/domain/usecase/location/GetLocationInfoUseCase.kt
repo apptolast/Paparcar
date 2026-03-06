@@ -1,7 +1,9 @@
 package io.apptolast.paparcar.domain.usecase.location
 
+import io.apptolast.paparcar.domain.geocoder.GeocoderPort
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.LocationInfo
+import io.apptolast.paparcar.domain.places.PlacesPort
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
@@ -13,13 +15,13 @@ import kotlinx.coroutines.coroutineScope
  * If geocoding fails, an empty [AddressInfo] is returned as fallback.
  */
 class GetLocationInfoUseCase(
-    private val getAddress: GetAddressUseCase,
-    private val getNearbyPlace: GetNearbyPlaceUseCase,
+    private val geocoder: GeocoderPort,
+    private val placesPort: PlacesPort,
 ) {
     suspend operator fun invoke(lat: Double, lon: Double): Result<LocationInfo> =
         coroutineScope {
-            val addressDeferred = async { getAddress(lat, lon) }
-            val placeDeferred   = async { getNearbyPlace(lat, lon) }
+            val addressDeferred = async { geocoder.getAddress(lat, lon) }
+            val placeDeferred = async { placesPort.getNearbyPlace(lat, lon) }
 
             val address = addressDeferred.await()
                 .getOrElse { AddressInfo(null, null, null, null) }

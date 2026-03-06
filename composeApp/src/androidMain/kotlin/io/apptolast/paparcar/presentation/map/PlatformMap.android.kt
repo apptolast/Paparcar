@@ -22,10 +22,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
@@ -90,13 +92,19 @@ actual fun PlatformMap(
         }
     }
 
+    val density = LocalDensity.current
     LaunchedEffect(cameraTarget) {
-        if (cameraTarget != null) {
+        val target = cameraTarget ?: return@LaunchedEffect
+        if (target.boundsLat2 != null && target.boundsLon2 != null) {
+            val bounds = LatLngBounds.Builder()
+                .include(LatLng(target.lat, target.lon))
+                .include(LatLng(target.boundsLat2, target.boundsLon2))
+                .build()
+            val paddingPx = with(density) { target.paddingDp.dp.roundToPx() }
+            cameraPositionState.animate(CameraUpdateFactory.newLatLngBounds(bounds, paddingPx))
+        } else {
             cameraPositionState.animate(
-                CameraUpdateFactory.newLatLngZoom(
-                    LatLng(cameraTarget.lat, cameraTarget.lon),
-                    cameraTarget.zoom,
-                )
+                CameraUpdateFactory.newLatLngZoom(LatLng(target.lat, target.lon), target.zoom)
             )
         }
     }

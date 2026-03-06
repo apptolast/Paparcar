@@ -14,7 +14,6 @@ data class HomeState(
     val allPermissionsGranted: Boolean = false,
     val nearbySpots: List<Spot> = emptyList(),
     val error: String? = null,
-    val userLocation: Pair<Double, Double>? = null,
     val userGpsPoint: GpsPoint? = null,
     /** LocationInfo for the user's current GPS position (geocoded on-demand, not stored). */
     val userLocationInfo: LocationInfo? = null,

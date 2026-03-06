@@ -5,7 +5,6 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingSignals
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.notification.NotificationPort
-import io.apptolast.paparcar.domain.usecase.notification.DismissNotificationUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -45,191 +44,158 @@ class DetectAndReportParkingUseCase(
     private val calculateParkingConfidence: CalculateParkingConfidenceUseCase,
     private val confirmParking: ConfirmParkingUseCase,
     private val notifyParkingConfirmation: NotifyParkingConfirmationUseCase,
-    private val dismissNotification: DismissNotificationUseCase,
+    private val notificationPort: NotificationPort,
     private val config: ParkingDetectionConfig,
 ) {
     /**
      * Atomic snapshot of all mutable detection variables for a single session.
      * Updated via [MutableStateFlow.update] to ensure thread-safe transitions.
-     *
-     * @property stoppedSince Epoch-ms timestamp of the first GPS sample whose
-     *   speed was below 1 m/s in the current stop event. `null` while moving.
-     * @property vehicleExitConfirmed `true` once an `IN_VEHICLE → EXIT` transition
-     *   has been received from Activity Recognition.
-     * @property activityStillDetected `true` once a `STILL` activity event has been
-     *   received, indicating the device (and presumably the driver) is no longer moving.
-     * @property userConfirmedParking `true` when the user tapped "Yes, I parked" in the
-     *   confirmation notification. Triggers immediate save on the next GPS tick.
-     * @property mediumNotificationShown `true` after the [ParkingConfidence.Medium]
-     *   confirmation notification has been posted, preventing duplicate notifications.
      */
     private data class ParkingDetectionState(
+        /** Epoch-ms of the first GPS sample with speed < 1 m/s in the current stop. `null` while moving. */
         val stoppedSince: Long? = null,
-        /**
-         * GPS fixes collected while the vehicle is stopped (speed < 1 m/s), capped at
-         * [MAX_STOPPED_FIXES]. When confirming the parking spot we pick the fix with the
-         * lowest [GpsPoint.accuracy] value (smallest circle = best fix) rather than using
-         * the first reading, which may have been taken under poor satellite coverage.
-         */
+        /** GPS fixes collected within [ParkingDetectionConfig.initialStopWindowMs] of the initial stop.
+         *  The fix with the lowest [GpsPoint.accuracy] value is used as the saved parking spot. */
         val stoppedFixes: List<GpsPoint> = emptyList(),
         val vehicleExitConfirmed: Boolean = false,
         val activityStillDetected: Boolean = false,
         val userConfirmedParking: Boolean = false,
         val mediumNotificationShown: Boolean = false,
-        /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] at
-         *  least once during this session. Guards against spurious [IN_VEHICLE_ENTER] events
-         *  that fire while the user is stationary — a genuine driving session always exceeds
-         *  the threshold before stopping to park. Never reset mid-session. */
+        /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] at least
+         *  once. Guards against spurious [IN_VEHICLE_ENTER] events while the user is stationary. */
         val hasEverMoved: Boolean = false,
-    )
+    ) {
+        /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
+        fun bestFix(fallback: GpsPoint): GpsPoint = stoppedFixes.minByOrNull { it.accuracy } ?: fallback
+    }
 
     private val _detectionState = MutableStateFlow(ParkingDetectionState())
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Public API
+    // ─────────────────────────────────────────────────────────────────────────
+
     /**
-     * Runs the detection loop until a parking spot is confirmed or the [locations] flow ends.
-     *
-     * On entry, all session state is reset to defaults and any confirmation notification
-     * left over from a previous session (e.g. the user got back in the car before responding)
-     * is dismissed so the user is never left with a stale "Did you park?" prompt.
-     *
-     * The loop terminates when:
-     * - [ParkingConfidence.High] is reached (automatic save), or
-     * - the user confirms via notification ([onUserConfirmedParking] was called), or
-     * - the upstream [locations] flow completes (service stopped).
-     *
-     * @param locations A [Flow] of GPS fixes emitted by the foreground service.
+     * Runs the detection loop until a parking spot is confirmed or [locations] ends.
+     * Resets all session state on entry and dismisses any stale confirmation notification.
      */
     suspend operator fun invoke(locations: Flow<GpsPoint>) {
-        _detectionState.value = ParkingDetectionState()
-        // Dismiss any confirmation notification from a previous session so the user
-        // is not left with a stale "¿Has aparcado?" while a fresh trip is in progress.
-        dismissNotification(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        reset()
         var completed = false
 
         locations
             .takeWhile { !completed }
-            .catch { /* upstream error — detection ends gracefully without crashing */ }
+            .catch { /* upstream error — detection ends gracefully */ }
             .collectLatest { location ->
                 val now = Clock.System.now().toEpochMilliseconds()
-                val stoppedDuration = if (location.speed < 1f) {
-                    _detectionState.update {
-                        it.copy(
-                            stoppedSince = it.stoppedSince ?: now,
-                            stoppedFixes = if (it.stoppedFixes.size < MAX_STOPPED_FIXES)
-                                it.stoppedFixes + location
-                            else
-                                it.stoppedFixes,
-                        )
-                    }
-                    now - (_detectionState.value.stoppedSince ?: 0L)
-                } else {
-                    _detectionState.update {
-                        it.copy(
-                            stoppedSince = null,
-                            stoppedFixes = emptyList(),
-                            mediumNotificationShown = false,
-                        )
-                    }
-                    0L
-                }
+                val stoppedDuration = updateStopTracking(location, now)
 
-                // Track minimum trip speed: once the vehicle reaches driving speed the
-                // flag is latched for the remainder of the session and never reset.
                 if (location.speed >= config.minimumTripSpeedMps) {
                     _detectionState.update { it.copy(hasEverMoved = true) }
                 }
 
-                // User confirmed via notification action button — use the earliest stopped
-                // location so the spot is saved at the actual parking place rather than
-                // wherever the user is now.
-                if (_detectionState.value.userConfirmedParking) {
-                    val locationToSave = _detectionState.value.stoppedFixes
-                        .minByOrNull { it.accuracy } ?: location
-                    // Set completed FIRST so takeWhile drops any subsequent items before
-                    // confirmParking finishes. NonCancellable ensures the write completes
-                    // even if collectLatest receives a new item concurrently.
-                    completed = true
-                    withContext(NonCancellable) { confirmParking(locationToSave) }
-                    return@collectLatest
+                val state = _detectionState.value
+                val locationToConfirm = when {
+                    state.userConfirmedParking -> state.bestFix(location)
+                    !state.hasEverMoved        -> null
+                    else                       -> evaluateConfidence(location, stoppedDuration, state)
                 }
 
-                val state = _detectionState.value
-
-                // Gate: skip automatic scoring until the vehicle has reached at least
-                // config.minimumTripSpeedMps during this session. A spurious
-                // IN_VEHICLE_ENTER while the user is seated will never satisfy this
-                // condition, so no notification or false spot will be produced.
-                if (!state.hasEverMoved) return@collectLatest
-
-                val signals = ParkingSignals(
-                    speed = location.speed,
-                    stoppedDurationMs = stoppedDuration,
-                    gpsAccuracy = location.accuracy,
-                    activityExit = state.vehicleExitConfirmed,
-                    activityStill = state.activityStillDetected,
-                )
-
-                when (val confidence = calculateParkingConfidence(signals)) {
-                    is ParkingConfidence.NotYet, is ParkingConfidence.Low -> Unit
-                    is ParkingConfidence.Medium -> {
-                        if (!state.mediumNotificationShown) {
-                            _detectionState.update { it.copy(mediumNotificationShown = true) }
-                            notifyParkingConfirmation(confidence)
-                        }
-                    }
-                    is ParkingConfidence.High -> {
-                        val locationToSave = state.stoppedFixes
-                            .minByOrNull { it.accuracy } ?: location
-                        // Set completed FIRST — same reason as in the user-confirmed branch.
-                        completed = true
-                        withContext(NonCancellable) { confirmParking(locationToSave) }
-                    }
+                if (locationToConfirm != null) {
+                    // Set completed BEFORE confirmParking so takeWhile stops the flow immediately.
+                    // NonCancellable ensures the write completes even if collectLatest is cancelled
+                    // by a new incoming item.
+                    completed = true
+                    withContext(NonCancellable) { confirmParking(locationToConfirm) }
                 }
             }
     }
 
-    /**
-     * Signals that the `IN_VEHICLE → EXIT` transition was received from Activity Recognition.
-     * Thread-safe; may be called from any thread.
-     */
+    /** Signals that the `IN_VEHICLE → EXIT` transition was received. Thread-safe. */
     fun onVehicleExit() {
         _detectionState.update { it.copy(vehicleExitConfirmed = true) }
     }
 
-    /**
-     * Signals that the device is now reporting STILL activity.
-     * Thread-safe; may be called from any thread.
-     */
+    /** Signals that the device is now reporting STILL activity. Thread-safe. */
     fun onStillDetected() {
         _detectionState.update { it.copy(activityStillDetected = true) }
     }
 
-    /**
-     * Signals that the user tapped the "Yes, I parked" action in the confirmation notification.
-     * Dismisses the notification and marks confirmation so the next GPS tick triggers a save.
-     * Thread-safe; may be called from any thread.
-     */
+    /** User tapped "Yes, I parked". Dismisses the notification and marks confirmation. Thread-safe. */
     fun onUserConfirmedParking() {
-        dismissNotification(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        notificationPort.dismiss(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
         _detectionState.update { it.copy(userConfirmedParking = true) }
     }
 
-    /**
-     * Signals that the user dismissed the parking confirmation ("Keep driving").
-     * Resets all detection heuristics to their defaults so the loop can re-evaluate
-     * from scratch — equivalent to starting a fresh session without re-registering
-     * for location updates.
-     * Thread-safe; may be called from any thread.
-     */
+    /** User dismissed the confirmation ("Keep driving"). Resets all heuristics. Thread-safe. */
     fun onUserDeniedParking() {
-        dismissNotification(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        notificationPort.dismiss(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
         _detectionState.value = ParkingDetectionState()
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Private helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private fun reset() {
+        _detectionState.value = ParkingDetectionState()
+        notificationPort.dismiss(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
+    }
+
+    /**
+     * Updates [stoppedSince] / [stoppedFixes] when the vehicle is stopped, or resets
+     * them when it starts moving again. Returns the total stopped duration in ms.
+     */
+    private fun updateStopTracking(location: GpsPoint, now: Long): Long {
+        return if (location.speed < 1f) {
+            _detectionState.update { s ->
+                val startedAt = s.stoppedSince ?: now
+                val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
+                s.copy(
+                    stoppedSince = startedAt,
+                    stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < MAX_STOPPED_FIXES)
+                        s.stoppedFixes + location else s.stoppedFixes,
+                )
+            }
+            now - (_detectionState.value.stoppedSince ?: 0L)
+        } else {
+            _detectionState.update {
+                it.copy(stoppedSince = null, stoppedFixes = emptyList(), mediumNotificationShown = false)
+            }
+            0L
+        }
+    }
+
+    /**
+     * Runs the confidence scorer and handles Medium/High results.
+     * Returns the [GpsPoint] to save when [ParkingConfidence.High] is reached, null otherwise.
+     */
+    private fun evaluateConfidence(
+        location: GpsPoint,
+        stoppedDuration: Long,
+        state: ParkingDetectionState,
+    ): GpsPoint? {
+        val signals = ParkingSignals(
+            speed = location.speed,
+            stoppedDurationMs = stoppedDuration,
+            gpsAccuracy = location.accuracy,
+            activityExit = state.vehicleExitConfirmed,
+            activityStill = state.activityStillDetected,
+        )
+        return when (val confidence = calculateParkingConfidence(signals)) {
+            is ParkingConfidence.NotYet, is ParkingConfidence.Low -> null
+            is ParkingConfidence.Medium -> {
+                if (!state.mediumNotificationShown) {
+                    _detectionState.update { it.copy(mediumNotificationShown = true) }
+                    notifyParkingConfirmation(confidence)
+                }
+                null
+            }
+            is ParkingConfidence.High -> state.bestFix(location)
+        }
+    }
+
     companion object {
-        /** Maximum number of GPS fixes retained while the vehicle is stopped.
-         *  At HIGH_ACCURACY (2 s interval) this covers ~40 s; enough to pick
-         *  the best fix without growing memory unboundedly. */
         private const val MAX_STOPPED_FIXES = 20
     }
 }

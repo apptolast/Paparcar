@@ -57,6 +57,14 @@ data class ParkingDetectionConfig(
     /** Radius (meters) of the geofence registered around the confirmed parking spot. */
     val geofenceRadiusMeters: Float = 80f,
 
+    // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
+    /** Time window (ms) after the vehicle first stops during which GPS fixes are
+     *  collected into [stoppedFixes]. Fixes outside this window are ignored so that
+     *  locations recorded AFTER the user has walked away from the car are not used
+     *  as the saved parking spot. At HIGH_ACCURACY (2 s interval) a 30 s window
+     *  yields ~15 candidate fixes — enough to select the best accuracy. */
+    val initialStopWindowMs: Long = 30_000L,
+
     // ── FALSE-POSITIVE GUARD ──────────────────────────────────────────────────
     /** Minimum GPS speed (m/s) that must be reached at least once during a driving session
      *  before parking detection is allowed. Guards against spurious [IN_VEHICLE_ENTER]
@@ -101,6 +109,9 @@ data class ParkingDetectionConfig(
         }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"
+        }
+        require(initialStopWindowMs > 0) {
+            "initialStopWindowMs must be > 0, was $initialStopWindowMs"
         }
         require(vehicleSpeedFallbackThresholdKmh > 0) {
             "vehicleSpeedFallbackThresholdKmh must be > 0, was $vehicleSpeedFallbackThresholdKmh"

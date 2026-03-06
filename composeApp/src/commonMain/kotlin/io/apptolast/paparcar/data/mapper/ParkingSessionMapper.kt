@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 
 fun UserParkingEntity.toDomain(): UserParking = UserParking(
@@ -36,6 +37,22 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
             runCatching { PlaceInfo(name, PlaceCategory.valueOf(cat)) }.getOrNull()
         else null
     },
+)
+
+/** Converts an active parking session into a released [Spot] for reporting to Firebase. */
+fun UserParking.toSpot(): Spot = Spot(
+    id = id,
+    location = GpsPoint(
+        latitude = location.latitude,
+        longitude = location.longitude,
+        accuracy = location.accuracy,
+        timestamp = location.timestamp,
+        speed = 0f,
+    ),
+    reportedBy = "anonymous",
+    isActive = true,
+    address = address,
+    placeInfo = placeInfo,
 )
 
 fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(

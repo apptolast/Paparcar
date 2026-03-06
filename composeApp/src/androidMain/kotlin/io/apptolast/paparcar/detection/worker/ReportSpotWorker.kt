@@ -12,7 +12,6 @@ import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.notification.NotificationPort
-import io.apptolast.paparcar.domain.usecase.notification.NotifySpotUploadingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.GetUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -35,7 +34,6 @@ class ReportSpotWorker(
     private val getUserParking: GetUserParkingUseCase by inject()
     private val clearUserParking: ClearUserParkingUseCase by inject()
     private val reportSpotReleased: ReportSpotReleasedUseCase by inject()
-    private val notifySpotUploading: NotifySpotUploadingUseCase by inject()
     private val notificationPort: NotificationPort by inject()
 
     override suspend fun doWork(): Result {
@@ -55,7 +53,7 @@ class ReportSpotWorker(
             isActive = true, // spot is free for other users
         )
 
-        notifySpotUploading()
+        notificationPort.showSpotUploading()
 
         return reportSpotReleased(spot).fold(
             onSuccess = {

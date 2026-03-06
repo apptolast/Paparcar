@@ -43,7 +43,7 @@ internal fun PapSheetContent(
             item {
                 PapParkingRow(
                     parking = parking,
-                    userLocation = state.userLocation,
+                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onClick = onParkingClick,
                     modifier = Modifier.padding(
                         horizontal = 16.dp,
@@ -90,7 +90,7 @@ internal fun PapSheetContent(
             else -> items(state.nearbySpots, key = { it.id }) { spot ->
                 PapSpotRow(
                     spot = spot,
-                    userLocation = state.userLocation,
+                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onClick = { onCameraMove(spot.location.latitude, spot.location.longitude) },
                 )
                 HorizontalDivider(

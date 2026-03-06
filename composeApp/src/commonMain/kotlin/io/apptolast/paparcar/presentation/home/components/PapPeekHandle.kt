@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home.components
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,7 +61,7 @@ internal fun PapPeekHandle(
                 Icons.Outlined.LocationOn,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(26.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -70,25 +71,19 @@ internal fun PapPeekHandle(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee(),
                 )
-                val info = state.userLocationInfo
-                when {
-                    info?.placeInfo != null -> Text(
-                        text = "${info.placeInfo.category.emoji} ${info.placeInfo.name}",
+                val cityRegion = listOfNotNull(
+                    state.userLocationInfo?.address?.city,
+                    state.userLocationInfo?.address?.region,
+                ).joinToString(", ")
+                if (cityRegion.isNotEmpty()) {
+                    Text(
+                        text = cityRegion,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                    )
-                    info?.address?.city != null -> Text(
-                        text = listOfNotNull(
-                            info.address.city,
-                            info.address.region,
-                        ).joinToString(", "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        maxLines = 1,
                     )
                 }
             }

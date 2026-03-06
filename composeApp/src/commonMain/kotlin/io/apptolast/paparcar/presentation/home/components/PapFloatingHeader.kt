@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -101,24 +103,19 @@ internal fun PapFloatingHeader(
                             fontSize = 8.sp,
                             letterSpacing = 1.sp,
                         )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            Text(
-                                stringResource(Res.string.home_eco_driver_label),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Icon(
-                                imageVector = if (dropdownExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
+                        Text(
+                            stringResource(Res.string.home_eco_driver_label),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                     }
+                    Icon(
+                        imageVector = if (dropdownExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
         }
@@ -150,6 +147,7 @@ internal fun PapFloatingHeader(
             shadowElevation = 0.dp,
             modifier = Modifier.padding(horizontal = 4.dp),
         ) {
+            Spacer(Modifier.height(6.dp))
             AnimatedVisibility(
                 visible = item1Visible,
                 enter = slideInVertically(
@@ -168,6 +166,7 @@ internal fun PapFloatingHeader(
                 )
             }
 
+            Spacer(Modifier.height(6.dp))
             AnimatedVisibility(
                 visible = item2Visible,
                 enter = slideInVertically(
@@ -202,13 +201,13 @@ internal fun PapDropdownPillItem(
         shadowElevation = 5.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
@@ -217,12 +216,12 @@ internal fun PapDropdownPillItem(
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(14.dp),
                 )
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )

@@ -11,4 +11,8 @@ data class CameraTarget(
     val lon: Double,
     val zoom: Float = 17f,
     val token: Int = 0,
+    /** When set, animate to fit both points with [paddingDp] margin instead of single-point zoom. */
+    val boundsLat2: Double? = null,
+    val boundsLon2: Double? = null,
+    val paddingDp: Int = 80,
 )

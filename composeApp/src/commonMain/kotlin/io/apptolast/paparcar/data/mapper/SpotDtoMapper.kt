@@ -4,7 +4,7 @@ import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.GpsPoint
 
-fun SpotDto.toDomain(id: String): Spot = Spot(
+fun SpotDto.toDomain(): Spot = Spot(
     id = id,
     location = GpsPoint(
         latitude = latitude,

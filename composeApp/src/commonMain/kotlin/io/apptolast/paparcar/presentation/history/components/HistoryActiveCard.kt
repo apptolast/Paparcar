@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -108,10 +109,15 @@ internal fun ActiveSessionHeroCard(
     )
     val precisionStr =
         stringResource(Res.string.history_precision, session.location.accuracy.toInt())
-    val activeSinceStr = stringResource(Res.string.history_active_since, cgghrelativeTime)
-    val addressText = session.placeInfo?.let { "${it.category.emoji} ${it.name}" }
-        ?: session.address?.displayLine
-        ?: formatCoords(session.location.latitude, session.location.longitude)
+    val activeSinceStr = stringResource(Res.string.history_active_since, relativeTime)
+    val place = session.placeInfo?.let { "${it.category.emoji} ${it.name}" }
+    val addr = session.address?.displayLine
+    val locationLabel = when {
+        place != null && addr != null -> "$place  ·  $addr"
+        place != null -> place
+        addr != null -> addr
+        else -> formatCoords(session.location.latitude, session.location.longitude)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -157,29 +163,35 @@ internal fun ActiveSessionHeroCard(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+            Surface(
+                color = accentColor.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(14.dp),
             ) {
-                Text(
-                    text = addressText,
-                    style = BodyMedium.copy(fontWeight = FontWeight.Medium),
-                    color = textPrimary.copy(alpha = 0.85f),
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.width(8.dp))
-                Surface(color = accentColor.copy(alpha = 0.12f), shape = RoundedCornerShape(6.dp)) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     Text(
-                        text = precisionStr,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = LabelBold,
-                        color = accentColor,
+                        text = locationLabel,
+                        style = BodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = textPrimary.copy(alpha = 0.9f),
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f).basicMarquee(),
                     )
+                    Surface(
+                        color = accentColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp),
+                    ) {
+                        Text(
+                            text = precisionStr,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            style = LabelBold,
+                            color = accentColor,
+                        )
+                    }
                 }
             }
 

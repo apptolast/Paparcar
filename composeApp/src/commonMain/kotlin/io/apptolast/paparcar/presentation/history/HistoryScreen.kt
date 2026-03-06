@@ -41,6 +41,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -56,11 +57,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.presentation.history.components.ActiveSessionHeroCard
 import io.apptolast.paparcar.presentation.history.components.DayHeaderRow
 import io.apptolast.paparcar.presentation.history.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.history.components.EndedSessionTimelineNode
-import io.apptolast.paparcar.presentation.history.components.HistorySectionHeader
 import io.apptolast.paparcar.presentation.history.components.StatsRow
 import io.apptolast.paparcar.presentation.history.components.WeeklyActivityCard
 import kotlinx.datetime.TimeZone
@@ -70,9 +69,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.history_active_section
 import paparcar.composeapp.generated.resources.history_cd_back
-import paparcar.composeapp.generated.resources.history_ended_section
 import paparcar.composeapp.generated.resources.history_month_1
 import paparcar.composeapp.generated.resources.history_month_10
 import paparcar.composeapp.generated.resources.history_month_11
@@ -222,6 +219,10 @@ fun HistoryScreen(
                     }
                 },
                 scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                ),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -258,11 +259,10 @@ internal fun HistoryContent(
             }
 
             else -> {
-                val active = remember(state.sessions) { state.sessions.firstOrNull { it.isActive } }
                 val ended = remember(state.sessions) { state.sessions.filter { !it.isActive } }
                 val weeklyStats = remember(ended) { buildWeeklyStats(ended) }
-                val timelineItems = remember(ended, todayLabel, yesterdayLabel) {
-                    buildTimeline(ended, todayLabel, yesterdayLabel)
+                val timelineItems = remember(state.sessions, todayLabel, yesterdayLabel) {
+                    buildTimeline(state.sessions, todayLabel, yesterdayLabel)
                 }
 
                 LazyColumn(
@@ -278,29 +278,9 @@ internal fun HistoryContent(
                         StatsRow(sessions = state.sessions)
                     }
 
-                    if (active != null) {
-                        item(key = "active_header") {
+                    if (timelineItems.isNotEmpty()) {
+                        item(key = "timeline_spacer") {
                             Spacer(Modifier.height(8.dp))
-                            HistorySectionHeader(
-                                text = stringResource(Res.string.history_active_section),
-                            )
-                        }
-                        item(key = "active_${active.id}") {
-                            Spacer(Modifier.height(4.dp))
-                            ActiveSessionHeroCard(
-                                session = active,
-                                onViewOnMap = onViewOnMap,
-                            )
-                        }
-                    }
-
-                    if (ended.isNotEmpty()) {
-                        item(key = "ended_header") {
-                            Spacer(Modifier.height(8.dp))
-                            HistorySectionHeader(
-                                text = stringResource(Res.string.history_ended_section),
-                            )
-                            Spacer(Modifier.height(4.dp))
                         }
                         items(
                             items = timelineItems,
@@ -311,6 +291,7 @@ internal fun HistoryContent(
                                 is TimelineItem.Session -> EndedSessionTimelineNode(
                                     session = timelineItem.parking,
                                     isLast = timelineItem.isLast,
+                                    isActive = timelineItem.parking.isActive,
                                     onViewOnMap = onViewOnMap,
                                 )
                             }
@@ -325,18 +306,23 @@ internal fun HistoryContent(
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 private fun buildWeeklyStats(sessions: List<UserParking>): List<WeekDayStats> {
-    val labels = listOf("L", "M", "X", "J", "V", "S", "D")
+    val dayLabels = listOf("L", "M", "X", "J", "V", "S", "D") // index = isoDayNumber - 1
+    val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val sevenDaysMs = 7L * 24 * 60 * 60 * 1000
-    val recentSessions = sessions.filter { it.location.timestamp >= nowMs - sevenDaysMs }
-    val grouped: Map<Int, List<UserParking>> = recentSessions.groupBy { session ->
-        Instant.fromEpochMilliseconds(session.location.timestamp)
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-            .dayOfWeek.isoDayNumber
-    }
-    return labels.mapIndexed { i, label ->
-        val daySessions: List<UserParking> = grouped[i + 1] ?: emptyList()
-        WeekDayStats(label = label, sessions = daySessions.size, minutes = 0)
+    val dayMs = 24L * 60 * 60 * 1000
+
+    val grouped = sessions
+        .filter { it.location.timestamp >= nowMs - 7 * dayMs }
+        .groupBy { Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date }
+
+    // Build [today-6 … today] so today is always at index 6 (last bar)
+    return (6 downTo 0).map { daysAgo ->
+        val date = Instant.fromEpochMilliseconds(nowMs - daysAgo * dayMs).toLocalDateTime(tz).date
+        WeekDayStats(
+            label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
+            sessions = grouped[date]?.size ?: 0,
+            minutes = 0,
+        )
     }
 }
 

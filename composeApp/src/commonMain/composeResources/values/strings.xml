@@ -67,4 +67,20 @@
     <string name="map_cd_midpoint">Midpoint between me and car</string>
     <string name="map_cd_go_to_car">Go to my parked car</string>
     <string name="map_cd_my_location">Center on my location</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_cd_back">Back</string>
+    <string name="settings_section_detection">Detection</string>
+    <string name="settings_auto_detect">Auto-detect parking</string>
+    <string name="settings_auto_detect_desc">Automatically save your parking spot</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notif_parking">Parking detected</string>
+    <string name="settings_notif_parking_desc">Alert when a parking spot is saved</string>
+    <string name="settings_notif_spot">Spot available nearby</string>
+    <string name="settings_notif_spot_desc">Alert when a spot is freed near you</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_privacy">Privacy policy</string>
+    <string name="settings_licenses">Open source licenses</string>
 </resources>

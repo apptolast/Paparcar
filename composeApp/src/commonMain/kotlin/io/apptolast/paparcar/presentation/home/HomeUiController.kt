@@ -26,6 +26,16 @@ class HomeUiController(val scaffoldState: BottomSheetScaffoldState) {
         cameraTarget = CameraTarget(lat, lon, zoom, token = (cameraTarget?.token ?: 0) + 1)
     }
 
+    fun moveCameraToBounds(lat1: Double, lon1: Double, lat2: Double, lon2: Double) {
+        cameraTarget = CameraTarget(
+            lat = lat1,
+            lon = lon1,
+            boundsLat2 = lat2,
+            boundsLon2 = lon2,
+            token = (cameraTarget?.token ?: 0) + 1,
+        )
+    }
+
     fun onUserLocationAvailable(lat: Double, lon: Double) {
         if (!centeredOnUser) {
             centeredOnUser = true

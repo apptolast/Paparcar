@@ -2,6 +2,7 @@
 
 package io.apptolast.paparcar.presentation.history.components
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,6 +76,7 @@ internal fun DayHeaderRow(label: String) {
 internal fun EndedSessionTimelineNode(
     session: UserParking,
     isLast: Boolean,
+    isActive: Boolean = false,
     onViewOnMap: (Double, Double) -> Unit,
 ) {
     Row(
@@ -88,12 +90,19 @@ internal fun EndedSessionTimelineNode(
                 .fillMaxHeight(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(14.dp))
-            Box(
-                Modifier
-                    .size(8.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.65f), CircleShape)
-            )
+            Spacer(Modifier.height(if (isActive) 10.dp else 14.dp))
+            if (isActive) {
+                PulsingDot(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp),
+                )
+            } else {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.65f), CircleShape)
+                )
+            }
             if (!isLast) {
                 Box(
                     Modifier
@@ -106,8 +115,9 @@ internal fun EndedSessionTimelineNode(
 
         Spacer(Modifier.width(8.dp))
 
-        EndedSessionCardContent(
+        SessionCardContent(
             session = session,
+            isActive = isActive,
             onViewOnMap = onViewOnMap,
             modifier = Modifier
                 .weight(1f)
@@ -117,11 +127,13 @@ internal fun EndedSessionTimelineNode(
 }
 
 @Composable
-private fun EndedSessionCardContent(
+private fun SessionCardContent(
     session: UserParking,
+    isActive: Boolean,
     onViewOnMap: (Double, Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val cs = MaterialTheme.colorScheme
     val dateTime = remember(session.location.timestamp) {
         Instant.fromEpochMilliseconds(session.location.timestamp)
             .toLocalDateTime(TimeZone.currentSystemDefault())
@@ -131,15 +143,25 @@ private fun EndedSessionCardContent(
         ?: dateTime.month.number.toString().padStart(2, '0')
     val timeStr = "${dateTime.hour.toString().padStart(2, '0')}:${dateTime.minute.toString().padStart(2, '0')}"
     val precisionStr = stringResource(Res.string.history_precision, session.location.accuracy.toInt())
-    val primaryText = session.placeInfo?.let { "${it.category.emoji} ${it.name}" }
-        ?: session.address?.displayLine
-        ?: formatCoords(session.location.latitude, session.location.longitude)
+    val place = session.placeInfo?.let { "${it.category.emoji} ${it.name}" }
+    val addr = session.address?.displayLine
+    val primaryText = when {
+        place != null && addr != null -> "$place · $addr"
+        place != null -> place
+        addr != null -> addr
+        else -> formatCoords(session.location.latitude, session.location.longitude)
+    }
     val secondaryText = session.address?.let { "${it.city ?: monthName} · $timeStr" } ?: timeStr
+
+    val textPrimary = if (isActive) cs.onPrimaryContainer else cs.onSurface
+    val textMuted = textPrimary.copy(alpha = if (isActive) 0.6f else 0.5f)
 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) cs.primaryContainer else cs.surface,
+        ),
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -149,28 +171,28 @@ private fun EndedSessionCardContent(
                 Text(
                     text = primaryText,
                     style = BodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = textPrimary,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee(),
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = secondaryText,
                     style = BodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    color = textMuted,
                 )
             }
             Spacer(Modifier.width(8.dp))
             Column(horizontalAlignment = Alignment.End) {
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = if (isActive) cs.primary.copy(alpha = 0.12f) else cs.primaryContainer,
                     shape = RoundedCornerShape(6.dp),
                 ) {
                     Text(
                         precisionStr,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                         style = LabelBold,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        color = cs.primary,
                     )
                 }
                 Spacer(Modifier.height(4.dp))

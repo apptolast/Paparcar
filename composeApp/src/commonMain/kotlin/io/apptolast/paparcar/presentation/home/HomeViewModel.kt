@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.presentation.home
 
+import io.apptolast.paparcar.BuildConfig
+import io.apptolast.paparcar.data.mapper.toSpot
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
@@ -48,18 +50,12 @@ class HomeViewModel(
                     activityRecognitionManager.registerTransitions()
                     observeLocationUpdates()
                 } else {
-                    updateState { copy(userLocation = null, nearbySpots = emptyList()) }
+                    updateState { copy(nearbySpots = emptyList()) }
                     emptyFlow()
                 }
             }
             .flatMapLatest { userLocation ->
-                updateState {
-                    copy(
-                        isLoading = false,
-                        userLocation = Pair(userLocation.latitude, userLocation.longitude),
-                        userGpsPoint = userLocation,
-                    )
-                }
+                updateState { copy(isLoading = false, userGpsPoint = userLocation) }
                 geocodeUserLocation(userLocation.latitude, userLocation.longitude)
                 observeNearbySpots(userLocation, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
             }
@@ -92,27 +88,14 @@ class HomeViewModel(
         val session = state.value.userParking ?: return
         viewModelScope.launch {
             clearUserParking()
-            val spot = Spot(
-                id = session.id,
-                location = GpsPoint(
-                    latitude = session.location.latitude,
-                    longitude = session.location.longitude,
-                    accuracy = session.location.accuracy,
-                    timestamp = session.location.timestamp,
-                    speed = 0f,
-                ),
-                reportedBy = "anonymous",
-                isActive = true,
-                address = session.address,
-                placeInfo = session.placeInfo,
-            )
-            reportSpotReleased(spot).onFailure { e ->
+            reportSpotReleased(session.toSpot()).onFailure { e ->
                 sendEffect(HomeEffect.ShowError(e.message ?: "Error al liberar la plaza"))
             }
         }
     }
 
     private fun reportTestSpot() {
+        if (!BuildConfig.DEBUG) return
         viewModelScope.launch {
             val timestamp = Clock.System.now().toEpochMilliseconds()
             val spotId = "${DEBUG_USER_ID}_$timestamp"

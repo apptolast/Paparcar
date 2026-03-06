@@ -1,0 +1,323 @@
+package io.apptolast.paparcar.presentation.settings
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.viewmodel.koinViewModel
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.settings_auto_detect
+import paparcar.composeapp.generated.resources.settings_auto_detect_desc
+import paparcar.composeapp.generated.resources.settings_cd_back
+import paparcar.composeapp.generated.resources.settings_licenses
+import paparcar.composeapp.generated.resources.settings_notif_parking
+import paparcar.composeapp.generated.resources.settings_notif_parking_desc
+import paparcar.composeapp.generated.resources.settings_notif_spot
+import paparcar.composeapp.generated.resources.settings_notif_spot_desc
+import paparcar.composeapp.generated.resources.settings_privacy
+import paparcar.composeapp.generated.resources.settings_section_about
+import paparcar.composeapp.generated.resources.settings_section_detection
+import paparcar.composeapp.generated.resources.settings_section_notifications
+import paparcar.composeapp.generated.resources.settings_title
+import paparcar.composeapp.generated.resources.settings_version
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    onNavigateBack: () -> Unit,
+) {
+    val viewModel: SettingsViewModel = koinViewModel()
+    val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(viewModel.effect) {
+        viewModel.effect.collect { effect ->
+            when (effect) {
+                is SettingsEffect.NavigateBack -> onNavigateBack()
+                is SettingsEffect.OpenUrl -> { /* TODO: open browser */ }
+            }
+        }
+    }
+
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(Res.string.settings_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.settings_cd_back),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                ),
+                scrollBehavior = scrollBehavior,
+            )
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // ── Detection ─────────────────────────────────────────────────────
+            item {
+                SettingsSectionHeader(stringResource(Res.string.settings_section_detection))
+            }
+            item {
+                SettingsSwitchItem(
+                    icon = Icons.Outlined.DirectionsCar,
+                    label = stringResource(Res.string.settings_auto_detect),
+                    description = stringResource(Res.string.settings_auto_detect_desc),
+                    checked = state.autoDetectParking,
+                    onCheckedChange = {
+                        viewModel.handleIntent(SettingsIntent.ToggleAutoDetect(it))
+                    },
+                )
+            }
+
+            // ── Notifications ─────────────────────────────────────────────────
+            item {
+                SettingsSectionHeader(stringResource(Res.string.settings_section_notifications))
+            }
+            item {
+                SettingsSwitchItem(
+                    icon = Icons.Outlined.Notifications,
+                    label = stringResource(Res.string.settings_notif_parking),
+                    description = stringResource(Res.string.settings_notif_parking_desc),
+                    checked = state.notifyParkingDetected,
+                    onCheckedChange = {
+                        viewModel.handleIntent(SettingsIntent.ToggleParkingDetectedNotif(it))
+                    },
+                )
+            }
+            item {
+                SettingsSwitchItem(
+                    icon = Icons.Outlined.Notifications,
+                    label = stringResource(Res.string.settings_notif_spot),
+                    description = stringResource(Res.string.settings_notif_spot_desc),
+                    checked = state.notifySpotFreed,
+                    onCheckedChange = {
+                        viewModel.handleIntent(SettingsIntent.ToggleSpotFreedNotif(it))
+                    },
+                )
+            }
+
+            // ── About ─────────────────────────────────────────────────────────
+            item {
+                SettingsSectionHeader(stringResource(Res.string.settings_section_about))
+            }
+            item {
+                SettingsInfoItem(
+                    icon = Icons.Outlined.Info,
+                    label = stringResource(Res.string.settings_version),
+                    value = state.appVersion,
+                )
+            }
+            item {
+                SettingsNavItem(
+                    icon = Icons.Outlined.Shield,
+                    label = stringResource(Res.string.settings_privacy),
+                    onClick = { viewModel.handleIntent(SettingsIntent.OpenPrivacyPolicy) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSectionHeader(title: String) {
+    Text(
+        text = title.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        letterSpacing = 1.sp,
+        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp),
+    )
+}
+
+@Composable
+private fun SettingsSwitchItem(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            SettingsIconBox(icon = icon)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
+}
+
+@Composable
+private fun SettingsInfoItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            SettingsIconBox(icon = icon)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsNavItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            SettingsIconBox(icon = icon)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsIconBox(icon: ImageVector) {
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}

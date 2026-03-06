@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.MapScreen
+import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -20,6 +21,7 @@ private object Routes {
     const val HOME = "home"
     const val MAP = "map"
     const val HISTORY = "history"
+    const val SETTINGS = "settings"
 }
 
 @Composable
@@ -38,6 +40,7 @@ fun App() {
                     HomeScreen(
                         onNavigateToMap = { navController.navigate(Routes.MAP) },
                         onNavigateToHistory = { navController.navigate(Routes.HISTORY) },
+                        onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
                     )
                 }
                 composable(
@@ -60,6 +63,11 @@ fun App() {
                         onNavigateToMap = { lat, lon ->
                             navController.navigate("${Routes.MAP}?lat=$lat&lon=$lon")
                         },
+                    )
+                }
+                composable(Routes.SETTINGS) {
+                    SettingsScreen(
+                        onNavigateBack = { navController.popBackStack() },
                     )
                 }
             }

@@ -45,12 +45,13 @@ fun Context.createMyCarMarkerIcon(): BitmapDescriptor {
     val canvas = Canvas(bmp)
     val paint  = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    // 1 ─ Tail (same dark fill as circle, drawn first so circle overlaps)
-    paint.color = COLOR_PAP_FOREST_DARK
+    // 1 ─ Tail (PapGreen — matches the border ring, drawn first so circle overlaps)
+    paint.color = COLOR_PAP_GREEN
     paint.style = Paint.Style.FILL
     canvas.drawPath(pinTailPath(cx, cy + r, 6f * dp, tailH), paint)
 
-    // 2 ─ Circle fill
+    // 2 ─ Circle fill (dark background)
+    paint.color = COLOR_PAP_FOREST_DARK
     canvas.drawCircle(cx, cy, r, paint)
 
     // 3 ─ Car icon (DirectionsCar vector drawable, tinted PapGreen)

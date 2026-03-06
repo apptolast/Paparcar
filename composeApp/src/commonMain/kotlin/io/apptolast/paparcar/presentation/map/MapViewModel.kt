@@ -47,7 +47,6 @@ class MapViewModel(
 
     override fun handleIntent(intent: MapIntent) {
         when (intent) {
-            is MapIntent.LoadSpots -> { /* flow already running from init */ }
             is MapIntent.OnSpotSelected -> sendEffect(MapEffect.NavigateToSpotDetails(intent.spotId))
         }
     }
