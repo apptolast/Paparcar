@@ -734,3 +734,4 @@ obj/
 /.mcp.json
 *.klib
 GoogleService-Info.plist
+movement.sh
