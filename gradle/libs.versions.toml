@@ -6,34 +6,34 @@
 [versions]
 
 # ── Android ──────────────────────────────────────────────────────────────────
-agp = "8.13.2"
+agp = "9.1.0"
 android-compileSdk = "36"
 android-minSdk = "26"      # NotificationChannel (26) + FOREGROUND_SERVICE_LOCATION (29) → mínimo real 26
 android-targetSdk = "36"
 
 # ── Kotlin & KMP ─────────────────────────────────────────────────────────────
-kotlin = "2.1.21"
-ksp = "2.1.21-2.0.1"   # ← formato nuevo: {kotlin}-{ksp_major.minor.patch}
+kotlin = "2.3.10"
+ksp = "2.3.6"   # ← formato: {kotlin}-{ksp_major.minor.patch}
 # ── Compose ──────────────────────────────────────────────────────────────────
-compose-plugin = "1.8.0"
+compose-plugin = "1.10.2"
 
 # ── AndroidX ─────────────────────────────────────────────────────────────────
-androidx-activityCompose = "1.12.2"
+androidx-activityCompose = "1.12.4"
 androidx-appcompat = "1.7.1"
 androidx-core-ktx = "1.17.0"
-androidx-lifecycle = "2.9.2"
-androidx-material = "1.12.0"
-work-runtime = "2.9.1"
+androidx-lifecycle = "2.10.0"
+androidx-material = "1.13.0"
+work-runtime = "2.11.1"
 
 # ── Test ─────────────────────────────────────────────────────────────────────
 junit = "4.13.2"
-androidx-test-junit = "1.2.1"
-androidx-espresso-core = "3.6.1"
+androidx-test-junit = "1.3.0"
+androidx-espresso-core = "3.7.0"
 
 # ── Kotlinx ──────────────────────────────────────────────────────────────────
-kotlinx-coroutines = "1.9.0"
+kotlinx-coroutines = "1.10.2"
 kotlinx-datetime = "0.7.1"
-kotlinx-serialization = "1.8.1"
+kotlinx-serialization = "1.10.0"
 
 # ── DI — Koin ────────────────────────────────────────────────────────────────
 # Todos los módulos de Koin usan la misma versión. No hay versión separada.
@@ -42,21 +42,22 @@ koin = "4.1.1"
 # ── Persistencia local — Room KMP ────────────────────────────────────────────
 # 2.7.x es la primera línea con soporte KMP completo (commonMain)
 room = "2.8.4"
+sqlite = "2.6.2"
 
 # ── Firebase ─────────────────────────────────────────────────────────────────
 # GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
-firebase-bom = "34.9.0"
+firebase-bom = "34.10.0"
 firebase-gitlive = "2.4.0"
 google-services = "4.4.4"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
 play-services-location = "21.3.0"
-play-services-maps = "19.0.0"
+play-services-maps = "20.0.0"
 geofire = "3.2.0"
 lifecycleService = "2.10.0"
-navigation-compose = "2.8.0-alpha08"
-maps-compose = "4.4.1"
+navigation-compose = "2.9.2"
+maps-compose = "8.2.0"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", versi
 # room-runtime en commonMain, room-compiler solo via KSP (ver bloque dependencies)
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite" }
 
 # ── Firebase (GitLive SDK — KMP) ─────────────────────────────────────────────
 # Todos van en commonMain. GitLive wrappea Firebase oficial con expect/actual.

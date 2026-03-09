@@ -34,7 +34,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -72,6 +71,7 @@ kotlin {
 
             // Persistencia local — Room KMP (todo en commonMain)
             implementation(libs.room.runtime)
+            implementation(libs.sqlite.bundled)
 
             // Navegación — Compose Navigation KMP
             implementation(libs.navigation.compose)
@@ -155,7 +155,6 @@ room {
 dependencies {
     // KSP processors — uno por cada plataforma KMP objetivo
     add("kspAndroid", libs.room.compiler)
-    add("kspIosX64", libs.room.compiler)
     add("kspIosArm64", libs.room.compiler)
     add("kspIosSimulatorArm64", libs.room.compiler)
 

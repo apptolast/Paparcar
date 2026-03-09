@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.presentation.home
 
-import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.data.mapper.toSpot
+import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
@@ -95,7 +95,7 @@ class HomeViewModel(
     }
 
     private fun reportTestSpot() {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         viewModelScope.launch {
             val timestamp = Clock.System.now().toEpochMilliseconds()
             val spotId = "${DEBUG_USER_ID}_$timestamp"

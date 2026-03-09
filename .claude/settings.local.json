@@ -12,7 +12,14 @@
       "Bash(node:*)",
       "Bash(sort -k6,7)",
       "Bash(find:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Bash(./gradlew :composeApp:compileKotlinIosSimulatorArm64:*)",
+      "WebSearch",
+      "WebFetch(domain:www.jetbrains.com)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun simctl:*)"
     ]
   }
 }
