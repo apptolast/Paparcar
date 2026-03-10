@@ -81,6 +81,9 @@ kotlin {
             implementation(libs.firebase.firestore)
             implementation(libs.firebase.auth)
             implementation(libs.firebase.common)
+
+            // KMP Maps — Google Maps en Android + Apple Maps en iOS
+            implementation(libs.kmp.maps.core)
         }
 
         // ── androidMain — exclusivo Android ──────────────────────────────────
@@ -114,10 +117,6 @@ kotlin {
 
             // GeoFirestore — queries de proximidad por geohash
             implementation(libs.geofire.android)
-
-            // Google Maps Compose
-            implementation(libs.maps.compose)
-            implementation(libs.play.services.maps)
         }
 
         // ── commonTest ────────────────────────────────────────────────────────
