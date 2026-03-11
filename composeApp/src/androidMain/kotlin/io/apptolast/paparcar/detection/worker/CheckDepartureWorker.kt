@@ -13,6 +13,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
+import io.apptolast.paparcar.domain.usecase.parking.DepartureDecision
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
@@ -55,29 +56,52 @@ class CheckDepartureWorker(
         // null is acceptable — DetectParkingDepartureUseCase skips the speed check.
         val speedKmh = getOneLocation()?.speed?.times(3.6f)
 
-        val shouldPublish = detectParkingDeparture(
-            geofenceId = geofenceId,
-            exitTimestampMs = exitTimestampMs,
-            currentSpeedKmh = speedKmh,
-        )
+        return when (
+            detectParkingDeparture(
+                geofenceId = geofenceId,
+                exitTimestampMs = exitTimestampMs,
+                currentSpeedKmh = speedKmh,
+            )
+        ) {
+            DepartureDecision.Confirmed -> {
+                // Confirmed departure: reset bus state and schedule the Firebase upload.
+                departureEventBus.reset()
+                WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+                    "${ReportSpotWorker.TAG}_$geofenceId",
+                    ExistingWorkPolicy.REPLACE,
+                    ReportSpotWorker.buildRequest(),
+                )
+                Result.success()
+            }
 
-        if (!shouldPublish) return Result.success()
+            DepartureDecision.Rejected -> {
+                // Definitively not a departure (no session, ID mismatch, stale signal).
+                Result.success()
+            }
 
-        // Confirmed departure: reset bus state and schedule the Firebase upload.
-        departureEventBus.reset()
-        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
-            "${ReportSpotWorker.TAG}_$geofenceId",
-            ExistingWorkPolicy.REPLACE,
-            ReportSpotWorker.buildRequest(),
-        )
-
-        return Result.success()
+            DepartureDecision.Inconclusive -> {
+                // Session + geofence match, but IN_VEHICLE_ENTER hasn't arrived yet and
+                // GPS speed is insufficient. Retry — the Transitions API can take up to
+                // ~2 min on some devices. WorkManager uses the exponential backoff set
+                // in buildRequest() (starting at 15 s).
+                if (runAttemptCount < MAX_INCONCLUSIVE_RETRIES) Result.retry()
+                else Result.success() // give up after enough retries
+            }
+        }
     }
 
     companion object {
         const val TAG = "CheckDepartureWorker"
         private const val KEY_GEOFENCE_ID = "geofence_id"
         private const val KEY_EXIT_TIMESTAMP = "exit_timestamp_ms"
+
+        /**
+         * Maximum number of retries when the decision is [DepartureDecision.Inconclusive].
+         * With EXPONENTIAL backoff starting at 15 s the retries fire at ~15s, ~30s, ~60s
+         * giving a total window of ~2 min — enough for the Transitions API to deliver
+         * IN_VEHICLE_ENTER on even the slowest devices.
+         */
+        private const val MAX_INCONCLUSIVE_RETRIES = 3
 
         fun buildRequest(geofenceId: String, exitTimestampMs: Long): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<CheckDepartureWorker>()

@@ -35,7 +35,10 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
@@ -66,6 +69,10 @@ actual fun PlatformMap(
     val defaultLatLng = LatLng(40.4168, -3.7038) // Madrid fallback
 
     val context = LocalContext.current
+    val hasLocationPermission = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED
+
     var myCarIcon    by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
     var freeSpotIcon by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
     var occupiedIcon by remember { mutableStateOf<com.google.android.gms.maps.model.BitmapDescriptor?>(null) }
@@ -128,20 +135,21 @@ actual fun PlatformMap(
         )
     }
 
-    val mapProperties by remember(isDark) {
+    val mapProperties by remember(isDark, hasLocationPermission) {
         mutableStateOf(
             MapProperties(
-                isMyLocationEnabled = true,
+                isMyLocationEnabled = hasLocationPermission,
                 mapStyleOptions = if (isDark) MapStyleOptions(DARK_MAP_STYLE) else null,
             )
         )
     }
 
-    // Marker strings resolved outside GoogleMap composable
-    val markerMyCar     = stringResource(Res.string.map_marker_my_car)
-    val markerCarHere   = stringResource(Res.string.map_marker_car_here)
-    val markerFree      = stringResource(Res.string.map_marker_free)
-    val markerOccupied  = stringResource(Res.string.map_marker_occupied)
+    // Marker strings resolved outside GoogleMap composable (sub-composition with MapApplier)
+    val markerMyCar       = stringResource(Res.string.map_marker_my_car)
+    val markerCarHere     = stringResource(Res.string.map_marker_car_here)
+    val markerFree        = stringResource(Res.string.map_marker_free)
+    val markerOccupied    = stringResource(Res.string.map_marker_occupied)
+    val spotSnippets      = spots.map { stringResource(Res.string.map_marker_reported_by, it.reportedBy) }
 
     Box(modifier = modifier) {
         GoogleMap(
@@ -183,13 +191,13 @@ actual fun PlatformMap(
             val freeIcon = freeSpotIcon
             val occIcon  = occupiedIcon
             if (freeIcon != null && occIcon != null) {
-                spots.forEach { spot ->
+                spots.forEachIndexed { idx, spot ->
                     Marker(
                         state = MarkerState(
                             position = LatLng(spot.location.latitude, spot.location.longitude)
                         ),
                         title = if (spot.isActive) markerFree else markerOccupied,
-                        snippet = stringResource(Res.string.map_marker_reported_by, spot.reportedBy),
+                        snippet = spotSnippets[idx],
                         icon = if (spot.isActive) freeIcon else occIcon,
                         onClick = {
                             onSpotClick(spot.id)

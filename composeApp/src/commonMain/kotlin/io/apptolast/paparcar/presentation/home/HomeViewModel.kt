@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -43,6 +44,8 @@ class HomeViewModel(
             }
             .launchIn(viewModelScope)
 
+        // Chain 1: permission → location → geocoding.
+        // Spots are NOT chained here so that they load without waiting for a GPS fix.
         permissionManager.permissionState
             .flatMapLatest { permissionState ->
                 updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
@@ -54,11 +57,23 @@ class HomeViewModel(
                     emptyFlow()
                 }
             }
-            .flatMapLatest { userLocation ->
+            .onEach { userLocation ->
                 updateState { copy(isLoading = false, userGpsPoint = userLocation) }
                 geocodeUserLocation(userLocation.latitude, userLocation.longitude)
-                observeNearbySpots(userLocation, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
             }
+            .catch { e ->
+                updateState { copy(error = e.message) }
+                sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
+            }
+            .launchIn(viewModelScope)
+
+        // Chain 2: spots — observed independently so they appear immediately without
+        // waiting for a GPS fix. FirebaseDataSourceImpl fetches all spots anyway;
+        // geographic filtering will be added via Geohash queries later.
+        observeNearbySpots(
+            location = GpsPoint(latitude = 0.0, longitude = 0.0, accuracy = 0f, timestamp = 0L, speed = 0f),
+            radiusMeters = ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS,
+        )
             .onEach { spots -> updateState { copy(nearbySpots = spots) } }
             .catch { e ->
                 updateState { copy(error = e.message) }
@@ -117,11 +132,14 @@ class HomeViewModel(
         }
     }
 
+    private var geocodeJob: Job? = null
+
     private fun geocodeUserLocation(lat: Double, lon: Double) {
-        viewModelScope.launch {
-            getLocationInfo(lat, lon).onSuccess { info ->
-                updateState { copy(userLocationInfo = info) }
-            }
+        geocodeJob?.cancel()
+        geocodeJob = viewModelScope.launch {
+            getLocationInfo(lat, lon)
+                .catch { /* best-effort; ignore errors */ }
+                .collect { info -> updateState { copy(userLocationInfo = info) } }
         }
     }
 

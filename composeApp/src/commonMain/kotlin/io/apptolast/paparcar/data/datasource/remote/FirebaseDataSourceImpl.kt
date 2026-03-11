@@ -38,19 +38,22 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
     }
 
     // ─── Deserialización defensiva: extrae campos individualmente ────────────
-    // Firestore almacena todos los números como Double. Usar doc.data<SpotDto>()
-    // puede fallar si los campos Float no hacen coerción automática de tipos.
+    // GitLive SDK 2.x usa Kotlin Serialization internamente en get(). `as? Number`
+    // lanza SerializationException porque kotlin.Number es abstracta y no tiene
+    // serializer. Usar los tipos concretos que Firestore devuelve:
+    //   Double → para latitude, longitude, accuracy, speed
+    //   Long   → para reportedAt (enteros en Firestore)
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toSpotDto(): SpotDto? =
         runCatching {
             SpotDto(
                 id = id,
                 latitude = get("latitude") as? Double ?: return@runCatching null,
                 longitude = get("longitude") as? Double ?: return@runCatching null,
-                accuracy = (get("accuracy") as? Number)?.toFloat() ?: 0f,
-                reportedAt = (get("reportedAt") as? Number)?.toLong() ?: 0L,
+                accuracy = (get("accuracy") as? Double)?.toFloat() ?: 0f,
+                reportedAt = (get("reportedAt") as? Long) ?: 0L,
                 reportedBy = get("reportedBy") as? String ?: "",
                 isActive = get("isActive") as? Boolean ?: false,
-                speed = (get("speed") as? Number)?.toFloat() ?: 0f,
+                speed = (get("speed") as? Double)?.toFloat() ?: 0f,
             )
         }.getOrNull()
 }

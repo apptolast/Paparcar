@@ -64,6 +64,16 @@ class DetectAndReportParkingUseCase(
         /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] at least
          *  once. Guards against spurious [IN_VEHICLE_ENTER] events while the user is stationary. */
         val hasEverMoved: Boolean = false,
+        /**
+         * The best GPS fix captured at the moment the vehicle-exit signal arrived (or the first
+         * GPS sample collected after exit while the car was still stopped).
+         *
+         * Once set, this location is used exclusively as the parking spot to save — it is never
+         * overwritten by later GPS fixes captured while the user walks away from the car.
+         * This prevents the common bug where the confirmation fires at the user's home because
+         * [stoppedSince] restarted after walking interrupted the initial stop.
+         */
+        val exitCandidateFix: GpsPoint? = null,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint = stoppedFixes.minByOrNull { it.accuracy } ?: fallback
@@ -94,9 +104,18 @@ class DetectAndReportParkingUseCase(
                     _detectionState.update { it.copy(hasEverMoved = true) }
                 }
 
+                // Lock in the parking location as soon as vehicle exit + a stopped fix are both
+                // available. We do this exactly once (exitCandidateFix == null guard) so that
+                // subsequent GPS samples collected while the user walks away cannot overwrite it.
+                _detectionState.update { s ->
+                    if (s.vehicleExitConfirmed && s.exitCandidateFix == null && s.stoppedSince != null) {
+                        s.copy(exitCandidateFix = s.bestFix(location))
+                    } else s
+                }
+
                 val state = _detectionState.value
                 val locationToConfirm = when {
-                    state.userConfirmedParking -> state.bestFix(location)
+                    state.userConfirmedParking -> state.exitCandidateFix ?: state.bestFix(location)
                     !state.hasEverMoved        -> null
                     else                       -> evaluateConfidence(location, stoppedDuration, state)
                 }
@@ -159,10 +178,19 @@ class DetectAndReportParkingUseCase(
             }
             now - (_detectionState.value.stoppedSince ?: 0L)
         } else {
-            _detectionState.update {
-                it.copy(stoppedSince = null, stoppedFixes = emptyList(), mediumNotificationShown = false)
+            val state = _detectionState.value
+            if (state.vehicleExitConfirmed) {
+                // The user is walking away after parking. Do NOT reset stoppedSince or stoppedFixes:
+                // the original stop (where the car was parked) is the ground truth. Preserving it
+                // means stoppedDuration keeps growing from the parking moment, and the best GPS
+                // fixes from that stop remain available for exitCandidateFix selection.
+                now - (state.stoppedSince ?: now)
+            } else {
+                _detectionState.update {
+                    it.copy(stoppedSince = null, stoppedFixes = emptyList(), mediumNotificationShown = false)
+                }
+                0L
             }
-            0L
         }
     }
 
@@ -191,7 +219,7 @@ class DetectAndReportParkingUseCase(
                 }
                 null
             }
-            is ParkingConfidence.High -> state.bestFix(location)
+            is ParkingConfidence.High -> state.exitCandidateFix ?: state.bestFix(location)
         }
     }
 
