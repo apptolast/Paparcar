@@ -1,19 +1,19 @@
 package io.apptolast.paparcar.presentation.map
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,8 +45,6 @@ import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.presentation.map.components.MapControlButtons
 import io.apptolast.paparcar.ui.theme.PapAmber
 import io.apptolast.paparcar.ui.theme.PapAmberMuted
 import io.apptolast.paparcar.ui.theme.PapForest
@@ -62,50 +60,23 @@ private const val MARKER_OCCUPIED_SPOT = "occupied_spot"
 fun PlatformMap(
     spots: List<Spot>,
     userLocation: GpsPoint?,
-    userParking: UserParking?,
+    parkingLocation: GpsPoint?,
     onSpotClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(),
-    showMapControls: Boolean = true,
     cameraTarget: CameraTarget? = null,
-    focusMarker: Pair<Double, Double>? = null,
 ) {
-    val defaultCoords = Coordinates(40.4168, -3.7038) // Madrid fallback
-
     // ── Build markers list ───────────────────────────────────────────────────
-    val markers = remember(spots, userParking, focusMarker) {
+    val markers = remember(spots, parkingLocation) {
         buildList {
-            // User's parked car
-            userParking?.let { session ->
+            parkingLocation?.let {
                 add(
                     Marker(
-                        coordinates = Coordinates(
-                            session.location.latitude,
-                            session.location.longitude,
-                        ),
+                        coordinates = Coordinates(it.latitude, it.longitude),
                         title = MARKER_MY_CAR,
                         contentId = MARKER_MY_CAR,
                     ),
                 )
             }
-
-            // Focus marker from history (if different from active parking)
-            focusMarker?.let { (lat, lon) ->
-                val sameAsActive = userParking?.let { p ->
-                    p.location.latitude == lat && p.location.longitude == lon
-                } ?: false
-                if (!sameAsActive) {
-                    add(
-                        Marker(
-                            coordinates = Coordinates(lat, lon),
-                            title = MARKER_MY_CAR, // reuse for click filtering
-                            contentId = MARKER_MY_CAR,
-                        ),
-                    )
-                }
-            }
-
-            // Nearby parking spots
             spots.forEach { spot ->
                 add(
                     Marker(
@@ -130,48 +101,7 @@ fun PlatformMap(
         )
     }
 
-    // ── Camera position ──────────────────────────────────────────────────────
-    var cameraPosition by remember {
-        mutableStateOf(
-            CameraPosition(
-                coordinates = cameraTarget?.let { Coordinates(it.lat, it.lon) }
-                    ?: userLocation?.let { Coordinates(it.latitude, it.longitude) }
-                    ?: defaultCoords,
-                zoom = cameraTarget?.zoom ?: 15f,
-            ),
-        )
-    }
-
-    // Auto-center on first location update
-    var centeredOnUser by remember { mutableStateOf(userLocation != null || cameraTarget != null) }
-    LaunchedEffect(userLocation) {
-        if (userLocation != null && !centeredOnUser) {
-            centeredOnUser = true
-            cameraPosition = CameraPosition(
-                coordinates = Coordinates(userLocation.latitude, userLocation.longitude),
-                zoom = 15f,
-            )
-        }
-    }
-
-    // Animate to camera target when it changes
-    LaunchedEffect(cameraTarget) {
-        val target = cameraTarget ?: return@LaunchedEffect
-        if (target.boundsLat2 != null && target.boundsLon2 != null) {
-            // Fit both points: center on midpoint with a zoom that includes both
-            val midLat = (target.lat + target.boundsLat2) / 2.0
-            val midLon = (target.lon + target.boundsLon2) / 2.0
-            cameraPosition = CameraPosition(
-                coordinates = Coordinates(midLat, midLon),
-                zoom = 14f,
-            )
-        } else {
-            cameraPosition = CameraPosition(
-                coordinates = Coordinates(target.lat, target.lon),
-                zoom = target.zoom,
-            )
-        }
-    }
+    val cameraPosition = rememberCameraAnimationState(cameraTarget, userLocation)
 
     // ── Map styling ──────────────────────────────────────────────────────────
     val isDark = isSystemInDarkTheme()
@@ -232,51 +162,57 @@ fun PlatformMap(
             }
         }
 
-        // ── Map control buttons ──────────────────────────────────────────────
-        AnimatedVisibility(
-            visible = showMapControls,
-            enter = slideInHorizontally { it },
-            exit = slideOutHorizontally { it },
-            modifier = Modifier.align(Alignment.BottomEnd),
-        ) {
-            MapControlButtons(
-                userLocation = userLocation,
-                userParking = userParking,
-                sheetBottomPadding = contentPadding.calculateBottomPadding(),
-                onMyLocation = {
-                    userLocation?.let { loc ->
-                        cameraPosition = CameraPosition(
-                            coordinates = Coordinates(loc.latitude, loc.longitude),
-                            zoom = 16f,
-                        )
-                    }
-                },
-                onParkedCar = {
-                    userParking?.let { session ->
-                        cameraPosition = CameraPosition(
-                            coordinates = Coordinates(
-                                session.location.latitude,
-                                session.location.longitude,
-                            ),
-                            zoom = 17f,
-                        )
-                    }
-                },
-                onMidpoint = {
-                    if (userLocation != null && userParking != null) {
-                        val midLat =
-                            (userLocation.latitude + userParking.location.latitude) / 2.0
-                        val midLon =
-                            (userLocation.longitude + userParking.location.longitude) / 2.0
-                        cameraPosition = CameraPosition(
-                            coordinates = Coordinates(midLat, midLon),
-                            zoom = 15f,
-                        )
-                    }
-                },
-            )
+    }
+}
+
+// ── Camera animation ─────────────────────────────────────────────────────────
+
+private const val CAMERA_ANIM_MS = 700
+
+@Composable
+private fun rememberCameraAnimationState(
+    cameraTarget: CameraTarget?,
+    userLocation: GpsPoint?,
+): CameraPosition {
+    val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
+        ?: userLocation?.let { Coordinates(it.latitude, it.longitude) }
+        ?: Coordinates(0.0, 0.0)
+    val animLat = remember { Animatable(initCoords.latitude.toFloat()) }
+    val animLon = remember { Animatable(initCoords.longitude.toFloat()) }
+    val animZoom = remember { Animatable(cameraTarget?.zoom ?: 15f) }
+
+    var centeredOnUser by remember { mutableStateOf(userLocation != null || cameraTarget != null) }
+    LaunchedEffect(userLocation) {
+        if (userLocation != null && !centeredOnUser) {
+            centeredOnUser = true
+            val spec = tween<Float>(CAMERA_ANIM_MS, easing = FastOutSlowInEasing)
+            launch { animLat.animateTo(userLocation.latitude.toFloat(), spec) }
+            launch { animLon.animateTo(userLocation.longitude.toFloat(), spec) }
+            launch { animZoom.animateTo(15f, spec) }
         }
     }
+
+    LaunchedEffect(cameraTarget) {
+        val target = cameraTarget ?: return@LaunchedEffect
+        val (targetLat, targetLon, targetZoom) = if (target.boundsLat2 != null && target.boundsLon2 != null) {
+            Triple(
+                ((target.lat + target.boundsLat2) / 2.0).toFloat(),
+                ((target.lon + target.boundsLon2) / 2.0).toFloat(),
+                14f,
+            )
+        } else {
+            Triple(target.lat.toFloat(), target.lon.toFloat(), target.zoom)
+        }
+        val spec = tween<Float>(CAMERA_ANIM_MS, easing = FastOutSlowInEasing)
+        launch { animLat.animateTo(targetLat, spec) }
+        launch { animLon.animateTo(targetLon, spec) }
+        launch { animZoom.animateTo(targetZoom, spec) }
+    }
+
+    return CameraPosition(
+        coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
+        zoom = animZoom.value,
+    )
 }
 
 // ── Custom marker composables ────────────────────────────────────────────────

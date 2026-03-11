@@ -5,10 +5,7 @@ package io.apptolast.paparcar.presentation.home
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,10 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.MyLocation
-import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.components.PapFloatingHeader
-import io.apptolast.paparcar.presentation.home.components.PapMapFab
+import io.apptolast.paparcar.presentation.home.components.PapMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.PapPeekHandle
 import io.apptolast.paparcar.presentation.home.components.PapReportBar
 import io.apptolast.paparcar.presentation.home.components.PapSheetContent
@@ -159,11 +152,9 @@ private fun HomeContent(
                     PlatformMap(
                         spots = state.nearbySpots,
                         userLocation = state.userGpsPoint,
-                        userParking = state.userParking,
+                        parkingLocation = state.userParking?.location,
                         onSpotClick = {},
                         cameraTarget = uiController.cameraTarget,
-                        contentPadding = PaddingValues(),
-                        showMapControls = false,
                         modifier = if (mapHeightDp != null)
                             Modifier.fillMaxWidth().height(mapHeightDp!! + 20.dp)
                         else
@@ -179,44 +170,32 @@ private fun HomeContent(
                             .align(Alignment.BottomEnd)
                             .padding(end = 14.dp, bottom = SheetPeekHeight + 12.dp),
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            if (state.userParking != null) {
-                                PapMapFab(
-                                    icon = Icons.Outlined.DirectionsCar,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    onClick = {
-                                        state.userParking.let { p ->
-                                            uiController.moveCamera(
-                                                p.location.latitude,
-                                                p.location.longitude
-                                            )
-                                        }
-                                    },
-                                )
-                            }
-                            if (state.userParking != null && state.userGpsPoint != null) {
-                                PapMapFab(
-                                    icon = Icons.Outlined.Route,
-                                    onClick = {
-                                        uiController.moveCameraToBounds(
-                                            lat1 = state.userParking.location.latitude,
-                                            lon1 = state.userParking.location.longitude,
-                                            lat2 = state.userGpsPoint.latitude,
-                                            lon2 = state.userGpsPoint.longitude,
-                                        )
-                                    },
-                                )
-                            }
-                            PapMapFab(
-                                icon = Icons.Outlined.MyLocation,
-                                onClick = {
-                                    state.userGpsPoint?.let {
-                                        uiController.moveCamera(it.latitude, it.longitude)
-                                    }
-                                },
-                            )
-                        }
+                        PapMapFabColumn(
+                            userParking = state.userParking,
+                            userGpsPoint = state.userGpsPoint,
+                            onMyLocation = {
+                                state.userGpsPoint?.let {
+                                    uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                                }
+                            },
+                            onParkedCar = {
+                                state.userParking?.let {
+                                    uiController.moveCamera(it.location.latitude, it.location.longitude)
+                                }
+                            },
+                            onMidpoint = {
+                                val parking = state.userParking
+                                val gps = state.userGpsPoint
+                                if (parking != null && gps != null) {
+                                    uiController.moveCameraToBounds(
+                                        lat1 = parking.location.latitude,
+                                        lon1 = parking.location.longitude,
+                                        lat2 = gps.latitude,
+                                        lon2 = gps.longitude,
+                                    )
+                                }
+                            },
+                        )
                     }
 
                     // ── Floating header ────────────────────────────────────

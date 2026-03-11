@@ -23,6 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.presentation.map.components.MapControlButtons
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -44,6 +47,10 @@ fun MapScreen(
         mutableStateOf(
             initialFocus?.let { (lat, lon) -> CameraTarget(lat = lat, lon = lon, zoom = 16f) }
         )
+    }
+
+    fun moveCamera(lat: Double, lon: Double, zoom: Float = 17f) {
+        cameraTarget = CameraTarget(lat, lon, zoom, token = (cameraTarget?.token ?: 0) + 1)
     }
 
     LaunchedEffect(Unit) {
@@ -81,11 +88,38 @@ fun MapScreen(
             PlatformMap(
                 spots = state.spots,
                 userLocation = state.userLocation,
-                userParking = state.userParking,
+                parkingLocation = initialFocus
+                    ?.let { (lat, lon) -> GpsPoint(lat, lon, accuracy = 0f, timestamp = 0L, speed = 0f) }
+                    ?: state.userParking?.location,
                 onSpotClick = { spotId -> viewModel.handleIntent(MapIntent.OnSpotSelected(spotId)) },
                 cameraTarget = cameraTarget,
-                focusMarker = initialFocus,
                 modifier = Modifier.fillMaxSize(),
+            )
+
+            MapControlButtons(
+                userLocation = state.userLocation,
+                userParking = state.userParking,
+                sheetBottomPadding = 0.dp,
+                onMyLocation = {
+                    state.userLocation?.let { moveCamera(it.latitude, it.longitude, zoom = 16f) }
+                },
+                onParkedCar = {
+                    state.userParking?.let { moveCamera(it.location.latitude, it.location.longitude) }
+                },
+                onMidpoint = {
+                    val loc = state.userLocation
+                    val parking = state.userParking
+                    if (loc != null && parking != null) {
+                        cameraTarget = CameraTarget(
+                            lat = parking.location.latitude,
+                            lon = parking.location.longitude,
+                            boundsLat2 = loc.latitude,
+                            boundsLon2 = loc.longitude,
+                            token = (cameraTarget?.token ?: 0) + 1,
+                        )
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomEnd),
             )
 
             if (state.isLoading) {

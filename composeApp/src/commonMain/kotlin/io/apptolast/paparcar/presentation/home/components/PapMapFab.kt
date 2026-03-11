@@ -1,9 +1,18 @@
 package io.apptolast.paparcar.presentation.home.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -13,6 +22,48 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.UserParking
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FAB column — location + parked car + midpoint controls
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+internal fun PapMapFabColumn(
+    userParking: UserParking?,
+    userGpsPoint: GpsPoint?,
+    onMyLocation: () -> Unit,
+    onParkedCar: () -> Unit,
+    onMidpoint: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        AnimatedVisibility(
+            visible = userParking != null,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+        ) {
+            PapMapFab(
+                icon = Icons.Outlined.DirectionsCar,
+                tint = MaterialTheme.colorScheme.primary,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                onClick = onParkedCar,
+            )
+        }
+        AnimatedVisibility(
+            visible = userParking != null && userGpsPoint != null,
+            enter = slideInVertically(initialOffsetY = { it }),
+            exit = slideOutVertically(targetOffsetY = { it }),
+        ) {
+            PapMapFab(icon = Icons.Outlined.Route, onClick = onMidpoint)
+        }
+        PapMapFab(icon = Icons.Outlined.MyLocation, onClick = onMyLocation)
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable circular map FAB
