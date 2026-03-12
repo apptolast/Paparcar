@@ -38,7 +38,7 @@ import paparcar.composeapp.generated.resources.home_permissions_message
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapReportBar(
+internal fun HomeReportBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -82,7 +82,7 @@ internal fun PapReportBar(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapPermissionsCard(
+internal fun HomePermissionsCard(
     onRequestPermissions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

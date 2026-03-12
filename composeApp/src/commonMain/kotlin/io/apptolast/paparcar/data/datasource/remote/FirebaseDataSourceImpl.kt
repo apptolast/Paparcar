@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.data.datasource.remote
 
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
+import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -37,20 +39,31 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
         spotsCollection.document(spotDto.id).set(spotDto)
     }
 
-    // ─── Deserialización defensiva: extrae campos individualmente ────────────
-    // Firestore almacena todos los números como Double. Usar doc.data<SpotDto>()
-    // puede fallar si los campos Float no hacen coerción automática de tipos.
+    // ─── Typed deserialization using GitLive SDK 2.x get<T?>() API ────────────
+    // get<T?>(field) uses the KSerialization serializer for T — Any has none, so
+    // each field must use its concrete type. Nested objects (AddressDto, PlaceInfoDto)
+    // are decoded with their own @Serializable serializers via a nested runCatching so
+    // that a format change in those sub-objects doesn't drop the whole spot.
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toSpotDto(): SpotDto? =
         runCatching {
+            val lat = get<Double?>("latitude") ?: return@runCatching null
+            val lon = get<Double?>("longitude") ?: return@runCatching null
             SpotDto(
                 id = id,
-                latitude = get("latitude") as? Double ?: return@runCatching null,
-                longitude = get("longitude") as? Double ?: return@runCatching null,
-                accuracy = (get("accuracy") as? Number)?.toFloat() ?: 0f,
-                reportedAt = (get("reportedAt") as? Number)?.toLong() ?: 0L,
-                reportedBy = get("reportedBy") as? String ?: "",
-                isActive = get("isActive") as? Boolean ?: false,
-                speed = (get("speed") as? Number)?.toFloat() ?: 0f,
+                latitude = lat,
+                longitude = lon,
+                accuracy = get<Double?>("accuracy")?.toFloat() ?: 0f,
+                // reportedAt may arrive as Long or Double depending on client — handle both
+                reportedAt = runCatching { get<Long?>("reportedAt") }.getOrNull()
+                    ?: runCatching { get<Double?>("reportedAt")?.toLong() }.getOrNull()
+                    ?: 0L,
+                reportedBy = get<String?>("reportedBy") ?: "",
+                speed = get<Double?>("speed")?.toFloat() ?: 0f,
+                address = runCatching { get<AddressDto?>("address") }.getOrNull(),
+                placeInfo = runCatching { get<PlaceInfoDto?>("placeInfo") }.getOrNull(),
             )
-        }.getOrNull()
+        }.getOrElse { e ->
+            println("PAPARCAR toSpotDto EXCEPTION doc=$id: ${e.message}")
+            null
+        }
 }

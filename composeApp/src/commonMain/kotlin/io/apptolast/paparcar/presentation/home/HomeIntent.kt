@@ -6,5 +6,5 @@ sealed class HomeIntent {
     data object OpenMap : HomeIntent()
     data object OpenHistory : HomeIntent()
     data object ReportTestSpot : HomeIntent()
-    data object ReleaseParking : HomeIntent()
+    data class ReleaseParking(val lat: Double, val lon: Double) : HomeIntent()
 }

@@ -30,7 +30,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapMapFabColumn(
+internal fun HomeMapFabColumn(
     userParking: UserParking?,
     userGpsPoint: GpsPoint?,
     onMyLocation: () -> Unit,
@@ -47,7 +47,7 @@ internal fun PapMapFabColumn(
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
-            PapMapFab(
+            HomeMapFab(
                 icon = Icons.Outlined.DirectionsCar,
                 tint = MaterialTheme.colorScheme.primary,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -59,9 +59,9 @@ internal fun PapMapFabColumn(
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
-            PapMapFab(icon = Icons.Outlined.Route, onClick = onMidpoint)
+            HomeMapFab(icon = Icons.Outlined.Route, onClick = onMidpoint)
         }
-        PapMapFab(icon = Icons.Outlined.MyLocation, onClick = onMyLocation)
+        HomeMapFab(icon = Icons.Outlined.MyLocation, onClick = onMyLocation)
     }
 }
 
@@ -70,7 +70,7 @@ internal fun PapMapFabColumn(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapMapFab(
+internal fun HomeMapFab(
     icon: ImageVector,
     onClick: () -> Unit,
     tint: Color = MaterialTheme.colorScheme.onSurface,

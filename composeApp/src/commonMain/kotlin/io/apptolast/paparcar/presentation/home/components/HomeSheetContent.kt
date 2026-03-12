@@ -2,13 +2,14 @@
 package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,98 +28,79 @@ import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
 @Composable
-internal fun PapSheetContent(
+internal fun HomeSheetContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
     onParkingClick: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.navigationBarsPadding(),
-        contentPadding = PaddingValues(bottom = 40.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .padding(bottom = 40.dp),
     ) {
 
         // ── Parking row — solo si está aparcado ───────────────────────────
         state.userParking?.let { parking ->
-            item {
-                PapParkingRow(
-                    parking = parking,
-                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                    onClick = onParkingClick,
-                    modifier = Modifier.padding(
-                        horizontal = 16.dp,
-                        vertical = 8.dp,
-                    ),
-                )
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-                )
-            }
-        }
-
-        // ── Sección: Cerca de ti ──────────────────────────────────────────
-        item {
-            PapSectionHeader(
-                title = stringResource(Res.string.home_feed_nearby),
-                badge = if (state.nearbySpots.isNotEmpty())
-                    stringResource(
-                        Res.string.home_stats_free_spots_badge,
-                        state.nearbySpots.count { it.isActive },
-                    )
-                else null,
-                modifier = Modifier.padding(
-                    start = 20.dp, end = 20.dp,
-                    top = 16.dp, bottom = 8.dp,
-                ),
+            HomeParkingRow(
+                parking = parking,
+                userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                onClick = onParkingClick,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
             )
         }
 
+        // ── Sección: Cerca de ti ──────────────────────────────────────────
+        HomeSectionHeader(
+            title = stringResource(Res.string.home_feed_nearby),
+            badge = if (state.nearbySpots.isNotEmpty())
+                stringResource(Res.string.home_stats_free_spots_badge, state.nearbySpots.size)
+            else null,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
+        )
+
         when {
-            !state.allPermissionsGranted -> item {
-                PapPermissionsCard(
-                    onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-            }
+            !state.allPermissionsGranted -> HomePermissionsCard(
+                onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
 
-            state.nearbySpots.isEmpty() -> item {
-                PapEmptySpots(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                )
-            }
+            state.nearbySpots.isEmpty() -> HomeEmptySpots(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
 
-            else -> items(state.nearbySpots, key = { it.id }) { spot ->
-                PapSpotRow(
+            else -> state.nearbySpots.forEach { spot ->
+                HomeSpotRow(
                     spot = spot,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onClick = { onCameraMove(spot.location.latitude, spot.location.longitude) },
                 )
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.06f),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
                 )
             }
         }
 
         // ── Sección: Actividad ────────────────────────────────────────────
         if (state.nearbySpots.isNotEmpty()) {
-            item {
-                PapSectionHeader(
-                    title = stringResource(Res.string.home_feed_activity),
-                    modifier = Modifier.padding(
-                        start = 20.dp, end = 20.dp,
-                        top = 24.dp, bottom = 8.dp,
-                    ),
-                )
-            }
-            items(state.nearbySpots.take(5), key = { "feed_${it.id}" }) { spot ->
-                PapActivityRow(
+            HomeSectionHeader(
+                title = stringResource(Res.string.home_feed_activity),
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
+            )
+            state.nearbySpots.take(5).forEach { spot ->
+                HomeActivityRow(
                     spot = spot,
                     onClick = { onCameraMove(spot.location.latitude, spot.location.longitude) },
                 )
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.06f),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
                 )
             }
         }
@@ -130,7 +112,7 @@ internal fun PapSheetContent(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapSectionHeader(
+internal fun HomeSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     badge: String? = null,

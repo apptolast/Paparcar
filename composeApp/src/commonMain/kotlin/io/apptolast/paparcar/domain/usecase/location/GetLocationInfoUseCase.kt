@@ -4,29 +4,32 @@ import io.apptolast.paparcar.domain.geocoder.GeocoderPort
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.LocationInfo
 import io.apptolast.paparcar.domain.places.PlacesPort
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 /**
- * Combines geocoding and POI lookup into a single [LocationInfo].
+ * Streams a [LocationInfo] in two steps:
  *
- * Both calls run in parallel via [coroutineScope] + [async]. If the POI
- * lookup fails or finds nothing, [LocationInfo.placeInfo] will be null.
- * If geocoding fails, an empty [AddressInfo] is returned as fallback.
+ * 1. **Address** (local geocoder, no network) — emitted immediately.
+ * 2. **Place** (network, best-effort) — if found, a second emission updates [LocationInfo.placeInfo].
+ *
+ * Collectors receive the address quickly and can update the UI/DB right away.
+ * The place lookup runs after the first emission without blocking the address result.
  */
 class GetLocationInfoUseCase(
     private val geocoder: GeocoderPort,
     private val placesPort: PlacesPort,
 ) {
-    suspend operator fun invoke(lat: Double, lon: Double): Result<LocationInfo> =
-        coroutineScope {
-            val addressDeferred = async { geocoder.getAddress(lat, lon) }
-            val placeDeferred = async { placesPort.getNearbyPlace(lat, lon) }
+    operator fun invoke(lat: Double, lon: Double): Flow<LocationInfo> = flow {
+        // Phase 1 — address (local geocoder, instant, no network required).
+        val address = geocoder.getAddress(lat, lon)
+            .getOrElse { AddressInfo(null, null, null, null) }
+        emit(LocationInfo(address = address, placeInfo = null))
 
-            val address = addressDeferred.await()
-                .getOrElse { AddressInfo(null, null, null, null) }
-            val place = placeDeferred.await().getOrNull()
-
-            Result.success(LocationInfo(address = address, placeInfo = place))
+        // Phase 2 — POI (network, best-effort). Only emits if a place is found.
+        val placeInfo = runCatching { placesPort.getNearbyPlace(lat, lon).getOrNull() }.getOrNull()
+        if (placeInfo != null) {
+            emit(LocationInfo(address = address, placeInfo = placeInfo))
         }
+    }
 }

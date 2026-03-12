@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home.components
 
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,7 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -21,7 +22,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -40,25 +47,43 @@ import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
 import paparcar.composeapp.generated.resources.home_spot_reported_by
 import paparcar.composeapp.generated.resources.home_spot_status_free
-import paparcar.composeapp.generated.resources.home_spot_status_occupied
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Relative time (auto-updates every minute)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun relativeTimeText(timestampMs: Long): String {
+    var text by remember(timestampMs) { mutableStateOf(formatRelativeTime(timestampMs)) }
+    LaunchedEffect(timestampMs) {
+        while (true) {
+            delay(60_000L)
+            text = formatRelativeTime(timestampMs)
+        }
+    }
+    return text
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Spot row
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapSpotRow(
+internal fun HomeSpotRow(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
     onClick: () -> Unit,
 ) {
-    val isActive = spot.isActive
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
+    val place = spot.placeInfo?.let { "${it.category.emoji} ${it.name}" }
+    val address = spot.address?.displayLine
     val displayText = when {
-        spot.placeInfo != null -> "${spot.placeInfo.category.emoji} ${spot.placeInfo.name}"
-        else -> spot.address?.displayLine ?: formatCoords(spot.location.latitude, spot.location.longitude)
+        place != null && address != null -> "$place  ·  $address"
+        place != null -> place
+        address != null -> address
+        else -> formatCoords(spot.location.latitude, spot.location.longitude)
     }
 
     Surface(
@@ -68,51 +93,45 @@ internal fun PapSpotRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Icon box — squircle, matches HomeParkingRow shape
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isActive) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                    ),
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    if (isActive) Icons.Outlined.RadioButtonChecked
-                    else Icons.Outlined.DirectionsCar,
+                    Icons.Outlined.RadioButtonChecked,
                     contentDescription = null,
-                    tint = if (isActive) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
+            // Text column
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = displayText,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee(),
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(3.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        if (isActive) stringResource(Res.string.home_spot_status_free)
-                        else stringResource(Res.string.home_spot_status_occupied),
+                        relativeTimeText(spot.location.timestamp),
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isActive) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.secondary,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                     )
                     if (distanceM != null) {
                         Text(
@@ -124,7 +143,7 @@ internal fun PapSpotRow(
                             Icons.AutoMirrored.Outlined.DirectionsWalk,
                             contentDescription = null,
                             modifier = Modifier.size(10.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                         )
                         Text(
                             "${formatDistance(distanceM)} · ${formatWalkTime(distanceM)}",
@@ -135,11 +154,19 @@ internal fun PapSpotRow(
                 }
             }
 
-            Text(
-                formatRelativeTime(spot.location.timestamp),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-            )
+            // "Libre" chip — spot's distinctive status badge
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            ) {
+                Text(
+                    stringResource(Res.string.home_spot_status_free),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -149,13 +176,17 @@ internal fun PapSpotRow(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapActivityRow(
+internal fun HomeActivityRow(
     spot: Spot,
     onClick: () -> Unit,
 ) {
+    val place = spot.placeInfo?.let { "${it.category.emoji} ${it.name}" }
+    val addr = spot.address?.displayLine
     val displayText = when {
-        spot.placeInfo != null -> "${spot.placeInfo.category.emoji} ${spot.placeInfo.name}"
-        else -> spot.address?.displayLine ?: formatCoords(spot.location.latitude, spot.location.longitude)
+        place != null && addr != null -> "$place  ·  $addr"
+        place != null -> place
+        addr != null -> addr
+        else -> formatCoords(spot.location.latitude, spot.location.longitude)
     }
 
     Surface(
@@ -165,14 +196,14 @@ internal fun PapActivityRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
@@ -180,19 +211,19 @@ internal fun PapActivityRow(
                     Icons.Outlined.DirectionsCar,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(22.dp),
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = displayText,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(3.dp))
                 Text(
                     text = stringResource(Res.string.home_spot_reported_by, spot.reportedBy),
                     style = MaterialTheme.typography.labelSmall,
@@ -202,7 +233,7 @@ internal fun PapActivityRow(
                 )
             }
             Text(
-                formatRelativeTime(spot.location.timestamp),
+                relativeTimeText(spot.location.timestamp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
             )
@@ -215,7 +246,7 @@ internal fun PapActivityRow(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun PapEmptySpots(modifier: Modifier = Modifier) {
+internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()

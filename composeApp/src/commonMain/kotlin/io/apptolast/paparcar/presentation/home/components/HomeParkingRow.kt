@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.distanceMeters
@@ -39,18 +38,18 @@ import paparcar.composeapp.generated.resources.home_banner_accuracy
 import paparcar.composeapp.generated.resources.home_parking_row_label
 
 @Composable
-internal fun PapParkingRow(
+internal fun HomeParkingRow(
     parking: UserParking,
     userLocation: Pair<Double, Double>?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val place = parking.placeInfo?.let { "${it.category.emoji} ${it.name}" }
-    val addr = parking.address?.displayLine
+    val address = parking.address?.displayLine
     val locationLabel = when {
-        place != null && addr != null -> "$place  ·  $addr"
+        place != null && address != null -> "$place  ·  $address"
         place != null -> place
-        addr != null -> addr
+        address != null -> address
         else -> stringResource(Res.string.home_parking_row_label)
     }
     val distanceM = userLocation?.let { (uLat, uLon) ->

@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.presentation.home.components.PlatformMap
 import io.apptolast.paparcar.presentation.map.components.MapControlButtons
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -89,9 +90,18 @@ fun MapScreen(
                 spots = state.spots,
                 userLocation = state.userLocation,
                 parkingLocation = initialFocus
-                    ?.let { (lat, lon) -> GpsPoint(lat, lon, accuracy = 0f, timestamp = 0L, speed = 0f) }
+                    ?.let { (lat, lon) ->
+                        GpsPoint(
+                            lat,
+                            lon,
+                            accuracy = 0f,
+                            timestamp = 0L,
+                            speed = 0f
+                        )
+                    }
                     ?: state.userParking?.location,
                 onSpotClick = { spotId -> viewModel.handleIntent(MapIntent.OnSpotSelected(spotId)) },
+                onCameraMove = { _, _ -> },
                 cameraTarget = cameraTarget,
                 modifier = Modifier.fillMaxSize(),
             )

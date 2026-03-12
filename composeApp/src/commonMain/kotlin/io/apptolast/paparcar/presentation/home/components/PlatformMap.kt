@@ -1,10 +1,11 @@
-package io.apptolast.paparcar.presentation.map
+package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -16,10 +17,10 @@ import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,11 +29,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.swmansion.kmpmaps.core.AndroidMapProperties
 import com.swmansion.kmpmaps.core.AndroidUISettings
 import com.swmansion.kmpmaps.core.CameraPosition
@@ -45,8 +46,7 @@ import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.ui.theme.PapAmber
-import io.apptolast.paparcar.ui.theme.PapAmberMuted
+import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.ui.theme.PapForest
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
@@ -54,7 +54,6 @@ import io.apptolast.paparcar.ui.theme.PapGreen
 // ── Marker content IDs ──────────────────────────────────────────────────────
 private const val MARKER_MY_CAR = "my_car"
 private const val MARKER_FREE_SPOT = "free_spot"
-private const val MARKER_OCCUPIED_SPOT = "occupied_spot"
 
 @Composable
 fun PlatformMap(
@@ -62,6 +61,7 @@ fun PlatformMap(
     userLocation: GpsPoint?,
     parkingLocation: GpsPoint?,
     onSpotClick: (String) -> Unit,
+    onCameraMove: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
     cameraTarget: CameraTarget? = null,
 ) {
@@ -85,7 +85,7 @@ fun PlatformMap(
                             spot.location.longitude,
                         ),
                         title = spot.id,
-                        contentId = if (spot.isActive) MARKER_FREE_SPOT else MARKER_OCCUPIED_SPOT,
+                        contentId = MARKER_FREE_SPOT,
                     ),
                 )
             }
@@ -96,12 +96,22 @@ fun PlatformMap(
     val customMarkerContent = remember {
         mapOf<String, @Composable (Marker) -> Unit>(
             MARKER_MY_CAR to { _ -> MyCarMarkerContent() },
-            MARKER_FREE_SPOT to { _ -> SpotMarkerContent(isFree = true) },
-            MARKER_OCCUPIED_SPOT to { _ -> SpotMarkerContent(isFree = false) },
+            MARKER_FREE_SPOT to { _ -> SpotMarkerContent() },
         )
     }
 
-    val cameraPosition = rememberCameraAnimationState(cameraTarget, userLocation)
+    // ── Track real camera center+zoom (set by the map, not by us) ──────────
+    var actualCamLat by remember { mutableStateOf<Float?>(null) }
+    var actualCamLon by remember { mutableStateOf<Float?>(null) }
+    var actualCamZoom by remember { mutableStateOf<Float?>(null) }
+
+    val cameraPosition = rememberCameraAnimationState(
+        cameraTarget = cameraTarget,
+        userLocation = userLocation,
+        actualCamLat = actualCamLat,
+        actualCamLon = actualCamLon,
+        actualCamZoom = actualCamZoom,
+    )
 
     // ── Map styling ──────────────────────────────────────────────────────────
     val isDark = isSystemInDarkTheme()
@@ -131,8 +141,12 @@ fun PlatformMap(
             ),
             markers = markers,
             customMarkerContent = customMarkerContent,
-            // Don't feed onCameraMove back into cameraPosition — it creates a
-            // feedback loop because KMP Maps re-applies cameraPosition on every change.
+            onCameraMove = { pos ->
+                actualCamLat = pos.coordinates.latitude.toFloat()
+                actualCamLon = pos.coordinates.longitude.toFloat()
+                actualCamZoom = pos.zoom
+                onCameraMove(pos.coordinates.latitude, pos.coordinates.longitude)
+            },
             onMarkerClick = { marker ->
                 val id = marker.title ?: return@Map
                 if (id != MARKER_MY_CAR) {
@@ -173,6 +187,9 @@ private const val CAMERA_ANIM_MS = 700
 private fun rememberCameraAnimationState(
     cameraTarget: CameraTarget?,
     userLocation: GpsPoint?,
+    actualCamLat: Float?,
+    actualCamLon: Float?,
+    actualCamZoom: Float?,
 ): CameraPosition {
     val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
         ?: userLocation?.let { Coordinates(it.latitude, it.longitude) }
@@ -181,19 +198,16 @@ private fun rememberCameraAnimationState(
     val animLon = remember { Animatable(initCoords.longitude.toFloat()) }
     val animZoom = remember { Animatable(cameraTarget?.zoom ?: 15f) }
 
-    var centeredOnUser by remember { mutableStateOf(userLocation != null || cameraTarget != null) }
-    LaunchedEffect(userLocation) {
-        if (userLocation != null && !centeredOnUser) {
-            centeredOnUser = true
-            val spec = tween<Float>(CAMERA_ANIM_MS, easing = FastOutSlowInEasing)
-            launch { animLat.animateTo(userLocation.latitude.toFloat(), spec) }
-            launch { animLon.animateTo(userLocation.longitude.toFloat(), spec) }
-            launch { animZoom.animateTo(15f, spec) }
-        }
-    }
-
+    // Snap Animatables to the actual map position only right before launching
+    // a programmatic animation. This ensures animations start from wherever
+    // the user left the camera (after dragging/flinging) without creating a
+    // feedback loop that would interrupt the native fling each frame.
     LaunchedEffect(cameraTarget) {
         val target = cameraTarget ?: return@LaunchedEffect
+        // Sync to real camera position so animation starts from the correct point.
+        actualCamLat?.let { animLat.snapTo(it) }
+        actualCamLon?.let { animLon.snapTo(it) }
+        actualCamZoom?.let { animZoom.snapTo(it) }
         val (targetLat, targetLon, targetZoom) = if (target.boundsLat2 != null && target.boundsLon2 != null) {
             Triple(
                 ((target.lat + target.boundsLat2) / 2.0).toFloat(),
@@ -224,7 +238,7 @@ private fun MyCarMarkerContent() {
             modifier = Modifier
                 .size(44.dp)
                 .background(PapForestDark, CircleShape)
-                .border(2.5.dp, PapGreen, CircleShape),
+                .border(3.5.dp, PapGreen, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -239,36 +253,29 @@ private fun MyCarMarkerContent() {
 }
 
 @Composable
-private fun SpotMarkerContent(isFree: Boolean) {
-    val fillColor = if (isFree) PapGreen else PapAmber
-    val contentColor = if (isFree) PapForest else PapAmberMuted
-
+private fun SpotMarkerContent() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .size(34.dp)
-                .background(fillColor, CircleShape)
-                .border(1.5.dp, contentColor, CircleShape),
+                .size(38.dp)
+                .background(PapGreen, CircleShape)
+                .border(3.dp, PapForestDark, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = "P",
-                color = contentColor,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+            Icon(
+                imageVector = Icons.Outlined.DirectionsCar,
+                contentDescription = null,
+                tint = PapForestDark,
+                modifier = Modifier.size(20.dp),
             )
         }
-        PinTail(color = fillColor, width = 10.dp, height = 8.dp)
+        PinTail(color = PapForestDark, width = 10.dp, height = 8.dp)
     }
 }
 
 @Composable
-private fun PinTail(
-    color: androidx.compose.ui.graphics.Color,
-    width: androidx.compose.ui.unit.Dp,
-    height: androidx.compose.ui.unit.Dp,
-) {
-    androidx.compose.foundation.Canvas(modifier = Modifier.size(width, height)) {
+private fun PinTail(color: Color, width: Dp, height: Dp) {
+    Canvas(modifier = Modifier.size(width, height)) {
         val path = Path().apply {
             moveTo(0f, 0f)
             lineTo(size.width, 0f)

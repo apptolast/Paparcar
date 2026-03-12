@@ -50,7 +50,6 @@ fun UserParking.toSpot(): Spot = Spot(
         speed = 0f,
     ),
     reportedBy = "anonymous",
-    isActive = true,
     address = address,
     placeInfo = placeInfo,
 )

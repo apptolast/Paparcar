@@ -184,7 +184,7 @@ internal object FakeData {
             id = "sp_1",
             location = gps(lat = 40.418, lon = -3.706),
             reportedBy = "user_1",
-            isActive = true,
+
             address = addrStreet,
             placeInfo = null,
         ),
@@ -192,7 +192,7 @@ internal object FakeData {
             id = "sp_2",
             location = gps(lat = 40.419, lon = -3.704),
             reportedBy = "user_2",
-            isActive = false,
+
             address = addrFuel,
             placeInfo = placeInfoFuel,
         ),
@@ -200,7 +200,7 @@ internal object FakeData {
             id = "sp_3",
             location = gps(lat = 40.417, lon = -3.708),
             reportedBy = "user_3",
-            isActive = true,
+
             address = addrSupermarket,
             placeInfo = placeInfoSupermarket,
         ),

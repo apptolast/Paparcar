@@ -23,7 +23,6 @@ val fakeSpots: List<Spot> by lazy {
                 speed = 0f,
             ),
             reportedBy = "Carlos M.",
-            isActive = true,
         ),
         Spot(
             id = "fake-2",
@@ -35,7 +34,6 @@ val fakeSpots: List<Spot> by lazy {
                 speed = 0f,
             ),
             reportedBy = "Ana R.",
-            isActive = true,
         ),
         Spot(
             id = "fake-3",
@@ -47,7 +45,6 @@ val fakeSpots: List<Spot> by lazy {
                 speed = 0f,
             ),
             reportedBy = "Pedro L.",
-            isActive = false,
         ),
         Spot(
             id = "fake-4",
@@ -59,7 +56,6 @@ val fakeSpots: List<Spot> by lazy {
                 speed = 0f,
             ),
             reportedBy = "Lucía F.",
-            isActive = true,
         ),
         Spot(
             id = "fake-5",
@@ -71,7 +67,6 @@ val fakeSpots: List<Spot> by lazy {
                 speed = 0f,
             ),
             reportedBy = "Miguel T.",
-            isActive = false,
         ),
     )
 }

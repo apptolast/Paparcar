@@ -7,11 +7,13 @@ import io.apptolast.paparcar.detection.DepartureEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceManagerImpl
 import io.apptolast.paparcar.detection.WorkManagerParkingEnrichmentScheduler
+import io.apptolast.paparcar.detection.WorkManagerReportSpotScheduler
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceService
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
+import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -31,5 +33,8 @@ val androidDetectionModule = module {
 
     // --- Parking Enrichment ---
     single<ParkingEnrichmentScheduler> { WorkManagerParkingEnrichmentScheduler(androidContext()) }
+
+    // --- Spot Report ---
+    single<ReportSpotScheduler> { WorkManagerReportSpotScheduler(androidContext()) }
 
 }

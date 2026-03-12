@@ -3,6 +3,20 @@ package io.apptolast.paparcar.data.datasource.remote.dto
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class AddressDto(
+    val street: String? = null,
+    val city: String? = null,
+    val region: String? = null,
+    val country: String? = null,
+)
+
+@Serializable
+data class PlaceInfoDto(
+    val name: String = "",
+    val category: String = "",
+)
+
+@Serializable
 data class SpotDto(
     // El ID se genera en el cliente y coincide con el ID del documento
     val id: String = "",
@@ -11,6 +25,7 @@ data class SpotDto(
     val accuracy: Float = 0f,
     val reportedAt: Long = 0L,
     val reportedBy: String = "",
-    val isActive: Boolean = true,
-    val speed: Float = 0f // Añadido
+    val speed: Float = 0f,
+    val address: AddressDto? = null,
+    val placeInfo: PlaceInfoDto? = null,
 )

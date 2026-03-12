@@ -13,15 +13,15 @@ import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.preview.FakeData
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
-// ─── PapFloatingHeader ────────────────────────────────────────────────────────
+// ─── HomeFloatingHeader ────────────────────────────────────────────────────────
 
-@Preview(name = "PapFloatingHeader (oscuro)", showBackground = true,
+@Preview(name = "HomeFloatingHeader (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun PapFloatingHeaderDarkPreview() {
+private fun HomeFloatingHeaderDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            PapFloatingHeader(
+            HomeFloatingHeader(
                 onHistoryClick = {},
                 onSettingsClick = {},
             )
@@ -29,12 +29,12 @@ private fun PapFloatingHeaderDarkPreview() {
     }
 }
 
-@Preview(name = "PapFloatingHeader (claro)", showBackground = true)
+@Preview(name = "HomeFloatingHeader (claro)", showBackground = true)
 @Composable
-private fun PapFloatingHeaderLightPreview() {
+private fun HomeFloatingHeaderLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            PapFloatingHeader(
+            HomeFloatingHeader(
                 onHistoryClick = {},
                 onSettingsClick = {},
             )
@@ -42,14 +42,14 @@ private fun PapFloatingHeaderLightPreview() {
     }
 }
 
-// ─── PapPeekHandle ────────────────────────────────────────────────────────────
+// ─── HomePeekHandle ────────────────────────────────────────────────────────────
 
-@Preview(name = "PapPeekHandle — con POI, spots libres (oscuro)", showBackground = true,
+@Preview(name = "HomePeekHandle — con POI, spots libres (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun PapPeekHandleWithPoiDarkPreview() {
+private fun HomePeekHandleWithPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
-        PapPeekHandle(
+        HomePeekHandle(
             state = HomeState(
                 userLocationInfo = FakeData.locationInfoFuel,
                 nearbySpots = FakeData.nearbySpots,
@@ -59,11 +59,11 @@ private fun PapPeekHandleWithPoiDarkPreview() {
     }
 }
 
-@Preview(name = "PapPeekHandle — dirección simple (claro)", showBackground = true)
+@Preview(name = "HomePeekHandle — dirección simple (claro)", showBackground = true)
 @Composable
-private fun PapPeekHandleStreetLightPreview() {
+private fun HomePeekHandleStreetLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        PapPeekHandle(
+        HomePeekHandle(
             state = HomeState(
                 userLocationInfo = FakeData.locationInfoStreet,
                 nearbySpots = FakeData.nearbySpots,
@@ -73,26 +73,26 @@ private fun PapPeekHandleStreetLightPreview() {
     }
 }
 
-@Preview(name = "PapPeekHandle — sin dirección, sin spots (claro)", showBackground = true)
+@Preview(name = "HomePeekHandle — sin dirección, sin spots (claro)", showBackground = true)
 @Composable
-private fun PapPeekHandleEmptyLightPreview() {
+private fun HomePeekHandleEmptyLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        PapPeekHandle(
+        HomePeekHandle(
             state = HomeState(),
             onParkingClick = {},
         )
     }
 }
 
-// ─── PapParkingRow ────────────────────────────────────────────────────────────
+// ─── HomeParkingRow ────────────────────────────────────────────────────────────
 
-@Preview(name = "PapParkingRow — con POI (oscuro)", showBackground = true,
+@Preview(name = "HomeParkingRow — con POI (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun PapParkingRowPoiDarkPreview() {
+private fun HomeParkingRowPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            PapParkingRow(
+            HomeParkingRow(
                 parking = FakeData.activeSession,
                 userLocation = Pair(40.4165, -3.7030),
                 onClick = {},
@@ -101,12 +101,12 @@ private fun PapParkingRowPoiDarkPreview() {
     }
 }
 
-@Preview(name = "PapParkingRow — sin dirección (claro)", showBackground = true)
+@Preview(name = "HomeParkingRow — sin dirección (claro)", showBackground = true)
 @Composable
-private fun PapParkingRowNoAddressLightPreview() {
+private fun HomeParkingRowNoAddressLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            PapParkingRow(
+            HomeParkingRow(
                 parking = FakeData.activeSession.copy(address = null, placeInfo = null),
                 userLocation = null,
                 onClick = {},

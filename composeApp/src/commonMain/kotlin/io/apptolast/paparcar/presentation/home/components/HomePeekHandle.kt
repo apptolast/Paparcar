@@ -31,11 +31,11 @@ import paparcar.composeapp.generated.resources.home_address_loading
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
 @Composable
-internal fun PapPeekHandle(
+internal fun HomePeekHandle(
     state: HomeState,
     onParkingClick: () -> Unit,
 ) {
-    val freeCount = state.nearbySpots.count { it.isActive }
+    val freeCount = state.nearbySpots.size
 
     Column(modifier = Modifier.fillMaxWidth()) {
 

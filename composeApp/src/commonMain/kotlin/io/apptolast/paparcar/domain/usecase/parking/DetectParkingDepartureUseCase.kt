@@ -5,6 +5,24 @@ import io.apptolast.paparcar.domain.service.DepartureEventBus
 import kotlin.math.abs
 
 /**
+ * Outcome of [DetectParkingDepartureUseCase].
+ *
+ * - [Confirmed]   — all signals agree: the user drove away in their own car.
+ * - [Rejected]    — a definitive "not a departure" (no session, wrong geofence ID,
+ *                   IN_VEHICLE_ENTER signal too old, or speed too low while the
+ *                   transition signal IS present).
+ * - [Inconclusive]— the session and geofence match, but the IN_VEHICLE_ENTER signal
+ *                   has not arrived yet and GPS speed is insufficient. The caller
+ *                   should retry after a short delay to give Android time to deliver
+ *                   the Transitions API event (up to ~2 min on some devices).
+ */
+sealed class DepartureDecision {
+    data object Confirmed : DepartureDecision()
+    data object Rejected : DepartureDecision()
+    data object Inconclusive : DepartureDecision()
+}
+
+/**
  * Decides whether a geofence-exit event should trigger the publication of
  * the parked spot as free.
  *
@@ -18,7 +36,12 @@ import kotlin.math.abs
  *    This is the key discriminator between "drove away" and "went for a walk".
  * 4. **Speed** (optional) — when a GPS reading is available, speed must exceed
  *    [ParkingDetectionConfig.minimumDepartureSpeedKmh]. If speed is unavailable,
- *    this check is skipped; signals 1–3 are sufficient.
+ *    this check is skipped when used as the primary signal.
+ *
+ * When signal 3 has not yet arrived and speed is insufficient, returns
+ * [DepartureDecision.Inconclusive] instead of [DepartureDecision.Rejected] so
+ * that [CheckDepartureWorker] can retry — the Transitions API can take up to
+ * ~2 minutes to deliver IN_VEHICLE_ENTER after the geofence fires.
  *
  * **Known limitation:** a user who boards a taxi immediately adjacent to their
  * parked car may still produce a false positive — Android's Activity Recognition
@@ -36,39 +59,46 @@ class DetectParkingDepartureUseCase(
      * @param geofenceId        ID of the geofence that fired the exit transition.
      * @param exitTimestampMs   Epoch-ms of the geofence exit event.
      * @param currentSpeedKmh   Speed (km/h) at time of exit, or null if unavailable.
-     * @return true if the parking spot should be published as free.
+     * @return [DepartureDecision] indicating whether to publish, skip, or retry.
      */
     suspend operator fun invoke(
         geofenceId: String,
         exitTimestampMs: Long,
         currentSpeedKmh: Float?,
-    ): Boolean {
+    ): DepartureDecision {
         // Signal 1: must have an active parking session to report
-        val session = getUserParking() ?: return false
+        val session = getUserParking() ?: return DepartureDecision.Rejected
 
         // Signal 2: the exit must belong to the current session's geofence
-        if (session.geofenceId != null && session.geofenceId != geofenceId) return false
+        if (session.geofenceId != null && session.geofenceId != geofenceId) {
+            return DepartureDecision.Rejected
+        }
 
-        // Signals 3+4 combined: need either IN_VEHICLE_ENTER within the time window OR
-        // GPS speed confirming movement. The Transitions API can take up to 5 min to
-        // deliver IN_VEHICLE_ENTER; a geofence of 80 m is exited in seconds, so
-        // CheckDepartureWorker often runs before the signal arrives. Speed is the
-        // primary fallback when the transition is missing.
         val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt
         val speedConfirmsMovement = currentSpeedKmh != null &&
                 currentSpeedKmh >= config.minimumDepartureSpeedKmh
 
-        if (vehicleEnteredAt != null) {
-            // Signal 3: time window check
+        return if (vehicleEnteredAt != null) {
+            // Signal 3: IN_VEHICLE_ENTER is present — validate the time window.
             val timeDiffMs = abs(exitTimestampMs - vehicleEnteredAt)
-            if (timeDiffMs > config.vehicleEnterWindowMs) return false
-            // Signal 4 (belt-and-suspenders): if speed is available it must also confirm movement
-            if (currentSpeedKmh != null && !speedConfirmsMovement) return false
+            if (timeDiffMs > config.vehicleEnterWindowMs) {
+                // The transition is from a previous trip — ignore it.
+                DepartureDecision.Rejected
+            } else if (currentSpeedKmh != null && !speedConfirmsMovement) {
+                // Transition matches the time window but speed contradicts it (belt-and-suspenders).
+                DepartureDecision.Rejected
+            } else {
+                DepartureDecision.Confirmed
+            }
         } else {
-            // No IN_VEHICLE_ENTER yet — GPS speed is the sole discriminator
-            if (!speedConfirmsMovement) return false
+            // Signal 3 not yet available. Fall back to speed as sole discriminator.
+            // If speed is also inconclusive, ask the caller to retry — IN_VEHICLE_ENTER
+            // can arrive up to ~2 minutes after the geofence exit on some devices.
+            if (speedConfirmsMovement) {
+                DepartureDecision.Confirmed
+            } else {
+                DepartureDecision.Inconclusive
+            }
         }
-
-        return true
     }
 }

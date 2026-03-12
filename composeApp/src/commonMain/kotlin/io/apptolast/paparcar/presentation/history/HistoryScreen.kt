@@ -62,8 +62,10 @@ import io.apptolast.paparcar.presentation.history.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.history.components.EndedSessionTimelineNode
 import io.apptolast.paparcar.presentation.history.components.StatsRow
 import io.apptolast.paparcar.presentation.history.components.WeeklyActivityCard
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -348,7 +350,7 @@ private fun buildTimeline(
             val label = when (date) {
                 today -> todayLabel
                 yesterday -> yesterdayLabel
-                else -> "${date.dayOfMonth} ${MONTH_NAMES_SHORT[date.monthNumber - 1]} ${date.year}"
+                else -> "${date.day} ${MONTH_NAMES_SHORT[date.month.number - 1]} ${date.year}"
             }
             flat += TimelineItem.Header(label)
             daySessions.forEach { flat += TimelineItem.Session(it, isLast = false) }

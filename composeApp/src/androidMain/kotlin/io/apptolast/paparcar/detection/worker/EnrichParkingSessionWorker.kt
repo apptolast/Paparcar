@@ -2,15 +2,14 @@ package io.apptolast.paparcar.detection.worker
 
 import android.content.Context
 import androidx.work.BackoffPolicy
-import androidx.work.Constraints
 import androidx.work.CoroutineWorker
-import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import kotlinx.coroutines.flow.catch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -18,11 +17,14 @@ import java.util.concurrent.TimeUnit
 /**
  * Enriches a saved [UserParking] session with geocoder address + POI data.
  *
- * Runs off the critical parking-confirmation path so [ConfirmParkingUseCase]
- * can return immediately after saving the base session.
+ * Uses [GetLocationInfoUseCase] which emits in two steps:
+ *  1. Address (local geocoder, instant) — written to DB immediately.
+ *  2. Place info (network, best-effort) — written to DB if available.
+ *
+ * No network constraint: the geocoder works offline. The places lookup is
+ * best-effort and silently skipped on failure.
  *
  * Input data: [KEY_SESSION_ID], [KEY_LAT], [KEY_LON].
- * Constraints: NETWORK_CONNECTED.
  * Backoff: EXPONENTIAL starting at 30 s, up to [MAX_RETRIES] attempts.
  */
 class EnrichParkingSessionWorker(
@@ -38,15 +40,21 @@ class EnrichParkingSessionWorker(
         val lat = inputData.getDouble(KEY_LAT, 0.0)
         val lon = inputData.getDouble(KEY_LON, 0.0)
 
-        val info = getLocationInfo(lat, lon).getOrNull()
-            ?: return if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure()
+        var addressSaved = false
 
-        return userParkingRepository
-            .updateLocationInfo(sessionId, info.address, info.placeInfo)
-            .fold(
-                onSuccess = { Result.success() },
-                onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },
-            )
+        getLocationInfo(lat, lon)
+            .catch { /* geocoder failure — will retry below */ }
+            .collect { info ->
+                userParkingRepository
+                    .updateLocationInfo(sessionId, info.address, info.placeInfo)
+                    .onSuccess { addressSaved = true }
+            }
+
+        return when {
+            addressSaved -> Result.success()
+            runAttemptCount < MAX_RETRIES -> Result.retry()
+            else -> Result.failure()
+        }
     }
 
     companion object {
@@ -58,11 +66,6 @@ class EnrichParkingSessionWorker(
 
         fun buildRequest(sessionId: String, lat: Double, lon: Double): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<EnrichParkingSessionWorker>()
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
                 .setInputData(
                     workDataOf(
                         KEY_SESSION_ID to sessionId,

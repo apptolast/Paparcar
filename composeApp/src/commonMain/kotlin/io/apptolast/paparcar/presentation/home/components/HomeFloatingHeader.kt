@@ -56,7 +56,7 @@ private const val DROPDOWN_ITEM_STAGGER   = 90L
 private const val DROPDOWN_EXIT_DELAY     = 160L
 
 @Composable
-internal fun PapFloatingHeader(
+internal fun HomeFloatingHeader(
     onHistoryClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -159,7 +159,7 @@ internal fun PapFloatingHeader(
                     animationSpec = tween(DROPDOWN_EXIT_DURATION),
                 ) + fadeOut(tween(DROPDOWN_EXIT_DURATION)),
             ) {
-                PapDropdownPillItem(
+                HomeDropdownPillItem(
                     icon = Icons.Outlined.History,
                     label = stringResource(Res.string.home_nav_history),
                     onClick = { dropdownExpanded = false; onHistoryClick() },
@@ -178,7 +178,7 @@ internal fun PapFloatingHeader(
                     animationSpec = tween(DROPDOWN_EXIT_DURATION),
                 ) + fadeOut(tween(DROPDOWN_EXIT_DURATION)),
             ) {
-                PapDropdownPillItem(
+                HomeDropdownPillItem(
                     icon = Icons.Outlined.Settings,
                     label = stringResource(Res.string.home_nav_settings),
                     onClick = { dropdownExpanded = false; onSettingsClick() },
@@ -189,7 +189,7 @@ internal fun PapFloatingHeader(
 }
 
 @Composable
-internal fun PapDropdownPillItem(
+internal fun HomeDropdownPillItem(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
@@ -230,7 +230,7 @@ internal fun PapDropdownPillItem(
 }
 
 @Composable
-internal fun PapHeaderPill(
+internal fun HomeHeaderPill(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {

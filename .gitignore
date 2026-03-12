@@ -735,3 +735,4 @@ obj/
 *.klib
 GoogleService-Info.plist
 movement.sh
+.claude/settings.local.json
