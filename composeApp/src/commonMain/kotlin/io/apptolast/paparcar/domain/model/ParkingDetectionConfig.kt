@@ -72,11 +72,21 @@ data class ParkingDetectionConfig(
      *  car, or casual cycling). A genuine driving session will always exceed this threshold.
      *  Default ≈ 18 km/h — above comfortable cycling speed, below urban car speed. */
     val minimumTripSpeedMps: Float = 5f,
+    /** Minimum displacement (metres) from the session-start location required — together with
+     *  [minimumTripSpeedMps] — before [hasEverMoved] is set. A single GPS-noise speed spike
+     *  while the device is stationary cannot satisfy both conditions simultaneously: even a
+     *  large position jump (50 m) is well below this threshold, so spurious IN_VEHICLE_ENTER
+     *  events at home are silently ignored. Default 150 m. */
+    val minimumTripDistanceMeters: Float = 150f,
 
     // ── DEPARTURE DETECTION ───────────────────────────────────────────────────
     /** Maximum time (ms) between an IN_VEHICLE_ENTER transition and a GEOFENCE_EXIT for
-     *  the departure to be considered intentional. Default 5 minutes. */
-    val vehicleEnterWindowMs: Long = 5 * 60 * 1_000L,
+     *  the departure to be considered intentional. 30 minutes covers the common case of
+     *  a user sitting in their car (loading bags, finishing a call, waiting for AC) before
+     *  driving away. The previous 5-minute default was too tight and silently rejected
+     *  legitimate departures. A 30-minute window still correctly rejects the previous
+     *  day's IN_VEHICLE signal (24+ hours >> 30 min). */
+    val vehicleEnterWindowMs: Long = 30 * 60 * 1_000L,
     /** Minimum speed (km/h) that confirms the user is driving away. Speed check is skipped
      *  when GPS is unavailable. Default 10 km/h. */
     val minimumDepartureSpeedKmh: Float = 10f,
@@ -106,6 +116,9 @@ data class ParkingDetectionConfig(
         }
         require(minimumTripSpeedMps > 0) {
             "minimumTripSpeedMps must be > 0, was $minimumTripSpeedMps"
+        }
+        require(minimumTripDistanceMeters > 0) {
+            "minimumTripDistanceMeters must be > 0, was $minimumTripDistanceMeters"
         }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"

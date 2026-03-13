@@ -6,7 +6,7 @@ import android.content.Intent
 import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import com.google.android.gms.location.GeofencingEvent
-import io.apptolast.paparcar.detection.worker.CheckDepartureWorker
+import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import kotlin.time.Clock
@@ -20,10 +20,10 @@ import org.koin.core.component.inject
  * On GEOFENCE_EXIT:
  * 1. Emits a [GeofenceEvent.Exited] into [GeofenceEventBus] so any in-process
  *    observer (e.g. a ViewModel) can react immediately.
- * 2. Enqueues [CheckDepartureWorker] via WorkManager to decide — combining the
+ * 2. Enqueues [DepartureDetectionWorker] via WorkManager to decide — combining the
  *    geofence-exit signal with the IN_VEHICLE_ENTER signal from [ActivityTransitionReceiver]
  *    and a live speed reading — whether the user actually drove away in their own car.
- *    Only if confirmed does [CheckDepartureWorker] enqueue [ReportSpotWorker].
+ *    Only if confirmed does [DepartureDetectionWorker] enqueue [ReportSpotWorker].
  *
  * Registration: AndroidManifest.xml (exported=false — system delivers via PendingIntent).
  */
@@ -57,12 +57,12 @@ class GeofenceBroadcastReceiver : BroadcastReceiver(), KoinComponent {
                 )
             )
 
-            // 2 — Enqueue departure check. CheckDepartureWorker combines this exit event
+            // 2 — Enqueue departure check. DepartureDetectionWorker combines this exit event
             //     with the IN_VEHICLE_ENTER signal to decide whether to publish the spot.
             WorkManager.getInstance(context).enqueueUniqueWork(
-                "${CheckDepartureWorker.TAG}_${geofence.requestId}",
+                "${DepartureDetectionWorker.TAG}_${geofence.requestId}",
                 ExistingWorkPolicy.REPLACE,
-                CheckDepartureWorker.buildRequest(
+                DepartureDetectionWorker.buildRequest(
                     geofenceId = geofence.requestId,
                     exitTimestampMs = now,
                 ),

@@ -4,7 +4,7 @@ import android.content.Context
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
-import io.apptolast.paparcar.domain.geocoder.GeocoderPort
+import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.model.AddressInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 import kotlin.coroutines.resume
 
-class AndroidGeocoderDataSource(private val context: Context) : GeocoderPort {
+class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderDataSource {
 
     override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> =
         runCatching {

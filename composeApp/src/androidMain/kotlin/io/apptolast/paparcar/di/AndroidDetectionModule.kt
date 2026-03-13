@@ -11,7 +11,7 @@ import io.apptolast.paparcar.detection.WorkManagerReportSpotScheduler
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
-import io.apptolast.paparcar.domain.service.GeofenceService
+import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import org.koin.android.ext.koin.androidContext
@@ -26,7 +26,7 @@ val androidDetectionModule = module {
     // --- Geofence ---
     single { LocationServices.getGeofencingClient(androidContext()) }
     single<GeofenceEventBus> { GeofenceEventBusImpl() }
-    single<GeofenceService> { GeofenceManagerImpl(androidContext(), get(), get()) }
+    single<GeofenceManager> { GeofenceManagerImpl(androidContext(), get(), get()) }
 
     // --- Departure Detection ---
     single<DepartureEventBus> { DepartureEventBusImpl() }

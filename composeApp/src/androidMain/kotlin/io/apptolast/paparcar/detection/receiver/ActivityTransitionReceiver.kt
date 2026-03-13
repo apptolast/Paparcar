@@ -12,16 +12,16 @@ import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.BuildConfig
-import io.apptolast.paparcar.detection.service.DrivingTrackingService
+import io.apptolast.paparcar.detection.service.ParkingDetectionService
 import io.apptolast.paparcar.detection.worker.VehicleSpeedCheckWorker
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
-    private val notificationPort: NotificationPort by inject()
+    private val notificationPort: AppNotificationManager by inject()
     private val departureEventBus: DepartureEventBus by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -54,7 +54,7 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
                     event.activityType == DetectedActivity.IN_VEHICLE &&
                             event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER -> {
                         // Real transition arrived — cancel the fallback check to avoid
-                        // double-triggering departureEventBus / DrivingTrackingService.
+                        // double-triggering departureEventBus / ParkingDetectionService.
                         // Use the event's own elapsed-realtime timestamp (not delivery time)
                         // because the Transitions API can batch events up to ~5 min late.
                         val eventEpochMs = System.currentTimeMillis() -
@@ -62,12 +62,12 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
                             event.elapsedRealTimeNanos / 1_000_000L
                         WorkManager.getInstance(context).cancelUniqueWork(VehicleSpeedCheckWorker.TAG)
                         departureEventBus.onVehicleEntered(eventEpochMs)
-                        startDrivingService(context, DrivingTrackingService.ACTION_START_TRACKING)
+                        startDrivingService(context, ParkingDetectionService.ACTION_START_TRACKING)
                     }
 
                     event.activityType == DetectedActivity.IN_VEHICLE &&
                             event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT -> {
-                        startDrivingService(context, DrivingTrackingService.ACTION_VEHICLE_EXIT)
+                        startDrivingService(context, ParkingDetectionService.ACTION_VEHICLE_EXIT)
                     }
                 }
             }
@@ -75,7 +75,7 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
     }
 
     private fun startDrivingService(context: Context, serviceAction: String?) {
-        val serviceIntent = Intent(context, DrivingTrackingService::class.java).apply {
+        val serviceIntent = Intent(context, ParkingDetectionService::class.java).apply {
             action = serviceAction
         }
         context.startForegroundService(serviceIntent)

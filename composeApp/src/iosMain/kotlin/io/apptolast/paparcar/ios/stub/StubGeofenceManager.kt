@@ -1,11 +1,11 @@
 package io.apptolast.paparcar.ios.stub
 
 import io.apptolast.paparcar.domain.service.GeofenceEvent
-import io.apptolast.paparcar.domain.service.GeofenceService
+import io.apptolast.paparcar.domain.service.GeofenceManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
-class StubGeofenceService : GeofenceService {
+class StubGeofenceManager : GeofenceManager {
     override suspend fun createGeofence(
         geofenceId: String,
         latitude: Double,

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
  * Domain-layer event bus for geofence transitions.
  *
  * Decouples [GeofenceBroadcastReceiver] (Android platform) from
- * the [GeofenceService] implementation, eliminating the static
+ * the [GeofenceManager] implementation, eliminating the static
  * companion-object coupling that caused a circular dependency.
  *
  * Implementations must be registered as singletons in the DI graph

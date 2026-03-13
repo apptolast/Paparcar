@@ -3,28 +3,28 @@ package io.apptolast.paparcar.detection.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import io.apptolast.paparcar.detection.service.DrivingTrackingService
+import io.apptolast.paparcar.detection.service.ParkingDetectionService
 
 /**
  * Handles user responses to the parking-confirmation notification.
  *
- * "Sí, he aparcado" → [DrivingTrackingService.ACTION_PARKING_CONFIRMED]
- * "Sigo conduciendo" → [DrivingTrackingService.ACTION_PARKING_DENIED]
+ * "Sí, he aparcado" → [ParkingDetectionService.ACTION_PARKING_CONFIRMED]
+ * "Sigo conduciendo" → [ParkingDetectionService.ACTION_PARKING_DENIED]
  *
- * The receiver just forwards the decision to [DrivingTrackingService], which
- * calls [DetectAndReportParkingUseCase.onUserConfirmedParking] or
- * [DetectAndReportParkingUseCase.onUserDeniedParking] on the running job.
+ * The receiver just forwards the decision to [ParkingDetectionService], which
+ * calls [ParkingDetectionCoordinator.onUserConfirmedParking] or
+ * [ParkingDetectionCoordinator.onUserDeniedParking] on the running job.
  */
 class ParkingConfirmationReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val serviceAction = when (intent.action) {
-            ACTION_CONFIRMED -> DrivingTrackingService.ACTION_PARKING_CONFIRMED
-            ACTION_DENIED -> DrivingTrackingService.ACTION_PARKING_DENIED
+            ACTION_CONFIRMED -> ParkingDetectionService.ACTION_PARKING_CONFIRMED
+            ACTION_DENIED -> ParkingDetectionService.ACTION_PARKING_DENIED
             else -> return
         }
         context.startService(
-            Intent(context, DrivingTrackingService::class.java).apply {
+            Intent(context, ParkingDetectionService::class.java).apply {
                 action = serviceAction
             }
         )

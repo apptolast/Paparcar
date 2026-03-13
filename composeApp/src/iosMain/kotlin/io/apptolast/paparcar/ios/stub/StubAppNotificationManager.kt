@@ -1,8 +1,8 @@
 package io.apptolast.paparcar.ios.stub
 
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 
-class StubNotificationPort : NotificationPort {
+class StubAppNotificationManager : AppNotificationManager {
     override fun showParkingConfirmation(score: Float) {}
     override fun showParkingSpotSaved(latitude: Double, longitude: Double) {}
     override fun showSpotUploading() {}

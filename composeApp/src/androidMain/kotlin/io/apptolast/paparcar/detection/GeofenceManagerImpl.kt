@@ -10,16 +10,15 @@ import com.google.android.gms.location.GeofencingRequest
 import io.apptolast.paparcar.detection.receiver.GeofenceBroadcastReceiver
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
-import io.apptolast.paparcar.domain.service.GeofenceService
+import io.apptolast.paparcar.domain.service.GeofenceManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
-import java.util.concurrent.TimeUnit
 
 class GeofenceManagerImpl(
     private val context: Context,
     private val geofencingClient: GeofencingClient,
     private val geofenceEventBus: GeofenceEventBus,
-) : GeofenceService {
+) : GeofenceManager {
 
     @SuppressLint("MissingPermission")
     override suspend fun createGeofence(
@@ -31,7 +30,7 @@ class GeofenceManagerImpl(
         val geofence = Geofence.Builder()
             .setRequestId(geofenceId)
             .setCircularRegion(latitude, longitude, radiusMeters)
-            .setExpirationDuration(TimeUnit.HOURS.toMillis(24))
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_EXIT)
             .setLoiteringDelay(60_000)
             .build()

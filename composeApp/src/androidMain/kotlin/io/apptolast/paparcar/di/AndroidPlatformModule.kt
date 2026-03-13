@@ -6,13 +6,13 @@ import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
-import io.apptolast.paparcar.domain.geocoder.GeocoderPort
-import io.apptolast.paparcar.domain.notification.NotificationPort
-import io.apptolast.paparcar.domain.places.PlacesPort
+import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.permissions.PermissionManager
-import io.apptolast.paparcar.location.AndroidGeocoderDataSource
+import io.apptolast.paparcar.location.AndroidGeocoderDataSourceImpl
 import io.apptolast.paparcar.location.AndroidLocationDataSourceImpl
-import io.apptolast.paparcar.location.OverpassPlacesDataSource
+import io.apptolast.paparcar.location.OverpassPlacesDataSourceImpl
 import io.apptolast.paparcar.notification.AppNotificationManagerImpl
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import io.apptolast.paparcar.permissions.PermissionManagerImpl
@@ -33,13 +33,13 @@ val androidPlatformModule = module {
     // Location
     single { LocationServices.getFusedLocationProviderClient(androidContext()) }
     single<PlatformLocationDataSource> { AndroidLocationDataSourceImpl(get()) }
-    single<GeocoderPort> { AndroidGeocoderDataSource(androidContext()) }
-    single<PlacesPort> { OverpassPlacesDataSource() }
+    single<GeocoderDataSource> { AndroidGeocoderDataSourceImpl(androidContext()) }
+    single<PlacesDataSource> { OverpassPlacesDataSourceImpl() }
 
     // Notification — single instance implements both contracts
     single { androidContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
     single { AppNotificationManagerImpl(androidContext(), get()) }
-    single<NotificationPort> { get<AppNotificationManagerImpl>() }
+    single<AppNotificationManager> { get<AppNotificationManagerImpl>() }
     single<ForegroundNotificationProvider> { get<AppNotificationManagerImpl>() }
 
     // Permissions

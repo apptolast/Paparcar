@@ -1,10 +1,10 @@
 package io.apptolast.paparcar.domain.usecase.notification
 
 import io.apptolast.paparcar.domain.model.ParkingConfidence
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 
 class NotifyParkingConfirmationUseCase(
-    private val notificationPort: NotificationPort,
+    private val notificationPort: AppNotificationManager,
 ) {
     operator fun invoke(confidence: ParkingConfidence) {
         when (confidence) {

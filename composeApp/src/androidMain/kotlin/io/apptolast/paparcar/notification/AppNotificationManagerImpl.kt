@@ -10,12 +10,12 @@ import android.graphics.Color
 import androidx.core.app.NotificationCompat
 import io.apptolast.paparcar.R
 import io.apptolast.paparcar.detection.receiver.ParkingConfirmationReceiver
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 
 class AppNotificationManagerImpl(
     private val context: Context,
     private val notificationManager: NotificationManager,
-) : NotificationPort, ForegroundNotificationProvider {
+) : AppNotificationManager, ForegroundNotificationProvider {
 
     init {
         createNotificationChannels()
@@ -37,7 +37,7 @@ class AppNotificationManagerImpl(
 
     // endregion
 
-    // region NotificationPort
+    // region AppNotificationManager
 
     override fun showParkingConfirmation(score: Float) {
         val confirmedPi = PendingIntent.getBroadcast(
@@ -64,7 +64,7 @@ class AppNotificationManagerImpl(
             .addAction(0, context.getString(R.string.notif_action_keep_driving), deniedPi)
             .setAutoCancel(true)
             .build()
-        notificationManager.notify(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
+        notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
     }
 
     override fun showParkingSpotSaved(latitude: Double, longitude: Double) {
@@ -82,7 +82,7 @@ class AppNotificationManagerImpl(
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setAutoCancel(true)
             .build()
-        notificationManager.notify(NotificationPort.UPLOAD_NOTIFICATION_ID, notification)
+        notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
     }
 
     override fun showSpotUploading() {
@@ -94,7 +94,7 @@ class AppNotificationManagerImpl(
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setOngoing(true)
             .build()
-        notificationManager.notify(NotificationPort.UPLOAD_NOTIFICATION_ID, notification)
+        notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
     }
 
     override fun showDebug(message: String) {
@@ -106,7 +106,7 @@ class AppNotificationManagerImpl(
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setAutoCancel(true)
             .build()
-        notificationManager.notify(NotificationPort.DEBUG_NOTIFICATION_ID, notification)
+        notificationManager.notify(AppNotificationManager.DEBUG_NOTIFICATION_ID, notification)
     }
 
     override fun dismiss(notificationId: Int) {

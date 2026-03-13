@@ -2,7 +2,7 @@ package io.apptolast.paparcar.location
 
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
-import io.apptolast.paparcar.domain.places.PlacesPort
+import io.apptolast.paparcar.domain.places.PlacesDataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -21,7 +21,7 @@ import java.net.URLEncoder
  *
  * No API key required. Degrades gracefully to null on network errors or timeout.
  */
-class OverpassPlacesDataSource : PlacesPort {
+class OverpassPlacesDataSourceImpl : PlacesDataSource {
 
     private val json = Json { ignoreUnknownKeys = true }
 

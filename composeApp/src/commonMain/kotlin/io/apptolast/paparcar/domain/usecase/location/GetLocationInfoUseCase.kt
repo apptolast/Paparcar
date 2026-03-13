@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.domain.usecase.location
 
-import io.apptolast.paparcar.domain.geocoder.GeocoderPort
+import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.LocationInfo
-import io.apptolast.paparcar.domain.places.PlacesPort
+import io.apptolast.paparcar.domain.places.PlacesDataSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -17,8 +17,8 @@ import kotlinx.coroutines.flow.flow
  * The place lookup runs after the first emission without blocking the address result.
  */
 class GetLocationInfoUseCase(
-    private val geocoder: GeocoderPort,
-    private val placesPort: PlacesPort,
+    private val geocoder: GeocoderDataSource,
+    private val placesPort: PlacesDataSource,
 ) {
     operator fun invoke(lat: Double, lon: Double): Flow<LocationInfo> = flow {
         // Phase 1 — address (local geocoder, instant, no network required).

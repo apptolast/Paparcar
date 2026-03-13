@@ -9,7 +9,7 @@ package io.apptolast.paparcar.domain.service
  * "drove away in own car" from "went for a walk".
  *
  * Implementations must be registered as **singletons** so that
- * [ActivityTransitionReceiver] (writer) and [CheckDepartureWorker] (reader)
+ * [ActivityTransitionReceiver] (writer) and [DepartureDetectionWorker] (reader)
  * always share the same in-memory instance.
  */
 interface DepartureEventBus {
@@ -22,7 +22,7 @@ interface DepartureEventBus {
 
     /**
      * Clears the stored timestamp once a confirmed departure has been handled.
-     * Called by [CheckDepartureWorker] after successfully enqueuing [ReportSpotWorker].
+     * Called by [DepartureDetectionWorker] after successfully enqueuing [ReportSpotWorker].
      */
     fun reset()
 }

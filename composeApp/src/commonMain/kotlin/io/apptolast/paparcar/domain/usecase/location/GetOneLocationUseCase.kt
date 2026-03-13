@@ -11,7 +11,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * are never suspended indefinitely (e.g. when GPS is unavailable or cold).
  * Returns null on timeout or if no fix is obtained within the window.
  *
- * Used by [CheckDepartureWorker] to obtain the current speed at geofence-exit
+ * Used by [DepartureDetectionWorker] to obtain the current speed at geofence-exit
  * time without starting a continuous location stream.
  */
 class GetOneLocationUseCase(

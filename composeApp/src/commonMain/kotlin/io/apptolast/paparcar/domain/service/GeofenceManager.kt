@@ -2,7 +2,7 @@ package io.apptolast.paparcar.domain.service
 
 import kotlinx.coroutines.flow.Flow
 
-interface GeofenceService {
+interface GeofenceManager {
     suspend fun createGeofence(
         geofenceId: String,
         latitude: Double,

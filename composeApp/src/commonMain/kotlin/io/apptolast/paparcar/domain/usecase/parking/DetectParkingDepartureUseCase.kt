@@ -9,12 +9,11 @@ import kotlin.math.abs
  *
  * - [Confirmed]   — all signals agree: the user drove away in their own car.
  * - [Rejected]    — a definitive "not a departure" (no session, wrong geofence ID,
- *                   IN_VEHICLE_ENTER signal too old, or speed too low while the
- *                   transition signal IS present).
- * - [Inconclusive]— the session and geofence match, but the IN_VEHICLE_ENTER signal
- *                   has not arrived yet and GPS speed is insufficient. The caller
- *                   should retry after a short delay to give Android time to deliver
- *                   the Transitions API event (up to ~2 min on some devices).
+ *                   or IN_VEHICLE_ENTER signal too old / from a previous trip).
+ * - [Inconclusive]— session and geofence match, but either the IN_VEHICLE_ENTER
+ *                   signal has not arrived yet, or it is present but GPS speed is
+ *                   still below the departure threshold (user leaving a garage slowly).
+ *                   The caller should retry after a short delay.
  */
 sealed class DepartureDecision {
     data object Confirmed : DepartureDecision()
@@ -40,7 +39,7 @@ sealed class DepartureDecision {
  *
  * When signal 3 has not yet arrived and speed is insufficient, returns
  * [DepartureDecision.Inconclusive] instead of [DepartureDecision.Rejected] so
- * that [CheckDepartureWorker] can retry — the Transitions API can take up to
+ * that [DepartureDetectionWorker] can retry — the Transitions API can take up to
  * ~2 minutes to deliver IN_VEHICLE_ENTER after the geofence fires.
  *
  * **Known limitation:** a user who boards a taxi immediately adjacent to their
@@ -69,8 +68,10 @@ class DetectParkingDepartureUseCase(
         // Signal 1: must have an active parking session to report
         val session = getUserParking() ?: return DepartureDecision.Rejected
 
-        // Signal 2: the exit must belong to the current session's geofence
-        if (session.geofenceId != null && session.geofenceId != geofenceId) {
+        // Signal 2: the exit must belong to the current session's geofence.
+        // Also rejects if session.geofenceId is null — a session without a registered
+        // geofence should never trigger a departure report.
+        if (session.geofenceId != geofenceId) {
             return DepartureDecision.Rejected
         }
 
@@ -85,8 +86,11 @@ class DetectParkingDepartureUseCase(
                 // The transition is from a previous trip — ignore it.
                 DepartureDecision.Rejected
             } else if (currentSpeedKmh != null && !speedConfirmsMovement) {
-                // Transition matches the time window but speed contradicts it (belt-and-suspenders).
-                DepartureDecision.Rejected
+                // IN_VEHICLE_ENTER is within the window (strong signal), but speed is low.
+                // This is common when leaving a tight parking space or a garage ramp.
+                // Returning Inconclusive (not Rejected) lets DepartureDetectionWorker retry
+                // once the vehicle has accelerated past the departure threshold.
+                DepartureDecision.Inconclusive
             } else {
                 DepartureDecision.Confirmed
             }

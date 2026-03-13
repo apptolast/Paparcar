@@ -1,11 +1,14 @@
-package io.apptolast.paparcar.domain.usecase.parking
+package io.apptolast.paparcar.domain.coordinator
 
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingSignals
-import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
+import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import io.apptolast.paparcar.domain.util.haversineMeters
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,21 +33,20 @@ import kotlin.time.ExperimentalTime
  * are fed in via [onVehicleExit], [onStillDetected], [onUserConfirmedParking],
  * and [onUserDeniedParking].
  *
- * **Lifecycle:** The use case is stateful and designed as a Koin `single`.
- * State is fully reset at the start of each [invoke] call, so the same
- * instance can be reused across multiple driving sessions without leaking
- * data from a previous run.
+ * **Lifecycle:** Stateful Koin `single`. State is fully reset at the start of each
+ * [invoke] call, so the same instance can be reused across multiple driving sessions
+ * without leaking data from a previous run.
  *
  * **Thread-safety:** All mutable state is held in a single [MutableStateFlow]
  * of [ParkingDetectionState] and updated atomically via [MutableStateFlow.update].
  * External signals ([onVehicleExit] etc.) may be called from any thread.
  */
 @OptIn(ExperimentalTime::class)
-class DetectAndReportParkingUseCase(
+class ParkingDetectionCoordinator(
     private val calculateParkingConfidence: CalculateParkingConfidenceUseCase,
     private val confirmParking: ConfirmParkingUseCase,
     private val notifyParkingConfirmation: NotifyParkingConfirmationUseCase,
-    private val notificationPort: NotificationPort,
+    private val notificationPort: AppNotificationManager,
     private val config: ParkingDetectionConfig,
 ) {
     /**
@@ -61,12 +63,24 @@ class DetectAndReportParkingUseCase(
         val activityStillDetected: Boolean = false,
         val userConfirmedParking: Boolean = false,
         val mediumNotificationShown: Boolean = false,
-        /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] at least
-         *  once. Guards against spurious [IN_VEHICLE_ENTER] events while the user is stationary. */
+        /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] AND
+         *  the device has moved at least [ParkingDetectionConfig.minimumTripDistanceMeters] from
+         *  [sessionOrigin]. Both conditions must hold simultaneously to prevent a brief GPS-noise
+         *  spike from being mistaken for real driving. */
         val hasEverMoved: Boolean = false,
+        /** First GPS fix received in this session. Captured once and never overwritten. Used as
+         *  the displacement reference for the [hasEverMoved] distance check. */
+        val sessionOrigin: GpsPoint? = null,
+        /** Best (lowest accuracy value) GPS fix recorded while the vehicle was stopped (speed < 1 m/s).
+         *  Updated continuously during stopped intervals but **never cleared** when speed rises
+         *  again. This ensures that if the user walks away before confidence reaches High, the
+         *  reported parking location is still the car's actual position rather than wherever the
+         *  user happens to be standing when the slow-path finally fires. */
+        val bestStopLocation: GpsPoint? = null,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
-        fun bestFix(fallback: GpsPoint): GpsPoint = stoppedFixes.minByOrNull { it.accuracy } ?: fallback
+        fun bestFix(fallback: GpsPoint): GpsPoint =
+            stoppedFixes.minByOrNull { it.accuracy } ?: fallback
     }
 
     private val _detectionState = MutableStateFlow(ParkingDetectionState())
@@ -90,15 +104,25 @@ class DetectAndReportParkingUseCase(
                 val now = Clock.System.now().toEpochMilliseconds()
                 val stoppedDuration = updateStopTracking(location, now)
 
-                if (location.speed >= config.minimumTripSpeedMps) {
-                    _detectionState.update { it.copy(hasEverMoved = true) }
+                _detectionState.update { s ->
+                    val origin = s.sessionOrigin ?: location
+                    val hasJustMoved = !s.hasEverMoved &&
+                            location.speed >= config.minimumTripSpeedMps &&
+                            haversineMeters(
+                                origin.latitude, origin.longitude,
+                                location.latitude, location.longitude,
+                            ) >= config.minimumTripDistanceMeters
+                    s.copy(
+                        sessionOrigin = s.sessionOrigin ?: location,
+                        hasEverMoved = s.hasEverMoved || hasJustMoved,
+                    )
                 }
 
                 val state = _detectionState.value
                 val locationToConfirm = when {
-                    state.userConfirmedParking -> state.bestFix(location)
-                    !state.hasEverMoved        -> null
-                    else                       -> evaluateConfidence(location, stoppedDuration, state)
+                    state.userConfirmedParking -> state.bestStopLocation ?: state.bestFix(location)
+                    !state.hasEverMoved -> null
+                    else -> evaluateConfidence(location, stoppedDuration, state)
                 }
 
                 if (locationToConfirm != null) {
@@ -123,13 +147,13 @@ class DetectAndReportParkingUseCase(
 
     /** User tapped "Yes, I parked". Dismisses the notification and marks confirmation. Thread-safe. */
     fun onUserConfirmedParking() {
-        notificationPort.dismiss(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         _detectionState.update { it.copy(userConfirmedParking = true) }
     }
 
     /** User dismissed the confirmation ("Keep driving"). Resets all heuristics. Thread-safe. */
     fun onUserDeniedParking() {
-        notificationPort.dismiss(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         _detectionState.value = ParkingDetectionState()
     }
 
@@ -139,11 +163,11 @@ class DetectAndReportParkingUseCase(
 
     private fun reset() {
         _detectionState.value = ParkingDetectionState()
-        notificationPort.dismiss(NotificationPort.PARKING_CONFIRMATION_NOTIFICATION_ID)
+        notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
     }
 
     /**
-     * Updates [stoppedSince] / [stoppedFixes] when the vehicle is stopped, or resets
+     * Updates `stoppedSince` / `stoppedFixes` when the vehicle is stopped, or resets
      * them when it starts moving again. Returns the total stopped duration in ms.
      */
     private fun updateStopTracking(location: GpsPoint, now: Long): Long {
@@ -151,16 +175,32 @@ class DetectAndReportParkingUseCase(
             _detectionState.update { s ->
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
+                // bestStopLocation tracks the single best (lowest accuracy value) fix seen while
+                // the vehicle is stopped. It is never cleared when the user walks away, so even
+                // if stoppedFixes is reset on movement, we retain the car's actual position.
+                val newBestStop = when {
+                    s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
+                    else -> s.bestStopLocation
+                }
                 s.copy(
                     stoppedSince = startedAt,
                     stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < MAX_STOPPED_FIXES)
                         s.stoppedFixes + location else s.stoppedFixes,
+                    bestStopLocation = newBestStop,
                 )
             }
             now - (_detectionState.value.stoppedSince ?: 0L)
         } else {
+            // stoppedSince and stoppedFixes are cleared to restart stop-detection on the next
+            // stop, but bestStopLocation is intentionally preserved: if the user has already
+            // walked away from the car, the saved fix must remain the car's position, not
+            // wherever the user is when confidence eventually reaches High.
             _detectionState.update {
-                it.copy(stoppedSince = null, stoppedFixes = emptyList(), mediumNotificationShown = false)
+                it.copy(
+                    stoppedSince = null,
+                    stoppedFixes = emptyList(),
+                    mediumNotificationShown = false
+                )
             }
             0L
         }
@@ -191,7 +231,8 @@ class DetectAndReportParkingUseCase(
                 }
                 null
             }
-            is ParkingConfidence.High -> state.bestFix(location)
+
+            is ParkingConfidence.High -> state.bestStopLocation ?: state.bestFix(location)
         }
     }
 

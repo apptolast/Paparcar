@@ -3,21 +3,21 @@ package io.apptolast.paparcar.detection.service
 import android.content.Intent
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
-import io.apptolast.paparcar.domain.usecase.parking.DetectAndReportParkingUseCase
+import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
-class DrivingTrackingService : LifecycleService() {
+class ParkingDetectionService : LifecycleService() {
 
-    private val detectAndReportParking: DetectAndReportParkingUseCase by inject()
+    private val detectAndReportParking: ParkingDetectionCoordinator by inject()
     private val observeAdaptiveLocation: ObserveAdaptiveLocationUseCase by inject()
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
-    private val notificationPort: NotificationPort by inject()
+    private val notificationPort: AppNotificationManager by inject()
     private var detectionJob: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -27,12 +27,12 @@ class DrivingTrackingService : LifecycleService() {
             ACTION_START_TRACKING -> {
                 // Always restart: a new IN_VEHICLE_ENTER supersedes any in-progress session
                 // (e.g. user parked briefly, got back in car before confirming).
-                // DetectAndReportParkingUseCase.invoke() dismisses any pending confirmation
+                // ParkingDetectionCoordinator.invoke() dismisses any pending confirmation
                 // notification automatically at the start of each new session.
                 detectionJob?.cancel()
                 detectionJob = null
                 val notification = foregroundNotificationProvider.buildDetectionNotification()
-                startForeground(NotificationPort.DETECTION_NOTIFICATION_ID, notification)
+                startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
                 startParkingDetection()
             }
             ACTION_VEHICLE_EXIT -> {

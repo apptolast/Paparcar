@@ -1,13 +1,13 @@
 package io.apptolast.paparcar.domain.notification
 
 /**
- * Domain port for displaying user-facing notifications.
+ * Domain interface for displaying user-facing notifications.
  *
  * Implementations live in the platform layer (androidMain) and are bound
  * via Koin's [AndroidPlatformModule]. The domain layer only depends on this
  * interface — never on the Android [NotificationManager] directly.
  */
-interface NotificationPort {
+interface AppNotificationManager {
 
     /**
      * Shows an ongoing notification asking the user to confirm they have parked.

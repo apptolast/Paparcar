@@ -44,9 +44,9 @@
             </intent-filter>
         </activity>
 
-        <!-- DrivingTrackingService -->
+        <!-- ParkingDetectionService -->
         <service
-            android:name=".detection.service.DrivingTrackingService"
+            android:name=".detection.service.ParkingDetectionService"
             android:foregroundServiceType="location"
             android:exported="false" />
 

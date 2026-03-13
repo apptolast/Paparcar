@@ -18,7 +18,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
@@ -41,7 +41,7 @@ class ReportSpotWorker(
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val spotRepository: SpotRepository by inject()
-    private val notificationPort: NotificationPort by inject()
+    private val notificationPort: AppNotificationManager by inject()
 
     override suspend fun doWork(): Result {
         val spotId = inputData.getString(KEY_SPOT_ID) ?: return Result.failure()
@@ -66,14 +66,14 @@ class ReportSpotWorker(
 
         return spotRepository.reportSpotReleased(spot).fold(
             onSuccess = {
-                notificationPort.dismiss(NotificationPort.UPLOAD_NOTIFICATION_ID)
+                notificationPort.dismiss(AppNotificationManager.UPLOAD_NOTIFICATION_ID)
                 if (BuildConfig.DEBUG) notificationPort.showDebug("Plaza publicada como libre")
                 Result.success()
             },
             onFailure = {
                 if (runAttemptCount < MAX_RETRY_ATTEMPTS) Result.retry()
                 else {
-                    notificationPort.dismiss(NotificationPort.UPLOAD_NOTIFICATION_ID)
+                    notificationPort.dismiss(AppNotificationManager.UPLOAD_NOTIFICATION_ID)
                     Result.failure()
                 }
             },

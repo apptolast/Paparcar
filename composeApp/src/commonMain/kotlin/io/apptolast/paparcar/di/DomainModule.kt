@@ -9,7 +9,7 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
-import io.apptolast.paparcar.domain.usecase.parking.DetectAndReportParkingUseCase
+import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.GetAllUserParkingsUseCase
 import io.apptolast.paparcar.domain.usecase.parking.GetUserParkingUseCase
@@ -50,7 +50,7 @@ val domainModule = module {
         )
     }
     single {
-        DetectAndReportParkingUseCase(
+        ParkingDetectionCoordinator(
             calculateParkingConfidence = get(),
             confirmParking = get(),
             notifyParkingConfirmation = get(),

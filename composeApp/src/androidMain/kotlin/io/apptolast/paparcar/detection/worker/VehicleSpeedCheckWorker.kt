@@ -9,9 +9,9 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import io.apptolast.paparcar.BuildConfig
-import io.apptolast.paparcar.detection.service.DrivingTrackingService
+import io.apptolast.paparcar.detection.service.ParkingDetectionService
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import java.util.concurrent.TimeUnit
@@ -28,7 +28,7 @@ import org.koin.core.component.inject
  *
  * If GPS speed exceeds [ParkingDetectionConfig.vehicleSpeedFallbackThresholdKmh]
  * when this worker runs, the user is almost certainly driving and
- * [DepartureEventBus.onVehicleEntered] + [DrivingTrackingService] are triggered
+ * [DepartureEventBus.onVehicleEntered] + [ParkingDetectionService] are triggered
  * synthetically, exactly as [ActivityTransitionReceiver] would on a real
  * IN_VEHICLE_ENTER event.
  *
@@ -43,7 +43,7 @@ class VehicleSpeedCheckWorker(
     private val getOneLocation: GetOneLocationUseCase by inject()
     private val departureEventBus: DepartureEventBus by inject()
     private val config: ParkingDetectionConfig by inject()
-    private val notificationPort: NotificationPort by inject()
+    private val notificationPort: AppNotificationManager by inject()
 
     override suspend fun doWork(): Result {
         val speedKmh = getOneLocation()?.speed?.times(3.6f)
@@ -61,8 +61,8 @@ class VehicleSpeedCheckWorker(
         // Speed confirms vehicle movement — synthesise IN_VEHICLE_ENTER
         departureEventBus.onVehicleEntered(Clock.System.now().toEpochMilliseconds())
         applicationContext.startForegroundService(
-            Intent(applicationContext, DrivingTrackingService::class.java).apply {
-                action = DrivingTrackingService.ACTION_START_TRACKING
+            Intent(applicationContext, ParkingDetectionService::class.java).apply {
+                action = ParkingDetectionService.ACTION_START_TRACKING
             }
         )
 

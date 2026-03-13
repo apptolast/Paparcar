@@ -5,8 +5,8 @@ package io.apptolast.paparcar.domain.usecase.parking
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.notification.NotificationPort
-import io.apptolast.paparcar.domain.service.GeofenceService
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -24,8 +24,8 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 class ConfirmParkingUseCase(
     private val saveUserParking: SaveUserParkingUseCase,
-    private val geofenceService: GeofenceService,
-    private val notificationPort: NotificationPort,
+    private val geofenceService: GeofenceManager,
+    private val notificationPort: AppNotificationManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
     private val config: ParkingDetectionConfig,
 ) {

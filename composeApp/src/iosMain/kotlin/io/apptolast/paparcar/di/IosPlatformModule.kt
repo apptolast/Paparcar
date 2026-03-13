@@ -6,15 +6,15 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
-import io.apptolast.paparcar.domain.geocoder.GeocoderPort
-import io.apptolast.paparcar.domain.notification.NotificationPort
+import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
-import io.apptolast.paparcar.domain.places.PlacesPort
-import io.apptolast.paparcar.ios.stub.StubGeocoderPort
+import io.apptolast.paparcar.domain.places.PlacesDataSource
+import io.apptolast.paparcar.ios.stub.StubGeocoderDataSource
 import io.apptolast.paparcar.ios.stub.StubLocationDataSource
-import io.apptolast.paparcar.ios.stub.StubNotificationPort
+import io.apptolast.paparcar.ios.stub.StubAppNotificationManager
 import io.apptolast.paparcar.ios.stub.StubPermissionManager
-import io.apptolast.paparcar.ios.stub.StubPlacesPort
+import io.apptolast.paparcar.ios.stub.StubPlacesDataSource
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
@@ -32,11 +32,11 @@ val iosPlatformModule = module {
 
     // Location (stub)
     single<PlatformLocationDataSource> { StubLocationDataSource() }
-    single<GeocoderPort> { StubGeocoderPort() }
-    single<PlacesPort> { StubPlacesPort() }
+    single<GeocoderDataSource> { StubGeocoderDataSource() }
+    single<PlacesDataSource> { StubPlacesDataSource() }
 
     // Notifications (stub)
-    single<NotificationPort> { StubNotificationPort() }
+    single<AppNotificationManager> { StubAppNotificationManager() }
 
     // Permissions (stub — returns all granted to allow app flow)
     single<PermissionManager> { StubPermissionManager() }
