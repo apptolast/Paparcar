@@ -12,20 +12,28 @@ package io.apptolast.paparcar.domain.model
 data class ParkingDetectionConfig(
 
     // ── FAST PATH ─────────────────────────────────────────────────────────────
-    /** Minimum stopped duration (ms) required to enter the fast path when an activity-exit event is present. */
-    val fastPathMinStoppedMs: Long = 30_000L,
+    /** Minimum stopped duration (ms) required to enter the fast path when an activity-exit event is present.
+     *  90 s eliminates most taxi/bus drop-off scenarios (typically < 60 s stop) while still covering
+     *  normal parking (driver maneuvers + collects belongings ≥ 90 s). */
+    val fastPathMinStoppedMs: Long = 90_000L,
     /** Base confidence score granted by the activity-exit signal alone.
-     *  0.50 lets the fast path reach High (0.75) when both speed and GPS-accuracy
-     *  bonuses are present, auto-confirming without requiring user action. */
-    val fastPathBaseScore: Float = 0.50f,
+     *  Lowered to 0.40 so the fast path WITHOUT a STILL signal peaks at Medium (0.60),
+     *  requiring user confirmation. Only reaches High (0.75) when [fastPathStillBonus] is also applied,
+     *  meaning the car went fully stationary before the user exited — a strong own-car parking indicator. */
+    val fastPathBaseScore: Float = 0.40f,
+    /** Bonus added when STILL activity was detected before [IN_VEHICLE_EXIT] in the fast path.
+     *  STILL_ENTER fires after ~30-60 s of the device being motionless, which happens naturally when
+     *  you park your own car (engine off, sitting still) but rarely for quick taxi/bus drop-offs. */
+    val fastPathStillBonus: Float = 0.15f,
     /** Bonus added when speed is below [maxSpeedMps] in the fast path. */
     val fastPathSpeedBonus: Float = 0.15f,
     /** Bonus added when GPS accuracy is better than [minGpsAccuracyMeters] in the fast path. */
-    val fastPathAccuracyBonus: Float = 0.10f,
+    val fastPathAccuracyBonus: Float = 0.05f,
 
     // ── SLOW PATH ─────────────────────────────────────────────────────────────
-    /** Minimum stopped duration (ms) before the slow path starts scoring (filters traffic lights). */
-    val slowPathGateMs: Long = 90_000L,
+    /** Minimum stopped duration (ms) before the slow path starts scoring (filters traffic lights).
+     *  Raised to 120 s (was 90 s) to stay above [fastPathMinStoppedMs] = 90 s. */
+    val slowPathGateMs: Long = 120_000L,
     /** Stopped duration threshold (ms) for the highest slow-path base score (~5 min). */
     val slowPath5MinMs: Long = 300_000L,
     /** Stopped duration threshold (ms) for the medium slow-path base score (~3 min). */

@@ -24,9 +24,14 @@ class CalculateParkingConfidenceUseCase(private val config: ParkingDetectionConf
 
     operator fun invoke(signals: ParkingSignals): ParkingConfidence {
 
-        // FAST PATH: activityExit signal present + min stop time → traffic lights discarded
+        // FAST PATH: activityExit signal present + min stop time → traffic lights discarded.
+        // Without STILL: base(0.40) + speed(0.15) + accuracy(0.05) = 0.60 → Medium → user confirmation.
+        // With STILL:    base(0.40) + still(0.15) + speed(0.15) + accuracy(0.05) = 0.75 → High → auto-confirm.
+        // STILL_ENTER fires after the car has been motionless for ~30-60 s (own-car parked),
+        // but typically does NOT fire during a brief taxi/bus drop-off (< 60 s stop).
         if (signals.activityExit && signals.stoppedDurationMs >= config.fastPathMinStoppedMs) {
             var score = config.fastPathBaseScore
+            if (signals.activityStill) score += config.fastPathStillBonus
             if (signals.speed < config.maxSpeedMps) score += config.fastPathSpeedBonus
             if (signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.fastPathAccuracyBonus
             return toConfidence(score)
