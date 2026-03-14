@@ -52,9 +52,11 @@ class HomeViewModel(
                     emptyFlow()
                 }
             }
-            .flatMapLatest { userLocation ->
+            .onEach { userLocation ->
                 updateState { copy(isLoading = false, userGpsPoint = userLocation) }
                 geocodeUserLocation(userLocation.latitude, userLocation.longitude)
+            }
+            .flatMapLatest { userLocation ->
                 observeNearbySpots(
                     userLocation,
                     ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS,
@@ -98,7 +100,10 @@ class HomeViewModel(
         viewModelScope.launch {
             val spotId = state.value.userParking?.id
                 ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
-            clearUserParking()
+            clearUserParking().onFailure { e ->
+                sendEffect(HomeEffect.ShowError(e.message ?: "Error al liberar el parking"))
+                return@launch
+            }
             sendEffect(HomeEffect.ShowSuccess("Spot reported — uploading…"))
             reportSpotReleased(lat, lon, spotId)
         }

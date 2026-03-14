@@ -14,7 +14,7 @@ import org.koin.android.ext.android.inject
 
 class ParkingDetectionService : LifecycleService() {
 
-    private val detectAndReportParking: ParkingDetectionCoordinator by inject()
+    private val parkingDetectionCoordinator: ParkingDetectionCoordinator by inject()
     private val observeAdaptiveLocation: ObserveAdaptiveLocationUseCase by inject()
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
     private val notificationPort: AppNotificationManager by inject()
@@ -25,10 +25,15 @@ class ParkingDetectionService : LifecycleService() {
 
         when (intent?.action) {
             ACTION_START_TRACKING -> {
-                // Always restart: a new IN_VEHICLE_ENTER supersedes any in-progress session
-                // (e.g. user parked briefly, got back in car before confirming).
-                // ParkingDetectionCoordinator.invoke() dismisses any pending confirmation
-                // notification automatically at the start of each new session.
+                // If a real trip is already in progress (coordinator has confirmed movement),
+                // the incoming IN_VEHICLE_ENTER is likely a spurious batched/delayed duplicate.
+                // Restarting would destroy accumulated stop data and leave the service stuck
+                // with hasEverMoved=false if the user is already parked.
+                // Only restart if no real movement has been detected yet (false start) or if
+                // no detection job is running.
+                if (detectionJob?.isActive == true && parkingDetectionCoordinator.hasDetectedMovement) {
+                    return START_STICKY
+                }
                 detectionJob?.cancel()
                 detectionJob = null
                 val notification = foregroundNotificationProvider.buildDetectionNotification()
@@ -36,15 +41,15 @@ class ParkingDetectionService : LifecycleService() {
                 startParkingDetection()
             }
             ACTION_VEHICLE_EXIT -> {
-                detectAndReportParking.onVehicleExit()
+                parkingDetectionCoordinator.onVehicleExit()
             }
             ACTION_PARKING_CONFIRMED -> {
                 // Notification is dismissed inside onUserConfirmedParking().
-                detectAndReportParking.onUserConfirmedParking()
+                parkingDetectionCoordinator.onUserConfirmedParking()
             }
             ACTION_PARKING_DENIED -> {
                 // Notification is dismissed inside onUserDeniedParking().
-                detectAndReportParking.onUserDeniedParking()
+                parkingDetectionCoordinator.onUserDeniedParking()
             }
             ACTION_STOP_TRACKING -> {
                 stopSelf()
@@ -57,7 +62,7 @@ class ParkingDetectionService : LifecycleService() {
     private fun startParkingDetection() {
         detectionJob = lifecycleScope.launch {
             try {
-                detectAndReportParking(observeAdaptiveLocation())
+                parkingDetectionCoordinator(observeAdaptiveLocation())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

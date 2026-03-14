@@ -42,18 +42,6 @@ class ActivityRecognitionManagerImpl(
                 .setActivityType(DetectedActivity.STILL)
                 .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
                 .build(),
-            ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.STILL)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
-                .build(),
-            ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.ON_FOOT)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
-                .build(),
-            ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.ON_FOOT)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
-                .build(),
         )
 
         val request = ActivityTransitionRequest(transitions)

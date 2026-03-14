@@ -85,6 +85,15 @@ class ParkingDetectionCoordinator(
 
     private val _detectionState = MutableStateFlow(ParkingDetectionState())
 
+    /**
+     * True once the coordinator has observed GPS movement meeting the trip thresholds
+     * ([ParkingDetectionConfig.minimumTripSpeedMps] AND [ParkingDetectionConfig.minimumTripDistanceMeters]).
+     *
+     * Used by [ParkingDetectionService] to decide whether a new [ACTION_START_TRACKING]
+     * command should restart the session or be treated as a spurious/duplicate event.
+     */
+    val hasDetectedMovement: Boolean get() = _detectionState.value.hasEverMoved
+
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
     // ─────────────────────────────────────────────────────────────────────────
@@ -96,6 +105,7 @@ class ParkingDetectionCoordinator(
     suspend operator fun invoke(locations: Flow<GpsPoint>) {
         reset()
         var completed = false
+        val sessionStartMs = Clock.System.now().toEpochMilliseconds()
 
         locations
             .takeWhile { !completed }
@@ -119,6 +129,15 @@ class ParkingDetectionCoordinator(
                 }
 
                 val state = _detectionState.value
+
+                // Guard: if real driving movement never appeared within maxNoMovementMs,
+                // this session was started by a spurious/batched IN_VEHICLE_ENTER while
+                // the user was already stationary. End detection silently.
+                if (!state.hasEverMoved && (now - sessionStartMs) > config.maxNoMovementMs) {
+                    completed = true
+                    return@collectLatest
+                }
+
                 val locationToConfirm = when {
                     state.userConfirmedParking -> state.bestStopLocation ?: state.bestFix(location)
                     !state.hasEverMoved -> null
@@ -154,7 +173,10 @@ class ParkingDetectionCoordinator(
     /** User dismissed the confirmation ("Keep driving"). Resets all heuristics. Thread-safe. */
     fun onUserDeniedParking() {
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-        _detectionState.value = ParkingDetectionState()
+        // Preserve hasEverMoved: sessionStartMs is fixed at invoke() entry and never reset,
+        // so a full ParkingDetectionState() reset (hasEverMoved=false) would immediately
+        // trigger the maxNoMovementMs timeout guard on the next GPS fix and kill the session.
+        _detectionState.update { ParkingDetectionState(hasEverMoved = it.hasEverMoved) }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

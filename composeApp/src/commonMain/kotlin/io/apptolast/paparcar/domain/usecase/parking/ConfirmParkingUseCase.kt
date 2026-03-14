@@ -45,7 +45,7 @@ class ConfirmParkingUseCase(
             isActive = true,
         )
 
-        saveUserParking(baseSession)
+        saveUserParking(baseSession).onFailure { return }
 
         // Schedule address + POI enrichment off the critical path.
         enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)

@@ -68,7 +68,7 @@ class DepartureDetectionWorker(
                 val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
                 val lat = session?.location?.latitude
                 val lon = session?.location?.longitude
-                clearUserParking()
+                clearUserParking().onFailure { return Result.retry() }
                 if (lat != null && lon != null) {
                     reportSpotReleased(lat, lon, spotId)
                 }

@@ -78,6 +78,13 @@ data class ParkingDetectionConfig(
      *  large position jump (50 m) is well below this threshold, so spurious IN_VEHICLE_ENTER
      *  events at home are silently ignored. Default 150 m. */
     val minimumTripDistanceMeters: Float = 150f,
+    /** Maximum duration (ms) to wait for [hasEverMoved] before aborting the session.
+     *  If the device shows no real driving movement within this window the session is
+     *  treated as a spurious IN_VEHICLE_ENTER (e.g. batched/delayed delivery while the
+     *  user was already parked) and detection ends silently.
+     *  Default 4 minutes — enough for a slow GPS warm-up but not long enough to drain
+     *  battery on false starts. */
+    val maxNoMovementMs: Long = 4 * 60_000L,
 
     // ── DEPARTURE DETECTION ───────────────────────────────────────────────────
     /** Maximum time (ms) between an IN_VEHICLE_ENTER transition and a GEOFENCE_EXIT for
@@ -90,10 +97,6 @@ data class ParkingDetectionConfig(
     /** Minimum speed (km/h) that confirms the user is driving away. Speed check is skipped
      *  when GPS is unavailable. Default 10 km/h. */
     val minimumDepartureSpeedKmh: Float = 10f,
-    /** Speed (km/h) above which [VehicleSpeedCheckWorker] considers the user to be in a
-     *  moving vehicle. Used as a fallback when the Transitions API fails to deliver
-     *  IN_VEHICLE_ENTER for short trips (< ~5 min). Default 25 km/h. */
-    val vehicleSpeedFallbackThresholdKmh: Float = 25f,
 ) {
     init {
         require(highConfidenceThreshold in 0f..1f) {
@@ -120,14 +123,14 @@ data class ParkingDetectionConfig(
         require(minimumTripDistanceMeters > 0) {
             "minimumTripDistanceMeters must be > 0, was $minimumTripDistanceMeters"
         }
+        require(maxNoMovementMs > 0) {
+            "maxNoMovementMs must be > 0, was $maxNoMovementMs"
+        }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"
         }
         require(initialStopWindowMs > 0) {
             "initialStopWindowMs must be > 0, was $initialStopWindowMs"
-        }
-        require(vehicleSpeedFallbackThresholdKmh > 0) {
-            "vehicleSpeedFallbackThresholdKmh must be > 0, was $vehicleSpeedFallbackThresholdKmh"
         }
     }
 }

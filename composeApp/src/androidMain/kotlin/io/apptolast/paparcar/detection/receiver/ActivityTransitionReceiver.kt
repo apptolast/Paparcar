@@ -6,14 +6,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
-import androidx.work.ExistingWorkPolicy
-import androidx.work.WorkManager
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.service.ParkingDetectionService
-import io.apptolast.paparcar.detection.worker.VehicleSpeedCheckWorker
+import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import org.koin.core.component.KoinComponent
@@ -23,6 +21,7 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val notificationPort: AppNotificationManager by inject()
     private val departureEventBus: DepartureEventBus by inject()
+    private val coordinator: ParkingDetectionCoordinator by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
 
@@ -39,28 +38,21 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
                 when {
                     event.activityType == DetectedActivity.STILL &&
-                            event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT -> {
-                        // User stopped being still — might be about to enter a vehicle.
-                        // Schedule a speed check as fallback in case IN_VEHICLE_ENTER is
-                        // delayed or never delivered by the Transitions API (common for
-                        // short trips < ~5 min).
-                        WorkManager.getInstance(context).enqueueUniqueWork(
-                            VehicleSpeedCheckWorker.TAG,
-                            ExistingWorkPolicy.REPLACE,
-                            VehicleSpeedCheckWorker.buildRequest(),
-                        )
+                            event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER -> {
+                        // Device confirmed stationary — signals the parking confidence scorer
+                        // to apply the STILL bonus (+0.10) in the slow path.
+                        // Called directly on the coordinator (singleton) so the signal reaches
+                        // the active detection session without going through the service.
+                        coordinator.onStillDetected()
                     }
 
                     event.activityType == DetectedActivity.IN_VEHICLE &&
                             event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER -> {
-                        // Real transition arrived — cancel the fallback check to avoid
-                        // double-triggering departureEventBus / ParkingDetectionService.
                         // Use the event's own elapsed-realtime timestamp (not delivery time)
                         // because the Transitions API can batch events up to ~5 min late.
                         val eventEpochMs = System.currentTimeMillis() -
                             SystemClock.elapsedRealtime() +
                             event.elapsedRealTimeNanos / 1_000_000L
-                        WorkManager.getInstance(context).cancelUniqueWork(VehicleSpeedCheckWorker.TAG)
                         departureEventBus.onVehicleEntered(eventEpochMs)
                         startDrivingService(context, ParkingDetectionService.ACTION_START_TRACKING)
                     }

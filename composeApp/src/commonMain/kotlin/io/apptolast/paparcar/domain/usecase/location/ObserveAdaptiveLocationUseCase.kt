@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.repository.LocationRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onEach
 
@@ -40,6 +41,7 @@ class ObserveAdaptiveLocationUseCase(
                 }
                 if (newMode != mode.value) mode.value = newMode
             }
+            .catch { throw it } // propagate errors to the terminal call site (.catch in caller)
     }
 
     companion object {

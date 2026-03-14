@@ -32,11 +32,18 @@ class MapViewModel(
             }
             .flatMapLatest { userLocation ->
                 observeNearbySpots(userLocation, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
+                    .catch { e ->
+                        // Firebase error — show it but keep the location chain alive
+                        updateState { copy(error = e.message) }
+                        sendEffect(MapEffect.ShowError(e.message ?: "Error cargando spots cercanos"))
+                        emit(emptyList())
+                    }
             }
             .onEach { spots ->
                 updateState { copy(spots = spots) }
             }
             .catch { e ->
+                // GPS / location chain error
                 updateState { copy(isLoading = false, error = e.message) }
                 sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
             }
