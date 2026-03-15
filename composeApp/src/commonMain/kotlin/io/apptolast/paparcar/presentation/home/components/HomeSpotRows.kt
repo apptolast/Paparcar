@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.RadioButtonChecked
@@ -39,21 +38,20 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.formatCoords
 import io.apptolast.paparcar.presentation.util.formatDistance
+import io.apptolast.paparcar.presentation.util.formatDriveTime
 import io.apptolast.paparcar.presentation.util.formatRelativeTime
-import io.apptolast.paparcar.presentation.util.formatWalkTime
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
 import paparcar.composeapp.generated.resources.home_spot_reported_by
-import paparcar.composeapp.generated.resources.home_spot_status_free
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Relative time (auto-updates every minute)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun relativeTimeText(timestampMs: Long): String {
+internal fun relativeTimeText(timestampMs: Long): String {
     var text by remember(timestampMs) { mutableStateOf(formatRelativeTime(timestampMs)) }
     LaunchedEffect(timestampMs) {
         while (true) {
@@ -72,7 +70,9 @@ private fun relativeTimeText(timestampMs: Long): String {
 internal fun HomeSpotRow(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
-    onClick: () -> Unit,
+    onSelect: () -> Unit,
+    isSelected: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
@@ -87,13 +87,15 @@ internal fun HomeSpotRow(
     }
 
     Surface(
-        onClick = onClick,
-        color = Color.Transparent,
+        onClick = { onSelect() },
+        modifier = modifier,
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                else Color.Transparent,
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -102,71 +104,59 @@ internal fun HomeSpotRow(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(13.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)),
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Outlined.RadioButtonChecked,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                           else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp),
                 )
             }
 
             // Text column
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.basicMarquee(),
-                )
-                Spacer(Modifier.height(3.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
+                val timeAgo = relativeTimeText(spot.location.timestamp)
+                if (distanceM != null) {
+                    // Line 1: drive time only
                     Text(
-                        relativeTimeText(spot.location.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        formatDriveTime(distanceM),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
-                    if (distanceM != null) {
-                        Text(
-                            "·",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                        )
-                        Icon(
-                            Icons.AutoMirrored.Outlined.DirectionsWalk,
-                            contentDescription = null,
-                            modifier = Modifier.size(10.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                        )
-                        Text(
-                            "${formatDistance(distanceM)} · ${formatWalkTime(distanceM)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        )
-                    }
+                    Spacer(Modifier.height(3.dp))
+                    // Line 2: distance · place/address · time ago
+                    Text(
+                        text = "${formatDistance(distanceM)}  ·  $displayText  ·  $timeAgo",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee(),
+                    )
+                } else {
+                    Text(
+                        text = displayText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee(),
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        timeAgo,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    )
                 }
             }
 
-            // "Libre" chip — spot's distinctive status badge
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            ) {
-                Text(
-                    stringResource(Res.string.home_spot_status_free),
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
         }
     }
 }
@@ -196,7 +186,7 @@ internal fun HomeActivityRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

@@ -3,6 +3,7 @@ package io.apptolast.paparcar.detection.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import io.apptolast.paparcar.detection.service.ParkingDetectionService
 
 /**
@@ -23,11 +24,14 @@ class ParkingConfirmationReceiver : BroadcastReceiver() {
             ACTION_DENIED -> ParkingDetectionService.ACTION_PARKING_DENIED
             else -> return
         }
-        context.startService(
-            Intent(context, ParkingDetectionService::class.java).apply {
-                action = serviceAction
-            }
-        )
+        val serviceIntent = Intent(context, ParkingDetectionService::class.java).apply {
+            action = serviceAction
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
+        }
     }
 
     companion object {

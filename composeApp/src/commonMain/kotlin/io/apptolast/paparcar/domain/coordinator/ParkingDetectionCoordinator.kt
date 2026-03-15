@@ -245,7 +245,8 @@ class ParkingDetectionCoordinator(
             activityStill = state.activityStillDetected,
         )
         return when (val confidence = calculateParkingConfidence(signals)) {
-            is ParkingConfidence.NotYet, is ParkingConfidence.Low -> null
+            is ParkingConfidence.NotYet -> null
+            is ParkingConfidence.Low,
             is ParkingConfidence.Medium -> {
                 if (!state.mediumNotificationShown) {
                     _detectionState.update { it.copy(mediumNotificationShown = true) }

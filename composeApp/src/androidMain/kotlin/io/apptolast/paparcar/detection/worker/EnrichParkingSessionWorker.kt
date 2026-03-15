@@ -37,8 +37,8 @@ class EnrichParkingSessionWorker(
 
     override suspend fun doWork(): Result {
         val sessionId = inputData.getString(KEY_SESSION_ID) ?: return Result.failure()
-        val lat = inputData.getDouble(KEY_LAT, 0.0)
-        val lon = inputData.getDouble(KEY_LON, 0.0)
+        val lat = inputData.getDouble(KEY_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
+        val lon = inputData.getDouble(KEY_LON, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
 
         var addressSaved = false
 

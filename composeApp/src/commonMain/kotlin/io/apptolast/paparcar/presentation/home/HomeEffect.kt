@@ -7,7 +7,7 @@ package io.apptolast.paparcar.presentation.home
 sealed class HomeEffect {
     data class ShowError(val message: String) : HomeEffect()
     data class ShowSuccess(val message: String) : HomeEffect()
-    data class NavigateToMap(val spotId: String? = null) : HomeEffect()
+    data object NavigateToMap : HomeEffect()
     data object NavigateToHistory : HomeEffect()
     data object RequestLocationPermission : HomeEffect()
 }

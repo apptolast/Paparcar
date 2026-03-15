@@ -179,14 +179,12 @@ fun HistoryScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val currentOnNavigateBack by rememberUpdatedState(onNavigateBack)
     val currentOnNavigateToMap by rememberUpdatedState(onNavigateToMap)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is HistoryEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
-                is HistoryEffect.NavigateBack -> currentOnNavigateBack()
                 is HistoryEffect.NavigateToMap -> currentOnNavigateToMap(effect.lat, effect.lon)
             }
         }

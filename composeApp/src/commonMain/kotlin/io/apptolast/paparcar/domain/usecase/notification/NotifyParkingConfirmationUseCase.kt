@@ -8,6 +8,7 @@ class NotifyParkingConfirmationUseCase(
 ) {
     operator fun invoke(confidence: ParkingConfidence) {
         when (confidence) {
+            is ParkingConfidence.Low -> notificationPort.showParkingConfirmation(0f)
             is ParkingConfidence.Medium -> notificationPort.showParkingConfirmation(confidence.score)
             else -> Unit
         }

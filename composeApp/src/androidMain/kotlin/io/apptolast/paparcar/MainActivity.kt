@@ -1,7 +1,7 @@
 package io.apptolast.paparcar
 
-import android.Manifest
-import android.os.Build
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,7 +24,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            App()
+            App(
+                onOpenMapsNavigation = { lat, lon ->
+                    val uri = Uri.parse("google.navigation:q=$lat,$lon&mode=d")
+                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                        setPackage("com.google.android.apps.maps")
+                    }
+                    if (intent.resolveActivity(packageManager) != null) {
+                        startActivity(intent)
+                    } else {
+                        // Fallback: open in browser if Maps is not installed
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com/?daddr=$lat,$lon&directionsmode=driving")))
+                    }
+                },
+            )
 
             // Observa los cambios de estado de los permisos.
             LaunchedEffect(Unit) {

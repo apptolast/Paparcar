@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.detection.service
 
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -37,7 +39,15 @@ class ParkingDetectionService : LifecycleService() {
                 detectionJob?.cancel()
                 detectionJob = null
                 val notification = foregroundNotificationProvider.buildDetectionNotification()
-                startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(
+                        AppNotificationManager.DETECTION_NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+                    )
+                } else {
+                    startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
+                }
                 startParkingDetection()
             }
             ACTION_VEHICLE_EXIT -> {

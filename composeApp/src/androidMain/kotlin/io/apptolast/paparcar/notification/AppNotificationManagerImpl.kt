@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import androidx.core.app.NotificationCompat
+import io.apptolast.paparcar.MainActivity
 import io.apptolast.paparcar.R
 import io.apptolast.paparcar.detection.receiver.ParkingConfirmationReceiver
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -29,6 +30,7 @@ class AppNotificationManagerImpl(
             .setContentText(context.getString(R.string.notif_detection_text))
             .setSmallIcon(R.drawable.ic_notification_detection)
             .setCategory(Notification.CATEGORY_SERVICE)
+            .setContentIntent(buildOpenAppIntent(RC_DETECTION))
             .setOngoing(true)
             .setProgress(0, 0, true)
             .setColor(COLOR_DETECTION)
@@ -60,6 +62,7 @@ class AppNotificationManagerImpl(
             .setSmallIcon(R.drawable.ic_notification_parking_question)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setContentIntent(buildOpenAppIntent(RC_CONFIRMATION))
             .addAction(0, context.getString(R.string.notif_action_yes_parked), confirmedPi)
             .addAction(0, context.getString(R.string.notif_action_keep_driving), deniedPi)
             .setAutoCancel(true)
@@ -80,6 +83,7 @@ class AppNotificationManagerImpl(
             .setSmallIcon(R.drawable.ic_notification_parking_saved)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildOpenAppIntent(RC_SPOT_SAVED))
             .setAutoCancel(true)
             .build()
         notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
@@ -92,6 +96,7 @@ class AppNotificationManagerImpl(
             .setSmallIcon(R.drawable.ic_notification_upload)
             .setColor(COLOR_UPLOAD)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setContentIntent(buildOpenAppIntent(RC_UPLOADING))
             .setOngoing(true)
             .build()
         notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
@@ -104,6 +109,7 @@ class AppNotificationManagerImpl(
             .setSmallIcon(R.drawable.ic_notification_debug)
             .setColor(COLOR_DEBUG)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setContentIntent(buildOpenAppIntent(RC_DEBUG))
             .setAutoCancel(true)
             .build()
         notificationManager.notify(AppNotificationManager.DEBUG_NOTIFICATION_ID, notification)
@@ -114,6 +120,21 @@ class AppNotificationManagerImpl(
     }
 
     // endregion
+
+    /**
+     * PendingIntent that brings MainActivity to the foreground.
+     * Uses SINGLE_TOP + CLEAR_TOP so the existing instance is reused,
+     * not stacked on top of itself.
+     */
+    private fun buildOpenAppIntent(requestCode: Int): PendingIntent =
+        PendingIntent.getActivity(
+            context,
+            requestCode,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
     private fun createNotificationChannels() {
         val detectionChannel = NotificationChannel(
@@ -148,6 +169,13 @@ class AppNotificationManagerImpl(
         const val DETECTION_CHANNEL_ID = "detection_channel"
         const val UPLOAD_CHANNEL_ID = "upload_channel"
         const val DEBUG_CHANNEL_ID = "debug_channel"
+
+        // PendingIntent request codes — must be unique across the app
+        private const val RC_DETECTION = 10
+        private const val RC_CONFIRMATION = 11
+        private const val RC_SPOT_SAVED = 12
+        private const val RC_UPLOADING = 13
+        private const val RC_DEBUG = 14
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active

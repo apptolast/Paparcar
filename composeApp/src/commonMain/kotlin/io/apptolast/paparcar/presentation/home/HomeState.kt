@@ -17,6 +17,5 @@ data class HomeState(
     val userGpsPoint: GpsPoint? = null,
     /** LocationInfo for the user's current GPS position (geocoded on-demand, not stored). */
     val userLocationInfo: LocationInfo? = null,
-    val isDetectionActive: Boolean = false,
     val userParking: UserParking? = null,
 )

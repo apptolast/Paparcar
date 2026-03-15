@@ -3,11 +3,18 @@ package io.apptolast.paparcar.presentation.home.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.drawscope.Stroke
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +41,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import com.swmansion.kmpmaps.core.AndroidMapProperties
 import com.swmansion.kmpmaps.core.AndroidUISettings
 import com.swmansion.kmpmaps.core.CameraPosition
@@ -54,6 +62,7 @@ import io.apptolast.paparcar.ui.theme.PapGreen
 // ── Marker content IDs ──────────────────────────────────────────────────────
 private const val MARKER_MY_CAR = "my_car"
 private const val MARKER_FREE_SPOT = "free_spot"
+private const val MARKER_FREE_SPOT_SELECTED = "free_spot_selected"
 
 @Composable
 fun PlatformMap(
@@ -64,9 +73,11 @@ fun PlatformMap(
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
     cameraTarget: CameraTarget? = null,
+    selectedSpotId: String? = null,
+    reportMode: Boolean = false,
 ) {
     // ── Build markers list ───────────────────────────────────────────────────
-    val markers = remember(spots, parkingLocation) {
+    val markers = remember(spots, parkingLocation, selectedSpotId) {
         buildList {
             parkingLocation?.let {
                 add(
@@ -85,7 +96,8 @@ fun PlatformMap(
                             spot.location.longitude,
                         ),
                         title = spot.id,
-                        contentId = MARKER_FREE_SPOT,
+                        contentId = if (spot.id == selectedSpotId) MARKER_FREE_SPOT_SELECTED
+                                    else MARKER_FREE_SPOT,
                     ),
                 )
             }
@@ -96,7 +108,8 @@ fun PlatformMap(
     val customMarkerContent = remember {
         mapOf<String, @Composable (Marker) -> Unit>(
             MARKER_MY_CAR to { _ -> MyCarMarkerContent() },
-            MARKER_FREE_SPOT to { _ -> SpotMarkerContent() },
+            MARKER_FREE_SPOT to { _ -> SpotMarkerContent(isSelected = false) },
+            MARKER_FREE_SPOT_SELECTED to { _ -> SpotMarkerContent(isSelected = true) },
         )
     }
 
@@ -104,6 +117,41 @@ fun PlatformMap(
     var actualCamLat by remember { mutableStateOf<Float?>(null) }
     var actualCamLon by remember { mutableStateOf<Float?>(null) }
     var actualCamZoom by remember { mutableStateOf<Float?>(null) }
+
+    // ── Camera movement detection (debounced 280ms) ──────────────────────
+    var cameraMoving by remember { mutableStateOf(false) }
+    LaunchedEffect(actualCamLat, actualCamLon) {
+        if (actualCamLat != null) {
+            cameraMoving = true
+            delay(280L)
+            cameraMoving = false
+        }
+    }
+
+    // ── Crosshair animations ─────────────────────────────────────────────
+    val crosshairScale by animateFloatAsState(
+        targetValue = when {
+            selectedSpotId != null -> 0f    // hide: spot marker is the focus
+            cameraMoving -> 1.25f           // enlarge while aiming
+            else -> 1f
+        },
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "crosshair_scale",
+    )
+    // Pulse ring: fires once when camera settles
+    val pulseAlpha = remember { Animatable(0f) }
+    val pulseScale = remember { Animatable(1f) }
+    LaunchedEffect(cameraMoving) {
+        if (!cameraMoving && actualCamLat != null && selectedSpotId == null) {
+            pulseAlpha.snapTo(0.55f)
+            pulseScale.snapTo(0.5f)
+            launch { pulseAlpha.animateTo(0f, tween(600, easing = FastOutSlowInEasing)) }
+            launch { pulseScale.animateTo(2.4f, tween(600, easing = FastOutSlowInEasing)) }
+        }
+    }
 
     val cameraPosition = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
@@ -176,6 +224,63 @@ fun PlatformMap(
             }
         }
 
+        // ── Location indicator ───────────────────────────────────────────────
+        val indicatorColor = if (reportMode) PapGreen else Color.White
+        val shadowAlpha = if (reportMode) 0.35f else 0.22f
+
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .align(Alignment.Center)
+                .scale(crosshairScale),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Pulse ring (expands outward on settle)
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val r = (size.minDimension / 2f) * pulseScale.value
+                drawCircle(
+                    color = indicatorColor.copy(alpha = pulseAlpha.value),
+                    radius = r,
+                    center = Offset(size.width / 2f, size.height / 2f),
+                    style = Stroke(width = 1.5.dp.toPx()),
+                )
+            }
+            // Ring + center dot
+            Canvas(modifier = Modifier.size(36.dp)) {
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                val ringRadius = size.minDimension * 0.38f
+                val ringStroke = 1.8.dp.toPx()
+
+                // Shadow (subtle drop, offset down-right)
+                drawCircle(
+                    color = Color.Black.copy(alpha = shadowAlpha),
+                    radius = ringRadius + 0.5f,
+                    center = Offset(cx + 1f, cy + 1.5f),
+                    style = Stroke(width = ringStroke + 1.5f),
+                )
+                // Main ring
+                drawCircle(
+                    color = indicatorColor,
+                    radius = ringRadius,
+                    center = Offset(cx, cy),
+                    style = Stroke(width = ringStroke),
+                )
+                // Center dot shadow
+                drawCircle(
+                    color = Color.Black.copy(alpha = shadowAlpha),
+                    radius = 3.dp.toPx(),
+                    center = Offset(cx + 0.5f, cy + 1f),
+                )
+                // Center dot
+                drawCircle(
+                    color = indicatorColor,
+                    radius = 2.5.dp.toPx(),
+                    center = Offset(cx, cy),
+                )
+            }
+        }
+
     }
 }
 
@@ -209,10 +314,22 @@ private fun rememberCameraAnimationState(
         actualCamLon?.let { animLon.snapTo(it) }
         actualCamZoom?.let { animZoom.snapTo(it) }
         val (targetLat, targetLon, targetZoom) = if (target.boundsLat2 != null && target.boundsLon2 != null) {
+            val maxDelta = maxOf(
+                abs(target.lat - target.boundsLat2),
+                abs(target.lon - target.boundsLon2),
+            ).toFloat()
+            val zoom = when {
+                maxDelta < 0.002f -> 17f   // ~220 m
+                maxDelta < 0.005f -> 16f   // ~550 m
+                maxDelta < 0.010f -> 15f   // ~1.1 km
+                maxDelta < 0.020f -> 14f   // ~2.2 km
+                maxDelta < 0.040f -> 13f   // ~4.5 km
+                else              -> 12f
+            }
             Triple(
                 ((target.lat + target.boundsLat2) / 2.0).toFloat(),
                 ((target.lon + target.boundsLon2) / 2.0).toFloat(),
-                14f,
+                zoom,
             )
         } else {
             Triple(target.lat.toFloat(), target.lon.toFloat(), target.zoom)
@@ -253,23 +370,31 @@ private fun MyCarMarkerContent() {
 }
 
 @Composable
-private fun SpotMarkerContent() {
+private fun SpotMarkerContent(isSelected: Boolean = false) {
+    val size = if (isSelected) 46.dp else 38.dp
+    val bg = if (isSelected) PapForestDark else PapGreen
+    val border = if (isSelected) PapGreen else PapForestDark
+    val iconTint = if (isSelected) PapGreen else PapForestDark
+    val iconSize = if (isSelected) 24.dp else 20.dp
+    val tailW = if (isSelected) 12.dp else 10.dp
+    val tailH = if (isSelected) 10.dp else 8.dp
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .size(38.dp)
-                .background(PapGreen, CircleShape)
-                .border(3.dp, PapForestDark, CircleShape),
+                .size(size)
+                .background(bg, CircleShape)
+                .border(3.dp, border, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.DirectionsCar,
                 contentDescription = null,
-                tint = PapForestDark,
-                modifier = Modifier.size(20.dp),
+                tint = iconTint,
+                modifier = Modifier.size(iconSize),
             )
         }
-        PinTail(color = PapForestDark, width = 10.dp, height = 8.dp)
+        PinTail(color = border, width = tailW, height = tailH)
     }
 }
 

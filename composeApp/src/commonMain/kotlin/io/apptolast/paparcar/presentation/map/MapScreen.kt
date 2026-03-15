@@ -58,7 +58,6 @@ fun MapScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is MapEffect.NavigateToSpotDetails -> { /* future */ }
-                is MapEffect.NavigateBack -> onNavigateBack()
                 is MapEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }

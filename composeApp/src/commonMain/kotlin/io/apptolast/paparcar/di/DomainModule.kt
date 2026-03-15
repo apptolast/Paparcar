@@ -39,7 +39,13 @@ val domainModule = module {
     factory { ObserveUserParkingUseCase(get()) }
     factory { GetAllUserParkingsUseCase(get()) }
     factory { ClearUserParkingUseCase(get()) }
-    factory { DetectParkingDepartureUseCase(get(), get(), get()) }
+    factory {
+        DetectParkingDepartureUseCase(
+            getUserParking = get(),
+            departureEventBus = get(),
+            config = get(),
+        )
+    }
     factory {
         ConfirmParkingUseCase(
             saveUserParking = get(),

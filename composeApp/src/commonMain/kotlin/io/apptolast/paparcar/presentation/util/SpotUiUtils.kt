@@ -36,6 +36,11 @@ fun formatWalkTime(meters: Float): String {
     return "$minutes min a pie"
 }
 
+fun formatDriveTime(meters: Float): String {
+    val minutes = (meters / 500).roundToInt().coerceAtLeast(1)
+    return "$minutes min en coche"
+}
+
 fun formatRelativeTime(timestampMs: Long): String {
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
     val diffMs = nowMs - timestampMs

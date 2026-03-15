@@ -63,12 +63,15 @@ class DepartureDetectionWorker(
             )
         ) {
             DepartureDecision.Confirmed -> {
-                departureEventBus.reset()
                 val session = getUserParking()
                 val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
                 val lat = session?.location?.latitude
                 val lon = session?.location?.longitude
+                // Clear parking BEFORE resetting the bus so that if the clear fails
+                // and we retry, DetectParkingDepartureUseCase can still read
+                // lastVehicleEnteredAt and return Confirmed again instead of Inconclusive.
                 clearUserParking().onFailure { return Result.retry() }
+                departureEventBus.reset()
                 if (lat != null && lon != null) {
                     reportSpotReleased(lat, lon, spotId)
                 }

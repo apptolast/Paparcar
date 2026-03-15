@@ -6,6 +6,10 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -13,13 +17,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -31,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -49,14 +57,19 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
+import io.apptolast.paparcar.presentation.home.components.HomeNavBar
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
-import io.apptolast.paparcar.presentation.home.components.HomeReportBar
+import io.apptolast.paparcar.presentation.home.components.HomeReportSpotFab
 import io.apptolast.paparcar.presentation.home.components.HomeSheetContent
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import paparcar.composeapp.generated.resources.Res
 import kotlin.math.abs
 import kotlin.math.roundToInt
+
+private data class SelectedNavTarget(val lat: Double, val lon: Double)
 
 // Peek = drag pill (22dp) + address row (74dp)
 private val SheetPeekHeight = 96.dp
@@ -75,6 +88,7 @@ fun HomeScreen(
     onNavigateToMap: () -> Unit = {},
     onNavigateToHistory: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -85,7 +99,7 @@ fun HomeScreen(
             when (effect) {
                 is HomeEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
                 is HomeEffect.ShowSuccess -> snackbarHostState.showSnackbar(effect.message)
-                is HomeEffect.NavigateToMap -> onNavigateToMap()
+                HomeEffect.NavigateToMap -> onNavigateToMap()
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
                 is HomeEffect.RequestLocationPermission -> {}
             }
@@ -96,6 +110,7 @@ fun HomeScreen(
         state = state,
         onIntent = viewModel::handleIntent,
         onNavigateToSettings = onNavigateToSettings,
+        onOpenMapsNavigation = onOpenMapsNavigation,
         snackbarHostState = snackbarHostState,
     )
 }
@@ -109,11 +124,25 @@ private fun HomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onOpenMapsNavigation: (Double, Double) -> Unit,
     snackbarHostState: SnackbarHostState,
 ) {
     val uiController = rememberHomeUiController()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
+    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    var selectedNavTarget by remember { mutableStateOf<SelectedNavTarget?>(null) }
+    var selectedSpotId by remember { mutableStateOf<String?>(null) }
+    val scrollState = rememberScrollState()
+    val spotScrollPositions = remember { mutableMapOf<String, Int>() }
+
+    // Auto-clear selection when the selected spot leaves the nearby list
+    LaunchedEffect(state.nearbySpots) {
+        if (selectedSpotId != null && state.nearbySpots.none { it.id == selectedSpotId }) {
+            selectedSpotId = null
+            selectedNavTarget = null
+        }
+    }
 
     LaunchedEffect(state.userGpsPoint) {
         state.userGpsPoint?.let { uiController.onUserLocationAvailable(it.latitude, it.longitude) }
@@ -123,17 +152,18 @@ private fun HomeContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            HomeReportBar(onClick = {
-                val lat = uiController.cameraLat
-                    ?: state.userParking?.location?.latitude
-                    ?: state.userGpsPoint?.latitude
-                    ?: return@HomeReportBar
-                val lon = uiController.cameraLon
-                    ?: state.userParking?.location?.longitude
-                    ?: state.userGpsPoint?.longitude
-                    ?: return@HomeReportBar
-                onIntent(HomeIntent.ReleaseParking(lat, lon))
-            })
+            AnimatedVisibility(
+                visible = selectedNavTarget != null,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
+            ) {
+                HomeNavBar(
+                    onNavigate = {
+                        selectedNavTarget?.let { onOpenMapsNavigation(it.lat, it.lon) }
+                    },
+                    onDismiss = { selectedNavTarget = null; selectedSpotId = null },
+                )
+            }
         },
         containerColor = Color.Transparent,
     ) { scaffoldPadding ->
@@ -144,7 +174,7 @@ private fun HomeContent(
                 .padding(scaffoldPadding),
         ) {
             val containerHeightPx = constraints.maxHeight.toFloat()
-            val peekHeightPx = with(density) { SheetPeekHeight.toPx() }
+            val peekHeightPx = with(density) { (SheetPeekHeight + navBarBottom).toPx() }
             val containerHeightDp = with(density) { containerHeightPx.toDp() }
 
             val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
@@ -168,8 +198,16 @@ private fun HomeContent(
                 }
             }
 
-            // Resets to peek on container resize; animates back if content shrinks while expanded.
-            val sheetOffsetPx = remember(peekOffsetPx) { Animatable(peekOffsetPx) }
+            // Initialized at peek on first composition. Does NOT reset on subsequent peekOffsetPx
+            // changes (e.g. nav bar appearing) so the sheet stays open when nav bar shows.
+            val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
+            // If the sheet was at (or beyond) peek when the container resizes, keep it at peek.
+            // If it was open, leave it in place — just clamp so it can't go past the new peek.
+            LaunchedEffect(peekOffsetPx) {
+                if (sheetOffsetPx.value >= peekOffsetPx) {
+                    sheetOffsetPx.snapTo(peekOffsetPx)
+                }
+            }
             LaunchedEffect(fullSnapOffsetPx) {
                 if (sheetOffsetPx.value < fullSnapOffsetPx) {
                     sheetOffsetPx.animateTo(fullSnapOffsetPx, SnapSpec)
@@ -188,6 +226,7 @@ private fun HomeContent(
             val onNavigateToParking: () -> Unit = {
                 state.userParking?.let { p ->
                     uiController.moveCamera(p.location.latitude, p.location.longitude)
+                    selectedNavTarget = SelectedNavTarget(p.location.latitude, p.location.longitude)
                 }
             }
 
@@ -196,7 +235,27 @@ private fun HomeContent(
                 spots = state.nearbySpots,
                 userLocation = state.userGpsPoint,
                 parkingLocation = state.userParking?.location,
-                onSpotClick = {},
+                selectedSpotId = selectedSpotId,
+                reportMode = !sheetExpanded,
+                onSpotClick = { spotId ->
+                    state.nearbySpots.find { it.id == spotId }?.let { spot ->
+                        selectedSpotId = spotId
+                        selectedNavTarget = SelectedNavTarget(
+                            spot.location.latitude,
+                            spot.location.longitude,
+                        )
+                        uiController.moveCamera(spot.location.latitude, spot.location.longitude)
+                        coroutineScope.launch {
+                            sheetOffsetPx.animateTo(
+                                halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                SnapSpec,
+                            )
+                            spotScrollPositions[spotId]?.let { yOffset ->
+                                scrollState.scrollTo(yOffset)
+                            }
+                        }
+                    }
+                },
                 onCameraMove = { lat, lon -> uiController.onCameraMoved(lat, lon) },
                 cameraTarget = uiController.cameraTarget,
                 modifier = Modifier
@@ -215,6 +274,30 @@ private fun HomeContent(
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             )
 
+            // ── Report Spot Extended FAB ─────────────────────────────────────
+            AnimatedVisibility(
+                visible = !sheetExpanded,
+                enter = fadeIn() + slideInHorizontally { -it },
+                exit = fadeOut() + slideOutHorizontally { -it },
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 14.dp, bottom = SheetPeekHeight + navBarBottom + 12.dp),
+            ) {
+                HomeReportSpotFab(
+                    onClick = {
+                        val lat = uiController.cameraLat
+                            ?: state.userParking?.location?.latitude
+                            ?: state.userGpsPoint?.latitude
+                            ?: return@HomeReportSpotFab
+                        val lon = uiController.cameraLon
+                            ?: state.userParking?.location?.longitude
+                            ?: state.userGpsPoint?.longitude
+                            ?: return@HomeReportSpotFab
+                        onIntent(HomeIntent.ReleaseParking(lat, lon))
+                    },
+                )
+            }
+
             // ── FAB column ────────────────────────────────────────────────────
             AnimatedVisibility(
                 visible = !sheetExpanded,
@@ -222,7 +305,7 @@ private fun HomeContent(
                 exit = fadeOut(),
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 14.dp, bottom = SheetPeekHeight + 12.dp),
+                    .padding(end = 14.dp, bottom = SheetPeekHeight + navBarBottom + 12.dp),
             ) {
                 HomeMapFabColumn(
                     userParking = state.userParking,
@@ -287,6 +370,7 @@ private fun HomeContent(
                         HomePeekHandle(
                             state = state,
                             onParkingClick = onNavigateToParking,
+                            selectedSpotId = selectedSpotId,
                         )
                     }
 
@@ -295,6 +379,18 @@ private fun HomeContent(
                         onIntent = onIntent,
                         onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
                         onParkingClick = onNavigateToParking,
+                        onParkingRelease = {
+                            state.userParking?.let { p ->
+                                onIntent(HomeIntent.ReleaseParking(p.location.latitude, p.location.longitude))
+                            }
+                        },
+                        onSpotSelect = { lat, lon, spotId ->
+                            selectedSpotId = spotId
+                            selectedNavTarget = SelectedNavTarget(lat, lon)
+                        },
+                        scrollState = scrollState,
+                        selectedSpotId = selectedSpotId,
+                        spotScrollPositions = spotScrollPositions,
                     )
                 }
             }

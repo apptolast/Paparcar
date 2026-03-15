@@ -25,7 +25,7 @@ private object Routes {
 }
 
 @Composable
-fun App() {
+fun App(onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> }) {
     PaparcarTheme {
         // Transparent so the map extends behind the status bar (edge-to-edge).
         // Each screen's Scaffold draws its own background.
@@ -41,6 +41,7 @@ fun App() {
                         onNavigateToMap = { navController.navigate(Routes.MAP) },
                         onNavigateToHistory = { navController.navigate(Routes.HISTORY) },
                         onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                        onOpenMapsNavigation = onOpenMapsNavigation,
                     )
                 }
                 composable(

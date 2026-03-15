@@ -12,6 +12,11 @@
     <string name="home_stats_free_spots_badge">%1$d free</string>
     <string name="home_banner_since">%1$s</string>
     <string name="home_banner_accuracy">±%1$dm</string>
+    <string name="home_parked_section">You are parked</string>
+    <string name="home_parking_release">Release spot</string>
+    <string name="home_nav_button">Navigate</string>
+    <string name="home_nav_your_car">Your car</string>
+    <string name="home_nav_free_spot">Free spot</string>
     <string name="home_feed_nearby">Near you</string>
     <string name="home_feed_activity">Recent activity</string>
     <string name="home_permissions_message">Enable location to see nearby spots</string>

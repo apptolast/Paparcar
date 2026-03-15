@@ -96,6 +96,7 @@ private fun HomeParkingRowPoiDarkPreview() {
                 parking = FakeData.activeSession,
                 userLocation = Pair(40.4165, -3.7030),
                 onClick = {},
+                onRelease = {},
             )
         }
     }
@@ -110,6 +111,7 @@ private fun HomeParkingRowNoAddressLightPreview() {
                 parking = FakeData.activeSession.copy(address = null, placeInfo = null),
                 userLocation = null,
                 onClick = {},
+                onRelease = {},
             )
         }
     }
