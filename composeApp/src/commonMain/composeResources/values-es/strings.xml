@@ -28,6 +28,42 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_loading">Obteniendo dirección…</string>
 
+    <!-- OnboardingScreen -->
+    <string name="onboarding_page1_title">Bienvenido a Paparcar</string>
+    <string name="onboarding_page1_subtitle">La comunidad que libera plazas de aparcamiento. Cuando tú te vas, los demás encuentran la tuya. Cuando los demás se van, tú encuentras la suya.</string>
+    <string name="onboarding_page2_title">Cómo funciona</string>
+    <string name="onboarding_step1_title">Detectamos que conduces</string>
+    <string name="onboarding_step1_desc">La app detecta cuándo te subes al coche</string>
+    <string name="onboarding_step2_title">Detectamos que aparcas</string>
+    <string name="onboarding_step2_desc">Cuando aparcas, guardamos la plaza en silencio</string>
+    <string name="onboarding_step3_title">Compartimos la plaza</string>
+    <string name="onboarding_step3_desc">Cuando te vas, tu plaza queda disponible para los demás</string>
+    <string name="onboarding_page3_title">Por qué necesitamos tus permisos</string>
+    <string name="onboarding_page3_subtitle">La app funciona automáticamente en segundo plano. Solo usamos tu ubicación para detectar aparcamientos — nunca se comparte con terceros.</string>
+    <string name="onboarding_cta_next">Siguiente</string>
+    <string name="onboarding_cta_setup">Configurar permisos</string>
+
+    <!-- PermissionsScreen -->
+    <string name="permissions_title">Activar permisos</string>
+    <string name="permissions_subtitle">Los siguientes permisos son necesarios para que la detección automática funcione.</string>
+    <string name="permissions_perm_location">Ubicación precisa</string>
+    <string name="permissions_perm_location_desc">Para guardar exactamente dónde has aparcado tu vehículo</string>
+    <string name="permissions_perm_background">Ubicación en segundo plano</string>
+    <string name="permissions_perm_background_desc">Necesaria para detectar aparcamientos aunque la app no esté abierta</string>
+    <string name="permissions_perm_activity">Reconocimiento de actividad</string>
+    <string name="permissions_perm_activity_desc">Para detectar automáticamente cuándo empiezas a conducir y cuándo aparcas</string>
+    <string name="permissions_perm_notifications">Notificaciones</string>
+    <string name="permissions_perm_notifications_desc">Para confirmarte el aparcamiento y avisarte de plazas libres cercanas</string>
+    <string name="permissions_btn_grant">Conceder permisos</string>
+    <string name="permissions_btn_background">Activar ubicación en segundo plano</string>
+    <string name="permissions_btn_settings">Abrir ajustes del sistema</string>
+    <string name="permissions_rationale">Algunos permisos fueron denegados. Por favor, concédelos para continuar.</string>
+    <string name="permissions_perm_location_services">Servicios de ubicación</string>
+    <string name="permissions_perm_location_services_desc">Necesario para que la detección de ubicación funcione correctamente</string>
+    <string name="permissions_btn_location_settings">Activar GPS</string>
+    <string name="permissions_status_granted">Concedido</string>
+    <string name="permissions_status_pending">Pendiente</string>
+
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Actividad semanal</string>
     <string name="history_weekly_subtitle">aparcamientos esta semana</string>
@@ -88,4 +124,5 @@
     <string name="settings_version">Versión</string>
     <string name="settings_privacy">Política de privacidad</string>
     <string name="settings_licenses">Licencias de código abierto</string>
+
 </resources>

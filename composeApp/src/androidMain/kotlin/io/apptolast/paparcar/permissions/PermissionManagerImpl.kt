@@ -3,6 +3,7 @@ package io.apptolast.paparcar.permissions
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
@@ -16,27 +17,59 @@ class PermissionManagerImpl(private val context: Context) : PermissionManager {
     override val permissionState = _permissionState.asStateFlow()
 
     override fun refreshPermissions() {
-        _permissionState.value = AppPermissionState(
+        val new = AppPermissionState(
             hasLocationPermission = hasLocationPermission(),
-            hasActivityRecognitionPermission = hasActivityRecognitionPermission()
+            hasBackgroundLocationPermission = hasBackgroundLocationPermission(),
+            hasActivityRecognitionPermission = hasActivityRecognitionPermission(),
+            hasNotificationPermission = hasNotificationPermission(),
+            isLocationServicesEnabled = isLocationServicesEnabled(),
         )
+        _permissionState.value = new
     }
 
-    private fun hasLocationPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private fun hasLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(
             context,
-            Manifest.permission.ACCESS_FINE_LOCATION
+            Manifest.permission.ACCESS_FINE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
-    }
 
-    private fun hasActivityRecognitionPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+    private fun hasBackgroundLocationPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.ACTIVITY_RECOGNITION
+                Manifest.permission.ACCESS_BACKGROUND_LOCATION,
             ) == PackageManager.PERMISSION_GRANTED
         } else {
-            true // Before Android Q, this permission is granted by default
+            true
+        }
+
+    private fun hasActivityRecognitionPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACTIVITY_RECOGNITION,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+    private fun hasNotificationPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+    private fun isLocationServicesEnabled(): Boolean {
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            lm.isLocationEnabled
+        } else {
+            lm.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
         }
     }
 }

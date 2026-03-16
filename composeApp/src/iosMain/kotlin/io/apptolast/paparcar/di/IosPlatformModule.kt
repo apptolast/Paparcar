@@ -10,11 +10,13 @@ import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
+import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.ios.preferences.IosAppPreferences
+import io.apptolast.paparcar.ios.stub.StubAppNotificationManager
 import io.apptolast.paparcar.ios.stub.StubGeocoderDataSource
 import io.apptolast.paparcar.ios.stub.StubLocationDataSource
-import io.apptolast.paparcar.ios.stub.StubAppNotificationManager
-import io.apptolast.paparcar.ios.stub.StubPermissionManager
 import io.apptolast.paparcar.ios.stub.StubPlacesDataSource
+import io.apptolast.paparcar.permissions.IosPermissionManagerImpl
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
@@ -38,8 +40,11 @@ val iosPlatformModule = module {
     // Notifications (stub)
     single<AppNotificationManager> { StubAppNotificationManager() }
 
-    // Permissions (stub — returns all granted to allow app flow)
-    single<PermissionManager> { StubPermissionManager() }
+    // Permissions — real iOS implementation (CLLocationManager + CoreMotion + UserNotifications)
+    single<PermissionManager> { IosPermissionManagerImpl() }
+
+    // Preferences — real iOS implementation (NSUserDefaults)
+    single<AppPreferences> { IosAppPreferences() }
 }
 
 private fun documentDirectory(): String {

@@ -10,12 +10,14 @@ import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.permissions.PermissionManager
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.location.AndroidGeocoderDataSourceImpl
 import io.apptolast.paparcar.location.AndroidLocationDataSourceImpl
 import io.apptolast.paparcar.location.OverpassPlacesDataSourceImpl
 import io.apptolast.paparcar.notification.AppNotificationManagerImpl
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import io.apptolast.paparcar.permissions.PermissionManagerImpl
+import io.apptolast.paparcar.preferences.AndroidAppPreferences
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -44,4 +46,7 @@ val androidPlatformModule = module {
 
     // Permissions
     single<PermissionManager> { PermissionManagerImpl(androidContext()) }
+
+    // Preferences
+    single<AppPreferences> { AndroidAppPreferences(androidContext()) }
 }

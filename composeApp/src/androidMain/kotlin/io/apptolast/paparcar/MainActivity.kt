@@ -1,15 +1,21 @@
 package io.apptolast.paparcar
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import android.content.IntentFilter
+import android.location.LocationManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
-import android.util.Log
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -19,27 +25,54 @@ class MainActivity : ComponentActivity() {
 
     private val permissionManager: PermissionManager by inject()
     private val activityRecognitionManager: ActivityRecognitionManager by inject()
+    private val appPreferences: AppPreferences by inject()
+
+    // Detects GPS toggled on/off from the quick-settings panel without leaving the app.
+    // Registered dynamically (not in manifest) so it is scoped to the Activity lifecycle.
+    private val gpsToggleReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == LocationManager.PROVIDERS_CHANGED_ACTION) {
+                permissionManager.refreshPermissions()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        permissionManager.refreshPermissions()
+
+        val permState = permissionManager.permissionState.value
+        val startRoute = when {
+            !appPreferences.isOnboardingCompleted -> Routes.ONBOARDING
+            !permState.allPermissionsGranted -> Routes.PERMISSIONS
+            !permState.isLocationServicesEnabled -> Routes.PERMISSIONS
+            else -> Routes.HOME
+        }
+
         setContent {
             App(
+                startRoute = startRoute,
                 onOpenMapsNavigation = { lat, lon ->
-                    val uri = Uri.parse("google.navigation:q=$lat,$lon&mode=d")
+                    val uri = "google.navigation:q=$lat,$lon&mode=d".toUri()
                     val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                         setPackage("com.google.android.apps.maps")
                     }
                     if (intent.resolveActivity(packageManager) != null) {
                         startActivity(intent)
                     } else {
-                        // Fallback: open in browser if Maps is not installed
-                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com/?daddr=$lat,$lon&directionsmode=driving")))
+                        startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                "https://maps.google.com/?daddr=$lat,$lon&directionsmode=driving".toUri(),
+                            ),
+                        )
                     }
                 },
             )
 
-            // Observa los cambios de estado de los permisos.
+            // Register Activity Recognition transitions whenever permissions are granted
             LaunchedEffect(Unit) {
                 permissionManager.permissionState
                     .onEach { state ->
@@ -51,6 +84,21 @@ class MainActivity : ComponentActivity() {
                     .launchIn(this)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ContextCompat.registerReceiver(
+            this,
+            gpsToggleReceiver,
+            IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(gpsToggleReceiver)
     }
 
     override fun onResume() {
