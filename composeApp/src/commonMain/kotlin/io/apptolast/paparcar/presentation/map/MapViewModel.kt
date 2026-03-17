@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.presentation.map
 
-import io.apptolast.paparcar.domain.usecase.location.ObserveLocationUpdatesUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
+import io.apptolast.paparcar.domain.repository.LocationRepository
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -12,20 +12,20 @@ import kotlinx.coroutines.flow.onEach
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapViewModel(
-    observeLocationUpdates: ObserveLocationUpdatesUseCase,
+    private val locationRepository: LocationRepository,
     observeNearbySpots: ObserveNearbySpotsUseCase,
-    observeUserParking: ObserveUserParkingUseCase,
+    private val userParkingRepository: UserParkingRepository,
 ) : BaseViewModel<MapState, MapIntent, MapEffect>() {
 
     init {
-        observeUserParking()
+        userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
                 sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
             }
             .launchIn(viewModelScope)
 
-        observeLocationUpdates()
+        locationRepository.observeBalancedLocationFlow()
             .onEach { location ->
                 updateState { copy(isLoading = false, userLocation = location) }
             }

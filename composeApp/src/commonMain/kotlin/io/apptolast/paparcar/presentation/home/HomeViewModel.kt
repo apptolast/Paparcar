@@ -4,10 +4,9 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
-import io.apptolast.paparcar.domain.usecase.location.ObserveLocationUpdatesUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
+import io.apptolast.paparcar.domain.repository.LocationRepository
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -25,18 +24,17 @@ import kotlin.time.Clock
 @OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 class HomeViewModel(
     private val permissionManager: PermissionManager,
-    private val observeLocationUpdates: ObserveLocationUpdatesUseCase,
+    private val locationRepository: LocationRepository,
     private val observeNearbySpots: ObserveNearbySpotsUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val activityRecognitionManager: ActivityRecognitionManager,
-    observeUserParking: ObserveUserParkingUseCase,
-    private val clearUserParking: ClearUserParkingUseCase,
+    private val userParkingRepository: UserParkingRepository,
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
-        observeUserParking()
+        userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
 
@@ -49,7 +47,7 @@ class HomeViewModel(
                 updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
                 if (permissionState.allPermissionsGranted) {
                     activityRecognitionManager.registerTransitions()
-                    observeLocationUpdates()
+                    locationRepository.observeBalancedLocationFlow()
                 } else {
                     updateState { copy(nearbySpots = emptyList()) }
                     emptyFlow()
@@ -115,13 +113,16 @@ class HomeViewModel(
         viewModelScope.launch {
             val spotId = state.value.userParking?.id
                 ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
-            clearUserParking().onFailure { e ->
+            // Schedule the WorkManager job BEFORE clearing so the report is durably
+            // enqueued even if the ViewModel scope is cancelled mid-flight.
+            // ReportSpotReleasedUseCase caps geocoding at 5 s, so this is fast.
+            reportSpotReleased(lat, lon, spotId)
+            userParkingRepository.clearActive().onFailure { e ->
                 sendEffect(HomeEffect.ShowError(e.message ?: "Error al liberar el parking"))
                 return@launch
             }
             updateState { copy(selectedItemId = null) }
             sendEffect(HomeEffect.ShowSuccess("Spot reported — uploading…"))
-            reportSpotReleased(lat, lon, spotId)
         }
     }
 

@@ -9,13 +9,12 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DepartureDecision
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
-import io.apptolast.paparcar.domain.usecase.parking.GetUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
@@ -41,8 +40,7 @@ class DepartureDetectionWorker(
     private val detectParkingDeparture: DetectParkingDepartureUseCase by inject()
     private val getOneLocation: GetOneLocationUseCase by inject()
     private val departureEventBus: DepartureEventBus by inject()
-    private val getUserParking: GetUserParkingUseCase by inject()
-    private val clearUserParking: ClearUserParkingUseCase by inject()
+    private val userParkingRepository: UserParkingRepository by inject()
     private val reportSpotReleased: ReportSpotReleasedUseCase by inject()
     private val geofenceService: GeofenceManager by inject()
 
@@ -63,18 +61,23 @@ class DepartureDetectionWorker(
             )
         ) {
             DepartureDecision.Confirmed -> {
-                val session = getUserParking()
+                val session = userParkingRepository.getActiveSession()
                 val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
                 val lat = session?.location?.latitude
                 val lon = session?.location?.longitude
-                // Clear parking BEFORE resetting the bus so that if the clear fails
-                // and we retry, DetectParkingDepartureUseCase can still read
-                // lastVehicleEnteredAt and return Confirmed again instead of Inconclusive.
-                clearUserParking().onFailure { return Result.retry() }
-                departureEventBus.reset()
+                // Schedule the report BEFORE clearing so the WorkManager job is durably
+                // enqueued even if a retry fires after the session has been deleted.
+                // ReportSpotReleasedUseCase has a 5 s geocoding timeout, so this always
+                // returns quickly. On retry (clear failed), the job is re-enqueued with
+                // REPLACE policy — no duplicate publications.
                 if (lat != null && lon != null) {
                     reportSpotReleased(lat, lon, spotId)
                 }
+                // Clear AFTER scheduling. If the clear fails we retry; the session is
+                // still present so DetectParkingDepartureUseCase returns Confirmed again
+                // and the bus window check remains valid.
+                userParkingRepository.clearActive().onFailure { return Result.retry() }
+                departureEventBus.reset()
                 // Remove the geofence so Play Services doesn't keep monitoring it and
                 // re-firing exits after the session is already cleared.
                 geofenceService.removeGeofence(geofenceId)

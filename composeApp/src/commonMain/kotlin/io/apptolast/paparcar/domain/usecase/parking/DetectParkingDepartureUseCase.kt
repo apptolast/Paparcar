@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import kotlin.math.abs
 
@@ -13,7 +15,7 @@ import kotlin.math.abs
  * - [Inconclusive]— session and geofence match, but either the IN_VEHICLE_ENTER
  *                   signal has not arrived yet, or it is present but GPS speed is
  *                   still below the departure threshold (user leaving a garage slowly).
- *                   The caller should retry after a short delay.
+ *                   `DepartureDetectionWorker` should retry after a short delay.
  */
 sealed class DepartureDecision {
     data object Confirmed : DepartureDecision()
@@ -27,7 +29,7 @@ sealed class DepartureDecision {
  *
  * Combines three independent signals to minimise false positives:
  *
- * 1. **Saved parking session** — an active [ParkingSession] must exist.
+ * 1. **Saved parking session** — an active [UserParking] must exist.
  * 2. **Geofence ID match** — the exited geofence must match the active session,
  *    preventing stale or mismatched events from triggering a report.
  * 3. **IN_VEHICLE_ENTER time window** — the user must have entered a vehicle
@@ -39,7 +41,7 @@ sealed class DepartureDecision {
  *
  * When signal 3 has not yet arrived and speed is insufficient, returns
  * [DepartureDecision.Inconclusive] instead of [DepartureDecision.Rejected] so
- * that [DepartureDetectionWorker] can retry — the Transitions API can take up to
+ * that the caller can retry — the Transitions API can take up to
  * ~2 minutes to deliver IN_VEHICLE_ENTER after the geofence fires.
  *
  * **Known limitation:** a user who boards a taxi immediately adjacent to their
@@ -49,7 +51,7 @@ sealed class DepartureDecision {
  * the benefit of reliable departure detection for the common case.
  */
 class DetectParkingDepartureUseCase(
-    private val getUserParking: GetUserParkingUseCase,
+    private val userParkingRepository: UserParkingRepository,
     private val departureEventBus: DepartureEventBus,
     private val config: ParkingDetectionConfig,
 ) {
@@ -66,7 +68,7 @@ class DetectParkingDepartureUseCase(
         currentSpeedKmh: Float?,
     ): DepartureDecision {
         // Signal 1: must have an active parking session to report
-        val session = getUserParking() ?: return DepartureDecision.Rejected
+        val session = userParkingRepository.getActiveSession() ?: return DepartureDecision.Rejected
 
         // Signal 2: the exit must belong to the current session's geofence.
         // Also rejects if session.geofenceId is null — a session without a registered
