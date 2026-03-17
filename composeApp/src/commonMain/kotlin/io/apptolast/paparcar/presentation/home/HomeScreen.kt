@@ -28,11 +28,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -55,6 +58,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
@@ -66,13 +70,17 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_release_dialog_cancel
+import paparcar.composeapp.generated.resources.home_release_dialog_confirm
+import paparcar.composeapp.generated.resources.home_release_dialog_message
+import paparcar.composeapp.generated.resources.home_release_dialog_title
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private data class SelectedNavTarget(val lat: Double, val lon: Double)
 
-// Peek = drag pill (22dp) + address row (74dp)
-private val SheetPeekHeight = 96.dp
+// Peek = drag pill (22dp) + content row (82dp)
+private val SheetPeekHeight = 104.dp
 
 private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
 
@@ -131,18 +139,24 @@ private fun HomeContent(
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    var selectedNavTarget by remember { mutableStateOf<SelectedNavTarget?>(null) }
-    var selectedSpotId by remember { mutableStateOf<String?>(null) }
+    val isParkingSelected = state.selectedItemId == PARKING_ITEM_ID
+    val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
+    val selectedSpot = selectedSpotId?.let { id -> state.nearbySpots.find { it.id == id } }
+    val selectedNavTarget = selectedSpot
+        ?.let { spot -> SelectedNavTarget(spot.location.latitude, spot.location.longitude) }
+    val navLabel: String = when {
+        isParkingSelected -> state.userParking?.let { p ->
+            locationDisplayText(p.placeInfo, p.address, p.location.latitude, p.location.longitude)
+        } ?: ""
+        selectedSpot != null -> locationDisplayText(
+            selectedSpot.placeInfo, selectedSpot.address,
+            selectedSpot.location.latitude, selectedSpot.location.longitude,
+        )
+        else -> ""
+    }
+    var showReleaseDialog by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val spotScrollPositions = remember { mutableMapOf<String, Int>() }
-
-    // Auto-clear selection when the selected spot leaves the nearby list
-    LaunchedEffect(state.nearbySpots) {
-        if (selectedSpotId != null && state.nearbySpots.none { it.id == selectedSpotId }) {
-            selectedSpotId = null
-            selectedNavTarget = null
-        }
-    }
 
     LaunchedEffect(state.userGpsPoint) {
         state.userGpsPoint?.let { uiController.onUserLocationAvailable(it.latitude, it.longitude) }
@@ -153,20 +167,47 @@ private fun HomeContent(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
             AnimatedVisibility(
-                visible = selectedNavTarget != null,
+                visible = state.selectedItemId != null,
                 enter = slideInVertically { it } + fadeIn(),
                 exit = slideOutVertically { it } + fadeOut(),
             ) {
                 HomeNavBar(
+                    navLabel = navLabel,
                     onNavigate = {
-                        selectedNavTarget?.let { onOpenMapsNavigation(it.lat, it.lon) }
+                        if (isParkingSelected) {
+                            state.userParking?.let { p -> onOpenMapsNavigation(p.location.latitude, p.location.longitude) }
+                        } else {
+                            selectedNavTarget?.let { onOpenMapsNavigation(it.lat, it.lon) }
+                        }
                     },
-                    onDismiss = { selectedNavTarget = null; selectedSpotId = null },
                 )
             }
         },
         containerColor = Color.Transparent,
     ) { scaffoldPadding ->
+
+        if (showReleaseDialog) {
+            AlertDialog(
+                onDismissRequest = { showReleaseDialog = false },
+                title = { Text(stringResource(Res.string.home_release_dialog_title)) },
+                text = { Text(stringResource(Res.string.home_release_dialog_message)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showReleaseDialog = false
+                        state.userParking?.let { p ->
+                            onIntent(HomeIntent.ReleaseParking(p.location.latitude, p.location.longitude))
+                        }
+                    }) {
+                        Text(stringResource(Res.string.home_release_dialog_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showReleaseDialog = false }) {
+                        Text(stringResource(Res.string.home_release_dialog_cancel))
+                    }
+                },
+            )
+        }
 
         BoxWithConstraints(
             modifier = Modifier
@@ -174,7 +215,7 @@ private fun HomeContent(
                 .padding(scaffoldPadding),
         ) {
             val containerHeightPx = constraints.maxHeight.toFloat()
-            val peekHeightPx = with(density) { (SheetPeekHeight + navBarBottom).toPx() }
+            var peekHeightPx by remember { mutableFloatStateOf(with(density) { (SheetPeekHeight + navBarBottom).toPx() }) }
             val containerHeightDp = with(density) { containerHeightPx.toDp() }
 
             val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
@@ -203,8 +244,14 @@ private fun HomeContent(
             val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
             // If the sheet was at (or beyond) peek when the container resizes, keep it at peek.
             // If it was open, leave it in place — just clamp so it can't go past the new peek.
-            LaunchedEffect(peekOffsetPx) {
-                if (sheetOffsetPx.value >= peekOffsetPx) {
+            // When no item is selected the sheet always lives at peek.
+            // Key on both peekOffsetPx AND selectedItemId so we re-evaluate:
+            //  • when the nav bar appears/disappears (container resizes → new peekOffsetPx)
+            //  • when the AnimatedVisibility exit animation finishes (second peekOffsetPx change)
+            LaunchedEffect(peekOffsetPx, state.selectedItemId) {
+                if (state.selectedItemId == null) {
+                    sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
+                } else if (sheetOffsetPx.value >= peekOffsetPx) {
                     sheetOffsetPx.snapTo(peekOffsetPx)
                 }
             }
@@ -223,12 +270,8 @@ private fun HomeContent(
 
             val sheetExpanded = sheetOffsetPx.value <= fullSnapOffsetPx + 1f
             val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + 20.dp
-            val onNavigateToParking: () -> Unit = {
-                state.userParking?.let { p ->
-                    uiController.moveCamera(p.location.latitude, p.location.longitude)
-                    selectedNavTarget = SelectedNavTarget(p.location.latitude, p.location.longitude)
-                }
-            }
+            // FABs sit just above the sheet's current top edge and follow it as it moves.
+            val fabBottomDp = with(density) { (containerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
 
             // ── Map ──────────────────────────────────────────────────────────
             PlatformMap(
@@ -239,11 +282,7 @@ private fun HomeContent(
                 reportMode = !sheetExpanded,
                 onSpotClick = { spotId ->
                     state.nearbySpots.find { it.id == spotId }?.let { spot ->
-                        selectedSpotId = spotId
-                        selectedNavTarget = SelectedNavTarget(
-                            spot.location.latitude,
-                            spot.location.longitude,
-                        )
+                        onIntent(HomeIntent.SelectItem(spotId))
                         uiController.moveCamera(spot.location.latitude, spot.location.longitude)
                         coroutineScope.launch {
                             sheetOffsetPx.animateTo(
@@ -256,7 +295,10 @@ private fun HomeContent(
                         }
                     }
                 },
-                onCameraMove = { lat, lon -> uiController.onCameraMoved(lat, lon) },
+                onCameraMove = { lat, lon ->
+                    uiController.onCameraMoved(lat, lon)
+                    onIntent(HomeIntent.CameraPositionChanged(lat, lon))
+                },
                 cameraTarget = uiController.cameraTarget,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -276,12 +318,12 @@ private fun HomeContent(
 
             // ── Report Spot Extended FAB ─────────────────────────────────────
             AnimatedVisibility(
-                visible = !sheetExpanded,
+                visible = sheetOffsetPx.value >= halfOffsetPx && state.userParking != null,
                 enter = fadeIn() + slideInHorizontally { -it },
                 exit = fadeOut() + slideOutHorizontally { -it },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 14.dp, bottom = SheetPeekHeight + navBarBottom + 12.dp),
+                    .padding(start = 14.dp, bottom = fabBottomDp),
             ) {
                 HomeReportSpotFab(
                     onClick = {
@@ -300,12 +342,12 @@ private fun HomeContent(
 
             // ── FAB column ────────────────────────────────────────────────────
             AnimatedVisibility(
-                visible = !sheetExpanded,
+                visible = sheetOffsetPx.value >= halfOffsetPx,
                 enter = fadeIn(),
                 exit = fadeOut(),
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 14.dp, bottom = SheetPeekHeight + navBarBottom + 12.dp),
+                    .padding(end = 14.dp, bottom = fabBottomDp),
             ) {
                 HomeMapFabColumn(
                     userParking = state.userParking,
@@ -316,8 +358,15 @@ private fun HomeContent(
                         }
                     },
                     onParkedCar = {
-                        state.userParking?.let {
-                            uiController.moveCamera(it.location.latitude, it.location.longitude)
+                        state.userParking?.let { p ->
+                            onIntent(HomeIntent.SelectItem(PARKING_ITEM_ID))
+                            uiController.moveCamera(p.location.latitude, p.location.longitude)
+                            coroutineScope.launch {
+                                sheetOffsetPx.animateTo(
+                                    halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                    SnapSpec,
+                                )
+                            }
                         }
                     },
                     onMidpoint = {
@@ -350,27 +399,28 @@ private fun HomeContent(
                 Column(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
                     // Handle: drives the sheet via draggable
                     Box(
-                        modifier = Modifier.draggable(
-                            orientation = Orientation.Vertical,
-                            state = rememberDraggableState { delta ->
-                                coroutineScope.launch {
-                                    sheetOffsetPx.snapTo(
-                                        (sheetOffsetPx.value + delta).coerceIn(fullSnapOffsetPx, peekOffsetPx),
-                                    )
-                                }
-                            },
-                            onDragStopped = { velocity ->
-                                coroutineScope.launch {
-                                    val target = snapToNearest(snapPoints, sheetOffsetPx.value, velocity)
-                                    sheetOffsetPx.animateTo(target, SnapSpec)
-                                }
-                            },
-                        ),
+                        modifier = Modifier
+                            .draggable(
+                                orientation = Orientation.Vertical,
+                                state = rememberDraggableState { delta ->
+                                    coroutineScope.launch {
+                                        sheetOffsetPx.snapTo(
+                                            (sheetOffsetPx.value + delta).coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                        )
+                                    }
+                                },
+                                onDragStopped = { velocity ->
+                                    coroutineScope.launch {
+                                        val target = snapToNearest(snapPoints, sheetOffsetPx.value, velocity)
+                                        sheetOffsetPx.animateTo(target, SnapSpec)
+                                    }
+                                },
+                            )
+                            .onSizeChanged { size -> peekHeightPx = size.height.toFloat() },
                     ) {
                         HomePeekHandle(
                             state = state,
-                            onParkingClick = onNavigateToParking,
-                            selectedSpotId = selectedSpotId,
+                            onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                         )
                     }
 
@@ -378,15 +428,16 @@ private fun HomeContent(
                         state = state,
                         onIntent = onIntent,
                         onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
-                        onParkingClick = onNavigateToParking,
-                        onParkingRelease = {
-                            state.userParking?.let { p ->
-                                onIntent(HomeIntent.ReleaseParking(p.location.latitude, p.location.longitude))
+                        onParkingClick = {
+                            onIntent(HomeIntent.SelectItem(PARKING_ITEM_ID))
+                            state.userParking?.location?.let { loc ->
+                                uiController.moveCamera(loc.latitude, loc.longitude)
                             }
                         },
-                        onSpotSelect = { lat, lon, spotId ->
-                            selectedSpotId = spotId
-                            selectedNavTarget = SelectedNavTarget(lat, lon)
+                        onParkingRelease = { showReleaseDialog = true },
+                        onManualPark = { onIntent(HomeIntent.ManualPark) },
+                        onSpotSelect = { _, _, spotId ->
+                            onIntent(HomeIntent.SelectItem(spotId))
                         },
                         scrollState = scrollState,
                         selectedSpotId = selectedSpotId,

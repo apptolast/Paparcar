@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material3.Icon
@@ -33,11 +35,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.PARKING_ITEM_ID
 import io.apptolast.paparcar.presentation.util.distanceMeters
-import io.apptolast.paparcar.presentation.util.formatCoords
+import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.formatDistance
-import io.apptolast.paparcar.presentation.util.formatDriveTime
+import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.util.relativeTimeText
+import io.apptolast.paparcar.presentation.util.walkTimeString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_loading
@@ -46,11 +52,14 @@ import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 @Composable
 internal fun HomePeekHandle(
     state: HomeState,
-    onParkingClick: () -> Unit,
-    selectedSpotId: String? = null,
+    onDismiss: () -> Unit = {},
 ) {
     val freeCount = state.nearbySpots.size
-    val selectedSpot = selectedSpotId?.let { id -> state.nearbySpots.find { it.id == id } }
+    val isParkingSelected = state.selectedItemId == PARKING_ITEM_ID
+    val selectedSpot = state.selectedItemId
+        ?.takeIf { !isParkingSelected }
+        ?.let { id -> state.nearbySpots.find { it.id == id } }
+    val parkingToShow = if (isParkingSelected) state.userParking else null
 
     Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
 
@@ -66,11 +75,11 @@ internal fun HomePeekHandle(
                 .align(Alignment.CenterHorizontally),
         )
 
-        // Animated switch: selected spot info ↔ current location
+        // 3-state animated switch: selected spot ↔ selected parking ↔ camera location
         AnimatedContent(
-            targetState = selectedSpot,
+            targetState = Pair(selectedSpot, parkingToShow),
             transitionSpec = {
-                if (targetState != null) {
+                if (targetState.first != null) {
                     (slideInVertically { it / 2 } + fadeIn()) togetherWith
                         (slideOutVertically { -it / 2 } + fadeOut())
                 } else {
@@ -79,14 +88,19 @@ internal fun HomePeekHandle(
                 }
             },
             label = "peek_content",
-        ) { spot ->
-            if (spot != null) {
-                SpotPeekRow(
+        ) { (spot, parking) ->
+            when {
+                spot != null -> SpotPeekRow(
                     spot = spot,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                    onDismiss = onDismiss,
                 )
-            } else {
-                LocationPeekRow(state = state, freeCount = freeCount)
+                parking != null -> ParkingPeekRow(
+                    parking = parking,
+                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                    onDismiss = onDismiss,
+                )
+                else -> CameraLocationRow(state = state, freeCount = freeCount)
             }
         }
     }
@@ -100,18 +114,22 @@ internal fun HomePeekHandle(
 private fun SpotPeekRow(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
+    onDismiss: () -> Unit,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
-    val place = spot.placeInfo?.let { "${it.category.emoji} ${it.name}" }
-    val address = spot.address?.displayLine
-    val displayText = place ?: address ?: formatCoords(spot.location.latitude, spot.location.longitude)
+    val displayText = locationDisplayText(
+        placeInfo = spot.placeInfo,
+        address = spot.address,
+        lat = spot.location.latitude,
+        lon = spot.location.longitude,
+    )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -133,13 +151,108 @@ private fun SpotPeekRow(
             )
             if (distM != null) {
                 Text(
-                    text = "${formatDistance(distM)}  ·  ${formatDriveTime(distM)}",
+                    text = "${formatDistance(distM)}  ·  ${driveTimeString(distM)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+
+        // ✕ dismiss — deselects the current spot
+        Surface(
+            onClick = onDismiss,
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        ) {
+            Icon(
+                Icons.Outlined.Close,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(6.dp)
+                    .size(16.dp),
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Active parking row
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ParkingPeekRow(
+    parking: UserParking,
+    userLocation: Pair<Double, Double>?,
+    onDismiss: () -> Unit,
+) {
+    val distM = userLocation?.let { (uLat, uLon) ->
+        distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
+    }
+    val displayText = locationDisplayText(
+        placeInfo = parking.placeInfo,
+        address = parking.address,
+        lat = parking.location.latitude,
+        lon = parking.location.longitude,
+    )
+    val timeAgo = relativeTimeText(parking.location.timestamp)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Outlined.DirectionsCar,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(26.dp),
+        )
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = displayText,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                modifier = Modifier.basicMarquee(),
+            )
+            if (distM != null) {
+                Text(
+                    text = "${formatDistance(distM)}  ·  ${walkTimeString(distM)}  ·  $timeAgo",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                Text(
+                    text = timeAgo,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                )
+            }
+        }
+
+        // ✕ dismiss — deselects parking
+        Surface(
+            onClick = onDismiss,
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        ) {
+            Icon(
+                Icons.Outlined.Close,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(6.dp)
+                    .size(16.dp),
+            )
         }
     }
 }
@@ -149,11 +262,11 @@ private fun SpotPeekRow(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LocationPeekRow(state: HomeState, freeCount: Int) {
+private fun CameraLocationRow(state: HomeState, freeCount: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -165,7 +278,7 @@ private fun LocationPeekRow(state: HomeState, freeCount: Int) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = state.userLocationInfo?.address?.displayLine
+                text = state.cameraLocationInfo?.displayLine
                     ?: stringResource(Res.string.home_address_loading),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
@@ -173,13 +286,17 @@ private fun LocationPeekRow(state: HomeState, freeCount: Int) {
                 maxLines = 1,
                 modifier = Modifier.basicMarquee(),
             )
-            val cityRegion = listOfNotNull(
-                state.userLocationInfo?.address?.city,
-                state.userLocationInfo?.address?.region,
-            ).joinToString(", ")
-            if (cityRegion.isNotEmpty()) {
+            val info = state.cameraLocationInfo
+            val secondaryLine = if (info?.placeInfo != null) {
+                // POI shown as primary → street address gives location context
+                info.address.displayLine.takeIf { it != info.placeInfo.name }
+            } else {
+                listOfNotNull(info?.address?.city, info?.address?.region)
+                    .joinToString(", ").takeIf { it.isNotEmpty() }
+            }
+            if (secondaryLine != null) {
                 Text(
-                    text = cityRegion,
+                    text = secondaryLine,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     maxLines = 1,

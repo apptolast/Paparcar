@@ -10,14 +10,21 @@ import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Queries the public Overpass API (OpenStreetMap) to find the most relevant
- * named POI within ~50 m of a given coordinate.
+ * named POI within ~150 m of a given coordinate.
+ *
+ * Uses `out center` so that ways and relations return their geometric centre,
+ * enabling distance sorting when multiple same-priority POIs are found.
  *
  * Only nodes/ways tagged with [amenity], [shop], [tourism], or [leisure] are
- * considered, so generic building names are excluded. Results are sorted by
- * category priority (fuel > supermarket > …) and the top match is returned.
+ * considered, so generic building names are excluded. Results are sorted first
+ * by category priority (fuel > supermarket > …) then by distance.
  *
  * No API key required. Degrades gracefully to null on network errors or timeout.
  */
@@ -29,20 +36,20 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
         withContext(Dispatchers.IO) {
             runCatching {
                 val body = postOverpass(buildQuery(lat, lon)) ?: return@runCatching null
-                parseResponse(body)
+                parseResponse(body, lat, lon)
             }
         }
 
     // ── Query ────────────────────────────────────────────────────────────────
 
     private fun buildQuery(lat: Double, lon: Double): String {
-        val around = "around:50,$lat,$lon"
-        return "[out:json][timeout:5];" +
+        val around = "around:$RADIUS_METERS,$lat,$lon"
+        return "[out:json][timeout:8];" +
             "(nwr($around)[name][amenity];" +
             "nwr($around)[name][shop];" +
             "nwr($around)[name][tourism];" +
             "nwr($around)[name][leisure];);" +
-            "out 5;"
+            "out center $MAX_RESULTS;"
     }
 
     // ── HTTP ─────────────────────────────────────────────────────────────────
@@ -53,7 +60,7 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.connectTimeout = 6_000
-            connection.readTimeout = 8_000
+            connection.readTimeout = 10_000
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
             val payload = "data=${URLEncoder.encode(query, "UTF-8")}"
             connection.outputStream.bufferedWriter().use { it.write(payload) }
@@ -67,14 +74,32 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
 
     // ── Parsing ──────────────────────────────────────────────────────────────
 
-    private fun parseResponse(body: String): PlaceInfo? {
+    private fun parseResponse(body: String, originLat: Double, originLon: Double): PlaceInfo? {
         val elements = json.decodeFromString<OverpassResponse>(body).elements
         return elements
             .mapNotNull { el ->
                 val name = el.tags["name"] ?: return@mapNotNull null
-                PlaceInfo(name = name, category = resolveCategory(el.tags))
+                val elLat = el.lat ?: el.center?.lat ?: return@mapNotNull null
+                val elLon = el.lon ?: el.center?.lon ?: return@mapNotNull null
+                val dist = haversineMeters(originLat, originLon, elLat, elLon)
+                Triple(name, resolveCategory(el.tags), dist)
             }
-            .minByOrNull { CATEGORY_PRIORITY.indexOf(it.category).let { i -> if (i < 0) Int.MAX_VALUE else i } }
+            .sortedWith(compareBy(
+                { CATEGORY_PRIORITY.indexOf(it.second).let { i -> if (i < 0) Int.MAX_VALUE else i } },
+                { it.third },
+            ))
+            .firstOrNull()
+            ?.let { (name, category, _) -> PlaceInfo(name = name, category = category) }
+    }
+
+    private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+            cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+            sin(dLon / 2) * sin(dLon / 2)
+        return r * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 
     private fun resolveCategory(tags: Map<String, String>): PlaceCategory {
@@ -113,11 +138,23 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
     @Serializable
     private data class OverpassElement(
         val type: String = "",
+        // nodes have lat/lon directly; ways/relations have a "center" object
+        val lat: Double? = null,
+        val lon: Double? = null,
+        val center: Center? = null,
         val tags: Map<String, String> = emptyMap(),
+    )
+
+    @Serializable
+    private data class Center(
+        val lat: Double = 0.0,
+        val lon: Double = 0.0,
     )
 
     companion object {
         private const val ENDPOINT = "https://overpass-api.de/api/interpreter"
+        private const val RADIUS_METERS = 150
+        private const val MAX_RESULTS = 20
 
         /** Lower index = shown first when multiple POIs are found in the radius. */
         private val CATEGORY_PRIORITY = listOf(

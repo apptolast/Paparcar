@@ -27,6 +27,13 @@
     <string name="home_spot_status_free">Free</string>
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_loading">Getting address…</string>
+    <string name="home_release_dialog_title">Release spot?</string>
+    <string name="home_release_dialog_message">Confirm you\'ve left. Your spot will be shared with nearby drivers.</string>
+    <string name="home_release_dialog_confirm">Release</string>
+    <string name="home_release_dialog_cancel">Cancel</string>
+    <string name="home_parking_peek_label">You are parked · %1$s</string>
+    <string name="home_manual_park_title">Park here</string>
+    <string name="home_manual_park_subtitle">Manually save your parking location</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
@@ -82,6 +89,19 @@
     <string name="history_ended_section">Previous parkings</string>
     <string name="history_precision">±%1$dm</string>
     <string name="history_view_map">View on map</string>
+    <!-- Relative time -->
+    <string name="relative_time_just_now">just now</string>
+    <string name="relative_time_minutes">%1$d min ago</string>
+    <string name="relative_time_hours">%1$d h ago</string>
+    <string name="relative_time_day">%1$d day ago</string>
+    <string name="relative_time_days">%1$d days ago</string>
+    <!-- Walk / drive time -->
+    <string name="walk_time_minutes">%1$d min walk</string>
+    <string name="drive_time_minutes">%1$d min drive</string>
+
+    <string name="history_stat_total">Total</string>
+    <string name="history_stat_this_week">This week</string>
+    <string name="history_stat_this_month">This month</string>
     <!-- %1$d = day, %2$s = month name, %3$s = hour (padded), %4$s = minute (padded) -->
     <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
     <string name="history_month_1">January</string>

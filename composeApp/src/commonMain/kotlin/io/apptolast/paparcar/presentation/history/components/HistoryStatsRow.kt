@@ -21,6 +21,14 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.history.BodySmall
 import io.apptolast.paparcar.presentation.history.TitleBody
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.history_stat_this_month
+import paparcar.composeapp.generated.resources.history_stat_this_week
+import paparcar.composeapp.generated.resources.history_stat_total
+import kotlin.time.Instant
 
 @Composable
 internal fun StatsRow(sessions: List<UserParking>) {
@@ -29,18 +37,22 @@ internal fun StatsRow(sessions: List<UserParking>) {
     val thisWeek = remember(sessions) {
         sessions.count { it.location.timestamp >= nowMs - sevenDaysMs }
     }
-    val avgPrecision = remember(sessions) {
-        if (sessions.isEmpty()) 0
-        else sessions.map { it.location.accuracy }.average().toInt()
+    val thisMonth = remember(sessions) {
+        val tz = TimeZone.currentSystemDefault()
+        val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
+        sessions.count { session ->
+            val dt = Instant.fromEpochMilliseconds(session.location.timestamp).toLocalDateTime(tz)
+            dt.year == nowLocal.year && dt.month == nowLocal.month
+        }
     }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        StatChip(label = "Total", value = sessions.size.toString(), modifier = Modifier.weight(1f))
-        StatChip(label = "Esta semana", value = thisWeek.toString(), modifier = Modifier.weight(1f))
-        StatChip(label = "Prec. media", value = "±${avgPrecision}m", modifier = Modifier.weight(1f))
+        StatChip(label = stringResource(Res.string.history_stat_total), value = sessions.size.toString(), modifier = Modifier.weight(1f))
+        StatChip(label = stringResource(Res.string.history_stat_this_week), value = thisWeek.toString(), modifier = Modifier.weight(1f))
+        StatChip(label = stringResource(Res.string.history_stat_this_month), value = thisMonth.toString(), modifier = Modifier.weight(1f))
     }
 }
 
@@ -48,7 +60,7 @@ internal fun StatsRow(sessions: List<UserParking>) {
 private fun StatChip(label: String, value: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
     ) {
         Column(

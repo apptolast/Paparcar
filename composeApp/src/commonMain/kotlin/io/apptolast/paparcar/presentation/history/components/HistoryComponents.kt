@@ -2,7 +2,9 @@ package io.apptolast.paparcar.presentation.history.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,6 +24,24 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_empty_subtitle
 import paparcar.composeapp.generated.resources.history_empty_title
+
+@Composable
+internal fun ActiveSectionHeader(text: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        PulsingDot(color = MaterialTheme.colorScheme.primary)
+        Text(
+            text = text.uppercase(),
+            style = LabelBold,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+        )
+    }
+}
 
 @Composable
 internal fun HistorySectionHeader(text: String, modifier: Modifier = Modifier) {

@@ -21,7 +21,6 @@ class MapViewModel(
         observeUserParking()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
-                updateState { copy(error = e.message) }
                 sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
             }
             .launchIn(viewModelScope)
@@ -30,21 +29,9 @@ class MapViewModel(
             .onEach { location ->
                 updateState { copy(isLoading = false, userLocation = location) }
             }
-            .flatMapLatest { userLocation ->
-                observeNearbySpots(userLocation, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
-                    .catch { e ->
-                        // Firebase error — show it but keep the location chain alive
-                        updateState { copy(error = e.message) }
-                        sendEffect(MapEffect.ShowError(e.message ?: "Error cargando spots cercanos"))
-                        emit(emptyList())
-                    }
-            }
-            .onEach { spots ->
-                updateState { copy(spots = spots) }
-            }
             .catch { e ->
                 // GPS / location chain error
-                updateState { copy(isLoading = false, error = e.message) }
+                updateState { copy(isLoading = false) }
                 sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
             }
             .launchIn(viewModelScope)

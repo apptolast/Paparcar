@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveLocationUpdatesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ClearUserParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveUserParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -30,13 +32,14 @@ class HomeViewModel(
     observeUserParking: ObserveUserParkingUseCase,
     private val clearUserParking: ClearUserParkingUseCase,
     private val getLocationInfo: GetLocationInfoUseCase,
+    private val confirmParking: ConfirmParkingUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
         observeUserParking()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
-                updateState { copy(error = e.message) }
+
                 sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
             }
             .launchIn(viewModelScope)
@@ -55,6 +58,9 @@ class HomeViewModel(
             .onEach { userLocation ->
                 updateState { copy(isLoading = false, userGpsPoint = userLocation) }
                 geocodeUserLocation(userLocation.latitude, userLocation.longitude)
+                if (state.value.cameraLocationInfo == null) {
+                    geocodeCameraLocation(userLocation.latitude, userLocation.longitude)
+                }
             }
             .flatMapLatest { userLocation ->
                 observeNearbySpots(
@@ -62,17 +68,24 @@ class HomeViewModel(
                     ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS,
                 ).catch { e ->
                     // Firebase error (permissions, network, format) — show it but keep GPS chain alive
-                    updateState { copy(error = e.message) }
+    
                     sendEffect(HomeEffect.ShowError(e.message ?: "Error cargando spots cercanos"))
                     emit(emptyList())
                 }
             }
             .onEach { spots ->
-                updateState { copy(nearbySpots = spots) }
+                updateState {
+                    val cur = selectedItemId
+                    copy(
+                        nearbySpots = spots,
+                        // Keep parking selection or a spot that still exists; clear otherwise.
+                        selectedItemId = if (cur != PARKING_ITEM_ID && spots.none { it.id == cur }) null else cur,
+                    )
+                }
             }
             .catch { e ->
                 // GPS/permissions chain error
-                updateState { copy(error = e.message) }
+
                 sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
             }
             .launchIn(viewModelScope)
@@ -92,6 +105,9 @@ class HomeViewModel(
             is HomeIntent.OpenHistory -> sendEffect(HomeEffect.NavigateToHistory)
             is HomeIntent.ReportTestSpot -> reportTestSpot()
             is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon)
+            is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId) }
+            is HomeIntent.ManualPark -> manualPark()
+            is HomeIntent.CameraPositionChanged -> geocodeCameraLocation(intent.lat, intent.lon)
         }
     }
 
@@ -103,6 +119,7 @@ class HomeViewModel(
                 sendEffect(HomeEffect.ShowError(e.message ?: "Error al liberar el parking"))
                 return@launch
             }
+            updateState { copy(selectedItemId = null) }
             sendEffect(HomeEffect.ShowSuccess("Spot reported — uploading…"))
             reportSpotReleased(lat, lon, spotId)
         }
@@ -117,6 +134,17 @@ class HomeViewModel(
         }
     }
 
+    private fun manualPark() {
+        val gps = state.value.userGpsPoint
+        if (gps == null) {
+            sendEffect(HomeEffect.ShowError("Waiting for GPS fix…"))
+            return
+        }
+        viewModelScope.launch {
+            confirmParking(gps)
+        }
+    }
+
     private var geocodeJob: Job? = null
 
     private fun geocodeUserLocation(lat: Double, lon: Double) {
@@ -125,6 +153,18 @@ class HomeViewModel(
             getLocationInfo(lat, lon)
                 .catch { /* best-effort; ignore errors */ }
                 .collect { info -> updateState { copy(userLocationInfo = info) } }
+        }
+    }
+
+    private var geocodeCameraJob: Job? = null
+
+    private fun geocodeCameraLocation(lat: Double, lon: Double) {
+        geocodeCameraJob?.cancel()
+        geocodeCameraJob = viewModelScope.launch {
+            delay(600L)
+            getLocationInfo(lat, lon)
+                .catch { /* best-effort; ignore errors */ }
+                .collect { info -> updateState { copy(cameraLocationInfo = info) } }
         }
     }
 

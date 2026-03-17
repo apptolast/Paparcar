@@ -42,7 +42,6 @@ import io.apptolast.paparcar.presentation.history.TitleBody
 import io.apptolast.paparcar.presentation.history.WeekDayStats
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.history_minutes_suffix
 import paparcar.composeapp.generated.resources.history_weekly_subtitle
 import paparcar.composeapp.generated.resources.history_weekly_title
 
@@ -87,17 +86,6 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
                         "${data.sumOf { it.sessions }} ${stringResource(Res.string.history_weekly_subtitle)}",
                         style = BodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    )
-                }
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(8.dp),
-                ) {
-                    Text(
-                        "${data.sumOf { it.minutes }} ${stringResource(Res.string.history_minutes_suffix)}",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        style = LabelBold,
-                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }

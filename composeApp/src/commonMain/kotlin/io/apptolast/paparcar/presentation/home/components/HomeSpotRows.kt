@@ -21,13 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -36,31 +31,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.presentation.util.distanceMeters
-import io.apptolast.paparcar.presentation.util.formatCoords
+import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.formatDistance
-import io.apptolast.paparcar.presentation.util.formatDriveTime
-import io.apptolast.paparcar.presentation.util.formatRelativeTime
+import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.util.relativeTimeText
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
 import paparcar.composeapp.generated.resources.home_spot_reported_by
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Relative time (auto-updates every minute)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-internal fun relativeTimeText(timestampMs: Long): String {
-    var text by remember(timestampMs) { mutableStateOf(formatRelativeTime(timestampMs)) }
-    LaunchedEffect(timestampMs) {
-        while (true) {
-            delay(60_000L)
-            text = formatRelativeTime(timestampMs)
-        }
-    }
-    return text
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Spot row
@@ -77,14 +56,12 @@ internal fun HomeSpotRow(
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
-    val place = spot.placeInfo?.let { "${it.category.emoji} ${it.name}" }
-    val address = spot.address?.displayLine
-    val displayText = when {
-        place != null && address != null -> "$place  ·  $address"
-        place != null -> place
-        address != null -> address
-        else -> formatCoords(spot.location.latitude, spot.location.longitude)
-    }
+    val displayText = locationDisplayText(
+        placeInfo = spot.placeInfo,
+        address = spot.address,
+        lat = spot.location.latitude,
+        lon = spot.location.longitude,
+    )
 
     Surface(
         onClick = { onSelect() },
@@ -95,7 +72,7 @@ internal fun HomeSpotRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -125,7 +102,7 @@ internal fun HomeSpotRow(
                 if (distanceM != null) {
                     // Line 1: drive time only
                     Text(
-                        formatDriveTime(distanceM),
+                        driveTimeString(distanceM),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -170,14 +147,12 @@ internal fun HomeActivityRow(
     spot: Spot,
     onClick: () -> Unit,
 ) {
-    val place = spot.placeInfo?.let { "${it.category.emoji} ${it.name}" }
-    val addr = spot.address?.displayLine
-    val displayText = when {
-        place != null && addr != null -> "$place  ·  $addr"
-        place != null -> place
-        addr != null -> addr
-        else -> formatCoords(spot.location.latitude, spot.location.longitude)
-    }
+    val displayText = locationDisplayText(
+        placeInfo = spot.placeInfo,
+        address = spot.address,
+        lat = spot.location.latitude,
+        lon = spot.location.longitude,
+    )
 
     Surface(
         onClick = onClick,
@@ -186,7 +161,7 @@ internal fun HomeActivityRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

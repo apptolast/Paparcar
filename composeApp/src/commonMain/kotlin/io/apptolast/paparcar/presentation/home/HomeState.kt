@@ -5,6 +5,9 @@ import io.apptolast.paparcar.domain.model.LocationInfo
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 
+/** Sentinel value used as [HomeState.selectedItemId] when the user's parked car is selected. */
+const val PARKING_ITEM_ID = "__parking__"
+
 /**
  * Estado de la pantalla Home.
  * Representa todos los datos necesarios para renderizar la UI.
@@ -13,9 +16,12 @@ data class HomeState(
     val isLoading: Boolean = false,
     val allPermissionsGranted: Boolean = false,
     val nearbySpots: List<Spot> = emptyList(),
-    val error: String? = null,
     val userGpsPoint: GpsPoint? = null,
     /** LocationInfo for the user's current GPS position (geocoded on-demand, not stored). */
     val userLocationInfo: LocationInfo? = null,
     val userParking: UserParking? = null,
+    /** ID of the currently selected item: a spot ID, [PARKING_ITEM_ID], or null for none. */
+    val selectedItemId: String? = null,
+    /** Geocoded address of the map camera centre (updated as the user pans). */
+    val cameraLocationInfo: LocationInfo? = null,
 )

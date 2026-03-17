@@ -16,22 +16,26 @@ class HistoryViewModel(
 
     override fun handleIntent(intent: HistoryIntent) {
         when (intent) {
-            is HistoryIntent.LoadHistory -> loadHistory()
+            is HistoryIntent.LoadHistory -> loadHistory(isRefresh = true)
             is HistoryIntent.ViewOnMap -> sendEffect(
                 HistoryEffect.NavigateToMap(intent.lat, intent.lon)
             )
         }
     }
 
-    private fun loadHistory() {
+    private fun loadHistory(isRefresh: Boolean = false) {
         viewModelScope.launch {
-            updateState { copy(isLoading = true, error = null) }
+            if (isRefresh) {
+                updateState { copy(isRefreshing = true) }
+            } else {
+                updateState { copy(isLoading = true) }
+            }
             runCatching { getAllSessions() }
                 .onSuccess { sessions ->
-                    updateState { copy(isLoading = false, sessions = sessions) }
+                    updateState { copy(isLoading = false, isRefreshing = false, sessions = sessions) }
                 }
                 .onFailure { t ->
-                    updateState { copy(isLoading = false, error = t.message) }
+                    updateState { copy(isLoading = false, isRefreshing = false) }
                     sendEffect(HistoryEffect.ShowError(t.message ?: "Error al cargar historial"))
                 }
         }

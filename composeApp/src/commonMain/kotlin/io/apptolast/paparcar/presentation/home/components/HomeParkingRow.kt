@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,46 +26,48 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.formatDistance
-import io.apptolast.paparcar.presentation.util.formatWalkTime
+import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.util.relativeTimeText
+import io.apptolast.paparcar.presentation.util.walkTimeString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_banner_accuracy
+import paparcar.composeapp.generated.resources.home_manual_park_subtitle
+import paparcar.composeapp.generated.resources.home_manual_park_title
 import paparcar.composeapp.generated.resources.home_parking_release
 
 @Composable
 internal fun HomeParkingRow(
     parking: UserParking,
     userLocation: Pair<Double, Double>?,
-    onClick: () -> Unit,
+    isSelected: Boolean = false,
+    onSelect: () -> Unit,
     onRelease: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val place = parking.placeInfo?.let { "${it.category.emoji} ${it.name}" }
-    val address = parking.address?.displayLine
-    val locationLabel: String? = when {
-        place != null && address != null -> "$place  ·  $address"
-        place != null -> place
-        address != null -> address
-        else -> null
+    val locationLabel: String? = if (parking.placeInfo == null && parking.address == null) {
+        null
+    } else {
+        locationDisplayText(parking.placeInfo, parking.address, parking.location.latitude, parking.location.longitude)
     }
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
     }
 
     Surface(
-        onClick = onClick,
+        onClick = onSelect,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                else Color.Transparent,
     ) {
         Column {
             Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -89,7 +92,7 @@ internal fun HomeParkingRow(
                     val timeAgo = relativeTimeText(parking.location.timestamp)
                     if (distanceM != null) {
                         Text(
-                            formatWalkTime(distanceM),
+                            walkTimeString(distanceM),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary,
@@ -127,28 +130,7 @@ internal fun HomeParkingRow(
                     }
                 }
 
-                // Accuracy chip
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                ) {
-                    Text(
-                        stringResource(Res.string.home_banner_accuracy, parking.location.accuracy.toInt()),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-
-            // Release action — nested click, does not propagate to card
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 68.dp, end = 8.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.End,
-            ) {
+                // Release action — inline, does not propagate to row click
                 TextButton(onClick = onRelease) {
                     Text(
                         stringResource(Res.string.home_parking_release),
@@ -158,6 +140,64 @@ internal fun HomeParkingRow(
                     )
                 }
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty parking — CTA to manually register parking
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+internal fun HomeParkingEmptyCard(
+    onManualPark: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onManualPark,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.DirectionsCar,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(Res.string.home_manual_park_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stringResource(Res.string.home_manual_park_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                )
+            }
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }

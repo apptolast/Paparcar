@@ -80,14 +80,14 @@ internal object FakeData {
 
     // ── PlaceInfo ─────────────────────────────────────────────────────────────
 
-    val placeInfoFuel        = PlaceInfo("Repsol Av. Castellana", PlaceCategory.FUEL)
+    val placeInfoFuel = PlaceInfo("Repsol Av. Castellana", PlaceCategory.FUEL)
     val placeInfoSupermarket = PlaceInfo("Mercadona Fuencarral", PlaceCategory.SUPERMARKET)
-    val placeInfoMall        = PlaceInfo("Moda Shopping", PlaceCategory.MALL)
-    val placeInfoCafe        = PlaceInfo("Starbucks Serrano", PlaceCategory.CAFE)
+    val placeInfoMall = PlaceInfo("Moda Shopping", PlaceCategory.MALL)
+    val placeInfoCafe = PlaceInfo("Starbucks Serrano", PlaceCategory.CAFE)
 
     // ── LocationInfo (for HomeState.userLocationInfo) ─────────────────────────
 
-    val locationInfoFuel   = LocationInfo(addrFuel, placeInfoFuel)
+    val locationInfoFuel = LocationInfo(addrFuel, placeInfoFuel)
     val locationInfoStreet = LocationInfo(addrStreet, null)
 
     // ── Sessions ──────────────────────────────────────────────────────────────
@@ -151,30 +151,31 @@ internal object FakeData {
         placeInfo = null,
     )
 
-    val allSessions       = listOf(activeSession, endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedOld)
-    val endedSessions     = listOf(endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedOld)
+    val allSessions =
+        listOf(activeSession, endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedOld)
+    val endedSessions = listOf(endedToday1, endedToday2, endedYesterday1, endedYesterday2, endedOld)
     val onlyEndedSessions = endedSessions
 
     // ── Weekly chart ──────────────────────────────────────────────────────────
 
     val weeklyStats = listOf(
-        WeekDayStats("L", 2, 45),
-        WeekDayStats("M", 1, 30),
-        WeekDayStats("X", 3, 90),
-        WeekDayStats("J", 0, 0),
-        WeekDayStats("V", 2, 60),
-        WeekDayStats("S", 1, 20),
-        WeekDayStats("D", 4, 120),
+        WeekDayStats("L", 2),
+        WeekDayStats("M", 1),
+        WeekDayStats("X", 3),
+        WeekDayStats("J", 0),
+        WeekDayStats("V", 2),
+        WeekDayStats("S", 1),
+        WeekDayStats("D", 4),
     )
 
     val weeklyStatsEmpty = listOf(
-        WeekDayStats("L", 0, 0),
-        WeekDayStats("M", 0, 0),
-        WeekDayStats("X", 0, 0),
-        WeekDayStats("J", 0, 0),
-        WeekDayStats("V", 0, 0),
-        WeekDayStats("S", 0, 0),
-        WeekDayStats("D", 0, 0),
+        WeekDayStats("L", 0),
+        WeekDayStats("M", 0),
+        WeekDayStats("X", 0),
+        WeekDayStats("J", 0),
+        WeekDayStats("V", 0),
+        WeekDayStats("S", 0),
+        WeekDayStats("D", 0),
     )
 
     // ── Nearby spots ──────────────────────────────────────────────────────────

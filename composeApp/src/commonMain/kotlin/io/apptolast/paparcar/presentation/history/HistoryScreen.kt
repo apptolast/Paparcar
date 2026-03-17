@@ -20,7 +20,6 @@ package io.apptolast.paparcar.presentation.history
 // Then uncomment the FontFamily declarations below and remove the fallback lines.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,7 +40,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -57,12 +57,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.presentation.history.components.ActiveSectionHeader
 import io.apptolast.paparcar.presentation.history.components.DayHeaderRow
 import io.apptolast.paparcar.presentation.history.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.history.components.EndedSessionTimelineNode
 import io.apptolast.paparcar.presentation.history.components.StatsRow
 import io.apptolast.paparcar.presentation.history.components.WeeklyActivityCard
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
@@ -71,6 +71,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.history_active_section
 import paparcar.composeapp.generated.resources.history_cd_back
 import paparcar.composeapp.generated.resources.history_month_1
 import paparcar.composeapp.generated.resources.history_month_10
@@ -151,7 +152,7 @@ internal val MONTH_NAMES_SHORT = listOf(
 
 // ─── Weekly chart data model ───────────────────────────────────────────────────
 
-data class WeekDayStats(val label: String, val sessions: Int, val minutes: Int)
+data class WeekDayStats(val label: String, val sessions: Int)
 
 // ─── Timeline data model ──────────────────────────────────────────────────────
 
@@ -193,6 +194,9 @@ fun HistoryScreen(
     val onViewOnMap: (Double, Double) -> Unit = remember(viewModel) {
         { lat, lon -> viewModel.handleIntent(HistoryIntent.ViewOnMap(lat, lon)) }
     }
+    val onRefresh: () -> Unit = remember(viewModel) {
+        { viewModel.handleIntent(HistoryIntent.LoadHistory) }
+    }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
@@ -231,20 +235,25 @@ fun HistoryScreen(
             state = state,
             contentPadding = padding,
             onViewOnMap = onViewOnMap,
+            onRefresh = onRefresh,
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HistoryContent(
     state: HistoryState,
     contentPadding: PaddingValues,
     onViewOnMap: (Double, Double) -> Unit,
+    onRefresh: () -> Unit,
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
 
-    Box(
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
@@ -259,10 +268,13 @@ internal fun HistoryContent(
             }
 
             else -> {
+                val activeSession = remember(state.sessions) {
+                    state.sessions.firstOrNull { it.isActive }
+                }
                 val ended = remember(state.sessions) { state.sessions.filter { !it.isActive } }
                 val weeklyStats = remember(ended) { buildWeeklyStats(ended) }
-                val timelineItems = remember(state.sessions, todayLabel, yesterdayLabel) {
-                    buildTimeline(state.sessions, todayLabel, yesterdayLabel)
+                val timelineItems = remember(ended, todayLabel, yesterdayLabel) {
+                    buildTimeline(ended, todayLabel, yesterdayLabel)
                 }
 
                 LazyColumn(
@@ -278,23 +290,39 @@ internal fun HistoryContent(
                         StatsRow(sessions = state.sessions)
                     }
 
-                    if (timelineItems.isNotEmpty()) {
+                    val hasTimeline = activeSession != null || timelineItems.isNotEmpty()
+                    if (hasTimeline) {
                         item(key = "timeline_spacer") {
                             Spacer(Modifier.height(8.dp))
                         }
-                        items(
-                            items = timelineItems,
-                            key = { it.key },
-                        ) { timelineItem ->
-                            when (timelineItem) {
-                                is TimelineItem.Header -> DayHeaderRow(label = timelineItem.label)
-                                is TimelineItem.Session -> EndedSessionTimelineNode(
-                                    session = timelineItem.parking,
-                                    isLast = timelineItem.isLast,
-                                    isActive = timelineItem.parking.isActive,
-                                    onViewOnMap = onViewOnMap,
-                                )
-                            }
+                    }
+
+                    if (activeSession != null) {
+                        item(key = "active_label") {
+                            ActiveSectionHeader(stringResource(Res.string.history_active_section))
+                        }
+                        item(key = "active_session") {
+                            EndedSessionTimelineNode(
+                                session = activeSession,
+                                isLast = timelineItems.isEmpty(),
+                                isActive = true,
+                                onViewOnMap = onViewOnMap,
+                            )
+                        }
+                    }
+
+                    items(
+                        items = timelineItems,
+                        key = { it.key },
+                    ) { timelineItem ->
+                        when (timelineItem) {
+                            is TimelineItem.Header -> DayHeaderRow(label = timelineItem.label)
+                            is TimelineItem.Session -> EndedSessionTimelineNode(
+                                session = timelineItem.parking,
+                                isLast = timelineItem.isLast,
+                                isActive = false,
+                                onViewOnMap = onViewOnMap,
+                            )
                         }
                     }
                 }
@@ -321,7 +349,6 @@ private fun buildWeeklyStats(sessions: List<UserParking>): List<WeekDayStats> {
         WeekDayStats(
             label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
             sessions = grouped[date]?.size ?: 0,
-            minutes = 0,
         )
     }
 }

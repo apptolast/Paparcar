@@ -2,6 +2,8 @@
 
 package io.apptolast.paparcar.presentation.util
 
+import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.PlaceInfo
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -59,6 +61,26 @@ fun greetingByHour(hour: Int): String = when (hour) {
     in 6..11 -> "¡Buenos días!"
     in 12..19 -> "¡Buenas tardes!"
     else -> "¡Buenas noches!"
+}
+
+/**
+ * Returns the best human-readable label for a location, combining POI emoji+name
+ * and address when both are available.  Falls back to coordinate string.
+ */
+fun locationDisplayText(
+    placeInfo: PlaceInfo?,
+    address: AddressInfo?,
+    lat: Double,
+    lon: Double,
+): String {
+    val place = placeInfo?.let { "${it.category.emoji} ${it.name}" }
+    val addr = address?.displayLine
+    return when {
+        place != null && addr != null -> "$place  ·  $addr"
+        place != null -> place
+        addr != null -> addr
+        else -> formatCoords(lat, lon)
+    }
 }
 
 /** "40.4167°, -3.7037°" — KMP-safe, no String.format */

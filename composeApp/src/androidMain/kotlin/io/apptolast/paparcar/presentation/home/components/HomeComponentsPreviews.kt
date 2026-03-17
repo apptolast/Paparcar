@@ -54,7 +54,6 @@ private fun HomePeekHandleWithPoiDarkPreview() {
                 userLocationInfo = FakeData.locationInfoFuel,
                 nearbySpots = FakeData.nearbySpots,
             ),
-            onParkingClick = {},
         )
     }
 }
@@ -68,7 +67,6 @@ private fun HomePeekHandleStreetLightPreview() {
                 userLocationInfo = FakeData.locationInfoStreet,
                 nearbySpots = FakeData.nearbySpots,
             ),
-            onParkingClick = {},
         )
     }
 }
@@ -77,10 +75,7 @@ private fun HomePeekHandleStreetLightPreview() {
 @Composable
 private fun HomePeekHandleEmptyLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        HomePeekHandle(
-            state = HomeState(),
-            onParkingClick = {},
-        )
+        HomePeekHandle(state = HomeState())
     }
 }
 
@@ -95,7 +90,7 @@ private fun HomeParkingRowPoiDarkPreview() {
             HomeParkingRow(
                 parking = FakeData.activeSession,
                 userLocation = Pair(40.4165, -3.7030),
-                onClick = {},
+                onSelect = {},
                 onRelease = {},
             )
         }
@@ -110,7 +105,7 @@ private fun HomeParkingRowNoAddressLightPreview() {
             HomeParkingRow(
                 parking = FakeData.activeSession.copy(address = null, placeInfo = null),
                 userLocation = null,
-                onClick = {},
+                onSelect = {},
                 onRelease = {},
             )
         }

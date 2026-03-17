@@ -5,24 +5,19 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Route
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.presentation.util.MapCircleFab
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.map_cd_go_to_car
@@ -51,11 +46,12 @@ internal fun MapControlButtons(
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
-            MapControlFab(
+            MapCircleFab(
                 icon = Icons.Outlined.Route,
                 contentDescription = stringResource(Res.string.map_cd_midpoint),
                 onClick = onMidpoint,
                 modifier = Modifier.padding(bottom = 10.dp),
+                shadowElevation = 4.dp,
             )
         }
 
@@ -64,56 +60,22 @@ internal fun MapControlButtons(
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
-            MapControlFab(
+            MapCircleFab(
                 icon = Icons.Outlined.DirectionsCar,
                 contentDescription = stringResource(Res.string.map_cd_go_to_car),
                 iconTint = MaterialTheme.colorScheme.primary,
-                surfaceColor = MaterialTheme.colorScheme.primaryContainer,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
                 onClick = onParkedCar,
                 modifier = Modifier.padding(bottom = 10.dp),
+                shadowElevation = 4.dp,
             )
         }
 
-        MapControlFab(
+        MapCircleFab(
             icon = Icons.Outlined.MyLocation,
             contentDescription = stringResource(Res.string.map_cd_my_location),
             onClick = onMyLocation,
-        )
-    }
-}
-
-@Composable
-private fun MapControlFab(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    iconTint: Color = Color.Unspecified,
-    surfaceColor: Color = Color.Unspecified,
-) {
-    val resolvedSurface = if (surfaceColor == Color.Unspecified)
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-    else
-        surfaceColor
-    val resolvedTint = if (iconTint == Color.Unspecified)
-        MaterialTheme.colorScheme.onSurface
-    else
-        iconTint
-
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = CircleShape,
-        color = resolvedSurface,
-        shadowElevation = 4.dp,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = resolvedTint,
-            modifier = Modifier
-                .padding(10.dp)
-                .size(22.dp),
+            shadowElevation = 4.dp,
         )
     }
 }
