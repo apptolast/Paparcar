@@ -32,8 +32,8 @@ class UserParkingRepositoryImpl(
     override fun observeActiveSession(): Flow<UserParking?> =
         dao.observeActive().map { it?.toDomain() }
 
-    override suspend fun getAllSessions(): List<UserParking> =
-        dao.getAll().map { it.toDomain() }
+    override fun observeAllSessions(): Flow<List<UserParking>> =
+        dao.observeAll().map { list -> list.map { it.toDomain() } }
 
     override suspend fun clearActive(): Result<Unit> =
         runCatching { dao.clearActive() }
