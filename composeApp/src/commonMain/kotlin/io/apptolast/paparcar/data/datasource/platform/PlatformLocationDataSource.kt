@@ -8,6 +8,4 @@ interface PlatformLocationDataSource {
     fun observeHighAccuracyLocation(): Flow<GpsPoint>
 
     fun observeBalancedLocation(): Flow<GpsPoint>
-
-    suspend fun getHighAccuracyLocation(): GpsPoint?
 }

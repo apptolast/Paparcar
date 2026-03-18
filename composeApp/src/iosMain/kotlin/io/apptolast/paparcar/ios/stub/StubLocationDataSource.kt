@@ -8,5 +8,4 @@ import kotlinx.coroutines.flow.emptyFlow
 class StubLocationDataSource : PlatformLocationDataSource {
     override fun observeHighAccuracyLocation(): Flow<GpsPoint> = emptyFlow()
     override fun observeBalancedLocation(): Flow<GpsPoint> = emptyFlow()
-    override suspend fun getHighAccuracyLocation(): GpsPoint? = null
 }

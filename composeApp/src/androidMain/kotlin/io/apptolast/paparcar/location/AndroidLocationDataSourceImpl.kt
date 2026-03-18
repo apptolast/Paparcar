@@ -13,7 +13,6 @@ import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
 class AndroidLocationDataSourceImpl(
@@ -58,29 +57,6 @@ class AndroidLocationDataSourceImpl(
         )
 
         awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
-    }
-
-    @SuppressLint("MissingPermission")
-    override suspend fun getHighAccuracyLocation(): GpsPoint? {
-        val location = try {
-            fusedLocationClient.getCurrentLocation(
-                Priority.PRIORITY_HIGH_ACCURACY,
-                null
-            ).await()
-        } catch (e: Exception) {
-            // Can happen if location is disabled
-            null
-        }
-
-        return location?.let {
-            GpsPoint(
-                latitude = it.latitude,
-                longitude = it.longitude,
-                accuracy = it.accuracy,
-                timestamp = it.time,
-                speed = it.speed
-            )
-        }
     }
 
     private fun createCallback(scope: ProducerScope<GpsPoint>) =

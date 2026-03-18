@@ -3,6 +3,8 @@ package io.apptolast.paparcar.di
 import android.app.NotificationManager
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
@@ -21,6 +23,12 @@ import io.apptolast.paparcar.preferences.AndroidAppPreferences
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
+private val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("DROP TABLE IF EXISTS locations")
+    }
+}
+
 val androidPlatformModule = module {
     // Database
     single<AppDatabase> {
@@ -28,7 +36,8 @@ val androidPlatformModule = module {
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).fallbackToDestructiveMigration(true)
+        ).addMigrations(MIGRATION_3_4)
+            .fallbackToDestructiveMigration(true)
             .build()
     }
 

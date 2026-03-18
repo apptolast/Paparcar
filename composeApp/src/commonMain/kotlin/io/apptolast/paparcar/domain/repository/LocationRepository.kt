@@ -8,12 +8,4 @@ interface LocationRepository {
     fun observeBalancedLocationFlow(): Flow<GpsPoint>
 
     fun observeHighAccuracyLocationFlow(): Flow<GpsPoint>
-
-    suspend fun getHighAccuracyLocation(): GpsPoint?
-
-    suspend fun saveLocation(location: GpsPoint): Result<Unit>
-
-    suspend fun getStoredLocations(): Result<List<GpsPoint>>
-
-    suspend fun clearLocations(): Result<Unit>
 }
