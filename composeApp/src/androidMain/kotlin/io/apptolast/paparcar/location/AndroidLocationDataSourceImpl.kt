@@ -7,7 +7,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
+import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit
 
 class AndroidLocationDataSourceImpl(
     private val fusedLocationClient: FusedLocationProviderClient
-) : PlatformLocationDataSource {
+) : LocationDataSource {
 
     @SuppressLint("MissingPermission")
     override fun observeHighAccuracyLocation(): Flow<GpsPoint> = callbackFlow {

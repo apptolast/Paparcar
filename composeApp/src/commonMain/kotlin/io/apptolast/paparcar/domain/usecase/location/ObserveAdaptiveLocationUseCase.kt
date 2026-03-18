@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.domain.usecase.location
 
+import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.repository.LocationRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.onEach
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveAdaptiveLocationUseCase(
-    private val locationRepository: LocationRepository,
+    private val locationDataSource: LocationDataSource,
 ) {
     private enum class Mode { HighAccuracy, Balanced }
 
@@ -29,8 +29,8 @@ class ObserveAdaptiveLocationUseCase(
         return mode
             .flatMapLatest { currentMode ->
                 when (currentMode) {
-                    Mode.HighAccuracy -> locationRepository.observeHighAccuracyLocationFlow()
-                    Mode.Balanced -> locationRepository.observeBalancedLocationFlow()
+                    Mode.HighAccuracy -> locationDataSource.observeHighAccuracyLocation()
+                    Mode.Balanced -> locationDataSource.observeBalancedLocation()
                 }
             }
             .onEach { location ->

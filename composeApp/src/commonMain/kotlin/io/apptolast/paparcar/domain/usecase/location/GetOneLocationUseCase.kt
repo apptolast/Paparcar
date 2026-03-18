@@ -1,14 +1,14 @@
 package io.apptolast.paparcar.domain.usecase.location
 
+import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.repository.LocationRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Returns a single GPS location reading, then cancels the underlying stream.
  *
- * Wraps [LocationRepository.observeBalancedLocationFlow] with a [TIMEOUT_MS] guard
+ * Wraps [LocationDataSource.observeBalancedLocation] with a [TIMEOUT_MS] guard
  * so callers are never suspended indefinitely (e.g. when GPS is unavailable or cold).
  * Returns null on timeout or if no fix is obtained within the window.
  *
@@ -16,11 +16,11 @@ import kotlinx.coroutines.withTimeoutOrNull
  * time without starting a continuous location stream.
  */
 class GetOneLocationUseCase(
-    private val locationRepository: LocationRepository,
+    private val locationDataSource: LocationDataSource,
 ) {
     suspend operator fun invoke(): GpsPoint? =
         withTimeoutOrNull(TIMEOUT_MS) {
-            locationRepository.observeBalancedLocationFlow().first()
+            locationDataSource.observeBalancedLocation().first()
         }
 
     companion object {

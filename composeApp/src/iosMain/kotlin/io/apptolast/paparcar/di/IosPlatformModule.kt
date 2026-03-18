@@ -5,7 +5,7 @@ package io.apptolast.paparcar.di
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
-import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
+import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
@@ -33,7 +33,7 @@ val iosPlatformModule = module {
     }
 
     // Location (stub)
-    single<PlatformLocationDataSource> { StubLocationDataSource() }
+    single<LocationDataSource> { StubLocationDataSource() }
     single<GeocoderDataSource> { StubGeocoderDataSource() }
     single<PlacesDataSource> { StubPlacesDataSource() }
 

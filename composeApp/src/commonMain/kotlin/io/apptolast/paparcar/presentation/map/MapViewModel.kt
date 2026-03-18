@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.presentation.map
 
-import io.apptolast.paparcar.domain.repository.LocationRepository
+import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.onEach
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MapViewModel(
-    private val locationRepository: LocationRepository,
+    private val locationDataSource: LocationDataSource,
     observeNearbySpots: ObserveNearbySpotsUseCase,
     private val userParkingRepository: UserParkingRepository,
 ) : BaseViewModel<MapState, MapIntent, MapEffect>() {
@@ -25,7 +25,7 @@ class MapViewModel(
             }
             .launchIn(viewModelScope)
 
-        locationRepository.observeBalancedLocationFlow()
+        locationDataSource.observeBalancedLocation()
             .onEach { location ->
                 updateState { copy(isLoading = false, userLocation = location) }
             }

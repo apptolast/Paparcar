@@ -7,7 +7,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
-import io.apptolast.paparcar.data.datasource.platform.PlatformLocationDataSource
+import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
@@ -43,7 +43,7 @@ val androidPlatformModule = module {
 
     // Location
     single { LocationServices.getFusedLocationProviderClient(androidContext()) }
-    single<PlatformLocationDataSource> { AndroidLocationDataSourceImpl(get()) }
+    single<LocationDataSource> { AndroidLocationDataSourceImpl(get()) }
     single<GeocoderDataSource> { AndroidGeocoderDataSourceImpl(androidContext()) }
     single<PlacesDataSource> { OverpassPlacesDataSourceImpl() }
 

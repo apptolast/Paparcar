@@ -23,7 +23,6 @@ private fun HistoryDataDarkPreview() {
             ),
             contentPadding = PaddingValues(0.dp),
             onViewOnMap = { _, _ -> },
-            onRefresh = {},
         )
     }
 }
@@ -38,7 +37,6 @@ private fun HistoryDataLightPreview() {
             ),
             contentPadding = PaddingValues(0.dp),
             onViewOnMap = { _, _ -> },
-            onRefresh = {},
         )
     }
 }
@@ -54,7 +52,6 @@ private fun HistoryEndedOnlyDarkPreview() {
             ),
             contentPadding = PaddingValues(0.dp),
             onViewOnMap = { _, _ -> },
-            onRefresh = {},
         )
     }
 }
@@ -68,7 +65,6 @@ private fun HistoryLoadingDarkPreview() {
             state = HistoryState(isLoading = true),
             contentPadding = PaddingValues(0.dp),
             onViewOnMap = { _, _ -> },
-            onRefresh = {},
         )
     }
 }
@@ -82,7 +78,6 @@ private fun HistoryEmptyDarkPreview() {
             state = HistoryState(),
             contentPadding = PaddingValues(0.dp),
             onViewOnMap = { _, _ -> },
-            onRefresh = {},
         )
     }
 }
@@ -95,7 +90,6 @@ private fun HistoryEmptyLightPreview() {
             state = HistoryState(),
             contentPadding = PaddingValues(0.dp),
             onViewOnMap = { _, _ -> },
-            onRefresh = {},
         )
     }
 }

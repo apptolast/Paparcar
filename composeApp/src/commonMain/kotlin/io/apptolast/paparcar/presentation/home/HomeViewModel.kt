@@ -4,7 +4,7 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
-import io.apptolast.paparcar.domain.repository.LocationRepository
+import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
@@ -24,7 +24,7 @@ import kotlin.time.Clock
 @OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 class HomeViewModel(
     private val permissionManager: PermissionManager,
-    private val locationRepository: LocationRepository,
+    private val locationDataSource: LocationDataSource,
     private val observeNearbySpots: ObserveNearbySpotsUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val activityRecognitionManager: ActivityRecognitionManager,
@@ -47,7 +47,7 @@ class HomeViewModel(
                 updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
                 if (permissionState.allPermissionsGranted) {
                     activityRecognitionManager.registerTransitions()
-                    locationRepository.observeBalancedLocationFlow()
+                    locationDataSource.observeBalancedLocation()
                 } else {
                     updateState { copy(nearbySpots = emptyList()) }
                     emptyFlow()
