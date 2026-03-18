@@ -20,6 +20,7 @@ package io.apptolast.paparcar.presentation.history
 // Then uncomment the FontFamily declarations below and remove the fallback lines.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +41,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -194,10 +195,6 @@ fun HistoryScreen(
     val onViewOnMap: (Double, Double) -> Unit = remember(viewModel) {
         { lat, lon -> viewModel.handleIntent(HistoryIntent.ViewOnMap(lat, lon)) }
     }
-    val onRefresh: () -> Unit = remember(viewModel) {
-        { viewModel.handleIntent(HistoryIntent.LoadHistory) }
-    }
-
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
@@ -235,7 +232,6 @@ fun HistoryScreen(
             state = state,
             contentPadding = padding,
             onViewOnMap = onViewOnMap,
-            onRefresh = onRefresh,
         )
     }
 }
@@ -246,14 +242,11 @@ internal fun HistoryContent(
     state: HistoryState,
     contentPadding: PaddingValues,
     onViewOnMap: (Double, Double) -> Unit,
-    onRefresh: () -> Unit,
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
 
-    PullToRefreshBox(
-        isRefreshing = state.isRefreshing,
-        onRefresh = onRefresh,
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(contentPadding),
