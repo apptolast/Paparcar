@@ -15,4 +15,5 @@ data class ParkingHistoryDto(
     val geofenceId: String? = null,
     val address: AddressDto? = null,
     val placeInfo: PlaceInfoDto? = null,
+    val detectionReliability: Float? = null,
 )

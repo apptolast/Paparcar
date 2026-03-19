@@ -22,4 +22,6 @@ data class UserParkingEntity(
     // PlaceInfo — name + PlaceCategory enum name (e.g. "FUEL")
     val placeInfoName: String? = null,
     val placeInfoCategory: String? = null,
+    // Detection reliability [0.0, 1.0]: 1.0=user confirmed, ~0.90=vehicle-exit, ~0.75=slow-path
+    val detectionReliability: Float? = null,
 )

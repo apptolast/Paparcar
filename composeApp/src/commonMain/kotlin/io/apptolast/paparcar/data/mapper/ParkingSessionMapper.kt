@@ -28,6 +28,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     isActive = isActive,
     address = addressOrNull(),
     placeInfo = placeInfoOrNull(),
+    detectionReliability = detectionReliability,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -110,6 +111,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     addressCountry = address?.country,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
+    detectionReliability = detectionReliability,
 )
 
 // ── Shared DTO helpers ────────────────────────────────────────────────────────

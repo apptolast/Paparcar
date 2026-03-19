@@ -32,7 +32,7 @@ class ConfirmParkingUseCase(
     private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
 ) {
-    suspend operator fun invoke(location: GpsPoint) {
+    suspend operator fun invoke(location: GpsPoint, detectionReliability: Float) {
         val userId = authRepository.getCurrentSession()?.userId ?: ""
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
@@ -48,6 +48,7 @@ class ConfirmParkingUseCase(
             location = gpsPoint,
             geofenceId = sessionId,
             isActive = true,
+            detectionReliability = detectionReliability,
         )
 
         userParkingRepository.saveSession(session).onFailure { return }

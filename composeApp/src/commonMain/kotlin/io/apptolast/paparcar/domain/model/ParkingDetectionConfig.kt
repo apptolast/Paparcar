@@ -32,8 +32,13 @@ data class ParkingDetectionConfig(
     val slowPath3MinMs: Long = 180_000L,
     /** Base score when stopped >= [slowPath5MinMs]. */
     val slowPath5MinScore: Float = 0.70f,
-    /** Base score when stopped >= [slowPath3MinMs]. */
-    val slowPath3MinScore: Float = 0.55f,
+    /** Base score when stopped >= [slowPath3MinMs].
+     *  Deliberately set to 0.45 so that a 3-minute stop with all bonuses (still + speed +
+     *  accuracy) reaches 0.45 + 0.10 + 0.05 + 0.05 = 0.65 — Medium only, never High.
+     *  Auto-confirmation via the slow path therefore requires ≥ 5 minutes. Shorter stops
+     *  (package pickups, errand waits) can only be confirmed via user action or the fast path
+     *  (which requires an explicit IN_VEHICLE→EXIT activity transition). */
+    val slowPath3MinScore: Float = 0.45f,
     /** Base score when stopped >= [slowPathGateMs] but below [slowPath3MinMs]. */
     val slowPathBaseScore: Float = 0.40f,
     /** Bonus added when the device reports a STILL activity in the slow path. */
@@ -97,6 +102,31 @@ data class ParkingDetectionConfig(
     /** Minimum speed (km/h) that confirms the user is driving away. Speed check is skipped
      *  when GPS is unavailable. Default 10 km/h. */
     val minimumDepartureSpeedKmh: Float = 10f,
+
+    // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
+    /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
+     *  the vehicle resumes motion. Chosen above typical walking speed (~1.4 m/s) so the car's
+     *  last known position is preserved when the user exits on foot, while being cleared when
+     *  the vehicle drives off. Default 2.5 m/s (~9 km/h). */
+    val clearBestStopSpeedMps: Float = 2.5f,
+    /** Observation window (ms) before auto-confirming when an activity-exit signal was observed.
+     *  Shorter because the IN_VEHICLE→EXIT transition is strong evidence. Default 2 minutes. */
+    val vehicleExitObservationWindowMs: Long = 2 * 60_000L,
+    /** Observation window (ms) before auto-confirming on the slow path (no activity-exit signal).
+     *  Requires the vehicle to remain stopped for the full duration to prevent false positives
+     *  from package pickups or errand waits. Default 5 minutes. */
+    val confirmationObservationWindowMs: Long = 5 * 60_000L,
+
+    // ── DETECTION RELIABILITY ─────────────────────────────────────────────────
+    /** Reliability score [0.0, 1.0] assigned when the user manually confirms parking.
+     *  Represents near-certain ground truth. */
+    val reliabilityUserConfirmed: Float = 1.0f,
+    /** Reliability score assigned when parking is auto-confirmed after observing an
+     *  IN_VEHICLE→EXIT activity transition + [vehicleExitObservationWindowMs]. */
+    val reliabilityVehicleExit: Float = 0.90f,
+    /** Reliability score assigned when parking is auto-confirmed via the slow path only
+     *  (no activity-exit signal, stopped for [confirmationObservationWindowMs]). */
+    val reliabilitySlowPath: Float = 0.75f,
 ) {
     init {
         require(highConfidenceThreshold in 0f..1f) {
@@ -131,6 +161,24 @@ data class ParkingDetectionConfig(
         }
         require(initialStopWindowMs > 0) {
             "initialStopWindowMs must be > 0, was $initialStopWindowMs"
+        }
+        require(clearBestStopSpeedMps > 0) {
+            "clearBestStopSpeedMps must be > 0, was $clearBestStopSpeedMps"
+        }
+        require(vehicleExitObservationWindowMs > 0) {
+            "vehicleExitObservationWindowMs must be > 0, was $vehicleExitObservationWindowMs"
+        }
+        require(confirmationObservationWindowMs > vehicleExitObservationWindowMs) {
+            "confirmationObservationWindowMs ($confirmationObservationWindowMs) must be > vehicleExitObservationWindowMs ($vehicleExitObservationWindowMs)"
+        }
+        require(reliabilityUserConfirmed in 0f..1f) {
+            "reliabilityUserConfirmed must be in 0..1, was $reliabilityUserConfirmed"
+        }
+        require(reliabilityVehicleExit in 0f..reliabilityUserConfirmed) {
+            "reliabilityVehicleExit must be in 0..reliabilityUserConfirmed, was $reliabilityVehicleExit"
+        }
+        require(reliabilitySlowPath in 0f..reliabilityVehicleExit) {
+            "reliabilitySlowPath must be in 0..reliabilityVehicleExit, was $reliabilitySlowPath"
         }
     }
 }

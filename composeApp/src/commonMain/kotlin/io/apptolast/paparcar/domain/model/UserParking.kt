@@ -19,4 +19,8 @@ data class UserParking(
     val isActive: Boolean = true,
     val address: AddressInfo? = null,
     val placeInfo: PlaceInfo? = null,
+    /** Probability [0.0, 1.0] that this is a genuine parking event.
+     *  1.0 = user manually confirmed; ~0.90 = vehicle-exit signal observed;
+     *  ~0.75 = slow-path auto-detection only. */
+    val detectionReliability: Float? = null,
 )
