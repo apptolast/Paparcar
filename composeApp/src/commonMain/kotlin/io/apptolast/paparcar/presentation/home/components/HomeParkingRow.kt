@@ -4,7 +4,6 @@ package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
-import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +38,6 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_manual_park_subtitle
 import paparcar.composeapp.generated.resources.home_manual_park_title
-import paparcar.composeapp.generated.resources.home_parking_release
 
 @Composable
 internal fun HomeParkingRow(
@@ -47,7 +45,6 @@ internal fun HomeParkingRow(
     userLocation: Pair<Double, Double>?,
     isSelected: Boolean = false,
     onSelect: () -> Unit,
-    onRelease: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val locationLabel: String? = if (parking.placeInfo == null && parking.address == null) {
@@ -130,15 +127,6 @@ internal fun HomeParkingRow(
                     }
                 }
 
-                // Release action — inline, does not propagate to row click
-                TextButton(onClick = onRelease) {
-                    Text(
-                        stringResource(Res.string.home_parking_release),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
             }
         }
     }

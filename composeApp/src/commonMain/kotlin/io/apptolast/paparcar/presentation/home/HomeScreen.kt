@@ -421,6 +421,7 @@ private fun HomeContent(
                         HomePeekHandle(
                             state = state,
                             onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
+                            onRelease = { showReleaseDialog = true },
                         )
                     }
 
@@ -434,7 +435,6 @@ private fun HomeContent(
                                 uiController.moveCamera(loc.latitude, loc.longitude)
                             }
                         },
-                        onParkingRelease = { showReleaseDialog = true },
                         onManualPark = { onIntent(HomeIntent.ManualPark) },
                         onSpotSelect = { _, _, spotId ->
                             onIntent(HomeIntent.SelectItem(spotId))

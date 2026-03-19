@@ -19,10 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.RadioButtonChecked
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -47,12 +49,14 @@ import io.apptolast.paparcar.presentation.util.walkTimeString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_loading
+import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
 @Composable
 internal fun HomePeekHandle(
     state: HomeState,
     onDismiss: () -> Unit = {},
+    onRelease: () -> Unit = {},
 ) {
     val freeCount = state.nearbySpots.size
     val isParkingSelected = state.selectedItemId == PARKING_ITEM_ID
@@ -99,6 +103,7 @@ internal fun HomePeekHandle(
                     parking = parking,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onDismiss = onDismiss,
+                    onRelease = onRelease,
                 )
                 else -> CameraLocationRow(state = state, freeCount = freeCount)
             }
@@ -187,6 +192,7 @@ private fun ParkingPeekRow(
     parking: UserParking,
     userLocation: Pair<Double, Double>?,
     onDismiss: () -> Unit,
+    onRelease: () -> Unit,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
@@ -199,59 +205,81 @@ private fun ParkingPeekRow(
     )
     val timeAgo = relativeTimeText(parking.location.timestamp)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            Icons.Outlined.DirectionsCar,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(26.dp),
-        )
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = displayText,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                modifier = Modifier.basicMarquee(),
+    Column {
+        // ── Info row ──────────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                Icons.Filled.DirectionsCar,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
             )
-            if (distM != null) {
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${formatDistance(distM)}  ·  ${walkTimeString(distM)}  ·  $timeAgo",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.basicMarquee(),
                 )
-            } else {
-                Text(
-                    text = timeAgo,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                if (distM != null) {
+                    Text(
+                        text = "${formatDistance(distM)}  ·  ${walkTimeString(distM)}  ·  $timeAgo",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } else {
+                    Text(
+                        text = timeAgo,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    )
+                }
+            }
+
+            // ✕ dismiss — deselects parking
+            Surface(
+                onClick = onDismiss,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+            ) {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(6.dp)
+                        .size(16.dp),
                 )
             }
         }
 
-        // ✕ dismiss — deselects parking
-        Surface(
-            onClick = onDismiss,
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+        // ── Release action — destructive, prominent in peek detail layer ──────
+        Button(
+            onClick = onRelease,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            ),
         ) {
-            Icon(
-                Icons.Outlined.Close,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(6.dp)
-                    .size(16.dp),
+            Text(
+                stringResource(Res.string.home_parking_release),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
             )
         }
     }

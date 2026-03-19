@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,7 +37,6 @@ internal fun HomeSheetContent(
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
     onParkingClick: () -> Unit,
-    onParkingRelease: () -> Unit,
     onManualPark: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     scrollState: ScrollState,
@@ -62,7 +63,6 @@ internal fun HomeSheetContent(
                 userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                 isSelected = state.selectedItemId == PARKING_ITEM_ID,
                 onSelect = onParkingClick,
-                onRelease = onParkingRelease,
             )
         } else if (state.allPermissionsGranted) {
             HomeParkingEmptyCard(
@@ -140,12 +140,18 @@ internal fun HomeSectionHeader(
             letterSpacing = 0.8.sp,
         )
         if (badge != null) {
-            Text(
-                badge,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Text(
+                    badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.presentation.home.components
 
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material3.Icon
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +37,7 @@ import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.formatDistance
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
+import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
@@ -62,10 +65,18 @@ internal fun HomeSpotRow(
         lat = spot.location.latitude,
         lon = spot.location.longitude,
     )
+    val ageMinutes = remember(spot.location.timestamp) {
+        (Clock.System.now().toEpochMilliseconds() - spot.location.timestamp) / 60_000L
+    }
+    val freshnessAlpha = when {
+        ageMinutes < 5L  -> 1f
+        ageMinutes < 15L -> 0.80f
+        else             -> 0.55f
+    }
 
     Surface(
         onClick = { onSelect() },
-        modifier = modifier,
+        modifier = modifier.alpha(freshnessAlpha),
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
                 else Color.Transparent,
     ) {
@@ -76,7 +87,7 @@ internal fun HomeSpotRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Icon box — squircle, matches HomeParkingRow shape
+            // Icon squircle — matches HomeParkingRow shape
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -96,25 +107,22 @@ internal fun HomeSpotRow(
                 )
             }
 
-            // Text column
+            // Text column — drive time on L1, distance + place on L2
             Column(modifier = Modifier.weight(1f)) {
-                val timeAgo = relativeTimeText(spot.location.timestamp)
                 if (distanceM != null) {
-                    // Line 1: drive time only
                     Text(
                         driveTimeString(distanceM),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Spacer(Modifier.height(3.dp))
-                    // Line 2: distance · place/address · time ago
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "${formatDistance(distanceM)}  ·  $displayText  ·  $timeAgo",
+                        text = "${formatDistance(distanceM)}  ·  $displayText",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                         maxLines = 1,
-                        modifier = Modifier.basicMarquee(),
+                        overflow = TextOverflow.Ellipsis,
                     )
                 } else {
                     Text(
@@ -123,18 +131,49 @@ internal fun HomeSpotRow(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        modifier = Modifier.basicMarquee(),
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        timeAgo,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
+            // Freshness chip — age of spot, replaces buried timestamp in secondary
+            SpotFreshnessChip(ageMinutes = ageMinutes)
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Freshness chip
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SpotFreshnessChip(ageMinutes: Long) {
+    val containerColor = when {
+        ageMinutes < 5L  -> MaterialTheme.colorScheme.primaryContainer
+        ageMinutes < 15L -> MaterialTheme.colorScheme.tertiaryContainer
+        else             -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    val contentColor = when {
+        ageMinutes < 5L  -> MaterialTheme.colorScheme.primary
+        ageMinutes < 15L -> MaterialTheme.colorScheme.tertiary
+        else             -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+    }
+    val label = when {
+        ageMinutes < 1L  -> "< 1 min"
+        ageMinutes < 60L -> "$ageMinutes min"
+        else             -> "${ageMinutes / 60L}h"
+    }
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = containerColor,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = contentColor,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -172,10 +211,11 @@ internal fun HomeActivityRow(
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
+                // LocalParking (P) distinguishes "spot left by others" from "my parked car"
                 Icon(
-                    Icons.Outlined.DirectionsCar,
+                    Icons.Outlined.LocalParking,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -200,7 +240,7 @@ internal fun HomeActivityRow(
             Text(
                 relativeTimeText(spot.location.timestamp),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
             )
         }
     }
