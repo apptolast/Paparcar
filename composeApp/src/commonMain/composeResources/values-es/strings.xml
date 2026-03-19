@@ -34,6 +34,10 @@
     <string name="home_parking_peek_label">Estás aparcado · %1$s</string>
     <string name="home_manual_park_title">Aparcar aquí</string>
     <string name="home_manual_park_subtitle">Guarda manualmente tu plaza de aparcamiento</string>
+    <!-- Badge de confianza de detección en HomeParkingRow -->
+    <string name="home_reliability_confirmed">Confirmado</string>
+    <string name="home_reliability_high">Detectado</string>
+    <string name="home_reliability_auto">Aprox.</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenido a Paparcar</string>

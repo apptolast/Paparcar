@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -68,15 +67,9 @@ internal fun HomeSpotRow(
     val ageMinutes = remember(spot.location.timestamp) {
         (Clock.System.now().toEpochMilliseconds() - spot.location.timestamp) / 60_000L
     }
-    val freshnessAlpha = when {
-        ageMinutes < 5L  -> 1f
-        ageMinutes < 15L -> 0.80f
-        else             -> 0.55f
-    }
-
     Surface(
         onClick = { onSelect() },
-        modifier = modifier.alpha(freshnessAlpha),
+        modifier = modifier,
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
                 else Color.Transparent,
     ) {
@@ -87,7 +80,7 @@ internal fun HomeSpotRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Icon squircle — matches HomeParkingRow shape
+            // Parking bay icon — visually distinct from the user's own car marker
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -98,38 +91,33 @@ internal fun HomeSpotRow(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    Icons.Outlined.RadioButtonChecked,
-                    contentDescription = null,
-                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                           else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(22.dp),
+                Text(
+                    "P",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.primary,
                 )
             }
 
-            // Text column — drive time on L1, distance + place on L2
+            // Text column — location (WHERE) on L1, distance + drive time on L2.
+            // Drive time alone as L1 was misleading: nearby spots all show "1-2 min"
+            // which is noise, not signal. The address lets the user orient on the map.
             Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (distanceM != null) {
-                    Text(
-                        driveTimeString(distanceM),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "${formatDistance(distanceM)}  ·  $displayText",
+                        text = "${formatDistance(distanceM)}  ·  ${driveTimeString(distanceM)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                } else {
-                    Text(
-                        text = displayText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -150,18 +138,19 @@ internal fun HomeSpotRow(
 private fun SpotFreshnessChip(ageMinutes: Long) {
     val containerColor = when {
         ageMinutes < 5L  -> MaterialTheme.colorScheme.primaryContainer
-        ageMinutes < 15L -> MaterialTheme.colorScheme.tertiaryContainer
+        ageMinutes < 15L -> MaterialTheme.colorScheme.secondaryContainer
         else             -> MaterialTheme.colorScheme.surfaceVariant
     }
     val contentColor = when {
         ageMinutes < 5L  -> MaterialTheme.colorScheme.primary
-        ageMinutes < 15L -> MaterialTheme.colorScheme.tertiary
+        ageMinutes < 15L -> MaterialTheme.colorScheme.secondary
         else             -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     }
+    // "hace X min" distinguishes freshness age from travel-time labels shown on the same row
     val label = when {
         ageMinutes < 1L  -> "< 1 min"
-        ageMinutes < 60L -> "$ageMinutes min"
-        else             -> "${ageMinutes / 60L}h"
+        ageMinutes < 60L -> "hace ${ageMinutes}m"
+        else             -> "hace ${ageMinutes / 60L}h"
     }
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -174,6 +163,111 @@ private fun SpotFreshnessChip(ageMinutes: Long) {
             color = contentColor,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Spot row — glass variant
+//
+// Same data as HomeSpotRow but rendered as a frosted-glass card:
+//  • Semi-transparent rounded surface with a subtle border
+//  • Items separated by vertical spacing instead of HorizontalDivider
+//  • Intended to be used inside a Column with Arrangement.spacedBy(8.dp)
+//    and horizontal padding of 12.dp instead of the default 0.dp
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+internal fun HomeSpotRowGlass(
+    spot: Spot,
+    userLocation: Pair<Double, Double>?,
+    onSelect: () -> Unit,
+    isSelected: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val distanceM = userLocation?.let { (uLat, uLon) ->
+        distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
+    }
+    val displayText = locationDisplayText(
+        placeInfo = spot.placeInfo,
+        address = spot.address,
+        lat = spot.location.latitude,
+        lon = spot.location.longitude,
+    )
+    val ageMinutes = remember(spot.location.timestamp) {
+        (Clock.System.now().toEpochMilliseconds() - spot.location.timestamp) / 60_000L
+    }
+
+    val cardBackground = if (isSelected)
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
+    else
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
+
+    val borderColor = if (isSelected)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    else
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)
+
+    val iconBackground = if (isSelected)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+    else
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+
+    Surface(
+        onClick = onSelect,
+        modifier = modifier
+            .fillMaxWidth()
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        color = cardBackground,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Parking bay icon — same icon as HomeSpotRow for visual consistency
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(iconBackground),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "P",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                )
+            }
+
+            // Location on L1, distance + drive time on L2 — same hierarchy as HomeSpotRow
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (distanceM != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "${formatDistance(distanceM)}  ·  ${driveTimeString(distanceM)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            SpotFreshnessChip(ageMinutes = ageMinutes)
+        }
     }
 }
 

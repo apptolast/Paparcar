@@ -52,68 +52,128 @@ internal fun HomeSheetContent(
     ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
 
-        // ── Parking section ────────────────────────────────────────────────
-        HomeSectionHeader(
-            title = stringResource(Res.string.home_parked_section),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
+        // ── Section order: spots are the primary goal when no car is parked.
+        // When the user has an active parking, show it first (it needs action to release).
+        // When there is no parking, show spots first so the user doesn't have to scroll past
+        // an empty/CTA card to reach actionable content.
         if (state.userParking != null) {
-            HomeParkingRow(
-                parking = state.userParking,
-                userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                isSelected = state.selectedItemId == PARKING_ITEM_ID,
-                onSelect = onParkingClick,
-            )
-        } else if (state.allPermissionsGranted) {
-            HomeParkingEmptyCard(
+            ParkingSection(
+                state = state,
+                onParkingClick = onParkingClick,
                 onManualPark = onManualPark,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
-        }
-        HorizontalDivider(
-            modifier = Modifier.padding(top = 8.dp),
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-        )
-
-        // ── Sección: Cerca de ti ──────────────────────────────────────────
-        HomeSectionHeader(
-            title = stringResource(Res.string.home_feed_nearby),
-            badge = if (state.nearbySpots.isNotEmpty())
-                stringResource(Res.string.home_stats_free_spots_badge, state.nearbySpots.size)
-            else null,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
-
-        when {
-            !state.allPermissionsGranted -> HomePermissionsCard(
-                onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
             )
-
-            state.nearbySpots.isEmpty() -> HomeEmptySpots(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            SpotsSection(
+                state = state,
+                onIntent = onIntent,
+                onCameraMove = onCameraMove,
+                onSpotSelect = onSpotSelect,
+                selectedSpotId = selectedSpotId,
+                spotScrollPositions = spotScrollPositions,
             )
-
-            else -> state.nearbySpots.forEach { spot ->
-                HomeSpotRow(
-                    spot = spot,
-                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                    isSelected = spot.id == selectedSpotId,
-                    onSelect = {
-                        onCameraMove(spot.location.latitude, spot.location.longitude)
-                        onSpotSelect(spot.location.latitude, spot.location.longitude, spot.id)
-                    },
-                    modifier = Modifier.onGloballyPositioned { coords ->
-                        spotScrollPositions[spot.id] = coords.positionInParent().y.toInt()
-                    },
+        } else {
+            SpotsSection(
+                state = state,
+                onIntent = onIntent,
+                onCameraMove = onCameraMove,
+                onSpotSelect = onSpotSelect,
+                selectedSpotId = selectedSpotId,
+                spotScrollPositions = spotScrollPositions,
+            )
+            // Only show the manual-park CTA after spots — the user needs the map first,
+            // and the CTA is a fallback action, not the primary one.
+            if (state.allPermissionsGranted) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
                 )
+                ParkingSection(
+                    state = state,
+                    onParkingClick = onParkingClick,
+                    onManualPark = onManualPark,
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section composables (extracted to keep HomeSheetContent readable)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ParkingSection(
+    state: HomeState,
+    onParkingClick: () -> Unit,
+    onManualPark: () -> Unit,
+) {
+    HomeSectionHeader(
+        title = stringResource(Res.string.home_parked_section),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+    )
+    if (state.userParking != null) {
+        HomeParkingRow(
+            parking = state.userParking,
+            userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+            isSelected = state.selectedItemId == PARKING_ITEM_ID,
+            onSelect = onParkingClick,
+        )
+    } else if (state.allPermissionsGranted) {
+        HomeParkingEmptyCard(
+            onManualPark = onManualPark,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun SpotsSection(
+    state: HomeState,
+    onIntent: (HomeIntent) -> Unit,
+    onCameraMove: (Double, Double) -> Unit,
+    onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
+    selectedSpotId: String?,
+    spotScrollPositions: MutableMap<String, Int>,
+) {
+    HomeSectionHeader(
+        title = stringResource(Res.string.home_feed_nearby),
+        badge = if (state.nearbySpots.isNotEmpty())
+            stringResource(Res.string.home_stats_free_spots_badge, state.nearbySpots.size)
+        else null,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+    )
+    when {
+        !state.allPermissionsGranted -> HomePermissionsCard(
+            onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        state.nearbySpots.isEmpty() -> HomeEmptySpots(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+        else -> state.nearbySpots.forEachIndexed { index, spot ->
+            HomeSpotRow(
+                spot = spot,
+                userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                isSelected = spot.id == selectedSpotId,
+                onSelect = {
+                    onCameraMove(spot.location.latitude, spot.location.longitude)
+                    onSpotSelect(spot.location.latitude, spot.location.longitude, spot.id)
+                },
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    spotScrollPositions[spot.id] = coords.positionInParent().y.toInt()
+                },
+            )
+            // Skip divider after the last item — no trailing separator
+            if (index < state.nearbySpots.lastIndex) {
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 72.dp, end = 16.dp),
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
                 )
             }
         }
-
     }
 }
 
@@ -136,7 +196,8 @@ internal fun HomeSectionHeader(
             title,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            // Raised from 0.5f — section headers were nearly invisible before
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             letterSpacing = 0.8.sp,
         )
         if (badge != null) {

@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -378,13 +379,17 @@ private fun SpotMarkerContent(isSelected: Boolean = false) {
     val iconSize = if (isSelected) 24.dp else 20.dp
     val tailW = if (isSelected) 12.dp else 10.dp
     val tailH = if (isSelected) 10.dp else 8.dp
+    val borderWidth = 2.dp
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(-borderWidth), // 👈 solapa el triángulo bajo el borde
+    ) {
         Box(
             modifier = Modifier
                 .size(size)
                 .background(bg, CircleShape)
-                .border(3.dp, border, CircleShape),
+                .border(borderWidth, border, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

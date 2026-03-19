@@ -34,6 +34,10 @@
     <string name="home_parking_peek_label">You are parked · %1$s</string>
     <string name="home_manual_park_title">Park here</string>
     <string name="home_manual_park_subtitle">Manually save your parking location</string>
+    <!-- Parking detection confidence badge shown in HomeParkingRow -->
+    <string name="home_reliability_confirmed">Confirmed</string>
+    <string name="home_reliability_high">Auto-detected</string>
+    <string name="home_reliability_auto">Approx.</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
