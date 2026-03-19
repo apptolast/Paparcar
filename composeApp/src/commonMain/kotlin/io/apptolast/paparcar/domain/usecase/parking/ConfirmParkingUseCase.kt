@@ -30,7 +30,7 @@ class ConfirmParkingUseCase(
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
     private val config: ParkingDetectionConfig,
 ) {
-    suspend operator fun invoke(location: GpsPoint) {
+    suspend operator fun invoke(location: GpsPoint, detectionReliability: Float) {
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -44,6 +44,7 @@ class ConfirmParkingUseCase(
             location = gpsPoint,
             geofenceId = sessionId,
             isActive = true,
+            detectionReliability = detectionReliability,
         )
 
         userParkingRepository.saveSession(baseSession).onFailure { return }

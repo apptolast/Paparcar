@@ -8,7 +8,6 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
-import io.apptolast.paparcar.domain.util.haversineMeters
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +31,16 @@ import kotlin.time.ExperimentalTime
  * External state updates (vehicle exit, STILL activity, user confirmation)
  * are fed in via [onVehicleExit], [onStillDetected], [onUserConfirmedParking],
  * and [onUserDeniedParking].
+ *
+ * **Confirmation paths and reliability:**
+ * 1. User taps "Sí" → immediate, [ParkingDetectionConfig.reliabilityUserConfirmed] (1.0).
+ * 2. IN_VEHICLE→EXIT observed + [ParkingDetectionConfig.vehicleExitObservationWindowMs]
+ *    elapsed without the vehicle driving away → [ParkingDetectionConfig.reliabilityVehicleExit] (~0.90).
+ * 3. Slow path only + [ParkingDetectionConfig.confirmationObservationWindowMs] elapsed →
+ *    [ParkingDetectionConfig.reliabilitySlowPath] (~0.75).
+ *
+ * A notification is **always** shown when [ParkingConfidence.High] is first reached,
+ * so the user can override the auto-confirmation or dismiss it.
  *
  * **Lifecycle:** Stateful Koin `single`. State is fully reset at the start of each
  * [invoke] call, so the same instance can be reused across multiple driving sessions
@@ -72,11 +81,17 @@ class ParkingDetectionCoordinator(
          *  the displacement reference for the [hasEverMoved] distance check. */
         val sessionOrigin: GpsPoint? = null,
         /** Best (lowest accuracy value) GPS fix recorded while the vehicle was stopped (speed < 1 m/s).
-         *  Updated continuously during stopped intervals but **never cleared** when speed rises
-         *  again. This ensures that if the user walks away before confidence reaches High, the
-         *  reported parking location is still the car's actual position rather than wherever the
-         *  user happens to be standing when the slow-path finally fires. */
+         *  Updated continuously during stopped intervals. Cleared when the vehicle drives away at
+         *  [ParkingDetectionConfig.clearBestStopSpeedMps] to prevent stale false-positive locations
+         *  from polluting the next genuine parking confirmation. */
         val bestStopLocation: GpsPoint? = null,
+        // ── CANDIDATE PHASE ───────────────────────────────────────────────────
+        /** Epoch-ms when [ParkingConfidence.High] was first reached in the current stop.
+         *  `null` outside the CANDIDATE phase. Cleared when the vehicle drives away. */
+        val highConfidenceReachedAt: Long? = null,
+        /** Snapshot of [vehicleExitConfirmed] at the moment the CANDIDATE phase was entered.
+         *  Determines which observation window applies for auto-confirmation. */
+        val highCandidateHadVehicleExit: Boolean = false,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -118,7 +133,7 @@ class ParkingDetectionCoordinator(
                     val origin = s.sessionOrigin ?: location
                     val hasJustMoved = !s.hasEverMoved &&
                             location.speed >= config.minimumTripSpeedMps &&
-                            haversineMeters(
+                            io.apptolast.paparcar.domain.util.haversineMeters(
                                 origin.latitude, origin.longitude,
                                 location.latitude, location.longitude,
                             ) >= config.minimumTripDistanceMeters
@@ -138,19 +153,46 @@ class ParkingDetectionCoordinator(
                     return@collectLatest
                 }
 
-                val locationToConfirm = when {
-                    state.userConfirmedParking -> state.bestStopLocation ?: state.bestFix(location)
-                    !state.hasEverMoved -> null
-                    else -> evaluateConfidence(location, stoppedDuration, state)
+                // ── User-confirmed path ───────────────────────────────────────────────
+                // Immediate confirmation at reliability 1.0 — user provided ground truth.
+                if (state.userConfirmedParking) {
+                    val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
+                    completed = true
+                    withContext(NonCancellable) {
+                        confirmParking(locationToConfirm, config.reliabilityUserConfirmed)
+                    }
+                    return@collectLatest
                 }
 
-                if (locationToConfirm != null) {
-                    // Set completed BEFORE confirmParking so takeWhile stops the flow immediately.
-                    // NonCancellable ensures the write completes even if collectLatest is cancelled
-                    // by a new incoming item.
-                    completed = true
-                    withContext(NonCancellable) { confirmParking(locationToConfirm) }
+                if (!state.hasEverMoved) return@collectLatest
+
+                // ── CANDIDATE phase: observation window ───────────────────────────────
+                // Once High confidence is reached the CANDIDATE phase runs an observation
+                // window before auto-confirming. If the vehicle drives away at
+                // clearBestStopSpeedMps, updateStopTracking clears highConfidenceReachedAt
+                // and bestStopLocation, cancelling the candidate automatically.
+                if (state.highConfidenceReachedAt != null) {
+                    val window = if (state.highCandidateHadVehicleExit)
+                        config.vehicleExitObservationWindowMs
+                    else
+                        config.confirmationObservationWindowMs
+
+                    if (now - state.highConfidenceReachedAt >= window) {
+                        // Observation window elapsed with no vehicle movement → auto-confirm.
+                        val reliability = if (state.highCandidateHadVehicleExit)
+                            config.reliabilityVehicleExit
+                        else
+                            config.reliabilitySlowPath
+                        val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
+                        completed = true
+                        withContext(NonCancellable) { confirmParking(locationToConfirm, reliability) }
+                    }
+                    // Still within observation window — keep waiting.
+                    return@collectLatest
                 }
+
+                // ── Normal confidence scoring ─────────────────────────────────────────
+                evaluateConfidence(location, stoppedDuration, state, now)
             }
     }
 
@@ -191,15 +233,21 @@ class ParkingDetectionCoordinator(
     /**
      * Updates `stoppedSince` / `stoppedFixes` when the vehicle is stopped, or resets
      * them when it starts moving again. Returns the total stopped duration in ms.
+     *
+     * At driving speed ([ParkingDetectionConfig.clearBestStopSpeedMps]) the following are
+     * also cleared to prevent stale signals from polluting the next genuine stop:
+     * - [ParkingDetectionState.bestStopLocation] — stale car position from a false-positive stop.
+     * - [ParkingDetectionState.vehicleExitConfirmed] — delayed Activity Recognition delivery
+     *   could otherwise trigger the fast path at an unrelated subsequent stop.
+     * - [ParkingDetectionState.activityStillDetected] — STILL signal from the previous stop.
+     * - [ParkingDetectionState.highConfidenceReachedAt] — cancels the CANDIDATE phase if the
+     *   vehicle drives away before the observation window expires.
      */
     private fun updateStopTracking(location: GpsPoint, now: Long): Long {
         return if (location.speed < 1f) {
             _detectionState.update { s ->
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
-                // bestStopLocation tracks the single best (lowest accuracy value) fix seen while
-                // the vehicle is stopped. It is never cleared when the user walks away, so even
-                // if stoppedFixes is reset on movement, we retain the car's actual position.
                 val newBestStop = when {
                     s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
                     else -> s.bestStopLocation
@@ -213,15 +261,16 @@ class ParkingDetectionCoordinator(
             }
             now - (_detectionState.value.stoppedSince ?: 0L)
         } else {
-            // stoppedSince and stoppedFixes are cleared to restart stop-detection on the next
-            // stop, but bestStopLocation is intentionally preserved: if the user has already
-            // walked away from the car, the saved fix must remain the car's position, not
-            // wherever the user is when confidence eventually reaches High.
             _detectionState.update {
+                val isDriving = location.speed >= config.clearBestStopSpeedMps
                 it.copy(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),
-                    mediumNotificationShown = false
+                    mediumNotificationShown = false,
+                    bestStopLocation = if (isDriving) null else it.bestStopLocation,
+                    vehicleExitConfirmed = if (isDriving) false else it.vehicleExitConfirmed,
+                    activityStillDetected = if (isDriving) false else it.activityStillDetected,
+                    highConfidenceReachedAt = if (isDriving) null else it.highConfidenceReachedAt,
                 )
             }
             0L
@@ -230,13 +279,16 @@ class ParkingDetectionCoordinator(
 
     /**
      * Runs the confidence scorer and handles Medium/High results.
-     * Returns the [GpsPoint] to save when [ParkingConfidence.High] is reached, null otherwise.
+     * On reaching [ParkingConfidence.High] for the first time, enters the CANDIDATE phase
+     * and always shows a confirmation notification. Does not confirm immediately — the
+     * observation window in [invoke] handles auto-confirmation timing.
      */
     private fun evaluateConfidence(
         location: GpsPoint,
         stoppedDuration: Long,
         state: ParkingDetectionState,
-    ): GpsPoint? {
+        now: Long,
+    ) {
         val signals = ParkingSignals(
             speed = location.speed,
             stoppedDurationMs = stoppedDuration,
@@ -244,18 +296,27 @@ class ParkingDetectionCoordinator(
             activityExit = state.vehicleExitConfirmed,
             activityStill = state.activityStillDetected,
         )
-        return when (val confidence = calculateParkingConfidence(signals)) {
-            is ParkingConfidence.NotYet -> null
+        when (val confidence = calculateParkingConfidence(signals)) {
+            is ParkingConfidence.NotYet -> Unit
             is ParkingConfidence.Low,
             is ParkingConfidence.Medium -> {
                 if (!state.mediumNotificationShown) {
                     _detectionState.update { it.copy(mediumNotificationShown = true) }
                     notifyParkingConfirmation(confidence)
                 }
-                null
             }
 
-            is ParkingConfidence.High -> state.bestStopLocation ?: state.bestFix(location)
+            is ParkingConfidence.High -> {
+                // Enter CANDIDATE phase. Notification is always shown so the user can
+                // confirm early or dismiss if this is a false positive (e.g. double-park).
+                _detectionState.update { s ->
+                    s.copy(
+                        highConfidenceReachedAt = now,
+                        highCandidateHadVehicleExit = s.vehicleExitConfirmed,
+                    )
+                }
+                notifyParkingConfirmation(confidence)
+            }
         }
     }
 

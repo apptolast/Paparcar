@@ -37,6 +37,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
             runCatching { PlaceInfo(name, PlaceCategory.valueOf(cat)) }.getOrNull()
         else null
     },
+    detectionReliability = detectionReliability,
 )
 
 /** Converts an active parking session into a released [Spot] for reporting to Firebase. */
@@ -69,4 +70,5 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     addressCountry = address?.country,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category?.name,
+    detectionReliability = detectionReliability,
 )

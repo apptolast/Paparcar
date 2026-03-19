@@ -92,7 +92,7 @@ internal object FakeData {
 
     // ── Sessions ──────────────────────────────────────────────────────────────
 
-    /** Active session — parked 30 min ago at a fuel station. */
+    /** Active session — parked 30 min ago at a fuel station. User confirmed. */
     val activeSession = UserParking(
         id = "s_active",
         location = gps(agoMs = 1_800_000L),
@@ -101,9 +101,10 @@ internal object FakeData {
         isActive = true,
         address = addrFuel,
         placeInfo = placeInfoFuel,
+        detectionReliability = 1.0f,
     )
 
-    /** Active session at a supermarket — for light-theme previews. */
+    /** Active session at a supermarket — auto-detected via vehicle-exit signal. */
     val activeSessionSupermarket = UserParking(
         id = "s_active_2",
         location = gps(agoMs = 3_600_000L, lat = 40.420, lon = -3.710, accuracy = 8f),
@@ -112,6 +113,7 @@ internal object FakeData {
         isActive = true,
         address = addrSupermarket,
         placeInfo = placeInfoSupermarket,
+        detectionReliability = 0.90f,
     )
 
     // Ended sessions
@@ -121,6 +123,7 @@ internal object FakeData {
         spotId = "spot_001", geofenceId = "geo_003", isActive = false,
         address = addrSupermarket,
         placeInfo = placeInfoSupermarket,
+        detectionReliability = 0.90f,
     )
     private val endedToday2 = UserParking(
         id = "s_t2",
@@ -128,6 +131,7 @@ internal object FakeData {
         spotId = "spot_002", geofenceId = "geo_004", isActive = false,
         address = addrStreet,
         placeInfo = null,
+        detectionReliability = 0.75f,
     )
     private val endedYesterday1 = UserParking(
         id = "s_y1",
@@ -135,6 +139,7 @@ internal object FakeData {
         spotId = "spot_003", geofenceId = "geo_005", isActive = false,
         address = addrMall,
         placeInfo = placeInfoMall,
+        detectionReliability = 1.0f,
     )
     private val endedYesterday2 = UserParking(
         id = "s_y2",
@@ -142,6 +147,7 @@ internal object FakeData {
         spotId = "spot_004", geofenceId = "geo_006", isActive = false,
         address = addrCafe,
         placeInfo = placeInfoCafe,
+        detectionReliability = 0.90f,
     )
     private val endedOld = UserParking(
         id = "s_old",
@@ -149,6 +155,7 @@ internal object FakeData {
         spotId = "spot_005", geofenceId = "geo_007", isActive = false,
         address = addrHighAccuracy,
         placeInfo = null,
+        detectionReliability = 0.75f,
     )
 
     val allSessions =

@@ -150,7 +150,7 @@ class HomeViewModel(
             return
         }
         viewModelScope.launch {
-            confirmParking(gps)
+            confirmParking(gps, 1.0f)
         }
     }
 

@@ -10,7 +10,8 @@ class NotifyParkingConfirmationUseCase(
         when (confidence) {
             is ParkingConfidence.Low -> notificationPort.showParkingConfirmation(0f)
             is ParkingConfidence.Medium -> notificationPort.showParkingConfirmation(confidence.score)
-            else -> Unit
+            is ParkingConfidence.High -> notificationPort.showParkingConfirmation(confidence.score)
+            is ParkingConfidence.NotYet -> Unit
         }
     }
 }

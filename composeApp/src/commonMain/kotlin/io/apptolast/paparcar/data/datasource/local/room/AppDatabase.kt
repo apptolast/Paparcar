@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-@Database(entities = [UserParkingEntity::class], version = 4)
+@Database(entities = [UserParkingEntity::class], version = 5)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun parkingSessionDao(): UserParkingDao
