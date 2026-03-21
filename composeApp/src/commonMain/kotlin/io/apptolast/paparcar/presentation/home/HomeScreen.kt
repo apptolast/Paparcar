@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -309,20 +311,15 @@ private fun HomeContent(
                     .height(mapHeightDp),
             )
 
-            // ── Floating header + search bar ──────────────────────────────────
-            Column(
+            // ── Floating search bar + action pills ───────────────────────────
+            Row(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.Top,
             ) {
-                HomeFloatingHeader(
-                    onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
-                    onSettingsClick = onNavigateToSettings,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
                 HomeSearchBar(
                     query = state.searchQuery,
                     results = state.searchResults,
@@ -334,6 +331,12 @@ private fun HomeContent(
                         onIntent(HomeIntent.SelectSearchResult(result))
                     },
                     onClear = { onIntent(HomeIntent.ClearSearch) },
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                HomeFloatingHeader(
+                    onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
+                    onSettingsClick = onNavigateToSettings,
                 )
             }
 
