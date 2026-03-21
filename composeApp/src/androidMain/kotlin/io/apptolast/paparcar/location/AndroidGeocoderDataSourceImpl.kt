@@ -19,14 +19,43 @@ import java.net.URLEncoder
 import java.util.Locale
 import kotlin.coroutines.resume
 
+// ── Photon (Komoot) — autocomplete API ───────────────────────────────────────
+
 @Serializable
-private data class NominatimResult(
-    @SerialName("display_name") val displayName: String,
-    val lat: String,
-    val lon: String,
+private data class PhotonResponse(
+    val features: List<PhotonFeature> = emptyList(),
 )
 
-private val nominatimJson = Json { ignoreUnknownKeys = true }
+@Serializable
+private data class PhotonFeature(
+    val properties: PhotonProperties,
+    val geometry: PhotonGeometry,
+)
+
+@Serializable
+private data class PhotonProperties(
+    val name: String? = null,
+    val street: String? = null,
+    val housenumber: String? = null,
+    val city: String? = null,
+    val country: String? = null,
+)
+
+@Serializable
+private data class PhotonGeometry(
+    @SerialName("coordinates") val coordinates: List<Double>, // [lon, lat]
+)
+
+private fun PhotonProperties.toDisplayName(): String =
+    listOfNotNull(
+        listOfNotNull(street, housenumber).joinToString(" ").ifBlank { name },
+        city,
+        country,
+    ).joinToString(", ")
+
+private val photonJson = Json { ignoreUnknownKeys = true }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderDataSource {
 
@@ -70,19 +99,20 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
         runCatching {
             withContext(Dispatchers.IO) {
                 val encoded = URLEncoder.encode(query, "UTF-8")
+                val deviceLang = Locale.getDefault().language.take(2)
+                val lang = if (deviceLang in setOf("de", "en", "fr", "it")) deviceLang else "en"
                 val url = URL(
-                    "https://nominatim.openstreetmap.org/search" +
-                        "?q=$encoded&format=json&limit=$maxResults&accept-language=${Locale.getDefault().language}",
+                    "https://photon.komoot.io/api/?q=$encoded&limit=$maxResults&lang=$lang",
                 )
                 val connection = url.openConnection() as HttpURLConnection
                 connection.setRequestProperty("User-Agent", "Paparcar/1.0")
                 val json = connection.inputStream.bufferedReader().readText()
                 connection.disconnect()
-                nominatimJson.decodeFromString<List<NominatimResult>>(json).map { result ->
+                photonJson.decodeFromString<PhotonResponse>(json).features.map { feature ->
                     SearchResult(
-                        displayName = result.displayName,
-                        lat = result.lat.toDouble(),
-                        lon = result.lon.toDouble(),
+                        displayName = feature.properties.toDisplayName(),
+                        lat = feature.geometry.coordinates[1],
+                        lon = feature.geometry.coordinates[0],
                     )
                 }
             }
