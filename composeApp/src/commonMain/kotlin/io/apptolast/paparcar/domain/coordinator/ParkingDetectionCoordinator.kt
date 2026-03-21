@@ -65,8 +65,12 @@ class ParkingDetectionCoordinator(
     private data class ParkingDetectionState(
         /** Epoch-ms of the first GPS sample with speed < 1 m/s in the current stop. `null` while moving. */
         val stoppedSince: Long? = null,
-        /** GPS fixes collected within [ParkingDetectionConfig.initialStopWindowMs] of the initial stop.
-         *  The fix with the lowest [GpsPoint.accuracy] value is used as the saved parking spot. */
+        /** Rolling buffer of the most recent GPS fixes while the vehicle is stopped (speed < 1 m/s).
+         *  Capped at [ParkingDetectionConfig.stoppedFixesBufferSize] entries; older fixes are
+         *  dropped as new ones arrive. Cleared on any movement (speed ≥ 1 m/s) to prevent
+         *  walking-away positions from contaminating the candidate location.
+         *  The fix with the lowest [GpsPoint.accuracy] value in this buffer is used when
+         *  selecting the best recent parking position. */
         val stoppedFixes: List<GpsPoint> = emptyList(),
         val vehicleExitConfirmed: Boolean = false,
         val activityStillDetected: Boolean = false,
@@ -92,6 +96,13 @@ class ParkingDetectionCoordinator(
         /** Snapshot of [vehicleExitConfirmed] at the moment the CANDIDATE phase was entered.
          *  Determines which observation window applies for auto-confirmation. */
         val highCandidateHadVehicleExit: Boolean = false,
+        /** Best GPS fix from [stoppedFixes] captured at the instant [highConfidenceReachedAt]
+         *  was first set. Represents the car's position when High confidence was reached —
+         *  the most reliable candidate for the final parking location. Using a snapshot here
+         *  prevents later walking-away positions (which clear [stoppedFixes]) from corrupting
+         *  the saved spot. Cleared together with [highConfidenceReachedAt] when the vehicle
+         *  drives away. */
+        val candidateParkingLocation: GpsPoint? = null,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -155,8 +166,13 @@ class ParkingDetectionCoordinator(
 
                 // ── User-confirmed path ───────────────────────────────────────────────
                 // Immediate confirmation at reliability 1.0 — user provided ground truth.
+                // Prefer candidateParkingLocation (snapshot at CANDIDATE entry) when available.
+                // Otherwise fall back to the best rolling fix if the car is currently stopped,
+                // or bestStopLocation if the user has already walked away (stoppedFixes empty).
                 if (state.userConfirmedParking) {
-                    val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
+                    val locationToConfirm = state.candidateParkingLocation
+                        ?: if (state.stoppedFixes.isNotEmpty()) state.bestFix(location)
+                        else state.bestStopLocation ?: location
                     completed = true
                     withContext(NonCancellable) {
                         confirmParking(locationToConfirm, config.reliabilityUserConfirmed)
@@ -183,7 +199,12 @@ class ParkingDetectionCoordinator(
                             config.reliabilityVehicleExit
                         else
                             config.reliabilitySlowPath
-                        val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
+                        // candidateParkingLocation is the snapshot taken at CANDIDATE entry
+                        // (car at final position). Fall back to bestStopLocation only if the
+                        // snapshot is somehow absent (should not happen in normal flow).
+                        val locationToConfirm = state.candidateParkingLocation
+                            ?: state.bestStopLocation
+                            ?: location
                         completed = true
                         withContext(NonCancellable) { confirmParking(locationToConfirm, reliability) }
                     }
@@ -247,15 +268,13 @@ class ParkingDetectionCoordinator(
         return if (location.speed < 1f) {
             _detectionState.update { s ->
                 val startedAt = s.stoppedSince ?: now
-                val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
                 val newBestStop = when {
                     s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
                     else -> s.bestStopLocation
                 }
                 s.copy(
                     stoppedSince = startedAt,
-                    stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < MAX_STOPPED_FIXES)
-                        s.stoppedFixes + location else s.stoppedFixes,
+                    stoppedFixes = (s.stoppedFixes + location).takeLast(config.stoppedFixesBufferSize),
                     bestStopLocation = newBestStop,
                 )
             }
@@ -271,6 +290,7 @@ class ParkingDetectionCoordinator(
                     vehicleExitConfirmed = if (isDriving) false else it.vehicleExitConfirmed,
                     activityStillDetected = if (isDriving) false else it.activityStillDetected,
                     highConfidenceReachedAt = if (isDriving) null else it.highConfidenceReachedAt,
+                    candidateParkingLocation = if (isDriving) null else it.candidateParkingLocation,
                 )
             }
             0L
@@ -309,10 +329,16 @@ class ParkingDetectionCoordinator(
             is ParkingConfidence.High -> {
                 // Enter CANDIDATE phase. Notification is always shown so the user can
                 // confirm early or dismiss if this is a false positive (e.g. double-park).
+                // Snapshot candidateParkingLocation NOW from the rolling stoppedFixes buffer.
+                // By this point the car has been stopped long enough for confidence to reach
+                // High (≥ 30 s fast-path or ≥ 90 s slow-path), so the buffer reflects the
+                // car's actual final position — not where it first paused at a corner or
+                // during a slow-speed reverse maneuver earlier in the same stop episode.
                 _detectionState.update { s ->
                     s.copy(
                         highConfidenceReachedAt = now,
                         highCandidateHadVehicleExit = s.vehicleExitConfirmed,
+                        candidateParkingLocation = s.bestFix(location),
                     )
                 }
                 notifyParkingConfirmation(confidence)
@@ -320,7 +346,5 @@ class ParkingDetectionCoordinator(
         }
     }
 
-    companion object {
-        private const val MAX_STOPPED_FIXES = 20
-    }
+    companion object
 }

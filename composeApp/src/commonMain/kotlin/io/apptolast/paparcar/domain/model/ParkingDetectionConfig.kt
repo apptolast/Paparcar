@@ -63,12 +63,13 @@ data class ParkingDetectionConfig(
     val geofenceRadiusMeters: Float = 80f,
 
     // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
-    /** Time window (ms) after the vehicle first stops during which GPS fixes are
-     *  collected into [stoppedFixes]. Fixes outside this window are ignored so that
-     *  locations recorded AFTER the user has walked away from the car are not used
-     *  as the saved parking spot. At HIGH_ACCURACY (2 s interval) a 30 s window
-     *  yields ~15 candidate fixes — enough to select the best accuracy. */
-    val initialStopWindowMs: Long = 30_000L,
+    /** Maximum number of GPS fixes kept in the rolling stopped-fixes buffer.
+     *  The buffer always holds the most recent fixes while the vehicle is stopped;
+     *  older entries are discarded as new ones arrive. At HIGH_ACCURACY (2 s interval)
+     *  a buffer of 20 entries covers the last ~40 s — enough for multiple candidate
+     *  fixes while staying fresh. The buffer is cleared on any movement (speed ≥ 1 m/s)
+     *  so walking-away positions are never included. */
+    val stoppedFixesBufferSize: Int = 20,
 
     // ── FALSE-POSITIVE GUARD ──────────────────────────────────────────────────
     /** Minimum GPS speed (m/s) that must be reached at least once during a driving session
@@ -159,8 +160,8 @@ data class ParkingDetectionConfig(
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"
         }
-        require(initialStopWindowMs > 0) {
-            "initialStopWindowMs must be > 0, was $initialStopWindowMs"
+        require(stoppedFixesBufferSize > 0) {
+            "stoppedFixesBufferSize must be > 0, was $stoppedFixesBufferSize"
         }
         require(clearBestStopSpeedMps > 0) {
             "clearBestStopSpeedMps must be > 0, was $clearBestStopSpeedMps"
