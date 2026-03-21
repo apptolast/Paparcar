@@ -3,6 +3,7 @@ package io.apptolast.paparcar.di
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
+import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
@@ -23,6 +24,7 @@ val domainModule = module {
     factory { GetLocationInfoUseCase(geocoder = get(), placesPort = get()) }
     factory { GetOneLocationUseCase(get()) }
     factory { ObserveAdaptiveLocationUseCase(get()) }
+    factory { SearchAddressUseCase(get()) }
 
     // Parking UseCases
     single { ParkingDetectionConfig() }

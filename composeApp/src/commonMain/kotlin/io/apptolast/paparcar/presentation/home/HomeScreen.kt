@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,6 +61,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
+import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
@@ -307,16 +309,33 @@ private fun HomeContent(
                     .height(mapHeightDp),
             )
 
-            // ── Floating header ───────────────────────────────────────────────
-            HomeFloatingHeader(
-                onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
-                onSettingsClick = onNavigateToSettings,
+            // ── Floating header + search bar ──────────────────────────────────
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 14.dp, vertical = 10.dp),
-            )
+            ) {
+                HomeFloatingHeader(
+                    onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
+                    onSettingsClick = onNavigateToSettings,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                HomeSearchBar(
+                    query = state.searchQuery,
+                    results = state.searchResults,
+                    isActive = state.isSearchActive,
+                    isSearching = state.isSearching,
+                    onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                    onResultClick = { result ->
+                        uiController.moveCamera(result.lat, result.lon, zoom = 15f)
+                        onIntent(HomeIntent.SelectSearchResult(result))
+                    },
+                    onClear = { onIntent(HomeIntent.ClearSearch) },
+                )
+            }
 
             // ── Report Spot Extended FAB ─────────────────────────────────────
             AnimatedVisibility(

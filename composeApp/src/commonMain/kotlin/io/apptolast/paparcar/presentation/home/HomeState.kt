@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.LocationInfo
+import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 
@@ -24,4 +25,8 @@ data class HomeState(
     val selectedItemId: String? = null,
     /** Geocoded address of the map camera centre (updated as the user pans). */
     val cameraLocationInfo: LocationInfo? = null,
+    val searchQuery: String = "",
+    val searchResults: List<SearchResult> = emptyList(),
+    val isSearchActive: Boolean = false,
+    val isSearching: Boolean = false,
 )

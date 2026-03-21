@@ -4,6 +4,7 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -31,6 +32,7 @@ class HomeViewModel(
     private val userParkingRepository: UserParkingRepository,
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
+    private val searchAddress: SearchAddressUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
@@ -106,6 +108,12 @@ class HomeViewModel(
             is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId) }
             is HomeIntent.ManualPark -> manualPark()
             is HomeIntent.CameraPositionChanged -> geocodeCameraLocation(intent.lat, intent.lon)
+            is HomeIntent.SearchQueryChanged -> handleSearchQueryChanged(intent.query)
+            is HomeIntent.SelectSearchResult -> {
+                updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
+                geocodeCameraLocation(intent.result.lat, intent.result.lon)
+            }
+            is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
         }
     }
 
@@ -143,6 +151,24 @@ class HomeViewModel(
         }
         viewModelScope.launch {
             confirmParking(gps)
+        }
+    }
+
+    private var searchJob: Job? = null
+
+    private fun handleSearchQueryChanged(query: String) {
+        updateState { copy(searchQuery = query, isSearchActive = true) }
+        searchJob?.cancel()
+        if (query.isBlank()) {
+            updateState { copy(searchResults = emptyList(), isSearching = false) }
+            return
+        }
+        searchJob = viewModelScope.launch {
+            delay(300L)
+            updateState { copy(isSearching = true) }
+            searchAddress(query)
+                .onSuccess { results -> updateState { copy(searchResults = results, isSearching = false) } }
+                .onFailure { updateState { copy(searchResults = emptyList(), isSearching = false) } }
         }
     }
 
