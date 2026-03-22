@@ -166,13 +166,12 @@ class ParkingDetectionCoordinator(
 
                 // ── User-confirmed path ───────────────────────────────────────────────
                 // Immediate confirmation at reliability 1.0 — user provided ground truth.
-                // Prefer candidateParkingLocation (snapshot at CANDIDATE entry) when available.
-                // Otherwise fall back to the best rolling fix if the car is currently stopped,
-                // or bestStopLocation if the user has already walked away (stoppedFixes empty).
+                // Prefer candidateParkingLocation (snapshot at CANDIDATE entry) when available,
+                // fall back to bestStopLocation, then the current fix as last resort.
                 if (state.userConfirmedParking) {
                     val locationToConfirm = state.candidateParkingLocation
-                        ?: if (state.stoppedFixes.isNotEmpty()) state.bestFix(location)
-                        else state.bestStopLocation ?: location
+                        ?: state.bestStopLocation
+                        ?: location
                     completed = true
                     withContext(NonCancellable) {
                         confirmParking(locationToConfirm, config.reliabilityUserConfirmed)
@@ -329,16 +328,18 @@ class ParkingDetectionCoordinator(
             is ParkingConfidence.High -> {
                 // Enter CANDIDATE phase. Notification is always shown so the user can
                 // confirm early or dismiss if this is a false positive (e.g. double-park).
-                // Snapshot candidateParkingLocation NOW from the rolling stoppedFixes buffer.
-                // By this point the car has been stopped long enough for confidence to reach
-                // High (≥ 30 s fast-path or ≥ 90 s slow-path), so the buffer reflects the
-                // car's actual final position — not where it first paused at a corner or
-                // during a slow-speed reverse maneuver earlier in the same stop episode.
+                // Snapshot candidateParkingLocation NOW. See inline comment below.
                 _detectionState.update { s ->
                     s.copy(
                         highConfidenceReachedAt = now,
                         highCandidateHadVehicleExit = s.vehicleExitConfirmed,
-                        candidateParkingLocation = s.bestFix(location),
+                        // Prefer bestStopLocation (best-accuracy fix from the whole session)
+                        // over the rolling buffer. Activity Recognition can fire minutes late
+                        // while the device is already at home; at that point stoppedFixes is
+                        // filled with home fixes, so bestFix(location) would snapshot the
+                        // wrong place. bestStopLocation is safe: any prior stop (traffic light)
+                        // is separated by driving at > clearBestStopSpeedMps, which clears it.
+                        candidateParkingLocation = s.bestStopLocation ?: s.bestFix(location),
                     )
                 }
                 notifyParkingConfirmation(confidence)
