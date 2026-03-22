@@ -25,11 +25,24 @@ fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Floa
     return (earthRadiusM * c).toFloat()
 }
 
-fun formatDistance(meters: Float): String = when {
-    meters < 1000 -> "${meters.roundToInt()} m"
-    else -> {
-        val tenths = ((meters / 1000f) * 10 + 0.5f).toLong().coerceAtLeast(0)
-        "${tenths / 10}.${tenths % 10} km"
+fun formatDistance(meters: Float, unit: DistanceUnit = DistanceUnit.METRIC): String = when (unit) {
+    DistanceUnit.METRIC -> when {
+        meters < 1000 -> "${meters.roundToInt()} m"
+        else -> {
+            val tenths = ((meters / 1000f) * 10 + 0.5f).toLong().coerceAtLeast(0)
+            "${tenths / 10}.${tenths % 10} km"
+        }
+    }
+    DistanceUnit.IMPERIAL -> {
+        val feet = meters * 3.28084f
+        val miles = meters / 1609.344f
+        when {
+            feet < 1000f -> "${feet.roundToInt()} ft"
+            else -> {
+                val tenths = ((miles * 10) + 0.5f).toLong().coerceAtLeast(0)
+                "${tenths / 10}.${tenths % 10} mi"
+            }
+        }
     }
 }
 
@@ -72,8 +85,9 @@ fun locationDisplayText(
     address: AddressInfo?,
     lat: Double,
     lon: Double,
+    showEmoji: Boolean = true,
 ): String {
-    val place = placeInfo?.let { "${it.category.emoji} ${it.name}" }
+    val place = placeInfo?.let { if (showEmoji) "${it.category.emoji} ${it.name}" else it.name }
     val addr = address?.displayLine
     return when {
         place != null && addr != null -> "$place  ·  $addr"

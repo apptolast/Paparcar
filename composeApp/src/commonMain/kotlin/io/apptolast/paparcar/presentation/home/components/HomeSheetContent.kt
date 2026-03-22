@@ -29,7 +29,7 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_parked_section
-import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
+import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
 
 @Composable
 internal fun HomeSheetContent(
@@ -40,9 +40,9 @@ internal fun HomeSheetContent(
     onManualPark: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     scrollState: ScrollState,
-    selectedSpotId: String? = null,
     spotScrollPositions: MutableMap<String, Int>,
 ) {
+    val selectedSpotId = state.selectedItemId?.takeIf { it != PARKING_ITEM_ID }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,10 +139,10 @@ private fun SpotsSection(
     spotScrollPositions: MutableMap<String, Int>,
 ) {
     HomeSectionHeader(
-        title = stringResource(Res.string.home_feed_nearby),
-        badge = if (state.nearbySpots.isNotEmpty())
-            stringResource(Res.string.home_stats_free_spots_badge, state.nearbySpots.size)
-        else null,
+        title = if (state.nearbySpots.isNotEmpty())
+            stringResource(Res.string.home_feed_nearby_with_count, state.nearbySpots.size)
+        else
+            stringResource(Res.string.home_feed_nearby),
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
     )
     when {

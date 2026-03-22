@@ -21,8 +21,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -36,13 +36,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.PARKING_ITEM_ID
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.driveTimeString
-import io.apptolast.paparcar.presentation.util.formatDistance
+import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.walkTimeString
@@ -129,6 +130,7 @@ private fun SpotPeekRow(
         address = spot.address,
         lat = spot.location.latitude,
         lon = spot.location.longitude,
+        showEmoji = false,
     )
 
     Row(
@@ -138,12 +140,20 @@ private fun SpotPeekRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            Icons.Outlined.RadioButtonChecked,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(26.dp),
-        )
+        val placeEmoji = spot.placeInfo?.category?.emoji
+        if (placeEmoji != null) {
+            Text(
+                text = placeEmoji,
+                fontSize = 22.sp,
+            )
+        } else {
+            Icon(
+                Icons.Outlined.LocalParking,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
+        }
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -156,7 +166,7 @@ private fun SpotPeekRow(
             )
             if (distM != null) {
                 Text(
-                    text = "${formatDistance(distM)}  ·  ${driveTimeString(distM)}",
+                    text = "${distanceString(distM)}  ·  ${driveTimeString(distM)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     maxLines = 1,
@@ -232,7 +242,7 @@ private fun ParkingPeekRow(
                 )
                 if (distM != null) {
                     Text(
-                        text = "${formatDistance(distM)}  ·  ${walkTimeString(distM)}  ·  $timeAgo",
+                        text = "${distanceString(distM)}  ·  ${walkTimeString(distM)}  ·  $timeAgo",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                         maxLines = 1,
@@ -298,16 +308,25 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            Icons.Outlined.LocationOn,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(26.dp),
-        )
+        val cameraPlaceEmoji = state.cameraLocationInfo?.placeInfo?.category?.emoji
+        if (cameraPlaceEmoji != null) {
+            Text(
+                text = cameraPlaceEmoji,
+                fontSize = 22.sp,
+            )
+        } else {
+            Icon(
+                Icons.Outlined.LocationOn,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = state.cameraLocationInfo?.displayLine
-                    ?: stringResource(Res.string.home_address_loading),
+                text = state.cameraLocationInfo?.let { info ->
+                    if (info.placeInfo != null) info.placeInfo.name else info.displayLine
+                } ?: stringResource(Res.string.home_address_loading),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

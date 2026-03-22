@@ -18,6 +18,7 @@
     <string name="home_nav_your_car">Tu coche</string>
     <string name="home_nav_free_spot">Spot libre</string>
     <string name="home_feed_nearby">Cerca de ti</string>
+    <string name="home_feed_nearby_with_count">%1$d plazas libres cerca de ti</string>
     <string name="home_feed_activity">Actividad reciente</string>
     <string name="home_permissions_message">Activa la ubicación para ver spots cerca de ti</string>
     <string name="home_permissions_button">Activar permisos</string>

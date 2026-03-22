@@ -64,3 +64,10 @@ fun driveTimeString(meters: Float): String {
     val minutes = (meters / 500).roundToInt().coerceAtLeast(1)
     return stringResource(Res.string.drive_time_minutes, minutes)
 }
+
+/**
+ * Composable wrapper for [formatDistance] that automatically resolves the
+ * device's preferred unit system (metric / imperial) at composition time.
+ */
+@Composable
+fun distanceString(meters: Float): String = formatDistance(meters, defaultDistanceUnit())

@@ -280,6 +280,8 @@ private fun HomeContent(
                 parkingLocation = state.userParking?.location,
                 selectedSpotId = selectedSpotId,
                 reportMode = !sheetExpanded,
+                isAnyItemSelected = state.selectedItemId != null,
+                isLoading = state.isLoading,
                 onSpotClick = { spotId ->
                     state.nearbySpots.find { it.id == spotId }?.let { spot ->
                         onIntent(HomeIntent.SelectItem(spotId))
@@ -440,7 +442,6 @@ private fun HomeContent(
                             onIntent(HomeIntent.SelectItem(spotId))
                         },
                         scrollState = scrollState,
-                        selectedSpotId = selectedSpotId,
                         spotScrollPositions = spotScrollPositions,
                     )
                 }

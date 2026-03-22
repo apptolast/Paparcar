@@ -153,7 +153,7 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
 
     companion object {
         private const val ENDPOINT = "https://overpass-api.de/api/interpreter"
-        private const val RADIUS_METERS = 150
+        private const val RADIUS_METERS = 80
         private const val MAX_RESULTS = 20
 
         /** Lower index = shown first when multiple POIs are found in the radius. */

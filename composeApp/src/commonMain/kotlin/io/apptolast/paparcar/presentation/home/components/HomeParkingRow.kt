@@ -2,7 +2,6 @@
 
 package io.apptolast.paparcar.presentation.home.components
 
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,10 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.distanceMeters
-import io.apptolast.paparcar.presentation.util.formatDistance
+import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.walkTimeString
@@ -47,14 +47,19 @@ internal fun HomeParkingRow(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val locationLabel: String? = if (parking.placeInfo == null && parking.address == null) {
-        null
-    } else {
-        locationDisplayText(parking.placeInfo, parking.address, parking.location.latitude, parking.location.longitude)
-    }
+    val displayText = locationDisplayText(
+        placeInfo = parking.placeInfo,
+        address = parking.address,
+        lat = parking.location.latitude,
+        lon = parking.location.longitude,
+    )
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
     }
+    val iconBackground = if (isSelected) MaterialTheme.colorScheme.primary
+                         else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+    val iconTint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                   else MaterialTheme.colorScheme.primary
 
     Surface(
         onClick = onSelect,
@@ -62,73 +67,65 @@ internal fun HomeParkingRow(
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
                 else Color.Transparent,
     ) {
-        Column {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(iconBackground),
+                contentAlignment = Alignment.Center,
             ) {
-                // Icon box
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Outlined.DirectionsCar,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp),
+                Icon(
+                    Icons.Outlined.DirectionsCar,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (distanceM != null) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "${walkTimeString(distanceM)}  ·  ${distanceString(distanceM)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-
-                // Text column
-                Column(modifier = Modifier.weight(1f)) {
-                    val timeAgo = relativeTimeText(parking.location.timestamp)
-                    if (distanceM != null) {
-                        Text(
-                            walkTimeString(distanceM),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        val secondary = buildString {
-                            append(formatDistance(distanceM))
-                            if (locationLabel != null) append("  ·  $locationLabel")
-                            append("  ·  $timeAgo")
-                        }
-                        Text(
-                            text = secondary,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                            maxLines = 1,
-                            modifier = Modifier.basicMarquee(),
-                        )
-                    } else {
-                        Text(
-                            text = locationLabel ?: timeAgo,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                            modifier = Modifier.basicMarquee(),
-                        )
-                        if (locationLabel != null) {
-                            Spacer(Modifier.height(3.dp))
-                            Text(
-                                timeAgo,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                            )
-                        }
-                    }
-                }
-
             }
+
+            ParkingTimeChip(timestampMs = parking.location.timestamp)
         }
+    }
+}
+
+@Composable
+private fun ParkingTimeChip(timestampMs: Long) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+    ) {
+        Text(
+            relativeTimeText(timestampMs),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        )
     }
 }
 

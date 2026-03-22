@@ -56,17 +56,16 @@ internal fun HomeNavBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = 28.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
             ) {
                 Icon(
                     Icons.Outlined.Navigation,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(22.dp),
                 )
-                Box(modifier = Modifier.size(10.dp))
                 Text(
                     navLabel,
                     fontWeight = FontWeight.ExtraBold,
@@ -75,6 +74,7 @@ internal fun HomeNavBar(
                     letterSpacing = 0.3.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
             }
             Spacer(modifier = Modifier.navigationBarsPadding())

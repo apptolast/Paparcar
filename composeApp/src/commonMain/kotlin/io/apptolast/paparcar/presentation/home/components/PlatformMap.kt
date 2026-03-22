@@ -3,18 +3,19 @@ package io.apptolast.paparcar.presentation.home.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.drawscope.Stroke
-import kotlinx.coroutines.delay
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,13 +23,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,12 +36,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.abs
+import androidx.compose.ui.unit.sp
 import com.swmansion.kmpmaps.core.AndroidMapProperties
 import com.swmansion.kmpmaps.core.AndroidUISettings
 import com.swmansion.kmpmaps.core.CameraPosition
@@ -56,9 +63,11 @@ import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.presentation.map.CameraTarget
-import io.apptolast.paparcar.ui.theme.PapForest
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 // ── Marker content IDs ──────────────────────────────────────────────────────
 private const val MARKER_MY_CAR = "my_car"
@@ -76,6 +85,8 @@ fun PlatformMap(
     cameraTarget: CameraTarget? = null,
     selectedSpotId: String? = null,
     reportMode: Boolean = false,
+    isAnyItemSelected: Boolean = false,
+    isLoading: Boolean = false,
 ) {
     // ── Build markers list ───────────────────────────────────────────────────
     val markers = remember(spots, parkingLocation, selectedSpotId) {
@@ -98,7 +109,7 @@ fun PlatformMap(
                         ),
                         title = spot.id,
                         contentId = if (spot.id == selectedSpotId) MARKER_FREE_SPOT_SELECTED
-                                    else MARKER_FREE_SPOT,
+                        else MARKER_FREE_SPOT,
                     ),
                 )
             }
@@ -114,10 +125,9 @@ fun PlatformMap(
         )
     }
 
-    // ── Track real camera center+zoom (set by the map, not by us) ──────────
+    // ── Track real camera center (set by the map, not by us) ──────────────
     var actualCamLat by remember { mutableStateOf<Float?>(null) }
     var actualCamLon by remember { mutableStateOf<Float?>(null) }
-    var actualCamZoom by remember { mutableStateOf<Float?>(null) }
 
     // ── Camera movement detection (debounced 280ms) ──────────────────────
     var cameraMoving by remember { mutableStateOf(false) }
@@ -129,10 +139,15 @@ fun PlatformMap(
         }
     }
 
+    // ── Loading state ────────────────────────────────────────────────────
+    val isDark = isSystemInDarkTheme()
+    var mapLoaded by remember { mutableStateOf(false) }
+    val showLoading = !mapLoaded || isLoading
+
     // ── Crosshair animations ─────────────────────────────────────────────
     val crosshairScale by animateFloatAsState(
         targetValue = when {
-            selectedSpotId != null -> 0f    // hide: spot marker is the focus
+            isAnyItemSelected -> 0f         // hide when any item (spot or parking) is focused
             cameraMoving -> 1.25f           // enlarge while aiming
             else -> 1f
         },
@@ -145,28 +160,40 @@ fun PlatformMap(
     // Pulse ring: fires once when camera settles
     val pulseAlpha = remember { Animatable(0f) }
     val pulseScale = remember { Animatable(1f) }
-    LaunchedEffect(cameraMoving) {
-        if (!cameraMoving && actualCamLat != null && selectedSpotId == null) {
+    LaunchedEffect(cameraMoving, showLoading) {
+        if (!cameraMoving && actualCamLat != null && !isAnyItemSelected && !showLoading) {
             pulseAlpha.snapTo(0.55f)
             pulseScale.snapTo(0.5f)
             launch { pulseAlpha.animateTo(0f, tween(600, easing = FastOutSlowInEasing)) }
             launch { pulseScale.animateTo(2.4f, tween(600, easing = FastOutSlowInEasing)) }
         }
     }
+    // Loading arc: spins while content is being fetched
+    val loadingTransition = rememberInfiniteTransition(label = "loading")
+    val loadingAngle by loadingTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "loading_angle",
+    )
 
     val cameraPosition = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
         userLocation = userLocation,
         actualCamLat = actualCamLat,
         actualCamLon = actualCamLon,
-        actualCamZoom = actualCamZoom,
     )
 
     // ── Map styling ──────────────────────────────────────────────────────────
-    val isDark = isSystemInDarkTheme()
-    var mapLoaded by remember { mutableStateOf(false) }
     val backgroundColor = MaterialTheme.colorScheme.background
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val loadingAlpha by animateFloatAsState(
+        targetValue = if (showLoading && !isAnyItemSelected) 1f else 0f,
+        animationSpec = tween(300),
+        label = "loading_alpha",
+    )
 
     Box(modifier = modifier) {
         Map(
@@ -193,7 +220,6 @@ fun PlatformMap(
             onCameraMove = { pos ->
                 actualCamLat = pos.coordinates.latitude.toFloat()
                 actualCamLon = pos.coordinates.longitude.toFloat()
-                actualCamZoom = pos.zoom
                 onCameraMove(pos.coordinates.latitude, pos.coordinates.longitude)
             },
             onMarkerClick = { marker ->
@@ -205,7 +231,7 @@ fun PlatformMap(
             onMapLoaded = { mapLoaded = true },
         )
 
-        // ── Loading overlay ──────────────────────────────────────────────────
+        // ── Loading overlay — hides partial map tiles; central pointer is the indicator ──
         AnimatedVisibility(
             visible = !mapLoaded,
             exit = fadeOut(animationSpec = tween(600)),
@@ -215,14 +241,7 @@ fun PlatformMap(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(backgroundColor),
-                contentAlignment = Alignment.Center,
-            ) {
-                CircularProgressIndicator(
-                    color = primaryColor,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(28.dp),
-                )
-            }
+            )
         }
 
         // ── Location indicator ───────────────────────────────────────────────
@@ -246,7 +265,7 @@ fun PlatformMap(
                     style = Stroke(width = 1.5.dp.toPx()),
                 )
             }
-            // Ring + center dot
+            // Ring + center dot (+ loading arc when fetching content)
             Canvas(modifier = Modifier.size(36.dp)) {
                 val cx = size.width / 2f
                 val cy = size.height / 2f
@@ -267,6 +286,33 @@ fun PlatformMap(
                     center = Offset(cx, cy),
                     style = Stroke(width = ringStroke),
                 )
+                // Loading comet: gradient arc spinning while content loads.
+                // HEAD (opaque, fraction ≈0.721) leads clockwise; TAIL fades to transparent.
+                // Replaces CircularProgressIndicator — fades out when loading completes,
+                // then the pulse ring fires to signal "ready".
+                if (loadingAlpha > 0f) {
+                    withTransform({ rotate(loadingAngle, pivot = Offset(cx, cy)) }) {
+                        drawArc(
+                            brush = Brush.sweepGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,                            // gap
+                                    0.716f to indicatorColor.copy(alpha = 0.04f),          // tail start
+                                    0.721f to indicatorColor,                              // HEAD (bright)
+                                    0.726f to Color.Transparent,                           // cutoff
+                                    1f to Color.Transparent,                            // gap wraps
+                                ),
+                                center = Offset(cx, cy),
+                            ),
+                            startAngle = 0f,
+                            sweepAngle = 260f,
+                            useCenter = false,
+                            topLeft = Offset(cx - ringRadius, cy - ringRadius),
+                            size = Size(ringRadius * 2, ringRadius * 2),
+                            alpha = loadingAlpha,
+                            style = Stroke(width = ringStroke + 1.5f, cap = StrokeCap.Round),
+                        )
+                    }
+                }
                 // Center dot shadow
                 drawCircle(
                     color = Color.Black.copy(alpha = shadowAlpha),
@@ -295,7 +341,6 @@ private fun rememberCameraAnimationState(
     userLocation: GpsPoint?,
     actualCamLat: Float?,
     actualCamLon: Float?,
-    actualCamZoom: Float?,
 ): CameraPosition {
     val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
         ?: userLocation?.let { Coordinates(it.latitude, it.longitude) }
@@ -313,7 +358,6 @@ private fun rememberCameraAnimationState(
         // Sync to real camera position so animation starts from the correct point.
         actualCamLat?.let { animLat.snapTo(it) }
         actualCamLon?.let { animLon.snapTo(it) }
-        actualCamZoom?.let { animZoom.snapTo(it) }
         val (targetLat, targetLon, targetZoom) = if (target.boundsLat2 != null && target.boundsLon2 != null) {
             val maxDelta = maxOf(
                 abs(target.lat - target.boundsLat2),
@@ -325,7 +369,7 @@ private fun rememberCameraAnimationState(
                 maxDelta < 0.010f -> 15f   // ~1.1 km
                 maxDelta < 0.020f -> 14f   // ~2.2 km
                 maxDelta < 0.040f -> 13f   // ~4.5 km
-                else              -> 12f
+                else -> 12f
             }
             Triple(
                 ((target.lat + target.boundsLat2) / 2.0).toFloat(),
@@ -351,7 +395,12 @@ private fun rememberCameraAnimationState(
 
 @Composable
 private fun MyCarMarkerContent() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    val borderWidth = 2.dp
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(-borderWidth), // 👈 solapa el triángulo bajo el borde
+    ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -376,7 +425,6 @@ private fun SpotMarkerContent(isSelected: Boolean = false) {
     val bg = if (isSelected) PapForestDark else PapGreen
     val border = if (isSelected) PapGreen else PapForestDark
     val iconTint = if (isSelected) PapGreen else PapForestDark
-    val iconSize = if (isSelected) 24.dp else 20.dp
     val tailW = if (isSelected) 12.dp else 10.dp
     val tailH = if (isSelected) 10.dp else 8.dp
     val borderWidth = 2.dp
@@ -392,11 +440,12 @@ private fun SpotMarkerContent(isSelected: Boolean = false) {
                 .border(borderWidth, border, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.DirectionsCar,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(iconSize),
+            Text(
+                "P",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = if (isSelected) 18.sp else 15.sp,
+                lineHeight = if (isSelected) 20.sp else 17.sp,
+                color = iconTint,
             )
         }
         PinTail(color = border, width = tailW, height = tailH)

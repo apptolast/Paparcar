@@ -18,6 +18,7 @@
     <string name="home_nav_your_car">Your car</string>
     <string name="home_nav_free_spot">Free spot</string>
     <string name="home_feed_nearby">Near you</string>
+    <string name="home_feed_nearby_with_count">%1$d free spots near you</string>
     <string name="home_feed_activity">Recent activity</string>
     <string name="home_permissions_message">Enable location to see nearby spots</string>
     <string name="home_permissions_button">Enable permissions</string>
