@@ -13,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        ActivityHolder.setActivity(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
@@ -99,6 +101,11 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         unregisterReceiver(gpsToggleReceiver)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ActivityHolder.clearActivity(this)
     }
 
     override fun onResume() {

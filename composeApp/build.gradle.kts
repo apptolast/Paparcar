@@ -59,6 +59,10 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
 
+//            LOGIN
+            implementation("com.github.apptolast.BaseLogin:baselogin:1.0.8")
+
+
             // Kotlin coroutines y utils
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
