@@ -47,17 +47,6 @@ class PaparcarApp : Application() {
             )
         }
 
-//        startKoin {
-//            androidContext(this@PaparcarApp)
-//            modules(
-//                presentationModule,
-//                domainModule,
-//                dataModule,
-//                androidDetectionModule,
-//                androidPlatformModule,
-//            )
-//        }
-
         // Re-register Activity Recognition transitions every 12h.
         // KEEP policy: if already enqueued, don't restart the running job.
         RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(this))

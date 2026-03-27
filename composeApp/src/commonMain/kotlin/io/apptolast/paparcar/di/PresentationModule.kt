@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.di
 
-import io.apptolast.paparcar.SplashViewModel
+import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.presentation.home.HomeViewModel

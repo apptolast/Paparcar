@@ -1,14 +1,16 @@
 package io.apptolast.paparcar
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -23,6 +25,7 @@ import com.apptolast.customlogin.presentation.navigation.NavTransitions
 import com.apptolast.customlogin.presentation.navigation.authRoutesFlow
 import io.apptolast.paparcar.presentation.app.AppIntent
 import io.apptolast.paparcar.presentation.app.AppViewModel
+import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.MapScreen
@@ -30,7 +33,6 @@ import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
 internal object Routes {
@@ -53,31 +55,33 @@ fun App(
     val authState by splashViewModel.authState.collectAsStateWithLifecycle()
 
     PaparcarTheme {
-        // Transparent so the map extends behind the status bar (edge-to-edge).
         // Each screen's Scaffold draws its own background.
-        Surface(modifier = Modifier.fillMaxSize(), color = Color.Transparent) {
+        Surface(modifier = Modifier.fillMaxSize()) {
 
-            // AnimatedContent provides smooth transitions when the authentication state changes.
+            // AnimatedContent switches between auth and app content.
+            // When coming from Loading (initial auth check), no animation is played because
+            // the splash screen covers the content — animating here would cause a flash of
+            // the login screen on cold start for already-authenticated users.
             AnimatedContent(
-                targetState = authState is AuthState.Authenticated,
+                targetState = authState,
                 transitionSpec = {
-                    // Use the shared slide transitions for a consistent feel.
-                    NavTransitions.enter togetherWith NavTransitions.exit
+                    if (initialState is AuthState.Loading) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        NavTransitions.enter togetherWith NavTransitions.exit
+                    }
                 },
                 label = "RootNavigationAnimation"
-            ) { isAuthenticated ->
-                if (isAuthenticated) {
-                    MainAppNavigation(
+            ) { state ->
+                when (state) {
+                    is AuthState.Loading -> Box(Modifier.fillMaxSize()) // splash covers this
+                    is AuthState.Authenticated -> MainAppNavigation(
                         startRoute,
                         appState.isFullyOperational,
                         { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
                         onOpenMapsNavigation,
                     )
-                } else {
-                    // This will be shown for Loading, Unauthenticated, and Error states.
-                    // The splash screen condition in MainActivity will handle hiding the app content
-                    // while loading for the first time.
-                    AuthNavigation()
+                    else -> AuthNavigation()
                 }
             }
 
@@ -195,9 +199,3 @@ private fun MainAppNavigation(
     }
 }
 
-
-@Preview
-@Composable
-fun AppPreview() {
-    App()
-}

@@ -24,6 +24,7 @@ androidx-core-ktx = "1.17.0"
 androidx-lifecycle = "2.10.0"
 androidx-material = "1.13.0"
 work-runtime = "2.11.1"
+androidx-splashscreen = "1.2.0"
 
 # ── Test ─────────────────────────────────────────────────────────────────────
 junit = "4.13.2"
@@ -55,6 +56,9 @@ google-services = "4.4.4"
 # Core: Google Maps en Android + Apple Maps en iOS (sin CocoaPods)
 kmp-maps = "0.8.1"
 
+# ── Login Library ────────────────────────────────────────────────────────────
+baselogin = "1.0.8"
+
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
 play-services-location = "21.3.0"
@@ -81,6 +85,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidx-appcompat" }
 androidx-material = { group = "com.google.android.material", name = "material", version.ref = "androidx-material" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
+androidx-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "androidx-splashscreen" }
 # Lifecycle — usamos las tres variantes:
 #   viewmodel        → ViewModel base (commonMain vía KMP)
 #   viewmodel-compose → collectAsStateWithLifecycle, etc. (commonMain vía KMP)
@@ -125,6 +130,9 @@ firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "fireb
 
 # ── KMP Maps (Software Mansion) ──────────────────────────────────────────────
 kmp-maps-core = { module = "com.swmansion.kmpmaps:core", version.ref = "kmp-maps" }
+
+# ── Login Library (JitPack) ───────────────────────────────────────────────────
+baselogin = { module = "com.github.apptolast.BaseLogin:baselogin", version.ref = "baselogin" }
 
 # ── Android-only: Detección ──────────────────────────────────────────────────
 # Incluye FusedLocationProviderClient + Activity Recognition Transitions API

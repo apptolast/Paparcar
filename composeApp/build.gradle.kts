@@ -59,9 +59,8 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
 
-//            LOGIN
-            implementation("com.github.apptolast.BaseLogin:baselogin:1.0.8")
-
+            // Login Library (JitPack)
+            implementation(libs.baselogin)
 
             // Kotlin coroutines y utils
             implementation(libs.kotlinx.coroutines.core)
@@ -101,6 +100,8 @@ kotlin {
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.material)
             implementation(libs.androidx.lifecycle.service)
+
+            implementation(libs.androidx.splashscreen)
 
             // Coroutines Android dispatcher
             implementation(libs.kotlinx.coroutines.android)
