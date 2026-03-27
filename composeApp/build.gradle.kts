@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAPARCAR — composeApp/build.gradle.kts
@@ -59,6 +60,9 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(compose.materialIconsExtended)
 
+            // Login Library (JitPack)
+            implementation(libs.baselogin)
+
             // Kotlin coroutines y utils
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)
@@ -97,6 +101,8 @@ kotlin {
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.material)
             implementation(libs.androidx.lifecycle.service)
+
+            implementation(libs.androidx.splashscreen)
 
             // Coroutines Android dispatcher
             implementation(libs.kotlinx.coroutines.android)
@@ -166,6 +172,11 @@ dependencies {
 // ─────────────────────────────────────────────────────────────────────────────
 // ANDROID
 // ─────────────────────────────────────────────────────────────────────────────
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
 android {
     namespace = "io.apptolast.paparcar"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -176,6 +187,12 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"",
+        )
     }
 
     buildFeatures {

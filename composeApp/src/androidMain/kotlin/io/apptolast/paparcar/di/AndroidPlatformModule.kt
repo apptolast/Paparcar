@@ -29,6 +29,30 @@ private val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `user_profile` (
+                `userId` TEXT NOT NULL,
+                `email` TEXT,
+                `displayName` TEXT,
+                `photoUrl` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`userId`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE parking_sessions ADD COLUMN userId TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 val androidPlatformModule = module {
     // Database
     single<AppDatabase> {
@@ -36,7 +60,7 @@ val androidPlatformModule = module {
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).addMigrations(MIGRATION_3_4)
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .fallbackToDestructiveMigration(true)
             .build()
     }

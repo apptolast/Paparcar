@@ -2,6 +2,12 @@ package io.apptolast.paparcar
 
 import android.app.Application
 import androidx.work.WorkManager
+import com.apptolast.customlogin.appContext
+import com.apptolast.customlogin.config.AppleSignInConfig
+import com.apptolast.customlogin.config.GoogleSignInConfig
+import com.apptolast.customlogin.config.MagicLinkConfig
+import com.apptolast.customlogin.di.LoginLibraryConfig
+import com.apptolast.customlogin.di.initLoginKoin
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.di.androidDetectionModule
 import io.apptolast.paparcar.di.androidPlatformModule
@@ -9,13 +15,28 @@ import io.apptolast.paparcar.di.dataModule
 import io.apptolast.paparcar.di.domainModule
 import io.apptolast.paparcar.di.presentationModule
 import org.koin.android.ext.koin.androidContext
-import org.koin.core.context.startKoin
 
 class PaparcarApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        startKoin {
+        appContext = this
+
+        val loginConfig = LoginLibraryConfig(
+            googleSignInConfig = GoogleSignInConfig(
+                webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
+            ),
+            appleSignInConfig = AppleSignInConfig(),
+            githubEnabled = true,
+            microsoftEnabled = true,
+            twitterEnabled = true,
+            facebookEnabled = true,
+            magicLinkConfig = MagicLinkConfig(
+                continueUrl = "https://apptolast.com/login"
+            )
+        )
+
+        initLoginKoin(config = loginConfig) {
             androidContext(this@PaparcarApp)
             modules(
                 presentationModule,

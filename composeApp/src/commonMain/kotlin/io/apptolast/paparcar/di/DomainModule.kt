@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.di
 
+import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
@@ -15,6 +16,9 @@ import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
+
+    // User UseCases
+    factory { GetOrCreateUserProfileUseCase(get(), get(), get()) }
 
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }
@@ -42,6 +46,7 @@ val domainModule = module {
             geofenceService = get(),
             notificationPort = get(),
             enrichmentScheduler = get(),
+            authRepository = get(),
             config = get(),
         )
     }

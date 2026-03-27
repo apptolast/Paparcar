@@ -13,16 +13,21 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.presentation.app.SplashViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import kotlin.getValue
 
 class MainActivity : ComponentActivity() {
-
+    private val splashViewModel: SplashViewModel by viewModel()
     private val permissionManager: PermissionManager by inject()
     private val activityRecognitionManager: ActivityRecognitionManager by inject()
     private val appPreferences: AppPreferences by inject()
@@ -38,7 +43,14 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        ActivityHolder.setActivity(this)
         enableEdgeToEdge()
+        val splashScreen = installSplashScreen()
+
+        // Keep splash screen visible until auth check completes
+        splashScreen.setKeepOnScreenCondition {
+            !splashViewModel.isReady
+        }
         super.onCreate(savedInstanceState)
 
         permissionManager.refreshPermissions()
@@ -53,6 +65,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             App(
+                splashViewModel = splashViewModel,
                 startRoute = startRoute,
                 onOpenMapsNavigation = { lat, lon ->
                     val uri = "google.navigation:q=$lat,$lon&mode=d".toUri()
@@ -99,6 +112,11 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         unregisterReceiver(gpsToggleReceiver)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ActivityHolder.clearActivity(this)
     }
 
     override fun onResume() {
