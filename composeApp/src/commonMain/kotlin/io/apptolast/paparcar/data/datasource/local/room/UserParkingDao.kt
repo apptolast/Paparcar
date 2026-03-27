@@ -15,10 +15,13 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
     suspend fun getActive(): UserParkingEntity?
 
-    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT 50")
+    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
+    suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParkingEntity>
+
+    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT 1")
     suspend fun getAll(): List<UserParkingEntity>
 
-    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT 50")
+    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC")
     fun observeAll(): Flow<List<UserParkingEntity>>
 
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
@@ -26,9 +29,6 @@ interface UserParkingDao {
 
     @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1")
     suspend fun clearActive()
-
-    @Query("DELETE FROM parking_sessions WHERE isActive = 0 AND timestamp < :olderThanMs")
-    suspend fun deleteOldSessions(olderThanMs: Long)
 
     @Query("""
         UPDATE parking_sessions SET

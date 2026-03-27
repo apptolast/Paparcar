@@ -5,10 +5,14 @@ import dev.gitlive.firebase.firestore.firestore
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSourceImpl
+import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSource
+import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSourceImpl
 import io.apptolast.paparcar.data.repository.SpotRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserParkingRepositoryImpl
+import io.apptolast.paparcar.data.repository.UserProfileRepositoryImpl
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import org.koin.dsl.module
 
 val dataModule = module {
@@ -16,15 +20,18 @@ val dataModule = module {
     // Firebase
     single { Firebase.firestore }
 
-    // Repositories
-    single<SpotRepository> { SpotRepositoryImpl(get()) }
-    single<UserParkingRepository> { UserParkingRepositoryImpl(get()) }
-
     // DataSources
     single<FirebaseDataSource> { FirebaseDataSourceImpl(get()) }
+    single<UserProfileDataSource> { UserProfileDataSourceImpl(get()) }
+
+    // Repositories
+    single<SpotRepository> { SpotRepositoryImpl(get()) }
+    single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get()) }
+    single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
 
     // DAOs (from AppDatabase)
     single { get<AppDatabase>().parkingSessionDao() }
+    single { get<AppDatabase>().userProfileDao() }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.
 }

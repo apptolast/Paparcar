@@ -5,10 +5,11 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
-@Database(entities = [UserParkingEntity::class], version = 4)
+@Database(entities = [UserParkingEntity::class, UserProfileEntity::class], version = 6)
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun parkingSessionDao(): UserParkingDao
+    abstract fun userProfileDao(): UserProfileDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

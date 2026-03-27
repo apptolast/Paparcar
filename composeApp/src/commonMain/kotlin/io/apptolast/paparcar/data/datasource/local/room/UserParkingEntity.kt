@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "parking_sessions")
 data class UserParkingEntity(
     @PrimaryKey val id: String,
+    val userId: String = "",
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float,

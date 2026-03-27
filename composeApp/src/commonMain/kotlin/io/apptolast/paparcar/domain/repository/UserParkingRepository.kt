@@ -10,7 +10,13 @@ interface UserParkingRepository {
     suspend fun getActiveSession(): UserParking?
     fun observeActiveSession(): Flow<UserParking?>
     fun observeAllSessions(): Flow<List<UserParking>>
+    suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking>
     suspend fun clearActive(): Result<Unit>
+    /**
+     * Downloads parking history from Firestore and populates Room.
+     * No-op if Room already has data — covers new installs and device switches.
+     */
+    suspend fun syncParkingHistoryFromRemote(userId: String): Result<Unit>
     /** In-place update of address+POI for an existing session. Does not affect [isActive]. */
     suspend fun updateLocationInfo(
         id: String,

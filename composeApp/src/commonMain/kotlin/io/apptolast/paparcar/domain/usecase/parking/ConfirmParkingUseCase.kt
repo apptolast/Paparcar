@@ -2,6 +2,7 @@
 
 package io.apptolast.paparcar.domain.usecase.parking
 
+import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
@@ -28,9 +29,11 @@ class ConfirmParkingUseCase(
     private val geofenceService: GeofenceManager,
     private val notificationPort: AppNotificationManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
+    private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
 ) {
     suspend operator fun invoke(location: GpsPoint) {
+        val userId = authRepository.getCurrentSession()?.userId ?: ""
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -39,16 +42,16 @@ class ConfirmParkingUseCase(
             timestamp = Clock.System.now().toEpochMilliseconds(),
             speed = location.speed,
         )
-        val baseSession = UserParking(
+        val session = UserParking(
             id = sessionId,
+            userId = userId,
             location = gpsPoint,
             geofenceId = sessionId,
             isActive = true,
         )
 
-        userParkingRepository.saveSession(baseSession).onFailure { return }
+        userParkingRepository.saveSession(session).onFailure { return }
 
-        // Schedule address + POI enrichment off the critical path.
         enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)
 
         geofenceService.createGeofence(
