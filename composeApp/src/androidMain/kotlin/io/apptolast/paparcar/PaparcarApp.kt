@@ -24,7 +24,7 @@ class PaparcarApp : Application() {
 
         val loginConfig = LoginLibraryConfig(
             googleSignInConfig = GoogleSignInConfig(
-                webClientId = "431876996213-3je39vbah4nctmod6nvckabu4vjmu0hh.apps.googleusercontent.com"
+                webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
             ),
             appleSignInConfig = AppleSignInConfig(),
             githubEnabled = true,

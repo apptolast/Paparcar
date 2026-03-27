@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PAPARCAR — composeApp/build.gradle.kts
@@ -171,6 +172,11 @@ dependencies {
 // ─────────────────────────────────────────────────────────────────────────────
 // ANDROID
 // ─────────────────────────────────────────────────────────────────────────────
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
 android {
     namespace = "io.apptolast.paparcar"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -181,6 +187,12 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"",
+        )
     }
 
     buildFeatures {
