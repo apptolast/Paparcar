@@ -1,5 +1,3 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package io.apptolast.paparcar.presentation.util
 
 import io.apptolast.paparcar.domain.model.AddressInfo
@@ -44,36 +42,6 @@ fun formatDistance(meters: Float, unit: DistanceUnit = DistanceUnit.METRIC): Str
             }
         }
     }
-}
-
-fun formatWalkTime(meters: Float): String {
-    val minutes = (meters / 80).roundToInt().coerceAtLeast(1)
-    return "$minutes min a pie"
-}
-
-fun formatDriveTime(meters: Float): String {
-    val minutes = (meters / 500).roundToInt().coerceAtLeast(1)
-    return "$minutes min en coche"
-}
-
-fun formatRelativeTime(timestampMs: Long): String {
-    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val diffMs = nowMs - timestampMs
-    val diffMin = diffMs / 60_000
-    val diffHours = diffMin / 60
-    val diffDays = diffHours / 24
-    return when {
-        diffMin < 1 -> "ahora mismo"
-        diffMin < 60 -> "hace $diffMin min"
-        diffHours < 24 -> "hace $diffHours h"
-        else -> "hace $diffDays día${if (diffDays > 1) "s" else ""}"
-    }
-}
-
-fun greetingByHour(hour: Int): String = when (hour) {
-    in 6..11 -> "¡Buenos días!"
-    in 12..19 -> "¡Buenas tardes!"
-    else -> "¡Buenas noches!"
 }
 
 /**

@@ -51,14 +51,12 @@ fun relativeTimeText(timestampMs: Long): String {
     }
 }
 
-/** Composable version of [formatWalkTime] — uses string resources for locale support. */
 @Composable
 fun walkTimeString(meters: Float): String {
     val minutes = (meters / 80).roundToInt().coerceAtLeast(1)
     return stringResource(Res.string.walk_time_minutes, minutes)
 }
 
-/** Composable version of [formatDriveTime] — uses string resources for locale support. */
 @Composable
 fun driveTimeString(meters: Float): String {
     val minutes = (meters / 500).roundToInt().coerceAtLeast(1)

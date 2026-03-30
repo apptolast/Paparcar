@@ -39,6 +39,15 @@
     <string name="home_reliability_confirmed">Confirmado</string>
     <string name="home_reliability_high">Detectado</string>
     <string name="home_reliability_auto">Aprox.</string>
+    <!-- HomeSearchBar -->
+    <string name="home_search_clear_cd">Limpiar búsqueda</string>
+    <!-- HomeFloatingHeader -->
+    <string name="home_menu_close_cd">Cerrar menú</string>
+    <string name="home_menu_open_cd">Abrir menú</string>
+    <!-- HomeSpotRows chip de frescura — %1$d = minutos u horas -->
+    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
+    <string name="home_spot_freshness_minutes">hace %1$dm</string>
+    <string name="home_spot_freshness_hours">hace %1$dh</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenido a Paparcar</string>

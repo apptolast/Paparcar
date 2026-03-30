@@ -39,6 +39,15 @@
     <string name="home_reliability_confirmed">Confirmed</string>
     <string name="home_reliability_high">Auto-detected</string>
     <string name="home_reliability_auto">Approx.</string>
+    <!-- HomeSearchBar -->
+    <string name="home_search_clear_cd">Clear search</string>
+    <!-- HomeFloatingHeader -->
+    <string name="home_menu_close_cd">Close menu</string>
+    <string name="home_menu_open_cd">Open menu</string>
+    <!-- HomeSpotRows freshness chip — %1$d = minutes or hours -->
+    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
+    <string name="home_spot_freshness_minutes">%1$dm ago</string>
+    <string name="home_spot_freshness_hours">%1$dh ago</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
