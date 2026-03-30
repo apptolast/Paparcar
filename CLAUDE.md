@@ -1,164 +1,148 @@
-# CLAUDE.md
+# Paparcar — CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Proyecto
+Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de aparcamiento en tiempo real basada en comunidad. Android es la plataforma principal; iOS es target futuro. Cuando un usuario sale con el coche, la app detecta automáticamente el evento y publica la plaza recién liberada para que otros usuarios cercanos puedan encontrarla.
 
-## Project Overview
+## Stack
+- UI: Compose Multiplatform 1.8.0
+- Arquitectura: Clean Architecture + MVI (State + Intent + Effect)
+- DI: Koin 4.1.1
+- DB local: Room KMP 2.8.4
+- Backend: Firebase (GitLive KMP SDK 2.4.0)
+- Auth: BaseLogin (librería propia, JitPack)
+- Async: Coroutines + Flow
+- Monitoring: Firebase Crashlytics
 
-**Paparcar** is a Kotlin Multiplatform (KMP) parking-spot sharing app. It uses Compose Multiplatform for UI and targets Android (primary) with iOS structure prepared. The app detects when users park/leave via Activity Recognition + GPS and shares spot availability with nearby users.
-
-## Build & Run Commands
-
-```bash
-# Build debug APK
-./gradlew assembleDebug
-
-# Build release APK (ProGuard minification enabled)
-./gradlew assembleRelease
-
-# Install on connected device/emulator
-./gradlew installDebug
-
-# Run all unit tests
-./gradlew test
-
-# Run debug unit tests only
-./gradlew testDebugUnitTest
-
-# Run instrumented tests (requires connected device)
-./gradlew connectedAndroidTest
-
-# Clean build
-./gradlew clean
+## Estructura
+```
+commonMain/  → domain/, data/, presentation/, di/, core/
+androidMain/ → detection/, location/, bluetooth/, notification/, worker/, geofence/
+iosMain/     → (futuro) CLLocation, CMMotion, CoreBluetooth, BGTask wrappers
 ```
 
-**Build config:** Compile SDK 36, Min SDK 26, Target SDK 36, JVM target 17, Kotlin 2.1.21.
+## Arquitectura
+- Domain layer es Kotlin puro — sin imports de Android/iOS
+- Todo UseCase retorna `Flow<T>` o `AppResult<T>`
+- ViewModels usan MVI: sealed class State, Intent, Effect
+- Repositorios exponen interfaces en domain/, implementación en data/
+- Persistencia dual: Room (offline-first local) + Firestore (sync real-time)
 
-## Architecture: Clean Architecture + MVI
+## Detección de aparcamiento — Dual Strategy
+Dos estrategias independientes, NUNCA se mezclan:
 
-The project strictly follows **Clean Architecture** with three layers plus a platform layer:
+### BluetoothDetectionStrategy (determinista)
+- Escucha BT disconnect → GPS fix → distance check > 30m → auto-confirm
+- Escucha BT connect → DetectDepartureUseCase
+- Sin scoring, sin Activity Recognition — es directo
+- Para usuarios con BT emparejado con su coche
 
-### Layer Structure
+### CoordinatorDetectionStrategy (probabilístico)
+- Activity Recognition + GPS stream → confidence scoring
+- HIGH (≥0.75) → auto-confirm | MEDIUM (≥0.55) → preguntar usuario | LOW → reset
+- Fallback para usuarios sin BT o con BT del móvil apagado
 
-```
-commonMain/kotlin/io/apptolast/paparcar/
-├── presentation/   ← Compose screens + MVI ViewModels
-├── domain/         ← Business logic, interfaces, use cases, models
-├── data/           ← Repository implementations, datasources, mappers
-└── di/             ← Koin modules (PresentationModule, DomainModule, DataModule)
-
-androidMain/kotlin/io/apptolast/paparcar/
-├── detection/      ← Activity Recognition, Accelerometer, Foreground Service
-├── location/       ← FusedLocationProviderClient implementation
-├── notification/   ← Android NotificationManager implementation
-├── permissions/    ← Runtime permission handling
-└── di/             ← AndroidPlatformModule, AndroidDetectionModule
-```
-
-### MVI Pattern (applied to every screen)
-
-Each screen has three files: `*State`, `*Intent`, `*Effect`, and a `*ViewModel` extending `BaseViewModel<S, I, E>`:
-
-- **State** — immutable data class representing the full UI state
-- **Intent** — sealed class of user actions sent to the ViewModel
-- **Effect** — sealed class of one-shot side effects (navigation, permission requests)
-
+### Resolución
 ```kotlin
-// Pattern used across HomeViewModel, MapViewModel, HistoryViewModel
-class HomeViewModel(...) : BaseViewModel<HomeState, HomeIntent, HomeEffect>()
+fun resolveStrategy(vehicle: Vehicle, isBluetoothEnabled: Boolean): ParkingDetectionStrategy {
+    return if (vehicle.bluetoothDeviceId != null && isBluetoothEnabled) {
+        BluetoothDetectionStrategy(vehicle.bluetoothDeviceId)
+    } else {
+        CoordinatorDetectionStrategy()
+    }
+}
 ```
 
-### Dependency Injection (Koin)
+Ambas estrategias convergen en: ConfirmParkingUseCase → Room + Firestore + Geofence + Notification + WorkManager geocoding
 
-- `PresentationModule` — ViewModels
-- `DomainModule` — UseCases
-- `DataModule` — Repositories, Firebase, local/remote datasources
-- `AndroidPlatformModule` — Room DB, Location, Notifications (androidMain)
-- `AndroidDetectionModule` — Parking detection use cases (androidMain)
+---
 
-Koin is initialized in `PaparcarApp.kt` (Application class). ViewModels are injected with `koinViewModel()`.
+## REGLAS DE CÓDIGO OBLIGATORIAS
 
-### Platform Abstraction
+### ⛔ Strings — NUNCA hardcoded
+- Todo texto visible al usuario va en `composeResources/values/strings.xml`
+- Usar `stringResource(Res.string.key)` en Compose
+- Convención de key: `feature_component_description`
+  - Ejemplo: `home_fab_report_spot`, `detection_parking_confirmation`
+- Idiomas soportados: EN (base), ES, IT, PT, FR + futuros P2
+- Cuando añadas un string, SIEMPRE añadirlo mínimo en EN y ES
+- Keys siempre en inglés: `spot_available` no `plaza_disponible`
 
-Platform-specific features are defined as interfaces in `commonMain/domain/` and implemented in `androidMain/`:
+### ⛔ Magic numbers — NUNCA inline
+- Las constantes van en `companion object` privado de la clase que las usa
+- Si se comparte entre 2+ clases → extraer a archivo config del módulo
+- Nombre descriptivo en UPPER_SNAKE_CASE
+- Ejemplo:
+```kotlin
+// ✅ En GeofenceManager.kt
+private companion object {
+    const val GEOFENCE_RADIUS_METERS = 80f
+}
 
-- `PlatformLocationDataSource` → `AndroidLocationDataSourceImpl` (FusedLocationProviderClient)
-- `AppNotificationManager` → `AppNotificationManagerImpl`
-- `PermissionManager` → `PermissionManagerImpl`
-- `ActivityRecognitionManager` → `ActivityRecognitionManagerImpl`
+// ✅ En CalculateParkingConfidenceUseCase.kt
+private companion object {
+    const val HIGH_CONFIDENCE_THRESHOLD = 0.75
+    const val MEDIUM_CONFIDENCE_THRESHOLD = 0.55
+}
 
-Room database uses `expect/actual` — builder defined in `androidMain/di/AndroidPlatformModule.kt`.
-
-## Key Technologies
-
-| Purpose | Library | Version |
-|---|---|---|
-| UI | Compose Multiplatform | 1.8.0 |
-| DI | Koin | 4.1.1 |
-| Local DB | Room KMP | 2.8.4 |
-| Remote DB | Firebase (GitLive KMP SDK) | 2.4.0 |
-| Location | Play Services Location | 21.3.0 |
-| Async | Kotlin Coroutines + Flow | 1.9.0 |
-| Time | kotlinx.datetime | 0.7.1 |
-| Serialization | kotlinx.serialization | 1.8.1 |
-| KSP | Room code generation | 2.1.21-2.0.1 |
-
-All versions are managed via `gradle/libs.versions.toml`.
-
-## Error Handling
-
-All errors are typed via `PaparcarError` sealed class hierarchy in `commonMain/domain/error/`:
-
-```
-PaparcarError
-├── Location (PermissionDenied, ProviderDisabled, Unknown)
-├── Network (NoConnection, Timeout, ServerError, Unknown)
-├── Database (NotFound, WriteError, Unknown)
-└── Detection (ActivityRecognitionUnavailable, PermissionDenied)
+// ❌ NUNCA
+if (distance > 80f) { ... }
+if (score >= 0.75) { ... }
 ```
 
-`Result<T>` is used throughout the stack. Domain errors are mapped in repository implementations.
+### Error handling
+```kotlin
+sealed class AppResult<out T> {
+    data class Success<T>(val data: T) : AppResult<T>()
+    data class Error(val exception: Throwable) : AppResult<Nothing>()
+}
+```
 
-## Android-Specific Components
+### Testing
+- Toda UseCase nueva debe tener test unitario
+- Usar fakes sobre mocks: FakeAuthRepository, FakePermissionManager, FakeUserParkingRepository...
+- Naming: `should_expectedBehavior_when_condition`
 
-- **`DrivingTrackingService`** — `LifecycleService` foreground service for GPS polling. Entry point for active tracking sessions.
-- **`ActivityTransitionReceiver`** — `BroadcastReceiver` that fires on `IN_VEHICLE`/`STILL` transitions and starts/stops `DrivingTrackingService`.
-- **`BootCompletedReceiver`** — Restores tracking after device reboot.
-- **Notification channels:** `DETECTION` (LOW), `UPLOAD` (DEFAULT), `DEBUG` (HIGH) — all require Min SDK 26.
+### Commits — Conventional Commits
+```
+feat(home): implement bottom sheet with nearby spots [HOME-002]
+fix(detection): geofence departure not triggering spot publish [FND-004]
+refactor(core): extract magic numbers to companion objects [FND-002]
+test(domain): add tests for ConfirmParkingUseCase [FND-007]
+chore(repo): remove build log files [FND-008]
+feat(i18n): add Italian translations [FND-001]
+```
 
-Location streaming uses `callbackFlow` wrapping FusedLocationProviderClient callbacks. Two priority modes:
-- High Accuracy: 5s interval, 2s min update
-- Balanced Power: 30s interval, 15s min update
+### Ramas
+```
+feature/HOME-001-bottom-sheet
+bugfix/FND-004-geofence-departure
+refactor/FND-001-extract-strings
+experiment/UI-003-glass-ui
+chore/FND-008-repo-cleanup
+```
 
-## Important Conventions
+### Cosas que NO hacer
+- No usar `println` para logs → usar Logger con tag
+- No usar wildcard imports (`import com.paparcar.*`)
+- No commitear archivos de build: logs, .kotlin/metadata, build/
+- No poner constantes en God Objects compartidos
+- No escribir strings en español en el código — EN es siempre la base
+- No mezclar señales Bluetooth dentro del Coordinator scoring
+- No crear pantallas sin sus correspondientes State/Intent/Effect sealed classes
 
-- **No platform imports in domain layer** — `commonMain/domain/` must stay pure Kotlin with no `android.*` imports.
-- **Time:** Always use `Clock.System.now().toEpochMilliseconds()` with `@file:OptIn(ExperimentalTime::class)`.
-- **Foreground services only** — background services are not used.
-- **Naming:** Screens → `*Screen`, ViewModels → `*ViewModel`, Repo impls → `*RepositoryImpl`.
-- **Room KSP** is configured for `kspAndroid`, `kspIosX64`, `kspIosArm64`, `kspIosSimulatorArm64`.
+## Modelos de datos clave
+- `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, enRouteCount, TTL
+- `UserParking` — sesión propia: vehicleId, location, geofenceId, isActive, detectionMethod
+- `Vehicle` — vehículo: brand, model, licensePlate?, bluetoothDeviceId?, isDefault
+- `UserProfile` — perfil Firebase: userId, email, displayName, photoUrl
 
-## Principles: SOLID & Clean Architecture
+## Navegación
+BottomNav con 4 destinos: Mapa | Historial | Mi Coche | Ajustes
+Splash → Auth → VehicleRegistration → Onboarding → Permissions → Home
 
-Rules enforced across the codebase:
-
-### SRP — Single Responsibility
-- One use case = one responsibility. Do not merge unrelated logic into a single use case.
-- All mutable detection state lives in a single `private data class *State` updated atomically via `MutableStateFlow.update {}`. Never scatter multiple `var` fields across a class.
-
-### OCP — Open/Closed
-- Magic numbers and algorithm thresholds belong in an injectable `*Config` data class (e.g. `ParkingDetectionConfig`). Changing the algorithm does not require touching business logic — only the config.
-
-### ISP — Interface Segregation
-- Interfaces must have ≤ 5 cohesive methods. Split read-only queries from write commands if different clients need different subsets.
-
-### DIP — Dependency Inversion
-- **Zero `getKoin().get()` calls at runtime.** This is the Service Locator anti-pattern: hidden dependencies that are impossible to test.
-- `BroadcastReceiver` subclasses that need DI must implement `KoinComponent` and declare dependencies as `private val foo: Foo by inject()` properties.
-- Cross-component event buses (e.g. `GeofenceEventBus`) are defined as interfaces in `commonMain/domain/` and registered as `single<>` singletons in the DI module so both producer and consumer share the same instance.
-
-### Flows
-- Every `Flow` that is `collect`ed / `collectLatest`-ed / `launchIn`-ed **must** have a `.catch {}` operator immediately before the terminal call to prevent silent termination on upstream errors.
-
-### MVI Intents
-- Never declare an intent subclass without a corresponding `when` branch in `handleIntent`.
-- `handleIntent` must be exhaustive — no `else -> {}` fallback. A sealed class with unhandled branches is a bug waiting to happen.
+## i18n
+- Base: EN (siempre completo)
+- P0: ES
+- P1: IT, PT, FR
+- P2: DE, NL, PL, RO
+- Excluidos por complejidad UI: idiomas RTL (AR, HE) y glifos complejos (ZH, JA, KO, TH, HI)
