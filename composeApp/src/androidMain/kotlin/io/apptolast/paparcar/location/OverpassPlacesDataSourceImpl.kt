@@ -44,7 +44,7 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
 
     private fun buildQuery(lat: Double, lon: Double): String {
         val around = "around:$RADIUS_METERS,$lat,$lon"
-        return "[out:json][timeout:8];" +
+        return "[out:json][timeout:$QUERY_TIMEOUT_S];" +
             "(nwr($around)[name][amenity];" +
             "nwr($around)[name][shop];" +
             "nwr($around)[name][tourism];" +
@@ -59,8 +59,8 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
         return try {
             connection.requestMethod = "POST"
             connection.doOutput = true
-            connection.connectTimeout = 6_000
-            connection.readTimeout = 10_000
+            connection.connectTimeout = CONNECT_TIMEOUT_MS
+            connection.readTimeout = READ_TIMEOUT_MS
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
             val payload = "data=${URLEncoder.encode(query, "UTF-8")}"
             connection.outputStream.bufferedWriter().use { it.write(payload) }
@@ -93,7 +93,7 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
     }
 
     private fun haversineMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6_371_000.0
+        val r = EARTH_RADIUS_METERS
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
         val a = sin(dLat / 2) * sin(dLat / 2) +
@@ -151,10 +151,14 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
         val lon: Double = 0.0,
     )
 
-    companion object {
-        private const val ENDPOINT = "https://overpass-api.de/api/interpreter"
-        private const val RADIUS_METERS = 80
-        private const val MAX_RESULTS = 20
+    private companion object {
+        const val ENDPOINT = "https://overpass-api.de/api/interpreter"
+        const val RADIUS_METERS = 80
+        const val MAX_RESULTS = 20
+        const val QUERY_TIMEOUT_S = 8
+        const val CONNECT_TIMEOUT_MS = 6_000
+        const val READ_TIMEOUT_MS = 10_000
+        const val EARTH_RADIUS_METERS = 6_371_000.0
 
         /** Lower index = shown first when multiple POIs are found in the radius. */
         private val CATEGORY_PRIORITY = listOf(

@@ -111,6 +111,7 @@ class DepartureDetectionWorker(
          * to accelerate above the departure threshold.
          */
         private const val MAX_INCONCLUSIVE_RETRIES = 3
+        private const val INITIAL_BACKOFF_SECONDS = 15L
 
         fun buildRequest(geofenceId: String, exitTimestampMs: Long): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<DepartureDetectionWorker>()
@@ -120,7 +121,7 @@ class DepartureDetectionWorker(
                         KEY_EXIT_TIMESTAMP to exitTimestampMs,
                     )
                 )
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, INITIAL_BACKOFF_SECONDS, TimeUnit.SECONDS)
                 .addTag(TAG)
                 .build()
     }

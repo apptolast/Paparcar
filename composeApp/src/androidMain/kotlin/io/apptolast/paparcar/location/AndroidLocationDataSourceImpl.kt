@@ -24,8 +24,8 @@ class AndroidLocationDataSourceImpl(
 
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY,
-            TimeUnit.SECONDS.toMillis(5)
-        ).setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(2))
+            TimeUnit.SECONDS.toMillis(HIGH_ACCURACY_INTERVAL_S)
+        ).setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(HIGH_ACCURACY_MIN_INTERVAL_S))
             .build()
 
         val callback = createCallback(this)
@@ -44,8 +44,8 @@ class AndroidLocationDataSourceImpl(
 
         val request = LocationRequest.Builder(
             Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-            TimeUnit.SECONDS.toMillis(30)
-        ).setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(15))
+            TimeUnit.SECONDS.toMillis(BALANCED_INTERVAL_S)
+        ).setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(BALANCED_MIN_INTERVAL_S))
             .build()
 
         val callback = createCallback(this)
@@ -57,6 +57,13 @@ class AndroidLocationDataSourceImpl(
         )
 
         awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
+    }
+
+    private companion object {
+        const val HIGH_ACCURACY_INTERVAL_S = 5L
+        const val HIGH_ACCURACY_MIN_INTERVAL_S = 2L
+        const val BALANCED_INTERVAL_S = 30L
+        const val BALANCED_MIN_INTERVAL_S = 15L
     }
 
     private fun createCallback(scope: ProducerScope<GpsPoint>) =

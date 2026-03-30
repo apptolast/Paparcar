@@ -32,7 +32,7 @@ class GeofenceManagerImpl(
             .setCircularRegion(latitude, longitude, radiusMeters)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_EXIT)
-            .setLoiteringDelay(60_000)
+            .setLoiteringDelay(LOITERING_DELAY_MS)
             .build()
 
         val request = GeofencingRequest.Builder()
@@ -59,7 +59,8 @@ class GeofenceManagerImpl(
         )
     }
 
-    companion object {
-        private const val REQUEST_CODE = 9100
+    private companion object {
+        const val REQUEST_CODE = 9100
+        const val LOITERING_DELAY_MS = 60_000
     }
 }

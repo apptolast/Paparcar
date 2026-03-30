@@ -31,12 +31,13 @@ class RegisterActivityTransitionsWorker(
         activityRecognitionManager.registerTransitions()
     }.fold(
         onSuccess = { Result.success() },
-        onFailure = { if (runAttemptCount < 3) Result.retry() else Result.failure() },
+        onFailure = { if (runAttemptCount < MAX_RETRIES) Result.retry() else Result.failure() },
     )
 
     companion object {
         const val TAG = "RegisterActivityTransitionsWorker"
         private const val INTERVAL_HOURS = 12L
+        private const val MAX_RETRIES = 3
 
         fun buildPeriodicRequest(): PeriodicWorkRequest =
             PeriodicWorkRequestBuilder<RegisterActivityTransitionsWorker>(INTERVAL_HOURS, TimeUnit.HOURS)
