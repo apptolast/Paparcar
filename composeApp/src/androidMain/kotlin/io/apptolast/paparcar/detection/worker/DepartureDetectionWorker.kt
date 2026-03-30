@@ -53,46 +53,42 @@ class DepartureDetectionWorker(
 
         val speedKmh = getOneLocation()?.speed?.times(3.6f)
 
-        return when (
-            detectParkingDeparture(
-                geofenceId = geofenceId,
-                exitTimestampMs = exitTimestampMs,
-                currentSpeedKmh = speedKmh,
-            )
-        ) {
-            DepartureDecision.Confirmed -> {
-                val session = userParkingRepository.getActiveSession()
-                val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
-                val lat = session?.location?.latitude
-                val lon = session?.location?.longitude
-                // Schedule the report BEFORE clearing so the WorkManager job is durably
-                // enqueued even if a retry fires after the session has been deleted.
-                // ReportSpotReleasedUseCase has a 5 s geocoding timeout, so this always
-                // returns quickly. On retry (clear failed), the job is re-enqueued with
-                // REPLACE policy — no duplicate publications.
-                if (lat != null && lon != null) {
-                    reportSpotReleased(lat, lon, spotId)
-                }
-                // Clear AFTER scheduling. If the clear fails we retry; the session is
-                // still present so DetectParkingDepartureUseCase returns Confirmed again
-                // and the bus window check remains valid.
-                userParkingRepository.clearActive().onFailure { return Result.retry() }
-                departureEventBus.reset()
-                // Remove the geofence so Play Services doesn't keep monitoring it and
-                // re-firing exits after the session is already cleared.
-                geofenceService.removeGeofence(geofenceId)
-                Result.success()
-            }
+        val decision = detectParkingDeparture(
+            geofenceId = geofenceId,
+            exitTimestampMs = exitTimestampMs,
+            currentSpeedKmh = speedKmh,
+        )
 
-            DepartureDecision.Rejected -> Result.success()
+        // Hard reject: geofenceId doesn't match the active session or there is no session.
+        if (decision == DepartureDecision.Rejected) return Result.success()
 
-            DepartureDecision.Inconclusive -> {
-                // Session + geofence match, but IN_VEHICLE_ENTER hasn't arrived yet.
-                // Retry — the Transitions API can take up to ~2 min on some devices.
-                if (runAttemptCount < MAX_INCONCLUSIVE_RETRIES) Result.retry()
-                else Result.success()
-            }
+        // Inconclusive: Activity Recognition hasn't arrived yet or speed is below threshold.
+        // Retry up to MAX_INCONCLUSIVE_RETRIES to allow AR delivery (~2 min on slow devices).
+        // After max retries fall through — a geofence exit is strong enough evidence on its
+        // own to confirm departure, so the session must not be left open indefinitely.
+        if (decision == DepartureDecision.Inconclusive && runAttemptCount < MAX_INCONCLUSIVE_RETRIES) {
+            return Result.retry()
         }
+
+        // Confirmed (or Inconclusive after max retries — geofence exit = departure).
+        val session = userParkingRepository.getActiveSession()
+        val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
+        val lat = session?.location?.latitude
+        val lon = session?.location?.longitude
+        // Schedule the report BEFORE clearing so the WorkManager job is durably enqueued
+        // even if a retry fires after the session has been deleted. On retry the job is
+        // re-enqueued with REPLACE policy — no duplicate publications.
+        if (lat != null && lon != null) {
+            reportSpotReleased(lat, lon, spotId)
+        }
+        // Clear AFTER scheduling. If the clear fails we retry; the session is still
+        // present so DetectParkingDepartureUseCase returns Confirmed again on the next attempt.
+        userParkingRepository.clearActive().onFailure { return Result.retry() }
+        departureEventBus.reset()
+        // Remove the geofence so Play Services doesn't keep monitoring it and re-firing
+        // exits after the session is already cleared.
+        geofenceService.removeGeofence(geofenceId)
+        return Result.success()
     }
 
     companion object {
@@ -109,6 +105,8 @@ class DepartureDetectionWorker(
          * With EXPONENTIAL backoff starting at 15s the retries fire at ~15s, ~30s, ~60s
          * giving a total window of ~2 min — enough for AR delivery and for the vehicle
          * to accelerate above the departure threshold.
+         * After max retries the worker falls through to confirm departure anyway — a
+         * geofence exit is strong enough evidence on its own.
          */
         private const val MAX_INCONCLUSIVE_RETRIES = 3
         private const val INITIAL_BACKOFF_SECONDS = 15L
