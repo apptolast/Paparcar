@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
+import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
@@ -33,6 +34,7 @@ class HomeViewModel(
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
     private val searchAddress: SearchAddressUseCase,
+    private val authRepository: AuthRepository,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
@@ -114,6 +116,7 @@ class HomeViewModel(
                 geocodeCameraLocation(intent.result.lat, intent.result.lon)
             }
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
+            is HomeIntent.SignOut -> viewModelScope.launch { authRepository.signOut() }
         }
     }
 

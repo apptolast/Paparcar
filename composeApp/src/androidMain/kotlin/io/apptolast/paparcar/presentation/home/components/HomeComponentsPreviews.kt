@@ -79,7 +79,7 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 private fun HomeFloatingHeaderDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {})
+            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {}, onSignOutClick = {})
         }
     }
 }
@@ -89,7 +89,7 @@ private fun HomeFloatingHeaderDarkPreview() {
 private fun HomeFloatingHeaderLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {})
+            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {}, onSignOutClick = {})
         }
     }
 }

@@ -21,7 +21,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,13 +44,29 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
+import paparcar.composeapp.generated.resources.spot_age_hours
+import paparcar.composeapp.generated.resources.spot_age_just_now
+import paparcar.composeapp.generated.resources.spot_age_minutes
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Freshness thresholds
 // ─────────────────────────────────────────────────────────────────────────────
 
-private const val FRESH_MINUTES = 5L
-private const val RECENT_MINUTES = 15L
+internal const val FRESH_MINUTES = 5L
+internal const val RECENT_MINUTES = 15L
+
+/** Returns current epoch-ms, refreshed every 60 s so freshness chips stay accurate. */
+@Composable
+private fun rememberNowMs(): Long {
+    var nowMs by remember { mutableLongStateOf(Clock.System.now().toEpochMilliseconds()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(60_000L)
+            nowMs = Clock.System.now().toEpochMilliseconds()
+        }
+    }
+    return nowMs
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Spot row
@@ -143,9 +164,7 @@ private fun SpotRowContent(
         lat = spot.location.latitude,
         lon = spot.location.longitude,
     )
-    val ageMinutes = remember(spot.location.timestamp) {
-        (Clock.System.now().toEpochMilliseconds() - spot.location.timestamp) / 60_000L
-    }
+    val ageMinutes = (rememberNowMs() - spot.location.timestamp) / 60_000L
 
     val iconBackground = when (iconStyle) {
         SpotIconStyle.Default  -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
@@ -223,11 +242,10 @@ internal fun SpotFreshnessChip(ageMinutes: Long) {
         ageMinutes < RECENT_MINUTES -> MaterialTheme.colorScheme.secondary
         else                        -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     }
-    // "hace X min" distinguishes freshness age from travel-time labels shown on the same row
     val label = when {
-        ageMinutes < 1L             -> "< 1 min"
-        ageMinutes < 60L            -> "hace ${ageMinutes}m"
-        else                        -> "hace ${ageMinutes / 60L}h"
+        ageMinutes < 1L  -> stringResource(Res.string.spot_age_just_now)
+        ageMinutes < 60L -> stringResource(Res.string.spot_age_minutes, ageMinutes)
+        else             -> stringResource(Res.string.spot_age_hours, ageMinutes / 60L)
     }
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -240,62 +258,6 @@ internal fun SpotFreshnessChip(ageMinutes: Long) {
             color = contentColor,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
         )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Activity row
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-internal fun HomeActivityRow(
-    spot: Spot,
-    onClick: () -> Unit,
-) {
-    val displayText = locationDisplayText(
-        placeInfo = spot.placeInfo,
-        address = spot.address,
-        lat = spot.location.latitude,
-        lon = spot.location.longitude,
-    )
-
-    Surface(
-        onClick = onClick,
-        color = Color.Transparent,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(13.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                // LocalParking icon removed — "P" badge consistent with spot markers
-                Text(
-                    "P",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
     }
 }
 

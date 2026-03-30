@@ -15,4 +15,5 @@ sealed class HomeIntent {
     data class SearchQueryChanged(val query: String) : HomeIntent()
     data class SelectSearchResult(val result: SearchResult) : HomeIntent()
     data object ClearSearch : HomeIntent()
+    data object SignOut : HomeIntent()
 }

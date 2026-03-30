@@ -158,7 +158,9 @@ private fun HomeContent(
         )
         else -> ""
     }
-    var showReleaseDialog by remember { mutableStateOf(false) }
+    // Holds the (lat, lon) to use when the user confirms the release dialog.
+    // Set by both the peek-row button (parking coords) and the Report FAB (camera coords).
+    var releaseTarget by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     val scrollState = rememberScrollState()
     val spotScrollPositions = remember { mutableMapOf<String, Int>() }
 
@@ -190,23 +192,21 @@ private fun HomeContent(
         containerColor = Color.Transparent,
     ) { scaffoldPadding ->
 
-        if (showReleaseDialog) {
+        releaseTarget?.let { (lat, lon) ->
             AlertDialog(
-                onDismissRequest = { showReleaseDialog = false },
+                onDismissRequest = { releaseTarget = null },
                 title = { Text(stringResource(Res.string.home_release_dialog_title)) },
                 text = { Text(stringResource(Res.string.home_release_dialog_message)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        showReleaseDialog = false
-                        state.userParking?.let { p ->
-                            onIntent(HomeIntent.ReleaseParking(p.location.latitude, p.location.longitude))
-                        }
+                        onIntent(HomeIntent.ReleaseParking(lat, lon))
+                        releaseTarget = null
                     }) {
                         Text(stringResource(Res.string.home_release_dialog_confirm))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showReleaseDialog = false }) {
+                    TextButton(onClick = { releaseTarget = null }) {
                         Text(stringResource(Res.string.home_release_dialog_cancel))
                     }
                 },
@@ -337,6 +337,7 @@ private fun HomeContent(
                 HomeFloatingHeader(
                     onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
                     onSettingsClick = onNavigateToSettings,
+                    onSignOutClick = { onIntent(HomeIntent.SignOut) },
                 )
             }
 
@@ -359,7 +360,7 @@ private fun HomeContent(
                             ?: state.userParking?.location?.longitude
                             ?: state.userGpsPoint?.longitude
                             ?: return@HomeReportSpotFab
-                        onIntent(HomeIntent.ReleaseParking(lat, lon))
+                        releaseTarget = Pair(lat, lon)
                     },
                 )
             }
@@ -445,7 +446,11 @@ private fun HomeContent(
                         HomePeekHandle(
                             state = state,
                             onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
-                            onRelease = { showReleaseDialog = true },
+                            onRelease = {
+                                state.userParking?.location?.let { loc ->
+                                    releaseTarget = Pair(loc.latitude, loc.longitude)
+                                }
+                            },
                         )
                     }
 

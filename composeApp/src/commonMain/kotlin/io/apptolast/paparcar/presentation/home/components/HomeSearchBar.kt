@@ -1,6 +1,5 @@
 package io.apptolast.paparcar.presentation.home.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,6 +31,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.SearchResult
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_search_clear
+import paparcar.composeapp.generated.resources.home_search_placeholder
+
+// Pill shape shared between the search surface and the result card
+private val PillRadius = 28.dp
 
 @Composable
 internal fun HomeSearchBar(
@@ -43,12 +50,15 @@ internal fun HomeSearchBar(
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val hasResults = results.isNotEmpty()
+
     Column(modifier = modifier) {
+        // ── Search input — pill that opens at the bottom when results are shown ──
         Surface(
             shape = RoundedCornerShape(
-                topStart = 16.dp, topEnd = 16.dp,
-                bottomStart = if (results.isEmpty()) 16.dp else 0.dp,
-                bottomEnd = if (results.isEmpty()) 16.dp else 0.dp,
+                topStart = PillRadius, topEnd = PillRadius,
+                bottomStart = if (hasResults) 0.dp else PillRadius,
+                bottomEnd = if (hasResults) 0.dp else PillRadius,
             ),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
             shadowElevation = 6.dp,
@@ -59,19 +69,29 @@ internal fun HomeSearchBar(
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
-                    Text("Buscar destino…", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        stringResource(Res.string.home_search_placeholder),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 },
                 leadingIcon = {
                     if (isSearching) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Outlined.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 },
                 trailingIcon = if (query.isNotEmpty()) {
                     {
                         IconButton(onClick = onClear) {
-                            Icon(Icons.Outlined.Close, contentDescription = "Limpiar búsqueda")
+                            Icon(
+                                Icons.Outlined.Close,
+                                contentDescription = stringResource(Res.string.home_search_clear),
+                            )
                         }
                     }
                 } else null,
@@ -85,10 +105,10 @@ internal fun HomeSearchBar(
             )
         }
 
-        // ── Results card ──────────────────────────────────────────────
-        if (results.isNotEmpty()) {
+        // ── Results dropdown — completes the pill at the bottom ───────────────
+        if (hasResults) {
             Card(
-                shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
+                shape = RoundedCornerShape(bottomStart = PillRadius, bottomEnd = PillRadius),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
                 ),
@@ -96,29 +116,43 @@ internal fun HomeSearchBar(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column {
+                    // Thin rule visually separating input from results
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
+                    )
                     results.take(5).forEachIndexed { index, result ->
-                        if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onResultClick(result) }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        if (index > 0) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                            )
+                        }
+                        Surface(
+                            onClick = { onResultClick(result) },
+                            color = Color.Transparent,
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    Icons.Outlined.Search,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Text(
-                                    text = result.displayName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 13.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Outlined.LocationOn,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        text = result.displayName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         }
                     }

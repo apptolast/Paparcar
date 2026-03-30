@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.animation.AnimatedContent
@@ -30,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import kotlin.time.Clock
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.PARKING_ITEM_ID
 import io.apptolast.paparcar.presentation.util.distanceMeters
@@ -59,7 +63,12 @@ internal fun HomePeekHandle(
     onDismiss: () -> Unit = {},
     onRelease: () -> Unit = {},
 ) {
-    val freeCount = state.nearbySpots.size
+    val nowMs = remember { Clock.System.now().toEpochMilliseconds() }
+    val freshCount = remember(state.nearbySpots, nowMs) {
+        state.nearbySpots.count { spot ->
+            (nowMs - spot.location.timestamp) / 60_000L < RECENT_MINUTES
+        }
+    }
     val isParkingSelected = state.selectedItemId == PARKING_ITEM_ID
     val selectedSpot = state.selectedItemId
         ?.takeIf { !isParkingSelected }
@@ -106,7 +115,7 @@ internal fun HomePeekHandle(
                     onDismiss = onDismiss,
                     onRelease = onRelease,
                 )
-                else -> CameraLocationRow(state = state, freeCount = freeCount)
+                else -> CameraLocationRow(state = state, freshCount = freshCount)
             }
         }
     }
@@ -300,7 +309,7 @@ private fun ParkingPeekRow(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun CameraLocationRow(state: HomeState, freeCount: Int) {
+private fun CameraLocationRow(state: HomeState, freshCount: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -351,33 +360,30 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
                 )
             }
         }
-        // Free spots badge
-        Surface(
-            color = if (freeCount > 0) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(8.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+        // Free spots badge — only shown when there are fresh spots (<15 min old)
+        if (freshCount > 0) {
+            Surface(
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(8.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (freeCount > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                        ),
-                )
-                Text(
-                    stringResource(Res.string.home_stats_free_spots_badge, freeCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (freeCount > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                    Text(
+                        stringResource(Res.string.home_stats_free_spots_badge, freshCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
     }
