@@ -62,6 +62,6 @@ class SplashViewModel(
     private companion object {
         const val TAG = "SplashViewModel"
         const val ERROR_PROFILE_SYNC =
-            "No se pudo cargar tu perfil. Por favor, vuelve a iniciar sesión."
+            "Could not load your profile. Please sign in again."
     }
 }

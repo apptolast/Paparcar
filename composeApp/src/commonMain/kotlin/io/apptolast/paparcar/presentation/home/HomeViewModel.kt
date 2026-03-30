@@ -40,7 +40,7 @@ class HomeViewModel(
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
 
-                sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
+                sendEffect(HomeEffect.ShowError(e.message ?: "Unknown error"))
             }
             .launchIn(viewModelScope)
 
@@ -69,7 +69,7 @@ class HomeViewModel(
                 ).catch { e ->
                     // Firebase error (permissions, network, format) — show it but keep GPS chain alive
     
-                    sendEffect(HomeEffect.ShowError(e.message ?: "Error cargando spots cercanos"))
+                    sendEffect(HomeEffect.ShowError(e.message ?: "Failed to load nearby spots"))
                     emit(emptyList())
                 }
             }
@@ -86,7 +86,7 @@ class HomeViewModel(
             .catch { e ->
                 // GPS/permissions chain error
 
-                sendEffect(HomeEffect.ShowError(e.message ?: "Error desconocido"))
+                sendEffect(HomeEffect.ShowError(e.message ?: "Unknown error"))
             }
             .launchIn(viewModelScope)
     }
@@ -126,7 +126,7 @@ class HomeViewModel(
             // ReportSpotReleasedUseCase caps geocoding at 5 s, so this is fast.
             reportSpotReleased(lat, lon, spotId)
             userParkingRepository.clearActive().onFailure { e ->
-                sendEffect(HomeEffect.ShowError(e.message ?: "Error al liberar el parking"))
+                sendEffect(HomeEffect.ShowError(e.message ?: "Failed to release parking"))
                 return@launch
             }
             updateState { copy(selectedItemId = null) }
@@ -139,7 +139,7 @@ class HomeViewModel(
         viewModelScope.launch {
             val spotId = "${DEBUG_USER_ID}_${Clock.System.now().toEpochMilliseconds()}"
             reportSpotReleased(DEBUG_LATITUDE, DEBUG_LONGITUDE, spotId)
-            sendEffect(HomeEffect.ShowSuccess("Spot de prueba enviado"))
+            sendEffect(HomeEffect.ShowSuccess("Test spot sent"))
         }
     }
 

@@ -21,7 +21,7 @@ class MapViewModel(
         userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
-                sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
+                sendEffect(MapEffect.ShowError(e.message ?: "Unknown error"))
             }
             .launchIn(viewModelScope)
 
@@ -32,7 +32,7 @@ class MapViewModel(
             .catch { e ->
                 // GPS / location chain error
                 updateState { copy(isLoading = false) }
-                sendEffect(MapEffect.ShowError(e.message ?: "Error desconocido"))
+                sendEffect(MapEffect.ShowError(e.message ?: "Unknown error"))
             }
             .launchIn(viewModelScope)
     }

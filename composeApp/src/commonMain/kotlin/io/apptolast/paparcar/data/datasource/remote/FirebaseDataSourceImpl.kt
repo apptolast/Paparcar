@@ -4,6 +4,7 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -63,7 +64,11 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
                 placeInfo = runCatching { get<PlaceInfoDto?>("placeInfo") }.getOrNull(),
             )
         }.getOrElse { e ->
-            println("PAPARCAR toSpotDto EXCEPTION doc=$id: ${e.message}")
+            PaparcarLogger.e(TAG, "toSpotDto failed for doc=$id", e)
             null
         }
+
+    private companion object {
+        const val TAG = "FirebaseDataSourceImpl"
+    }
 }

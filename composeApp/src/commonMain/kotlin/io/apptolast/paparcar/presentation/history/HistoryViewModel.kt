@@ -15,7 +15,7 @@ class HistoryViewModel(
             .onEach { sessions -> updateState { copy(isLoading = false, sessions = sessions) } }
             .catch { e ->
                 updateState { copy(isLoading = false) }
-                sendEffect(HistoryEffect.ShowError(e.message ?: "Error al cargar historial"))
+                sendEffect(HistoryEffect.ShowError(e.message ?: "Failed to load history"))
             }
             .launchIn(viewModelScope)
     }
