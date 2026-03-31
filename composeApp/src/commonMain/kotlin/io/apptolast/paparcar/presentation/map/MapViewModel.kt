@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.map
 
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
@@ -21,7 +22,7 @@ class MapViewModel(
         userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
-                sendEffect(MapEffect.ShowError(e.message ?: "Unknown error"))
+                sendEffect(MapEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
 
@@ -32,7 +33,7 @@ class MapViewModel(
             .catch { e ->
                 // GPS / location chain error
                 updateState { copy(isLoading = false) }
-                sendEffect(MapEffect.ShowError(e.message ?: "Unknown error"))
+                sendEffect(MapEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
     }

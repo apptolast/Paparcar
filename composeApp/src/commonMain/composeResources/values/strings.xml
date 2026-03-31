@@ -143,6 +143,23 @@
     <string name="map_cd_go_to_car">Go to my parked car</string>
     <string name="map_cd_my_location">Center on my location</string>
 
+    <!-- Generic error messages -->
+    <string name="error_unknown">Something went wrong</string>
+    <string name="error_load_spots">Couldn\'t load nearby spots</string>
+    <string name="error_load_session">Couldn\'t load parking session</string>
+    <string name="error_load_history">Couldn\'t load parking history</string>
+    <string name="error_release_parking">Couldn\'t release parking</string>
+    <string name="error_gps_unavailable">Waiting for GPS fix…</string>
+    <string name="error_network_no_connection">No internet connection</string>
+    <string name="error_profile_sync">Couldn\'t load your profile. Please sign in again</string>
+
+    <!-- Address fallback -->
+    <string name="address_unknown">Unknown location</string>
+
+    <!-- Home success messages -->
+    <string name="home_spot_reported">Spot reported — uploading…</string>
+    <string name="home_test_spot_sent">Test spot sent</string>
+
     <!-- SettingsScreen -->
     <string name="settings_title">Settings</string>
     <string name="settings_cd_back">Back</string>

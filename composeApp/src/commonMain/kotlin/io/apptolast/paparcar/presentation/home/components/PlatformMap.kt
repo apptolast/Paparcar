@@ -73,6 +73,7 @@ import kotlin.math.abs
 private const val MARKER_MY_CAR = "my_car"
 private const val MARKER_FREE_SPOT = "free_spot"
 private const val MARKER_FREE_SPOT_SELECTED = "free_spot_selected"
+private const val CAMERA_MOVING_DEBOUNCE_MS = 280L
 
 @Composable
 fun PlatformMap(
@@ -134,7 +135,7 @@ fun PlatformMap(
     LaunchedEffect(actualCamLat, actualCamLon) {
         if (actualCamLat != null) {
             cameraMoving = true
-            delay(280L)
+            delay(CAMERA_MOVING_DEBOUNCE_MS)
             cameraMoving = false
         }
     }

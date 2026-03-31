@@ -6,8 +6,8 @@ data class AddressInfo(
     val region: String?,
     val country: String?,
 ) {
-    val displayLine: String
-        get() = street ?: city ?: region ?: country ?: "Ubicación desconocida"
+    val displayLine: String?
+        get() = street ?: city ?: region ?: country
 
     val fullAddress: String
         get() = listOfNotNull(street, city, region, country).joinToString(", ")

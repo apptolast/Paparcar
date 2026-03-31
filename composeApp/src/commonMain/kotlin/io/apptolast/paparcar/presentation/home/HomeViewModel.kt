@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
@@ -39,8 +40,7 @@ class HomeViewModel(
         userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
-
-                sendEffect(HomeEffect.ShowError(e.message ?: "Unknown error"))
+                sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
 
@@ -68,8 +68,7 @@ class HomeViewModel(
                     ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS,
                 ).catch { e ->
                     // Firebase error (permissions, network, format) — show it but keep GPS chain alive
-    
-                    sendEffect(HomeEffect.ShowError(e.message ?: "Failed to load nearby spots"))
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(e.message ?: "")))
                     emit(emptyList())
                 }
             }
@@ -85,8 +84,7 @@ class HomeViewModel(
             }
             .catch { e ->
                 // GPS/permissions chain error
-
-                sendEffect(HomeEffect.ShowError(e.message ?: "Unknown error"))
+                sendEffect(HomeEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
     }
@@ -126,11 +124,11 @@ class HomeViewModel(
             // ReportSpotReleasedUseCase caps geocoding at 5 s, so this is fast.
             reportSpotReleased(lat, lon, spotId)
             userParkingRepository.clearActive().onFailure { e ->
-                sendEffect(HomeEffect.ShowError(e.message ?: "Failed to release parking"))
+                sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                 return@launch
             }
             updateState { copy(selectedItemId = null) }
-            sendEffect(HomeEffect.ShowSuccess("Spot reported — uploading…"))
+            sendEffect(HomeEffect.SpotReported)
         }
     }
 
@@ -139,14 +137,14 @@ class HomeViewModel(
         viewModelScope.launch {
             val spotId = "${DEBUG_USER_ID}_${Clock.System.now().toEpochMilliseconds()}"
             reportSpotReleased(DEBUG_LATITUDE, DEBUG_LONGITUDE, spotId)
-            sendEffect(HomeEffect.ShowSuccess("Test spot sent"))
+            sendEffect(HomeEffect.TestSpotSent)
         }
     }
 
     private fun manualPark() {
         val gps = state.value.userGpsPoint
         if (gps == null) {
-            sendEffect(HomeEffect.ShowError("Waiting for GPS fix…"))
+            sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
             return
         }
         viewModelScope.launch {
@@ -164,7 +162,7 @@ class HomeViewModel(
             return
         }
         searchJob = viewModelScope.launch {
-            delay(300L)
+            delay(SEARCH_DEBOUNCE_MS)
             updateState { copy(isSearching = true) }
             searchAddress(query)
                 .onSuccess { results -> updateState { copy(searchResults = results, isSearching = false) } }
@@ -188,16 +186,18 @@ class HomeViewModel(
     private fun geocodeCameraLocation(lat: Double, lon: Double) {
         geocodeCameraJob?.cancel()
         geocodeCameraJob = viewModelScope.launch {
-            delay(600L)
+            delay(GEOCODE_DEBOUNCE_MS)
             getLocationInfo(lat, lon)
                 .catch { /* best-effort; ignore errors */ }
                 .collect { info -> updateState { copy(cameraLocationInfo = info) } }
         }
     }
 
-    companion object {
-        private const val DEBUG_USER_ID = "user-123"
-        private const val DEBUG_LATITUDE = 40.416775
-        private const val DEBUG_LONGITUDE = -3.703790
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 300L
+        const val GEOCODE_DEBOUNCE_MS = 600L
+        const val DEBUG_USER_ID = "user-123"
+        const val DEBUG_LATITUDE = 40.416775
+        const val DEBUG_LONGITUDE = -3.703790
     }
 }

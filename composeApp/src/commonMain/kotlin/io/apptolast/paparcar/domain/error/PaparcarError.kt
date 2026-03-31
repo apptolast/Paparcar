@@ -25,4 +25,8 @@ sealed class PaparcarError {
         data object ActivityRecognitionUnavailable : Detection()
         data object PermissionDenied : Detection()
     }
+
+    sealed class Auth : PaparcarError() {
+        data object ProfileSyncFailed : Auth()
+    }
 }

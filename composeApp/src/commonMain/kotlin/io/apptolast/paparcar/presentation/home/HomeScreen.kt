@@ -71,13 +71,21 @@ import io.apptolast.paparcar.presentation.home.components.HomeReportSpotFab
 import io.apptolast.paparcar.presentation.home.components.HomeSheetContent
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
 import kotlinx.coroutines.launch
+import io.apptolast.paparcar.domain.error.PaparcarError
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.error_gps_unavailable
+import paparcar.composeapp.generated.resources.error_load_session
+import paparcar.composeapp.generated.resources.error_load_spots
+import paparcar.composeapp.generated.resources.error_release_parking
+import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_release_dialog_confirm
 import paparcar.composeapp.generated.resources.home_release_dialog_message
 import paparcar.composeapp.generated.resources.home_release_dialog_title
+import paparcar.composeapp.generated.resources.home_spot_reported
+import paparcar.composeapp.generated.resources.home_test_spot_sent
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -106,14 +114,33 @@ fun HomeScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Pre-resolve strings in Composable scope — cannot use stringResource inside LaunchedEffect
+    val msgErrorUnknown = stringResource(Res.string.error_unknown)
+    val msgErrorLoadSpots = stringResource(Res.string.error_load_spots)
+    val msgErrorLoadSession = stringResource(Res.string.error_load_session)
+    val msgErrorReleaseParking = stringResource(Res.string.error_release_parking)
+    val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
+    val msgSpotReported = stringResource(Res.string.home_spot_reported)
+    val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is HomeEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
-                is HomeEffect.ShowSuccess -> snackbarHostState.showSnackbar(effect.message)
+                is HomeEffect.ShowError -> {
+                    val msg = when (effect.error) {
+                        is PaparcarError.Location.ProviderDisabled -> msgErrorGpsUnavailable
+                        is PaparcarError.Database.WriteError -> msgErrorReleaseParking
+                        is PaparcarError.Network.Unknown -> msgErrorLoadSpots
+                        is PaparcarError.Database.Unknown -> msgErrorLoadSession
+                        else -> msgErrorUnknown
+                    }
+                    snackbarHostState.showSnackbar(msg)
+                }
+                HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
+                HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.NavigateToMap -> onNavigateToMap()
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
-                is HomeEffect.RequestLocationPermission -> {}
+                HomeEffect.RequestLocationPermission -> {}
             }
         }
     }

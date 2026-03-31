@@ -27,9 +27,11 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
 import io.apptolast.paparcar.presentation.map.components.MapControlButtons
+import io.apptolast.paparcar.domain.error.PaparcarError
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.map_cd_back
 import paparcar.composeapp.generated.resources.map_title
 
@@ -54,11 +56,14 @@ fun MapScreen(
         cameraTarget = CameraTarget(lat, lon, zoom, token = (cameraTarget?.token ?: 0) + 1)
     }
 
+    // Pre-resolve strings in Composable scope — cannot use stringResource inside LaunchedEffect
+    val msgErrorUnknown = stringResource(Res.string.error_unknown)
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is MapEffect.NavigateToSpotDetails -> { /* future */ }
-                is MapEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                is MapEffect.ShowError -> snackbarHostState.showSnackbar(msgErrorUnknown)
             }
         }
     }

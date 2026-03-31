@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HomeScreen -->
+    <string name="home_brand_name">PAPARCAR</string>
+    <string name="home_eco_driver_label">Eco-Driver</string>
+    <string name="home_nav_history">Histórico</string>
+    <string name="home_nav_settings">Definições</string>
+    <string name="home_parking_row_label">O seu veículo</string>
+    <string name="home_fab_report_spot">Reportar lugar</string>
+    <string name="home_cd_profile">Perfil</string>
+    <string name="home_search_placeholder">Procure uma zona, rua…</string>
+    <string name="home_stats_free_spots_badge">%1$d livres</string>
+    <string name="home_banner_since">%1$s</string>
+    <string name="home_banner_accuracy">±%1$dm</string>
+    <string name="home_parked_section">Está estacionado</string>
+    <string name="home_parking_release">Libertar lugar</string>
+    <string name="home_nav_button">Navegar</string>
+    <string name="home_nav_your_car">O seu carro</string>
+    <string name="home_nav_free_spot">Lugar livre</string>
+    <string name="home_feed_nearby">Perto de si</string>
+    <string name="home_feed_nearby_with_count">%1$d lugares livres perto de si</string>
+    <string name="home_feed_activity">Atividade recente</string>
+    <string name="home_permissions_message">Ative a localização para ver lugares próximos</string>
+    <string name="home_permissions_button">Ativar permissões</string>
+    <string name="home_empty_title">Sem lugares próximos</string>
+    <string name="home_empty_subtitle">Seja o primeiro a reportar um</string>
+    <string name="home_spot_status_occupied">Ocupado</string>
+    <string name="home_spot_status_free">Livre</string>
+    <string name="home_spot_reported_by">%1$s</string>
+    <string name="home_address_loading">A obter endereço…</string>
+    <string name="home_release_dialog_title">Libertar lugar?</string>
+    <string name="home_release_dialog_message">Confirme que saiu. O seu lugar será partilhado com os condutores próximos.</string>
+    <string name="home_release_dialog_confirm">Libertar</string>
+    <string name="home_release_dialog_cancel">Cancelar</string>
+    <string name="home_parking_peek_label">Está estacionado · %1$s</string>
+    <string name="home_manual_park_title">Estacionar aqui</string>
+    <string name="home_manual_park_subtitle">Guardar manualmente a posição de estacionamento</string>
+    <string name="home_reliability_confirmed">Confirmado</string>
+    <string name="home_reliability_high">Detetado automaticamente</string>
+    <string name="home_reliability_auto">Aprox.</string>
+    <string name="home_search_clear_cd">Limpar pesquisa</string>
+    <string name="home_menu_close_cd">Fechar menu</string>
+    <string name="home_menu_open_cd">Abrir menu</string>
+    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
+    <string name="home_spot_freshness_minutes">%1$dm atrás</string>
+    <string name="home_spot_freshness_hours">%1$dh atrás</string>
+
+    <!-- OnboardingScreen -->
+    <string name="onboarding_page1_title">Bem-vindo ao Paparcar</string>
+    <string name="onboarding_page1_subtitle">A comunidade que liberta lugares de estacionamento. Quando sai, os outros encontram o seu. Quando os outros saem, você encontra o deles.</string>
+    <string name="onboarding_page2_title">Como funciona</string>
+    <string name="onboarding_step1_title">Detetamos a condução</string>
+    <string name="onboarding_step1_desc">A app deteta quando entra no carro</string>
+    <string name="onboarding_step2_title">Detetamos o estacionamento</string>
+    <string name="onboarding_step2_desc">Quando estaciona, guardamos silenciosamente o lugar</string>
+    <string name="onboarding_step3_title">Partilhamos o lugar</string>
+    <string name="onboarding_step3_desc">Quando sai, o seu lugar fica disponível para outros próximos</string>
+    <string name="onboarding_page3_title">Por que precisamos das suas permissões</string>
+    <string name="onboarding_page3_subtitle">A app funciona automaticamente em segundo plano. Usamos apenas a sua localização para detetar o estacionamento — nunca partilhada com terceiros.</string>
+    <string name="onboarding_cta_next">Seguinte</string>
+    <string name="onboarding_cta_setup">Configurar permissões</string>
+
+    <!-- PermissionsScreen -->
+    <string name="permissions_title">Ativar permissões</string>
+    <string name="permissions_subtitle">As seguintes permissões são necessárias para o funcionamento da deteção automática.</string>
+    <string name="permissions_perm_location">Localização precisa</string>
+    <string name="permissions_perm_location_desc">Para guardar com precisão onde estacionou o veículo</string>
+    <string name="permissions_perm_background">Localização em segundo plano</string>
+    <string name="permissions_perm_background_desc">Necessário para detetar o estacionamento mesmo quando a app não está aberta</string>
+    <string name="permissions_perm_activity">Reconhecimento de atividade</string>
+    <string name="permissions_perm_activity_desc">Para detetar automaticamente quando começa a conduzir e quando estaciona</string>
+    <string name="permissions_perm_notifications">Notificações</string>
+    <string name="permissions_perm_notifications_desc">Para confirmar o estacionamento e alertá-lo sobre lugares livres próximos</string>
+    <string name="permissions_btn_grant">Conceder permissões</string>
+    <string name="permissions_btn_background">Ativar localização em segundo plano</string>
+    <string name="permissions_btn_settings">Abrir definições do sistema</string>
+    <string name="permissions_rationale">Algumas permissões foram negadas. Conceda-as para continuar.</string>
+    <string name="permissions_perm_location_services">Serviços de localização</string>
+    <string name="permissions_perm_location_services_desc">Necessário para o funcionamento correto da deteção de localização</string>
+    <string name="permissions_btn_location_settings">Ativar GPS</string>
+    <string name="permissions_status_granted">Concedido</string>
+    <string name="permissions_status_pending">Pendente</string>
+
+    <!-- HistoryScreen -->
+    <string name="history_weekly_title">Atividade semanal</string>
+    <string name="history_weekly_subtitle">estacionamentos esta semana</string>
+    <string name="history_minutes_suffix">min</string>
+    <string name="history_today">Hoje</string>
+    <string name="history_yesterday">Ontem</string>
+    <string name="history_title">Histórico de estacionamento</string>
+    <string name="history_subtitle">%1$d registos</string>
+    <string name="history_cd_back">Voltar</string>
+    <string name="history_empty_title">Sem estacionamentos</string>
+    <string name="history_empty_subtitle">Os seus registos aparecerão aqui</string>
+    <string name="history_status_active">Ativo</string>
+    <string name="history_status_finished">Terminado</string>
+    <string name="history_active_section">Atualmente estacionado</string>
+    <string name="history_active_since">Estacionado %1$s</string>
+    <string name="history_ended_section">Estacionamentos anteriores</string>
+    <string name="history_precision">±%1$dm</string>
+    <string name="history_view_map">Ver no mapa</string>
+    <!-- Relative time -->
+    <string name="relative_time_just_now">agora mesmo</string>
+    <string name="relative_time_minutes">há %1$d min</string>
+    <string name="relative_time_hours">há %1$d h</string>
+    <string name="relative_time_day">há %1$d dia</string>
+    <string name="relative_time_days">há %1$d dias</string>
+    <!-- Walk / drive time -->
+    <string name="walk_time_minutes">%1$d min a pé</string>
+    <string name="drive_time_minutes">%1$d min de carro</string>
+
+    <string name="history_stat_total">Total</string>
+    <string name="history_stat_this_week">Esta semana</string>
+    <string name="history_stat_this_month">Este mês</string>
+    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
+    <string name="history_month_1">Janeiro</string>
+    <string name="history_month_2">Fevereiro</string>
+    <string name="history_month_3">Março</string>
+    <string name="history_month_4">Abril</string>
+    <string name="history_month_5">Maio</string>
+    <string name="history_month_6">Junho</string>
+    <string name="history_month_7">Julho</string>
+    <string name="history_month_8">Agosto</string>
+    <string name="history_month_9">Setembro</string>
+    <string name="history_month_10">Outubro</string>
+    <string name="history_month_11">Novembro</string>
+    <string name="history_month_12">Dezembro</string>
+
+    <!-- MapScreen -->
+    <string name="map_title">Mapa de lugares</string>
+    <string name="map_cd_back">Voltar</string>
+    <string name="map_marker_my_car">O meu carro estacionado</string>
+    <string name="map_marker_car_here">Carro estacionado aqui</string>
+    <string name="map_marker_free">Lugar livre</string>
+    <string name="map_marker_occupied">Lugar ocupado</string>
+    <string name="map_marker_reported_by">Reportado por %1$s</string>
+    <string name="map_cd_midpoint">Ponto médio entre mim e o carro</string>
+    <string name="map_cd_go_to_car">Ir ao meu carro estacionado</string>
+    <string name="map_cd_my_location">Centrar na minha localização</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Definições</string>
+    <string name="settings_cd_back">Voltar</string>
+    <string name="settings_section_detection">Deteção</string>
+    <string name="settings_auto_detect">Deteção automática de estacionamento</string>
+    <string name="settings_auto_detect_desc">Guardar automaticamente o lugar de estacionamento</string>
+    <string name="settings_section_notifications">Notificações</string>
+    <string name="settings_notif_parking">Estacionamento detetado</string>
+    <string name="settings_notif_parking_desc">Alerta quando um lugar de estacionamento é guardado</string>
+    <string name="settings_notif_spot">Lugar disponível próximo</string>
+    <string name="settings_notif_spot_desc">Alerta quando um lugar fica livre perto de si</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_version">Versão</string>
+    <string name="settings_privacy">Política de privacidade</string>
+    <string name="settings_licenses">Licenças open source</string>
+
+    <!-- Mensagens de erro genéricas -->
+    <string name="error_unknown">Algo correu mal</string>
+    <string name="error_load_spots">Não foi possível carregar os lugares próximos</string>
+    <string name="error_load_session">Não foi possível carregar a sessão de estacionamento</string>
+    <string name="error_load_history">Não foi possível carregar o histórico</string>
+    <string name="error_release_parking">Não foi possível libertar o estacionamento</string>
+    <string name="error_gps_unavailable">A aguardar sinal GPS…</string>
+    <string name="error_network_no_connection">Sem ligação à internet</string>
+    <string name="error_profile_sync">Não foi possível carregar o perfil. Inicie sessão novamente</string>
+
+    <!-- Localização desconhecida -->
+    <string name="address_unknown">Localização desconhecida</string>
+
+    <!-- Mensagens de sucesso Home -->
+    <string name="home_spot_reported">Lugar reportado — a carregar…</string>
+    <string name="home_test_spot_sent">Lugar de teste enviado</string>
+
+</resources>

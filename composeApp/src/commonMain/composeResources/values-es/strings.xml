@@ -159,4 +159,21 @@
     <string name="settings_privacy">Política de privacidad</string>
     <string name="settings_licenses">Licencias de código abierto</string>
 
+    <!-- Mensajes de error genéricos -->
+    <string name="error_unknown">Algo fue mal</string>
+    <string name="error_load_spots">No se pudieron cargar los parkings cercanos</string>
+    <string name="error_load_session">No se pudo cargar la sesión de aparcamiento</string>
+    <string name="error_load_history">No se pudo cargar el historial</string>
+    <string name="error_release_parking">No se pudo liberar el aparcamiento</string>
+    <string name="error_gps_unavailable">Esperando señal GPS…</string>
+    <string name="error_network_no_connection">Sin conexión a internet</string>
+    <string name="error_profile_sync">No se pudo cargar tu perfil. Inicia sesión de nuevo</string>
+
+    <!-- Dirección desconocida -->
+    <string name="address_unknown">Ubicación desconocida</string>
+
+    <!-- Mensajes de éxito de Home -->
+    <string name="home_spot_reported">Plaza reportada — subiendo…</string>
+    <string name="home_test_spot_sent">Plaza de prueba enviada</string>
+
 </resources>

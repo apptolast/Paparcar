@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.apptolast.customlogin.domain.AuthRepository
 import com.apptolast.customlogin.domain.model.AuthState
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,7 +19,7 @@ import kotlinx.coroutines.launch
 
 sealed class SplashEffect {
     /** Emitted when profile sync fails unrecoverably — UI should show a snackbar and redirect to login. */
-    data class ShowError(val message: String) : SplashEffect()
+    data class ShowError(val error: PaparcarError) : SplashEffect()
 }
 
 class SplashViewModel(
@@ -53,7 +54,7 @@ class SplashViewModel(
                         .onFailure { e ->
                             PaparcarLogger.e(TAG, "profile sync failed", e)
                             authRepository.signOut()
-                            _effect.emit(SplashEffect.ShowError(ERROR_PROFILE_SYNC))
+                            _effect.emit(SplashEffect.ShowError(PaparcarError.Auth.ProfileSyncFailed))
                         }
                 }
         }
@@ -61,7 +62,5 @@ class SplashViewModel(
 
     private companion object {
         const val TAG = "SplashViewModel"
-        const val ERROR_PROFILE_SYNC =
-            "Could not load your profile. Please sign in again."
     }
 }
