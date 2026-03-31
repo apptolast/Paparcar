@@ -46,6 +46,11 @@ import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import kotlin.time.Clock
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_spot_freshness_hours
+import paparcar.composeapp.generated.resources.home_spot_freshness_minutes
+import paparcar.composeapp.generated.resources.home_spot_freshness_under_min
 
 private const val FRESH_MINUTES = 5L
 private const val RECENT_MINUTES = 15L
@@ -99,9 +104,9 @@ private fun SpotChipCardB(
         else                        -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     }
     val freshnessLabel = when {
-        ageMinutes < 1L  -> "< 1m"
-        ageMinutes < 60L -> "hace ${ageMinutes}m"
-        else             -> "hace ${ageMinutes / 60L}h"
+        ageMinutes < 1L  -> stringResource(Res.string.home_spot_freshness_under_min)
+        ageMinutes < 60L -> stringResource(Res.string.home_spot_freshness_minutes, ageMinutes.toInt())
+        else             -> stringResource(Res.string.home_spot_freshness_hours, (ageMinutes / 60L).toInt())
     }
     val chipBg = if (isSelected)
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)

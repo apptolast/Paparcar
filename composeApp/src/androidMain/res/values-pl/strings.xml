@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Powiadomienie: usługa wykrywania na pierwszym planie -->
+    <string name="notif_detection_title">Wykrywanie aktywne</string>
+    <string name="notif_detection_text">Szukam sygnałów parkowania…</string>
+
+    <!-- Powiadomienie: potwierdzenie parkowania -->
+    <string name="notif_confirmation_title">Zaparkowałeś?</string>
+    <string name="notif_confirmation_text">Wygląda na to, że zaparkowałeś. Czy potwierdzić miejsce?</string>
+    <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
+    <string name="notif_action_keep_driving">Jadę dalej</string>
+
+    <!-- Powiadomienie: miejsce zapisane -->
+    <string name="notif_spot_saved_title">Miejsce zapisane</string>
+    <!-- %1$s = szerokość geograficzna, %2$s = długość geograficzna -->
+    <string name="notif_spot_saved_text">Miejsce zarejestrowane w (%1$s, %2$s)</string>
+
+    <!-- Powiadomienie: przesyłanie miejsca -->
+    <string name="notif_uploading_title">Paparcar</string>
+    <string name="notif_uploading_text">Przesyłanie nowego miejsca…</string>
+
+    <!-- Powiadomienie: debug (tylko buildy deweloperskie) -->
+    <string name="notif_debug_title">Paparcar Debug</string>
+
+    <!-- Nazwy i opisy kanałów powiadomień -->
+    <string name="channel_detection_name">Wykrywanie miejsc</string>
+    <string name="channel_detection_desc">Stałe powiadomienie podczas aktywnego wykrywania parkowania</string>
+    <string name="channel_upload_name">Przesyłanie miejsc</string>
+    <string name="channel_upload_desc">Potwierdzenia zapisanych miejsc i przesyłania do chmury</string>
+    <string name="channel_debug_name">Debug</string>
+    <string name="channel_debug_desc">Wiadomości debugowania — tylko w buildach deweloperskich</string>
+</resources>

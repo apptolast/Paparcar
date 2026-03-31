@@ -20,6 +20,13 @@ import paparcar.composeapp.generated.resources.relative_time_minutes
 import paparcar.composeapp.generated.resources.walk_time_minutes
 import kotlin.math.roundToInt
 
+private const val TIME_RECOMPUTE_INTERVAL_MS = 60_000L
+private const val MS_PER_MINUTE = 60_000L
+private const val MINUTES_PER_HOUR = 60L
+private const val HOURS_PER_DAY = 24L
+private const val WALK_SPEED_M_PER_MIN = 80f
+private const val DRIVE_SPEED_M_PER_MIN = 500f
+
 /**
  * Localized relative-time string that recomputes itself every 60 seconds.
  * Uses string resources so it adapts to the active locale.
@@ -29,7 +36,7 @@ fun relativeTimeText(timestampMs: Long): String {
     var tick by remember(timestampMs) { mutableStateOf(0) }
     LaunchedEffect(timestampMs) {
         while (true) {
-            delay(60_000L)
+            delay(TIME_RECOMPUTE_INTERVAL_MS)
             tick++
         }
     }
@@ -38,9 +45,9 @@ fun relativeTimeText(timestampMs: Long): String {
     @Suppress("UNUSED_EXPRESSION") tick
 
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val diffMin = (nowMs - timestampMs) / 60_000L
-    val diffHours = diffMin / 60L
-    val diffDays = diffHours / 24L
+    val diffMin = (nowMs - timestampMs) / MS_PER_MINUTE
+    val diffHours = diffMin / MINUTES_PER_HOUR
+    val diffDays = diffHours / HOURS_PER_DAY
 
     return when {
         diffMin < 1L -> stringResource(Res.string.relative_time_just_now)
@@ -51,17 +58,15 @@ fun relativeTimeText(timestampMs: Long): String {
     }
 }
 
-/** Composable version of [formatWalkTime] — uses string resources for locale support. */
 @Composable
 fun walkTimeString(meters: Float): String {
-    val minutes = (meters / 80).roundToInt().coerceAtLeast(1)
+    val minutes = (meters / WALK_SPEED_M_PER_MIN).roundToInt().coerceAtLeast(1)
     return stringResource(Res.string.walk_time_minutes, minutes)
 }
 
-/** Composable version of [formatDriveTime] — uses string resources for locale support. */
 @Composable
 fun driveTimeString(meters: Float): String {
-    val minutes = (meters / 500).roundToInt().coerceAtLeast(1)
+    val minutes = (meters / DRIVE_SPEED_M_PER_MIN).roundToInt().coerceAtLeast(1)
     return stringResource(Res.string.drive_time_minutes, minutes)
 }
 

@@ -10,6 +10,8 @@ import io.apptolast.paparcar.ios.stub.StubDepartureEventBus
 import io.apptolast.paparcar.ios.stub.StubGeofenceEventBus
 import io.apptolast.paparcar.ios.stub.StubGeofenceManager
 import io.apptolast.paparcar.ios.stub.StubParkingEnrichmentScheduler
+import io.apptolast.paparcar.ios.stub.StubReportSpotScheduler
+import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import org.koin.dsl.module
 
 val iosDetectionModule = module {
@@ -18,4 +20,5 @@ val iosDetectionModule = module {
     single<GeofenceManager> { StubGeofenceManager() }
     single<DepartureEventBus> { StubDepartureEventBus() }
     single<ParkingEnrichmentScheduler> { StubParkingEnrichmentScheduler() }
+    single<ReportSpotScheduler> { StubReportSpotScheduler() }
 }

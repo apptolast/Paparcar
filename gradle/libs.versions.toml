@@ -49,6 +49,7 @@ sqlite = "2.6.2"
 # ── Firebase ─────────────────────────────────────────────────────────────────
 # GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
 firebase-bom = "34.10.0"
+firebase-crashlytics-plugin = "3.0.4"
 firebase-gitlive = "2.4.0"
 google-services = "4.4.4"
 
@@ -124,6 +125,7 @@ sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sql
 # ── Firebase (GitLive SDK — KMP) ─────────────────────────────────────────────
 # Todos van en commonMain. GitLive wrappea Firebase oficial con expect/actual.
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
 firebase-firestore = { module = "dev.gitlive:firebase-firestore", version.ref = "firebase-gitlive" }
 firebase-auth = { module = "dev.gitlive:firebase-auth", version.ref = "firebase-gitlive" }
 firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "firebase-gitlive" }
@@ -155,5 +157,6 @@ compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
+firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin" }
 room = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

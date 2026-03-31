@@ -63,6 +63,7 @@ class EnrichParkingSessionWorker(
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"
         private const val MAX_RETRIES = 3
+        private const val INITIAL_BACKOFF_SECONDS = 30L
 
         fun buildRequest(sessionId: String, lat: Double, lon: Double): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<EnrichParkingSessionWorker>()
@@ -73,7 +74,7 @@ class EnrichParkingSessionWorker(
                         KEY_LON to lon,
                     )
                 )
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, INITIAL_BACKOFF_SECONDS, TimeUnit.SECONDS)
                 .addTag(TAG)
                 .build()
     }

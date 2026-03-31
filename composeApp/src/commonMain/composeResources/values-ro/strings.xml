@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HomeScreen -->
+    <string name="home_brand_name">PAPARCAR</string>
+    <string name="home_eco_driver_label">Șofer eco</string>
+    <string name="home_nav_history">Istoric</string>
+    <string name="home_nav_settings">Setări</string>
+    <string name="home_parking_row_label">Vehiculul tău</string>
+    <string name="home_fab_report_spot">Raportează loc</string>
+    <string name="home_cd_profile">Profil</string>
+    <string name="home_search_placeholder">Caută o zonă, stradă…</string>
+    <string name="home_stats_free_spots_badge">%1$d libere</string>
+    <string name="home_banner_since">%1$s</string>
+    <string name="home_banner_accuracy">±%1$dm</string>
+    <string name="home_parked_section">Ești parcat</string>
+    <string name="home_parking_release">Eliberează locul</string>
+    <string name="home_nav_button">Navigare</string>
+    <string name="home_nav_your_car">Mașina ta</string>
+    <string name="home_nav_free_spot">Loc liber</string>
+    <string name="home_feed_nearby">În apropierea ta</string>
+    <string name="home_feed_nearby_with_count">%1$d locuri libere în apropierea ta</string>
+    <string name="home_feed_activity">Activitate recentă</string>
+    <string name="home_permissions_message">Activează locația pentru a vedea locuri în apropiere</string>
+    <string name="home_permissions_button">Activează permisiunile</string>
+    <string name="home_empty_title">Niciun loc în apropiere</string>
+    <string name="home_empty_subtitle">Fii primul care raportează unul</string>
+    <string name="home_spot_status_occupied">Ocupat</string>
+    <string name="home_spot_status_free">Liber</string>
+    <string name="home_spot_reported_by">%1$s</string>
+    <string name="home_address_loading">Se obține adresa…</string>
+    <string name="home_release_dialog_title">Eliberezi locul?</string>
+    <string name="home_release_dialog_message">Confirmă că ai plecat. Locul tău va fi partajat cu șoferii din apropiere.</string>
+    <string name="home_release_dialog_confirm">Eliberează</string>
+    <string name="home_release_dialog_cancel">Anulează</string>
+    <string name="home_parking_peek_label">Ești parcat · %1$s</string>
+    <string name="home_manual_park_title">Parchează aici</string>
+    <string name="home_manual_park_subtitle">Salvează manual locația de parcare</string>
+    <string name="home_reliability_confirmed">Confirmat</string>
+    <string name="home_reliability_high">Detectat automat</string>
+    <string name="home_reliability_auto">Aproximativ</string>
+    <string name="home_search_clear_cd">Șterge căutarea</string>
+    <string name="home_menu_close_cd">Închide meniul</string>
+    <string name="home_menu_open_cd">Deschide meniul</string>
+    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
+    <string name="home_spot_freshness_minutes">acum %1$d min</string>
+    <string name="home_spot_freshness_hours">acum %1$d ore</string>
+
+    <!-- OnboardingScreen -->
+    <string name="onboarding_page1_title">Bun venit la Paparcar</string>
+    <string name="onboarding_page1_subtitle">Comunitatea care eliberează locuri de parcare. Când pleci tu, alții găsesc locul tău. Când pleacă alții, tu găsești locul lor.</string>
+    <string name="onboarding_page2_title">Cum funcționează</string>
+    <string name="onboarding_step1_title">Detectăm conducerea</string>
+    <string name="onboarding_step1_desc">Aplicația detectează când urci în mașină</string>
+    <string name="onboarding_step2_title">Detectăm parcarea</string>
+    <string name="onboarding_step2_desc">Când parchezi, salvăm silențios locul</string>
+    <string name="onboarding_step3_title">Partajăm locul</string>
+    <string name="onboarding_step3_desc">Când pleci, locul tău devine disponibil pentru alții din apropiere</string>
+    <string name="onboarding_page3_title">De ce avem nevoie de permisiunile tale</string>
+    <string name="onboarding_page3_subtitle">Aplicația funcționează automat în fundal. Folosim locația ta doar pentru detectarea parcării — niciodată partajată cu terțe părți.</string>
+    <string name="onboarding_cta_next">Înainte</string>
+    <string name="onboarding_cta_setup">Configurează permisiunile</string>
+
+    <!-- PermissionsScreen -->
+    <string name="permissions_title">Activează permisiunile</string>
+    <string name="permissions_subtitle">Următoarele permisiuni sunt necesare pentru funcționarea detecției automate.</string>
+    <string name="permissions_perm_location">Locație precisă</string>
+    <string name="permissions_perm_location_desc">Pentru a salva cu precizie unde ai parcat vehiculul</string>
+    <string name="permissions_perm_background">Locație în fundal</string>
+    <string name="permissions_perm_background_desc">Necesară pentru a detecta parcarea chiar și când aplicația este închisă</string>
+    <string name="permissions_perm_activity">Recunoașterea activității</string>
+    <string name="permissions_perm_activity_desc">Pentru a detecta automat când începi să conduci și când parchezi</string>
+    <string name="permissions_perm_notifications">Notificări</string>
+    <string name="permissions_perm_notifications_desc">Pentru a confirma parcarea și a te alerta cu privire la locurile libere din apropiere</string>
+    <string name="permissions_btn_grant">Acordă permisiunile</string>
+    <string name="permissions_btn_background">Activează locația în fundal</string>
+    <string name="permissions_btn_settings">Deschide setările sistemului</string>
+    <string name="permissions_rationale">Unele permisiuni au fost refuzate. Acordă-le pentru a continua.</string>
+    <string name="permissions_perm_location_services">Servicii de locație</string>
+    <string name="permissions_perm_location_services_desc">Necesar pentru funcționarea corectă a detecției locației</string>
+    <string name="permissions_btn_location_settings">Activează GPS</string>
+    <string name="permissions_status_granted">Acordat</string>
+    <string name="permissions_status_pending">În așteptare</string>
+
+    <!-- HistoryScreen -->
+    <string name="history_weekly_title">Activitate săptămânală</string>
+    <string name="history_weekly_subtitle">parcări în această săptămână</string>
+    <string name="history_minutes_suffix">min</string>
+    <string name="history_today">Astăzi</string>
+    <string name="history_yesterday">Ieri</string>
+    <string name="history_title">Istoric parcare</string>
+    <string name="history_subtitle">%1$d înregistrări</string>
+    <string name="history_cd_back">Înapoi</string>
+    <string name="history_empty_title">Nicio parcare încă</string>
+    <string name="history_empty_subtitle">Înregistrările tale vor apărea aici</string>
+    <string name="history_status_active">Activ</string>
+    <string name="history_status_finished">Terminat</string>
+    <string name="history_active_section">În prezent parcat</string>
+    <string name="history_active_since">Parcat %1$s</string>
+    <string name="history_ended_section">Parcări anterioare</string>
+    <string name="history_precision">±%1$dm</string>
+    <string name="history_view_map">Vezi pe hartă</string>
+    <!-- Relative time -->
+    <string name="relative_time_just_now">chiar acum</string>
+    <string name="relative_time_minutes">acum %1$d min</string>
+    <string name="relative_time_hours">acum %1$d ore</string>
+    <string name="relative_time_day">acum %1$d zi</string>
+    <string name="relative_time_days">acum %1$d zile</string>
+    <!-- Walk / drive time -->
+    <string name="walk_time_minutes">%1$d min pe jos</string>
+    <string name="drive_time_minutes">%1$d min cu mașina</string>
+
+    <string name="history_stat_total">Total</string>
+    <string name="history_stat_this_week">Săptămâna aceasta</string>
+    <string name="history_stat_this_month">Luna aceasta</string>
+    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
+    <string name="history_month_1">Ianuarie</string>
+    <string name="history_month_2">Februarie</string>
+    <string name="history_month_3">Martie</string>
+    <string name="history_month_4">Aprilie</string>
+    <string name="history_month_5">Mai</string>
+    <string name="history_month_6">Iunie</string>
+    <string name="history_month_7">Iulie</string>
+    <string name="history_month_8">August</string>
+    <string name="history_month_9">Septembrie</string>
+    <string name="history_month_10">Octombrie</string>
+    <string name="history_month_11">Noiembrie</string>
+    <string name="history_month_12">Decembrie</string>
+
+    <!-- MapScreen -->
+    <string name="map_title">Harta locurilor</string>
+    <string name="map_cd_back">Înapoi</string>
+    <string name="map_marker_my_car">Mașina ta parcată</string>
+    <string name="map_marker_car_here">Mașină parcată aici</string>
+    <string name="map_marker_free">Loc liber</string>
+    <string name="map_marker_occupied">Loc ocupat</string>
+    <string name="map_marker_reported_by">Raportat de %1$s</string>
+    <string name="map_cd_midpoint">Punctul de mijloc între mine și mașină</string>
+    <string name="map_cd_go_to_car">Mergi la mașina mea parcată</string>
+    <string name="map_cd_my_location">Centrează pe locația mea</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Setări</string>
+    <string name="settings_cd_back">Înapoi</string>
+    <string name="settings_section_detection">Detecție</string>
+    <string name="settings_auto_detect">Detecție automată parcare</string>
+    <string name="settings_auto_detect_desc">Salvează automat locul de parcare</string>
+    <string name="settings_section_notifications">Notificări</string>
+    <string name="settings_notif_parking">Parcare detectată</string>
+    <string name="settings_notif_parking_desc">Alertă când un loc de parcare este salvat</string>
+    <string name="settings_notif_spot">Loc disponibil în apropiere</string>
+    <string name="settings_notif_spot_desc">Alertă când un loc se eliberează în apropierea ta</string>
+    <string name="settings_section_about">Despre</string>
+    <string name="settings_version">Versiune</string>
+    <string name="settings_privacy">Politică de confidențialitate</string>
+    <string name="settings_licenses">Licențe open source</string>
+
+    <!-- Generic error messages -->
+    <string name="error_unknown">Ceva a mers greșit</string>
+    <string name="error_load_spots">Nu s-au putut încărca locurile din apropiere</string>
+    <string name="error_load_session">Nu s-a putut încărca sesiunea de parcare</string>
+    <string name="error_load_history">Nu s-a putut încărca istoricul parcării</string>
+    <string name="error_release_parking">Nu s-a putut elibera locul de parcare</string>
+    <string name="error_gps_unavailable">Se așteaptă semnalul GPS…</string>
+    <string name="error_network_no_connection">Nicio conexiune la internet</string>
+    <string name="error_profile_sync">Nu s-a putut încărca profilul. Te rugăm să te conectezi din nou</string>
+
+    <!-- Address fallback -->
+    <string name="address_unknown">Locație necunoscută</string>
+
+    <!-- Home success messages -->
+    <string name="home_spot_reported">Loc raportat — se încarcă…</string>
+    <string name="home_test_spot_sent">Loc de test trimis</string>
+
+</resources>

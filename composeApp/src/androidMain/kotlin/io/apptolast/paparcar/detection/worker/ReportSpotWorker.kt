@@ -83,6 +83,7 @@ class ReportSpotWorker(
     companion object {
         const val TAG = "ReportSpotWorker"
         private const val MAX_RETRY_ATTEMPTS = 5
+        private const val INITIAL_BACKOFF_SECONDS = 30L
 
         private const val KEY_SPOT_ID = "spot_id"
         private const val KEY_LAT = "lat"
@@ -122,7 +123,7 @@ class ReportSpotWorker(
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
                 )
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, INITIAL_BACKOFF_SECONDS, TimeUnit.SECONDS)
                 .addTag(TAG)
                 .build()
 

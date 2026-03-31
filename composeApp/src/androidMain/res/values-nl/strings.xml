@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Melding: detectie-voorgrondservice -->
+    <string name="notif_detection_title">Detectie actief</string>
+    <string name="notif_detection_text">Zoeken naar parkeersignalen…</string>
+
+    <!-- Melding: bevestiging van parkeren -->
+    <string name="notif_confirmation_title">Heeft u geparkeerd?</string>
+    <string name="notif_confirmation_text">Het lijkt erop dat u heeft geparkeerd. Zullen we de parkeerplaats bevestigen?</string>
+    <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
+    <string name="notif_action_keep_driving">Ik rijd door</string>
+
+    <!-- Melding: parkeerplaats opgeslagen -->
+    <string name="notif_spot_saved_title">Parkeerplaats opgeslagen</string>
+    <!-- %1$s = breedtegraad, %2$s = lengtegraad -->
+    <string name="notif_spot_saved_text">Parkeerplaats geregistreerd bij (%1$s, %2$s)</string>
+
+    <!-- Melding: parkeerplaats uploaden -->
+    <string name="notif_uploading_title">Paparcar</string>
+    <string name="notif_uploading_text">Nieuwe parkeerplaats uploaden…</string>
+
+    <!-- Melding: debug (alleen ontwikkelingsbuilds) -->
+    <string name="notif_debug_title">Paparcar Debug</string>
+
+    <!-- Namen en beschrijvingen van meldingskanalen -->
+    <string name="channel_detection_name">Parkeerplaatsdetectie</string>
+    <string name="channel_detection_desc">Permanente melding terwijl parkeerdetectie actief is</string>
+    <string name="channel_upload_name">Parkeerplaats uploaden</string>
+    <string name="channel_upload_desc">Bevestigingen van opgeslagen parkeerplaats en cloud-upload</string>
+    <string name="channel_debug_name">Debug</string>
+    <string name="channel_debug_desc">Foutopsporingsberichten — alleen in ontwikkelingsbuilds</string>
+</resources>

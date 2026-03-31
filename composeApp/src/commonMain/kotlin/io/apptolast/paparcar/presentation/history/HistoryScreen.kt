@@ -57,6 +57,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.history.components.ActiveSectionHeader
 import io.apptolast.paparcar.presentation.history.components.DayHeaderRow
@@ -87,6 +88,8 @@ import paparcar.composeapp.generated.resources.history_month_7
 import paparcar.composeapp.generated.resources.history_month_8
 import paparcar.composeapp.generated.resources.history_month_9
 import paparcar.composeapp.generated.resources.history_title
+import paparcar.composeapp.generated.resources.error_load_history
+import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.history_today
 import paparcar.composeapp.generated.resources.history_yesterday
 import kotlin.time.Instant
@@ -183,10 +186,20 @@ fun HistoryScreen(
 
     val currentOnNavigateToMap by rememberUpdatedState(onNavigateToMap)
 
+    // Pre-resolve strings in Composable scope — cannot use stringResource inside LaunchedEffect
+    val msgErrorLoadHistory = stringResource(Res.string.error_load_history)
+    val msgErrorUnknown = stringResource(Res.string.error_unknown)
+
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is HistoryEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                is HistoryEffect.ShowError -> {
+                    val msg = when (effect.error) {
+                        is PaparcarError.Database.Unknown -> msgErrorLoadHistory
+                        else -> msgErrorUnknown
+                    }
+                    snackbarHostState.showSnackbar(msg)
+                }
                 is HistoryEffect.NavigateToMap -> currentOnNavigateToMap(effect.lat, effect.lon)
             }
         }

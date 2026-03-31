@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Benachrichtigung: Erkennungs-Vordergrunddienst -->
+    <string name="notif_detection_title">Erkennung aktiv</string>
+    <string name="notif_detection_text">Suche nach Parksignalen…</string>
+
+    <!-- Benachrichtigung: Parkbestätigung -->
+    <string name="notif_confirmation_title">Haben Sie geparkt?</string>
+    <string name="notif_confirmation_text">Es sieht aus, als hätten Sie geparkt. Sollen wir den Stellplatz bestätigen?</string>
+    <string name="notif_action_yes_parked">Ja, ich habe geparkt</string>
+    <string name="notif_action_keep_driving">Ich fahre weiter</string>
+
+    <!-- Benachrichtigung: Stellplatz gespeichert -->
+    <string name="notif_spot_saved_title">Stellplatz gespeichert</string>
+    <!-- %1$s = Breitengrad, %2$s = Längengrad -->
+    <string name="notif_spot_saved_text">Stellplatz registriert bei (%1$s, %2$s)</string>
+
+    <!-- Benachrichtigung: Stellplatz wird hochgeladen -->
+    <string name="notif_uploading_title">Paparcar</string>
+    <string name="notif_uploading_text">Neuen Stellplatz hochladen…</string>
+
+    <!-- Benachrichtigung: Debug (nur Entwicklungs-Builds) -->
+    <string name="notif_debug_title">Paparcar Debug</string>
+
+    <!-- Namen und Beschreibungen der Benachrichtigungskanäle -->
+    <string name="channel_detection_name">Stellplatzerkennung</string>
+    <string name="channel_detection_desc">Dauerhafte Benachrichtigung während der Parkerkennung aktiv ist</string>
+    <string name="channel_upload_name">Stellplatz-Upload</string>
+    <string name="channel_upload_desc">Bestätigungen für gespeicherte Stellplätze und Cloud-Upload</string>
+    <string name="channel_debug_name">Debug</string>
+    <string name="channel_debug_desc">Debug-Meldungen — nur in Entwicklungs-Builds</string>
+</resources>

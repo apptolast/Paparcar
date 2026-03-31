@@ -39,6 +39,9 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
+import paparcar.composeapp.generated.resources.home_spot_freshness_hours
+import paparcar.composeapp.generated.resources.home_spot_freshness_minutes
+import paparcar.composeapp.generated.resources.home_spot_freshness_under_min
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Freshness thresholds
@@ -223,11 +226,10 @@ internal fun SpotFreshnessChip(ageMinutes: Long) {
         ageMinutes < RECENT_MINUTES -> MaterialTheme.colorScheme.secondary
         else                        -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     }
-    // "hace X min" distinguishes freshness age from travel-time labels shown on the same row
     val label = when {
-        ageMinutes < 1L             -> "< 1 min"
-        ageMinutes < 60L            -> "hace ${ageMinutes}m"
-        else                        -> "hace ${ageMinutes / 60L}h"
+        ageMinutes < 1L  -> stringResource(Res.string.home_spot_freshness_under_min)
+        ageMinutes < 60L -> stringResource(Res.string.home_spot_freshness_minutes, ageMinutes.toInt())
+        else             -> stringResource(Res.string.home_spot_freshness_hours, (ageMinutes / 60L).toInt())
     }
     Surface(
         shape = RoundedCornerShape(8.dp),

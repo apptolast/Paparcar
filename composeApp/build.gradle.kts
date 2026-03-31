@@ -19,6 +19,7 @@ plugins {
     // Si no tienes el archivo en el repo (gitignored), usa un placeholder o elimina esta línea
     // hasta que estés listo para conectar Firebase en Android.
     alias(libs.plugins.googleServices)
+    alias(libs.plugins.firebaseCrashlytics)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,6 +118,8 @@ kotlin {
             implementation(libs.play.services.location)
             // Firebase BOM — gestiona versiones nativas que GitLive SDK necesita en Android
             implementation(project.dependencies.platform(libs.firebase.bom))
+            // Crashlytics — crash reporting y non-fatal error tracking
+            implementation(libs.firebase.crashlytics)
 
             // WorkManager (tareas en background opcionales)
             implementation(libs.work.runtime.ktx)

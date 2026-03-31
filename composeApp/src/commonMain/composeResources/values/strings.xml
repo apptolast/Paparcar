@@ -39,6 +39,15 @@
     <string name="home_reliability_confirmed">Confirmed</string>
     <string name="home_reliability_high">Auto-detected</string>
     <string name="home_reliability_auto">Approx.</string>
+    <!-- HomeSearchBar -->
+    <string name="home_search_clear_cd">Clear search</string>
+    <!-- HomeFloatingHeader -->
+    <string name="home_menu_close_cd">Close menu</string>
+    <string name="home_menu_open_cd">Open menu</string>
+    <!-- HomeSpotRows freshness chip — %1$d = minutes or hours -->
+    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
+    <string name="home_spot_freshness_minutes">%1$dm ago</string>
+    <string name="home_spot_freshness_hours">%1$dh ago</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
@@ -133,6 +142,23 @@
     <string name="map_cd_midpoint">Midpoint between me and car</string>
     <string name="map_cd_go_to_car">Go to my parked car</string>
     <string name="map_cd_my_location">Center on my location</string>
+
+    <!-- Generic error messages -->
+    <string name="error_unknown">Something went wrong</string>
+    <string name="error_load_spots">Couldn\'t load nearby spots</string>
+    <string name="error_load_session">Couldn\'t load parking session</string>
+    <string name="error_load_history">Couldn\'t load parking history</string>
+    <string name="error_release_parking">Couldn\'t release parking</string>
+    <string name="error_gps_unavailable">Waiting for GPS fix…</string>
+    <string name="error_network_no_connection">No internet connection</string>
+    <string name="error_profile_sync">Couldn\'t load your profile. Please sign in again</string>
+
+    <!-- Address fallback -->
+    <string name="address_unknown">Unknown location</string>
+
+    <!-- Home success messages -->
+    <string name="home_spot_reported">Spot reported — uploading…</string>
+    <string name="home_test_spot_sent">Test spot sent</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Settings</string>

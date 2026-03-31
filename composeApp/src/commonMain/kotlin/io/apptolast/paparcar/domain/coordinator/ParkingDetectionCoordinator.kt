@@ -244,7 +244,7 @@ class ParkingDetectionCoordinator(
      *   vehicle drives away before the observation window expires.
      */
     private fun updateStopTracking(location: GpsPoint, now: Long): Long {
-        return if (location.speed < 1f) {
+        return if (location.speed < STOPPED_SPEED_THRESHOLD_MPS) {
             _detectionState.update { s ->
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
@@ -320,7 +320,8 @@ class ParkingDetectionCoordinator(
         }
     }
 
-    companion object {
-        private const val MAX_STOPPED_FIXES = 20
+    private companion object {
+        const val MAX_STOPPED_FIXES = 20
+        const val STOPPED_SPEED_THRESHOLD_MPS = 1f
     }
 }

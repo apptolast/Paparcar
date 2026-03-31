@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HomeScreen -->
+    <string name="home_brand_name">PAPARCAR</string>
+    <string name="home_eco_driver_label">Eco-rijder</string>
+    <string name="home_nav_history">Geschiedenis</string>
+    <string name="home_nav_settings">Instellingen</string>
+    <string name="home_parking_row_label">Uw voertuig</string>
+    <string name="home_fab_report_spot">Parkeerplaats melden</string>
+    <string name="home_cd_profile">Profiel</string>
+    <string name="home_search_placeholder">Zoek een gebied, straat…</string>
+    <string name="home_stats_free_spots_badge">%1$d vrij</string>
+    <string name="home_banner_since">%1$s</string>
+    <string name="home_banner_accuracy">±%1$dm</string>
+    <string name="home_parked_section">U bent geparkeerd</string>
+    <string name="home_parking_release">Parkeerplaats vrijgeven</string>
+    <string name="home_nav_button">Navigeren</string>
+    <string name="home_nav_your_car">Uw auto</string>
+    <string name="home_nav_free_spot">Vrije parkeerplaats</string>
+    <string name="home_feed_nearby">In uw buurt</string>
+    <string name="home_feed_nearby_with_count">%1$d vrije parkeerplaatsen in uw buurt</string>
+    <string name="home_feed_activity">Recente activiteit</string>
+    <string name="home_permissions_message">Schakel locatie in om parkeerplaatsen in de buurt te zien</string>
+    <string name="home_permissions_button">Machtigingen inschakelen</string>
+    <string name="home_empty_title">Geen parkeerplaatsen in de buurt</string>
+    <string name="home_empty_subtitle">Wees de eerste die er een meldt</string>
+    <string name="home_spot_status_occupied">Bezet</string>
+    <string name="home_spot_status_free">Vrij</string>
+    <string name="home_spot_reported_by">%1$s</string>
+    <string name="home_address_loading">Adres ophalen…</string>
+    <string name="home_release_dialog_title">Parkeerplaats vrijgeven?</string>
+    <string name="home_release_dialog_message">Bevestig dat u vertrokken bent. Uw parkeerplaats wordt gedeeld met bestuurders in de buurt.</string>
+    <string name="home_release_dialog_confirm">Vrijgeven</string>
+    <string name="home_release_dialog_cancel">Annuleren</string>
+    <string name="home_parking_peek_label">U bent geparkeerd · %1$s</string>
+    <string name="home_manual_park_title">Hier parkeren</string>
+    <string name="home_manual_park_subtitle">Parkeerlocatie handmatig opslaan</string>
+    <string name="home_reliability_confirmed">Bevestigd</string>
+    <string name="home_reliability_high">Automatisch gedetecteerd</string>
+    <string name="home_reliability_auto">Ongeveer</string>
+    <string name="home_search_clear_cd">Zoekopdracht wissen</string>
+    <string name="home_menu_close_cd">Menu sluiten</string>
+    <string name="home_menu_open_cd">Menu openen</string>
+    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
+    <string name="home_spot_freshness_minutes">%1$d min geleden</string>
+    <string name="home_spot_freshness_hours">%1$d u geleden</string>
+
+    <!-- OnboardingScreen -->
+    <string name="onboarding_page1_title">Welkom bij Paparcar</string>
+    <string name="onboarding_page1_subtitle">De community die parkeerplaatsen vrijgeeft. Als u vertrekt, vinden anderen de uwe. Als anderen vertrekken, vindt u die van hen.</string>
+    <string name="onboarding_page2_title">Hoe het werkt</string>
+    <string name="onboarding_step1_title">Wij detecteren het rijden</string>
+    <string name="onboarding_step1_desc">De app detecteert wanneer u in uw auto stapt</string>
+    <string name="onboarding_step2_title">Wij detecteren het parkeren</string>
+    <string name="onboarding_step2_desc">Wanneer u parkeert, slaan wij stilletjes de parkeerplaats op</string>
+    <string name="onboarding_step3_title">Wij delen de parkeerplaats</string>
+    <string name="onboarding_step3_desc">Wanneer u vertrekt, wordt uw parkeerplaats beschikbaar voor anderen in de buurt</string>
+    <string name="onboarding_page3_title">Waarom we uw machtigingen nodig hebben</string>
+    <string name="onboarding_page3_subtitle">De app werkt automatisch op de achtergrond. We gebruiken uw locatie alleen voor parkeerdetectie — nooit gedeeld met derden.</string>
+    <string name="onboarding_cta_next">Volgende</string>
+    <string name="onboarding_cta_setup">Machtigingen instellen</string>
+
+    <!-- PermissionsScreen -->
+    <string name="permissions_title">Machtigingen inschakelen</string>
+    <string name="permissions_subtitle">De volgende machtigingen zijn vereist voor automatische detectie.</string>
+    <string name="permissions_perm_location">Nauwkeurige locatie</string>
+    <string name="permissions_perm_location_desc">Om nauwkeurig op te slaan waar u uw voertuig heeft geparkeerd</string>
+    <string name="permissions_perm_background">Achtergrondlocatie</string>
+    <string name="permissions_perm_background_desc">Vereist om parkeren te detecteren ook wanneer de app gesloten is</string>
+    <string name="permissions_perm_activity">Activiteitsherkenning</string>
+    <string name="permissions_perm_activity_desc">Om automatisch te detecteren wanneer u begint te rijden en wanneer u parkeert</string>
+    <string name="permissions_perm_notifications">Meldingen</string>
+    <string name="permissions_perm_notifications_desc">Om uw parkeren te bevestigen en u te waarschuwen voor vrije parkeerplaatsen in de buurt</string>
+    <string name="permissions_btn_grant">Machtigingen verlenen</string>
+    <string name="permissions_btn_background">Achtergrondlocatie activeren</string>
+    <string name="permissions_btn_settings">Systeeminstellingen openen</string>
+    <string name="permissions_rationale">Sommige machtigingen zijn geweigerd. Verleen ze om door te gaan.</string>
+    <string name="permissions_perm_location_services">Locatieservices</string>
+    <string name="permissions_perm_location_services_desc">Vereist voor correcte werking van locatiedetectie</string>
+    <string name="permissions_btn_location_settings">GPS inschakelen</string>
+    <string name="permissions_status_granted">Verleend</string>
+    <string name="permissions_status_pending">In behandeling</string>
+
+    <!-- HistoryScreen -->
+    <string name="history_weekly_title">Wekelijkse activiteit</string>
+    <string name="history_weekly_subtitle">parkeerders deze week</string>
+    <string name="history_minutes_suffix">min</string>
+    <string name="history_today">Vandaag</string>
+    <string name="history_yesterday">Gisteren</string>
+    <string name="history_title">Parkeergeschiedenis</string>
+    <string name="history_subtitle">%1$d records</string>
+    <string name="history_cd_back">Terug</string>
+    <string name="history_empty_title">Nog geen parkeergeschiedenis</string>
+    <string name="history_empty_subtitle">Uw records verschijnen hier</string>
+    <string name="history_status_active">Actief</string>
+    <string name="history_status_finished">Beëindigd</string>
+    <string name="history_active_section">Momenteel geparkeerd</string>
+    <string name="history_active_since">Geparkeerd %1$s</string>
+    <string name="history_ended_section">Eerdere parkeergeschiedenissen</string>
+    <string name="history_precision">±%1$dm</string>
+    <string name="history_view_map">Bekijk op kaart</string>
+    <!-- Relative time -->
+    <string name="relative_time_just_now">zojuist</string>
+    <string name="relative_time_minutes">%1$d min geleden</string>
+    <string name="relative_time_hours">%1$d u geleden</string>
+    <string name="relative_time_day">%1$d dag geleden</string>
+    <string name="relative_time_days">%1$d dagen geleden</string>
+    <!-- Walk / drive time -->
+    <string name="walk_time_minutes">%1$d min lopen</string>
+    <string name="drive_time_minutes">%1$d min rijden</string>
+
+    <string name="history_stat_total">Totaal</string>
+    <string name="history_stat_this_week">Deze week</string>
+    <string name="history_stat_this_month">Deze maand</string>
+    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
+    <string name="history_month_1">Januari</string>
+    <string name="history_month_2">Februari</string>
+    <string name="history_month_3">Maart</string>
+    <string name="history_month_4">April</string>
+    <string name="history_month_5">Mei</string>
+    <string name="history_month_6">Juni</string>
+    <string name="history_month_7">Juli</string>
+    <string name="history_month_8">Augustus</string>
+    <string name="history_month_9">September</string>
+    <string name="history_month_10">Oktober</string>
+    <string name="history_month_11">November</string>
+    <string name="history_month_12">December</string>
+
+    <!-- MapScreen -->
+    <string name="map_title">Parkeerplaatsenkaart</string>
+    <string name="map_cd_back">Terug</string>
+    <string name="map_marker_my_car">Uw geparkeerde auto</string>
+    <string name="map_marker_car_here">Hier geparkeerde auto</string>
+    <string name="map_marker_free">Vrije parkeerplaats</string>
+    <string name="map_marker_occupied">Bezette parkeerplaats</string>
+    <string name="map_marker_reported_by">Gemeld door %1$s</string>
+    <string name="map_cd_midpoint">Middelpunt tussen mij en de auto</string>
+    <string name="map_cd_go_to_car">Naar mijn geparkeerde auto</string>
+    <string name="map_cd_my_location">Centreer op mijn locatie</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Instellingen</string>
+    <string name="settings_cd_back">Terug</string>
+    <string name="settings_section_detection">Detectie</string>
+    <string name="settings_auto_detect">Automatische parkeerdetectie</string>
+    <string name="settings_auto_detect_desc">Parkeerplaats automatisch opslaan</string>
+    <string name="settings_section_notifications">Meldingen</string>
+    <string name="settings_notif_parking">Parkeren gedetecteerd</string>
+    <string name="settings_notif_parking_desc">Melding wanneer een parkeerplaats wordt opgeslagen</string>
+    <string name="settings_notif_spot">Parkeerplaats beschikbaar in de buurt</string>
+    <string name="settings_notif_spot_desc">Melding wanneer een parkeerplaats vrij komt in uw buurt</string>
+    <string name="settings_section_about">Over</string>
+    <string name="settings_version">Versie</string>
+    <string name="settings_privacy">Privacybeleid</string>
+    <string name="settings_licenses">Open source-licenties</string>
+
+    <!-- Generic error messages -->
+    <string name="error_unknown">Er is iets misgegaan</string>
+    <string name="error_load_spots">Kon parkeerplaatsen in de buurt niet laden</string>
+    <string name="error_load_session">Kon parkeersessie niet laden</string>
+    <string name="error_load_history">Kon parkeergeschiedenis niet laden</string>
+    <string name="error_release_parking">Kon parkeerplaats niet vrijgeven</string>
+    <string name="error_gps_unavailable">Wachten op GPS-signaal…</string>
+    <string name="error_network_no_connection">Geen internetverbinding</string>
+    <string name="error_profile_sync">Kon uw profiel niet laden. Meld u opnieuw aan</string>
+
+    <!-- Address fallback -->
+    <string name="address_unknown">Onbekende locatie</string>
+
+    <!-- Home success messages -->
+    <string name="home_spot_reported">Parkeerplaats gemeld — uploaden…</string>
+    <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
+
+</resources>

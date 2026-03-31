@@ -31,6 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.SearchResult
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_search_clear_cd
+import paparcar.composeapp.generated.resources.home_search_placeholder
 
 @Composable
 internal fun HomeSearchBar(
@@ -59,7 +63,7 @@ internal fun HomeSearchBar(
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
-                    Text("Buscar destino…", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(Res.string.home_search_placeholder), style = MaterialTheme.typography.bodyMedium)
                 },
                 leadingIcon = {
                     if (isSearching) {
@@ -71,7 +75,7 @@ internal fun HomeSearchBar(
                 trailingIcon = if (query.isNotEmpty()) {
                     {
                         IconButton(onClick = onClear) {
-                            Icon(Icons.Outlined.Close, contentDescription = "Limpiar búsqueda")
+                            Icon(Icons.Outlined.Close, contentDescription = stringResource(Res.string.home_search_clear_cd))
                         }
                     }
                 } else null,

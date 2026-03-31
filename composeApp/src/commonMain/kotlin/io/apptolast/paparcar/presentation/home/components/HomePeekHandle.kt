@@ -336,7 +336,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
             val info = state.cameraLocationInfo
             val secondaryLine = if (info?.placeInfo != null) {
                 // POI shown as primary → street address gives location context
-                info.address.displayLine.takeIf { it != info.placeInfo.name }
+                info.address.displayLine?.takeIf { it != info.placeInfo?.name }
             } else {
                 listOfNotNull(info?.address?.city, info?.address?.region)
                     .joinToString(", ").takeIf { it.isNotEmpty() }

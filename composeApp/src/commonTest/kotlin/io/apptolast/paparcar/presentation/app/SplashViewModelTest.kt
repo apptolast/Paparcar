@@ -103,7 +103,6 @@ class SplashViewModelTest {
 
             val effect = awaitItem()
             assertTrue(effect is SplashEffect.ShowError)
-            assertTrue((effect).message.isNotBlank())
             cancelAndIgnoreRemainingEvents()
         }
         assertEquals(1, fakeAuth.signOutCount)

@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.history
 
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
@@ -15,7 +16,7 @@ class HistoryViewModel(
             .onEach { sessions -> updateState { copy(isLoading = false, sessions = sessions) } }
             .catch { e ->
                 updateState { copy(isLoading = false) }
-                sendEffect(HistoryEffect.ShowError(e.message ?: "Error al cargar historial"))
+                sendEffect(HistoryEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
     }

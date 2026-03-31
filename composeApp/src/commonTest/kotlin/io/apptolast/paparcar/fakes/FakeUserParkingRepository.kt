@@ -8,10 +8,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
-class FakeUserParkingRepository : UserParkingRepository {
+class FakeUserParkingRepository(initialSession: UserParking? = null) : UserParkingRepository {
 
-    private val sessions = mutableListOf<UserParking>()
-    private val _sessionsFlow = MutableStateFlow<List<UserParking>>(emptyList())
+    private val sessions = mutableListOf<UserParking>().also { list ->
+        initialSession?.let { list.add(it) }
+    }
+    private val _sessionsFlow = MutableStateFlow<List<UserParking>>(sessions.toList())
 
     var syncCallCount = 0
         private set
@@ -19,13 +21,15 @@ class FakeUserParkingRepository : UserParkingRepository {
 
     var saveSessionCallCount = 0
         private set
+    var saveSessionResult: Result<Unit> = Result.success(Unit)
 
     override suspend fun saveSession(session: UserParking): Result<Unit> {
         saveSessionCallCount++
+        if (saveSessionResult.isFailure) return saveSessionResult
         sessions.removeAll { it.isActive }
         sessions.add(session)
         _sessionsFlow.value = sessions.toList()
-        return Result.success(Unit)
+        return saveSessionResult
     }
 
     override suspend fun getActiveSession(): UserParking? =

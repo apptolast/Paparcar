@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_menu_close_cd
+import paparcar.composeapp.generated.resources.home_menu_open_cd
 import paparcar.composeapp.generated.resources.home_nav_history
 import paparcar.composeapp.generated.resources.home_nav_settings
 
@@ -62,7 +64,7 @@ internal fun HomeFloatingHeader(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = if (expanded) Icons.Outlined.Close else Icons.Outlined.Menu,
-                    contentDescription = if (expanded) "Cerrar menú" else "Abrir menú",
+                    contentDescription = if (expanded) stringResource(Res.string.home_menu_close_cd) else stringResource(Res.string.home_menu_open_cd),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(22.dp),
                 )

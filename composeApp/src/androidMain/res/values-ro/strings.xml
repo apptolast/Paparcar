@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Notificare: serviciu foreground de detecție -->
+    <string name="notif_detection_title">Detecție activă</string>
+    <string name="notif_detection_text">Caut semnale de parcare…</string>
+
+    <!-- Notificare: confirmare parcare -->
+    <string name="notif_confirmation_title">Ai parcat?</string>
+    <string name="notif_confirmation_text">Se pare că ai parcat. Vrei să confirmăm locul?</string>
+    <string name="notif_action_yes_parked">Da, am parcat</string>
+    <string name="notif_action_keep_driving">Continui să conduc</string>
+
+    <!-- Notificare: loc salvat -->
+    <string name="notif_spot_saved_title">Loc salvat</string>
+    <!-- %1$s = latitudine, %2$s = longitudine -->
+    <string name="notif_spot_saved_text">Loc înregistrat la (%1$s, %2$s)</string>
+
+    <!-- Notificare: se încarcă locul -->
+    <string name="notif_uploading_title">Paparcar</string>
+    <string name="notif_uploading_text">Se încarcă noul loc…</string>
+
+    <!-- Notificare: debug (doar build-uri de dezvoltare) -->
+    <string name="notif_debug_title">Paparcar Debug</string>
+
+    <!-- Nume și descrieri ale canalelor de notificare -->
+    <string name="channel_detection_name">Detecție locuri</string>
+    <string name="channel_detection_desc">Notificare persistentă cât timp detecția parcării este activă</string>
+    <string name="channel_upload_name">Încărcare locuri</string>
+    <string name="channel_upload_desc">Confirmări de loc salvat și încărcare în cloud</string>
+    <string name="channel_debug_name">Debug</string>
+    <string name="channel_debug_desc">Mesaje de depanare — doar în build-urile de dezvoltare</string>
+</resources>

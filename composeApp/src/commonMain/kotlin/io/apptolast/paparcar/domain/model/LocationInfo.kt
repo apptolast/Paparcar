@@ -12,7 +12,7 @@ data class LocationInfo(
     val address: AddressInfo,
     val placeInfo: PlaceInfo?,
 ) {
-    val displayLine: String
+    val displayLine: String?
         get() = when {
             placeInfo != null -> "${placeInfo.category.emoji} ${placeInfo.name}"
             else -> address.displayLine
