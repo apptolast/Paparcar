@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HomeScreen -->
+    <string name="home_brand_name">PAPARCAR</string>
+    <string name="home_eco_driver_label">Eko-kierowca</string>
+    <string name="home_nav_history">Historia</string>
+    <string name="home_nav_settings">Ustawienia</string>
+    <string name="home_parking_row_label">Twój pojazd</string>
+    <string name="home_fab_report_spot">Zgłoś miejsce</string>
+    <string name="home_cd_profile">Profil</string>
+    <string name="home_search_placeholder">Szukaj strefy, ulicy…</string>
+    <string name="home_stats_free_spots_badge">%1$d wolnych</string>
+    <string name="home_banner_since">%1$s</string>
+    <string name="home_banner_accuracy">±%1$dm</string>
+    <string name="home_parked_section">Jesteś zaparkowany</string>
+    <string name="home_parking_release">Zwolnij miejsce</string>
+    <string name="home_nav_button">Nawiguj</string>
+    <string name="home_nav_your_car">Twój samochód</string>
+    <string name="home_nav_free_spot">Wolne miejsce</string>
+    <string name="home_feed_nearby">W pobliżu</string>
+    <string name="home_feed_nearby_with_count">%1$d wolnych miejsc w pobliżu</string>
+    <string name="home_feed_activity">Ostatnia aktywność</string>
+    <string name="home_permissions_message">Włącz lokalizację, aby zobaczyć miejsca w pobliżu</string>
+    <string name="home_permissions_button">Włącz uprawnienia</string>
+    <string name="home_empty_title">Brak miejsc w pobliżu</string>
+    <string name="home_empty_subtitle">Bądź pierwszym, który je zgłosi</string>
+    <string name="home_spot_status_occupied">Zajęte</string>
+    <string name="home_spot_status_free">Wolne</string>
+    <string name="home_spot_reported_by">%1$s</string>
+    <string name="home_address_loading">Pobieranie adresu…</string>
+    <string name="home_release_dialog_title">Zwolnić miejsce?</string>
+    <string name="home_release_dialog_message">Potwierdź, że odjechałeś. Twoje miejsce zostanie udostępnione kierowcom w pobliżu.</string>
+    <string name="home_release_dialog_confirm">Zwolnij</string>
+    <string name="home_release_dialog_cancel">Anuluj</string>
+    <string name="home_parking_peek_label">Jesteś zaparkowany · %1$s</string>
+    <string name="home_manual_park_title">Parkuj tutaj</string>
+    <string name="home_manual_park_subtitle">Ręcznie zapisz swoją lokalizację parkowania</string>
+    <string name="home_reliability_confirmed">Potwierdzone</string>
+    <string name="home_reliability_high">Wykryto automatycznie</string>
+    <string name="home_reliability_auto">Przybliżone</string>
+    <string name="home_search_clear_cd">Wyczyść wyszukiwanie</string>
+    <string name="home_menu_close_cd">Zamknij menu</string>
+    <string name="home_menu_open_cd">Otwórz menu</string>
+    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
+    <string name="home_spot_freshness_minutes">%1$d min temu</string>
+    <string name="home_spot_freshness_hours">%1$d godz. temu</string>
+
+    <!-- OnboardingScreen -->
+    <string name="onboarding_page1_title">Witaj w Paparcar</string>
+    <string name="onboarding_page1_subtitle">Społeczność, która zwalnia miejsca parkingowe. Kiedy Ty wyjeżdżasz, inni znajdą Twoje. Kiedy inni wyjeżdżają, Ty znajdziesz ich.</string>
+    <string name="onboarding_page2_title">Jak to działa</string>
+    <string name="onboarding_step1_title">Wykrywamy jazdę</string>
+    <string name="onboarding_step1_desc">Aplikacja wykrywa, gdy wsiadasz do samochodu</string>
+    <string name="onboarding_step2_title">Wykrywamy parkowanie</string>
+    <string name="onboarding_step2_desc">Gdy parkujesz, cicho zapisujemy miejsce</string>
+    <string name="onboarding_step3_title">Udostępniamy miejsce</string>
+    <string name="onboarding_step3_desc">Gdy wyjeżdżasz, Twoje miejsce staje się dostępne dla innych w pobliżu</string>
+    <string name="onboarding_page3_title">Dlaczego potrzebujemy Twoich uprawnień</string>
+    <string name="onboarding_page3_subtitle">Aplikacja działa automatycznie w tle. Używamy Twojej lokalizacji tylko do wykrywania parkowania — nigdy nie udostępniamy jej osobom trzecim.</string>
+    <string name="onboarding_cta_next">Dalej</string>
+    <string name="onboarding_cta_setup">Skonfiguruj uprawnienia</string>
+
+    <!-- PermissionsScreen -->
+    <string name="permissions_title">Włącz uprawnienia</string>
+    <string name="permissions_subtitle">Następujące uprawnienia są wymagane do działania automatycznego wykrywania.</string>
+    <string name="permissions_perm_location">Dokładna lokalizacja</string>
+    <string name="permissions_perm_location_desc">Aby dokładnie zapisać, gdzie zaparkowałeś swój pojazd</string>
+    <string name="permissions_perm_background">Lokalizacja w tle</string>
+    <string name="permissions_perm_background_desc">Wymagane do wykrywania parkowania nawet gdy aplikacja jest zamknięta</string>
+    <string name="permissions_perm_activity">Rozpoznawanie aktywności</string>
+    <string name="permissions_perm_activity_desc">Aby automatycznie wykrywać, kiedy zaczynasz jechać i kiedy parkujesz</string>
+    <string name="permissions_perm_notifications">Powiadomienia</string>
+    <string name="permissions_perm_notifications_desc">Aby potwierdzić parkowanie i powiadamiać o wolnych miejscach w pobliżu</string>
+    <string name="permissions_btn_grant">Przyznaj uprawnienia</string>
+    <string name="permissions_btn_background">Aktywuj lokalizację w tle</string>
+    <string name="permissions_btn_settings">Otwórz ustawienia systemowe</string>
+    <string name="permissions_rationale">Niektóre uprawnienia zostały odrzucone. Przyznaj je, aby kontynuować.</string>
+    <string name="permissions_perm_location_services">Usługi lokalizacji</string>
+    <string name="permissions_perm_location_services_desc">Wymagane do prawidłowego działania wykrywania lokalizacji</string>
+    <string name="permissions_btn_location_settings">Włącz GPS</string>
+    <string name="permissions_status_granted">Przyznane</string>
+    <string name="permissions_status_pending">Oczekujące</string>
+
+    <!-- HistoryScreen -->
+    <string name="history_weekly_title">Aktywność tygodniowa</string>
+    <string name="history_weekly_subtitle">parkowań w tym tygodniu</string>
+    <string name="history_minutes_suffix">min</string>
+    <string name="history_today">Dziś</string>
+    <string name="history_yesterday">Wczoraj</string>
+    <string name="history_title">Historia parkowania</string>
+    <string name="history_subtitle">%1$d wpisów</string>
+    <string name="history_cd_back">Wstecz</string>
+    <string name="history_empty_title">Brak historii parkowania</string>
+    <string name="history_empty_subtitle">Twoje wpisy pojawią się tutaj</string>
+    <string name="history_status_active">Aktywne</string>
+    <string name="history_status_finished">Zakończone</string>
+    <string name="history_active_section">Aktualnie zaparkowany</string>
+    <string name="history_active_since">Zaparkowany %1$s</string>
+    <string name="history_ended_section">Poprzednie parkowań</string>
+    <string name="history_precision">±%1$dm</string>
+    <string name="history_view_map">Pokaż na mapie</string>
+    <!-- Relative time -->
+    <string name="relative_time_just_now">przed chwilą</string>
+    <string name="relative_time_minutes">%1$d min temu</string>
+    <string name="relative_time_hours">%1$d godz. temu</string>
+    <string name="relative_time_day">%1$d dzień temu</string>
+    <string name="relative_time_days">%1$d dni temu</string>
+    <!-- Walk / drive time -->
+    <string name="walk_time_minutes">%1$d min pieszo</string>
+    <string name="drive_time_minutes">%1$d min samochodem</string>
+
+    <string name="history_stat_total">Łącznie</string>
+    <string name="history_stat_this_week">W tym tygodniu</string>
+    <string name="history_stat_this_month">W tym miesiącu</string>
+    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
+    <string name="history_month_1">Styczeń</string>
+    <string name="history_month_2">Luty</string>
+    <string name="history_month_3">Marzec</string>
+    <string name="history_month_4">Kwiecień</string>
+    <string name="history_month_5">Maj</string>
+    <string name="history_month_6">Czerwiec</string>
+    <string name="history_month_7">Lipiec</string>
+    <string name="history_month_8">Sierpień</string>
+    <string name="history_month_9">Wrzesień</string>
+    <string name="history_month_10">Październik</string>
+    <string name="history_month_11">Listopad</string>
+    <string name="history_month_12">Grudzień</string>
+
+    <!-- MapScreen -->
+    <string name="map_title">Mapa miejsc</string>
+    <string name="map_cd_back">Wstecz</string>
+    <string name="map_marker_my_car">Twój zaparkowany samochód</string>
+    <string name="map_marker_car_here">Samochód zaparkowany tutaj</string>
+    <string name="map_marker_free">Wolne miejsce</string>
+    <string name="map_marker_occupied">Zajęte miejsce</string>
+    <string name="map_marker_reported_by">Zgłoszone przez %1$s</string>
+    <string name="map_cd_midpoint">Punkt środkowy między mną a samochodem</string>
+    <string name="map_cd_go_to_car">Jedź do mojego zaparkowanego samochodu</string>
+    <string name="map_cd_my_location">Wyśrodkuj na mojej lokalizacji</string>
+
+    <!-- SettingsScreen -->
+    <string name="settings_title">Ustawienia</string>
+    <string name="settings_cd_back">Wstecz</string>
+    <string name="settings_section_detection">Wykrywanie</string>
+    <string name="settings_auto_detect">Automatyczne wykrywanie parkowania</string>
+    <string name="settings_auto_detect_desc">Automatycznie zapisz swoje miejsce parkingowe</string>
+    <string name="settings_section_notifications">Powiadomienia</string>
+    <string name="settings_notif_parking">Wykryto parkowanie</string>
+    <string name="settings_notif_parking_desc">Powiadomienie gdy miejsce parkingowe zostanie zapisane</string>
+    <string name="settings_notif_spot">Dostępne miejsce w pobliżu</string>
+    <string name="settings_notif_spot_desc">Powiadomienie gdy miejsce zwolni się w pobliżu</string>
+    <string name="settings_section_about">O aplikacji</string>
+    <string name="settings_version">Wersja</string>
+    <string name="settings_privacy">Polityka prywatności</string>
+    <string name="settings_licenses">Licencje open source</string>
+
+    <!-- Generic error messages -->
+    <string name="error_unknown">Coś poszło nie tak</string>
+    <string name="error_load_spots">Nie można załadować pobliskich miejsc</string>
+    <string name="error_load_session">Nie można załadować sesji parkowania</string>
+    <string name="error_load_history">Nie można załadować historii parkowania</string>
+    <string name="error_release_parking">Nie można zwolnić miejsca parkingowego</string>
+    <string name="error_gps_unavailable">Oczekiwanie na sygnał GPS…</string>
+    <string name="error_network_no_connection">Brak połączenia z internetem</string>
+    <string name="error_profile_sync">Nie można załadować profilu. Zaloguj się ponownie</string>
+
+    <!-- Address fallback -->
+    <string name="address_unknown">Nieznana lokalizacja</string>
+
+    <!-- Home success messages -->
+    <string name="home_spot_reported">Miejsce zgłoszone — przesyłanie…</string>
+    <string name="home_test_spot_sent">Testowe miejsce wysłane</string>
+
+</resources>
