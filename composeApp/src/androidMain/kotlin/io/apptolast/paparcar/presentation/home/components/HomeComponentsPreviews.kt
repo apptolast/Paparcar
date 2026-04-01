@@ -484,7 +484,9 @@ private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
             ),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState, spotScrollPositions = scrollPositions,
+            scrollState = scrollState,
+            spotScrollPositions = scrollPositions,
+            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -505,6 +507,7 @@ private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
+            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -526,6 +529,7 @@ private fun HomeSheetContentSpotsFirstDarkPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
+            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -546,6 +550,7 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
+            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -562,6 +567,7 @@ private fun HomeSheetContentEmptyDarkPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
+            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -577,6 +583,7 @@ private fun HomeSheetContentNoPermissionsLightPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
+            isRefreshing = false, onRefresh = {},
         )
     }
 }
