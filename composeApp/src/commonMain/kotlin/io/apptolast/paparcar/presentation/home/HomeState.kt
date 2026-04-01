@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
+import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.LocationInfo
 import io.apptolast.paparcar.domain.model.SearchResult
@@ -30,4 +31,5 @@ data class HomeState(
     val isSearchActive: Boolean = false,
     val isSearching: Boolean = false,
     val isRefreshing: Boolean = false,
+    val mapType: MapType = MapType.NORMAL,
 )

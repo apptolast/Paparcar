@@ -173,6 +173,7 @@
     <string name="home_fab_release_car">Mijn auto vrijgeven</string>
     <string name="home_fab_actions_expand">Acties openen</string>
     <string name="home_fab_actions_collapse">Acties sluiten</string>
+    <string name="home_cd_map_type">Kaarttype wisselen</string>
     <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
 
     <!-- GPS accuracy banner -->

@@ -173,6 +173,7 @@
     <string name="home_fab_release_car">Eliberează mașina mea</string>
     <string name="home_fab_actions_expand">Deschide acțiuni</string>
     <string name="home_fab_actions_collapse">Închide acțiuni</string>
+    <string name="home_cd_map_type">Schimbă tipul hărții</string>
     <string name="home_test_spot_sent">Loc de test trimis</string>
 
     <!-- GPS accuracy banner -->

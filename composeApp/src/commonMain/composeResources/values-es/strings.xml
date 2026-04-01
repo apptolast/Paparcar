@@ -178,6 +178,7 @@
     <string name="home_fab_release_car">Liberar mi coche</string>
     <string name="home_fab_actions_expand">Abrir acciones</string>
     <string name="home_fab_actions_collapse">Cerrar acciones</string>
+    <string name="home_cd_map_type">Cambiar tipo de mapa</string>
     <string name="home_test_spot_sent">Plaza de prueba enviada</string>
 
     <!-- Banner de precisión GPS -->

@@ -173,6 +173,7 @@
     <string name="home_fab_release_car">Zwolnij mój samochód</string>
     <string name="home_fab_actions_expand">Otwórz akcje</string>
     <string name="home_fab_actions_collapse">Zamknij akcje</string>
+    <string name="home_cd_map_type">Zmień typ mapy</string>
     <string name="home_test_spot_sent">Testowe miejsce wysłane</string>
 
     <!-- GPS accuracy banner -->

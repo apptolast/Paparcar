@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
+import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -114,6 +115,7 @@ class HomeViewModel(
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
             is HomeIntent.ReportManualSpot -> reportManualSpot(intent.lat, intent.lon)
             is HomeIntent.RefreshSpots -> refreshSpots()
+            is HomeIntent.CycleMapType -> cycleMapType()
         }
     }
 
@@ -132,6 +134,15 @@ class HomeViewModel(
             updateState { copy(selectedItemId = null) }
             sendEffect(HomeEffect.SpotReported)
         }
+    }
+
+    private fun cycleMapType() {
+        val next = when (state.value.mapType) {
+            MapType.NORMAL -> MapType.SATELLITE
+            MapType.SATELLITE -> MapType.TERRAIN
+            else -> MapType.NORMAL
+        }
+        updateState { copy(mapType = next) }
     }
 
     private fun refreshSpots() {

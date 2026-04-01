@@ -165,6 +165,7 @@
     <string name="home_fab_release_car">Release my car</string>
     <string name="home_fab_actions_expand">Open actions</string>
     <string name="home_fab_actions_collapse">Close actions</string>
+    <string name="home_cd_map_type">Switch map type</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

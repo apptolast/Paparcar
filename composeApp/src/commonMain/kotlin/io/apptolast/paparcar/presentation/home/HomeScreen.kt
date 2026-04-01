@@ -317,6 +317,7 @@ private fun HomeContent(
                 reportMode = !sheetExpanded,
                 isAnyItemSelected = state.selectedItemId != null,
                 isLoading = state.isLoading,
+                mapType = state.mapType,
                 onSpotClick = { spotId ->
                     state.nearbySpots.find { it.id == spotId }?.let { spot ->
                         onIntent(HomeIntent.SelectItem(spotId))
@@ -420,6 +421,7 @@ private fun HomeContent(
                             uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
                         }
                     },
+                    onLayersClick = { onIntent(HomeIntent.CycleMapType) },
                     onParkedCar = {
                         state.userParking?.let { p ->
                             onIntent(HomeIntent.SelectItem(PARKING_ITEM_ID))

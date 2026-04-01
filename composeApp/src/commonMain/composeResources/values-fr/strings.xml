@@ -173,6 +173,7 @@
     <string name="home_fab_release_car">Libérer mon véhicule</string>
     <string name="home_fab_actions_expand">Ouvrir les actions</string>
     <string name="home_fab_actions_collapse">Fermer les actions</string>
+    <string name="home_cd_map_type">Changer le type de carte</string>
     <string name="home_test_spot_sent">Place de test envoyée</string>
 
     <!-- GPS accuracy banner -->

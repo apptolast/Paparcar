@@ -58,6 +58,7 @@ import com.swmansion.kmpmaps.core.GoogleMapsMapStyleOptions
 import com.swmansion.kmpmaps.core.Map
 import com.swmansion.kmpmaps.core.MapProperties
 import com.swmansion.kmpmaps.core.MapTheme
+import com.swmansion.kmpmaps.core.MapType
 import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -139,6 +140,7 @@ fun PlatformMap(
     reportMode: Boolean = false,
     isAnyItemSelected: Boolean = false,
     isLoading: Boolean = false,
+    mapType: MapType = MapType.NORMAL,
 ) {
     // ── Clustering ───────────────────────────────────────────────────────────
     var currentZoom by remember { mutableStateOf(15f) }
@@ -277,6 +279,7 @@ fun PlatformMap(
                 isMyLocationEnabled = true,
                 isTrafficEnabled = false,
                 mapTheme = MapTheme.SYSTEM,
+                mapType = mapType,
                 androidMapProperties = AndroidMapProperties(
                     mapStyleOptions = if (isDark) GoogleMapsMapStyleOptions(DARK_MAP_STYLE) else null,
                 ),
