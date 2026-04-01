@@ -171,4 +171,7 @@
     <string name="home_spot_reported">Parkeerplaats gemeld — uploaden…</string>
     <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
 
+    <!-- GPS accuracy banner -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+
 </resources>

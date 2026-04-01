@@ -171,4 +171,7 @@
     <string name="home_spot_reported">Posto segnalato — in caricamento…</string>
     <string name="home_test_spot_sent">Posto di test inviato</string>
 
+    <!-- GPS accuracy banner -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+
 </resources>

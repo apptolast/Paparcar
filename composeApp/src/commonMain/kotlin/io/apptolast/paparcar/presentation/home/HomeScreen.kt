@@ -63,10 +63,11 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
-import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
+import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
+import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.components.HomeReportSpotFab
 import io.apptolast.paparcar.presentation.home.components.HomeSheetContent
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
@@ -338,32 +339,40 @@ private fun HomeContent(
                     .height(mapHeightDp),
             )
 
-            // ── Floating search bar + action pills ───────────────────────────
-            Row(
+            // ── Floating search bar + action pills + GPS accuracy banner ─────
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.Top,
             ) {
-                HomeSearchBar(
-                    query = state.searchQuery,
-                    results = state.searchResults,
-                    isActive = state.isSearchActive,
-                    isSearching = state.isSearching,
-                    onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
-                    onResultClick = { result ->
-                        uiController.moveCamera(result.lat, result.lon, zoom = 15f)
-                        onIntent(HomeIntent.SelectSearchResult(result))
-                    },
-                    onClear = { onIntent(HomeIntent.ClearSearch) },
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(8.dp))
-                HomeFloatingHeader(
-                    onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
-                    onSettingsClick = onNavigateToSettings,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    HomeSearchBar(
+                        query = state.searchQuery,
+                        results = state.searchResults,
+                        isActive = state.isSearchActive,
+                        isSearching = state.isSearching,
+                        onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                        onResultClick = { result ->
+                            uiController.moveCamera(result.lat, result.lon, zoom = 15f)
+                            onIntent(HomeIntent.SelectSearchResult(result))
+                        },
+                        onClear = { onIntent(HomeIntent.ClearSearch) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    HomeFloatingHeader(
+                        onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
+                        onSettingsClick = onNavigateToSettings,
+                    )
+                }
+                HomeGpsAccuracyBanner(
+                    accuracy = state.userGpsPoint?.accuracy,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
 

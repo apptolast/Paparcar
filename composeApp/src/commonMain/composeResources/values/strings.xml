@@ -160,6 +160,9 @@
     <string name="home_spot_reported">Spot reported — uploading…</string>
     <string name="home_test_spot_sent">Test spot sent</string>
 
+    <!-- GPS accuracy banner — shown when signal is weak -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+
     <!-- SettingsScreen -->
     <string name="settings_title">Settings</string>
     <string name="settings_cd_back">Back</string>
