@@ -113,6 +113,7 @@ class HomeViewModel(
             }
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
             is HomeIntent.ReportManualSpot -> reportManualSpot(intent.lat, intent.lon)
+            is HomeIntent.RefreshSpots -> refreshSpots()
         }
     }
 
@@ -130,6 +131,15 @@ class HomeViewModel(
             }
             updateState { copy(selectedItemId = null) }
             sendEffect(HomeEffect.SpotReported)
+        }
+    }
+
+    private fun refreshSpots() {
+        if (state.value.isRefreshing) return
+        viewModelScope.launch {
+            updateState { copy(isRefreshing = true) }
+            delay(REFRESH_DELAY_MS)
+            updateState { copy(isRefreshing = false) }
         }
     }
 
@@ -206,6 +216,7 @@ class HomeViewModel(
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
+        const val REFRESH_DELAY_MS = 1_500L
         const val DEBUG_USER_ID = "user-123"
         const val DEBUG_LATITUDE = 40.416775
         const val DEBUG_LONGITUDE = -3.703790

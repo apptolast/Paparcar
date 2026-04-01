@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +33,7 @@ import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_parked_section
 import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeSheetContent(
     state: HomeState,
@@ -41,60 +44,67 @@ internal fun HomeSheetContent(
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     scrollState: ScrollState,
     spotScrollPositions: MutableMap<String, Int>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
 ) {
     val selectedSpotId = state.selectedItemId?.takeIf { it != PARKING_ITEM_ID }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(scrollState)
-            .navigationBarsPadding()
-            .padding(top = 4.dp, bottom = 40.dp),
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
     ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .navigationBarsPadding()
+                .padding(top = 4.dp, bottom = 40.dp),
+        ) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
 
-        // ── Section order: spots are the primary goal when no car is parked.
-        // When the user has an active parking, show it first (it needs action to release).
-        // When there is no parking, show spots first so the user doesn't have to scroll past
-        // an empty/CTA card to reach actionable content.
-        if (state.userParking != null) {
-            ParkingSection(
-                state = state,
-                onParkingClick = onParkingClick,
-                onManualPark = onManualPark,
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-            )
-            SpotsSection(
-                state = state,
-                onIntent = onIntent,
-                onCameraMove = onCameraMove,
-                onSpotSelect = onSpotSelect,
-                selectedSpotId = selectedSpotId,
-                spotScrollPositions = spotScrollPositions,
-            )
-        } else {
-            SpotsSection(
-                state = state,
-                onIntent = onIntent,
-                onCameraMove = onCameraMove,
-                onSpotSelect = onSpotSelect,
-                selectedSpotId = selectedSpotId,
-                spotScrollPositions = spotScrollPositions,
-            )
-            // Only show the manual-park CTA after spots — the user needs the map first,
-            // and the CTA is a fallback action, not the primary one.
-            if (state.allPermissionsGranted) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(top = 8.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-                )
+            // ── Section order: spots are the primary goal when no car is parked.
+            // When the user has an active parking, show it first (it needs action to release).
+            // When there is no parking, show spots first so the user doesn't have to scroll past
+            // an empty/CTA card to reach actionable content.
+            if (state.userParking != null) {
                 ParkingSection(
                     state = state,
                     onParkingClick = onParkingClick,
                     onManualPark = onManualPark,
                 )
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+                )
+                SpotsSection(
+                    state = state,
+                    onIntent = onIntent,
+                    onCameraMove = onCameraMove,
+                    onSpotSelect = onSpotSelect,
+                    selectedSpotId = selectedSpotId,
+                    spotScrollPositions = spotScrollPositions,
+                )
+            } else {
+                SpotsSection(
+                    state = state,
+                    onIntent = onIntent,
+                    onCameraMove = onCameraMove,
+                    onSpotSelect = onSpotSelect,
+                    selectedSpotId = selectedSpotId,
+                    spotScrollPositions = spotScrollPositions,
+                )
+                // Only show the manual-park CTA after spots — the user needs the map first,
+                // and the CTA is a fallback action, not the primary one.
+                if (state.allPermissionsGranted) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 8.dp),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+                    )
+                    ParkingSection(
+                        state = state,
+                        onParkingClick = onParkingClick,
+                        onManualPark = onManualPark,
+                    )
+                }
             }
         }
     }

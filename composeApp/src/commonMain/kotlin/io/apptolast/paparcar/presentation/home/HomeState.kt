@@ -29,4 +29,5 @@ data class HomeState(
     val searchResults: List<SearchResult> = emptyList(),
     val isSearchActive: Boolean = false,
     val isSearching: Boolean = false,
+    val isRefreshing: Boolean = false,
 )

@@ -504,6 +504,8 @@ private fun HomeContent(
                         },
                         scrollState = scrollState,
                         spotScrollPositions = spotScrollPositions,
+                        isRefreshing = state.isRefreshing,
+                        onRefresh = { onIntent(HomeIntent.RefreshSpots) },
                     )
                 }
             }
