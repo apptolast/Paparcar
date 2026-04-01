@@ -62,13 +62,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.home.components.HomeActionFab
 import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
 import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
-import io.apptolast.paparcar.presentation.home.components.HomeReportSpotFab
 import io.apptolast.paparcar.presentation.home.components.HomeSheetContent
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
 import kotlinx.coroutines.launch
@@ -85,6 +85,7 @@ import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_release_dialog_confirm
 import paparcar.composeapp.generated.resources.home_release_dialog_message
 import paparcar.composeapp.generated.resources.home_release_dialog_title
+import paparcar.composeapp.generated.resources.home_manual_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_test_spot_sent
 import kotlin.math.abs
@@ -122,6 +123,7 @@ fun HomeScreen(
     val msgErrorReleaseParking = stringResource(Res.string.error_release_parking)
     val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
+    val msgManualSpotReported = stringResource(Res.string.home_manual_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
 
     LaunchedEffect(Unit) {
@@ -138,6 +140,7 @@ fun HomeScreen(
                     snackbarHostState.showSnackbar(msg)
                 }
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
+                HomeEffect.ManualSpotReported -> snackbarHostState.showSnackbar(msgManualSpotReported)
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.NavigateToMap -> onNavigateToMap()
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
@@ -376,27 +379,27 @@ private fun HomeContent(
                 )
             }
 
-            // ── Report Spot Extended FAB ─────────────────────────────────────
+            // ── Action speed-dial FAB ────────────────────────────────────────
             AnimatedVisibility(
-                visible = sheetOffsetPx.value >= halfOffsetPx && state.userParking != null,
+                visible = sheetOffsetPx.value >= halfOffsetPx,
                 enter = fadeIn() + slideInHorizontally { -it },
                 exit = fadeOut() + slideOutHorizontally { -it },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(start = 14.dp, bottom = fabBottomDp),
             ) {
-                HomeReportSpotFab(
-                    onClick = {
+                HomeActionFab(
+                    hasActiveParking = state.userParking != null,
+                    onReportManualSpot = {
                         val lat = uiController.cameraLat
-                            ?: state.userParking?.location?.latitude
                             ?: state.userGpsPoint?.latitude
-                            ?: return@HomeReportSpotFab
+                            ?: return@HomeActionFab
                         val lon = uiController.cameraLon
-                            ?: state.userParking?.location?.longitude
                             ?: state.userGpsPoint?.longitude
-                            ?: return@HomeReportSpotFab
-                        onIntent(HomeIntent.ReleaseParking(lat, lon))
+                            ?: return@HomeActionFab
+                        onIntent(HomeIntent.ReportManualSpot(lat, lon))
                     },
+                    onReleaseParking = { showReleaseDialog = true },
                 )
             }
 

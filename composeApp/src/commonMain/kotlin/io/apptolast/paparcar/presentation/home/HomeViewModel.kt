@@ -112,6 +112,7 @@ class HomeViewModel(
                 geocodeCameraLocation(intent.result.lat, intent.result.lon)
             }
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
+            is HomeIntent.ReportManualSpot -> reportManualSpot(intent.lat, intent.lon)
         }
     }
 
@@ -129,6 +130,15 @@ class HomeViewModel(
             }
             updateState { copy(selectedItemId = null) }
             sendEffect(HomeEffect.SpotReported)
+        }
+    }
+
+    private fun reportManualSpot(lat: Double, lon: Double) {
+        viewModelScope.launch {
+            val spotId = "manual_${Clock.System.now().toEpochMilliseconds()}"
+            // TODO [Phase 2]: Replace with ReportManualSpotUseCase (type = MANUAL, TTL = 15 min)
+            reportSpotReleased(lat, lon, spotId)
+            sendEffect(HomeEffect.ManualSpotReported)
         }
     }
 

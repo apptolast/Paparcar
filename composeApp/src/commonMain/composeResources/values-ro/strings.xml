@@ -169,6 +169,10 @@
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Loc raportat — se încarcă…</string>
+    <string name="home_manual_spot_reported">Loc raportat — mulțumim!</string>
+    <string name="home_fab_release_car">Eliberează mașina mea</string>
+    <string name="home_fab_actions_expand">Deschide acțiuni</string>
+    <string name="home_fab_actions_collapse">Închide acțiuni</string>
     <string name="home_test_spot_sent">Loc de test trimis</string>
 
     <!-- GPS accuracy banner -->

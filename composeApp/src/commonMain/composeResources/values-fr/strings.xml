@@ -169,6 +169,10 @@
 
     <!-- Messages de succès Home -->
     <string name="home_spot_reported">Place signalée — chargement…</string>
+    <string name="home_manual_spot_reported">Place signalée — merci !</string>
+    <string name="home_fab_release_car">Libérer mon véhicule</string>
+    <string name="home_fab_actions_expand">Ouvrir les actions</string>
+    <string name="home_fab_actions_collapse">Fermer les actions</string>
     <string name="home_test_spot_sent">Place de test envoyée</string>
 
     <!-- GPS accuracy banner -->
