@@ -179,4 +179,14 @@
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
+    <!-- Pestañas de navegación inferior -->
+    <string name="nav_tab_map">Mapa</string>
+    <string name="nav_tab_history">Historial</string>
+    <string name="nav_tab_my_car">Mi Coche</string>
+    <string name="nav_tab_settings">Ajustes</string>
+
+    <!-- Pantalla Mi Coche -->
+    <string name="my_car_title">Mi Coche</string>
+    <string name="my_car_placeholder_desc">La gestión de vehículos estará disponible en una próxima actualización.</string>
+
 </resources>

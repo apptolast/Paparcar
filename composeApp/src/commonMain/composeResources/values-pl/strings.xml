@@ -174,4 +174,14 @@
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
+    <!-- Dolna nawigacja -->
+    <string name="nav_tab_map">Mapa</string>
+    <string name="nav_tab_history">Historia</string>
+    <string name="nav_tab_my_car">Mój Samochód</string>
+    <string name="nav_tab_settings">Ustawienia</string>
+
+    <!-- Ekran Mój Samochód -->
+    <string name="my_car_title">Mój Samochód</string>
+    <string name="my_car_placeholder_desc">Zarządzanie pojazdami będzie dostępne w przyszłej aktualizacji.</string>
+
 </resources>
