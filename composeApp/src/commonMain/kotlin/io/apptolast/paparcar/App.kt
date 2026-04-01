@@ -8,8 +8,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.History
@@ -19,6 +19,7 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Icon
@@ -173,6 +174,7 @@ private fun MainAppNavigation(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0),
         bottomBar = {
             AnimatedVisibility(
                 visible = currentRoute in BOTTOM_NAV_ROUTES,
@@ -185,11 +187,11 @@ private fun MainAppNavigation(
                 )
             }
         },
-    ) { paddingValues ->
+    ) { _ ->
         NavHost(
             navController = navController,
             startDestination = startRoute,
-            modifier = Modifier.padding(paddingValues),
+            modifier = Modifier.fillMaxSize(),
         ) {
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(
@@ -295,7 +297,7 @@ private fun PaparcarBottomNav(
         ),
     )
 
-    NavigationBar {
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
         items.forEach { item ->
             val selected = currentRoute == item.route
             val label = item.labelRes()
