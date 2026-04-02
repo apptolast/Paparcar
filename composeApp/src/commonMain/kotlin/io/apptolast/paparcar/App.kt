@@ -74,7 +74,6 @@ internal object Routes {
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
-    Routes.HOME,
     Routes.HISTORY,
     Routes.MY_CAR,
     Routes.SETTINGS,
@@ -216,6 +215,7 @@ private fun MainAppNavigation(
                 HomeScreen(
                     onNavigateToMap = { navController.navigate(Routes.MAP) },
                     onNavigateToHistory = { navController.navigateToTab(Routes.HISTORY) },
+                    onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
                     onNavigateToSettings = { navController.navigateToTab(Routes.SETTINGS) },
                     onOpenMapsNavigation = onOpenMapsNavigation,
                 )

@@ -79,7 +79,7 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 private fun HomeFloatingHeaderDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {})
+            HomeFloatingHeader(onHistoryClick = {}, onMyCarClick = {}, onSettingsClick = {})
         }
     }
 }
@@ -89,7 +89,7 @@ private fun HomeFloatingHeaderDarkPreview() {
 private fun HomeFloatingHeaderLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {})
+            HomeFloatingHeader(onHistoryClick = {}, onMyCarClick = {}, onSettingsClick = {})
         }
     }
 }
@@ -486,7 +486,6 @@ private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState,
             spotScrollPositions = scrollPositions,
-            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -507,7 +506,6 @@ private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
-            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -529,7 +527,6 @@ private fun HomeSheetContentSpotsFirstDarkPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
-            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -550,7 +547,6 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
-            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -567,7 +563,6 @@ private fun HomeSheetContentEmptyDarkPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
-            isRefreshing = false, onRefresh = {},
         )
     }
 }
@@ -583,7 +578,6 @@ private fun HomeSheetContentNoPermissionsLightPreview() {
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
-            isRefreshing = false, onRefresh = {},
         )
     }
 }

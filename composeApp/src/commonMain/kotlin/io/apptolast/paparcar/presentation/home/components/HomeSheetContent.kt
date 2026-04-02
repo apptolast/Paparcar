@@ -10,12 +10,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +31,6 @@ import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_parked_section
 import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HomeSheetContent(
     state: HomeState,
@@ -44,21 +41,15 @@ internal fun HomeSheetContent(
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     scrollState: ScrollState,
     spotScrollPositions: MutableMap<String, Int>,
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit,
 ) {
     val selectedSpotId = state.selectedItemId?.takeIf { it != PARKING_ITEM_ID }
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(scrollState)
+            .navigationBarsPadding()
+            .padding(top = 4.dp, bottom = 40.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-                .navigationBarsPadding()
-                .padding(top = 4.dp, bottom = 40.dp),
-        ) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
 
             // ── Section order: spots are the primary goal when no car is parked.
@@ -107,7 +98,6 @@ internal fun HomeSheetContent(
                 }
             }
         }
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Eko-kierowca</string>
     <string name="home_nav_history">Historia</string>
+    <string name="home_nav_my_car">Mój samochód</string>
     <string name="home_nav_settings">Ustawienia</string>
     <string name="home_parking_row_label">Twój pojazd</string>
     <string name="home_fab_report_spot">Zgłoś miejsce</string>
