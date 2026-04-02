@@ -95,37 +95,46 @@ Completar la pantalla principal como experiencia core de la app.
 
 ### Nomenclatura de tareas
 
-| ID | Tarea | Tipo | Prioridad |
-|----|-------|------|-----------|
-| `HOME-001` | Definir layout Home: Mapa + BottomSheet + Header flotante | UI | Alta |
-| `HOME-002` | Implementar BottomSheet con lista de spots cercanos (`HomeSpotRows`) | UI | Alta |
-| `HOME-003` | Vehicle Card component: modelo, matrícula, estado (aparcado/circulando) | UI | Alta |
-| `HOME-004` | FAB Menu: acciones manuales (reportar plaza / liberar vehículo) | UI | Alta |
-| `HOME-005` | Map markers: diseño custom, clusters para densidad alta | UI | Media |
-| `HOME-006` | Map type switcher (normal / terrain / satellite) | UI | Baja |
-| `HOME-007` | Navegación principal: BottomNav vs Drawer — decisión e implementación | UI/UX | Alta |
-| `HOME-008` | Search bar con geocoding (`SearchAddressUseCase`) | Feature | Media |
-| `HOME-009` | Banner informativo GPS accuracy | UX | Media |
-| `HOME-010` | Pull-to-refresh spots cercanos | Feature | Baja |
+| ID | Tarea | Estado | Tipo | Prioridad |
+|----|-------|--------|------|-----------|
+| `HOME-001` | Definir layout Home: Mapa + BottomSheet + Header flotante | ✅ Done | UI | Alta |
+| `HOME-002` | Implementar BottomSheet con lista de spots cercanos (`HomeSpotRows`) | ✅ Done | UI | Alta |
+| `HOME-003` | Vehicle Card component: modelo, matrícula, estado (aparcado/circulando) | ✅ Done | UI | Alta |
+| `HOME-004` | FAB Menu: acciones manuales (reportar plaza / liberar vehículo) | ✅ Done | UI | Alta |
+| `HOME-005` | Map markers: diseño custom, clusters para densidad alta | ✅ Done | UI | Media |
+| `HOME-006` | Map type switcher (normal / terrain / satellite) | ✅ Done | UI | Baja |
+| `HOME-007` | Navegación principal: Pattern A (no BottomNav en Home, nav via FloatingHeader) | ✅ Done | UI/UX | Alta |
+| `HOME-008` | Search bar con geocoding (`SearchAddressUseCase`) | ✅ Done | Feature | Media |
+| `HOME-009` | Banner informativo GPS accuracy | ✅ Done | UX | Media |
+| `HOME-010` | ~~Pull-to-refresh spots cercanos~~ | ❌ Cancelled | Feature | — |
+| `HOME-011` | FAB unification: SpeedDial → right column, MapCircleFab visual language | ✅ Done | Refactor | Alta |
+| `HOME-012` | FloatingHeader: añadir acceso a MyCar (DirectionsCar icon) | ✅ Done | UI | Alta |
+| `HOME-013` | Implementar pantalla MyCar (estado vehículo, selector) | ⏳ Pending | UI | Alta |
+| `HOME-014` | Implementar pantalla History (lista de sesiones pasadas) | ⏳ Pending | UI | Media |
 
-### Decisión de navegación: BottomNavigation (recomendado)
+### Decisión de navegación: Pattern A (Google Maps style) — IMPLEMENTADO
 
-**Mi recomendación: BottomNavigationBar con 3-4 destinos.**
+**Decisión final: HomeScreen sin BottomNav; navegación secundaria via HomeFloatingHeader.**
 
 Razones:
-- La app tiene pocas pantallas principales (Home/Map, History, Settings)
-- BottomNav es el patrón más natural en apps de mapas/localización (Google Maps, Waze, Uber)
-- Es más descubrible que un Drawer para funciones clave
-- En Compose Multiplatform funciona bien con `NavigationBar`
+- Firebase Firestore Flows actualizan los spots en tiempo real → pull-to-refresh no aporta valor
+- HomeScreen tiene `navigationBarsPadding()` en el peek handle; una BottomNav encima crea conflictos de insets
+- El mapa debe ser full-screen para maximizar la superficie visual (Google Maps, Waze)
+- El FloatingHeader (☰ → Historia | Mi Coche | Ajustes) permite acceso completo a todas las secciones desde la pantalla principal
 
 ```
-BottomNav destinos:
-┌──────────┬──────────┬──────────┬──────────┐
-│  🗺 Mapa  │ 🕐 Historial │ 🚗 Mi Coche │ ⚙ Ajustes │
-└──────────┴──────────┴──────────┴──────────┘
+Estructura de navegación:
+HomeScreen (sin BottomNav) — acceso via FloatingHeader ☰
+  ├─ Historia    (navega a HistoryScreen con BottomNav)
+  ├─ Mi Coche   (navega a MyCarScreen con BottomNav)
+  └─ Ajustes    (navega a SettingsScreen con BottomNav)
+
+BottomNav solo aparece en: Historia | Mi Coche | Ajustes
 ```
 
-La pestaña **"Mi Coche"** es una adición que sugiero: centraliza el estado del vehículo activo, permite cambiar entre coches si hay más de uno, y da acceso rápido a la configuración Bluetooth. Esto evita sobrecargar el Home.
+Alternativas descartadas (ver previews en `HomeComponentsPreviewsProposals.kt`):
+- **Pattern B**: BottomNav siempre visible → pierde 56dp de mapa, conflicto de insets con el sheet
+- **Pattern C**: BottomNav se oculta al expandir el sheet → más compleja, parpadeo en el umbral
 
 ### Flujo FAB — Acciones Manuales
 
