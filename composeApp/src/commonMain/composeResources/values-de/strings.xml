@@ -209,4 +209,34 @@
     <string name="my_car_title">Mein Auto</string>
     <string name="my_car_placeholder_desc">Die Fahrzeugverwaltung wird in einem zukünftigen Update verfügbar sein.</string>
 
+    <string name="my_car_no_vehicle">Noch kein Fahrzeug registriert</string>
+    <string name="my_car_add_vehicle">Fahrzeug hinzufügen</string>
+    <string name="my_car_active_vehicle">Aktives Fahrzeug</string>
+    <string name="my_car_set_active">Als aktiv festlegen</string>
+
+    <!-- Fahrzeugregistrierung -->
+    <string name="vehicle_registration_title">Fahrzeug registrieren</string>
+    <string name="vehicle_registration_save">Speichern</string>
+    <string name="vehicle_registration_brand_hint">Marke (optional)</string>
+    <string name="vehicle_registration_model_hint">Modell (optional)</string>
+    <string name="vehicle_show_on_spot">Marke und Modell auf freien Parkplätzen anzeigen</string>
+    <string name="vehicle_show_on_spot_desc">Andere Nutzer sehen den Fahrzeugtyp, der den Parkplatz freigegeben hat</string>
+    <string name="vehicle_size_label">Fahrzeuggröße</string>
+    <string name="vehicle_size_moto">Motorrad</string>
+    <string name="vehicle_size_moto_examples">z.B. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Klein</string>
+    <string name="vehicle_size_small_examples">z.B. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Mittelklasse</string>
+    <string name="vehicle_size_medium_examples">z.B. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Groß</string>
+    <string name="vehicle_size_large_examples">z.B. BMW 5er, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Transporter / SUV</string>
+    <string name="vehicle_size_van_examples">z.B. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Berechtigungs-Erklärungs-Bildschirm -->
+    <string name="perm_rationale_title">So funktioniert Paparcar</string>
+    <string name="perm_rationale_body">Paparcar erkennt, wenn Sie Ihren Parkplatz verlassen, und teilt ihn automatisch mit nahegelegenen Fahrern — genauso wie Sie davon profitieren würden, wenn jemand anderes das tut.\n\nDafür benötigen wir Zugriff auf Ihren Standort und Bewegungssensoren. Ihr genauer Standort wird niemals mit anderen Nutzern geteilt.</string>
+    <string name="perm_rationale_cta">Verstanden, Berechtigungen aktivieren</string>
+    <string name="perm_rationale_skip">Jetzt nicht</string>
+
 </resources>

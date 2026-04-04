@@ -209,4 +209,34 @@
     <string name="my_car_title">Mon Véhicule</string>
     <string name="my_car_placeholder_desc">La gestion des véhicules sera disponible dans une prochaine mise à jour.</string>
 
+    <string name="my_car_no_vehicle">Aucun véhicule enregistré</string>
+    <string name="my_car_add_vehicle">Ajouter un véhicule</string>
+    <string name="my_car_active_vehicle">Véhicule actif</string>
+    <string name="my_car_set_active">Définir comme actif</string>
+
+    <!-- Enregistrement de véhicule -->
+    <string name="vehicle_registration_title">Enregistrer votre véhicule</string>
+    <string name="vehicle_registration_save">Enregistrer</string>
+    <string name="vehicle_registration_brand_hint">Marque (optionnel)</string>
+    <string name="vehicle_registration_model_hint">Modèle (optionnel)</string>
+    <string name="vehicle_show_on_spot">Afficher la marque et le modèle sur les places libres</string>
+    <string name="vehicle_show_on_spot_desc">Les autres utilisateurs verront le type de véhicule qui a libéré la place</string>
+    <string name="vehicle_size_label">Taille du véhicule</string>
+    <string name="vehicle_size_moto">Moto</string>
+    <string name="vehicle_size_moto_examples">ex. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Petite</string>
+    <string name="vehicle_size_small_examples">ex. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Moyenne</string>
+    <string name="vehicle_size_medium_examples">ex. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Grande</string>
+    <string name="vehicle_size_large_examples">ex. BMW Série 5, Mercedes Classe E, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Fourgon / SUV</string>
+    <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Écran de justification des autorisations -->
+    <string name="perm_rationale_title">Comment fonctionne Paparcar</string>
+    <string name="perm_rationale_body">Paparcar détecte quand vous quittez votre place et la partage automatiquement avec les conducteurs proches — comme vous en bénéficieriez si quelqu\'un d\'autre le faisait.\n\nPour fonctionner, nous avons besoin d\'accès à votre position et à vos capteurs de mouvement. Votre position exacte n\'est jamais partagée avec d\'autres utilisateurs.</string>
+    <string name="perm_rationale_cta">Compris, activer les autorisations</string>
+    <string name="perm_rationale_skip">Pas maintenant</string>
+
 </resources>

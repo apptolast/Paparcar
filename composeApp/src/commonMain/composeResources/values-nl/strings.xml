@@ -209,4 +209,34 @@
     <string name="my_car_title">Mijn Auto</string>
     <string name="my_car_placeholder_desc">Voertuigbeheer is beschikbaar in een toekomstige update.</string>
 
+    <string name="my_car_no_vehicle">Nog geen voertuig geregistreerd</string>
+    <string name="my_car_add_vehicle">Voertuig toevoegen</string>
+    <string name="my_car_active_vehicle">Actief voertuig</string>
+    <string name="my_car_set_active">Instellen als actief</string>
+
+    <!-- Voertuigregistratie -->
+    <string name="vehicle_registration_title">Voertuig registreren</string>
+    <string name="vehicle_registration_save">Opslaan</string>
+    <string name="vehicle_registration_brand_hint">Merk (optioneel)</string>
+    <string name="vehicle_registration_model_hint">Model (optioneel)</string>
+    <string name="vehicle_show_on_spot">Merk en model tonen op vrije parkeerplaatsen</string>
+    <string name="vehicle_show_on_spot_desc">Andere gebruikers zien het voertuigtype dat de parkeerplaats heeft vrijgemaakt</string>
+    <string name="vehicle_size_label">Voertuiggrootte</string>
+    <string name="vehicle_size_moto">Motor</string>
+    <string name="vehicle_size_moto_examples">bijv. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Klein</string>
+    <string name="vehicle_size_small_examples">bijv. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Middelgroot</string>
+    <string name="vehicle_size_medium_examples">bijv. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Groot</string>
+    <string name="vehicle_size_large_examples">bijv. BMW 5 Serie, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Bestelbus / SUV</string>
+    <string name="vehicle_size_van_examples">bijv. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Machtigingen uitleg scherm -->
+    <string name="perm_rationale_title">Hoe Paparcar werkt</string>
+    <string name="perm_rationale_body">Paparcar detecteert wanneer je je parkeerplaats verlaat en deelt deze automatisch met nabijgelegen bestuurders — net zoals jij hiervan zou profiteren als iemand anders hetzelfde doet.\n\nHiervoor hebben we toegang nodig tot je locatie en bewegingssensoren. Je exacte locatie wordt nooit gedeeld met andere gebruikers.</string>
+    <string name="perm_rationale_cta">Begrepen, machtigingen inschakelen</string>
+    <string name="perm_rationale_skip">Nu niet</string>
+
 </resources>

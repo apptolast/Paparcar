@@ -214,4 +214,34 @@
     <string name="my_car_title">Mi Coche</string>
     <string name="my_car_placeholder_desc">La gestión de vehículos estará disponible en una próxima actualización.</string>
 
+    <string name="my_car_no_vehicle">Aún no hay ningún vehículo registrado</string>
+    <string name="my_car_add_vehicle">Añadir vehículo</string>
+    <string name="my_car_active_vehicle">Vehículo activo</string>
+    <string name="my_car_set_active">Establecer como activo</string>
+
+    <!-- Registro de vehículo -->
+    <string name="vehicle_registration_title">Registrar tu vehículo</string>
+    <string name="vehicle_registration_save">Guardar</string>
+    <string name="vehicle_registration_brand_hint">Marca (opcional)</string>
+    <string name="vehicle_registration_model_hint">Modelo (opcional)</string>
+    <string name="vehicle_show_on_spot">Mostrar marca y modelo en plazas libres</string>
+    <string name="vehicle_show_on_spot_desc">Otros usuarios verán el tipo de vehículo que liberó la plaza</string>
+    <string name="vehicle_size_label">Tamaño del vehículo</string>
+    <string name="vehicle_size_moto">Moto</string>
+    <string name="vehicle_size_moto_examples">ej. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Pequeño</string>
+    <string name="vehicle_size_small_examples">ej. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Mediano</string>
+    <string name="vehicle_size_medium_examples">ej. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Grande</string>
+    <string name="vehicle_size_large_examples">ej. BMW Serie 5, Mercedes Clase E, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Furgoneta / SUV</string>
+    <string name="vehicle_size_van_examples">ej. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Pantalla de rationale de permisos -->
+    <string name="perm_rationale_title">Cómo funciona Paparcar</string>
+    <string name="perm_rationale_body">Paparcar detecta cuando abandonas tu plaza y la comparte automáticamente con conductores cercanos — del mismo modo que tú te beneficiarías si otra persona hiciera lo mismo.\n\nPara funcionar necesitamos acceso a tu ubicación y sensores de movimiento. Tu ubicación exacta nunca se comparte con otros usuarios.</string>
+    <string name="perm_rationale_cta">Entendido, activar permisos</string>
+    <string name="perm_rationale_skip">Ahora no</string>
+
 </resources>

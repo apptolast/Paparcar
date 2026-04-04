@@ -209,4 +209,34 @@
     <string name="my_car_title">Mașina Mea</string>
     <string name="my_car_placeholder_desc">Gestionarea vehiculelor va fi disponibilă într-o actualizare viitoare.</string>
 
+    <string name="my_car_no_vehicle">Niciun vehicul înregistrat</string>
+    <string name="my_car_add_vehicle">Adaugă vehicul</string>
+    <string name="my_car_active_vehicle">Vehicul activ</string>
+    <string name="my_car_set_active">Setează ca activ</string>
+
+    <!-- Înregistrare vehicul -->
+    <string name="vehicle_registration_title">Înregistrează-ți vehiculul</string>
+    <string name="vehicle_registration_save">Salvează</string>
+    <string name="vehicle_registration_brand_hint">Marcă (opțional)</string>
+    <string name="vehicle_registration_model_hint">Model (opțional)</string>
+    <string name="vehicle_show_on_spot">Afișează marca și modelul pe locurile libere</string>
+    <string name="vehicle_show_on_spot_desc">Alți utilizatori vor vedea tipul vehiculului care a eliberat locul</string>
+    <string name="vehicle_size_label">Mărimea vehiculului</string>
+    <string name="vehicle_size_moto">Motocicletă</string>
+    <string name="vehicle_size_moto_examples">ex. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Mic</string>
+    <string name="vehicle_size_small_examples">ex. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Mediu</string>
+    <string name="vehicle_size_medium_examples">ex. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Mare</string>
+    <string name="vehicle_size_large_examples">ex. BMW Seria 5, Mercedes Clasa E, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Dubă / SUV</string>
+    <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Ecranul de justificare a permisiunilor -->
+    <string name="perm_rationale_title">Cum funcționează Paparcar</string>
+    <string name="perm_rationale_body">Paparcar detectează când pleci de pe locul tău de parcare și îl distribuie automat șoferilor din apropiere — la fel cum ai beneficia dacă altcineva ar face asta.\n\nPentru a funcționa, avem nevoie de acces la locația ta și la senzorii de mișcare. Locația ta exactă nu este niciodată partajată cu alți utilizatori.</string>
+    <string name="perm_rationale_cta">Înțeles, activează permisiunile</string>
+    <string name="perm_rationale_skip">Nu acum</string>
+
 </resources>

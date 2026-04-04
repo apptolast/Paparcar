@@ -217,5 +217,34 @@
     <!-- My Car screen -->
     <string name="my_car_title">My Car</string>
     <string name="my_car_placeholder_desc">Vehicle management is coming in a future update.</string>
+    <string name="my_car_no_vehicle">No vehicle registered yet</string>
+    <string name="my_car_add_vehicle">Add vehicle</string>
+    <string name="my_car_active_vehicle">Active vehicle</string>
+    <string name="my_car_set_active">Set as active</string>
+
+    <!-- Vehicle Registration screen -->
+    <string name="vehicle_registration_title">Register your vehicle</string>
+    <string name="vehicle_registration_save">Save</string>
+    <string name="vehicle_registration_brand_hint">Brand (optional)</string>
+    <string name="vehicle_registration_model_hint">Model (optional)</string>
+    <string name="vehicle_show_on_spot">Show brand and model on free spots</string>
+    <string name="vehicle_show_on_spot_desc">Other users will see the vehicle type that freed the spot</string>
+    <string name="vehicle_size_label">Vehicle size</string>
+    <string name="vehicle_size_moto">Motorbike</string>
+    <string name="vehicle_size_moto_examples">e.g. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Small</string>
+    <string name="vehicle_size_small_examples">e.g. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Medium</string>
+    <string name="vehicle_size_medium_examples">e.g. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Large</string>
+    <string name="vehicle_size_large_examples">e.g. BMW 5 Series, Mercedes E-Class, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Van / SUV</string>
+    <string name="vehicle_size_van_examples">e.g. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Permissions Rationale screen -->
+    <string name="perm_rationale_title">How Paparcar works</string>
+    <string name="perm_rationale_body">Paparcar detects when you leave your parking spot and automatically shares it with nearby drivers — the same way you\'d benefit when someone else does it for you.\n\nFor this to work, we need access to your location and motion sensors. Your exact location is never shared with other users.</string>
+    <string name="perm_rationale_cta">Got it, enable permissions</string>
+    <string name="perm_rationale_skip">Not now</string>
 
 </resources>

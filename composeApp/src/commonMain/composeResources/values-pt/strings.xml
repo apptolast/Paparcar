@@ -209,4 +209,34 @@
     <string name="my_car_title">Meu Carro</string>
     <string name="my_car_placeholder_desc">A gestão de veículos estará disponível numa futura atualização.</string>
 
+    <string name="my_car_no_vehicle">Nenhum veículo registado ainda</string>
+    <string name="my_car_add_vehicle">Adicionar veículo</string>
+    <string name="my_car_active_vehicle">Veículo ativo</string>
+    <string name="my_car_set_active">Definir como ativo</string>
+
+    <!-- Registo de veículo -->
+    <string name="vehicle_registration_title">Registar o seu veículo</string>
+    <string name="vehicle_registration_save">Guardar</string>
+    <string name="vehicle_registration_brand_hint">Marca (opcional)</string>
+    <string name="vehicle_registration_model_hint">Modelo (opcional)</string>
+    <string name="vehicle_show_on_spot">Mostrar marca e modelo em vagas livres</string>
+    <string name="vehicle_show_on_spot_desc">Outros utilizadores verão o tipo de veículo que libertou o lugar</string>
+    <string name="vehicle_size_label">Tamanho do veículo</string>
+    <string name="vehicle_size_moto">Moto</string>
+    <string name="vehicle_size_moto_examples">ex. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Pequeno</string>
+    <string name="vehicle_size_small_examples">ex. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Médio</string>
+    <string name="vehicle_size_medium_examples">ex. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Grande</string>
+    <string name="vehicle_size_large_examples">ex. BMW Série 5, Mercedes Classe E, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Carrinha / SUV</string>
+    <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Ecrã de fundamento de permissões -->
+    <string name="perm_rationale_title">Como funciona o Paparcar</string>
+    <string name="perm_rationale_body">O Paparcar deteta quando sais do teu lugar de estacionamento e partilha-o automaticamente com condutores próximos — da mesma forma que beneficiarias se outra pessoa o fizesse.\n\nPara funcionar, precisamos de acesso à tua localização e sensores de movimento. A tua localização exata nunca é partilhada com outros utilizadores.</string>
+    <string name="perm_rationale_cta">Entendi, ativar permissões</string>
+    <string name="perm_rationale_skip">Agora não</string>
+
 </resources>
