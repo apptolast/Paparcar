@@ -6,6 +6,9 @@ import androidx.core.content.edit
 
 private const val PREFS_NAME = "paparcar_prefs"
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
+private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
+private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 
 class AndroidAppPreferences(context: Context) : AppPreferences {
 
@@ -16,5 +19,26 @@ class AndroidAppPreferences(context: Context) : AppPreferences {
 
     override fun setOnboardingCompleted() {
         prefs.edit { putBoolean(KEY_ONBOARDING_COMPLETED, true) }
+    }
+
+    override val autoDetectParking: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_DETECT_PARKING, true)
+
+    override fun setAutoDetectParking(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_AUTO_DETECT_PARKING, enabled) }
+    }
+
+    override val notifyParkingDetected: Boolean
+        get() = prefs.getBoolean(KEY_NOTIFY_PARKING_DETECTED, true)
+
+    override fun setNotifyParkingDetected(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_NOTIFY_PARKING_DETECTED, enabled) }
+    }
+
+    override val notifySpotFreed: Boolean
+        get() = prefs.getBoolean(KEY_NOTIFY_SPOT_FREED, true)
+
+    override fun setNotifySpotFreed(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_NOTIFY_SPOT_FREED, enabled) }
     }
 }
