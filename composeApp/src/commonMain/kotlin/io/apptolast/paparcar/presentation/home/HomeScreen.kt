@@ -105,7 +105,6 @@ private const val SNAP_THRESHOLD_PX = 120f
 
 @Composable
 fun HomeScreen(
-    onNavigateToMap: () -> Unit = {},
     onNavigateToHistory: () -> Unit = {},
     onNavigateToMyCar: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -141,7 +140,6 @@ fun HomeScreen(
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
                 HomeEffect.ManualSpotReported -> snackbarHostState.showSnackbar(msgManualSpotReported)
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
-                HomeEffect.NavigateToMap -> onNavigateToMap()
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
                 HomeEffect.RequestLocationPermission -> {}
             }

@@ -12,17 +12,17 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class MapViewModel(
+class ParkingLocationViewModel(
     private val locationDataSource: LocationDataSource,
     observeNearbySpots: ObserveNearbySpotsUseCase,
     private val userParkingRepository: UserParkingRepository,
-) : BaseViewModel<MapState, MapIntent, MapEffect>() {
+) : BaseViewModel<ParkingLocationState, ParkingLocationIntent, ParkingLocationEffect>() {
 
     init {
         userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
-                sendEffect(MapEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                sendEffect(ParkingLocationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
 
@@ -33,16 +33,16 @@ class MapViewModel(
             .catch { e ->
                 // GPS / location chain error
                 updateState { copy(isLoading = false) }
-                sendEffect(MapEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: "")))
+                sendEffect(ParkingLocationEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
     }
 
-    override fun initState(): MapState = MapState()
+    override fun initState(): ParkingLocationState = ParkingLocationState()
 
-    override fun handleIntent(intent: MapIntent) {
+    override fun handleIntent(intent: ParkingLocationIntent) {
         when (intent) {
-            is MapIntent.OnSpotSelected -> sendEffect(MapEffect.NavigateToSpotDetails(intent.spotId))
+            is ParkingLocationIntent.OnSpotSelected -> sendEffect(ParkingLocationEffect.NavigateToSpotDetails(intent.spotId))
         }
     }
 }

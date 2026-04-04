@@ -11,7 +11,6 @@ sealed class HomeEffect {
     data object SpotReported : HomeEffect()
     data object ManualSpotReported : HomeEffect()
     data object TestSpotSent : HomeEffect()
-    data object NavigateToMap : HomeEffect()
     data object NavigateToHistory : HomeEffect()
     data object RequestLocationPermission : HomeEffect()
 }
