@@ -50,54 +50,54 @@ internal fun HomeSheetContent(
             .navigationBarsPadding()
             .padding(top = 4.dp, bottom = 40.dp),
     ) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
 
-        // ── Section order: spots are the primary goal when no car is parked.
-        // When the user has an active parking, show it first (it needs action to release).
-        // When there is no parking, show spots first so the user doesn't have to scroll past
-        // an empty/CTA card to reach actionable content.
-        if (state.userParking != null) {
-            ParkingSection(
-                state = state,
-                onParkingClick = onParkingClick,
-                onManualPark = onManualPark,
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-            )
-            SpotsSection(
-                state = state,
-                onIntent = onIntent,
-                onCameraMove = onCameraMove,
-                onSpotSelect = onSpotSelect,
-                selectedSpotId = selectedSpotId,
-                spotScrollPositions = spotScrollPositions,
-            )
-        } else {
-            SpotsSection(
-                state = state,
-                onIntent = onIntent,
-                onCameraMove = onCameraMove,
-                onSpotSelect = onSpotSelect,
-                selectedSpotId = selectedSpotId,
-                spotScrollPositions = spotScrollPositions,
-            )
-            // Only show the manual-park CTA after spots — the user needs the map first,
-            // and the CTA is a fallback action, not the primary one.
-            if (state.allPermissionsGranted) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(top = 8.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-                )
+            // ── Section order: spots are the primary goal when no car is parked.
+            // When the user has an active parking, show it first (it needs action to release).
+            // When there is no parking, show spots first so the user doesn't have to scroll past
+            // an empty/CTA card to reach actionable content.
+            if (state.userParking != null) {
                 ParkingSection(
                     state = state,
                     onParkingClick = onParkingClick,
                     onManualPark = onManualPark,
                 )
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+                )
+                SpotsSection(
+                    state = state,
+                    onIntent = onIntent,
+                    onCameraMove = onCameraMove,
+                    onSpotSelect = onSpotSelect,
+                    selectedSpotId = selectedSpotId,
+                    spotScrollPositions = spotScrollPositions,
+                )
+            } else {
+                SpotsSection(
+                    state = state,
+                    onIntent = onIntent,
+                    onCameraMove = onCameraMove,
+                    onSpotSelect = onSpotSelect,
+                    selectedSpotId = selectedSpotId,
+                    spotScrollPositions = spotScrollPositions,
+                )
+                // Only show the manual-park CTA after spots — the user needs the map first,
+                // and the CTA is a fallback action, not the primary one.
+                if (state.allPermissionsGranted) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 8.dp),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+                    )
+                    ParkingSection(
+                        state = state,
+                        onParkingClick = onParkingClick,
+                        onManualPark = onManualPark,
+                    )
+                }
             }
         }
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

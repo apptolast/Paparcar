@@ -58,6 +58,7 @@ import com.swmansion.kmpmaps.core.GoogleMapsMapStyleOptions
 import com.swmansion.kmpmaps.core.Map
 import com.swmansion.kmpmaps.core.MapProperties
 import com.swmansion.kmpmaps.core.MapTheme
+import com.swmansion.kmpmaps.core.MapType
 import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -73,7 +74,58 @@ import kotlin.math.abs
 private const val MARKER_MY_CAR = "my_car"
 private const val MARKER_FREE_SPOT = "free_spot"
 private const val MARKER_FREE_SPOT_SELECTED = "free_spot_selected"
+private const val MARKER_CLUSTER = "cluster"
 private const val CAMERA_MOVING_DEBOUNCE_MS = 280L
+
+// ── Clustering ───────────────────────────────────────────────────────────────
+/** Zoom level at or above which spots are rendered as individual markers (no clustering). */
+private const val ZOOM_CLUSTER_DISABLE = 14f
+
+private data class SpotCluster(val lat: Double, val lon: Double, val spots: List<Spot>)
+
+/** Degree threshold used to group nearby spots at a given zoom level. */
+private fun clusterThresholdDeg(zoom: Float): Double = when {
+    zoom >= ZOOM_CLUSTER_DISABLE -> 0.0
+    zoom >= 13f -> 0.004
+    zoom >= 12f -> 0.008
+    zoom >= 11f -> 0.016
+    else -> 0.032
+}
+
+/**
+ * Greedy single-pass clustering: each spot seeds a cluster and absorbs
+ * all remaining spots within [thresholdDeg] in both lat and lon.
+ * Returns one [SpotCluster] per group; size-1 clusters are individual spots.
+ */
+private fun clusterSpots(spots: List<Spot>, thresholdDeg: Double): List<SpotCluster> {
+    if (thresholdDeg == 0.0) {
+        return spots.map { SpotCluster(it.location.latitude, it.location.longitude, listOf(it)) }
+    }
+    val remaining = spots.toMutableList()
+    val clusters = mutableListOf<SpotCluster>()
+    while (remaining.isNotEmpty()) {
+        val seed = remaining.removeFirst()
+        val group = mutableListOf(seed)
+        val iter = remaining.iterator()
+        while (iter.hasNext()) {
+            val other = iter.next()
+            if (kotlin.math.abs(other.location.latitude - seed.location.latitude) < thresholdDeg &&
+                kotlin.math.abs(other.location.longitude - seed.location.longitude) < thresholdDeg
+            ) {
+                group.add(other)
+                iter.remove()
+            }
+        }
+        clusters.add(
+            SpotCluster(
+                lat = group.sumOf { it.location.latitude } / group.size,
+                lon = group.sumOf { it.location.longitude } / group.size,
+                spots = group,
+            ),
+        )
+    }
+    return clusters
+}
 
 @Composable
 fun PlatformMap(
@@ -88,9 +140,17 @@ fun PlatformMap(
     reportMode: Boolean = false,
     isAnyItemSelected: Boolean = false,
     isLoading: Boolean = false,
+    mapType: MapType = MapType.NORMAL,
 ) {
+    // ── Clustering ───────────────────────────────────────────────────────────
+    var currentZoom by remember { mutableStateOf(15f) }
+
+    val clusters = remember(spots, currentZoom) {
+        clusterSpots(spots, clusterThresholdDeg(currentZoom))
+    }
+
     // ── Build markers list ───────────────────────────────────────────────────
-    val markers = remember(spots, parkingLocation, selectedSpotId) {
+    val markers = remember(clusters, parkingLocation, selectedSpotId) {
         buildList {
             parkingLocation?.let {
                 add(
@@ -101,18 +161,27 @@ fun PlatformMap(
                     ),
                 )
             }
-            spots.forEach { spot ->
-                add(
-                    Marker(
-                        coordinates = Coordinates(
-                            spot.location.latitude,
-                            spot.location.longitude,
+            clusters.forEach { cluster ->
+                if (cluster.spots.size == 1) {
+                    val spot = cluster.spots.first()
+                    add(
+                        Marker(
+                            coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
+                            title = spot.id,
+                            contentId = if (spot.id == selectedSpotId) MARKER_FREE_SPOT_SELECTED
+                            else MARKER_FREE_SPOT,
                         ),
-                        title = spot.id,
-                        contentId = if (spot.id == selectedSpotId) MARKER_FREE_SPOT_SELECTED
-                        else MARKER_FREE_SPOT,
-                    ),
-                )
+                    )
+                } else {
+                    add(
+                        Marker(
+                            coordinates = Coordinates(cluster.lat, cluster.lon),
+                            // Encode count in title so ClusterMarkerContent can read it
+                            title = "$MARKER_CLUSTER:${cluster.spots.size}",
+                            contentId = MARKER_CLUSTER,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -123,6 +192,12 @@ fun PlatformMap(
             MARKER_MY_CAR to { _ -> MyCarMarkerContent() },
             MARKER_FREE_SPOT to { _ -> SpotMarkerContent(isSelected = false) },
             MARKER_FREE_SPOT_SELECTED to { _ -> SpotMarkerContent(isSelected = true) },
+            MARKER_CLUSTER to { marker ->
+                val count = marker.title
+                    ?.removePrefix("$MARKER_CLUSTER:")
+                    ?.toIntOrNull() ?: 0
+                ClusterMarkerContent(count = count)
+            },
         )
     }
 
@@ -204,6 +279,7 @@ fun PlatformMap(
                 isMyLocationEnabled = true,
                 isTrafficEnabled = false,
                 mapTheme = MapTheme.SYSTEM,
+                mapType = mapType,
                 androidMapProperties = AndroidMapProperties(
                     mapStyleOptions = if (isDark) GoogleMapsMapStyleOptions(DARK_MAP_STYLE) else null,
                 ),
@@ -221,13 +297,13 @@ fun PlatformMap(
             onCameraMove = { pos ->
                 actualCamLat = pos.coordinates.latitude.toFloat()
                 actualCamLon = pos.coordinates.longitude.toFloat()
+                currentZoom = pos.zoom
                 onCameraMove(pos.coordinates.latitude, pos.coordinates.longitude)
             },
             onMarkerClick = { marker ->
                 val id = marker.title ?: return@Map
-                if (id != MARKER_MY_CAR) {
-                    onSpotClick(id)
-                }
+                if (id == MARKER_MY_CAR || id.startsWith("$MARKER_CLUSTER:")) return@Map
+                onSpotClick(id)
             },
             onMapLoaded = { mapLoaded = true },
         )
@@ -450,6 +526,26 @@ private fun SpotMarkerContent(isSelected: Boolean = false) {
             )
         }
         PinTail(color = border, width = tailW, height = tailH)
+    }
+}
+
+@Composable
+private fun ClusterMarkerContent(count: Int) {
+    val label = if (count > 99) "99+" else count.toString()
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .background(PapGreen, CircleShape)
+            .border(2.5.dp, PapForestDark, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = if (count > 9) 13.sp else 16.sp,
+            lineHeight = if (count > 9) 15.sp else 18.sp,
+            color = PapForestDark,
+        )
     }
 }
 

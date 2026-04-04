@@ -15,4 +15,6 @@ sealed class HomeIntent {
     data class SearchQueryChanged(val query: String) : HomeIntent()
     data class SelectSearchResult(val result: SearchResult) : HomeIntent()
     data object ClearSearch : HomeIntent()
+    data class ReportManualSpot(val lat: Double, val lon: Double) : HomeIntent()
+    data object CycleMapType : HomeIntent()
 }

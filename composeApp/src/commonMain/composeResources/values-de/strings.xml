@@ -4,6 +4,7 @@
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Öko-Fahrer</string>
     <string name="home_nav_history">Verlauf</string>
+    <string name="home_nav_my_car">Mein Auto</string>
     <string name="home_nav_settings">Einstellungen</string>
     <string name="home_parking_row_label">Dein Fahrzeug</string>
     <string name="home_fab_report_spot">Stellplatz melden</string>
@@ -27,7 +28,7 @@
     <string name="home_spot_status_occupied">Besetzt</string>
     <string name="home_spot_status_free">Frei</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Adresse wird geladen…</string>
+    <string name="home_address_unknown">Unbekannter Standort</string>
     <string name="home_release_dialog_title">Stellplatz freigeben?</string>
     <string name="home_release_dialog_message">Bestätige, dass du weggefahren bist. Dein Stellplatz wird mit Fahrern in der Nähe geteilt.</string>
     <string name="home_release_dialog_confirm">Freigeben</string>
@@ -169,6 +170,24 @@
 
     <!-- Erfolgsmeldungen Home -->
     <string name="home_spot_reported">Stellplatz gemeldet — wird hochgeladen…</string>
+    <string name="home_manual_spot_reported">Stellplatz gemeldet — danke!</string>
+    <string name="home_fab_release_car">Mein Auto freigeben</string>
+    <string name="home_fab_actions_expand">Aktionen öffnen</string>
+    <string name="home_fab_actions_collapse">Aktionen schließen</string>
+    <string name="home_cd_map_type">Kartentyp wechseln</string>
     <string name="home_test_spot_sent">Teststellplatz gesendet</string>
+
+    <!-- GPS accuracy banner -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+
+    <!-- Untere Navigationsleiste -->
+    <string name="nav_tab_map">Karte</string>
+    <string name="nav_tab_history">Verlauf</string>
+    <string name="nav_tab_my_car">Mein Auto</string>
+    <string name="nav_tab_settings">Einstellungen</string>
+
+    <!-- Mein Auto Bildschirm -->
+    <string name="my_car_title">Mein Auto</string>
+    <string name="my_car_placeholder_desc">Die Fahrzeugverwaltung wird in einem zukünftigen Update verfügbar sein.</string>
 
 </resources>

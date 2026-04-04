@@ -23,9 +23,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -809,6 +813,290 @@ private fun ProposalCScreenWithParkingLightPreview() {
                     parkingLabel = "Mercadona Fuencarral",
                     parkingTime = "hace 1 h  ·  420m",
                 )
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SECCIÓN NAV-B — PROPUESTA: BottomNav siempre visible (Pattern B)
+//
+//  La barra de navegación inferior es permanente: se ve en HomeScreen igual
+//  que en el resto de pestañas. El sheet flota ENCIMA de ella (no la solapa).
+//  Ventaja: coherencia de navegación global. Desventaja: pierde espacio de mapa
+//  (~56dp) y el sheet compite visualmente con la nav bar.
+//
+//  ¿Cuándo tiene sentido? Si el producto decide que Home debe sentirse como
+//  "una pestaña más" y no como una experiencia de mapa inmersiva.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun MockBottomNavB() {
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+        listOf(
+            Triple("Mapa", Icons.Outlined.LocationOn, true),
+            Triple("Historial", Icons.Filled.History, false),
+            Triple("Mi coche", Icons.Filled.DirectionsCar, false),
+            Triple("Ajustes", Icons.Filled.Settings, false),
+        ).forEach { (label, icon, selected) ->
+            NavigationBarItem(
+                selected = selected,
+                onClick = {},
+                icon = { Icon(icon, contentDescription = label) },
+                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+            )
+        }
+    }
+}
+
+@Preview(name = "NAV-B — BottomNav siempre visible: peek (oscuro)",
+    showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES,
+    widthDp = 393, heightDp = 851)
+@Composable
+private fun NavPatternBPeekDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        Box(Modifier.fillMaxSize()) {
+            // Mapa
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color(0xFF1C2030)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("[mapa]", style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.15f))
+            }
+            // BottomNav — siempre en la parte inferior
+            Column(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
+                // Sheet peek surface flota encima de la nav bar
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp,
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                ) {
+                    Column {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(36.dp).height(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                                        RoundedCornerShape(2.dp),
+                                    ),
+                            )
+                        }
+                        Text(
+                            "3 plazas libres cerca  ·  Salamanca",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+                MockBottomNavB()
+            }
+        }
+    }
+}
+
+@Preview(name = "NAV-B — BottomNav siempre visible: peek (claro)",
+    showBackground = true, widthDp = 393, heightDp = 851)
+@Composable
+private fun NavPatternBPeekLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        Box(Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color(0xFFD8E8D0)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("[mapa]", style = MaterialTheme.typography.labelSmall,
+                    color = Color.Black.copy(alpha = 0.15f))
+            }
+            Column(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp,
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                ) {
+                    Column {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(36.dp).height(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                                        RoundedCornerShape(2.dp),
+                                    ),
+                            )
+                        }
+                        Text(
+                            "3 plazas libres cerca  ·  Salamanca",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+                MockBottomNavB()
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SECCIÓN NAV-C — PROPUESTA: BottomNav híbrida (Pattern C)
+//
+//  La nav bar se oculta con animación cuando el sheet supera el 50% de altura
+//  y reaparece cuando vuelve al peek. El sheet en peek tiene navigationBarsPadding
+//  aplicado, igual que en Pattern A, pero en modo expandido la nav bar desaparece
+//  (slide-out downward) liberando toda la pantalla para el mapa/lista.
+//
+//  Ventaja: mejor que B en inmersión (nav bar no compite cuando el sheet está abierto).
+//  Desventaja: más compleja de implementar (hay que sincronizar el offset del sheet
+//  con la visibilidad de la nav bar); puede producir un "parpadeo" si el usuario
+//  arrastra el sheet lentamente alrededor del umbral de visibilidad.
+//
+//  Implementación: `AnimatedVisibility(visible = sheetAtPeek)` alrededor del
+//  NavigationBar en `App.kt`, condicionado por un StateFlow expuesto desde
+//  HomeViewModel o un CompositionLocal compartido.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+@Preview(name = "NAV-C — Híbrida: peek con nav (oscuro)",
+    showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES,
+    widthDp = 393, heightDp = 851)
+@Composable
+private fun NavPatternCPeekDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        Box(Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color(0xFF1C2030)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("[mapa]", style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.15f))
+            }
+            // Nav bar visible en peek (misma estructura que B)
+            Column(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 8.dp,
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                ) {
+                    Column {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(36.dp).height(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                                        RoundedCornerShape(2.dp),
+                                    ),
+                            )
+                        }
+                        Text(
+                            "3 plazas libres cerca  ·  Salamanca",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+                // Nav visible (sheet at peek)
+                MockBottomNavB()
+            }
+        }
+    }
+}
+
+@Preview(name = "NAV-C — Híbrida: sheet expandido, nav oculta (oscuro)",
+    showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES,
+    widthDp = 393, heightDp = 851)
+@Composable
+private fun NavPatternCExpandedDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        Box(Modifier.fillMaxSize()) {
+            // Mapa ocupa solo la mitad superior
+            Box(
+                modifier = Modifier.fillMaxWidth().height(200.dp).background(Color(0xFF1C2030)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("[mapa]", style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.15f))
+            }
+            // Sheet expandido — nav bar OCULTA (slide-out animation finished)
+            Surface(
+                modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 8.dp,
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            ) {
+                Column(modifier = Modifier.height(660.dp)) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(36.dp).height(4.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                                    RoundedCornerShape(2.dp),
+                                ),
+                        )
+                    }
+                    Text(
+                        "CERCA DE TI  ·  3 libres",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                    repeat(3) { i ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier.size(40.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        RoundedCornerShape(10.dp),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) { Text("P", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) }
+                            Column {
+                                Text("Calle Gran Vía ${30 + i}", style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                                Text("${i * 5 + 2} min  ·  ${i * 80 + 120}m",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f))
+                            }
+                        }
+                    }
+                    // Nav bar AUSENTE — toda la pantalla disponible para la lista
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "↑  Nav bar oculta al expandir el sheet",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        )
+                    }
+                }
             }
         }
     }

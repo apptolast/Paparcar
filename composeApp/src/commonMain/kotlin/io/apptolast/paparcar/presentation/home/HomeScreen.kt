@@ -6,9 +6,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -62,12 +60,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.home.components.HomeActionFab
 import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
-import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
+import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
-import io.apptolast.paparcar.presentation.home.components.HomeReportSpotFab
+import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.components.HomeSheetContent
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
 import kotlinx.coroutines.launch
@@ -84,6 +83,7 @@ import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_release_dialog_confirm
 import paparcar.composeapp.generated.resources.home_release_dialog_message
 import paparcar.composeapp.generated.resources.home_release_dialog_title
+import paparcar.composeapp.generated.resources.home_manual_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_test_spot_sent
 import kotlin.math.abs
@@ -107,6 +107,7 @@ private const val SNAP_THRESHOLD_PX = 120f
 fun HomeScreen(
     onNavigateToMap: () -> Unit = {},
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToMyCar: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> },
     viewModel: HomeViewModel = koinViewModel(),
@@ -121,6 +122,7 @@ fun HomeScreen(
     val msgErrorReleaseParking = stringResource(Res.string.error_release_parking)
     val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
+    val msgManualSpotReported = stringResource(Res.string.home_manual_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
 
     LaunchedEffect(Unit) {
@@ -137,6 +139,7 @@ fun HomeScreen(
                     snackbarHostState.showSnackbar(msg)
                 }
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
+                HomeEffect.ManualSpotReported -> snackbarHostState.showSnackbar(msgManualSpotReported)
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.NavigateToMap -> onNavigateToMap()
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
@@ -148,6 +151,7 @@ fun HomeScreen(
     HomeContent(
         state = state,
         onIntent = viewModel::handleIntent,
+        onNavigateToMyCar = onNavigateToMyCar,
         onNavigateToSettings = onNavigateToSettings,
         onOpenMapsNavigation = onOpenMapsNavigation,
         snackbarHostState = snackbarHostState,
@@ -162,6 +166,7 @@ fun HomeScreen(
 private fun HomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
+    onNavigateToMyCar: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
     snackbarHostState: SnackbarHostState,
@@ -313,6 +318,7 @@ private fun HomeContent(
                 reportMode = !sheetExpanded,
                 isAnyItemSelected = state.selectedItemId != null,
                 isLoading = state.isLoading,
+                mapType = state.mapType,
                 onSpotClick = { spotId ->
                     state.nearbySpots.find { it.id == spotId }?.let { spot ->
                         onIntent(HomeIntent.SelectItem(spotId))
@@ -338,60 +344,45 @@ private fun HomeContent(
                     .height(mapHeightDp),
             )
 
-            // ── Floating search bar + action pills ───────────────────────────
-            Row(
+            // ── Floating search bar + action pills + GPS accuracy banner ─────
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.Top,
             ) {
-                HomeSearchBar(
-                    query = state.searchQuery,
-                    results = state.searchResults,
-                    isActive = state.isSearchActive,
-                    isSearching = state.isSearching,
-                    onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
-                    onResultClick = { result ->
-                        uiController.moveCamera(result.lat, result.lon, zoom = 15f)
-                        onIntent(HomeIntent.SelectSearchResult(result))
-                    },
-                    onClear = { onIntent(HomeIntent.ClearSearch) },
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(8.dp))
-                HomeFloatingHeader(
-                    onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
-                    onSettingsClick = onNavigateToSettings,
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    HomeSearchBar(
+                        query = state.searchQuery,
+                        results = state.searchResults,
+                        isActive = state.isSearchActive,
+                        isSearching = state.isSearching,
+                        onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                        onResultClick = { result ->
+                            uiController.moveCamera(result.lat, result.lon, zoom = 15f)
+                            onIntent(HomeIntent.SelectSearchResult(result))
+                        },
+                        onClear = { onIntent(HomeIntent.ClearSearch) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    HomeFloatingHeader(
+                        onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
+                        onMyCarClick = onNavigateToMyCar,
+                        onSettingsClick = onNavigateToSettings,
+                    )
+                }
+                HomeGpsAccuracyBanner(
+                    accuracy = state.userGpsPoint?.accuracy,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
 
-            // ── Report Spot Extended FAB ─────────────────────────────────────
-            AnimatedVisibility(
-                visible = sheetOffsetPx.value >= halfOffsetPx && state.userParking != null,
-                enter = fadeIn() + slideInHorizontally { -it },
-                exit = fadeOut() + slideOutHorizontally { -it },
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 14.dp, bottom = fabBottomDp),
-            ) {
-                HomeReportSpotFab(
-                    onClick = {
-                        val lat = uiController.cameraLat
-                            ?: state.userParking?.location?.latitude
-                            ?: state.userGpsPoint?.latitude
-                            ?: return@HomeReportSpotFab
-                        val lon = uiController.cameraLon
-                            ?: state.userParking?.location?.longitude
-                            ?: state.userGpsPoint?.longitude
-                            ?: return@HomeReportSpotFab
-                        onIntent(HomeIntent.ReleaseParking(lat, lon))
-                    },
-                )
-            }
-
-            // ── FAB column ────────────────────────────────────────────────────
+            // ── Right FAB column (map controls + action speed-dial) ──────────
             AnimatedVisibility(
                 visible = sheetOffsetPx.value >= halfOffsetPx,
                 enter = fadeIn(),
@@ -400,39 +391,56 @@ private fun HomeContent(
                     .align(Alignment.BottomEnd)
                     .padding(end = 14.dp, bottom = fabBottomDp),
             ) {
-                HomeMapFabColumn(
-                    userParking = state.userParking,
-                    userGpsPoint = state.userGpsPoint,
-                    onMyLocation = {
-                        state.userGpsPoint?.let {
-                            uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
-                        }
-                    },
-                    onParkedCar = {
-                        state.userParking?.let { p ->
-                            onIntent(HomeIntent.SelectItem(PARKING_ITEM_ID))
-                            uiController.moveCamera(p.location.latitude, p.location.longitude)
-                            coroutineScope.launch {
-                                sheetOffsetPx.animateTo(
-                                    halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
-                                    SnapSpec,
+                Column(horizontalAlignment = Alignment.End) {
+                    HomeMapFabColumn(
+                        userParking = state.userParking,
+                        userGpsPoint = state.userGpsPoint,
+                        onMyLocation = {
+                            state.userGpsPoint?.let {
+                                uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                            }
+                        },
+                        onLayersClick = { onIntent(HomeIntent.CycleMapType) },
+                        onParkedCar = {
+                            state.userParking?.let { p ->
+                                onIntent(HomeIntent.SelectItem(PARKING_ITEM_ID))
+                                uiController.moveCamera(p.location.latitude, p.location.longitude)
+                                coroutineScope.launch {
+                                    sheetOffsetPx.animateTo(
+                                        halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                        SnapSpec,
+                                    )
+                                }
+                            }
+                        },
+                        onMidpoint = {
+                            val parking = state.userParking
+                            val gps = state.userGpsPoint
+                            if (parking != null && gps != null) {
+                                uiController.moveCameraToBounds(
+                                    lat1 = parking.location.latitude,
+                                    lon1 = parking.location.longitude,
+                                    lat2 = gps.latitude,
+                                    lon2 = gps.longitude,
                                 )
                             }
-                        }
-                    },
-                    onMidpoint = {
-                        val parking = state.userParking
-                        val gps = state.userGpsPoint
-                        if (parking != null && gps != null) {
-                            uiController.moveCameraToBounds(
-                                lat1 = parking.location.latitude,
-                                lon1 = parking.location.longitude,
-                                lat2 = gps.latitude,
-                                lon2 = gps.longitude,
-                            )
-                        }
-                    },
-                )
+                        },
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    HomeActionFab(
+                        hasActiveParking = state.userParking != null,
+                        onReportManualSpot = {
+                            val lat = uiController.cameraLat
+                                ?: state.userGpsPoint?.latitude
+                                ?: return@HomeActionFab
+                            val lon = uiController.cameraLon
+                                ?: state.userGpsPoint?.longitude
+                                ?: return@HomeActionFab
+                            onIntent(HomeIntent.ReportManualSpot(lat, lon))
+                        },
+                        onReleaseParking = { showReleaseDialog = true },
+                    )
+                }
             }
 
             // ── 3-state bottom sheet ─────────────────────────────────────────

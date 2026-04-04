@@ -4,6 +4,7 @@
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Eco-Driver</string>
     <string name="home_nav_history">Histórico</string>
+    <string name="home_nav_my_car">Meu carro</string>
     <string name="home_nav_settings">Definições</string>
     <string name="home_parking_row_label">O seu veículo</string>
     <string name="home_fab_report_spot">Reportar lugar</string>
@@ -27,7 +28,7 @@
     <string name="home_spot_status_occupied">Ocupado</string>
     <string name="home_spot_status_free">Livre</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">A obter endereço…</string>
+    <string name="home_address_unknown">Localização desconhecida</string>
     <string name="home_release_dialog_title">Libertar lugar?</string>
     <string name="home_release_dialog_message">Confirme que saiu. O seu lugar será partilhado com os condutores próximos.</string>
     <string name="home_release_dialog_confirm">Libertar</string>
@@ -169,6 +170,24 @@
 
     <!-- Mensagens de sucesso Home -->
     <string name="home_spot_reported">Lugar reportado — a carregar…</string>
+    <string name="home_manual_spot_reported">Lugar reportado — obrigado!</string>
+    <string name="home_fab_release_car">Libertar o meu carro</string>
+    <string name="home_fab_actions_expand">Abrir ações</string>
+    <string name="home_fab_actions_collapse">Fechar ações</string>
+    <string name="home_cd_map_type">Mudar tipo de mapa</string>
     <string name="home_test_spot_sent">Lugar de teste enviado</string>
+
+    <!-- GPS accuracy banner -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+
+    <!-- Separadores de navegação inferior -->
+    <string name="nav_tab_map">Mapa</string>
+    <string name="nav_tab_history">Histórico</string>
+    <string name="nav_tab_my_car">Meu Carro</string>
+    <string name="nav_tab_settings">Configurações</string>
+
+    <!-- Ecrã Meu Carro -->
+    <string name="my_car_title">Meu Carro</string>
+    <string name="my_car_placeholder_desc">A gestão de veículos estará disponível numa futura atualização.</string>
 
 </resources>

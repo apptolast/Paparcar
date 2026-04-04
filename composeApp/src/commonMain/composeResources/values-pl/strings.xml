@@ -4,6 +4,7 @@
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Eko-kierowca</string>
     <string name="home_nav_history">Historia</string>
+    <string name="home_nav_my_car">Mój samochód</string>
     <string name="home_nav_settings">Ustawienia</string>
     <string name="home_parking_row_label">Twój pojazd</string>
     <string name="home_fab_report_spot">Zgłoś miejsce</string>
@@ -27,7 +28,7 @@
     <string name="home_spot_status_occupied">Zajęte</string>
     <string name="home_spot_status_free">Wolne</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Pobieranie adresu…</string>
+    <string name="home_address_unknown">Nieznana lokalizacja</string>
     <string name="home_release_dialog_title">Zwolnić miejsce?</string>
     <string name="home_release_dialog_message">Potwierdź, że odjechałeś. Twoje miejsce zostanie udostępnione kierowcom w pobliżu.</string>
     <string name="home_release_dialog_confirm">Zwolnij</string>
@@ -169,6 +170,24 @@
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Miejsce zgłoszone — przesyłanie…</string>
+    <string name="home_manual_spot_reported">Miejsce zgłoszone — dziękujemy!</string>
+    <string name="home_fab_release_car">Zwolnij mój samochód</string>
+    <string name="home_fab_actions_expand">Otwórz akcje</string>
+    <string name="home_fab_actions_collapse">Zamknij akcje</string>
+    <string name="home_cd_map_type">Zmień typ mapy</string>
     <string name="home_test_spot_sent">Testowe miejsce wysłane</string>
+
+    <!-- GPS accuracy banner -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+
+    <!-- Dolna nawigacja -->
+    <string name="nav_tab_map">Mapa</string>
+    <string name="nav_tab_history">Historia</string>
+    <string name="nav_tab_my_car">Mój Samochód</string>
+    <string name="nav_tab_settings">Ustawienia</string>
+
+    <!-- Ekran Mój Samochód -->
+    <string name="my_car_title">Mój Samochód</string>
+    <string name="my_car_placeholder_desc">Zarządzanie pojazdami będzie dostępne w przyszłej aktualizacji.</string>
 
 </resources>

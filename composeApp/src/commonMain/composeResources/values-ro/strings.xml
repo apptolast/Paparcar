@@ -4,6 +4,7 @@
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Șofer eco</string>
     <string name="home_nav_history">Istoric</string>
+    <string name="home_nav_my_car">Mașina mea</string>
     <string name="home_nav_settings">Setări</string>
     <string name="home_parking_row_label">Vehiculul tău</string>
     <string name="home_fab_report_spot">Raportează loc</string>
@@ -27,7 +28,7 @@
     <string name="home_spot_status_occupied">Ocupat</string>
     <string name="home_spot_status_free">Liber</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Se obține adresa…</string>
+    <string name="home_address_unknown">Locație necunoscută</string>
     <string name="home_release_dialog_title">Eliberezi locul?</string>
     <string name="home_release_dialog_message">Confirmă că ai plecat. Locul tău va fi partajat cu șoferii din apropiere.</string>
     <string name="home_release_dialog_confirm">Eliberează</string>
@@ -169,6 +170,24 @@
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Loc raportat — se încarcă…</string>
+    <string name="home_manual_spot_reported">Loc raportat — mulțumim!</string>
+    <string name="home_fab_release_car">Eliberează mașina mea</string>
+    <string name="home_fab_actions_expand">Deschide acțiuni</string>
+    <string name="home_fab_actions_collapse">Închide acțiuni</string>
+    <string name="home_cd_map_type">Schimbă tipul hărții</string>
     <string name="home_test_spot_sent">Loc de test trimis</string>
+
+    <!-- GPS accuracy banner -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
+
+    <!-- Filele de navigare de jos -->
+    <string name="nav_tab_map">Hartă</string>
+    <string name="nav_tab_history">Istoric</string>
+    <string name="nav_tab_my_car">Mașina Mea</string>
+    <string name="nav_tab_settings">Setări</string>
+
+    <!-- Ecranul Mașina Mea -->
+    <string name="my_car_title">Mașina Mea</string>
+    <string name="my_car_placeholder_desc">Gestionarea vehiculelor va fi disponibilă într-o actualizare viitoare.</string>
 
 </resources>

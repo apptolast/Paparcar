@@ -1,6 +1,12 @@
 package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -13,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +57,7 @@ import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_address_loading
+import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
@@ -301,6 +309,11 @@ private fun ParkingPeekRow(
 
 @Composable
 private fun CameraLocationRow(state: HomeState, freeCount: Int) {
+    val info = state.cameraLocationInfo
+    if (info == null || (state.isCameraGeocoding && info.displayLine == null && info.placeInfo == null)) {
+        PeekLocationSkeleton()
+        return
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -308,7 +321,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        val cameraPlaceEmoji = state.cameraLocationInfo?.placeInfo?.category?.emoji
+        val cameraPlaceEmoji = info.placeInfo?.category?.emoji
         if (cameraPlaceEmoji != null) {
             Text(
                 text = cameraPlaceEmoji,
@@ -324,21 +337,18 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = state.cameraLocationInfo?.let { info ->
-                    if (info.placeInfo != null) info.placeInfo.name else info.displayLine
-                } ?: stringResource(Res.string.home_address_loading),
+                text = if (info.placeInfo != null) info.placeInfo.name
+                       else info.displayLine ?: stringResource(Res.string.home_address_unknown),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 modifier = Modifier.basicMarquee(),
             )
-            val info = state.cameraLocationInfo
-            val secondaryLine = if (info?.placeInfo != null) {
-                // POI shown as primary → street address gives location context
-                info.address.displayLine?.takeIf { it != info.placeInfo?.name }
+            val secondaryLine = if (info.placeInfo != null) {
+                info.address.displayLine?.takeIf { it != info.placeInfo.name }
             } else {
-                listOfNotNull(info?.address?.city, info?.address?.region)
+                listOfNotNull(info.address.city, info.address.region)
                     .joinToString(", ").takeIf { it.isNotEmpty() }
             }
             if (secondaryLine != null) {
@@ -380,5 +390,67 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
                 )
             }
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Loading skeleton for the peek handle (shown while cameraLocationInfo == null)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun PeekLocationSkeleton() {
+    val transition = rememberInfiniteTransition(label = "peek_skeleton")
+    val pulseAlpha by transition.animateFloat(
+        initialValue = 0.10f,
+        targetValue = 0.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "skeleton_pulse",
+    )
+    val skeletonColor = MaterialTheme.colorScheme.onSurface
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // Icon placeholder
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .clip(CircleShape)
+                .background(skeletonColor.copy(alpha = pulseAlpha)),
+        )
+        // Text lines placeholder
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.62f)
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(skeletonColor.copy(alpha = pulseAlpha)),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.38f)
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(skeletonColor.copy(alpha = pulseAlpha * 0.7f)),
+            )
+        }
+        // Badge placeholder
+        Box(
+            modifier = Modifier
+                .size(width = 56.dp, height = 26.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(skeletonColor.copy(alpha = pulseAlpha * 0.7f)),
+        )
     }
 }

@@ -4,6 +4,7 @@
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Eco-Driver</string>
     <string name="home_nav_history">History</string>
+    <string name="home_nav_my_car">My car</string>
     <string name="home_nav_settings">Settings</string>
     <string name="home_parking_row_label">Your vehicle</string>
     <string name="home_fab_report_spot">Report spot</string>
@@ -27,7 +28,7 @@
     <string name="home_spot_status_occupied">Occupied</string>
     <string name="home_spot_status_free">Free</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Getting address…</string>
+    <string name="home_address_unknown">Unknown location</string>
     <string name="home_release_dialog_title">Release spot?</string>
     <string name="home_release_dialog_message">Confirm you\'ve left. Your spot will be shared with nearby drivers.</string>
     <string name="home_release_dialog_confirm">Release</string>
@@ -158,7 +159,17 @@
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Spot reported — uploading…</string>
+    <string name="home_manual_spot_reported">Spot reported — thanks!</string>
     <string name="home_test_spot_sent">Test spot sent</string>
+
+    <!-- Home action FAB -->
+    <string name="home_fab_release_car">Release my car</string>
+    <string name="home_fab_actions_expand">Open actions</string>
+    <string name="home_fab_actions_collapse">Close actions</string>
+    <string name="home_cd_map_type">Switch map type</string>
+
+    <!-- GPS accuracy banner — shown when signal is weak -->
+    <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Settings</string>
@@ -175,5 +186,15 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_licenses">Open source licenses</string>
+
+    <!-- Bottom navigation tabs -->
+    <string name="nav_tab_map">Map</string>
+    <string name="nav_tab_history">History</string>
+    <string name="nav_tab_my_car">My Car</string>
+    <string name="nav_tab_settings">Settings</string>
+
+    <!-- My Car screen -->
+    <string name="my_car_title">My Car</string>
+    <string name="my_car_placeholder_desc">Vehicle management is coming in a future update.</string>
 
 </resources>

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
@@ -35,6 +36,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_menu_close_cd
 import paparcar.composeapp.generated.resources.home_menu_open_cd
 import paparcar.composeapp.generated.resources.home_nav_history
+import paparcar.composeapp.generated.resources.home_nav_my_car
 import paparcar.composeapp.generated.resources.home_nav_settings
 
 private val MenuButtonSize = 56.dp
@@ -42,6 +44,7 @@ private val MenuButtonSize = 56.dp
 @Composable
 internal fun HomeFloatingHeader(
     onHistoryClick: () -> Unit,
+    onMyCarClick: () -> Unit,
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -96,6 +99,30 @@ internal fun HomeFloatingHeader(
                         Icon(
                             Icons.Outlined.History,
                             contentDescription = stringResource(Res.string.home_nav_history),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Surface(
+                    onClick = {
+                        expanded = false
+                        onMyCarClick()
+                    },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    shadowElevation = 6.dp,
+                ) {
+                    Box(
+                        modifier = Modifier.padding(12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.DirectionsCar,
+                            contentDescription = stringResource(Res.string.home_nav_my_car),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp),
                         )

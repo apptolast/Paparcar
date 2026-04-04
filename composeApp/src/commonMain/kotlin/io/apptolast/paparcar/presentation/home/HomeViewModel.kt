@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
+import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -14,11 +15,14 @@ import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -112,6 +116,8 @@ class HomeViewModel(
                 geocodeCameraLocation(intent.result.lat, intent.result.lon)
             }
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
+            is HomeIntent.ReportManualSpot -> reportManualSpot(intent.lat, intent.lon)
+            is HomeIntent.CycleMapType -> cycleMapType()
         }
     }
 
@@ -129,6 +135,24 @@ class HomeViewModel(
             }
             updateState { copy(selectedItemId = null) }
             sendEffect(HomeEffect.SpotReported)
+        }
+    }
+
+    private fun cycleMapType() {
+        val next = when (state.value.mapType) {
+            MapType.NORMAL -> MapType.SATELLITE
+            MapType.SATELLITE -> MapType.TERRAIN
+            else -> MapType.NORMAL
+        }
+        updateState { copy(mapType = next) }
+    }
+
+    private fun reportManualSpot(lat: Double, lon: Double) {
+        viewModelScope.launch {
+            val spotId = "manual_${Clock.System.now().toEpochMilliseconds()}"
+            // TODO [Phase 2]: Replace with ReportManualSpotUseCase (type = MANUAL, TTL = 15 min)
+            reportSpotReleased(lat, lon, spotId)
+            sendEffect(HomeEffect.ManualSpotReported)
         }
     }
 
@@ -188,6 +212,10 @@ class HomeViewModel(
         geocodeCameraJob = viewModelScope.launch {
             delay(GEOCODE_DEBOUNCE_MS)
             getLocationInfo(lat, lon)
+                .onStart { updateState { copy(isCameraGeocoding = true) } }
+                .onCompletion { cause ->
+                    if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) }
+                }
                 .catch { /* best-effort; ignore errors */ }
                 .collect { info -> updateState { copy(cameraLocationInfo = info) } }
         }

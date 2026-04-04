@@ -79,7 +79,7 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 private fun HomeFloatingHeaderDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {})
+            HomeFloatingHeader(onHistoryClick = {}, onMyCarClick = {}, onSettingsClick = {})
         }
     }
 }
@@ -89,7 +89,7 @@ private fun HomeFloatingHeaderDarkPreview() {
 private fun HomeFloatingHeaderLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onSettingsClick = {})
+            HomeFloatingHeader(onHistoryClick = {}, onMyCarClick = {}, onSettingsClick = {})
         }
     }
 }
@@ -103,7 +103,7 @@ private fun HomePeekHandleWithPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         HomePeekHandle(
             state = HomeState(
-                userLocationInfo = FakeData.locationInfoFuel,
+                cameraLocationInfo = FakeData.locationInfoFuel,
                 nearbySpots = FakeData.nearbySpots,
             ),
         )
@@ -116,11 +116,24 @@ private fun HomePeekHandleStreetLightPreview() {
     PaparcarTheme(darkTheme = false) {
         HomePeekHandle(
             state = HomeState(
-                userLocationInfo = FakeData.locationInfoStreet,
+                cameraLocationInfo = FakeData.locationInfoStreet,
                 nearbySpots = FakeData.nearbySpots,
             ),
         )
     }
+}
+
+@Preview(name = "A — HomePeekHandle: skeleton loading (oscuro)", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun HomePeekHandleSkeletonDarkPreview() {
+    PaparcarTheme(darkTheme = true) { HomePeekHandle(state = HomeState()) }
+}
+
+@Preview(name = "A — HomePeekHandle: skeleton loading (claro)", showBackground = true)
+@Composable
+private fun HomePeekHandleSkeletonLightPreview() {
+    PaparcarTheme(darkTheme = false) { HomePeekHandle(state = HomeState()) }
 }
 
 @Preview(name = "A — HomePeekHandle: sin dirección, 0 spots (claro)", showBackground = true)
@@ -484,7 +497,8 @@ private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
             ),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
             onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState, spotScrollPositions = scrollPositions,
+            scrollState = scrollState,
+            spotScrollPositions = scrollPositions,
         )
     }
 }
