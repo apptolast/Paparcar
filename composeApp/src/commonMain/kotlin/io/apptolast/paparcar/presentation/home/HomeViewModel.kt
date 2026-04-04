@@ -103,7 +103,6 @@ class HomeViewModel(
                 }
             }
 
-            is HomeIntent.OpenMap -> sendEffect(HomeEffect.NavigateToMap)
             is HomeIntent.OpenHistory -> sendEffect(HomeEffect.NavigateToHistory)
             is HomeIntent.ReportTestSpot -> reportTestSpot()
             is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon)

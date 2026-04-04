@@ -49,7 +49,7 @@ import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
-import io.apptolast.paparcar.presentation.map.MapScreen
+import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
 import io.apptolast.paparcar.presentation.mycar.MyCarScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
@@ -65,7 +65,7 @@ import paparcar.composeapp.generated.resources.nav_tab_settings
 
 internal object Routes {
     const val HOME = "home"
-    const val MAP = "map"
+    const val PARKING_LOCATION = "map"
     const val HISTORY = "history"
     const val MY_CAR = "my_car"
     const val SETTINGS = "settings"
@@ -213,7 +213,6 @@ private fun MainAppNavigation(
             }
             composable(Routes.HOME) {
                 HomeScreen(
-                    onNavigateToMap = { navController.navigate(Routes.MAP) },
                     onNavigateToHistory = { navController.navigateToTab(Routes.HISTORY) },
                     onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
                     onNavigateToSettings = { navController.navigateToTab(Routes.SETTINGS) },
@@ -221,7 +220,7 @@ private fun MainAppNavigation(
                 )
             }
             composable(
-                route = "${Routes.MAP}?lat={lat}&lon={lon}",
+                route = "${Routes.PARKING_LOCATION}?lat={lat}&lon={lon}",
                 arguments = listOf(
                     navArgument("lat") { type = NavType.StringType; defaultValue = "" },
                     navArgument("lon") { type = NavType.StringType; defaultValue = "" },
@@ -229,7 +228,7 @@ private fun MainAppNavigation(
             ) { backStack ->
                 val lat = backStack.savedStateHandle.get<String>("lat")?.toDoubleOrNull()
                 val lon = backStack.savedStateHandle.get<String>("lon")?.toDoubleOrNull()
-                MapScreen(
+                ParkingLocationScreen(
                     onNavigateBack = { navController.popBackStack() },
                     initialFocus = if (lat != null && lon != null) Pair(lat, lon) else null,
                 )
@@ -238,7 +237,7 @@ private fun MainAppNavigation(
                 HistoryScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToMap = { lat, lon ->
-                        navController.navigate("${Routes.MAP}?lat=$lat&lon=$lon")
+                        navController.navigate("${Routes.PARKING_LOCATION}?lat=$lat&lon=$lon")
                     },
                 )
             }

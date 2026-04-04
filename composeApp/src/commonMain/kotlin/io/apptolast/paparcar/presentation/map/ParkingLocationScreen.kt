@@ -37,10 +37,10 @@ import paparcar.composeapp.generated.resources.map_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(
+fun ParkingLocationScreen(
     onNavigateBack: () -> Unit = {},
     initialFocus: Pair<Double, Double>? = null,
-    viewModel: MapViewModel = koinViewModel(),
+    viewModel: ParkingLocationViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,8 +62,8 @@ fun MapScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is MapEffect.NavigateToSpotDetails -> { /* future */ }
-                is MapEffect.ShowError -> snackbarHostState.showSnackbar(msgErrorUnknown)
+                is ParkingLocationEffect.NavigateToSpotDetails -> { /* future */ }
+                is ParkingLocationEffect.ShowError -> snackbarHostState.showSnackbar(msgErrorUnknown)
             }
         }
     }
@@ -104,7 +104,7 @@ fun MapScreen(
                         )
                     }
                     ?: state.userParking?.location,
-                onSpotClick = { spotId -> viewModel.handleIntent(MapIntent.OnSpotSelected(spotId)) },
+                onSpotClick = { spotId -> viewModel.handleIntent(ParkingLocationIntent.OnSpotSelected(spotId)) },
                 onCameraMove = { _, _ -> },
                 cameraTarget = cameraTarget,
                 modifier = Modifier.fillMaxSize(),
