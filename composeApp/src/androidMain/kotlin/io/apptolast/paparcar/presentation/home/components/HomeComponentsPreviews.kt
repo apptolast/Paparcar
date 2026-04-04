@@ -13,7 +13,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.presentation.home.PARKING_ITEM_ID
 import io.apptolast.paparcar.presentation.preview.FakeData
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import kotlin.time.Clock
@@ -183,7 +182,7 @@ private fun HomePeekHandleParkingSelectedDarkPreview() {
                 userParking = FakeData.activeSession,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
-                selectedItemId = PARKING_ITEM_ID,
+                selectedItemId = HomeState.PARKING_ITEM_ID,
             ),
         )
     }
@@ -198,7 +197,7 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
                 userParking = FakeData.activeSessionSupermarket,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
-                selectedItemId = PARKING_ITEM_ID,
+                selectedItemId = HomeState.PARKING_ITEM_ID,
             ),
         )
     }

@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.presentation.home.PARKING_ITEM_ID
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.distanceString
@@ -68,7 +67,7 @@ internal fun HomePeekHandle(
     onRelease: () -> Unit = {},
 ) {
     val freeCount = state.nearbySpots.size
-    val isParkingSelected = state.selectedItemId == PARKING_ITEM_ID
+    val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
     val selectedSpot = state.selectedItemId
         ?.takeIf { !isParkingSelected }
         ?.let { id -> state.nearbySpots.find { it.id == id } }
