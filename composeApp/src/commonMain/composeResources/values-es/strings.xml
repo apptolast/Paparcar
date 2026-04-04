@@ -28,7 +28,7 @@
     <string name="home_spot_status_occupied">Ocupado</string>
     <string name="home_spot_status_free">Libre</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Obteniendo dirección…</string>
+    <string name="home_address_unknown">Ubicación desconocida</string>
     <string name="home_release_dialog_title">¿Liberar plaza?</string>
     <string name="home_release_dialog_message">Confirma que has salido. Tu plaza se compartirá con conductores cercanos.</string>
     <string name="home_release_dialog_confirm">Liberar</string>

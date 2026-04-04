@@ -28,7 +28,7 @@
     <string name="home_spot_status_occupied">Occupied</string>
     <string name="home_spot_status_free">Free</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Getting address…</string>
+    <string name="home_address_unknown">Unknown location</string>
     <string name="home_release_dialog_title">Release spot?</string>
     <string name="home_release_dialog_message">Confirm you\'ve left. Your spot will be shared with nearby drivers.</string>
     <string name="home_release_dialog_confirm">Release</string>

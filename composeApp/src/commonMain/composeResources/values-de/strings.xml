@@ -28,7 +28,7 @@
     <string name="home_spot_status_occupied">Besetzt</string>
     <string name="home_spot_status_free">Frei</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Adresse wird geladen…</string>
+    <string name="home_address_unknown">Unbekannter Standort</string>
     <string name="home_release_dialog_title">Stellplatz freigeben?</string>
     <string name="home_release_dialog_message">Bestätige, dass du weggefahren bist. Dein Stellplatz wird mit Fahrern in der Nähe geteilt.</string>
     <string name="home_release_dialog_confirm">Freigeben</string>

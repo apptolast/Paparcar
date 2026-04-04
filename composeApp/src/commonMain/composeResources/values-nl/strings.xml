@@ -28,7 +28,7 @@
     <string name="home_spot_status_occupied">Bezet</string>
     <string name="home_spot_status_free">Vrij</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Adres ophalen…</string>
+    <string name="home_address_unknown">Onbekende locatie</string>
     <string name="home_release_dialog_title">Parkeerplaats vrijgeven?</string>
     <string name="home_release_dialog_message">Bevestig dat u vertrokken bent. Uw parkeerplaats wordt gedeeld met bestuurders in de buurt.</string>
     <string name="home_release_dialog_confirm">Vrijgeven</string>

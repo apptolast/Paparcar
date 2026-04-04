@@ -28,7 +28,7 @@
     <string name="home_spot_status_occupied">Zajęte</string>
     <string name="home_spot_status_free">Wolne</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Pobieranie adresu…</string>
+    <string name="home_address_unknown">Nieznana lokalizacja</string>
     <string name="home_release_dialog_title">Zwolnić miejsce?</string>
     <string name="home_release_dialog_message">Potwierdź, że odjechałeś. Twoje miejsce zostanie udostępnione kierowcom w pobliżu.</string>
     <string name="home_release_dialog_confirm">Zwolnij</string>

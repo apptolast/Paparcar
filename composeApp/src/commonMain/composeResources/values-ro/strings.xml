@@ -28,7 +28,7 @@
     <string name="home_spot_status_occupied">Ocupat</string>
     <string name="home_spot_status_free">Liber</string>
     <string name="home_spot_reported_by">%1$s</string>
-    <string name="home_address_loading">Se obține adresa…</string>
+    <string name="home_address_unknown">Locație necunoscută</string>
     <string name="home_release_dialog_title">Eliberezi locul?</string>
     <string name="home_release_dialog_message">Confirmă că ai plecat. Locul tău va fi partajat cu șoferii din apropiere.</string>
     <string name="home_release_dialog_confirm">Eliberează</string>

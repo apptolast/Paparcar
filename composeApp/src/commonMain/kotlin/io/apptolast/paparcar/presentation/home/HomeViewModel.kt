@@ -15,11 +15,14 @@ import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -209,6 +212,10 @@ class HomeViewModel(
         geocodeCameraJob = viewModelScope.launch {
             delay(GEOCODE_DEBOUNCE_MS)
             getLocationInfo(lat, lon)
+                .onStart { updateState { copy(isCameraGeocoding = true) } }
+                .onCompletion { cause ->
+                    if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) }
+                }
                 .catch { /* best-effort; ignore errors */ }
                 .collect { info -> updateState { copy(cameraLocationInfo = info) } }
         }

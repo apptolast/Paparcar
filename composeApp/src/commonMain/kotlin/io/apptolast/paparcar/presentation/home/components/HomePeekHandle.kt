@@ -57,7 +57,7 @@ import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_address_loading
+import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
@@ -309,12 +309,11 @@ private fun ParkingPeekRow(
 
 @Composable
 private fun CameraLocationRow(state: HomeState, freeCount: Int) {
-    if (state.cameraLocationInfo == null) {
+    val info = state.cameraLocationInfo
+    if (info == null || (state.isCameraGeocoding && info.displayLine == null && info.placeInfo == null)) {
         PeekLocationSkeleton()
         return
     }
-
-    val info = state.cameraLocationInfo
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -339,7 +338,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = if (info.placeInfo != null) info.placeInfo.name
-                       else info.displayLine ?: stringResource(Res.string.home_address_loading),
+                       else info.displayLine ?: stringResource(Res.string.home_address_unknown),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

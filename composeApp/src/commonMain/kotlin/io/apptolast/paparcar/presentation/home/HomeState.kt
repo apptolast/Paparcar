@@ -26,6 +26,8 @@ data class HomeState(
     val selectedItemId: String? = null,
     /** Geocoded address of the map camera centre (updated as the user pans). */
     val cameraLocationInfo: LocationInfo? = null,
+    /** True while the camera geocoding flow is in progress (skeleton instead of "Unknown location"). */
+    val isCameraGeocoding: Boolean = false,
     val searchQuery: String = "",
     val searchResults: List<SearchResult> = emptyList(),
     val isSearchActive: Boolean = false,
