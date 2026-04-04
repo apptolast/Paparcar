@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.presentation.home.PARKING_ITEM_ID
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
@@ -42,7 +41,7 @@ internal fun HomeSheetContent(
     scrollState: ScrollState,
     spotScrollPositions: MutableMap<String, Int>,
 ) {
-    val selectedSpotId = state.selectedItemId?.takeIf { it != PARKING_ITEM_ID }
+    val selectedSpotId = state.selectedItemId?.takeIf { it != HomeState.PARKING_ITEM_ID }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -118,7 +117,7 @@ private fun ParkingSection(
         HomeParkingRow(
             parking = state.userParking,
             userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-            isSelected = state.selectedItemId == PARKING_ITEM_ID,
+            isSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID,
             onSelect = onParkingClick,
         )
     } else if (state.allPermissionsGranted) {

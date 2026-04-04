@@ -126,6 +126,25 @@
     <string name="history_month_10">Outubro</string>
     <string name="history_month_11">Novembro</string>
     <string name="history_month_12">Dezembro</string>
+    <string name="history_month_short_1">jan</string>
+    <string name="history_month_short_2">fev</string>
+    <string name="history_month_short_3">mar</string>
+    <string name="history_month_short_4">abr</string>
+    <string name="history_month_short_5">mai</string>
+    <string name="history_month_short_6">jun</string>
+    <string name="history_month_short_7">jul</string>
+    <string name="history_month_short_8">ago</string>
+    <string name="history_month_short_9">set</string>
+    <string name="history_month_short_10">out</string>
+    <string name="history_month_short_11">nov</string>
+    <string name="history_month_short_12">dez</string>
+    <string name="history_day_short_mon">Seg</string>
+    <string name="history_day_short_tue">Ter</string>
+    <string name="history_day_short_wed">Qua</string>
+    <string name="history_day_short_thu">Qui</string>
+    <string name="history_day_short_fri">Sex</string>
+    <string name="history_day_short_sat">Sáb</string>
+    <string name="history_day_short_sun">Dom</string>
 
     <!-- MapScreen -->
     <string name="map_title">Mapa de lugares</string>

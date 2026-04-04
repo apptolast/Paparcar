@@ -7,9 +7,6 @@ import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 
-/** Sentinel value used as [HomeState.selectedItemId] when the user's parked car is selected. */
-const val PARKING_ITEM_ID = "__parking__"
-
 /**
  * Estado de la pantalla Home.
  * Representa todos los datos necesarios para renderizar la UI.
@@ -33,4 +30,9 @@ data class HomeState(
     val isSearchActive: Boolean = false,
     val isSearching: Boolean = false,
     val mapType: MapType = MapType.NORMAL,
-)
+) {
+    companion object {
+        /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */
+        const val PARKING_ITEM_ID = "__parking__"
+    }
+}

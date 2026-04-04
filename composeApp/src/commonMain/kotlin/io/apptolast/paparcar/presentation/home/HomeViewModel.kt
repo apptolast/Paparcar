@@ -82,7 +82,7 @@ class HomeViewModel(
                     copy(
                         nearbySpots = spots,
                         // Keep parking selection or a spot that still exists; clear otherwise.
-                        selectedItemId = if (cur != PARKING_ITEM_ID && spots.none { it.id == cur }) null else cur,
+                        selectedItemId = if (cur != HomeState.PARKING_ITEM_ID && spots.none { it.id == cur }) null else cur,
                     )
                 }
             }

@@ -173,7 +173,7 @@ private fun HomeContent(
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val isParkingSelected = state.selectedItemId == PARKING_ITEM_ID
+    val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
     val selectedSpot = selectedSpotId?.let { id -> state.nearbySpots.find { it.id == id } }
     val selectedNavTarget = selectedSpot
@@ -401,7 +401,7 @@ private fun HomeContent(
                         onLayersClick = { onIntent(HomeIntent.CycleMapType) },
                         onParkedCar = {
                             state.userParking?.let { p ->
-                                onIntent(HomeIntent.SelectItem(PARKING_ITEM_ID))
+                                onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
                                 uiController.moveCamera(p.location.latitude, p.location.longitude)
                                 coroutineScope.launch {
                                     sheetOffsetPx.animateTo(
@@ -487,7 +487,7 @@ private fun HomeContent(
                         onIntent = onIntent,
                         onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
                         onParkingClick = {
-                            onIntent(HomeIntent.SelectItem(PARKING_ITEM_ID))
+                            onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
                             state.userParking?.location?.let { loc ->
                                 uiController.moveCamera(loc.latitude, loc.longitude)
                             }

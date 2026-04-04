@@ -131,6 +131,25 @@
     <string name="history_month_10">octubre</string>
     <string name="history_month_11">noviembre</string>
     <string name="history_month_12">diciembre</string>
+    <string name="history_month_short_1">ene</string>
+    <string name="history_month_short_2">feb</string>
+    <string name="history_month_short_3">mar</string>
+    <string name="history_month_short_4">abr</string>
+    <string name="history_month_short_5">may</string>
+    <string name="history_month_short_6">jun</string>
+    <string name="history_month_short_7">jul</string>
+    <string name="history_month_short_8">ago</string>
+    <string name="history_month_short_9">sep</string>
+    <string name="history_month_short_10">oct</string>
+    <string name="history_month_short_11">nov</string>
+    <string name="history_month_short_12">dic</string>
+    <string name="history_day_short_mon">L</string>
+    <string name="history_day_short_tue">M</string>
+    <string name="history_day_short_wed">X</string>
+    <string name="history_day_short_thu">J</string>
+    <string name="history_day_short_fri">V</string>
+    <string name="history_day_short_sat">S</string>
+    <string name="history_day_short_sun">D</string>
 
     <!-- MapScreen -->
     <string name="map_title">Mapa de plazas</string>

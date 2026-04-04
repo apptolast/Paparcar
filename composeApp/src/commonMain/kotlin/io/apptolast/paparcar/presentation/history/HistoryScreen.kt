@@ -75,6 +75,13 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
 import paparcar.composeapp.generated.resources.history_cd_back
+import paparcar.composeapp.generated.resources.history_day_short_fri
+import paparcar.composeapp.generated.resources.history_day_short_mon
+import paparcar.composeapp.generated.resources.history_day_short_sat
+import paparcar.composeapp.generated.resources.history_day_short_sun
+import paparcar.composeapp.generated.resources.history_day_short_thu
+import paparcar.composeapp.generated.resources.history_day_short_tue
+import paparcar.composeapp.generated.resources.history_day_short_wed
 import paparcar.composeapp.generated.resources.history_month_1
 import paparcar.composeapp.generated.resources.history_month_10
 import paparcar.composeapp.generated.resources.history_month_11
@@ -87,6 +94,18 @@ import paparcar.composeapp.generated.resources.history_month_6
 import paparcar.composeapp.generated.resources.history_month_7
 import paparcar.composeapp.generated.resources.history_month_8
 import paparcar.composeapp.generated.resources.history_month_9
+import paparcar.composeapp.generated.resources.history_month_short_1
+import paparcar.composeapp.generated.resources.history_month_short_10
+import paparcar.composeapp.generated.resources.history_month_short_11
+import paparcar.composeapp.generated.resources.history_month_short_12
+import paparcar.composeapp.generated.resources.history_month_short_2
+import paparcar.composeapp.generated.resources.history_month_short_3
+import paparcar.composeapp.generated.resources.history_month_short_4
+import paparcar.composeapp.generated.resources.history_month_short_5
+import paparcar.composeapp.generated.resources.history_month_short_6
+import paparcar.composeapp.generated.resources.history_month_short_7
+import paparcar.composeapp.generated.resources.history_month_short_8
+import paparcar.composeapp.generated.resources.history_month_short_9
 import paparcar.composeapp.generated.resources.history_title
 import paparcar.composeapp.generated.resources.error_load_history
 import paparcar.composeapp.generated.resources.error_unknown
@@ -148,10 +167,22 @@ internal val MONTH_RES: List<StringResource> = listOf(
     Res.string.history_month_11, Res.string.history_month_12,
 )
 
-// Short month names for non-composable helpers (buildTimeline day headers)
-internal val MONTH_NAMES_SHORT = listOf(
-    "ene", "feb", "mar", "abr", "may", "jun",
-    "jul", "ago", "sep", "oct", "nov", "dic",
+// Short month names (resolved in composable, passed to non-composable helpers)
+internal val MONTH_SHORT_RES: List<StringResource> = listOf(
+    Res.string.history_month_short_1, Res.string.history_month_short_2,
+    Res.string.history_month_short_3, Res.string.history_month_short_4,
+    Res.string.history_month_short_5, Res.string.history_month_short_6,
+    Res.string.history_month_short_7, Res.string.history_month_short_8,
+    Res.string.history_month_short_9, Res.string.history_month_short_10,
+    Res.string.history_month_short_11, Res.string.history_month_short_12,
+)
+
+// Short day labels Mon…Sun (resolved in composable, passed to non-composable helpers)
+internal val DAY_SHORT_RES: List<StringResource> = listOf(
+    Res.string.history_day_short_mon, Res.string.history_day_short_tue,
+    Res.string.history_day_short_wed, Res.string.history_day_short_thu,
+    Res.string.history_day_short_fri, Res.string.history_day_short_sat,
+    Res.string.history_day_short_sun,
 )
 
 // ─── Weekly chart data model ───────────────────────────────────────────────────
@@ -258,6 +289,8 @@ internal fun HistoryContent(
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
+    val monthNamesShort = MONTH_SHORT_RES.map { stringResource(it) }
+    val dayLabels = DAY_SHORT_RES.map { stringResource(it) }
 
     Box(
         modifier = Modifier
@@ -278,9 +311,9 @@ internal fun HistoryContent(
                     state.sessions.firstOrNull { it.isActive }
                 }
                 val ended = remember(state.sessions) { state.sessions.filter { !it.isActive } }
-                val weeklyStats = remember(ended) { buildWeeklyStats(ended) }
-                val timelineItems = remember(ended, todayLabel, yesterdayLabel) {
-                    buildTimeline(ended, todayLabel, yesterdayLabel)
+                val weeklyStats = remember(ended, dayLabels) { buildWeeklyStats(ended, dayLabels) }
+                val timelineItems = remember(ended, todayLabel, yesterdayLabel, monthNamesShort) {
+                    buildTimeline(ended, todayLabel, yesterdayLabel, monthNamesShort)
                 }
 
                 LazyColumn(
@@ -339,8 +372,8 @@ internal fun HistoryContent(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-private fun buildWeeklyStats(sessions: List<UserParking>): List<WeekDayStats> {
-    val dayLabels = listOf("L", "M", "X", "J", "V", "S", "D") // index = isoDayNumber - 1
+private fun buildWeeklyStats(sessions: List<UserParking>, dayLabels: List<String>): List<WeekDayStats> {
+    // dayLabels: index = isoDayNumber - 1 (Mon=0 … Sun=6)
     val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
     val dayMs = 24L * 60 * 60 * 1000
@@ -363,6 +396,7 @@ private fun buildTimeline(
     sessions: List<UserParking>,
     todayLabel: String,
     yesterdayLabel: String,
+    monthNamesShort: List<String>,
 ): List<TimelineItem> {
     val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
@@ -381,7 +415,7 @@ private fun buildTimeline(
             val label = when (date) {
                 today -> todayLabel
                 yesterday -> yesterdayLabel
-                else -> "${date.day} ${MONTH_NAMES_SHORT[date.month.number - 1]} ${date.year}"
+                else -> "${date.day} ${monthNamesShort[date.month.number - 1]} ${date.year}"
             }
             flat += TimelineItem.Header(label)
             daySessions.forEach { flat += TimelineItem.Session(it, isLast = false) }
