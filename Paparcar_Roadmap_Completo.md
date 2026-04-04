@@ -4,7 +4,7 @@
 
 ## 1. Visión General
 
-Paparcar es una app de **compartición de plazas de aparcamiento en tiempo real** para KMP (Kotlin Multiplatform) con Android como plataforma principal e iOS como target futuro. Detecta automáticamente cuando el usuario aparca o sale de su vehículo y publica la disponibilidad de plazas para la comunidad.
+Paparcar es una app de **compartición de plazas de aparcamiento en tiempo real** para KMP (Kotlin Multiplatform) con Android como plataforma principal e iOS como target futuro. Cuando el usuario sale con el coche, la app detecta automáticamente el evento y publica la plaza recién liberada para que otros usuarios cercanos puedan encontrarla. El core del producto es la comunidad: para encontrar plaza, debes compartir la tuya.
 
 ---
 
@@ -12,79 +12,39 @@ Paparcar es una app de **compartición de plazas de aparcamiento en tiempo real*
 
 | Fase | Duración | Fechas Estimadas | Progreso Actual |
 |------|----------|------------------|-----------------|
-| **Phase 0** — Foundations | 4–5 semanas | Abr 2026 | ~40% hecho |
-| **Phase 1** — Home & Mapa | 5–6 semanas | May–Jun 2026 | ~25% hecho |
+| **Phase 0** — Foundations | 4–5 semanas | Abr 2026 | ~85% hecho |
+| **Phase 1** — Home & Mapa | 5–6 semanas | May–Jun 2026 | ~95% hecho |
 | **Phase 2** — Vehículos & BT | 6–7 semanas | Jun–Jul 2026 | 0% |
-| **Phase 3** — UI/UX Design | 4–5 semanas | Jul–Ago 2026 | 0% |
-| **Phase 4** — History & Settings | 3–4 semanas | Ago–Sep 2026 | ~30% hecho |
+| **Phase 3** — UI/UX Design System | 4–5 semanas | Jul–Ago 2026 | 0% |
+| **Phase 4** — History & Settings | 3–4 semanas | Ago–Sep 2026 | ~55% hecho |
 | **Phase 5** — QA & Estabilidad | 3–4 semanas | Sep–Oct 2026 | ~15% hecho |
 | **Phase 6** — iOS Port | 6–8 semanas | Oct–Dic 2026 | 0% |
 | **TOTAL** | **~7–9 meses** | **Abr–Dic 2026** | |
 
-> **Nota**: Las fases no son 100% secuenciales. Phase 3 (UI) puede solaparse con Phase 1 y 2 si se define el Design System primero. La Phase 5 (QA) debería ser continua, no solo al final.
+> **Nota**: Las fases no son 100% secuenciales. Phase 3 (UI) puede solaparse con Phase 2 si se define el Design System antes de implementar las pantallas de vehículo. La Phase 5 (QA) debería ser continua.
 
 ---
 
 ## 3. PHASE 0 — Foundations (Estabilización)
 
 ### Objetivo
-Solidificar la base antes de añadir features nuevas. Sin esto, cada feature nueva acumula deuda técnica.
+Solidificar la base antes de añadir features nuevas.
 
-### Nomenclatura de tareas
-
-| ID | Tarea | Tipo | Prioridad |
-|----|-------|------|-----------|
-| `FND-001` | Extraer strings hardcoded a `strings.xml` / recursos compartidos | Refactor | Alta |
-| `FND-002` | Eliminar magic numbers → crear `ParkingConstants.kt`, `DetectionConfig.kt` | Refactor | Alta |
-| `FND-003` | Revisar y unificar el manejo de errores (Result/Either pattern) | Arquitectura | Alta |
-| `FND-004` | Fix bug geofence departure: la plaza no se publica al desaparcar | Bug | Crítica |
-| `FND-005` | Integrar Firebase Crashlytics (Android) | Infra | Alta |
-| `FND-006` | Crear `expect/actual` wrappers pendientes para iOS | Arquitectura | Media |
-| `FND-007` | Ampliar tests unitarios: UseCases, Repos, ViewModels | Testing | Alta |
-| `FND-008` | Limpiar archivos del repo: `build_errors.log`, `build_log.txt`, `.kotlin/` | Repo | Baja |
-| `FND-009` | Configurar CI básico (GitHub Actions: build + tests) | Infra | Media |
-| `FND-010` | Documentar expect/actual contracts para iOS | Docs | Media |
-
-### Detalle crítico: FND-004 (Fix Geofence Departure)
-
-**Problema actual**: Cuando el usuario sale de la geocerca de 80m, el spot no se publica correctamente a Firestore.
-
-**Flujo esperado**:
-```
-GeofenceBroadcastReceiver (GEOFENCE_EXIT)
-  → DetectParkingDepartureUseCase
-    → Verificar que la sesión activa corresponde a esa geofence
-    → Marcar UserParking.isActive = false
-    → Ejecutar ReportSpotReleasedUseCase
-      → Crear Spot en Firestore con TTL (time-to-live)
-      → Eliminar geofence
-      → Notificar al usuario "Plaza publicada"
-```
-
-**Posibles puntos de fallo a investigar**:
-- El `GeofenceBroadcastReceiver` no se registra correctamente tras boot
-- El `PendingIntent` pierde la referencia (revisar FLAG_MUTABLE)
-- El `geofenceId` no coincide entre creación y departure
-- Falta retry en caso de fallo de red al publicar a Firestore
-
-### Archivos de constantes sugeridos
-
-```kotlin
-// detection/config/DetectionConfig.kt
-object DetectionConfig {
-    const val GEOFENCE_RADIUS_METERS = 80f
-    const val STILL_THRESHOLD_SECONDS = 90
-    const val EXTENDED_STILL_SECONDS = 300
-    const val SPEED_THRESHOLD_MS = 1.0
-    const val HIGH_CONFIDENCE_THRESHOLD = 0.75
-    const val MEDIUM_CONFIDENCE_THRESHOLD = 0.55
-    const val ACTIVITY_EXIT_BASE_SCORE = 0.50
-    const val STILL_90S_SCORE = 0.40
-    const val STILL_5MIN_SCORE = 0.70
-    const val SPOT_TTL_MINUTES = 30L
-    const val TRANSITION_REREGISTER_HOURS = 12L
-}
-```
+| ID | Tarea | Estado | Tipo | Prioridad |
+|----|-------|--------|------|-----------|
+| `FND-001` | Extraer strings hardcoded a `strings.xml` | ✅ Done | Refactor | Alta |
+| `FND-002` | Eliminar magic numbers → `companion object` por clase | ✅ Done | Refactor | Alta |
+| `FND-003` | Unificar manejo de errores con `PaparcarError` sealed class | ✅ Done | Arquitectura | Alta |
+| `FND-004` | Fix bug geofence departure: la plaza no se publica al desaparcar | ✅ Done | Bug | Crítica |
+| `FND-005` | Integrar Firebase Crashlytics (Android) | ✅ Done | Infra | Alta |
+| `FND-006` | Crear `expect/actual` wrappers pendientes para iOS | ⏳ Pending | Arquitectura | Media |
+| `FND-007` | Ampliar tests unitarios: UseCases, Repos, ViewModels | ⏳ Pending | Testing | Alta |
+| `FND-008` | Limpiar archivos del repo: logs, `.kotlin/metadata/`, `build/` | ✅ Done | Repo | Baja |
+| `FND-009` | Configurar CI básico (GitHub Actions: build + tests) | ✅ Done | Infra | Media |
+| `FND-010` | Documentar expect/actual contracts para iOS | ⏳ Pending | Docs | Media |
+| `FND-011` | Migrar `PaparcarLogger` de `println` a Napier/Kermit | ⏳ Pending | Refactor | Media |
+| `FND-012` | Extraer `MONTH_NAMES_SHORT` / `dayLabels` de HistoryScreen a strings.xml | ⏳ Pending | Refactor | Media |
+| `FND-013` | Persistir toggles de Settings en `AppPreferences` (DataStore) | ⏳ Pending | Feature | Media |
 
 ---
 
@@ -93,85 +53,38 @@ object DetectionConfig {
 ### Objetivo
 Completar la pantalla principal como experiencia core de la app.
 
-### Nomenclatura de tareas
-
 | ID | Tarea | Estado | Tipo | Prioridad |
 |----|-------|--------|------|-----------|
-| `HOME-001` | Definir layout Home: Mapa + BottomSheet + Header flotante | ✅ Done | UI | Alta |
-| `HOME-002` | Implementar BottomSheet con lista de spots cercanos (`HomeSpotRows`) | ✅ Done | UI | Alta |
-| `HOME-003` | Vehicle Card component: modelo, matrícula, estado (aparcado/circulando) | ✅ Done | UI | Alta |
+| `HOME-001` | Layout Home: Mapa + BottomSheet + Header flotante | ✅ Done | UI | Alta |
+| `HOME-002` | BottomSheet con lista de spots cercanos (`HomeSpotRows`) | ✅ Done | UI | Alta |
+| `HOME-003` | SpotCard en bottom sheet: modelo, estado, selección | ✅ Done | UI | Alta |
 | `HOME-004` | FAB Menu: acciones manuales (reportar plaza / liberar vehículo) | ✅ Done | UI | Alta |
 | `HOME-005` | Map markers: diseño custom, clusters para densidad alta | ✅ Done | UI | Media |
 | `HOME-006` | Map type switcher (normal / terrain / satellite) | ✅ Done | UI | Baja |
-| `HOME-007` | Navegación principal: Pattern A (no BottomNav en Home, nav via FloatingHeader) | ✅ Done | UI/UX | Alta |
+| `HOME-007` | Pattern A: HomeScreen fullscreen sin BottomNav, nav via FloatingHeader | ✅ Done | UI/UX | Alta |
 | `HOME-008` | Search bar con geocoding (`SearchAddressUseCase`) | ✅ Done | Feature | Media |
-| `HOME-009` | Banner informativo GPS accuracy | ✅ Done | UX | Media |
+| `HOME-009` | Banner GPS accuracy / estado de permisos | ✅ Done | UX | Media |
 | `HOME-010` | ~~Pull-to-refresh spots cercanos~~ | ❌ Cancelled | Feature | — |
 | `HOME-011` | FAB unification: SpeedDial → right column, MapCircleFab visual language | ✅ Done | Refactor | Alta |
-| `HOME-012` | FloatingHeader: añadir acceso a MyCar (DirectionsCar icon) | ✅ Done | UI | Alta |
-| `HOME-013` | Implementar pantalla MyCar (estado vehículo, selector) | ⏳ Pending | UI | Alta |
-| `HOME-014` | Implementar pantalla History (lista de sesiones pasadas) | ⏳ Pending | UI | Media |
+| `HOME-012` | FloatingHeader: acceso a MyCar (DirectionsCar icon) | ✅ Done | UI | Alta |
+| `HOME-013` | Implementar pantalla MyCar completa (estado vehículo, selector) | ⏳ Pending | UI | Alta |
+| `HOME-014` | HistoryScreen: lista de sesiones agrupadas por día con mini-mapa | ✅ Done | UI | Media |
+| `HOME-015` | Skeleton loading + animación peek handle | ✅ Done | UX | Media |
+| `HOME-016` | Prevenir flash "Unknown location" durante geocoding | ✅ Done | Bug | Alta |
+| `HOME-017` | `ObserveAdaptiveLocationUseCase` en `ParkingLocationViewModel` (DT-005) | ⏳ Pending | Refactor | Media |
+| `HOME-018` | Mover `PARKING_ITEM_ID` a `HomeState` companion object (DT-007) | ⏳ Pending | Refactor | Baja |
+| `HOME-019` | Rename `MapScreen` → `ParkingLocationScreen` + eliminar dead code | ✅ Done | Refactor | Alta |
 
-### Decisión de navegación: Pattern A (Google Maps style) — IMPLEMENTADO
-
-**Decisión final: HomeScreen sin BottomNav; navegación secundaria via HomeFloatingHeader.**
-
-Razones:
-- Firebase Firestore Flows actualizan los spots en tiempo real → pull-to-refresh no aporta valor
-- HomeScreen tiene `navigationBarsPadding()` en el peek handle; una BottomNav encima crea conflictos de insets
-- El mapa debe ser full-screen para maximizar la superficie visual (Google Maps, Waze)
-- El FloatingHeader (☰ → Historia | Mi Coche | Ajustes) permite acceso completo a todas las secciones desde la pantalla principal
+### Navegación: Pattern A — IMPLEMENTADO Y CONFIRMADO DEFINITIVAMENTE
 
 ```
-Estructura de navegación:
-HomeScreen (sin BottomNav) — acceso via FloatingHeader ☰
-  ├─ Historia    (navega a HistoryScreen con BottomNav)
-  ├─ Mi Coche   (navega a MyCarScreen con BottomNav)
-  └─ Ajustes    (navega a SettingsScreen con BottomNav)
+HomeScreen (fullscreen, sin BottomNav) — nav via FloatingHeader ☰
+  ├─ Historia    → HistoryScreen (con BottomNav)
+  ├─ Mi Coche   → MyCarScreen (con BottomNav)
+  └─ Ajustes    → SettingsScreen (con BottomNav)
 
-BottomNav solo aparece en: Historia | Mi Coche | Ajustes
-```
-
-Alternativas descartadas (ver previews en `HomeComponentsPreviewsProposals.kt`):
-- **Pattern B**: BottomNav siempre visible → pierde 56dp de mapa, conflicto de insets con el sheet
-- **Pattern C**: BottomNav se oculta al expandir el sheet → más compleja, parpadeo en el umbral
-
-### Flujo FAB — Acciones Manuales
-
-```
-FAB (pulsación) → Expandir mini-menu:
-  ├─ "Reportar plaza libre" (vi una plaza disponible que no es la mía)
-  │   → Toca posición en mapa
-  │   → ReportManualSpotUseCase
-  │   → Crear Spot con type = MANUAL, reportedBy = userId
-  │   → TTL más corto (15 min vs 30 min para automáticas)
-  │
-  └─ "Liberar mi vehículo" (estoy saliendo con el coche)
-      → Confirmar "¿Dejar plaza disponible para otros?"
-        ├─ Sí → ReleaseParkingWithSpotUseCase
-        │       → UserParking.isActive = false
-        │       → Crear Spot tipo AUTO_RELEASED
-        │       → Eliminar geofence
-        └─ No → ReleaseParkingWithoutSpotUseCase
-                → UserParking.isActive = false
-                → NO crear Spot
-                → Eliminar geofence
-```
-
-### Tipos de Spot (nueva enumeración sugerida)
-
-```kotlin
-enum class SpotType {
-    AUTO_DETECTED,   // Detectado automáticamente por la app
-    AUTO_RELEASED,   // Usuario salió manualmente y dejó plaza
-    MANUAL_REPORT,   // Usuario reportó plaza que vio libre
-}
-
-enum class SpotStatus {
-    AVAILABLE,       // Plaza disponible
-    CLAIMED,         // Alguien va de camino
-    EXPIRED,         // TTL expirado sin reclamar
-}
+BottomNav solo visible en: Historia | Mi Coche | Ajustes
+Tab "Mapa" en BottomNav → navega de vuelta a Home (BottomNav desaparece)
 ```
 
 ---
@@ -179,139 +92,238 @@ enum class SpotStatus {
 ## 5. PHASE 2 — Vehículos & Bluetooth
 
 ### Objetivo
-Soportar múltiples vehículos por usuario y mejorar la precisión de detección con Bluetooth.
+Soportar múltiples vehículos por usuario, implementar detección BT y completar el FTUE con registro de vehículo.
 
-### Nomenclatura de tareas
+### Modelos de datos definitivos
 
-| ID | Tarea | Tipo | Prioridad |
-|----|-------|------|-----------|
-| `VEH-001` | Modelo de datos `Vehicle` (marca, modelo, matrícula, color, btDeviceId) | Data | Alta |
-| `VEH-002` | Pantalla de registro de vehículo (post-signup y desde Settings) | Feature | Alta |
-| `VEH-003` | Selector de vehículo activo en Home/Mi Coche | UI | Alta |
-| `VEH-004` | Room + Firestore: tabla `vehicles` con relación 1:N a `UserProfile` | Data | Alta |
-| `BT-001` | Bluetooth scanning: descubrir dispositivos BLE/Classic cercanos | Feature | Media |
-| `BT-002` | Emparejar dispositivo BT con un vehículo específico | Feature | Media |
-| `BT-003` | Pantalla `BluetoothConfigScreen`: scan, pair, manage | UI | Media |
-| `BT-004` | `BluetoothProximityDetector`: detectar connect/disconnect del coche | Feature | Alta |
-| `BT-005` | Integrar BT como señal adicional en `CalculateParkingConfidenceUseCase` | Feature | Alta |
-| `BT-006` | Permiso BT en flujo de permisos (paso opcional) | UX | Media |
-| `BT-007` | Acceso a BT Config desde Settings | UI | Baja |
-
-### Modelo de datos Vehicle
+#### `Vehicle`
 
 ```kotlin
 data class Vehicle(
     val id: String,
     val userId: String,
-    val brand: String,           // "Toyota"
-    val model: String,           // "Corolla"
-    val licensePlate: String?,   // "1234 ABC" (opcional)
-    val color: String?,
-    val bluetoothDeviceId: String?, // MAC o UUID del BT del coche
-    val bluetoothDeviceName: String?,
-    val isDefault: Boolean,      // Vehículo activo por defecto
+    val brand: String,                      // "Toyota"
+    val model: String,                      // "Corolla"
+    val sizeCategory: VehicleSize,          // obligatorio — determina tamaño plaza
+    val color: VehicleColor? = null,        // opcional, solo visible al propietario
+    val bluetoothDeviceId: String? = null,  // MAC del dispositivo BT del coche
+    val bluetoothDeviceName: String? = null,
+    val isActive: Boolean = false,          // vehículo en uso actualmente
+    val showBrandModelOnSpot: Boolean = false, // si true, visible en Spot público
     val createdAt: Long,
-    val updatedAt: Long,
 )
+
+enum class VehicleSize { MOTO, SMALL, MEDIUM, LARGE, VAN }
+
+enum class VehicleColor {
+    WHITE, BLACK, GREY, SILVER, BLUE, RED, GREEN, YELLOW, BROWN, ORANGE
+}
 ```
 
-### Estrategia Bluetooth — Cómo definirlo
+> **Nota de privacidad**: `color` nunca sube a Firestore. Solo sirve para que el propietario identifique su coche en notificaciones.
+> `licensePlate` eliminado del modelo — dato sensible no necesario para el funcionamiento de la app.
 
-**Principio**: El Bluetooth es un **potenciador de confianza**, no un requisito.
-
-**Flujo sin BT** (funciona como ahora):
-- Activity Recognition + GPS → Scoring → Confirmación
-
-**Flujo con BT** (mejora precisión):
-- Cuando el BT del coche se **desconecta** → señal fuerte de que saliste del vehículo (+0.60 score)
-- Cuando el BT del coche se **conecta** → señal fuerte de que estás subiendo al coche (departure)
-- **Multi-coche**: Si el BT que se desconecta corresponde al "Toyota", la sesión de parking se vincula a ese vehículo automáticamente
-
-**Scores actualizados con BT**:
-
-| Señal | Score |
-|-------|-------|
-| Activity IN_VEHICLE_EXIT | +0.50 |
-| BT Disconnect del coche registrado | +0.60 |
-| Parado 90s | +0.40 |
-| Parado 5 min | +0.70 |
-| STILL detectado | bonus |
-| GPS alta precisión | bonus |
-| **BT + Activity combinados** | **→ casi siempre HIGH** |
-
-**Para multi-coche sin BT**: La app no puede saber cuál de los coches aparcó. Opciones:
-1. Preguntar al usuario "¿Con qué coche estás?" al detectar parking (intrusivo)
-2. Usar el vehículo marcado como `isDefault` (simple, pragmático)
-3. Si hay BT configurado en alguno, usar eso para identificar automáticamente
-
-**Recomendación**: Empezar con opción 2 (default vehicle), y si tiene BT, usar opción 3 automáticamente. Opción 1 solo como fallback si tiene múltiples coches sin BT.
-
-### Flujo de registro de vehículo
+#### `VehicleSize` — strings con ejemplos (strings.xml, claves en todos los 9 idiomas)
 
 ```
-Post-Signup (o desde Settings > Mis Vehículos):
-  → VehicleRegistrationScreen
-    → Formulario: Marca (dropdown), Modelo (dropdown dependiente), Color, Matrícula (opcional)
-    → "¿Quieres emparejar Bluetooth?" (CTA opcional)
-      ├─ Sí → BluetoothConfigScreen (scan → pair → guardar)
-      └─ No → Guardar sin BT
-    → Si es el primer vehículo → isDefault = true automáticamente
-    → Sincronizar a Room + Firestore
+vehicle_size_moto          → "Moto / Scooter"
+vehicle_size_moto_examples → "Vespa, Honda CB500, Kawasaki Z400, BMW R1250…"
+
+vehicle_size_small          → "Coche pequeño"
+vehicle_size_small_examples → "Fiat 500, Smart ForTwo, Seat Mii, Toyota Aygo…"
+
+vehicle_size_medium          → "Turismo mediano"
+vehicle_size_medium_examples → "VW Golf, Toyota Corolla, Seat Ibiza, Ford Focus…"
+
+vehicle_size_large          → "Coche grande / SUV"
+vehicle_size_large_examples → "Toyota RAV4, BMW X3, Audi Q5, Volvo XC60…"
+
+vehicle_size_van          → "Furgoneta"
+vehicle_size_van_examples → "Mercedes Vito, Ford Transit, Renault Trafic…"
+```
+
+Los `*_examples` son idénticos en todos los idiomas (nombres propios, no se traducen). Solo se traducen los nombres de categoría.
+
+#### `Spot` — modelo revisado
+
+```kotlin
+data class Spot(
+    val id: String,
+    val location: GpsPoint,
+    val reportedBy: String,              // interno, NUNCA expuesto a otros usuarios
+    val vehicleSize: VehicleSize,        // obligatorio
+    val vehicleDisplay: String? = null,  // "Toyota Corolla" si showBrandModelOnSpot=true
+    val type: SpotType,
+    val confidence: Float,               // 0.0–1.0, interno
+    val reliability: SpotReliability,   // UI: fusión de type + confidence
+    val enRouteCount: Int = 0,
+    val reportedAt: Long,
+    val expiresAt: Long,                 // TTL dinámico según type
+    val address: String? = null,
+    val placeInfo: String? = null,
+)
+
+enum class SpotType {
+    AUTO_DETECTED,   // Detectado automáticamente por la app
+    AUTO_RELEASED,   // Usuario salió manualmente y dejó plaza
+    MANUAL_REPORT,   // Usuario reportó plaza que vio libre
+}
+
+enum class SpotStatus {
+    AVAILABLE,
+    CLAIMED,         // Alguien va de camino (TTL 5 min extra)
+    EXPIRED,
+}
+
+// Calculado en capa de presentación (no persiste en Firestore)
+enum class SpotReliability {
+    HIGH,    // AUTO_DETECTED + confidence ≥ 0.75  → verde
+    MEDIUM,  // AUTO_DETECTED + confidence 0.55–0.75, o AUTO_RELEASED → amarillo
+    LOW,     // AUTO_DETECTED + confidence < 0.55  → naranja
+    MANUAL,  // MANUAL_REPORT  → azul / icono diferente
+}
+```
+
+#### `UserParking` — distinción crítica de privacidad
+
+```
+UserParking → sesión privada del propietario
+  Almacenamiento: Room (cache) + Firestore /users/{uid}/parking/active
+  Visible: solo al propietario
+  Contiene: vehicleId, location, geofenceId, isActive, detectionMethod
+
+Spot → plaza libre visible a la comunidad
+  Almacenamiento: Firestore /spots/{spotId}
+  Visible: todos los usuarios
+  NO contiene: uid real, vehicleId, color, ningún dato personal
+```
+
+### TTL dinámico por tipo de spot
+
+| Tipo | TTL |
+|------|-----|
+| `AUTO_DETECTED` | 30 min |
+| `AUTO_RELEASED` | 30 min |
+| `MANUAL_REPORT` | 15 min |
+| `CLAIMED` (cualquiera) | +5 min adicionales |
+
+### Nomenclatura de tareas Phase 2
+
+| ID | Tarea | Tipo | Prioridad |
+|----|-------|------|-----------|
+| `VEH-001` | Modelo `Vehicle` definitivo (sin matrícula, con sizeCategory, showBrandModel) | Data | Alta |
+| `VEH-002` | `VehicleRegistration` screen: brand/model/size + BT opcional | Feature | Alta |
+| `VEH-003` | Selector de vehículo activo en MyCarScreen | UI | Alta |
+| `VEH-004` | Room + Firestore: tabla `vehicles` (1:N con UserProfile) | Data | Alta |
+| `VEH-005` | Strings `vehicle_size_*` + `vehicle_size_*_examples` en 9 idiomas | i18n | Alta |
+| `VEH-006` | Multi-vehicle: confirmación de vehículo al confirmar plaza (sin BT) | UX | Media |
+| `BT-001` | Bluetooth scanning: descubrir dispositivos BLE/Classic cercanos | Feature | Media |
+| `BT-002` | Emparejar dispositivo BT con vehículo específico | Feature | Media |
+| `BT-003` | `BluetoothConfigScreen`: scan, pair, manage | UI | Media |
+| `BT-004` | `BluetoothDetectionStrategy`: trigger en BT CONNECT + GPS sampling | Feature | Alta |
+| `BT-005` | Edge cases BT: ventana de parada breve, oscilación aftermarket, GPS drift check | Feature | Alta |
+| `BT-006` | Permiso BT en flujo de permisos (paso opcional, muy recomendado) | UX | Media |
+| `BT-007` | Acceso a BT Config desde Settings | UI | Baja |
+| `PERM-001` | `PermissionsRationaleScreen`: explica el pacto social antes de pedir permisos | UX | Alta |
+| `PERM-002` | Detection auto-start al aceptar todos los permisos requeridos | Feature | Alta |
+| `NOTIF-001` | Notificación de confirmación siempre para AR path (multi-vehicle selector) | UX | Alta |
+
+### Estrategia BT — lógica definitiva
+
+**Trigger: BT CONNECT** (usuario sube al coche = posible inicio de salida de plaza)
+
+```
+BT CONNECT en coordenadas C_departure
+  → Guardar C_departure + timestamp
+  → Iniciar muestreo GPS (cada BT_GPS_SAMPLE_INTERVAL)
+
+  Muestreo GPS:
+  ├── distancia(pos_actual, C_departure) > BT_MIN_DISPLACEMENT_M
+  │   Y tiempo > BT_MIN_TIME_BEFORE_REPORT
+  │       → PUBLICAR spot en C_departure (inmediatamente, sin esperar destino)
+  │
+  ├── tiempo > BT_IDLE_TIMEOUT sin moverse
+  │       → CANCELAR (falso positivo)
+  │
+  └── BT DISCONNECT (aparca en destino)
+          → Si ya publicado: fin de flujo
+          → Si no publicado aún: re-evaluar con GPS actual
+
+// Si BT reconecta en < BT_RECONNECT_FAST_WINDOW_MS → ignorar ciclo (aftermarket)
+```
+
+**Parámetros en `ParkingDetectionConfig`:**
+```kotlin
+val btMinDisplacementMeters: Float = 150f      // confirmar salida real
+val btMinTimeBeforeReportMs: Long  = 180_000L  // 3 min — evitar paradas brevísimas
+val btGpsSampleIntervalMs: Long    = 60_000L   // muestreo GPS cada 1 min
+val btIdleTimeoutMs: Long          = 600_000L  // 10 min sin moverse → cancelar
+val btReconnectFastWindowMs: Long  = 90_000L   // oscilación aftermarket → ignorar
+```
+
+**Sin BT: siempre notificación de confirmación**
+
+Para AR path, independientemente del confidence score, siempre se muestra notificación:
+- **Confidence HIGH**: "Plaza publicada — ¿Fue un error?" (con acción de retirar)
+- **Confidence MEDIUM**: "¿Has aparcado?" con acciones Sí/No
+- Si hay múltiples vehículos: selector de vehículo en la notificación o bottom sheet
+
+### FTUE definitivo
+
+```
+Splash
+  → Auth (login / registro)
+  → PermissionsRationaleScreen
+      "Paparcar funciona así: cuando tú aparques, tu plaza aparece
+       para otros. Para que funcione, necesitamos estos permisos:"
+       [Ubicación] [Actividad] [Notificaciones] [Ubicación en segundo plano]
+       Cada permiso con su justificación expandible
+  → Permissions request (sistema Android)
+  → VehicleRegistration
+      (si no existe ningún vehículo en BD)
+  → [Opcional] BluetoothConfig
+      "Empareja tu coche para detección más precisa"
+  → Home ← detección automáticamente activa
+
+Permisos y su momento de petición:
+  ✅ Bloqueante: ACCESS_FINE_LOCATION
+  ✅ Requerido al inicio: ACTIVITY_RECOGNITION
+  ✅ Requerido al inicio: POST_NOTIFICATIONS
+  ✅ Requerido al inicio: ACCESS_BACKGROUND_LOCATION (con rationale propio)
+  🔵 Opcional: BLUETOOTH_CONNECT (cuando usuario va a emparejar coche)
 ```
 
 ---
 
-## 6. PHASE 3 — UI/UX Design
+## 6. PHASE 3 — UI/UX Design System
 
-### Nomenclatura de tareas
+### Objetivo
+Implementar el sistema de diseño y los componentes UI core definidos en la Sesión 4 del UX Audit.
 
 | ID | Tarea | Tipo | Prioridad |
 |----|-------|------|-----------|
-| `UI-001` | Crear Design System: tokens de color, tipografía, spacing, shapes | Design | Alta |
-| `UI-002` | Componentes base: Button, Card, TextField, Dialog, Badge | UI | Alta |
-| `UI-003` | Rama `experiment/glass-ui` para probar estilo glassmorphism | Experiment | Media |
-| `UI-004` | Rediseño Onboarding con ilustraciones/animaciones | UI | Media |
-| `UI-005` | Pulir flujo de permisos: stepper visual, explicaciones claras | UX | Media |
-| `UI-006` | Banner/Snackbar de precisión GPS con niveles (buena/media/baja) | UX | Media |
-| `UI-007` | Animaciones y transiciones entre pantallas | UI | Baja |
-| `UI-008` | Dark mode / Light mode con sistema de temas | UI | Media |
-| `UI-009` | Iconografía custom para tipos de spot, estados de vehículo | UI | Baja |
+| `UI-001` | Design tokens: color, tipografía, spacing, shapes | Design | Alta |
+| `UI-002` | Componentes base MD3: Button, Card, TextField, Dialog, Badge | UI | Alta |
+| `UI-003` | Rama `experiment/glass-ui`: glassmorphism para BottomSheet y overlays de mapa | Experiment | Media |
+| `UI-004` | Rediseño Onboarding: carrusel 3 pasos con ilustraciones | UI | Media |
+| `UI-005` | `PermissionsRationaleScreen`: stepper visual, expansión por permiso | UX | Alta |
+| `UI-006` | `SpotCard`: sin botones inline; acción única "Navegar" = en camino, delegada al parent | UI | Alta |
+| `UI-007` | `DetectionStatusBanner` (BT / AR, con CTA de emparejamiento) | UI | Alta |
+| `UI-008` | `SpotMarker` custom con estados TTL y reliability | UI | Media |
+| `UI-009` | `ConfirmationBottomSheet`: countdown 4 min, timeout = publicar (no descartar) + notificación post-publicación con acción "Retirar" | UI | Alta |
+| `UI-010` | `VehicleCard` con estado de detección | UI | Alta |
+| `UI-011` | `TTLIndicator` y `EnRouteIndicator` | UI | Media |
+| `UI-012` | `VehicleSizeSelector` con ejemplos de modelos | UI | Alta |
+| `UI-013` | Dark mode como default, light mode como opción | UI | Alta |
+| `UI-014` | Animaciones y transiciones entre pantallas | UI | Baja |
+| `UI-015` | Añadir fuentes Syne/Jost a `composeResources/font/` | UI | Media |
+| `UI-016` | `SpotReliability` chip expandible en SpotCard | UI | Media |
 
-### Sugerencia de Design Tokens
+### Dirección visual definitiva
 
-```kotlin
-// ui/theme/PaparcarTokens.kt
-object PaparcarColors {
-    // Primary: Emerald green (ya definido en el logo)
-    val Primary = Color(0xFF10B981)
-    val PrimaryDark = Color(0xFF059669)
-    val PrimaryLight = Color(0xFF6EE7B7)
-
-    // Spot states
-    val SpotAvailable = Color(0xFF10B981)  // Verde
-    val SpotClaimed = Color(0xFFF59E0B)    // Ámbar
-    val SpotExpired = Color(0xFF6B7280)    // Gris
-
-    // Vehicle states
-    val VehicleParked = Color(0xFF3B82F6)  // Azul
-    val VehicleMoving = Color(0xFF10B981)  // Verde
-
-    // GPS accuracy
-    val GpsHigh = Color(0xFF10B981)
-    val GpsMedium = Color(0xFFF59E0B)
-    val GpsLow = Color(0xFFEF4444)
-}
-```
-
-### Glass UI — Qué probar
-
-El estilo glass (glassmorphism) encaja bien en una app de mapas porque:
-- Los fondos semi-transparentes permiten ver el mapa detrás de los controles
-- Da sensación premium y moderna
-- Funciona bien con BottomSheets y overlays
-
-**Qué aplicar glass**: BottomSheet de spots, Vehicle Card, Header flotante, FAB expandido
-**Qué NO aplicar glass**: Formularios, Settings, pantallas sin mapa detrás
+**Modo:** Dark como default, light disponible en Settings.
+**Paleta primaria:** Emerald green `#10B981` (ya en el tema actual).
+**Tipografía:** System font en Phase 1-2; migrar a Syne/Jost en Phase 3 (`UI-015`).
 
 ---
 
@@ -319,27 +331,29 @@ El estilo glass (glassmorphism) encaja bien en una app de mapas porque:
 
 ### History
 
-| ID | Tarea | Tipo | Prioridad |
-|----|-------|------|-----------|
-| `HIST-001` | Revisar UI: lista agrupada por día con mini-mapa | UI | Media |
-| `HIST-002` | Filtros: por vehículo, rango de fechas, zona | Feature | Baja |
-| `HIST-003` | Detalle de sesión: mapa, duración, dirección, vehículo | UI | Media |
-| `HIST-004` | Tests: HistoryViewModel, mappers, filtrado | Testing | Media |
-| `HIST-005` | Estadísticas básicas: tiempo medio aparcado, zonas frecuentes | Feature | Baja |
-| `HIST-006` | Limpieza de código y arquitectura de la feature | Refactor | Media |
+| ID | Tarea | Estado | Tipo | Prioridad |
+|----|-------|--------|------|-----------|
+| `HIST-001` | UI base: lista agrupada por día con mini-mapa en cada sesión | ✅ Done | UI | Alta |
+| `HIST-002` | Filtros: por vehículo, rango de fechas | ⏳ Pending | Feature | Baja |
+| `HIST-003` | `ParkingLocationScreen`: mapa de detalle desde sesión | ✅ Done | UI | Media |
+| `HIST-004` | Tests: HistoryViewModel, mappers, filtrado | ⏳ Pending | Testing | Media |
+| `HIST-005` | Estadísticas básicas: tiempo medio aparcado, zonas frecuentes | ⏳ Pending | Feature | Baja |
+| `HIST-006` | Fix DT-002: `MONTH_NAMES_SHORT` y `dayLabels` → strings.xml | ⏳ Pending | Refactor | Media |
+| `HIST-007` | Fix DT-003: extraer `DAY_MS = 86_400_000L` a companion object | ⏳ Pending | Refactor | Baja |
 
-### Settings — Secciones sugeridas
+### Settings
 
-| ID | Sección | Contenido |
-|----|---------|-----------|
-| `SET-001` | **Perfil** | Nombre, foto, email, logout, eliminar cuenta |
-| `SET-002` | **Mis Vehículos** | Lista de coches, añadir/editar/eliminar, vehículo por defecto |
-| `SET-003` | **Bluetooth** | Dispositivos emparejados, re-escanear, activar/desactivar BT detection |
-| `SET-004` | **Detección** | Sensibilidad de detección (auto/manual), radio de geofence, auto-publicar plaza |
-| `SET-005` | **Mapa** | Tipo de mapa default, unidades distancia, radio de búsqueda spots |
-| `SET-006` | **Notificaciones** | Activar/desactivar por tipo (parking confirmado, plaza cerca, BT events) |
-| `SET-007` | **Privacidad** | Compartir ubicación, datos anónimos, exportar/eliminar datos (GDPR) |
-| `SET-008` | **Sobre la App** | Versión, licencias, contacto, política de privacidad |
+| ID | Sección | Contenido | Estado |
+|----|---------|-----------|--------|
+| `SET-001` | **Perfil** | Nombre, foto, email, logout, eliminar cuenta | ⏳ Pending |
+| `SET-002` | **Mis Vehículos** | Lista, añadir/editar/eliminar, activo por defecto | ⏳ Pending |
+| `SET-003` | **Bluetooth** | Dispositivos emparejados, re-escanear, toggle BT detection | ⏳ Pending |
+| `SET-004` | **Detección** | Sensibilidad (auto/manual), radio de geofence, auto-publicar | ⏳ Pending |
+| `SET-005` | **Mapa** | Tipo default, unidades distancia, radio de búsqueda | ⏳ Pending |
+| `SET-006` | **Notificaciones** | Toggle por tipo: parking confirmado, plaza cerca, BT events | ⏳ Pending |
+| `SET-007` | **Privacidad** | Compartir ubicación, exportar/eliminar datos (GDPR), política | ⏳ Pending |
+| `SET-008` | **Sobre la App** | Versión, licencias, contacto | ⏳ Pending |
+| `SET-009` | **Idioma** | Selector: Automático + 9 idiomas soportados | ⏳ Pending |
 
 ---
 
@@ -347,216 +361,132 @@ El estilo glass (glassmorphism) encaja bien en una app de mapas porque:
 
 | ID | Tarea | Tipo |
 |----|-------|------|
-| `QA-001` | Tests de integración: flujo completo detect → confirm → publish | Testing |
-| `QA-002` | Tests de UI: Compose Preview Tests para pantallas principales | Testing |
-| `QA-003` | Crashlytics: configurar alertas, analizar crashes top | Monitoring |
-| `QA-004` | Edge cases: sin GPS, modo avión, batería baja, kill del proceso | QA |
-| `QA-005` | Performance: profiling de batería del servicio en foreground | QA |
-| `QA-006` | Accessibility: content descriptions, contraste, tamaños de fuente | UX |
-| `QA-007` | Beta testing interno: distribución via Firebase App Distribution | Release |
-| `QA-008` | Disclaimer GPS accuracy: diálogo inicial + banner en mapa | UX |
+| `QA-001` | Tests integración: flujo completo detect → confirm → publish | Testing |
+| `QA-002` | Tests de UI: Compose Preview Tests pantallas principales | Testing |
+| `QA-003` | Crashlytics: alertas, análisis crashes top | Monitoring |
+| `QA-004` | Edge cases: sin GPS, modo avión, batería baja, kill de proceso | QA |
+| `QA-005` | Performance: profiling batería del foreground service | QA |
+| `QA-006` | Accessibility: content descriptions, contraste, tamaños fuente | UX |
+| `QA-007` | Beta testing interno: Firebase App Distribution | Release |
+| `QA-008` | Disclaimer GPS accuracy: diálogo inicial + banner | UX |
 
 ---
 
 ## 9. PHASE 6 — iOS Port
 
-### Componentes que necesitan `expect/actual` o equivalente nativo
-
 | Componente Android | Equivalente iOS | Complejidad |
 |--------------------|----------------|-------------|
-| `ParkingDetectionService` (Foreground Service) | Background Task + CLLocationManager | Alta |
-| `ActivityTransitionReceiver` (BroadcastReceiver) | CMMotionActivityManager | Media |
-| `BootCompletedReceiver` | No aplica (iOS no tiene boot receiver) | N/A |
+| `SpotDetectionForegroundService` | Background Task + CLLocationManager | Alta |
+| `ActivityTransitionReceiver` | CMMotionActivityManager | Media |
 | `FusedLocationProvider` | CLLocationManager | Media |
-| `WorkManager` (Enrich, Report, Reregister) | BGTaskScheduler | Alta |
+| `WorkManager` | BGTaskScheduler | Alta |
 | `GeofencingClient` | CLCircularRegion + CLLocationManager | Media |
 | `BluetoothAdapter / BLE` | CoreBluetooth (CBCentralManager) | Alta |
 | `NotificationManager` | UNUserNotificationCenter | Media |
-| `Permissions handling` | Info.plist + runtime requests | Media |
-
-### Recomendación para iOS
-Crear un módulo `iosMain/` paralelo a `androidMain/` con implementaciones `actual` para cada `expect` interface. La lógica de negocio (domain/) y los ViewModels ya son compartidos gracias a KMP.
 
 ---
 
-## 10. Nomenclatura Global del Proyecto
+## 10. Decisiones de Diseño Confirmadas
 
-### Convención de nombres para ramas
+### Privacidad — reglas permanentes
 
+1. `Spot.reportedBy` = interno, nunca expuesto a otros usuarios
+2. `Vehicle.color` = solo en Room local, nunca a Firestore
+3. `Vehicle.licensePlate` = eliminado del modelo (dato sensible innecesario)
+4. `UserParking` = colección privada `/users/{uid}/parking/`, nunca pública
+5. Lo que ven otros usuarios de una plaza: ubicación, `vehicleSize`, `vehicleDisplay?` (opt-in), tipo, TTL, enRouteCount
+6. Comunicación al usuario: transparencia en cada punto de contacto (permisos, registro, spot publicado)
+
+### Navegación — Pattern D, definitivo
+
+- HomeScreen fullscreen sin BottomNav
+- BottomNav solo en History / MyCar / Settings
+- FloatingHeader (☰) en HomeScreen da acceso a todo
+- Sin botón de activación de detección — se activa con los permisos
+
+### Detección — principios permanentes
+
+- Detection auto-start: activar permisos = detección encendida permanentemente
+- BT path: trigger BT CONNECT + GPS drift check (no esperar destino)
+- AR path: siempre notificación de confirmación (usuario puede estar en taxi/autobús)
+- Estrategias BT y AR son **independientes y nunca se mezclan** en el scoring
+- Multi-vehículo sin BT: usar `isActive = true`; preguntar en notificación si hay varios
+
+### UX — principios de glanceability
+
+- Info crítica (distancia, TTL) legible en un golpe de vista a 40cm
+- Touch targets mínimo 48dp
+- Codificación de color consistente: verde=disponible, ámbar=reclamado/bajo TTL, rojo=urgente
+- Dark mode por defecto (uso nocturno y en garajes)
+
+---
+
+## 11. Nomenclatura Global
+
+### Ramas
 ```
-feature/HOME-001-bottom-sheet
+feature/HOME-013-mycar-screen
 feature/VEH-002-vehicle-registration
-feature/BT-003-bluetooth-config
-bugfix/FND-004-geofence-departure
-refactor/FND-001-extract-strings
+feature/BT-004-bt-detection-strategy
+feature/PERM-001-permissions-rationale
+bugfix/HIST-006-month-names-hardcoded
+refactor/FND-011-logger-napier
 experiment/UI-003-glass-ui
-chore/FND-008-repo-cleanup
 ```
 
-### Convención de commits
-
+### Commits
 ```
-feat(home): implement bottom sheet with nearby spots [HOME-002]
-fix(detection): geofence departure not triggering spot publish [FND-004]
-refactor(core): extract magic numbers to DetectionConfig [FND-002]
-test(domain): add tests for ConfirmParkingUseCase [FND-007]
-chore(repo): remove build log files [FND-008]
-style(ui): apply glass effect to vehicle card [UI-003]
+feat(vehicle): add VehicleSize model with string examples [VEH-001]
+feat(detection): implement BT connect trigger with GPS drift check [BT-004]
+feat(permissions): add rationale screen before permission request [PERM-001]
+fix(history): extract MONTH_NAMES_SHORT to strings.xml [HIST-006]
+feat(settings): add language selector [SET-009]
+feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 ```
-
-### Estructura de paquetes sugerida (evolución)
-
-```
-composeApp/
-├── src/
-│   ├── commonMain/
-│   │   └── kotlin/com/paparcar/
-│   │       ├── core/
-│   │       │   ├── config/          ← DetectionConfig, AppConstants
-│   │       │   ├── model/           ← GpsPoint, Result wrappers
-│   │       │   ├── util/            ← Extensions, helpers
-│   │       │   └── designsystem/    ← Tokens, Theme, base components
-│   │       ├── domain/
-│   │       │   ├── model/           ← Spot, UserParking, Vehicle, UserProfile
-│   │       │   ├── repository/      ← Interfaces
-│   │       │   └── usecase/
-│   │       │       ├── auth/
-│   │       │       ├── parking/
-│   │       │       ├── spot/
-│   │       │       ├── vehicle/
-│   │       │       ├── location/
-│   │       │       └── bluetooth/
-│   │       ├── data/
-│   │       │   ├── local/           ← Room DAOs, entities
-│   │       │   ├── remote/          ← Firestore datasources
-│   │       │   ├── mapper/
-│   │       │   └── repository/      ← Implementations
-│   │       ├── presentation/
-│   │       │   ├── navigation/
-│   │       │   ├── splash/
-│   │       │   ├── onboarding/
-│   │       │   ├── permissions/
-│   │       │   ├── home/
-│   │       │   │   ├── HomeScreen.kt
-│   │       │   │   ├── HomeViewModel.kt
-│   │       │   │   ├── components/  ← VehicleCard, SpotRow, MapControls
-│   │       │   │   └── model/       ← HomeState, HomeIntent, HomeEffect
-│   │       │   ├── history/
-│   │       │   ├── settings/
-│   │       │   ├── vehicle/         ← Registration, selector
-│   │       │   └── bluetooth/       ← Config, scan, pair
-│   │       └── di/
-│   │
-│   ├── androidMain/
-│   │   └── kotlin/com/paparcar/
-│   │       ├── detection/           ← Service, Receivers, Coordinator
-│   │       ├── location/            ← FusedLocation wrapper
-│   │       ├── bluetooth/           ← Android BT implementation
-│   │       ├── notification/
-│   │       ├── permission/
-│   │       ├── worker/              ← WorkManager workers
-│   │       └── geofence/
-│   │
-│   └── iosMain/
-│       └── kotlin/com/paparcar/
-│           ├── detection/           ← CMMotionActivity wrapper
-│           ├── location/            ← CLLocationManager wrapper
-│           ├── bluetooth/           ← CoreBluetooth wrapper
-│           ├── notification/
-│           ├── permission/
-│           └── background/          ← BGTaskScheduler wrapper
-```
-
----
-
-## 11. Lo Que Yo Añadiría
-
-### Añadir
-1. **Spot TTL dinámico**: Las plazas manuales expiran en 15 min, las automáticas en 30 min, las de zonas de alta rotación en 20 min
-2. **Spot claiming**: Cuando un usuario va camino a una plaza, marcarla como "reclamada" para que otros no la busquen (TTL de 5 min para llegar)
-3. **Gamificación ligera**: Puntos por compartir plazas, badges, ranking semanal de tu zona. Incentiva el uso
-4. **Widget Android**: Mini-widget con estado del coche (aparcado/libre) y tiempo transcurrido
-5. **Zona habitual**: Detectar las 2-3 zonas donde más aparca el usuario y priorizarlas en la búsqueda
-6. **Rate limiting de spots**: Evitar spam de plazas manuales falsas
-7. **Reportar spot falso**: Botón en el detalle del spot para reportar que no existe
-8. **Deep links**: `paparcar://spot/{id}` para compartir una plaza por WhatsApp
-
-### Quitar o Modificar
-1. **Simplificar el onboarding**: En lugar de múltiples screens, un carrusel de 3 pasos máximo con animaciones
-2. **No forzar todos los permisos de golpe**: Pedir permisos contextualmente (BG location cuando detecte el primer viaje, no al inicio)
-3. **Eliminar `build_errors.log` y `build_log.txt` del repo**: Son artefactos de desarrollo, no pertenecen al VCS
-4. **El directorio `.kotlin/metadata/`** tampoco debería estar commiteado
-
-### Modificar
-1. **BaseLogin library**: Ya que es vuestra, considerar añadir el flujo de registro de vehículo como step post-auth dentro de la propia librería
-2. **Geofence radius**: Hacerlo configurable por zona (centro ciudad = 50m, periferia = 100m) basado en densidad
-3. **Modelo Spot**: Añadir `confidence` y `verifiedCount` para implementar trust score futuro
 
 ---
 
 ## 12. Orden de Ejecución Recomendado
 
-### Sprint 1 (Semanas 1-2): Lo urgente
-- `FND-004` Fix geofence departure (bloquea el flujo core)
-- `FND-001` Strings hardcoded
-- `FND-002` Magic numbers
-- `FND-008` Limpiar repo
+### Sprint actual (Phase 0 + 1 pendientes)
+- `HOME-017` / `HOME-018` — deuda técnica menor en Home
+- `FND-011` — migrar Logger
+- `FND-012` / `FND-013` — strings y persistencia Settings
 
-### Sprint 2 (Semanas 3-4): Infraestructura
-- `FND-005` Crashlytics
-- `FND-009` CI básico
-- `FND-003` Error handling unificado
-- `FND-007` Tests core (empezar)
+### Sprint Phase 2 — arranque
+- `PERM-001` / `PERM-002` — pantalla de rationale + auto-start detección
+- `VEH-001` / `VEH-004` — modelo Vehicle + BD
+- `VEH-002` / `VEH-003` — registro y selector
+- `VEH-005` — strings de VehicleSize en 9 idiomas
 
-### Sprint 3-4 (Semanas 5-8): Home funcional
-- `HOME-007` Decidir e implementar BottomNav
-- `HOME-001` Layout Home
-- `HOME-002` BottomSheet spots
-- `HOME-003` Vehicle Card
+### Sprint Phase 2 — Bluetooth
+- `BT-001` / `BT-002` — scanning y emparejamiento
+- `BT-004` / `BT-005` — estrategia BT + edge cases
+- `NOTIF-001` — notificación confirmación con multi-vehicle
 
-### Sprint 5-6 (Semanas 9-12): Home completo + mapa
-- `HOME-004` FAB menu
-- `HOME-005` Map markers
-- `HOME-008` Search bar
-- `HOME-006` Map type switcher
+### Sprint Phase 3 — Design System
+- `UI-001` tokens → `UI-002` base components → componentes específicos (`UI-006` a `UI-012`)
+- `UI-003` experimento glass en rama separada
 
-### Sprint 7-9 (Semanas 13-18): Vehículos
-- `VEH-001` a `VEH-004` Modelo y registro
-- `BT-001` a `BT-003` Bluetooth básico
-- `BT-004` a `BT-005` BT como señal de detección
-
-### Sprint 10-12 (Semanas 19-24): UI + Polish
-- `UI-001` Design System
-- `UI-003` Glass UI experiment
-- `UI-005` Permisos polish
-- `HIST-001` a `HIST-006` History
-- `SET-001` a `SET-008` Settings
-
-### Sprint 13-15 (Semanas 25-30): QA + Beta
-- `QA-001` a `QA-008` Testing completo
-- Beta interna
-
-### Sprint 16-22 (Semanas 31-42): iOS
-- Port completo de `androidMain` → `iosMain`
-- QA iOS + App Store
+### Sprint Phase 4 — Completar secundarias
+- `HIST-002` / `HIST-005` — filtros y estadísticas
+- `SET-001` a `SET-009` — todas las secciones de Settings
 
 ---
 
 ## 13. Métricas de Progreso
 
-Para ir midiendo el avance, estas métricas te ayudarán:
-
 | Métrica | Objetivo |
 |---------|----------|
-| Cobertura de tests | >60% en domain/, >40% en data/ |
-| Crash-free rate (Crashlytics) | >99% |
+| Cobertura tests | >60% en domain/, >40% en data/ |
+| Crash-free rate | >99% (Crashlytics) |
 | Strings externalizados | 100% |
 | Magic numbers eliminados | 100% |
-| Features con BottomNav accesibles | 4/4 |
-| Flujo parking detect → publish | Funcional sin bugs |
+| Flujo detect → publish | Funcional sin bugs |
+| FTUE completion rate | >70% (permiso → vehículo → home) |
 | Tiempo medio detección parking | <3 minutos |
 
 ---
 
 *Documento vivo — actualizar conforme avance el desarrollo.*
-*Última actualización: Marzo 2026*
+*Última actualización: Abril 2026 — post UX Audit Sessions 1–4*
