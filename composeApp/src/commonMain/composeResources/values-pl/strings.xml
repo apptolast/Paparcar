@@ -126,6 +126,25 @@
     <string name="history_month_10">Październik</string>
     <string name="history_month_11">Listopad</string>
     <string name="history_month_12">Grudzień</string>
+    <string name="history_month_short_1">sty</string>
+    <string name="history_month_short_2">lut</string>
+    <string name="history_month_short_3">mar</string>
+    <string name="history_month_short_4">kwi</string>
+    <string name="history_month_short_5">maj</string>
+    <string name="history_month_short_6">cze</string>
+    <string name="history_month_short_7">lip</string>
+    <string name="history_month_short_8">sie</string>
+    <string name="history_month_short_9">wrz</string>
+    <string name="history_month_short_10">paź</string>
+    <string name="history_month_short_11">lis</string>
+    <string name="history_month_short_12">gru</string>
+    <string name="history_day_short_mon">Pn</string>
+    <string name="history_day_short_tue">Wt</string>
+    <string name="history_day_short_wed">Śr</string>
+    <string name="history_day_short_thu">Cz</string>
+    <string name="history_day_short_fri">Pt</string>
+    <string name="history_day_short_sat">So</string>
+    <string name="history_day_short_sun">Nd</string>
 
     <!-- MapScreen -->
     <string name="map_title">Mapa miejsc</string>

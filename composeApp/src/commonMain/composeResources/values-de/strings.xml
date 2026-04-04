@@ -126,6 +126,25 @@
     <string name="history_month_10">Oktober</string>
     <string name="history_month_11">November</string>
     <string name="history_month_12">Dezember</string>
+    <string name="history_month_short_1">Jan</string>
+    <string name="history_month_short_2">Feb</string>
+    <string name="history_month_short_3">Mär</string>
+    <string name="history_month_short_4">Apr</string>
+    <string name="history_month_short_5">Mai</string>
+    <string name="history_month_short_6">Jun</string>
+    <string name="history_month_short_7">Jul</string>
+    <string name="history_month_short_8">Aug</string>
+    <string name="history_month_short_9">Sep</string>
+    <string name="history_month_short_10">Okt</string>
+    <string name="history_month_short_11">Nov</string>
+    <string name="history_month_short_12">Dez</string>
+    <string name="history_day_short_mon">Mo</string>
+    <string name="history_day_short_tue">Di</string>
+    <string name="history_day_short_wed">Mi</string>
+    <string name="history_day_short_thu">Do</string>
+    <string name="history_day_short_fri">Fr</string>
+    <string name="history_day_short_sat">Sa</string>
+    <string name="history_day_short_sun">So</string>
 
     <!-- MapScreen -->
     <string name="map_title">Stellplatzkarte</string>

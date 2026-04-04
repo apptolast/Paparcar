@@ -131,6 +131,27 @@
     <string name="history_month_10">October</string>
     <string name="history_month_11">November</string>
     <string name="history_month_12">December</string>
+    <!-- Short month names (3 chars) for date headers in timeline -->
+    <string name="history_month_short_1">Jan</string>
+    <string name="history_month_short_2">Feb</string>
+    <string name="history_month_short_3">Mar</string>
+    <string name="history_month_short_4">Apr</string>
+    <string name="history_month_short_5">May</string>
+    <string name="history_month_short_6">Jun</string>
+    <string name="history_month_short_7">Jul</string>
+    <string name="history_month_short_8">Aug</string>
+    <string name="history_month_short_9">Sep</string>
+    <string name="history_month_short_10">Oct</string>
+    <string name="history_month_short_11">Nov</string>
+    <string name="history_month_short_12">Dec</string>
+    <!-- Short day labels for weekly activity chart (Mon=1 … Sun=7) -->
+    <string name="history_day_short_mon">Mo</string>
+    <string name="history_day_short_tue">Tu</string>
+    <string name="history_day_short_wed">We</string>
+    <string name="history_day_short_thu">Th</string>
+    <string name="history_day_short_fri">Fr</string>
+    <string name="history_day_short_sat">Sa</string>
+    <string name="history_day_short_sun">Su</string>
 
     <!-- MapScreen -->
     <string name="map_title">Spots map</string>
