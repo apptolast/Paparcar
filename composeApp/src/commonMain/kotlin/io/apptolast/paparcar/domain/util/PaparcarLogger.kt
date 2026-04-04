@@ -1,13 +1,14 @@
 package io.apptolast.paparcar.domain.util
 
 import io.apptolast.paparcar.core.crash.CrashReporter
+import io.github.aakira.napier.Napier
 
 /**
- * Minimal structured logger for Paparcar.
+ * Minimal structured logger for Paparcar backed by Napier.
  *
- * All output goes through [println] so it works across all KMP targets without
- * platform-specific dependencies. Replace the body of each function with a
- * Napier/Kermit call when added to the project — call sites will not change.
+ * Napier must be initialised before first use:
+ * - Android: call [initLogging] in `Application.onCreate()`
+ * - iOS:     call `NapierProxyKt.debugBuild()` in the Swift entry point (debug only)
  *
  * Error-level logs with a [Throwable] are also forwarded to [CrashReporter]
  * for non-fatal tracking in Firebase Crashlytics (Android).
@@ -15,22 +16,19 @@ import io.apptolast.paparcar.core.crash.CrashReporter
 object PaparcarLogger {
 
     fun d(tag: String, message: String) {
-        println("D/Paparcar[$tag]: $message")
+        Napier.d(message, tag = tag)
     }
 
     fun i(tag: String, message: String) {
-        println("I/Paparcar[$tag]: $message")
+        Napier.i(message, tag = tag)
     }
 
     fun w(tag: String, message: String, throwable: Throwable? = null) {
-        println("W/Paparcar[$tag]: $message${throwable.suffix()}")
+        Napier.w(message, throwable = throwable, tag = tag)
     }
 
     fun e(tag: String, message: String, throwable: Throwable? = null) {
-        println("E/Paparcar[$tag]: $message${throwable.suffix()}")
+        Napier.e(message, throwable = throwable, tag = tag)
         throwable?.let { CrashReporter.recordNonFatal(tag, message, it) }
     }
-
-    private fun Throwable?.suffix(): String =
-        this?.message?.let { " — $it" } ?: ""
 }

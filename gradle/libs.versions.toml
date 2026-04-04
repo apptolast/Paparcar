@@ -57,6 +57,9 @@ google-services = "4.4.4"
 # Core: Google Maps en Android + Apple Maps en iOS (sin CocoaPods)
 kmp-maps = "0.8.1"
 
+# ── Logging — Napier ─────────────────────────────────────────────────────────
+napier = "2.7.1"
+
 # ── Login Library ────────────────────────────────────────────────────────────
 baselogin = "1.0.8"
 
@@ -132,6 +135,9 @@ firebase-common = { module = "dev.gitlive:firebase-common", version.ref = "fireb
 
 # ── KMP Maps (Software Mansion) ──────────────────────────────────────────────
 kmp-maps-core = { module = "com.swmansion.kmpmaps:core", version.ref = "kmp-maps" }
+
+# ── Logging — Napier (KMP) ───────────────────────────────────────────────────
+napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 
 # ── Login Library (JitPack) ───────────────────────────────────────────────────
 baselogin = { module = "com.github.apptolast.BaseLogin:baselogin", version.ref = "baselogin" }

@@ -64,6 +64,9 @@ kotlin {
             // Login Library (JitPack)
             implementation(libs.baselogin)
 
+            // Logging — Napier (KMP structured logger)
+            implementation(libs.napier)
+
             // Kotlin coroutines y utils
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.datetime)

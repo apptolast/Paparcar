@@ -3,6 +3,8 @@ package io.apptolast.paparcar
 import android.app.Application
 import androidx.work.WorkManager
 import com.apptolast.customlogin.appContext
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import com.apptolast.customlogin.config.AppleSignInConfig
 import com.apptolast.customlogin.config.GoogleSignInConfig
 import com.apptolast.customlogin.config.MagicLinkConfig
@@ -21,6 +23,7 @@ class PaparcarApp : Application() {
         super.onCreate()
 
         appContext = this
+        Napier.base(DebugAntilog())
 
         val loginConfig = LoginLibraryConfig(
             googleSignInConfig = GoogleSignInConfig(
