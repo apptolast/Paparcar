@@ -53,6 +53,7 @@ import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
 import io.apptolast.paparcar.presentation.mycar.MyCarScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
+import io.apptolast.paparcar.presentation.permissions.PermissionsRationaleScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
@@ -72,6 +73,7 @@ internal object Routes {
     const val SETTINGS = "settings"
     const val ONBOARDING = "onboarding"
     const val PERMISSIONS = "permissions"
+    const val PERMISSIONS_RATIONALE = "permissions_rationale"
     const val VEHICLE_REGISTRATION = "vehicle_registration"
 }
 
@@ -81,7 +83,12 @@ private val BOTTOM_NAV_ROUTES = setOf(
     Routes.SETTINGS,
 )
 
-private val GATE_SCREENS = setOf(Routes.PERMISSIONS, Routes.ONBOARDING, Routes.VEHICLE_REGISTRATION)
+private val GATE_SCREENS = setOf(
+    Routes.PERMISSIONS,
+    Routes.PERMISSIONS_RATIONALE,
+    Routes.ONBOARDING,
+    Routes.VEHICLE_REGISTRATION,
+)
 
 @Composable
 fun App(
@@ -216,8 +223,22 @@ private fun MainAppNavigation(
                 OnboardingScreen(
                     onComplete = {
                         onHandleIntent()
-                        navController.navigate(Routes.PERMISSIONS) {
+                        navController.navigate(Routes.PERMISSIONS_RATIONALE) {
                             popUpTo(Routes.ONBOARDING) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable(Routes.PERMISSIONS_RATIONALE) {
+                PermissionsRationaleScreen(
+                    onAccept = {
+                        navController.navigate(Routes.PERMISSIONS) {
+                            popUpTo(Routes.PERMISSIONS_RATIONALE) { inclusive = true }
+                        }
+                    },
+                    onSkip = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.PERMISSIONS_RATIONALE) { inclusive = true }
                         }
                     },
                 )
