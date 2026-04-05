@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
 
         val permState = permissionManager.permissionState.value
         val startRoute = when {
+            !appPreferences.hasVehicleRegistered -> Routes.VEHICLE_REGISTRATION
             !appPreferences.isOnboardingCompleted -> Routes.ONBOARDING
             !permState.allPermissionsGranted -> Routes.PERMISSIONS
             !permState.isLocationServicesEnabled -> Routes.PERMISSIONS

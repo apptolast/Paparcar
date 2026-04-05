@@ -54,6 +54,7 @@ import io.apptolast.paparcar.presentation.mycar.MyCarScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
+import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -71,6 +72,7 @@ internal object Routes {
     const val SETTINGS = "settings"
     const val ONBOARDING = "onboarding"
     const val PERMISSIONS = "permissions"
+    const val VEHICLE_REGISTRATION = "vehicle_registration"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -79,7 +81,7 @@ private val BOTTOM_NAV_ROUTES = setOf(
     Routes.SETTINGS,
 )
 
-private val GATE_SCREENS = setOf(Routes.PERMISSIONS, Routes.ONBOARDING)
+private val GATE_SCREENS = setOf(Routes.PERMISSIONS, Routes.ONBOARDING, Routes.VEHICLE_REGISTRATION)
 
 @Composable
 fun App(
@@ -192,6 +194,16 @@ private fun MainAppNavigation(
             startDestination = startRoute,
             modifier = Modifier.fillMaxSize(),
         ) {
+            composable(Routes.VEHICLE_REGISTRATION) {
+                VehicleRegistrationScreen(
+                    onRegistrationComplete = {
+                        navController.navigate(Routes.ONBOARDING) {
+                            popUpTo(Routes.VEHICLE_REGISTRATION) { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(
                     onComplete = {

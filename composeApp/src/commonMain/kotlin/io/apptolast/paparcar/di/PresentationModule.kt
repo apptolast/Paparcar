@@ -7,6 +7,7 @@ import io.apptolast.paparcar.presentation.home.HomeViewModel
 import io.apptolast.paparcar.presentation.map.ParkingLocationViewModel
 import io.apptolast.paparcar.presentation.permissions.PermissionsViewModel
 import io.apptolast.paparcar.presentation.settings.SettingsViewModel
+import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -18,4 +19,5 @@ val presentationModule = module {
     viewModelOf(::ParkingLocationViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::PermissionsViewModel)
+    viewModelOf(::VehicleRegistrationViewModel)
 }
