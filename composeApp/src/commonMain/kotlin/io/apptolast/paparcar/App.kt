@@ -194,11 +194,19 @@ private fun MainAppNavigation(
             startDestination = startRoute,
             modifier = Modifier.fillMaxSize(),
         ) {
-            composable(Routes.VEHICLE_REGISTRATION) {
+            composable(
+                route = "${Routes.VEHICLE_REGISTRATION}?origin={origin}",
+                arguments = listOf(navArgument("origin") { defaultValue = "onboarding" }),
+            ) { backStack ->
+                val origin = backStack.arguments?.getString("origin") ?: "onboarding"
                 VehicleRegistrationScreen(
                     onRegistrationComplete = {
-                        navController.navigate(Routes.ONBOARDING) {
-                            popUpTo(Routes.VEHICLE_REGISTRATION) { inclusive = true }
+                        if (origin == "my_car") {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate(Routes.ONBOARDING) {
+                                popUpTo(Routes.VEHICLE_REGISTRATION) { inclusive = true }
+                            }
                         }
                     },
                     onNavigateBack = { navController.popBackStack() },
@@ -254,7 +262,11 @@ private fun MainAppNavigation(
                 )
             }
             composable(Routes.MY_CAR) {
-                MyCarScreen()
+                MyCarScreen(
+                    onAddVehicle = {
+                        navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car")
+                    },
+                )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
