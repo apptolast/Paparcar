@@ -21,4 +21,11 @@ interface VehicleRepository {
      * Clears isDefault on all others for this user.
      */
     suspend fun setDefaultVehicle(id: String)
+
+    /**
+     * Pairs a Bluetooth device MAC address with a vehicle.
+     * Pass null to remove the pairing.
+     * Stored on-device only — never synced to Firestore.
+     */
+    suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?)
 }

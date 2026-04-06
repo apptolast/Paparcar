@@ -29,4 +29,7 @@ interface VehicleDao {
 
     @Query("UPDATE vehicles SET isDefault = 1 WHERE id = :id")
     suspend fun setDefault(id: String)
+
+    @Query("UPDATE vehicles SET bluetoothDeviceId = :address WHERE id = :vehicleId")
+    suspend fun updateBluetoothDevice(vehicleId: String, address: String?)
 }

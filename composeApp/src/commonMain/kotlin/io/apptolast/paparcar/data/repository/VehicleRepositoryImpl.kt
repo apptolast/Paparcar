@@ -58,6 +58,11 @@ class VehicleRepositoryImpl(
         }
     }
 
+    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {
+        // On-device only — intentionally never synced to Firestore
+        dao.updateBluetoothDevice(vehicleId, deviceAddress)
+    }
+
     private fun firestoreVehiclesCol(userId: String) =
         firestore.collection("users").document(userId).collection("vehicles")
 
