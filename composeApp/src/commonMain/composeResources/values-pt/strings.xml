@@ -72,6 +72,9 @@
     <string name="permissions_perm_activity_desc">Para detetar automaticamente quando começa a conduzir e quando estaciona</string>
     <string name="permissions_perm_notifications">Notificações</string>
     <string name="permissions_perm_notifications_desc">Para confirmar o estacionamento e alertá-lo sobre lugares livres próximos</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Permite a deteção automática de estacionamento ao ligar ou desligar o Bluetooth do teu carro</string>
+    <string name="permissions_status_optional">Opcional</string>
     <string name="permissions_btn_grant">Conceder permissões</string>
     <string name="permissions_btn_background">Ativar localização em segundo plano</string>
     <string name="permissions_btn_settings">Abrir definições do sistema</string>

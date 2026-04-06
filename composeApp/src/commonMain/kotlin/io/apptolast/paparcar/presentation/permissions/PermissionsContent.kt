@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +51,8 @@ import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
 import paparcar.composeapp.generated.resources.permissions_perm_background
 import paparcar.composeapp.generated.resources.permissions_perm_background_desc
+import paparcar.composeapp.generated.resources.permissions_perm_bluetooth
+import paparcar.composeapp.generated.resources.permissions_perm_bluetooth_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location
 import paparcar.composeapp.generated.resources.permissions_perm_location_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location_services
@@ -58,6 +61,7 @@ import paparcar.composeapp.generated.resources.permissions_perm_notifications
 import paparcar.composeapp.generated.resources.permissions_perm_notifications_desc
 import paparcar.composeapp.generated.resources.permissions_rationale
 import paparcar.composeapp.generated.resources.permissions_status_granted
+import paparcar.composeapp.generated.resources.permissions_status_optional
 import paparcar.composeapp.generated.resources.permissions_status_pending
 import paparcar.composeapp.generated.resources.permissions_subtitle
 import paparcar.composeapp.generated.resources.permissions_title
@@ -66,6 +70,7 @@ import paparcar.composeapp.generated.resources.permissions_title
 internal fun PermissionsContent(
     state: PermissionsState,
     onRequestPermissions: () -> Unit,
+    onRequestBluetooth: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -139,6 +144,21 @@ internal fun PermissionsContent(
                 granted = state.isLocationServicesEnabled,
             )
 
+            // ── Optional Bluetooth permission ────────────────────────────────
+            Spacer(Modifier.height(20.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                thickness = 1.dp,
+            )
+            Spacer(Modifier.height(20.dp))
+            OptionalPermissionRow(
+                icon = Icons.Outlined.Bluetooth,
+                title = stringResource(Res.string.permissions_perm_bluetooth),
+                desc = stringResource(Res.string.permissions_perm_bluetooth_desc),
+                granted = state.hasBluetoothConnect,
+                onGrant = onRequestBluetooth,
+            )
+
             if (state.showRationale && !state.showSettingsPrompt) {
                 Spacer(Modifier.height(20.dp))
                 Text(
@@ -195,6 +215,91 @@ internal fun PermissionsContent(
                     ),
                 ) {
                     Text(text = label, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OptionalPermissionRow(
+    icon: ImageVector,
+    title: String,
+    desc: String,
+    granted: Boolean,
+    onGrant: () -> Unit,
+) {
+    val surfaceColor by animateColorAsState(
+        targetValue = if (granted) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surface,
+        label = "opt_perm_row_bg",
+    )
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = surfaceColor,
+        onClick = { if (!granted) onGrant() },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = if (granted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (granted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = desc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = if (granted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (granted) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                    Text(
+                        text = if (granted) stringResource(Res.string.permissions_status_granted)
+                        else stringResource(Res.string.permissions_status_optional),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (granted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontWeight = FontWeight.Medium,
+                    )
                 }
             }
         }

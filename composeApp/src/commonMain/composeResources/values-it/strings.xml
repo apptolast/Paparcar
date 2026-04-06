@@ -72,6 +72,9 @@
     <string name="permissions_perm_activity_desc">Per rilevare automaticamente quando inizi a guidare e quando parcheggi</string>
     <string name="permissions_perm_notifications">Notifiche</string>
     <string name="permissions_perm_notifications_desc">Per confermare il parcheggio e avvisarti dei posti liberi vicini</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Abilita il rilevamento automatico del parcheggio quando ti connetti o disconnetti dal Bluetooth dell'auto</string>
+    <string name="permissions_status_optional">Opzionale</string>
     <string name="permissions_btn_grant">Concedi permessi</string>
     <string name="permissions_btn_background">Attiva posizione in background</string>
     <string name="permissions_btn_settings">Apri impostazioni di sistema</string>

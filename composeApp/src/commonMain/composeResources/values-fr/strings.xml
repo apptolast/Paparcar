@@ -72,6 +72,9 @@
     <string name="permissions_perm_activity_desc">Pour détecter automatiquement quand vous commencez à conduire et quand vous vous garez</string>
     <string name="permissions_perm_notifications">Notifications</string>
     <string name="permissions_perm_notifications_desc">Pour confirmer le stationnement et vous alerter des places libres à proximité</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Permet la détection automatique du stationnement lors de la connexion ou déconnexion du Bluetooth de votre voiture</string>
+    <string name="permissions_status_optional">Optionnel</string>
     <string name="permissions_btn_grant">Accorder les permissions</string>
     <string name="permissions_btn_background">Activer la position en arrière-plan</string>
     <string name="permissions_btn_settings">Ouvrir les paramètres système</string>

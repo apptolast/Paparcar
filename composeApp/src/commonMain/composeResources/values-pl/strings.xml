@@ -72,6 +72,9 @@
     <string name="permissions_perm_activity_desc">Aby automatycznie wykrywać, kiedy zaczynasz jechać i kiedy parkujesz</string>
     <string name="permissions_perm_notifications">Powiadomienia</string>
     <string name="permissions_perm_notifications_desc">Aby potwierdzić parkowanie i powiadamiać o wolnych miejscach w pobliżu</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Umożliwia automatyczne wykrywanie parkowania przy połączeniu lub rozłączeniu z Bluetooth samochodu</string>
+    <string name="permissions_status_optional">Opcjonalne</string>
     <string name="permissions_btn_grant">Przyznaj uprawnienia</string>
     <string name="permissions_btn_background">Aktywuj lokalizację w tle</string>
     <string name="permissions_btn_settings">Otwórz ustawienia systemowe</string>

@@ -72,6 +72,9 @@
     <string name="permissions_perm_activity_desc">Pentru a detecta automat când începi să conduci și când parchezi</string>
     <string name="permissions_perm_notifications">Notificări</string>
     <string name="permissions_perm_notifications_desc">Pentru a confirma parcarea și a te alerta cu privire la locurile libere din apropiere</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Permite detectarea automată a parcării la conectarea sau deconectarea de la Bluetooth-ul mașinii</string>
+    <string name="permissions_status_optional">Opțional</string>
     <string name="permissions_btn_grant">Acordă permisiunile</string>
     <string name="permissions_btn_background">Activează locația în fundal</string>
     <string name="permissions_btn_settings">Deschide setările sistemului</string>

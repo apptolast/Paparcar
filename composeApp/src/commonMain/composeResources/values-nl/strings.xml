@@ -72,6 +72,9 @@
     <string name="permissions_perm_activity_desc">Om automatisch te detecteren wanneer u begint te rijden en wanneer u parkeert</string>
     <string name="permissions_perm_notifications">Meldingen</string>
     <string name="permissions_perm_notifications_desc">Om uw parkeren te bevestigen en u te waarschuwen voor vrije parkeerplaatsen in de buurt</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Maakt automatische parkeerdetectie mogelijk bij het verbinden of verbreken van de Bluetooth van je auto</string>
+    <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <string name="permissions_btn_background">Achtergrondlocatie activeren</string>
     <string name="permissions_btn_settings">Systeeminstellingen openen</string>

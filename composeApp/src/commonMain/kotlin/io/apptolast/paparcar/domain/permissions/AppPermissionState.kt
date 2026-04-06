@@ -9,6 +9,9 @@ data class AppPermissionState(
     // NOT included in allPermissionsGranted to avoid redirecting the user
     // to the permissions gate just because they toggled GPS off mid-session.
     val isLocationServicesEnabled: Boolean = false,
+    // Optional — only available on Android 12+. Not required for core app functionality;
+    // only needed for the Bluetooth parking detection strategy.
+    val hasBluetoothConnectPermission: Boolean = false,
 ) {
     val allPermissionsGranted: Boolean
         get() = hasLocationPermission
