@@ -247,4 +247,17 @@
     <string name="perm_rationale_cta">Got it, enable permissions</string>
     <string name="perm_rationale_skip">Not now</string>
 
+    <string name="bt_config_title">Bluetooth Car Key</string>
+    <string name="bt_config_subtitle">Select the Bluetooth device already paired with your car. The app will use it to detect when you park or depart.</string>
+    <string name="bt_config_bt_off">Bluetooth is off. Enable it to see your paired devices.</string>
+    <string name="bt_config_no_devices">No paired Bluetooth devices found. Pair your car\'s Bluetooth in system settings first.</string>
+    <string name="bt_config_save">Save</string>
+    <string name="bt_config_none">No car Bluetooth</string>
+    <string name="bt_config_remove">Remove pairing</string>
+    <string name="bt_config_device_classic">Classic</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Configure Bluetooth</string>
+    <string name="my_car_bt_device">Car Bluetooth</string>
+    <string name="my_car_bt_not_configured">Not configured</string>
 </resources>

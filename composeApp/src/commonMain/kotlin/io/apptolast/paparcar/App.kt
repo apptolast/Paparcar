@@ -53,6 +53,7 @@ import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
 import io.apptolast.paparcar.presentation.mycar.MyCarScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
+import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsRationaleScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
@@ -75,6 +76,7 @@ internal object Routes {
     const val PERMISSIONS = "permissions"
     const val PERMISSIONS_RATIONALE = "permissions_rationale"
     const val VEHICLE_REGISTRATION = "vehicle_registration"
+    const val BT_CONFIG = "bt_config"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -287,10 +289,23 @@ private fun MainAppNavigation(
                     onAddVehicle = {
                         navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car")
                     },
+                    onConfigureBluetooth = { vehicleId ->
+                        navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
+                    },
                 )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = "${Routes.BT_CONFIG}/{vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType }),
+            ) { backStack ->
+                val vehicleId = backStack.arguments?.getString("vehicleId") ?: return@composable
+                BluetoothConfigScreen(
+                    vehicleId = vehicleId,
                     onNavigateBack = { navController.popBackStack() },
                 )
             }

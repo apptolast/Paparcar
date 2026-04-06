@@ -239,4 +239,17 @@
     <string name="perm_rationale_cta">Verstanden, Berechtigungen aktivieren</string>
     <string name="perm_rationale_skip">Jetzt nicht</string>
 
+    <string name="bt_config_title">Auto-Bluetooth-Schlüssel</string>
+    <string name="bt_config_subtitle">Wähle das bereits mit deinem Auto gekoppelte Bluetooth-Gerät aus. Die App erkennt damit, wann du parkst oder abfährst.</string>
+    <string name="bt_config_bt_off">Bluetooth ist deaktiviert. Aktiviere es, um deine gekoppelten Geräte zu sehen.</string>
+    <string name="bt_config_no_devices">Keine gekoppelten Bluetooth-Geräte gefunden. Koppele zuerst das Bluetooth deines Autos in den Systemeinstellungen.</string>
+    <string name="bt_config_save">Speichern</string>
+    <string name="bt_config_none">Kein Auto-Bluetooth</string>
+    <string name="bt_config_remove">Kopplung entfernen</string>
+    <string name="bt_config_device_classic">Klassisch</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Bluetooth konfigurieren</string>
+    <string name="my_car_bt_device">Auto-Bluetooth</string>
+    <string name="my_car_bt_not_configured">Nicht konfiguriert</string>
 </resources>

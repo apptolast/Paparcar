@@ -239,4 +239,17 @@
     <string name="perm_rationale_cta">Begrepen, machtigingen inschakelen</string>
     <string name="perm_rationale_skip">Nu niet</string>
 
+    <string name="bt_config_title">Auto Bluetooth-sleutel</string>
+    <string name="bt_config_subtitle">Selecteer het Bluetooth-apparaat dat al gekoppeld is aan je auto. De app gebruikt dit om te detecteren wanneer je parkeert of vertrekt.</string>
+    <string name="bt_config_bt_off">Bluetooth is uitgeschakeld. Schakel het in om je gekoppelde apparaten te zien.</string>
+    <string name="bt_config_no_devices">Geen gekoppelde Bluetooth-apparaten gevonden. Koppel eerst het Bluetooth van je auto via de systeeminstellingen.</string>
+    <string name="bt_config_save">Opslaan</string>
+    <string name="bt_config_none">Geen auto Bluetooth</string>
+    <string name="bt_config_remove">Koppeling verwijderen</string>
+    <string name="bt_config_device_classic">Klassiek</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Bluetooth configureren</string>
+    <string name="my_car_bt_device">Auto Bluetooth</string>
+    <string name="my_car_bt_not_configured">Niet geconfigureerd</string>
 </resources>

@@ -239,4 +239,17 @@
     <string name="perm_rationale_cta">Înțeles, activează permisiunile</string>
     <string name="perm_rationale_skip">Nu acum</string>
 
+    <string name="bt_config_title">Cheie Bluetooth auto</string>
+    <string name="bt_config_subtitle">Selectează dispozitivul Bluetooth deja asociat cu mașina ta. Aplicația îl va folosi pentru a detecta când parchezi sau pleci.</string>
+    <string name="bt_config_bt_off">Bluetooth-ul este dezactivat. Activează-l pentru a vedea dispozitivele asociate.</string>
+    <string name="bt_config_no_devices">Nu s-au găsit dispozitive Bluetooth asociate. Asociază mai întâi Bluetooth-ul mașinii din setările de sistem.</string>
+    <string name="bt_config_save">Salvează</string>
+    <string name="bt_config_none">Fără Bluetooth auto</string>
+    <string name="bt_config_remove">Elimină asocierea</string>
+    <string name="bt_config_device_classic">Clasic</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Configurează Bluetooth</string>
+    <string name="my_car_bt_device">Bluetooth auto</string>
+    <string name="my_car_bt_not_configured">Neconfigurat</string>
 </resources>

@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Bluetooth
+import androidx.compose.material.icons.outlined.BluetoothConnected
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -47,6 +49,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.my_car_active_vehicle
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
+import paparcar.composeapp.generated.resources.my_car_bt_configure
+import paparcar.composeapp.generated.resources.my_car_bt_not_configured
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_set_active
 import paparcar.composeapp.generated.resources.my_car_title
@@ -60,6 +64,7 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
 @Composable
 fun MyCarScreen(
     onAddVehicle: () -> Unit = {},
+    onConfigureBluetooth: (vehicleId: String) -> Unit = {},
     viewModel: MyCarViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -108,6 +113,7 @@ fun MyCarScreen(
                     VehicleCard(
                         vehicle = vehicle,
                         onSetActive = { viewModel.handleIntent(MyCarIntent.SetActiveVehicle(vehicle.id)) },
+                        onConfigureBluetooth = { onConfigureBluetooth(vehicle.id) },
                     )
                 }
                 item { Spacer(Modifier.height(80.dp)) } // FAB clearance
@@ -153,6 +159,7 @@ private fun EmptyVehicleState(
 private fun VehicleCard(
     vehicle: Vehicle,
     onSetActive: () -> Unit,
+    onConfigureBluetooth: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -193,13 +200,41 @@ private fun VehicleCard(
                     )
                 }
             }
-            if (!vehicle.isDefault) {
-                Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (!vehicle.isDefault) {
+                    OutlinedButton(
+                        onClick = onSetActive,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(Res.string.my_car_set_active))
+                    }
+                }
                 OutlinedButton(
-                    onClick = onSetActive,
-                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onConfigureBluetooth,
+                    modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(Res.string.my_car_set_active))
+                    Icon(
+                        imageVector = if (vehicle.bluetoothDeviceId != null) {
+                            Icons.Outlined.BluetoothConnected
+                        } else {
+                            Icons.Outlined.Bluetooth
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.padding(start = 4.dp))
+                    Text(
+                        text = if (vehicle.bluetoothDeviceId != null) {
+                            vehicle.bluetoothDeviceId.takeLast(5)
+                        } else {
+                            stringResource(Res.string.my_car_bt_configure)
+                        },
+                        maxLines = 1,
+                    )
                 }
             }
         }

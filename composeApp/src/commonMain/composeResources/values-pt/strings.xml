@@ -239,4 +239,17 @@
     <string name="perm_rationale_cta">Entendi, ativar permissões</string>
     <string name="perm_rationale_skip">Agora não</string>
 
+    <string name="bt_config_title">Chave Bluetooth do carro</string>
+    <string name="bt_config_subtitle">Seleciona o dispositivo Bluetooth já emparelhado com o teu carro. A app vai usá-lo para detetar quando estacionas ou partes.</string>
+    <string name="bt_config_bt_off">O Bluetooth está desligado. Ativa-o para ver os teus dispositivos emparelhados.</string>
+    <string name="bt_config_no_devices">Nenhum dispositivo Bluetooth emparelhado encontrado. Emparelha primeiro o Bluetooth do carro nas definições do sistema.</string>
+    <string name="bt_config_save">Guardar</string>
+    <string name="bt_config_none">Sem Bluetooth do carro</string>
+    <string name="bt_config_remove">Remover emparelhamento</string>
+    <string name="bt_config_device_classic">Clássico</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Configurar Bluetooth</string>
+    <string name="my_car_bt_device">Bluetooth do carro</string>
+    <string name="my_car_bt_not_configured">Não configurado</string>
 </resources>

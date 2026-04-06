@@ -239,4 +239,17 @@
     <string name="perm_rationale_cta">Rozumiem, włącz uprawnienia</string>
     <string name="perm_rationale_skip">Nie teraz</string>
 
+    <string name="bt_config_title">Klucz Bluetooth samochodu</string>
+    <string name="bt_config_subtitle">Wybierz urządzenie Bluetooth już sparowane z Twoim samochodem. Aplikacja użyje go do wykrywania, kiedy parkujesz lub odjeżdżasz.</string>
+    <string name="bt_config_bt_off">Bluetooth jest wyłączony. Włącz go, aby zobaczyć sparowane urządzenia.</string>
+    <string name="bt_config_no_devices">Nie znaleziono sparowanych urządzeń Bluetooth. Najpierw sparuj Bluetooth samochodu w ustawieniach systemowych.</string>
+    <string name="bt_config_save">Zapisz</string>
+    <string name="bt_config_none">Brak Bluetooth samochodu</string>
+    <string name="bt_config_remove">Usuń parowanie</string>
+    <string name="bt_config_device_classic">Klasyczny</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Konfiguruj Bluetooth</string>
+    <string name="my_car_bt_device">Bluetooth samochodu</string>
+    <string name="my_car_bt_not_configured">Nie skonfigurowano</string>
 </resources>

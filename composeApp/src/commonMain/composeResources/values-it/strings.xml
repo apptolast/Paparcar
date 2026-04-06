@@ -239,4 +239,17 @@
     <string name="perm_rationale_cta">Capito, abilita i permessi</string>
     <string name="perm_rationale_skip">Non ora</string>
 
+    <string name="bt_config_title">Chiave auto Bluetooth</string>
+    <string name="bt_config_subtitle">Seleziona il dispositivo Bluetooth già abbinato alla tua auto. L\'app lo utilizzerà per rilevare quando parcheggi o parti.</string>
+    <string name="bt_config_bt_off">Il Bluetooth è disattivato. Attivalo per vedere i tuoi dispositivi abbinati.</string>
+    <string name="bt_config_no_devices">Nessun dispositivo Bluetooth abbinato trovato. Abbina prima il Bluetooth dell\'auto dalle impostazioni di sistema.</string>
+    <string name="bt_config_save">Salva</string>
+    <string name="bt_config_none">Nessun Bluetooth auto</string>
+    <string name="bt_config_remove">Rimuovi abbinamento</string>
+    <string name="bt_config_device_classic">Classico</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Configura Bluetooth</string>
+    <string name="my_car_bt_device">Bluetooth auto</string>
+    <string name="my_car_bt_not_configured">Non configurato</string>
 </resources>
