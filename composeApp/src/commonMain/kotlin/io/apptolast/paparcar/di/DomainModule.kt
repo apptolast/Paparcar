@@ -61,5 +61,5 @@ val domainModule = module {
     }
 
     // Notification UseCases
-    factory { NotifyParkingConfirmationUseCase(get()) }
+    factory { NotifyParkingConfirmationUseCase(get(), get()) }
 }

@@ -6,6 +6,7 @@
 
     <!-- Notification : confirmation de stationnement -->
     <string name="notif_confirmation_title">Êtes-vous garé ?</string>
+    <string name="notif_confirmation_title_vehicle">Avez-vous garé votre %1$s ?</string>
     <string name="notif_confirmation_text">Il semble que vous vous soyez garé. Voulez-vous confirmer la place ?</string>
     <string name="notif_action_yes_parked">Oui, je suis garé</string>
     <string name="notif_action_keep_driving">Je continue à conduire</string>

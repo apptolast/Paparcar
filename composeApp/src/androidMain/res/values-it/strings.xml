@@ -6,6 +6,7 @@
 
     <!-- Notifica: conferma parcheggio -->
     <string name="notif_confirmation_title">Hai parcheggiato?</string>
+    <string name="notif_confirmation_title_vehicle">Hai parcheggiato il %1$s?</string>
     <string name="notif_confirmation_text">Sembra che tu abbia parcheggiato. Vuoi confermare il posto?</string>
     <string name="notif_action_yes_parked">Sì, ho parcheggiato</string>
     <string name="notif_action_keep_driving">Continuo a guidare</string>

@@ -41,7 +41,7 @@ class AppNotificationManagerImpl(
 
     // region AppNotificationManager
 
-    override fun showParkingConfirmation(score: Float) {
+    override fun showParkingConfirmation(score: Float, vehicleName: String?) {
         val confirmedPi = PendingIntent.getBroadcast(
             context, 200,
             Intent(ParkingConfirmationReceiver.ACTION_CONFIRMED).apply {
@@ -56,8 +56,13 @@ class AppNotificationManagerImpl(
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val title = if (vehicleName != null) {
+            context.getString(R.string.notif_confirmation_title_vehicle, vehicleName)
+        } else {
+            context.getString(R.string.notif_confirmation_title)
+        }
         val notification = NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_confirmation_title))
+            .setContentTitle(title)
             .setContentText(context.getString(R.string.notif_confirmation_text))
             .setSmallIcon(R.drawable.ic_notification_parking_question)
             .setColor(COLOR_CONFIRMATION)
