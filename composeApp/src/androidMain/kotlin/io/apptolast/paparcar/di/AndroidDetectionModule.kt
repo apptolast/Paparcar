@@ -2,6 +2,7 @@ package io.apptolast.paparcar.di
 
 import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.LocationServices
+import io.apptolast.paparcar.bluetooth.BluetoothParkingDetector
 import io.apptolast.paparcar.detection.ActivityRecognitionManagerImpl
 import io.apptolast.paparcar.detection.DepartureEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceEventBusImpl
@@ -36,5 +37,8 @@ val androidDetectionModule = module {
 
     // --- Spot Report ---
     single<ReportSpotScheduler> { WorkManagerReportSpotScheduler(androidContext()) }
+
+    // --- Bluetooth Parking Detection ---
+    single { BluetoothParkingDetector(get(), get()) }
 
 }
