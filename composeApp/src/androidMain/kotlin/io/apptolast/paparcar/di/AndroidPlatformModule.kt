@@ -13,6 +13,8 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.bluetooth.AndroidBluetoothScanner
+import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.location.AndroidGeocoderDataSourceImpl
 import io.apptolast.paparcar.location.AndroidLocationDataSourceImpl
 import io.apptolast.paparcar.location.OverpassPlacesDataSourceImpl
@@ -82,4 +84,7 @@ val androidPlatformModule = module {
 
     // Preferences
     single<AppPreferences> { AndroidAppPreferences(androidContext()) }
+
+    // Bluetooth
+    single<BluetoothScanner> { AndroidBluetoothScanner(androidContext()) }
 }
