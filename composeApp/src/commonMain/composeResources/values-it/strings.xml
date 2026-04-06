@@ -167,6 +167,8 @@
     <string name="settings_section_detection">Rilevamento</string>
     <string name="settings_auto_detect">Rilevamento automatico parcheggio</string>
     <string name="settings_auto_detect_desc">Salva automaticamente il posto di parcheggio</string>
+    <string name="settings_nav_my_car">La mia auto e Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Gestisci i tuoi veicoli e l\'abbinamento Bluetooth</string>
     <string name="settings_section_notifications">Notifiche</string>
     <string name="settings_notif_parking">Parcheggio rilevato</string>
     <string name="settings_notif_parking_desc">Avviso quando viene salvato un posto di parcheggio</string>

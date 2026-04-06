@@ -167,6 +167,8 @@
     <string name="settings_section_detection">Wykrywanie</string>
     <string name="settings_auto_detect">Automatyczne wykrywanie parkowania</string>
     <string name="settings_auto_detect_desc">Automatycznie zapisz swoje miejsce parkingowe</string>
+    <string name="settings_nav_my_car">Mój samochód i Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Zarządzaj swoimi pojazdami i parowaniem Bluetooth</string>
     <string name="settings_section_notifications">Powiadomienia</string>
     <string name="settings_notif_parking">Wykryto parkowanie</string>
     <string name="settings_notif_parking_desc">Powiadomienie gdy miejsce parkingowe zostanie zapisane</string>

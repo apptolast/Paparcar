@@ -167,6 +167,8 @@
     <string name="settings_section_detection">Detecție</string>
     <string name="settings_auto_detect">Detecție automată parcare</string>
     <string name="settings_auto_detect_desc">Salvează automat locul de parcare</string>
+    <string name="settings_nav_my_car">Mașina mea și Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Gestionează vehiculele și asocierea Bluetooth</string>
     <string name="settings_section_notifications">Notificări</string>
     <string name="settings_notif_parking">Parcare detectată</string>
     <string name="settings_notif_parking_desc">Alertă când un loc de parcare este salvat</string>

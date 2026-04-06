@@ -167,6 +167,8 @@
     <string name="settings_section_detection">Detectie</string>
     <string name="settings_auto_detect">Automatische parkeerdetectie</string>
     <string name="settings_auto_detect_desc">Parkeerplaats automatisch opslaan</string>
+    <string name="settings_nav_my_car">Mijn auto en Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Beheer je voertuigen en Bluetooth-koppeling</string>
     <string name="settings_section_notifications">Meldingen</string>
     <string name="settings_notif_parking">Parkeren gedetecteerd</string>
     <string name="settings_notif_parking_desc">Melding wanneer een parkeerplaats wordt opgeslagen</string>

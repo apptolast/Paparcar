@@ -167,6 +167,8 @@
     <string name="settings_section_detection">Erkennung</string>
     <string name="settings_auto_detect">Automatische Parkerkennung</string>
     <string name="settings_auto_detect_desc">Parkplatz automatisch speichern</string>
+    <string name="settings_nav_my_car">Mein Auto und Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Verwalte deine Fahrzeuge und die Bluetooth-Kopplung</string>
     <string name="settings_section_notifications">Benachrichtigungen</string>
     <string name="settings_notif_parking">Parken erkannt</string>
     <string name="settings_notif_parking_desc">Benachrichtigung, wenn ein Parkplatz gespeichert wird</string>

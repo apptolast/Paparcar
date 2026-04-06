@@ -201,6 +201,8 @@
     <string name="settings_section_detection">Detection</string>
     <string name="settings_auto_detect">Auto-detect parking</string>
     <string name="settings_auto_detect_desc">Automatically save your parking spot</string>
+    <string name="settings_nav_my_car">My Car &amp; Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Manage your vehicles and Bluetooth pairing</string>
     <string name="settings_section_notifications">Notifications</string>
     <string name="settings_notif_parking">Parking detected</string>
     <string name="settings_notif_parking_desc">Alert when a parking spot is saved</string>

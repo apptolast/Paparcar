@@ -297,6 +297,7 @@ private fun MainAppNavigation(
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
                 )
             }
             composable(

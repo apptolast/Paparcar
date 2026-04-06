@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
@@ -51,6 +52,8 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.settings_auto_detect
 import paparcar.composeapp.generated.resources.settings_auto_detect_desc
 import paparcar.composeapp.generated.resources.settings_cd_back
+import paparcar.composeapp.generated.resources.settings_nav_my_car
+import paparcar.composeapp.generated.resources.settings_nav_my_car_desc
 import paparcar.composeapp.generated.resources.settings_licenses
 import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_notif_parking_desc
@@ -67,6 +70,7 @@ import paparcar.composeapp.generated.resources.settings_version
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToMyCar: () -> Unit = {},
 ) {
     val viewModel: SettingsViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
@@ -75,6 +79,7 @@ fun SettingsScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is SettingsEffect.NavigateBack -> onNavigateBack()
+                is SettingsEffect.NavigateToMyCar -> onNavigateToMyCar()
                 is SettingsEffect.OpenUrl -> { /* TODO: open browser */ }
             }
         }
@@ -129,6 +134,14 @@ fun SettingsScreen(
                     onCheckedChange = {
                         viewModel.handleIntent(SettingsIntent.ToggleAutoDetect(it))
                     },
+                )
+            }
+            item {
+                SettingsNavItem(
+                    icon = Icons.Outlined.Bluetooth,
+                    label = stringResource(Res.string.settings_nav_my_car),
+                    description = stringResource(Res.string.settings_nav_my_car_desc),
+                    onClick = { viewModel.handleIntent(SettingsIntent.NavigateToMyCar) },
                 )
             }
 
@@ -272,6 +285,7 @@ private fun SettingsNavItem(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
+    description: String? = null,
 ) {
     Surface(
         onClick = onClick,
@@ -287,13 +301,21 @@ private fun SettingsNavItem(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             SettingsIconBox(icon = icon)
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (description != null) {
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    )
+                }
+            }
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,

@@ -167,6 +167,8 @@
     <string name="settings_section_detection">Deteção</string>
     <string name="settings_auto_detect">Deteção automática de estacionamento</string>
     <string name="settings_auto_detect_desc">Guardar automaticamente o lugar de estacionamento</string>
+    <string name="settings_nav_my_car">O meu carro e Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Gere os teus veículos e o emparelhamento Bluetooth</string>
     <string name="settings_section_notifications">Notificações</string>
     <string name="settings_notif_parking">Estacionamento detetado</string>
     <string name="settings_notif_parking_desc">Alerta quando um lugar de estacionamento é guardado</string>
