@@ -270,4 +270,12 @@
     <string name="vehicle_card_detection_bt">Bluetooth</string>
     <string name="vehicle_card_detection_ar">Deteção auto</string>
     <string name="vehicle_card_detection_off">Sem deteção</string>
+    <!-- DetectionStatusBanner -->
+    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
+    <string name="detection_banner_ar_active">Deteção automática ativa</string>
+    <string name="detection_banner_pair_bt">Ligar Bluetooth</string>
+    <!-- SpotIndicators -->
+    <string name="spot_indicator_en_route">%1$d a caminho</string>
+    <string name="spot_indicator_ttl_expired">Expirado</string>
+    <string name="spot_indicator_ttl_minutes">%1$d min</string>
 </resources>
