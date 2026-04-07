@@ -278,4 +278,9 @@
     <string name="spot_indicator_en_route">%1$d in arrivo</string>
     <string name="spot_indicator_ttl_expired">Scaduto</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- ConfirmationBottomSheet -->
+    <string name="confirmation_sheet_title">Parcheggio rilevato</string>
+    <string name="confirmation_sheet_subtitle">Hai appena parcheggiato? Pubblicazione automatica in %1$s.</string>
+    <string name="confirmation_sheet_confirm">Pubblica posto</string>
+    <string name="confirmation_sheet_withdraw">Non ora</string>
 </resources>

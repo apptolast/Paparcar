@@ -286,4 +286,9 @@
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expired</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- ConfirmationBottomSheet -->
+    <string name="confirmation_sheet_title">Parking detected</string>
+    <string name="confirmation_sheet_subtitle">Did you just park? Auto-publishing in %1$s.</string>
+    <string name="confirmation_sheet_confirm">Publish spot</string>
+    <string name="confirmation_sheet_withdraw">Not now</string>
 </resources>

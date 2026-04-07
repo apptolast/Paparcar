@@ -30,6 +30,8 @@ data class HomeState(
     val isSearchActive: Boolean = false,
     val isSearching: Boolean = false,
     val mapType: MapType = MapType.NORMAL,
+    /** Non-null when a parking event has been detected and awaits user confirmation. */
+    val pendingParkingGps: GpsPoint? = null,
 ) {
     companion object {
         /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */

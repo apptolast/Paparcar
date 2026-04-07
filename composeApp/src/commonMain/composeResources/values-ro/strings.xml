@@ -278,4 +278,9 @@
     <string name="spot_indicator_en_route">%1$d în drum</string>
     <string name="spot_indicator_ttl_expired">Expirat</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- ConfirmationBottomSheet -->
+    <string name="confirmation_sheet_title">Parcare detectată</string>
+    <string name="confirmation_sheet_subtitle">Tocmai ați parcat? Publicare automată în %1$s.</string>
+    <string name="confirmation_sheet_confirm">Publică locul</string>
+    <string name="confirmation_sheet_withdraw">Nu acum</string>
 </resources>

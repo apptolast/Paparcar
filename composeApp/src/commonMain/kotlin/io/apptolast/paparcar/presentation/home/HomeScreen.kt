@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.presentation.home.components.HomeActionFab
 import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
 import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
@@ -154,6 +155,13 @@ fun HomeScreen(
         onOpenMapsNavigation = onOpenMapsNavigation,
         snackbarHostState = snackbarHostState,
     )
+
+    if (state.pendingParkingGps != null) {
+        ConfirmationBottomSheet(
+            onConfirm = { viewModel.handleIntent(HomeIntent.ConfirmDetectedParking) },
+            onDismiss = { viewModel.handleIntent(HomeIntent.DismissConfirmation) },
+        )
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

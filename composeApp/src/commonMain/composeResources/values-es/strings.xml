@@ -283,4 +283,9 @@
     <string name="spot_indicator_en_route">%1$d en camino</string>
     <string name="spot_indicator_ttl_expired">Expirado</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- ConfirmationBottomSheet -->
+    <string name="confirmation_sheet_title">Aparcamiento detectado</string>
+    <string name="confirmation_sheet_subtitle">¿Acabas de aparcar? Se publicará en %1$s.</string>
+    <string name="confirmation_sheet_confirm">Publicar plaza</string>
+    <string name="confirmation_sheet_withdraw">Ahora no</string>
 </resources>
