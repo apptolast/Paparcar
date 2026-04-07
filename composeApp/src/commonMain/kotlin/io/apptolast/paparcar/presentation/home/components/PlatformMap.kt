@@ -64,8 +64,11 @@ import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.presentation.map.CameraTarget
+import io.apptolast.paparcar.ui.theme.PapAmber
+import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
+import io.apptolast.paparcar.ui.theme.PapRed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -74,6 +77,10 @@ import kotlin.math.abs
 private const val MARKER_MY_CAR = "my_car"
 private const val MARKER_FREE_SPOT = "free_spot"
 private const val MARKER_FREE_SPOT_SELECTED = "free_spot_selected"
+// Reliability variants — used once Spot.confidence is available in the domain model
+private const val MARKER_FREE_SPOT_MEDIUM = "free_spot_medium"
+private const val MARKER_FREE_SPOT_LOW = "free_spot_low"
+private const val MARKER_FREE_SPOT_MANUAL = "free_spot_manual"
 private const val MARKER_CLUSTER = "cluster"
 private const val CAMERA_MOVING_DEBOUNCE_MS = 280L
 
@@ -192,6 +199,11 @@ fun PlatformMap(
             MARKER_MY_CAR to { _ -> MyCarMarkerContent() },
             MARKER_FREE_SPOT to { _ -> SpotMarkerContent(isSelected = false) },
             MARKER_FREE_SPOT_SELECTED to { _ -> SpotMarkerContent(isSelected = true) },
+            // Reliability variants — visually identical for now; will differentiate
+            // when Spot.confidence is added to the domain model (Phase 4)
+            MARKER_FREE_SPOT_MEDIUM to { _ -> SpotMarkerContent(isSelected = false, ringColor = PapAmber) },
+            MARKER_FREE_SPOT_LOW to { _ -> SpotMarkerContent(isSelected = false, ringColor = PapRed) },
+            MARKER_FREE_SPOT_MANUAL to { _ -> SpotMarkerContent(isSelected = false, ringColor = PapBlue) },
             MARKER_CLUSTER to { marker ->
                 val count = marker.title
                     ?.removePrefix("$MARKER_CLUSTER:")
@@ -497,24 +509,39 @@ private fun MyCarMarkerContent() {
 }
 
 @Composable
-private fun SpotMarkerContent(isSelected: Boolean = false) {
+private fun SpotMarkerContent(
+    isSelected: Boolean = false,
+    ringColor: Color = if (isSelected) PapGreen else PapForestDark,
+) {
     val size = if (isSelected) 46.dp else 38.dp
     val bg = if (isSelected) PapForestDark else PapGreen
-    val border = if (isSelected) PapGreen else PapForestDark
     val iconTint = if (isSelected) PapGreen else PapForestDark
     val tailW = if (isSelected) 12.dp else 10.dp
     val tailH = if (isSelected) 10.dp else 8.dp
     val borderWidth = 2.dp
 
+    // Spring pop-in on first composition
+    val scale = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium,
+            ),
+        )
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(-borderWidth), // 👈 solapa el triángulo bajo el borde
+        verticalArrangement = Arrangement.spacedBy(-borderWidth),
+        modifier = Modifier.scale(scale.value),
     ) {
         Box(
             modifier = Modifier
                 .size(size)
                 .background(bg, CircleShape)
-                .border(borderWidth, border, CircleShape),
+                .border(borderWidth, ringColor, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -525,7 +552,7 @@ private fun SpotMarkerContent(isSelected: Boolean = false) {
                 color = iconTint,
             )
         }
-        PinTail(color = border, width = tailW, height = tailH)
+        PinTail(color = ringColor, width = tailW, height = tailH)
     }
 }
 
