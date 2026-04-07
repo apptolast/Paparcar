@@ -2,7 +2,11 @@
 
 package io.apptolast.paparcar.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,10 +22,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,9 +48,13 @@ import paparcar.composeapp.generated.resources.home_spot_freshness_minutes
 import paparcar.composeapp.generated.resources.home_spot_freshness_under_min
 import paparcar.composeapp.generated.resources.spot_card_en_route
 import paparcar.composeapp.generated.resources.spot_card_reliability_high
+import paparcar.composeapp.generated.resources.spot_card_reliability_high_desc
 import paparcar.composeapp.generated.resources.spot_card_reliability_low
+import paparcar.composeapp.generated.resources.spot_card_reliability_low_desc
 import paparcar.composeapp.generated.resources.spot_card_reliability_manual
+import paparcar.composeapp.generated.resources.spot_card_reliability_manual_desc
 import paparcar.composeapp.generated.resources.spot_card_reliability_medium
+import paparcar.composeapp.generated.resources.spot_card_reliability_medium_desc
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Presentation model
@@ -151,29 +165,52 @@ fun SpotCard(
         )
 
         // ── Bottom row: reliability badge | en-route | Navigate CTA ──────────
-        Row(
+        var reliabilityExpanded by remember { mutableStateOf(false) }
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = PaparcarSpacing.lg)
+                .padding(top = PaparcarSpacing.sm),
         ) {
-            SpotReliabilityBadge(reliability = data.reliability)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SpotReliabilityBadge(
+                    reliability = data.reliability,
+                    expanded = reliabilityExpanded,
+                    onToggle = { reliabilityExpanded = !reliabilityExpanded },
+                )
 
-            if (data.enRouteCount > 0) {
-                Spacer(Modifier.width(PaparcarSpacing.sm))
-                Text(
-                    text = stringResource(Res.string.spot_card_en_route, data.enRouteCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                if (data.enRouteCount > 0) {
+                    Spacer(Modifier.width(PaparcarSpacing.sm))
+                    Text(
+                        text = stringResource(Res.string.spot_card_en_route, data.enRouteCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                PapPrimaryButton(
+                    label = stringResource(Res.string.home_nav_button),
+                    onClick = onNavigate,
                 )
             }
 
-            Spacer(Modifier.weight(1f))
-
-            PapPrimaryButton(
-                label = stringResource(Res.string.home_nav_button),
-                onClick = onNavigate,
-            )
+            AnimatedVisibility(
+                visible = reliabilityExpanded,
+                enter = expandVertically(),
+                exit = shrinkVertically(),
+            ) {
+                Text(
+                    text = reliabilityDescription(data.reliability),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = PaparcarSpacing.xs, bottom = PaparcarSpacing.sm),
+                )
+            }
         }
     }
 }
@@ -234,19 +271,40 @@ private fun SpotFreshnessLabel(ageMinutes: Long) {
 }
 
 @Composable
-private fun SpotReliabilityBadge(reliability: SpotReliabilityUiState) {
+private fun reliabilityDescription(reliability: SpotReliabilityUiState): String = when (reliability) {
+    SpotReliabilityUiState.HIGH   -> stringResource(Res.string.spot_card_reliability_high_desc)
+    SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.spot_card_reliability_medium_desc)
+    SpotReliabilityUiState.LOW    -> stringResource(Res.string.spot_card_reliability_low_desc)
+    SpotReliabilityUiState.MANUAL -> stringResource(Res.string.spot_card_reliability_manual_desc)
+}
+
+@Composable
+private fun SpotReliabilityBadge(
+    reliability: SpotReliabilityUiState,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val toggleModifier = Modifier
+        .clip(MaterialTheme.shapes.extraSmall)
+        .clickable(onClick = onToggle)
+        .semantics { role = Role.Button }
+
     when (reliability) {
         SpotReliabilityUiState.HIGH   -> PapHighReliabilityBadge(
             label = stringResource(Res.string.spot_card_reliability_high),
+            modifier = toggleModifier,
         )
         SpotReliabilityUiState.MEDIUM -> PapMediumReliabilityBadge(
             label = stringResource(Res.string.spot_card_reliability_medium),
+            modifier = toggleModifier,
         )
         SpotReliabilityUiState.LOW    -> PapLowReliabilityBadge(
             label = stringResource(Res.string.spot_card_reliability_low),
+            modifier = toggleModifier,
         )
         SpotReliabilityUiState.MANUAL -> PapManualReportBadge(
             label = stringResource(Res.string.spot_card_reliability_manual),
+            modifier = toggleModifier,
         )
     }
 }

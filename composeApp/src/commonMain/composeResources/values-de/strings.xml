@@ -48,9 +48,13 @@
     <!-- SpotCard — %1$d = number of users currently en route -->
     <string name="spot_card_en_route">%1$d unterwegs</string>
     <string name="spot_card_reliability_high">Auto</string>
+    <string name="spot_card_reliability_high_desc">Automatisch mit hoher Zuverlässigkeit erkannt — wahrscheinlich noch frei.</string>
     <string name="spot_card_reliability_medium">Ungefähr</string>
+    <string name="spot_card_reliability_medium_desc">Automatisch mit mittlerer Zuverlässigkeit erkannt — könnte bereits belegt sein.</string>
     <string name="spot_card_reliability_low">Alt</string>
+    <string name="spot_card_reliability_low_desc">Automatisch mit geringer Zuverlässigkeit erkannt — vorher prüfen.</string>
     <string name="spot_card_reliability_manual">Manuell</string>
+    <string name="spot_card_reliability_manual_desc">Manuell von einem Community-Fahrer gemeldet.</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Willkommen bei Paparcar</string>

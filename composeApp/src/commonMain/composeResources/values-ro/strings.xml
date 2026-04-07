@@ -48,9 +48,13 @@
     <!-- SpotCard — %1$d = number of users currently en route -->
     <string name="spot_card_en_route">%1$d în drum</string>
     <string name="spot_card_reliability_high">Auto</string>
+    <string name="spot_card_reliability_high_desc">Detectat automat cu încredere ridicată — probabil încă liber.</string>
     <string name="spot_card_reliability_medium">Aprox.</string>
+    <string name="spot_card_reliability_medium_desc">Detectat automat cu încredere moderată — poate fi deja ocupat.</string>
     <string name="spot_card_reliability_low">Veche</string>
+    <string name="spot_card_reliability_low_desc">Detectat automat cu încredere scăzută — verificați înainte de a merge.</string>
     <string name="spot_card_reliability_manual">Manual</string>
+    <string name="spot_card_reliability_manual_desc">Raportat manual de un șofer din comunitate.</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bun venit la Paparcar</string>
