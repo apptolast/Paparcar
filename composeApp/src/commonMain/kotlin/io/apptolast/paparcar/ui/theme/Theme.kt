@@ -59,7 +59,7 @@ fun PaparcarTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = AppTypography,
+        typography = rememberAppTypography(),
         shapes = AppShapes,
         content = content,
     )
