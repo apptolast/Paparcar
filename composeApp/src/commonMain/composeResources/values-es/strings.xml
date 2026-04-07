@@ -49,6 +49,12 @@
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">hace %1$dm</string>
     <string name="home_spot_freshness_hours">hace %1$dh</string>
+    <!-- SpotCard — %1$d = number of users currently en route -->
+    <string name="spot_card_en_route">%1$d en camino</string>
+    <string name="spot_card_reliability_high">Auto</string>
+    <string name="spot_card_reliability_medium">Aprox.</string>
+    <string name="spot_card_reliability_low">Antigua</string>
+    <string name="spot_card_reliability_manual">Manual</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenido a Paparcar</string>

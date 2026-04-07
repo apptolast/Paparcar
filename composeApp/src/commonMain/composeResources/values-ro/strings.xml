@@ -45,6 +45,12 @@
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">acum %1$d min</string>
     <string name="home_spot_freshness_hours">acum %1$d ore</string>
+    <!-- SpotCard — %1$d = number of users currently en route -->
+    <string name="spot_card_en_route">%1$d în drum</string>
+    <string name="spot_card_reliability_high">Auto</string>
+    <string name="spot_card_reliability_medium">Aprox.</string>
+    <string name="spot_card_reliability_low">Veche</string>
+    <string name="spot_card_reliability_manual">Manual</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bun venit la Paparcar</string>
