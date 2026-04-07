@@ -266,4 +266,8 @@
     <string name="my_car_bt_configure">Configurează Bluetooth</string>
     <string name="my_car_bt_device">Bluetooth auto</string>
     <string name="my_car_bt_not_configured">Neconfigurat</string>
+    <!-- VehicleCard detection status badge labels -->
+    <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <string name="vehicle_card_detection_ar">Detectare auto</string>
+    <string name="vehicle_card_detection_off">Fără detectare</string>
 </resources>

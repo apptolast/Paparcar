@@ -3,10 +3,8 @@ package io.apptolast.paparcar.presentation.mycar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,23 +12,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.BluetoothConnected
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -43,16 +33,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.components.VehicleCard
+import io.apptolast.paparcar.ui.components.VehicleCardData
+import io.apptolast.paparcar.ui.components.VehicleDetectionStatus
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
-import paparcar.composeapp.generated.resources.my_car_active_vehicle
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
-import paparcar.composeapp.generated.resources.my_car_bt_configure
-import paparcar.composeapp.generated.resources.my_car_bt_not_configured
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
-import paparcar.composeapp.generated.resources.my_car_set_active
 import paparcar.composeapp.generated.resources.my_car_title
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
@@ -111,7 +101,7 @@ fun MyCarScreen(
                 item { Spacer(Modifier.height(4.dp)) }
                 items(items = state.vehicles, key = { it.id }) { vehicle ->
                     VehicleCard(
-                        vehicle = vehicle,
+                        data = vehicle.toCardData(sizeLabel = vehicleSizeName(vehicle.sizeCategory)),
                         onSetActive = { viewModel.handleIntent(MyCarIntent.SetActiveVehicle(vehicle.id)) },
                         onConfigureBluetooth = { onConfigureBluetooth(vehicle.id) },
                     )
@@ -147,98 +137,30 @@ private fun EmptyVehicleState(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onAddVehicle) {
-            Text(stringResource(Res.string.my_car_add_vehicle))
-        }
+        PapPrimaryButton(
+            label = stringResource(Res.string.my_car_add_vehicle),
+            onClick = onAddVehicle,
+        )
     }
 }
 
-// ─── Vehicle card ─────────────────────────────────────────────────────────────
+// ─── Mapper ───────────────────────────────────────────────────────────────────
 
-@Composable
-private fun VehicleCard(
-    vehicle: Vehicle,
-    onSetActive: () -> Unit,
-    onConfigureBluetooth: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = if (vehicle.isDefault) {
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        } else {
-            CardDefaults.cardColors()
-        },
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    val displayName = listOfNotNull(vehicle.brand, vehicle.model)
-                        .joinToString(" ")
-                        .ifBlank { vehicleSizeName(vehicle.sizeCategory) }
-                    Text(
-                        text = displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = vehicleSizeName(vehicle.sizeCategory),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (vehicle.isDefault) {
-                    SuggestionChip(
-                        onClick = {},
-                        label = { Text(stringResource(Res.string.my_car_active_vehicle)) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            labelColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (!vehicle.isDefault) {
-                    OutlinedButton(
-                        onClick = onSetActive,
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(Res.string.my_car_set_active))
-                    }
-                }
-                OutlinedButton(
-                    onClick = onConfigureBluetooth,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Icon(
-                        imageVector = if (vehicle.bluetoothDeviceId != null) {
-                            Icons.Outlined.BluetoothConnected
-                        } else {
-                            Icons.Outlined.Bluetooth
-                        },
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.padding(start = 4.dp))
-                    Text(
-                        text = if (vehicle.bluetoothDeviceId != null) {
-                            vehicle.bluetoothDeviceId.takeLast(5)
-                        } else {
-                            stringResource(Res.string.my_car_bt_configure)
-                        },
-                        maxLines = 1,
-                    )
-                }
-            }
-        }
+private fun Vehicle.toCardData(sizeLabel: String): VehicleCardData {
+    val displayName = listOfNotNull(brand, model).joinToString(" ").ifBlank { sizeLabel }
+    val detectionStatus = when {
+        bluetoothDeviceId != null -> VehicleDetectionStatus.Bluetooth(
+            deviceLabel = bluetoothDeviceId.takeLast(5),
+        )
+        else -> VehicleDetectionStatus.ActivityRecognition
     }
+    return VehicleCardData(
+        id = id,
+        displayName = displayName,
+        sizeLabel = sizeLabel,
+        isActive = isDefault,
+        detectionStatus = detectionStatus,
+    )
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

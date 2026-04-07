@@ -266,4 +266,8 @@
     <string name="my_car_bt_configure">Configurer le Bluetooth</string>
     <string name="my_car_bt_device">Bluetooth de la voiture</string>
     <string name="my_car_bt_not_configured">Non configuré</string>
+    <!-- VehicleCard detection status badge labels -->
+    <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <string name="vehicle_card_detection_ar">Détection auto</string>
+    <string name="vehicle_card_detection_off">Sans détection</string>
 </resources>
