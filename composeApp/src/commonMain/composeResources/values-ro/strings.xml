@@ -249,6 +249,7 @@
 
     <!-- Ecranul de justificare a permisiunilor -->
     <string name="perm_rationale_title">Cum funcționează Paparcar</string>
+    <string name="perm_rationale_subtitle">Avem nevoie de câteva permisiuni pentru a detecta automat parcarea dvs.</string>
     <string name="perm_rationale_body">Paparcar detectează când pleci de pe locul tău de parcare și îl distribuie automat șoferilor din apropiere — la fel cum ai beneficia dacă altcineva ar face asta.\n\nPentru a funcționa, avem nevoie de acces la locația ta și la senzorii de mișcare. Locația ta exactă nu este niciodată partajată cu alți utilizatori.</string>
     <string name="perm_rationale_cta">Înțeles, activează permisiunile</string>
     <string name="perm_rationale_skip">Nu acum</string>

@@ -254,6 +254,7 @@
 
     <!-- Pantalla de rationale de permisos -->
     <string name="perm_rationale_title">Cómo funciona Paparcar</string>
+    <string name="perm_rationale_subtitle">Necesitamos algunos permisos para detectar tu aparcamiento automáticamente.</string>
     <string name="perm_rationale_body">Paparcar detecta cuando abandonas tu plaza y la comparte automáticamente con conductores cercanos — del mismo modo que tú te beneficiarías si otra persona hiciera lo mismo.\n\nPara funcionar necesitamos acceso a tu ubicación y sensores de movimiento. Tu ubicación exacta nunca se comparte con otros usuarios.</string>
     <string name="perm_rationale_cta">Entendido, activar permisos</string>
     <string name="perm_rationale_skip">Ahora no</string>

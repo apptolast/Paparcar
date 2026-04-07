@@ -249,6 +249,7 @@
 
     <!-- Ecrã de fundamento de permissões -->
     <string name="perm_rationale_title">Como funciona o Paparcar</string>
+    <string name="perm_rationale_subtitle">Precisamos de algumas permissões para detetar o seu estacionamento automaticamente.</string>
     <string name="perm_rationale_body">O Paparcar deteta quando sais do teu lugar de estacionamento e partilha-o automaticamente com condutores próximos — da mesma forma que beneficiarias se outra pessoa o fizesse.\n\nPara funcionar, precisamos de acesso à tua localização e sensores de movimento. A tua localização exata nunca é partilhada com outros utilizadores.</string>
     <string name="perm_rationale_cta">Entendi, ativar permissões</string>
     <string name="perm_rationale_skip">Agora não</string>

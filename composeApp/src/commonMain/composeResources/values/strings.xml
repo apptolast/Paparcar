@@ -257,6 +257,7 @@
 
     <!-- Permissions Rationale screen -->
     <string name="perm_rationale_title">How Paparcar works</string>
+    <string name="perm_rationale_subtitle">We need a few permissions to detect your parking automatically.</string>
     <string name="perm_rationale_body">Paparcar detects when you leave your parking spot and automatically shares it with nearby drivers — the same way you\'d benefit when someone else does it for you.\n\nFor this to work, we need access to your location and motion sensors. Your exact location is never shared with other users.</string>
     <string name="perm_rationale_cta">Got it, enable permissions</string>
     <string name="perm_rationale_skip">Not now</string>

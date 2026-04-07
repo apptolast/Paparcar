@@ -249,6 +249,7 @@
 
     <!-- Écran de justification des autorisations -->
     <string name="perm_rationale_title">Comment fonctionne Paparcar</string>
+    <string name="perm_rationale_subtitle">Nous avons besoin de quelques autorisations pour détecter votre stationnement automatiquement.</string>
     <string name="perm_rationale_body">Paparcar détecte quand vous quittez votre place et la partage automatiquement avec les conducteurs proches — comme vous en bénéficieriez si quelqu\'un d\'autre le faisait.\n\nPour fonctionner, nous avons besoin d\'accès à votre position et à vos capteurs de mouvement. Votre position exacte n\'est jamais partagée avec d\'autres utilisateurs.</string>
     <string name="perm_rationale_cta">Compris, activer les autorisations</string>
     <string name="perm_rationale_skip">Pas maintenant</string>

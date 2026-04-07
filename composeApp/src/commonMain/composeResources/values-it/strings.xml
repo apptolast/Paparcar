@@ -249,6 +249,7 @@
 
     <!-- Schermata rationale permessi -->
     <string name="perm_rationale_title">Come funziona Paparcar</string>
+    <string name="perm_rationale_subtitle">Abbiamo bisogno di alcuni permessi per rilevare automaticamente il tuo parcheggio.</string>
     <string name="perm_rationale_body">Paparcar rileva quando lasci il parcheggio e lo condivide automaticamente con i guidatori vicini — proprio come tu ne beneficeresti se qualcun altro lo facesse.\n\nPer funzionare abbiamo bisogno dell\'accesso alla tua posizione e ai sensori di movimento. La tua posizione esatta non viene mai condivisa con altri utenti.</string>
     <string name="perm_rationale_cta">Capito, abilita i permessi</string>
     <string name="perm_rationale_skip">Non ora</string>

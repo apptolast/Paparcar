@@ -249,6 +249,7 @@
 
     <!-- Machtigingen uitleg scherm -->
     <string name="perm_rationale_title">Hoe Paparcar werkt</string>
+    <string name="perm_rationale_subtitle">We hebben een paar machtigingen nodig om uw parkeren automatisch te detecteren.</string>
     <string name="perm_rationale_body">Paparcar detecteert wanneer je je parkeerplaats verlaat en deelt deze automatisch met nabijgelegen bestuurders — net zoals jij hiervan zou profiteren als iemand anders hetzelfde doet.\n\nHiervoor hebben we toegang nodig tot je locatie en bewegingssensoren. Je exacte locatie wordt nooit gedeeld met andere gebruikers.</string>
     <string name="perm_rationale_cta">Begrepen, machtigingen inschakelen</string>
     <string name="perm_rationale_skip">Nu niet</string>

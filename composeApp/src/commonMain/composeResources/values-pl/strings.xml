@@ -249,6 +249,7 @@
 
     <!-- Ekran uzasadnienia uprawnień -->
     <string name="perm_rationale_title">Jak działa Paparcar</string>
+    <string name="perm_rationale_subtitle">Potrzebujemy kilku uprawnień, aby automatycznie wykrywać Twoje parkowanie.</string>
     <string name="perm_rationale_body">Paparcar wykrywa, gdy opuszczasz swoje miejsce parkingowe i automatycznie udostępnia je pobliskim kierowcom — tak samo jak Ty skorzystałbyś, gdyby ktoś inny to zrobił.\n\nAby to działało, potrzebujemy dostępu do Twojej lokalizacji i czujników ruchu. Twoja dokładna lokalizacja nigdy nie jest udostępniana innym użytkownikom.</string>
     <string name="perm_rationale_cta">Rozumiem, włącz uprawnienia</string>
     <string name="perm_rationale_skip">Nie teraz</string>

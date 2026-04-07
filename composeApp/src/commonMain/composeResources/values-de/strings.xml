@@ -249,6 +249,7 @@
 
     <!-- Berechtigungs-Erklärungs-Bildschirm -->
     <string name="perm_rationale_title">So funktioniert Paparcar</string>
+    <string name="perm_rationale_subtitle">Wir benötigen einige Berechtigungen, um Ihr Parken automatisch zu erkennen.</string>
     <string name="perm_rationale_body">Paparcar erkennt, wenn Sie Ihren Parkplatz verlassen, und teilt ihn automatisch mit nahegelegenen Fahrern — genauso wie Sie davon profitieren würden, wenn jemand anderes das tut.\n\nDafür benötigen wir Zugriff auf Ihren Standort und Bewegungssensoren. Ihr genauer Standort wird niemals mit anderen Nutzern geteilt.</string>
     <string name="perm_rationale_cta">Verstanden, Berechtigungen aktivieren</string>
     <string name="perm_rationale_skip">Jetzt nicht</string>
