@@ -4,7 +4,12 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
@@ -206,6 +211,10 @@ private fun MainAppNavigation(
             navController = navController,
             startDestination = startRoute,
             modifier = Modifier.fillMaxSize(),
+            enterTransition = { fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { it / NAV_SLIDE_FRACTION } },
+            exitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { -it / NAV_SLIDE_FRACTION } },
+            popEnterTransition = { fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { -it / NAV_SLIDE_FRACTION } },
+            popExitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { it / NAV_SLIDE_FRACTION } },
         ) {
             composable(
                 route = "${Routes.VEHICLE_REGISTRATION}?origin={origin}",
@@ -385,6 +394,10 @@ private fun PaparcarBottomNav(
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+private const val NAV_ENTER_MS = 280
+private const val NAV_EXIT_MS = 200
+private const val NAV_SLIDE_FRACTION = 6
 
 private fun NavController.navigateToTab(route: String) {
     navigate(route) {
