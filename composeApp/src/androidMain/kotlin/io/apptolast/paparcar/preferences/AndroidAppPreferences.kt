@@ -10,6 +10,7 @@ private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_VEHICLE_REGISTERED = "vehicle_registered"
+private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 
 class AndroidAppPreferences(context: Context) : AppPreferences {
 
@@ -48,5 +49,12 @@ class AndroidAppPreferences(context: Context) : AppPreferences {
 
     override fun setVehicleRegistered() {
         prefs.edit { putBoolean(KEY_VEHICLE_REGISTERED, true) }
+    }
+
+    override val darkModeEnabled: Boolean
+        get() = if (prefs.contains(KEY_DARK_MODE_ENABLED)) prefs.getBoolean(KEY_DARK_MODE_ENABLED, true) else true
+
+    override fun setDarkModeEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_DARK_MODE_ENABLED, enabled) }
     }
 }

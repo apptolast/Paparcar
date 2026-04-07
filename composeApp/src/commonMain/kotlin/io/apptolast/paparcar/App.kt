@@ -102,7 +102,7 @@ fun App(
     val appState by appViewModel.state.collectAsStateWithLifecycle()
     val authState by splashViewModel.authState.collectAsStateWithLifecycle()
 
-    PaparcarTheme {
+    PaparcarTheme(darkTheme = appState.darkTheme) {
         // Each screen's Scaffold draws its own background.
         Surface(modifier = Modifier.fillMaxSize()) {
 
@@ -126,7 +126,9 @@ fun App(
                     is AuthState.Authenticated -> MainAppNavigation(
                         startRoute,
                         appState.isFullyOperational,
+                        appState.darkTheme,
                         { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
+                        { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
                         onOpenMapsNavigation,
                     )
                     else -> AuthNavigation()
@@ -160,7 +162,9 @@ private fun AuthNavigation() {
 private fun MainAppNavigation(
     startRoute: String,
     isFullyOperational: Boolean,
+    darkTheme: Boolean,
     onHandleIntent: () -> Unit,
+    onToggleDarkMode: (Boolean) -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -298,6 +302,8 @@ private fun MainAppNavigation(
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
+                    darkMode = darkTheme,
+                    onToggleDarkMode = onToggleDarkMode,
                 )
             }
             composable(

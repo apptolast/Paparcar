@@ -164,6 +164,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Setări</string>
     <string name="settings_cd_back">Înapoi</string>
+    <string name="settings_section_appearance">Aspect</string>
+    <string name="settings_dark_mode">Mod íntunecat</string>
+    <string name="settings_dark_mode_desc">Folosiți tema íntunecată în întreaga aplicație</string>
     <string name="settings_section_detection">Detecție</string>
     <string name="settings_auto_detect">Detecție automată parcare</string>
     <string name="settings_auto_detect_desc">Salvează automat locul de parcare</string>

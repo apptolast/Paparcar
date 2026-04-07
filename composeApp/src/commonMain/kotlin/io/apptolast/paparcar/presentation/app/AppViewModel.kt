@@ -19,6 +19,7 @@ class AppViewModel(
                 copy(
                     permissionsGranted = current.allPermissionsGranted,
                     locationServicesEnabled = current.isLocationServicesEnabled,
+                    darkTheme = appPreferences.darkModeEnabled,
                 )
             }
         }
@@ -40,6 +41,10 @@ class AppViewModel(
     override fun handleIntent(intent: AppIntent) {
         when (intent) {
             AppIntent.MarkOnboardingCompleted -> appPreferences.setOnboardingCompleted()
+            is AppIntent.ToggleDarkMode -> {
+                appPreferences.setDarkModeEnabled(intent.enabled)
+                updateState { copy(darkTheme = intent.enabled) }
+            }
         }
     }
 }

@@ -164,6 +164,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Impostazioni</string>
     <string name="settings_cd_back">Indietro</string>
+    <string name="settings_section_appearance">Aspetto</string>
+    <string name="settings_dark_mode">Modalità scura</string>
+    <string name="settings_dark_mode_desc">Usa il tema scuro in tutta l'app</string>
     <string name="settings_section_detection">Rilevamento</string>
     <string name="settings_auto_detect">Rilevamento automatico parcheggio</string>
     <string name="settings_auto_detect_desc">Salva automaticamente il posto di parcheggio</string>

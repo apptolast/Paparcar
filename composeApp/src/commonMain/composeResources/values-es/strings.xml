@@ -169,6 +169,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Ajustes</string>
     <string name="settings_cd_back">Volver</string>
+    <string name="settings_section_appearance">Apariencia</string>
+    <string name="settings_dark_mode">Modo oscuro</string>
+    <string name="settings_dark_mode_desc">Usar el tema oscuro en toda la app</string>
     <string name="settings_section_detection">Detección</string>
     <string name="settings_auto_detect">Detección automática</string>
     <string name="settings_auto_detect_desc">Guarda automáticamente tu plaza de aparcamiento</string>

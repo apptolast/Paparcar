@@ -164,6 +164,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Einstellungen</string>
     <string name="settings_cd_back">Zurück</string>
+    <string name="settings_section_appearance">Erscheinungsbild</string>
+    <string name="settings_dark_mode">Dunkelmodus</string>
+    <string name="settings_dark_mode_desc">Dunkles Design in der gesamten App verwenden</string>
     <string name="settings_section_detection">Erkennung</string>
     <string name="settings_auto_detect">Automatische Parkerkennung</string>
     <string name="settings_auto_detect_desc">Parkplatz automatisch speichern</string>

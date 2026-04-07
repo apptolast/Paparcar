@@ -164,6 +164,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Definições</string>
     <string name="settings_cd_back">Voltar</string>
+    <string name="settings_section_appearance">Aparência</string>
+    <string name="settings_dark_mode">Modo escuro</string>
+    <string name="settings_dark_mode_desc">Usar o tema escuro em toda a app</string>
     <string name="settings_section_detection">Deteção</string>
     <string name="settings_auto_detect">Deteção automática de estacionamento</string>
     <string name="settings_auto_detect_desc">Guardar automaticamente o lugar de estacionamento</string>

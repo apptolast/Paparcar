@@ -8,6 +8,7 @@ class FakeAppPreferences(
     initialNotifyParking: Boolean = true,
     initialNotifySpot: Boolean = true,
     initialVehicleRegistered: Boolean = false,
+    initialDarkMode: Boolean = true,
 ) : AppPreferences {
 
     private var _isOnboardingCompleted = initialCompleted
@@ -36,4 +37,8 @@ class FakeAppPreferences(
     private var _hasVehicleRegistered = initialVehicleRegistered
     override val hasVehicleRegistered: Boolean get() = _hasVehicleRegistered
     override fun setVehicleRegistered() { _hasVehicleRegistered = true }
+
+    private var _darkModeEnabled = initialDarkMode
+    override val darkModeEnabled: Boolean get() = _darkModeEnabled
+    override fun setDarkModeEnabled(enabled: Boolean) { _darkModeEnabled = enabled }
 }
