@@ -27,6 +27,12 @@ plugins {
 // ─────────────────────────────────────────────────────────────────────────────
 kotlin {
 
+    // Suppress Beta warning for expect/actual classes (stable usage, not preview features)
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     // ── Targets ──────────────────────────────────────────────────────────────
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)

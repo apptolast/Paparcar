@@ -51,7 +51,7 @@ class BluetoothParkingDetector(
             // BT-005: sample GPS until accuracy is good enough or timeout fires
             val parkingFix = withTimeoutOrNull(GPS_SAMPLE_TIMEOUT_MS) {
                 observeLocation()
-                    .filter { it.accuracy != null && it.accuracy!! <= GPS_ACCURACY_THRESHOLD_M }
+                    .filter { it.accuracy <= GPS_ACCURACY_THRESHOLD_M }
                     .first()
             }
 

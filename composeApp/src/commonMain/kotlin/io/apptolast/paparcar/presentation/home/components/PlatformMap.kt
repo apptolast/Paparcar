@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -65,6 +66,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.ui.theme.PapAmber
+import io.apptolast.paparcar.ui.theme.rememberSyneFontFamily
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
@@ -143,6 +145,7 @@ private val SPOT_TAIL_DEFAULT_HEIGHT  = 8.dp
 private val CLUSTER_MARKER_SIZE       = 48.dp
 private val CLUSTER_MARKER_BORDER     = 2.5.dp
 private const val CLUSTER_MAX_DISPLAY = 99
+private val SPOT_MARKER_SHADOW_ELEVATION = 4.dp
 
 // ── Marker typography ─────────────────────────────────────────────────────────
 private val SPOT_FONT_SELECTED        = 18.sp
@@ -592,12 +595,13 @@ private fun SpotMarkerContent(
     isSelected: Boolean = false,
     ringColor: Color = if (isSelected) PapGreen else PapForestDark,
 ) {
-    val size      = if (isSelected) SPOT_MARKER_SELECTED_SIZE  else SPOT_MARKER_DEFAULT_SIZE
-    val bg        = if (isSelected) PapForestDark               else PapGreen
-    val iconTint  = if (isSelected) PapGreen                    else PapForestDark
-    val tailW     = if (isSelected) SPOT_TAIL_SELECTED_WIDTH    else SPOT_TAIL_DEFAULT_WIDTH
-    val tailH     = if (isSelected) SPOT_TAIL_SELECTED_HEIGHT   else SPOT_TAIL_DEFAULT_HEIGHT
+    val size        = if (isSelected) SPOT_MARKER_SELECTED_SIZE else SPOT_MARKER_DEFAULT_SIZE
+    val bg          = if (isSelected) PapForestDark              else PapGreen
+    val iconTint    = if (isSelected) PapGreen                   else PapForestDark
+    val tailW       = if (isSelected) SPOT_TAIL_SELECTED_WIDTH   else SPOT_TAIL_DEFAULT_WIDTH
+    val tailH       = if (isSelected) SPOT_TAIL_SELECTED_HEIGHT  else SPOT_TAIL_DEFAULT_HEIGHT
     val borderWidth = SPOT_MARKER_BORDER_WIDTH
+    val syne        = rememberSyneFontFamily()
 
     // Spring pop-in on first composition
     val scale = remember { Animatable(0f) }
@@ -619,12 +623,14 @@ private fun SpotMarkerContent(
         Box(
             modifier = Modifier
                 .size(size)
+                .shadow(SPOT_MARKER_SHADOW_ELEVATION, CircleShape, clip = false)
                 .background(bg, CircleShape)
                 .border(borderWidth, ringColor, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 "P",
+                fontFamily = syne,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = if (isSelected) SPOT_FONT_SELECTED else SPOT_FONT_DEFAULT,
                 lineHeight = if (isSelected) SPOT_LINE_HEIGHT_SELECTED else SPOT_LINE_HEIGHT_DEFAULT,

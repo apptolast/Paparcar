@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher icon foreground — bold "P" (parking) in neon green (PapGreen #25F48C).
+
+  Viewport: 108 × 108 dp (adaptive icon full canvas).
+  Safe zone: 72 × 72 dp centered (x: 18–90, y: 18–90).
+
+  Letter "P" geometry (centered at 54,54):
+    · Bar          : x 35–51, y 23–85  (width 16, height 62)
+    · Outer bowl   : semicircle from (51,23) to (51,69), radius 23, right peak at (74,46)
+    · Inner counter: semicircle from (51,35) to (51,57), radius 11, right peak at (62,46)
+  Fill type: evenOdd — the inner counter subpath punches a hole through the bowl.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Subtle green glow ring behind the P (adds depth on the dark background) -->
+    <path
+        android:pathData="M54,18 A36,36 0 0 1 54,90 A36,36 0 0 1 54,18Z"
+        android:fillColor="#25F48C"
+        android:fillAlpha="0.10" />
+
+    <!-- Bold "P" with inner counter -->
+    <path
+        android:pathData="M35,23 L51,23 A23,23 0 0 1 51,69 L51,85 L35,85 Z
+                          M51,35 A11,11 0 0 1 51,57 Z"
+        android:fillColor="#25F48C"
+        android:fillType="evenOdd" />
+
+</vector>

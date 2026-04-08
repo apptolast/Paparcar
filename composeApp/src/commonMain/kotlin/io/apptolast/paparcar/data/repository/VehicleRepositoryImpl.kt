@@ -55,6 +55,7 @@ class VehicleRepositoryImpl(
         // Mirror isDefault flag in Firestore for all user's vehicles
         val vehicles = dao.getByUser(uid)
         vehicles.forEach { entity ->
+            @Suppress("DEPRECATION")
             firestoreVehiclesCol(uid).document(entity.id)
                 .update("isDefault" to (entity.id == id))
         }
