@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -66,7 +67,6 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.ui.theme.PapAmber
-import io.apptolast.paparcar.ui.theme.rememberSyneFontFamily
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
@@ -147,11 +147,7 @@ private val CLUSTER_MARKER_BORDER     = 2.5.dp
 private const val CLUSTER_MAX_DISPLAY = 99
 private val SPOT_MARKER_SHADOW_ELEVATION = 4.dp
 
-// ── Marker typography ─────────────────────────────────────────────────────────
-private val SPOT_FONT_SELECTED        = 18.sp
-private val SPOT_FONT_DEFAULT         = 15.sp
-private val SPOT_LINE_HEIGHT_SELECTED = 20.sp
-private val SPOT_LINE_HEIGHT_DEFAULT  = 17.sp
+// ── Marker typography (cluster only — spot P is canvas-drawn) ─────────────────
 private val CLUSTER_FONT_LARGE        = 13.sp  // count > 9
 private val CLUSTER_FONT_SMALL        = 16.sp  // count <= 9
 private val CLUSTER_LINE_HEIGHT_LARGE = 15.sp
@@ -601,7 +597,6 @@ private fun SpotMarkerContent(
     val tailW       = if (isSelected) SPOT_TAIL_SELECTED_WIDTH   else SPOT_TAIL_DEFAULT_WIDTH
     val tailH       = if (isSelected) SPOT_TAIL_SELECTED_HEIGHT  else SPOT_TAIL_DEFAULT_HEIGHT
     val borderWidth = SPOT_MARKER_BORDER_WIDTH
-    val syne        = rememberSyneFontFamily()
 
     // Spring pop-in on first composition
     val scale = remember { Animatable(0f) }
@@ -628,16 +623,62 @@ private fun SpotMarkerContent(
                 .border(borderWidth, ringColor, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                "P",
-                fontFamily = syne,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = if (isSelected) SPOT_FONT_SELECTED else SPOT_FONT_DEFAULT,
-                lineHeight = if (isSelected) SPOT_LINE_HEIGHT_SELECTED else SPOT_LINE_HEIGHT_DEFAULT,
-                color = iconTint,
-            )
+            ParkingPIcon(color = iconTint, modifier = Modifier.fillMaxSize())
         }
         PinTail(color = ringColor, width = tailW, height = tailH)
+    }
+}
+
+/**
+ * Canvas-drawn "P" (parking) icon — vector-quality at any marker size.
+ *
+ * Geometry (all values proportional to canvas dimensions):
+ *  - pHeight  = 72 % of canvas height (tall, fills the bubble)
+ *  - bowlHeight = 76 % of pHeight  (bowl covers upper ¾ of the letter)
+ *  - barWidth   = 82 % of bowlRadius (thick, readable bar)
+ *
+ * The path is centred both horizontally and vertically.
+ * No counter/cutout is drawn — at small map-marker sizes a solid P reads
+ * more clearly than one with a tiny inner hole.
+ */
+@Composable
+private fun ParkingPIcon(color: Color, modifier: Modifier = Modifier) {
+    val colorState = color  // capture for lambda
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+
+        val pHeight    = h * 0.72f
+        val bowlHeight = pHeight * 0.76f
+        val bowlRadius = bowlHeight / 2f
+        val barWidth   = bowlRadius * 0.82f
+
+        // Centre horizontally: total visual width = barWidth + bowlRadius
+        val startX = (w - (barWidth + bowlRadius)) / 2f
+        val startY = (h - pHeight) / 2f
+        val barRight = startX + barWidth
+
+        val path = Path().apply {
+            moveTo(startX, startY)
+            lineTo(barRight, startY)
+            // Right-hand semicircular bowl (clockwise, -90 → +90)
+            arcTo(
+                rect = Rect(
+                    left   = barRight - bowlRadius,
+                    top    = startY,
+                    right  = barRight + bowlRadius,
+                    bottom = startY + bowlHeight,
+                ),
+                startAngleDegrees = -90f,
+                sweepAngleDegrees = 180f,
+                forceMoveTo = false,
+            )
+            lineTo(barRight, startY + pHeight)
+            lineTo(startX, startY + pHeight)
+            close()
+        }
+
+        drawPath(path, color = colorState)
     }
 }
 
