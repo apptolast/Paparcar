@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
                 },
             )
 
-h            // Start detection infrastructure when all permissions are granted.
+            // Start detection infrastructure when all permissions are granted.
             // distinctUntilChanged + filter ensures we trigger only on false → true transition,
             // not on every permission state update.
             LaunchedEffect(Unit) {

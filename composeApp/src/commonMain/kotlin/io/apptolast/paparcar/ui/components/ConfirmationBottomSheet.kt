@@ -56,7 +56,7 @@ fun ConfirmationBottomSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartialExpansion = true)
+    val sheetState = rememberModalBottomSheetState()
     var secondsLeft by remember { mutableIntStateOf(CONFIRMATION_TIMEOUT_SECONDS) }
     val onConfirmLatest = rememberUpdatedState(onConfirm)
 
