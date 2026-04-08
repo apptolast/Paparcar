@@ -73,6 +73,87 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
+// ── Crosshair / pulse animations ─────────────────────────────────────────────
+private const val CROSSHAIR_SCALE_HIDDEN  = 0f
+private const val CROSSHAIR_SCALE_AIMING  = 1.25f
+private const val CROSSHAIR_SCALE_NORMAL  = 1f
+private const val PULSE_INITIAL_ALPHA     = 0.55f
+private const val PULSE_INITIAL_SCALE     = 0.5f
+private const val PULSE_MAX_SCALE         = 2.4f
+private const val PULSE_ANIM_MS           = 600
+private const val LOADING_ARC_ANIM_MS     = 1100
+private const val LOADING_FADE_MS         = 300
+
+// ── Location indicator (canvas drawing) ──────────────────────────────────────
+private val   LOCATION_INDICATOR_BOX_SIZE = 56.dp
+private val   RING_CANVAS_SIZE            = 36.dp
+private const val RING_RADIUS_FACTOR      = 0.38f
+private const val RING_STROKE_DP          = 1.8f
+private const val PULSE_STROKE_DP         = 1.5f
+private const val SHADOW_EXTRA_STROKE     = 1.5f
+private const val SHADOW_OFFSET_X         = 1f
+private const val SHADOW_OFFSET_Y         = 1.5f
+private const val SHADOW_RADIUS_OFFSET    = 0.5f
+private const val CENTER_DOT_SHADOW_RADIUS_DP = 3f
+private const val CENTER_DOT_RADIUS_DP    = 2.5f
+private const val LOADING_ARC_SWEEP_ANGLE = 260f
+private const val REPORT_MODE_SHADOW_ALPHA = 0.35f
+private const val NORMAL_MODE_SHADOW_ALPHA = 0.22f
+
+// ── Loading arc gradient stops ────────────────────────────────────────────────
+private const val LOADING_GRADIENT_TAIL_START = 0.716f
+private const val LOADING_GRADIENT_HEAD       = 0.721f
+private const val LOADING_GRADIENT_CUTOFF     = 0.726f
+
+// ── Clustering degree thresholds ─────────────────────────────────────────────
+private const val CLUSTER_ZOOM_LEVEL_13   = 13f
+private const val CLUSTER_ZOOM_LEVEL_12   = 12f
+private const val CLUSTER_ZOOM_LEVEL_11   = 11f
+private const val CLUSTER_THRESHOLD_13    = 0.004
+private const val CLUSTER_THRESHOLD_12    = 0.008
+private const val CLUSTER_THRESHOLD_11    = 0.016
+private const val CLUSTER_THRESHOLD_10    = 0.032
+
+// ── Bounds-to-zoom mapping ────────────────────────────────────────────────────
+private const val BOUNDS_DELTA_220M  = 0.002f
+private const val BOUNDS_DELTA_550M  = 0.005f
+private const val BOUNDS_DELTA_1100M = 0.010f
+private const val BOUNDS_DELTA_2200M = 0.020f
+private const val BOUNDS_DELTA_4500M = 0.040f
+private const val ZOOM_STREET        = 17f
+private const val ZOOM_CLOSE         = 16f
+private const val ZOOM_DEFAULT       = 15f
+private const val ZOOM_NEIGHBORHOOD  = 14f
+private const val ZOOM_DISTRICT      = 13f
+private const val ZOOM_WIDE          = 12f
+
+// ── Marker dimensions ─────────────────────────────────────────────────────────
+private val MY_CAR_MARKER_SIZE        = 44.dp
+private val MY_CAR_MARKER_BORDER      = 3.5.dp
+private val MY_CAR_MARKER_ICON_SIZE   = 24.dp
+private val MY_CAR_TAIL_WIDTH         = 12.dp
+private val MY_CAR_TAIL_HEIGHT        = 10.dp
+private val SPOT_MARKER_SELECTED_SIZE = 46.dp
+private val SPOT_MARKER_DEFAULT_SIZE  = 38.dp
+private val SPOT_MARKER_BORDER_WIDTH  = 2.dp
+private val SPOT_TAIL_SELECTED_WIDTH  = 12.dp
+private val SPOT_TAIL_SELECTED_HEIGHT = 10.dp
+private val SPOT_TAIL_DEFAULT_WIDTH   = 10.dp
+private val SPOT_TAIL_DEFAULT_HEIGHT  = 8.dp
+private val CLUSTER_MARKER_SIZE       = 48.dp
+private val CLUSTER_MARKER_BORDER     = 2.5.dp
+private const val CLUSTER_MAX_DISPLAY = 99
+
+// ── Marker typography ─────────────────────────────────────────────────────────
+private val SPOT_FONT_SELECTED        = 18.sp
+private val SPOT_FONT_DEFAULT         = 15.sp
+private val SPOT_LINE_HEIGHT_SELECTED = 20.sp
+private val SPOT_LINE_HEIGHT_DEFAULT  = 17.sp
+private val CLUSTER_FONT_LARGE        = 13.sp  // count > 9
+private val CLUSTER_FONT_SMALL        = 16.sp  // count <= 9
+private val CLUSTER_LINE_HEIGHT_LARGE = 15.sp
+private val CLUSTER_LINE_HEIGHT_SMALL = 18.sp
+
 // ── Marker content IDs ──────────────────────────────────────────────────────
 private const val MARKER_MY_CAR = "my_car"
 private const val MARKER_FREE_SPOT = "free_spot"
@@ -93,10 +174,10 @@ private data class SpotCluster(val lat: Double, val lon: Double, val spots: List
 /** Degree threshold used to group nearby spots at a given zoom level. */
 private fun clusterThresholdDeg(zoom: Float): Double = when {
     zoom >= ZOOM_CLUSTER_DISABLE -> 0.0
-    zoom >= 13f -> 0.004
-    zoom >= 12f -> 0.008
-    zoom >= 11f -> 0.016
-    else -> 0.032
+    zoom >= CLUSTER_ZOOM_LEVEL_13 -> CLUSTER_THRESHOLD_13
+    zoom >= CLUSTER_ZOOM_LEVEL_12 -> CLUSTER_THRESHOLD_12
+    zoom >= CLUSTER_ZOOM_LEVEL_11 -> CLUSTER_THRESHOLD_11
+    else                          -> CLUSTER_THRESHOLD_10
 }
 
 /**
@@ -150,7 +231,7 @@ fun PlatformMap(
     mapType: MapType = MapType.NORMAL,
 ) {
     // ── Clustering ───────────────────────────────────────────────────────────
-    var currentZoom by remember { mutableStateOf(15f) }
+    var currentZoom by remember { mutableStateOf(ZOOM_DEFAULT) }
 
     val clusters = remember(spots, currentZoom) {
         clusterSpots(spots, clusterThresholdDeg(currentZoom))
@@ -235,9 +316,9 @@ fun PlatformMap(
     // ── Crosshair animations ─────────────────────────────────────────────
     val crosshairScale by animateFloatAsState(
         targetValue = when {
-            isAnyItemSelected -> 0f         // hide when any item (spot or parking) is focused
-            cameraMoving -> 1.25f           // enlarge while aiming
-            else -> 1f
+            isAnyItemSelected -> CROSSHAIR_SCALE_HIDDEN   // hide when any item is focused
+            cameraMoving      -> CROSSHAIR_SCALE_AIMING   // enlarge while aiming
+            else              -> CROSSHAIR_SCALE_NORMAL
         },
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -250,10 +331,10 @@ fun PlatformMap(
     val pulseScale = remember { Animatable(1f) }
     LaunchedEffect(cameraMoving, showLoading) {
         if (!cameraMoving && actualCamLat != null && !isAnyItemSelected && !showLoading) {
-            pulseAlpha.snapTo(0.55f)
-            pulseScale.snapTo(0.5f)
-            launch { pulseAlpha.animateTo(0f, tween(600, easing = FastOutSlowInEasing)) }
-            launch { pulseScale.animateTo(2.4f, tween(600, easing = FastOutSlowInEasing)) }
+            pulseAlpha.snapTo(PULSE_INITIAL_ALPHA)
+            pulseScale.snapTo(PULSE_INITIAL_SCALE)
+            launch { pulseAlpha.animateTo(0f, tween(PULSE_ANIM_MS, easing = FastOutSlowInEasing)) }
+            launch { pulseScale.animateTo(PULSE_MAX_SCALE, tween(PULSE_ANIM_MS, easing = FastOutSlowInEasing)) }
         }
     }
     // Loading arc: spins while content is being fetched
@@ -262,7 +343,7 @@ fun PlatformMap(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1100, easing = LinearEasing),
+            animation = tween(LOADING_ARC_ANIM_MS, easing = LinearEasing),
             repeatMode = RepeatMode.Restart,
         ),
         label = "loading_angle",
@@ -279,7 +360,7 @@ fun PlatformMap(
     val backgroundColor = MaterialTheme.colorScheme.background
     val loadingAlpha by animateFloatAsState(
         targetValue = if (showLoading && !isAnyItemSelected) 1f else 0f,
-        animationSpec = tween(300),
+        animationSpec = tween(LOADING_FADE_MS),
         label = "loading_alpha",
     )
 
@@ -335,11 +416,11 @@ fun PlatformMap(
 
         // ── Location indicator ───────────────────────────────────────────────
         val indicatorColor = if (reportMode) PapGreen else Color.White
-        val shadowAlpha = if (reportMode) 0.35f else 0.22f
+        val shadowAlpha = if (reportMode) REPORT_MODE_SHADOW_ALPHA else NORMAL_MODE_SHADOW_ALPHA
 
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(LOCATION_INDICATOR_BOX_SIZE)
                 .align(Alignment.Center)
                 .scale(crosshairScale),
             contentAlignment = Alignment.Center,
@@ -351,22 +432,22 @@ fun PlatformMap(
                     color = indicatorColor.copy(alpha = pulseAlpha.value),
                     radius = r,
                     center = Offset(size.width / 2f, size.height / 2f),
-                    style = Stroke(width = 1.5.dp.toPx()),
+                    style = Stroke(width = PULSE_STROKE_DP.dp.toPx()),
                 )
             }
             // Ring + center dot (+ loading arc when fetching content)
-            Canvas(modifier = Modifier.size(36.dp)) {
+            Canvas(modifier = Modifier.size(RING_CANVAS_SIZE)) {
                 val cx = size.width / 2f
                 val cy = size.height / 2f
-                val ringRadius = size.minDimension * 0.38f
-                val ringStroke = 1.8.dp.toPx()
+                val ringRadius = size.minDimension * RING_RADIUS_FACTOR
+                val ringStroke = RING_STROKE_DP.dp.toPx()
 
                 // Shadow (subtle drop, offset down-right)
                 drawCircle(
                     color = Color.Black.copy(alpha = shadowAlpha),
-                    radius = ringRadius + 0.5f,
-                    center = Offset(cx + 1f, cy + 1.5f),
-                    style = Stroke(width = ringStroke + 1.5f),
+                    radius = ringRadius + SHADOW_RADIUS_OFFSET,
+                    center = Offset(cx + SHADOW_OFFSET_X, cy + SHADOW_OFFSET_Y),
+                    style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE),
                 )
                 // Main ring
                 drawCircle(
@@ -384,34 +465,34 @@ fun PlatformMap(
                         drawArc(
                             brush = Brush.sweepGradient(
                                 colorStops = arrayOf(
-                                    0f to Color.Transparent,                            // gap
-                                    0.716f to indicatorColor.copy(alpha = 0.04f),          // tail start
-                                    0.721f to indicatorColor,                              // HEAD (bright)
-                                    0.726f to Color.Transparent,                           // cutoff
-                                    1f to Color.Transparent,                            // gap wraps
+                                    0f                         to Color.Transparent,
+                                    LOADING_GRADIENT_TAIL_START to indicatorColor.copy(alpha = 0.04f),
+                                    LOADING_GRADIENT_HEAD       to indicatorColor,
+                                    LOADING_GRADIENT_CUTOFF     to Color.Transparent,
+                                    1f                         to Color.Transparent,
                                 ),
                                 center = Offset(cx, cy),
                             ),
                             startAngle = 0f,
-                            sweepAngle = 260f,
+                            sweepAngle = LOADING_ARC_SWEEP_ANGLE,
                             useCenter = false,
                             topLeft = Offset(cx - ringRadius, cy - ringRadius),
                             size = Size(ringRadius * 2, ringRadius * 2),
                             alpha = loadingAlpha,
-                            style = Stroke(width = ringStroke + 1.5f, cap = StrokeCap.Round),
+                            style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE, cap = StrokeCap.Round),
                         )
                     }
                 }
                 // Center dot shadow
                 drawCircle(
                     color = Color.Black.copy(alpha = shadowAlpha),
-                    radius = 3.dp.toPx(),
-                    center = Offset(cx + 0.5f, cy + 1f),
+                    radius = CENTER_DOT_SHADOW_RADIUS_DP.dp.toPx(),
+                    center = Offset(cx + SHADOW_OFFSET_X / 2, cy + SHADOW_OFFSET_Y / 2),
                 )
                 // Center dot
                 drawCircle(
                     color = indicatorColor,
-                    radius = 2.5.dp.toPx(),
+                    radius = CENTER_DOT_RADIUS_DP.dp.toPx(),
                     center = Offset(cx, cy),
                 )
             }
@@ -436,7 +517,7 @@ private fun rememberCameraAnimationState(
         ?: Coordinates(0.0, 0.0)
     val animLat = remember { Animatable(initCoords.latitude.toFloat()) }
     val animLon = remember { Animatable(initCoords.longitude.toFloat()) }
-    val animZoom = remember { Animatable(cameraTarget?.zoom ?: 15f) }
+    val animZoom = remember { Animatable(cameraTarget?.zoom ?: ZOOM_DEFAULT) }
 
     // Snap Animatables to the actual map position only right before launching
     // a programmatic animation. This ensures animations start from wherever
@@ -453,12 +534,12 @@ private fun rememberCameraAnimationState(
                 abs(target.lon - target.boundsLon2),
             ).toFloat()
             val zoom = when {
-                maxDelta < 0.002f -> 17f   // ~220 m
-                maxDelta < 0.005f -> 16f   // ~550 m
-                maxDelta < 0.010f -> 15f   // ~1.1 km
-                maxDelta < 0.020f -> 14f   // ~2.2 km
-                maxDelta < 0.040f -> 13f   // ~4.5 km
-                else -> 12f
+                maxDelta < BOUNDS_DELTA_220M  -> ZOOM_STREET        // ~220 m
+                maxDelta < BOUNDS_DELTA_550M  -> ZOOM_CLOSE         // ~550 m
+                maxDelta < BOUNDS_DELTA_1100M -> ZOOM_DEFAULT       // ~1.1 km
+                maxDelta < BOUNDS_DELTA_2200M -> ZOOM_NEIGHBORHOOD  // ~2.2 km
+                maxDelta < BOUNDS_DELTA_4500M -> ZOOM_DISTRICT      // ~4.5 km
+                else                          -> ZOOM_WIDE
             }
             Triple(
                 ((target.lat + target.boundsLat2) / 2.0).toFloat(),
@@ -484,27 +565,25 @@ private fun rememberCameraAnimationState(
 
 @Composable
 private fun MyCarMarkerContent() {
-    val borderWidth = 2.dp
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(-borderWidth), // 👈 solapa el triángulo bajo el borde
+        verticalArrangement = Arrangement.spacedBy(-SPOT_MARKER_BORDER_WIDTH),
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(MY_CAR_MARKER_SIZE)
                 .background(PapForestDark, CircleShape)
-                .border(3.5.dp, PapGreen, CircleShape),
+                .border(MY_CAR_MARKER_BORDER, PapGreen, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Filled.DirectionsCar,
                 contentDescription = null,
                 tint = PapGreen,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(MY_CAR_MARKER_ICON_SIZE),
             )
         }
-        PinTail(color = PapGreen, width = 12.dp, height = 10.dp)
+        PinTail(color = PapGreen, width = MY_CAR_TAIL_WIDTH, height = MY_CAR_TAIL_HEIGHT)
     }
 }
 
@@ -513,12 +592,12 @@ private fun SpotMarkerContent(
     isSelected: Boolean = false,
     ringColor: Color = if (isSelected) PapGreen else PapForestDark,
 ) {
-    val size = if (isSelected) 46.dp else 38.dp
-    val bg = if (isSelected) PapForestDark else PapGreen
-    val iconTint = if (isSelected) PapGreen else PapForestDark
-    val tailW = if (isSelected) 12.dp else 10.dp
-    val tailH = if (isSelected) 10.dp else 8.dp
-    val borderWidth = 2.dp
+    val size      = if (isSelected) SPOT_MARKER_SELECTED_SIZE  else SPOT_MARKER_DEFAULT_SIZE
+    val bg        = if (isSelected) PapForestDark               else PapGreen
+    val iconTint  = if (isSelected) PapGreen                    else PapForestDark
+    val tailW     = if (isSelected) SPOT_TAIL_SELECTED_WIDTH    else SPOT_TAIL_DEFAULT_WIDTH
+    val tailH     = if (isSelected) SPOT_TAIL_SELECTED_HEIGHT   else SPOT_TAIL_DEFAULT_HEIGHT
+    val borderWidth = SPOT_MARKER_BORDER_WIDTH
 
     // Spring pop-in on first composition
     val scale = remember { Animatable(0f) }
@@ -547,8 +626,8 @@ private fun SpotMarkerContent(
             Text(
                 "P",
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = if (isSelected) 18.sp else 15.sp,
-                lineHeight = if (isSelected) 20.sp else 17.sp,
+                fontSize = if (isSelected) SPOT_FONT_SELECTED else SPOT_FONT_DEFAULT,
+                lineHeight = if (isSelected) SPOT_LINE_HEIGHT_SELECTED else SPOT_LINE_HEIGHT_DEFAULT,
                 color = iconTint,
             )
         }
@@ -558,19 +637,19 @@ private fun SpotMarkerContent(
 
 @Composable
 private fun ClusterMarkerContent(count: Int) {
-    val label = if (count > 99) "99+" else count.toString()
+    val label = if (count > CLUSTER_MAX_DISPLAY) "$CLUSTER_MAX_DISPLAY+" else count.toString()
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(CLUSTER_MARKER_SIZE)
             .background(PapGreen, CircleShape)
-            .border(2.5.dp, PapForestDark, CircleShape),
+            .border(CLUSTER_MARKER_BORDER, PapForestDark, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             fontWeight = FontWeight.ExtraBold,
-            fontSize = if (count > 9) 13.sp else 16.sp,
-            lineHeight = if (count > 9) 15.sp else 18.sp,
+            fontSize = if (count > 9) CLUSTER_FONT_LARGE else CLUSTER_FONT_SMALL,
+            lineHeight = if (count > 9) CLUSTER_LINE_HEIGHT_LARGE else CLUSTER_LINE_HEIGHT_SMALL,
             color = PapForestDark,
         )
     }

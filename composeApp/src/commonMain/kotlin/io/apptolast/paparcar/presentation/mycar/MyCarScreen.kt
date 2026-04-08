@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
@@ -95,10 +96,10 @@ fun MyCarScreen(
                 onAddVehicle = { viewModel.handleIntent(MyCarIntent.AddVehicle) },
             )
             else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = PaparcarSpacing.lg),
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
             ) {
-                item { Spacer(Modifier.height(4.dp)) }
+                item { Spacer(Modifier.height(PaparcarSpacing.xs)) }
                 items(items = state.vehicles, key = { it.id }) { vehicle ->
                     VehicleCard(
                         data = vehicle.toCardData(sizeLabel = vehicleSizeName(vehicle.sizeCategory)),
@@ -106,7 +107,7 @@ fun MyCarScreen(
                         onConfigureBluetooth = { onConfigureBluetooth(vehicle.id) },
                     )
                 }
-                item { Spacer(Modifier.height(80.dp)) } // FAB clearance
+                item { Spacer(Modifier.height(FAB_CLEARANCE_HEIGHT)) }
             }
         }
     }
@@ -120,23 +121,23 @@ private fun EmptyVehicleState(
     onAddVehicle: () -> Unit,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = 32.dp),
+        modifier = modifier.padding(horizontal = PaparcarSpacing.xxxl),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
             imageVector = Icons.Outlined.DirectionsCar,
             contentDescription = null,
-            modifier = Modifier.size(72.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+            modifier = Modifier.size(EMPTY_STATE_ICON_SIZE),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = EMPTY_STATE_ICON_ALPHA),
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.my_car_no_vehicle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(PaparcarSpacing.xxl))
         PapPrimaryButton(
             label = stringResource(Res.string.my_car_add_vehicle),
             onClick = onAddVehicle,
@@ -150,7 +151,7 @@ private fun Vehicle.toCardData(sizeLabel: String): VehicleCardData {
     val displayName = listOfNotNull(brand, model).joinToString(" ").ifBlank { sizeLabel }
     val detectionStatus = when {
         bluetoothDeviceId != null -> VehicleDetectionStatus.Bluetooth(
-            deviceLabel = bluetoothDeviceId.takeLast(5),
+            deviceLabel = bluetoothDeviceId.takeLast(BT_ADDRESS_LABEL_LENGTH),
         )
         else -> VehicleDetectionStatus.ActivityRecognition
     }
@@ -162,6 +163,13 @@ private fun Vehicle.toCardData(sizeLabel: String): VehicleCardData {
         detectionStatus = detectionStatus,
     )
 }
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+private val   FAB_CLEARANCE_HEIGHT    = 80.dp
+private val   EMPTY_STATE_ICON_SIZE   = 72.dp
+private const val EMPTY_STATE_ICON_ALPHA    = 0.4f
+private const val BT_ADDRESS_LABEL_LENGTH   = 5
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

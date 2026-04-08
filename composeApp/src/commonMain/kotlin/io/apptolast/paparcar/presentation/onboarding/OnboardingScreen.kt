@@ -49,7 +49,14 @@ import paparcar.composeapp.generated.resources.onboarding_step2_title
 import paparcar.composeapp.generated.resources.onboarding_step3_desc
 import paparcar.composeapp.generated.resources.onboarding_step3_title
 
-private const val PAGE_COUNT = 3
+private const val PAGE_COUNT                 = 3
+private const val DOT_ANIM_MS                = 300
+private val       PAGE_CONTENT_BOTTOM_CLEARANCE = 140.dp
+private val       HERO_EMOJI_SIZE            = 72.sp
+private val       HERO_EMOJI_SIZE_SMALL      = 64.sp
+private val       STEP_EMOJI_SIZE            = 32.sp
+private val       DOT_ACTIVE_WIDTH           = 24.dp
+private val       DOT_INACTIVE_SIZE          = 8.dp
 
 @Composable
 fun OnboardingScreen(onComplete: () -> Unit) {
@@ -112,11 +119,11 @@ private fun OnboardingPage1() {
             .fillMaxSize()
             .statusBarsPadding()
             .padding(horizontal = PaparcarSpacing.xxxl)
-            .padding(top = PaparcarSpacing.huge, bottom = 140.dp),
+            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "🚗", fontSize = 72.sp)
+        Text(text = "🚗", fontSize = HERO_EMOJI_SIZE)
         Spacer(Modifier.height(PaparcarSpacing.xxxl))
         Text(
             text = stringResource(Res.string.onboarding_page1_title),
@@ -142,7 +149,7 @@ private fun OnboardingPage2() {
             .fillMaxSize()
             .statusBarsPadding()
             .padding(horizontal = PaparcarSpacing.xxxl)
-            .padding(top = PaparcarSpacing.huge, bottom = 140.dp),
+            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -181,11 +188,11 @@ private fun OnboardingPage3() {
             .fillMaxSize()
             .statusBarsPadding()
             .padding(horizontal = PaparcarSpacing.xxxl)
-            .padding(top = PaparcarSpacing.huge, bottom = 140.dp),
+            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "🔒", fontSize = 64.sp)
+        Text(text = "🔒", fontSize = HERO_EMOJI_SIZE_SMALL)
         Spacer(Modifier.height(PaparcarSpacing.xxl))
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
@@ -211,7 +218,7 @@ private fun OnboardingStep(emoji: String, title: String, desc: String) {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = emoji, fontSize = 32.sp)
+            Text(text = emoji, fontSize = STEP_EMOJI_SIZE)
             Spacer(Modifier.width(PaparcarSpacing.lg))
             Column {
                 Text(
@@ -238,14 +245,14 @@ private fun PagerDotIndicator(pageCount: Int, currentPage: Int) {
     ) {
         repeat(pageCount) { index ->
             val width by animateDpAsState(
-                targetValue = if (index == currentPage) 24.dp else 8.dp,
-                animationSpec = tween(300),
+                targetValue = if (index == currentPage) DOT_ACTIVE_WIDTH else DOT_INACTIVE_SIZE,
+                animationSpec = tween(DOT_ANIM_MS),
                 label = "dot_width",
             )
             Box(
                 modifier = Modifier
                     .padding(horizontal = PaparcarSpacing.xs)
-                    .height(8.dp)
+                    .height(DOT_INACTIVE_SIZE)
                     .width(width)
                     .background(
                         color = if (index == currentPage) MaterialTheme.colorScheme.primary

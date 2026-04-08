@@ -75,7 +75,10 @@ data class VehicleCardData(
 // VehicleCard
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val CarIconSize = 20.dp
+private val   CarIconSize                 = 20.dp
+private const val ACTIVE_CARD_CONTAINER_ALPHA = 0.35f
+private const val INACTIVE_ICON_ALPHA         = 0.5f
+private const val DISABLED_DETECTION_ALPHA    = 0.45f
 
 /**
  * Vehicle card with detection status indicator.
@@ -96,7 +99,7 @@ fun VehicleCard(
     PapCard(
         modifier = modifier.fillMaxWidth(),
         containerColor = if (data.isActive)
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = ACTIVE_CARD_CONTAINER_ALPHA)
         else
             MaterialTheme.colorScheme.surface,
     ) {
@@ -110,7 +113,7 @@ fun VehicleCard(
                 imageVector = Icons.Outlined.DirectionsCar,
                 contentDescription = null,
                 tint = if (data.isActive) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                       else MaterialTheme.colorScheme.onSurface.copy(alpha = INACTIVE_ICON_ALPHA),
                 modifier = Modifier.size(CarIconSize),
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -181,7 +184,7 @@ private fun VehicleDetectionBadge(status: VehicleDetectionStatus) {
         VehicleDetectionStatus.Disabled -> PapBadge(
             label = stringResource(Res.string.vehicle_card_detection_off),
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DISABLED_DETECTION_ALPHA),
         )
     }
 }

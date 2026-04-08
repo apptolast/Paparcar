@@ -89,6 +89,13 @@ data class SpotCardData(
 private val IconBoxSize   = 44.dp
 private val IconBoxRadius = 13.dp
 
+private const val FRESHNESS_VERY_FRESH_MINUTES = 5L
+private const val FRESHNESS_FRESH_MINUTES      = 15L
+private const val FRESHNESS_HOURS_THRESHOLD    = 60L
+private const val DIVIDER_ALPHA                = 0.4f
+private val       DIVIDER_THICKNESS            = 0.5.dp
+private val       DISTANCE_TEXT_SPACER         = 2.dp
+
 /**
  * Community parking spot card.
  *
@@ -113,7 +120,7 @@ fun SpotCard(
     isSelected: Boolean = false,
 ) {
     val ageMinutes = remember(data.reportedAtMs) {
-        (Clock.System.now().toEpochMilliseconds() - data.reportedAtMs) / 60_000L
+        (Clock.System.now().toEpochMilliseconds() - data.reportedAtMs) / MS_PER_MINUTE
     }
 
     PapClickableCard(
@@ -145,7 +152,7 @@ fun SpotCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (data.distanceMeters != null) {
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(DISTANCE_TEXT_SPACER))
                     Text(
                         text = "${distanceString(data.distanceMeters)}  ·  ${driveTimeString(data.distanceMeters)}",
                         style = MaterialTheme.typography.labelSmall,
@@ -160,8 +167,8 @@ fun SpotCard(
         }
 
         HorizontalDivider(
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-            thickness = 0.5.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = DIVIDER_ALPHA),
+            thickness = DIVIDER_THICKNESS,
         )
 
         // ── Bottom row: reliability badge | en-route | Navigate CTA ──────────
@@ -249,19 +256,19 @@ private fun SpotIconBox(isSelected: Boolean) {
 @Composable
 private fun SpotFreshnessLabel(ageMinutes: Long) {
     val label = when {
-        ageMinutes < 1L  -> stringResource(Res.string.home_spot_freshness_under_min)
-        ageMinutes < 60L -> stringResource(Res.string.home_spot_freshness_minutes, ageMinutes.toInt())
-        else             -> stringResource(Res.string.home_spot_freshness_hours, (ageMinutes / 60L).toInt())
+        ageMinutes < 1L                          -> stringResource(Res.string.home_spot_freshness_under_min)
+        ageMinutes < FRESHNESS_HOURS_THRESHOLD   -> stringResource(Res.string.home_spot_freshness_minutes, ageMinutes.toInt())
+        else                                     -> stringResource(Res.string.home_spot_freshness_hours, (ageMinutes / FRESHNESS_HOURS_THRESHOLD).toInt())
     }
     val containerColor = when {
-        ageMinutes < 5L  -> MaterialTheme.colorScheme.primaryContainer
-        ageMinutes < 15L -> MaterialTheme.colorScheme.secondaryContainer
-        else             -> MaterialTheme.colorScheme.surfaceVariant
+        ageMinutes < FRESHNESS_VERY_FRESH_MINUTES -> MaterialTheme.colorScheme.primaryContainer
+        ageMinutes < FRESHNESS_FRESH_MINUTES      -> MaterialTheme.colorScheme.secondaryContainer
+        else                                      -> MaterialTheme.colorScheme.surfaceVariant
     }
     val contentColor = when {
-        ageMinutes < 5L  -> MaterialTheme.colorScheme.primary
-        ageMinutes < 15L -> MaterialTheme.colorScheme.secondary
-        else             -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+        ageMinutes < FRESHNESS_VERY_FRESH_MINUTES -> MaterialTheme.colorScheme.primary
+        ageMinutes < FRESHNESS_FRESH_MINUTES      -> MaterialTheme.colorScheme.secondary
+        else                                      -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
     }
     PapBadge(
         label = label,

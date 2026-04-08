@@ -45,8 +45,13 @@ import paparcar.composeapp.generated.resources.permissions_perm_location_desc
 import paparcar.composeapp.generated.resources.permissions_perm_notifications
 import paparcar.composeapp.generated.resources.permissions_perm_notifications_desc
 
-private val StepBadgeSize = 28.dp
-private val StepConnectorWidth = 2.dp
+private val StepBadgeSize              = 28.dp
+private val StepConnectorWidth         = 2.dp
+private val TOP_CONTENT_PADDING        = 56.dp
+private val BOTTOM_CONTENT_PADDING     = 140.dp
+private val TITLE_EMOJI_SIZE           = 56.sp
+private val STEP_EMOJI_SIZE            = 18.sp
+private val STEP_TEXT_SPACER           = 2.dp
 
 @Composable
 fun PermissionsRationaleScreen(
@@ -63,11 +68,11 @@ fun PermissionsRationaleScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(horizontal = PaparcarSpacing.xxxl)
-                .padding(top = 56.dp, bottom = 140.dp)
+                .padding(top = TOP_CONTENT_PADDING, bottom = BOTTOM_CONTENT_PADDING)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = "🔐", fontSize = 56.sp)
+            Text(text = "🔐", fontSize = TITLE_EMOJI_SIZE)
             Spacer(Modifier.height(PaparcarSpacing.lg))
             Text(
                 text = stringResource(Res.string.perm_rationale_title),
@@ -183,7 +188,7 @@ private fun PermissionStep(
                 .padding(bottom = if (isLast) 0.dp else PaparcarSpacing.lg),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = emoji, fontSize = 18.sp)
+                Text(text = emoji, fontSize = STEP_EMOJI_SIZE)
                 Spacer(Modifier.width(PaparcarSpacing.sm))
                 Text(
                     text = label,
@@ -192,7 +197,7 @@ private fun PermissionStep(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
             }
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(STEP_TEXT_SPACER))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,

@@ -36,8 +36,10 @@ import paparcar.composeapp.generated.resources.spot_indicator_en_route
 import paparcar.composeapp.generated.resources.spot_indicator_ttl_expired
 import paparcar.composeapp.generated.resources.spot_indicator_ttl_minutes
 
-private val IndicatorIconSize = 12.dp
-private const val TTL_TICK_MS  = 30_000L  // refresh every 30 s
+private val   IndicatorIconSize              = 12.dp
+private const val TTL_TICK_MS                = 30_000L  // refresh every 30 s
+private const val TTL_CRITICAL_THRESHOLD_MINUTES = 3L
+private const val TTL_WARNING_THRESHOLD_MINUTES  = 10L
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TTLIndicator
@@ -65,20 +67,20 @@ fun TTLIndicator(
     }
 
     val remainingMs   = expiresAtMs - nowMs
-    val remainingMins = (remainingMs / 60_000L).coerceAtLeast(0L)
+    val remainingMins = (remainingMs / MS_PER_MINUTE).coerceAtLeast(0L)
     val expired       = remainingMs <= 0L
 
     val containerColor = when {
-        expired         -> PapRedMuted
-        remainingMins <= 3  -> PapRedMuted
-        remainingMins <= 10 -> PapAmberMuted
-        else            -> PapGreenMuted
+        expired                                       -> PapRedMuted
+        remainingMins <= TTL_CRITICAL_THRESHOLD_MINUTES -> PapRedMuted
+        remainingMins <= TTL_WARNING_THRESHOLD_MINUTES  -> PapAmberMuted
+        else                                          -> PapGreenMuted
     }
     val contentColor = when {
-        expired         -> PapRed
-        remainingMins <= 3  -> PapRed
-        remainingMins <= 10 -> PapAmber
-        else            -> PapGreen
+        expired                                       -> PapRed
+        remainingMins <= TTL_CRITICAL_THRESHOLD_MINUTES -> PapRed
+        remainingMins <= TTL_WARNING_THRESHOLD_MINUTES  -> PapAmber
+        else                                          -> PapGreen
     }
     val label = if (expired) {
         stringResource(Res.string.spot_indicator_ttl_expired)
