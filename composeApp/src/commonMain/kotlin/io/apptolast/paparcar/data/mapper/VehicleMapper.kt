@@ -25,3 +25,20 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     showBrandModelOnSpot = showBrandModelOnSpot,
     isDefault = isDefault,
 )
+
+/** Maps a raw Firestore document map to [VehicleEntity]. Returns null if required fields are missing. */
+fun Map<String, Any?>.toVehicleEntity(): VehicleEntity? {
+    val id = this["id"] as? String ?: return null
+    val userId = this["userId"] as? String ?: return null
+    val sizeCategory = this["sizeCategory"] as? String ?: VehicleSize.MEDIUM.name
+    return VehicleEntity(
+        id = id,
+        userId = userId,
+        brand = this["brand"] as? String,
+        model = this["model"] as? String,
+        sizeCategory = sizeCategory,
+        bluetoothDeviceId = null, // on-device only — never in Firestore
+        showBrandModelOnSpot = this["showBrandModelOnSpot"] as? Boolean ?: false,
+        isDefault = this["isDefault"] as? Boolean ?: false,
+    )
+}

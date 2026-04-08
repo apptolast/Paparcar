@@ -32,4 +32,10 @@ interface VehicleDao {
 
     @Query("UPDATE vehicles SET bluetoothDeviceId = :address WHERE id = :vehicleId")
     suspend fun updateBluetoothDevice(vehicleId: String, address: String?)
+
+    @Query("SELECT COUNT(*) FROM vehicles WHERE userId = :userId")
+    suspend fun countByUser(userId: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(vehicles: List<VehicleEntity>)
 }

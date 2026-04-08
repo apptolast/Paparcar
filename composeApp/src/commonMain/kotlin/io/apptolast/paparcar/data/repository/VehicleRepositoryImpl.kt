@@ -5,6 +5,7 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.apptolast.paparcar.data.datasource.local.room.VehicleDao
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toEntity
+import io.apptolast.paparcar.data.mapper.toVehicleEntity
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +24,7 @@ class VehicleRepositoryImpl(
 
     override fun observeVehicles(): Flow<List<Vehicle>> = flow {
         val uid = currentUserId() ?: return@flow
+        if (dao.countByUser(uid) == 0) syncFromFirestore(uid)
         emitAll(dao.observeByUser(uid).map { list -> list.map { it.toDomain() } })
     }
 
@@ -61,6 +63,12 @@ class VehicleRepositoryImpl(
     override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {
         // On-device only — intentionally never synced to Firestore
         dao.updateBluetoothDevice(vehicleId, deviceAddress)
+    }
+
+    private suspend fun syncFromFirestore(userId: String) {
+        val snapshot = firestoreVehiclesCol(userId).get()
+        val entities = snapshot.documents.mapNotNull { it.data<Map<String, Any?>>().toVehicleEntity() }
+        if (entities.isNotEmpty()) dao.insertAll(entities)
     }
 
     private fun firestoreVehiclesCol(userId: String) =
