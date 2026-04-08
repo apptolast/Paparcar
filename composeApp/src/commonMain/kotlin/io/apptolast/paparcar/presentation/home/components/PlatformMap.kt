@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -65,6 +66,7 @@ import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.ui.theme.PapAmber
 import io.apptolast.paparcar.ui.theme.PapBlue
@@ -146,6 +148,17 @@ private val CLUSTER_MARKER_SIZE       = 48.dp
 private val CLUSTER_MARKER_BORDER     = 2.5.dp
 private const val CLUSTER_MAX_DISPLAY = 99
 private val SPOT_MARKER_SHADOW_ELEVATION = 4.dp
+
+// ── Size badge (corner overlay on spot marker) ────────────────────────────────
+private val   BADGE_SIZE          = 14.dp
+private val   BADGE_BORDER_WIDTH  = 1.5.dp
+private val   BADGE_OFFSET        = 2.dp   // overflow beyond marker corner
+private val   BADGE_FONT_SIZE     = 7.sp
+private val   BADGE_LINE_HEIGHT   = 9.sp
+
+// ── Marker data encoding ──────────────────────────────────────────────────────
+/** Separator used to embed extra data in Marker.title after the spot ID. */
+private const val MARKER_DATA_SEP = "|"
 
 // ── Marker typography (cluster only — spot P is canvas-drawn) ─────────────────
 private val CLUSTER_FONT_LARGE        = 13.sp  // count > 9
@@ -251,10 +264,17 @@ fun PlatformMap(
             clusters.forEach { cluster ->
                 if (cluster.spots.size == 1) {
                     val spot = cluster.spots.first()
+                    // Encode sizeCategory after separator so SpotMarkerContent can render the badge.
+                    // Format: "<spotId>" or "<spotId>|<SIZE_NAME>"
+                    val title = if (spot.sizeCategory != null) {
+                        "${spot.id}$MARKER_DATA_SEP${spot.sizeCategory.name}"
+                    } else {
+                        spot.id
+                    }
                     add(
                         Marker(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
-                            title = spot.id,
+                            title = title,
                             contentId = if (spot.id == selectedSpotId) MARKER_FREE_SPOT_SELECTED
                             else MARKER_FREE_SPOT,
                         ),
@@ -277,13 +297,22 @@ fun PlatformMap(
     val customMarkerContent = remember {
         mapOf<String, @Composable (Marker) -> Unit>(
             MARKER_MY_CAR to { _ -> MyCarMarkerContent() },
-            MARKER_FREE_SPOT to { _ -> SpotMarkerContent(isSelected = false) },
-            MARKER_FREE_SPOT_SELECTED to { _ -> SpotMarkerContent(isSelected = true) },
-            // Reliability variants — visually identical for now; will differentiate
-            // when Spot.confidence is added to the domain model (Phase 4)
-            MARKER_FREE_SPOT_MEDIUM to { _ -> SpotMarkerContent(isSelected = false, ringColor = PapAmber) },
-            MARKER_FREE_SPOT_LOW to { _ -> SpotMarkerContent(isSelected = false, ringColor = PapRed) },
-            MARKER_FREE_SPOT_MANUAL to { _ -> SpotMarkerContent(isSelected = false, ringColor = PapBlue) },
+            MARKER_FREE_SPOT to { marker ->
+                SpotMarkerContent(isSelected = false, sizeCategory = parseMarkerSize(marker.title))
+            },
+            MARKER_FREE_SPOT_SELECTED to { marker ->
+                SpotMarkerContent(isSelected = true, sizeCategory = parseMarkerSize(marker.title))
+            },
+            // Reliability variants — ring colour tied to Spot.confidence (SPOT-004)
+            MARKER_FREE_SPOT_MEDIUM to { marker ->
+                SpotMarkerContent(isSelected = false, ringColor = PapAmber, sizeCategory = parseMarkerSize(marker.title))
+            },
+            MARKER_FREE_SPOT_LOW to { marker ->
+                SpotMarkerContent(isSelected = false, ringColor = PapRed, sizeCategory = parseMarkerSize(marker.title))
+            },
+            MARKER_FREE_SPOT_MANUAL to { marker ->
+                SpotMarkerContent(isSelected = false, ringColor = PapBlue, sizeCategory = parseMarkerSize(marker.title))
+            },
             MARKER_CLUSTER to { marker ->
                 val count = marker.title
                     ?.removePrefix("$MARKER_CLUSTER:")
@@ -393,7 +422,8 @@ fun PlatformMap(
                 onCameraMove(pos.coordinates.latitude, pos.coordinates.longitude)
             },
             onMarkerClick = { marker ->
-                val id = marker.title ?: return@Map
+                // Strip encoded size data to recover the plain spot ID
+                val id = (marker.title ?: return@Map).substringBefore(MARKER_DATA_SEP)
                 if (id == MARKER_MY_CAR || id.startsWith("$MARKER_CLUSTER:")) return@Map
                 onSpotClick(id)
             },
@@ -560,6 +590,26 @@ private fun rememberCameraAnimationState(
     )
 }
 
+// ── Marker data helpers ───────────────────────────────────────────────────────
+
+/** Extracts the [VehicleSize] embedded after [MARKER_DATA_SEP] in a marker title, or null. */
+private fun parseMarkerSize(title: String?): VehicleSize? {
+    val raw = title?.substringAfter(MARKER_DATA_SEP, "") ?: return null
+    return if (raw.isEmpty()) null else runCatching { VehicleSize.valueOf(raw) }.getOrNull()
+}
+
+/**
+ * Single-character label shown on the size badge.
+ * MEDIUM returns null → no badge (it is the most common size, no annotation needed).
+ */
+private fun VehicleSize.badgeLabel(): String? = when (this) {
+    VehicleSize.MOTO   -> "M"
+    VehicleSize.SMALL  -> "S"
+    VehicleSize.MEDIUM -> null
+    VehicleSize.LARGE  -> "L"
+    VehicleSize.VAN    -> "V"
+}
+
 // ── Custom marker composables ────────────────────────────────────────────────
 
 @Composable
@@ -590,6 +640,7 @@ private fun MyCarMarkerContent() {
 private fun SpotMarkerContent(
     isSelected: Boolean = false,
     ringColor: Color = if (isSelected) PapGreen else PapForestDark,
+    sizeCategory: VehicleSize? = null,
 ) {
     val size        = if (isSelected) SPOT_MARKER_SELECTED_SIZE else SPOT_MARKER_DEFAULT_SIZE
     val bg          = if (isSelected) PapForestDark              else PapGreen
@@ -615,6 +666,7 @@ private fun SpotMarkerContent(
         verticalArrangement = Arrangement.spacedBy(-borderWidth),
         modifier = Modifier.scale(scale.value),
     ) {
+        // Outer Box is intentionally NOT clipped — lets the size badge overflow the circle edge.
         Box(
             modifier = Modifier
                 .size(size)
@@ -624,6 +676,17 @@ private fun SpotMarkerContent(
             contentAlignment = Alignment.Center,
         ) {
             ParkingPIcon(color = iconTint, modifier = Modifier.fillMaxSize())
+            val label = sizeCategory?.badgeLabel()
+            if (label != null) {
+                SpotSizeBadge(
+                    label = label,
+                    bgColor = ringColor,
+                    textColor = bg,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = BADGE_OFFSET, y = BADGE_OFFSET),
+                )
+            }
         }
         PinTail(color = ringColor, width = tailW, height = tailH)
     }
@@ -679,6 +742,35 @@ private fun ParkingPIcon(color: Color, modifier: Modifier = Modifier) {
         }
 
         drawPath(path, color = colorState)
+    }
+}
+
+/**
+ * Small circular badge overlaid on the bottom-end corner of [SpotMarkerContent].
+ * Shows a single letter representing the [VehicleSize] that freed the spot.
+ * Uses inverted marker colours so it reads clearly against both green and dark bubbles.
+ */
+@Composable
+private fun SpotSizeBadge(
+    label: String,
+    bgColor: Color,
+    textColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(BADGE_SIZE)
+            .background(bgColor, CircleShape)
+            .border(BADGE_BORDER_WIDTH, textColor, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            fontSize = BADGE_FONT_SIZE,
+            lineHeight = BADGE_LINE_HEIGHT,
+            fontWeight = FontWeight.ExtraBold,
+            color = textColor,
+        )
     }
 }
 
