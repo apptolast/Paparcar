@@ -7,7 +7,7 @@ class FakeAppNotificationManager : AppNotificationManager {
     var parkingSpotSavedCallCount = 0
     var parkingConfirmationCallCount = 0
 
-    override fun showParkingConfirmation(score: Float) {
+    override fun showParkingConfirmation(score: Float, vehicleName: String?) {
         parkingConfirmationCallCount++
     }
 

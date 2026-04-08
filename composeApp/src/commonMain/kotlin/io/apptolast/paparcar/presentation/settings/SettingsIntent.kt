@@ -5,5 +5,6 @@ sealed class SettingsIntent {
     data class ToggleParkingDetectedNotif(val enabled: Boolean) : SettingsIntent()
     data class ToggleSpotFreedNotif(val enabled: Boolean) : SettingsIntent()
     data object NavigateBack : SettingsIntent()
+    data object NavigateToMyCar : SettingsIntent()
     data object OpenPrivacyPolicy : SettingsIntent()
 }

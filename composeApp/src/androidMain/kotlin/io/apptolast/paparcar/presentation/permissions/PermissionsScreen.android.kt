@@ -50,6 +50,12 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
         viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
     }
 
+    val btLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
+    }
+
     // Refresh permissions on every RESUMED lifecycle event (catches return from system settings)
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -66,6 +72,12 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
                 PermissionsEffect.RequestStep2BackgroundLocation ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         step2Launcher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                    } else {
+                        viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
+                    }
+                PermissionsEffect.RequestStepBluetooth ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        btLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
                     } else {
                         viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
                     }
@@ -87,5 +99,6 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
     PermissionsContent(
         state = state,
         onRequestPermissions = { viewModel.handleIntent(PermissionsIntent.RequestPermissions) },
+        onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
     )
 }

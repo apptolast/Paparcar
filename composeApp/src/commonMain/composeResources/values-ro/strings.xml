@@ -45,6 +45,16 @@
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">acum %1$d min</string>
     <string name="home_spot_freshness_hours">acum %1$d ore</string>
+    <!-- SpotCard — %1$d = number of users currently en route -->
+    <string name="spot_card_en_route">%1$d în drum</string>
+    <string name="spot_card_reliability_high">Auto</string>
+    <string name="spot_card_reliability_high_desc">Detectat automat cu încredere ridicată — probabil încă liber.</string>
+    <string name="spot_card_reliability_medium">Aprox.</string>
+    <string name="spot_card_reliability_medium_desc">Detectat automat cu încredere moderată — poate fi deja ocupat.</string>
+    <string name="spot_card_reliability_low">Veche</string>
+    <string name="spot_card_reliability_low_desc">Detectat automat cu încredere scăzută — verificați înainte de a merge.</string>
+    <string name="spot_card_reliability_manual">Manual</string>
+    <string name="spot_card_reliability_manual_desc">Raportat manual de un șofer din comunitate.</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bun venit la Paparcar</string>
@@ -72,6 +82,9 @@
     <string name="permissions_perm_activity_desc">Pentru a detecta automat când începi să conduci și când parchezi</string>
     <string name="permissions_perm_notifications">Notificări</string>
     <string name="permissions_perm_notifications_desc">Pentru a confirma parcarea și a te alerta cu privire la locurile libere din apropiere</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Permite detectarea automată a parcării la conectarea sau deconectarea de la Bluetooth-ul mașinii</string>
+    <string name="permissions_status_optional">Opțional</string>
     <string name="permissions_btn_grant">Acordă permisiunile</string>
     <string name="permissions_btn_background">Activează locația în fundal</string>
     <string name="permissions_btn_settings">Deschide setările sistemului</string>
@@ -161,9 +174,14 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Setări</string>
     <string name="settings_cd_back">Înapoi</string>
+    <string name="settings_section_appearance">Aspect</string>
+    <string name="settings_dark_mode">Mod íntunecat</string>
+    <string name="settings_dark_mode_desc">Folosiți tema íntunecată în întreaga aplicație</string>
     <string name="settings_section_detection">Detecție</string>
     <string name="settings_auto_detect">Detecție automată parcare</string>
     <string name="settings_auto_detect_desc">Salvează automat locul de parcare</string>
+    <string name="settings_nav_my_car">Mașina mea și Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Gestionează vehiculele și asocierea Bluetooth</string>
     <string name="settings_section_notifications">Notificări</string>
     <string name="settings_notif_parking">Parcare detectată</string>
     <string name="settings_notif_parking_desc">Alertă când un loc de parcare este salvat</string>
@@ -209,4 +227,65 @@
     <string name="my_car_title">Mașina Mea</string>
     <string name="my_car_placeholder_desc">Gestionarea vehiculelor va fi disponibilă într-o actualizare viitoare.</string>
 
+    <string name="my_car_no_vehicle">Niciun vehicul înregistrat</string>
+    <string name="my_car_add_vehicle">Adaugă vehicul</string>
+    <string name="my_car_active_vehicle">Vehicul activ</string>
+    <string name="my_car_set_active">Setează ca activ</string>
+
+    <!-- Înregistrare vehicul -->
+    <string name="vehicle_registration_title">Înregistrează-ți vehiculul</string>
+    <string name="vehicle_registration_save">Salvează</string>
+    <string name="vehicle_registration_brand_hint">Marcă (opțional)</string>
+    <string name="vehicle_registration_model_hint">Model (opțional)</string>
+    <string name="vehicle_show_on_spot">Afișează marca și modelul pe locurile libere</string>
+    <string name="vehicle_show_on_spot_desc">Alți utilizatori vor vedea tipul vehiculului care a eliberat locul</string>
+    <string name="vehicle_size_label">Mărimea vehiculului</string>
+    <string name="vehicle_size_moto">Motocicletă</string>
+    <string name="vehicle_size_moto_examples">ex. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Mic</string>
+    <string name="vehicle_size_small_examples">ex. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Mediu</string>
+    <string name="vehicle_size_medium_examples">ex. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Mare</string>
+    <string name="vehicle_size_large_examples">ex. BMW Seria 5, Mercedes Clasa E, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Dubă / SUV</string>
+    <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Ecranul de justificare a permisiunilor -->
+    <string name="perm_rationale_title">Cum funcționează Paparcar</string>
+    <string name="perm_rationale_subtitle">Avem nevoie de câteva permisiuni pentru a detecta automat parcarea dvs.</string>
+    <string name="perm_rationale_body">Paparcar detectează când pleci de pe locul tău de parcare și îl distribuie automat șoferilor din apropiere — la fel cum ai beneficia dacă altcineva ar face asta.\n\nPentru a funcționa, avem nevoie de acces la locația ta și la senzorii de mișcare. Locația ta exactă nu este niciodată partajată cu alți utilizatori.</string>
+    <string name="perm_rationale_cta">Înțeles, activează permisiunile</string>
+    <string name="perm_rationale_skip">Nu acum</string>
+
+    <string name="bt_config_title">Cheie Bluetooth auto</string>
+    <string name="bt_config_subtitle">Selectează dispozitivul Bluetooth deja asociat cu mașina ta. Aplicația îl va folosi pentru a detecta când parchezi sau pleci.</string>
+    <string name="bt_config_bt_off">Bluetooth-ul este dezactivat. Activează-l pentru a vedea dispozitivele asociate.</string>
+    <string name="bt_config_no_devices">Nu s-au găsit dispozitive Bluetooth asociate. Asociază mai întâi Bluetooth-ul mașinii din setările de sistem.</string>
+    <string name="bt_config_save">Salvează</string>
+    <string name="bt_config_none">Fără Bluetooth auto</string>
+    <string name="bt_config_remove">Elimină asocierea</string>
+    <string name="bt_config_device_classic">Clasic</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Configurează Bluetooth</string>
+    <string name="my_car_bt_device">Bluetooth auto</string>
+    <string name="my_car_bt_not_configured">Neconfigurat</string>
+    <!-- VehicleCard detection status badge labels -->
+    <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <string name="vehicle_card_detection_ar">Detectare auto</string>
+    <string name="vehicle_card_detection_off">Fără detectare</string>
+    <!-- DetectionStatusBanner -->
+    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
+    <string name="detection_banner_ar_active">Detectare automată activă</string>
+    <string name="detection_banner_pair_bt">Asociază Bluetooth</string>
+    <!-- SpotIndicators -->
+    <string name="spot_indicator_en_route">%1$d în drum</string>
+    <string name="spot_indicator_ttl_expired">Expirat</string>
+    <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- ConfirmationBottomSheet -->
+    <string name="confirmation_sheet_title">Parcare detectată</string>
+    <string name="confirmation_sheet_subtitle">Tocmai ați parcat? Publicare automată în %1$s.</string>
+    <string name="confirmation_sheet_confirm">Publică locul</string>
+    <string name="confirmation_sheet_withdraw">Nu acum</string>
 </resources>

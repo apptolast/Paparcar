@@ -13,17 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.components.PapCard
+import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -51,7 +49,14 @@ import paparcar.composeapp.generated.resources.onboarding_step2_title
 import paparcar.composeapp.generated.resources.onboarding_step3_desc
 import paparcar.composeapp.generated.resources.onboarding_step3_title
 
-private const val PAGE_COUNT = 3
+private const val PAGE_COUNT                 = 3
+private const val DOT_ANIM_MS                = 300
+private val       PAGE_CONTENT_BOTTOM_CLEARANCE = 140.dp
+private val       HERO_EMOJI_SIZE            = 72.sp
+private val       HERO_EMOJI_SIZE_SMALL      = 64.sp
+private val       STEP_EMOJI_SIZE            = 32.sp
+private val       DOT_ACTIVE_WIDTH           = 24.dp
+private val       DOT_INACTIVE_SIZE          = 8.dp
 
 @Composable
 fun OnboardingScreen(onComplete: () -> Unit) {
@@ -74,22 +79,26 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             }
         }
 
-        // Dot indicator + CTA at the bottom
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = PaparcarSpacing.xxl)
                 .navigationBarsPadding()
-                .padding(bottom = 32.dp),
+                .padding(bottom = PaparcarSpacing.xxxl),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             PagerDotIndicator(
                 pageCount = PAGE_COUNT,
                 currentPage = pagerState.currentPage,
             )
-            Spacer(Modifier.height(24.dp))
-            Button(
+            Spacer(Modifier.height(PaparcarSpacing.xxl))
+            PapPrimaryButton(
+                label = if (pagerState.currentPage < PAGE_COUNT - 1) {
+                    stringResource(Res.string.onboarding_cta_next)
+                } else {
+                    stringResource(Res.string.onboarding_cta_setup)
+                },
                 onClick = {
                     if (pagerState.currentPage < PAGE_COUNT - 1) {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
@@ -97,25 +106,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         onComplete()
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
-            ) {
-                Text(
-                    text = if (pagerState.currentPage < PAGE_COUNT - 1) {
-                        stringResource(Res.string.onboarding_cta_next)
-                    } else {
-                        stringResource(Res.string.onboarding_cta_setup)
-                    },
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                )
-            }
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
@@ -126,13 +118,13 @@ private fun OnboardingPage1() {
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .padding(horizontal = 32.dp)
-            .padding(top = 80.dp, bottom = 140.dp),
+            .padding(horizontal = PaparcarSpacing.xxxl)
+            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "🚗", fontSize = 72.sp)
-        Spacer(Modifier.height(32.dp))
+        Text(text = "🚗", fontSize = HERO_EMOJI_SIZE)
+        Spacer(Modifier.height(PaparcarSpacing.xxxl))
         Text(
             text = stringResource(Res.string.onboarding_page1_title),
             style = MaterialTheme.typography.headlineMedium,
@@ -140,13 +132,12 @@ private fun OnboardingPage1() {
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.onboarding_page1_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            lineHeight = 26.sp,
         )
     }
 }
@@ -157,8 +148,8 @@ private fun OnboardingPage2() {
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .padding(horizontal = 32.dp)
-            .padding(top = 80.dp, bottom = 140.dp),
+            .padding(horizontal = PaparcarSpacing.xxxl)
+            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -169,19 +160,19 @@ private fun OnboardingPage2() {
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
         OnboardingStep(
             emoji = "🚘",
             title = stringResource(Res.string.onboarding_step1_title),
             desc = stringResource(Res.string.onboarding_step1_desc),
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
             emoji = "🅿️",
             title = stringResource(Res.string.onboarding_step2_title),
             desc = stringResource(Res.string.onboarding_step2_desc),
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
             emoji = "📍",
             title = stringResource(Res.string.onboarding_step3_title),
@@ -196,13 +187,13 @@ private fun OnboardingPage3() {
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .padding(horizontal = 32.dp)
-            .padding(top = 80.dp, bottom = 140.dp),
+            .padding(horizontal = PaparcarSpacing.xxxl)
+            .padding(top = PaparcarSpacing.huge, bottom = PAGE_CONTENT_BOTTOM_CLEARANCE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "🔒", fontSize = 64.sp)
-        Spacer(Modifier.height(24.dp))
+        Text(text = "🔒", fontSize = HERO_EMOJI_SIZE_SMALL)
+        Spacer(Modifier.height(PaparcarSpacing.xxl))
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
             style = MaterialTheme.typography.headlineSmall,
@@ -210,30 +201,25 @@ private fun OnboardingPage3() {
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.onboarding_page3_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            lineHeight = 24.sp,
         )
     }
 }
 
 @Composable
 private fun OnboardingStep(emoji: String, title: String, desc: String) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    PapCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = emoji, fontSize = 32.sp)
-            Spacer(Modifier.width(16.dp))
+            Text(text = emoji, fontSize = STEP_EMOJI_SIZE)
+            Spacer(Modifier.width(PaparcarSpacing.lg))
             Column {
                 Text(
                     text = title,
@@ -259,21 +245,18 @@ private fun PagerDotIndicator(pageCount: Int, currentPage: Int) {
     ) {
         repeat(pageCount) { index ->
             val width by animateDpAsState(
-                targetValue = if (index == currentPage) 24.dp else 8.dp,
-                animationSpec = tween(300),
+                targetValue = if (index == currentPage) DOT_ACTIVE_WIDTH else DOT_INACTIVE_SIZE,
+                animationSpec = tween(DOT_ANIM_MS),
                 label = "dot_width",
             )
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .height(8.dp)
+                    .padding(horizontal = PaparcarSpacing.xs)
+                    .height(DOT_INACTIVE_SIZE)
                     .width(width)
                     .background(
-                        color = if (index == currentPage) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.outlineVariant
-                        },
+                        color = if (index == currentPage) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outlineVariant,
                         shape = CircleShape,
                     ),
             )

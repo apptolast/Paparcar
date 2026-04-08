@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -24,6 +23,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.permissions_btn_background
@@ -50,6 +51,8 @@ import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
 import paparcar.composeapp.generated.resources.permissions_perm_background
 import paparcar.composeapp.generated.resources.permissions_perm_background_desc
+import paparcar.composeapp.generated.resources.permissions_perm_bluetooth
+import paparcar.composeapp.generated.resources.permissions_perm_bluetooth_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location
 import paparcar.composeapp.generated.resources.permissions_perm_location_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location_services
@@ -58,14 +61,25 @@ import paparcar.composeapp.generated.resources.permissions_perm_notifications
 import paparcar.composeapp.generated.resources.permissions_perm_notifications_desc
 import paparcar.composeapp.generated.resources.permissions_rationale
 import paparcar.composeapp.generated.resources.permissions_status_granted
+import paparcar.composeapp.generated.resources.permissions_status_optional
 import paparcar.composeapp.generated.resources.permissions_status_pending
 import paparcar.composeapp.generated.resources.permissions_subtitle
 import paparcar.composeapp.generated.resources.permissions_title
+
+private val   CONTENT_BOTTOM_PADDING  = 120.dp
+private val   EMOJI_SIZE              = 48.sp
+private val   BUTTON_HEIGHT           = 52.dp
+private val   ROW_VERTICAL_PADDING    = 14.dp
+private val   ROW_CONTENT_SPACING     = 14.dp
+private val   ICON_BOX_SIZE           = 40.dp
+private val   ICON_SIZE               = 22.dp
+private val   BADGE_ICON_SIZE         = 14.dp
 
 @Composable
 internal fun PermissionsContent(
     state: PermissionsState,
     onRequestPermissions: () -> Unit,
+    onRequestBluetooth: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -76,25 +90,25 @@ internal fun PermissionsContent(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(horizontal = 24.dp)
-                .padding(top = 48.dp, bottom = 120.dp)
+                .padding(horizontal = PaparcarSpacing.xxl)
+                .padding(top = PaparcarSpacing.huge, bottom = CONTENT_BOTTOM_PADDING)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text(text = "🔐", fontSize = 48.sp)
-            Spacer(Modifier.height(16.dp))
+            Text(text = "🔐", fontSize = EMOJI_SIZE)
+            Spacer(Modifier.height(PaparcarSpacing.lg))
             Text(
                 text = stringResource(Res.string.permissions_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
                 text = stringResource(Res.string.permissions_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(PaparcarSpacing.xxxl))
 
             // ── Runtime permissions ──────────────────────────────────────────
             PermissionRow(
@@ -103,21 +117,21 @@ internal fun PermissionsContent(
                 desc = stringResource(Res.string.permissions_perm_location_desc),
                 granted = state.hasFineLocation,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(PaparcarSpacing.md))
             PermissionRow(
                 icon = Icons.Outlined.Explore,
                 title = stringResource(Res.string.permissions_perm_background),
                 desc = stringResource(Res.string.permissions_perm_background_desc),
                 granted = state.hasBackgroundLocation,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(PaparcarSpacing.md))
             PermissionRow(
                 icon = Icons.Default.Person,
                 title = stringResource(Res.string.permissions_perm_activity),
                 desc = stringResource(Res.string.permissions_perm_activity_desc),
                 granted = state.hasActivityRecognition,
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(PaparcarSpacing.md))
             PermissionRow(
                 icon = Icons.Default.Notifications,
                 title = stringResource(Res.string.permissions_perm_notifications),
@@ -126,12 +140,12 @@ internal fun PermissionsContent(
             )
 
             // ── System setting (GPS toggle) ──────────────────────────────────
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(PaparcarSpacing.xl))
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant,
                 thickness = 1.dp,
             )
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(PaparcarSpacing.xl))
             PermissionRow(
                 icon = Icons.Default.Settings,
                 title = stringResource(Res.string.permissions_perm_location_services),
@@ -139,8 +153,23 @@ internal fun PermissionsContent(
                 granted = state.isLocationServicesEnabled,
             )
 
+            // ── Optional Bluetooth permission ────────────────────────────────
+            Spacer(Modifier.height(PaparcarSpacing.xl))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                thickness = 1.dp,
+            )
+            Spacer(Modifier.height(PaparcarSpacing.xl))
+            OptionalPermissionRow(
+                icon = Icons.Outlined.Bluetooth,
+                title = stringResource(Res.string.permissions_perm_bluetooth),
+                desc = stringResource(Res.string.permissions_perm_bluetooth_desc),
+                granted = state.hasBluetoothConnect,
+                onGrant = onRequestBluetooth,
+            )
+
             if (state.showRationale && !state.showSettingsPrompt) {
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(PaparcarSpacing.xl))
                 Text(
                     text = stringResource(Res.string.permissions_rationale),
                     style = MaterialTheme.typography.bodySmall,
@@ -163,9 +192,9 @@ internal fun PermissionsContent(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = PaparcarSpacing.xxl)
                     .navigationBarsPadding()
-                    .padding(bottom = 32.dp),
+                    .padding(bottom = PaparcarSpacing.xxxl),
             ) {
                 val (label, isAmber) = when {
                     state.showSettingsPrompt ->
@@ -179,8 +208,8 @@ internal fun PermissionsContent(
                 }
                 Button(
                     onClick = onRequestPermissions,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT),
+                    shape = MaterialTheme.shapes.medium,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isAmber) {
                             MaterialTheme.colorScheme.secondary
@@ -195,6 +224,91 @@ internal fun PermissionsContent(
                     ),
                 ) {
                     Text(text = label, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun OptionalPermissionRow(
+    icon: ImageVector,
+    title: String,
+    desc: String,
+    granted: Boolean,
+    onGrant: () -> Unit,
+) {
+    val surfaceColor by animateColorAsState(
+        targetValue = if (granted) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surface,
+        label = "opt_perm_row_bg",
+    )
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = surfaceColor,
+        onClick = { if (!granted) onGrant() },
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = PaparcarSpacing.lg, vertical = ROW_VERTICAL_PADDING),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(ROW_CONTENT_SPACING),
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = if (granted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(ICON_BOX_SIZE),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = if (granted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(ICON_SIZE),
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = desc,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = if (granted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = PaparcarSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
+                ) {
+                    if (granted) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(BADGE_ICON_SIZE),
+                        )
+                    }
+                    Text(
+                        text = if (granted) stringResource(Res.string.permissions_status_granted)
+                        else stringResource(Res.string.permissions_status_optional),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (granted) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontWeight = FontWeight.Medium,
+                    )
                 }
             }
         }
@@ -217,14 +331,14 @@ private fun PermissionRow(
         label = "perm_row_bg",
     )
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         color = surfaceColor,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = PaparcarSpacing.lg, vertical = ROW_VERTICAL_PADDING),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(ROW_CONTENT_SPACING),
         ) {
             Surface(
                 shape = CircleShape,
@@ -233,7 +347,7 @@ private fun PermissionRow(
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant
                 },
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(ICON_BOX_SIZE),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -244,7 +358,7 @@ private fun PermissionRow(
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         },
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(ICON_SIZE),
                     )
                 }
             }
@@ -263,7 +377,7 @@ private fun PermissionRow(
             }
             // Status chip
             Surface(
-                shape = RoundedCornerShape(8.dp),
+                shape = MaterialTheme.shapes.small,
                 color = if (granted) {
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 } else {
@@ -271,16 +385,16 @@ private fun PermissionRow(
                 },
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = PaparcarSpacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
                 ) {
                     if (granted) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(BADGE_ICON_SIZE),
                         )
                     }
                     Text(

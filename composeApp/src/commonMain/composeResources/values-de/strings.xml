@@ -45,6 +45,16 @@
     <string name="home_spot_freshness_under_min">&lt; 1 Min.</string>
     <string name="home_spot_freshness_minutes">vor %1$d Min.</string>
     <string name="home_spot_freshness_hours">vor %1$d Std.</string>
+    <!-- SpotCard — %1$d = number of users currently en route -->
+    <string name="spot_card_en_route">%1$d unterwegs</string>
+    <string name="spot_card_reliability_high">Auto</string>
+    <string name="spot_card_reliability_high_desc">Automatisch mit hoher Zuverlässigkeit erkannt — wahrscheinlich noch frei.</string>
+    <string name="spot_card_reliability_medium">Ungefähr</string>
+    <string name="spot_card_reliability_medium_desc">Automatisch mit mittlerer Zuverlässigkeit erkannt — könnte bereits belegt sein.</string>
+    <string name="spot_card_reliability_low">Alt</string>
+    <string name="spot_card_reliability_low_desc">Automatisch mit geringer Zuverlässigkeit erkannt — vorher prüfen.</string>
+    <string name="spot_card_reliability_manual">Manuell</string>
+    <string name="spot_card_reliability_manual_desc">Manuell von einem Community-Fahrer gemeldet.</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Willkommen bei Paparcar</string>
@@ -72,6 +82,9 @@
     <string name="permissions_perm_activity_desc">Um automatisch zu erkennen, wann du zu fahren beginnst und wann du parkst</string>
     <string name="permissions_perm_notifications">Benachrichtigungen</string>
     <string name="permissions_perm_notifications_desc">Um das Parken zu bestätigen und dich über freie Stellplätze in der Nähe zu informieren</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Ermöglicht die automatische Parkplatzerkennung beim Verbinden oder Trennen vom Bluetooth des Autos</string>
+    <string name="permissions_status_optional">Optional</string>
     <string name="permissions_btn_grant">Berechtigungen erteilen</string>
     <string name="permissions_btn_background">Hintergrundstandort aktivieren</string>
     <string name="permissions_btn_settings">Systemeinstellungen öffnen</string>
@@ -161,9 +174,14 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Einstellungen</string>
     <string name="settings_cd_back">Zurück</string>
+    <string name="settings_section_appearance">Erscheinungsbild</string>
+    <string name="settings_dark_mode">Dunkelmodus</string>
+    <string name="settings_dark_mode_desc">Dunkles Design in der gesamten App verwenden</string>
     <string name="settings_section_detection">Erkennung</string>
     <string name="settings_auto_detect">Automatische Parkerkennung</string>
     <string name="settings_auto_detect_desc">Parkplatz automatisch speichern</string>
+    <string name="settings_nav_my_car">Mein Auto und Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Verwalte deine Fahrzeuge und die Bluetooth-Kopplung</string>
     <string name="settings_section_notifications">Benachrichtigungen</string>
     <string name="settings_notif_parking">Parken erkannt</string>
     <string name="settings_notif_parking_desc">Benachrichtigung, wenn ein Parkplatz gespeichert wird</string>
@@ -209,4 +227,65 @@
     <string name="my_car_title">Mein Auto</string>
     <string name="my_car_placeholder_desc">Die Fahrzeugverwaltung wird in einem zukünftigen Update verfügbar sein.</string>
 
+    <string name="my_car_no_vehicle">Noch kein Fahrzeug registriert</string>
+    <string name="my_car_add_vehicle">Fahrzeug hinzufügen</string>
+    <string name="my_car_active_vehicle">Aktives Fahrzeug</string>
+    <string name="my_car_set_active">Als aktiv festlegen</string>
+
+    <!-- Fahrzeugregistrierung -->
+    <string name="vehicle_registration_title">Fahrzeug registrieren</string>
+    <string name="vehicle_registration_save">Speichern</string>
+    <string name="vehicle_registration_brand_hint">Marke (optional)</string>
+    <string name="vehicle_registration_model_hint">Modell (optional)</string>
+    <string name="vehicle_show_on_spot">Marke und Modell auf freien Parkplätzen anzeigen</string>
+    <string name="vehicle_show_on_spot_desc">Andere Nutzer sehen den Fahrzeugtyp, der den Parkplatz freigegeben hat</string>
+    <string name="vehicle_size_label">Fahrzeuggröße</string>
+    <string name="vehicle_size_moto">Motorrad</string>
+    <string name="vehicle_size_moto_examples">z.B. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Klein</string>
+    <string name="vehicle_size_small_examples">z.B. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Mittelklasse</string>
+    <string name="vehicle_size_medium_examples">z.B. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Groß</string>
+    <string name="vehicle_size_large_examples">z.B. BMW 5er, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Transporter / SUV</string>
+    <string name="vehicle_size_van_examples">z.B. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Berechtigungs-Erklärungs-Bildschirm -->
+    <string name="perm_rationale_title">So funktioniert Paparcar</string>
+    <string name="perm_rationale_subtitle">Wir benötigen einige Berechtigungen, um Ihr Parken automatisch zu erkennen.</string>
+    <string name="perm_rationale_body">Paparcar erkennt, wenn Sie Ihren Parkplatz verlassen, und teilt ihn automatisch mit nahegelegenen Fahrern — genauso wie Sie davon profitieren würden, wenn jemand anderes das tut.\n\nDafür benötigen wir Zugriff auf Ihren Standort und Bewegungssensoren. Ihr genauer Standort wird niemals mit anderen Nutzern geteilt.</string>
+    <string name="perm_rationale_cta">Verstanden, Berechtigungen aktivieren</string>
+    <string name="perm_rationale_skip">Jetzt nicht</string>
+
+    <string name="bt_config_title">Auto-Bluetooth-Schlüssel</string>
+    <string name="bt_config_subtitle">Wähle das bereits mit deinem Auto gekoppelte Bluetooth-Gerät aus. Die App erkennt damit, wann du parkst oder abfährst.</string>
+    <string name="bt_config_bt_off">Bluetooth ist deaktiviert. Aktiviere es, um deine gekoppelten Geräte zu sehen.</string>
+    <string name="bt_config_no_devices">Keine gekoppelten Bluetooth-Geräte gefunden. Koppele zuerst das Bluetooth deines Autos in den Systemeinstellungen.</string>
+    <string name="bt_config_save">Speichern</string>
+    <string name="bt_config_none">Kein Auto-Bluetooth</string>
+    <string name="bt_config_remove">Kopplung entfernen</string>
+    <string name="bt_config_device_classic">Klassisch</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Bluetooth konfigurieren</string>
+    <string name="my_car_bt_device">Auto-Bluetooth</string>
+    <string name="my_car_bt_not_configured">Nicht konfiguriert</string>
+    <!-- VehicleCard detection status badge labels -->
+    <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <string name="vehicle_card_detection_ar">Automatik</string>
+    <string name="vehicle_card_detection_off">Keine Erkennung</string>
+    <!-- DetectionStatusBanner -->
+    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
+    <string name="detection_banner_ar_active">Automatische Erkennung aktiv</string>
+    <string name="detection_banner_pair_bt">Bluetooth koppeln</string>
+    <!-- SpotIndicators -->
+    <string name="spot_indicator_en_route">%1$d unterwegs</string>
+    <string name="spot_indicator_ttl_expired">Abgelaufen</string>
+    <string name="spot_indicator_ttl_minutes">%1$d Min.</string>
+    <!-- ConfirmationBottomSheet -->
+    <string name="confirmation_sheet_title">Parkplatz erkannt</string>
+    <string name="confirmation_sheet_subtitle">Haben Sie gerade geparkt? Automatische Veröffentlichung in %1$s.</string>
+    <string name="confirmation_sheet_confirm">Platz veröffentlichen</string>
+    <string name="confirmation_sheet_withdraw">Nicht jetzt</string>
 </resources>

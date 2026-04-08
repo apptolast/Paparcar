@@ -117,6 +117,9 @@ class HomeViewModel(
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
             is HomeIntent.ReportManualSpot -> reportManualSpot(intent.lat, intent.lon)
             is HomeIntent.CycleMapType -> cycleMapType()
+            is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
+            is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
+            is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
         }
     }
 
@@ -170,6 +173,14 @@ class HomeViewModel(
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
             return
         }
+        viewModelScope.launch {
+            confirmParking(gps, 1.0f)
+        }
+    }
+
+    private fun confirmDetectedParking() {
+        val gps = state.value.pendingParkingGps ?: return
+        updateState { copy(pendingParkingGps = null) }
         viewModelScope.launch {
             confirmParking(gps, 1.0f)
         }

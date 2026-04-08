@@ -24,6 +24,7 @@ class PermissionsViewModel(
                     hasActivityRecognition = current.hasActivityRecognitionPermission,
                     hasNotifications = current.hasNotificationPermission,
                     isLocationServicesEnabled = current.isLocationServicesEnabled,
+                    hasBluetoothConnect = current.hasBluetoothConnectPermission,
                 )
             }
         }
@@ -37,6 +38,7 @@ class PermissionsViewModel(
                         hasActivityRecognition = appState.hasActivityRecognitionPermission,
                         hasNotifications = appState.hasNotificationPermission,
                         isLocationServicesEnabled = appState.isLocationServicesEnabled,
+                        hasBluetoothConnect = appState.hasBluetoothConnectPermission,
                     )
                 }
                 // Navigate home once the app is fully operational.
@@ -52,6 +54,7 @@ class PermissionsViewModel(
     override fun handleIntent(intent: PermissionsIntent) {
         when (intent) {
             PermissionsIntent.RequestPermissions -> handleRequestPermissions()
+            PermissionsIntent.RequestBluetoothPermission -> sendEffect(PermissionsEffect.RequestStepBluetooth)
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
         }
     }

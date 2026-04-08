@@ -6,6 +6,7 @@
 
     <!-- Powiadomienie: potwierdzenie parkowania -->
     <string name="notif_confirmation_title">Zaparkowałeś?</string>
+    <string name="notif_confirmation_title_vehicle">Czy zaparkowałeś %1$s?</string>
     <string name="notif_confirmation_text">Wygląda na to, że zaparkowałeś. Czy potwierdzić miejsce?</string>
     <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
     <string name="notif_action_keep_driving">Jadę dalej</string>

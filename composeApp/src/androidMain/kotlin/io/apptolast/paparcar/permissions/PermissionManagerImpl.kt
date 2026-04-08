@@ -23,6 +23,7 @@ class PermissionManagerImpl(private val context: Context) : PermissionManager {
             hasActivityRecognitionPermission = hasActivityRecognitionPermission(),
             hasNotificationPermission = hasNotificationPermission(),
             isLocationServicesEnabled = isLocationServicesEnabled(),
+            hasBluetoothConnectPermission = hasBluetoothConnectPermission(),
         )
         _permissionState.value = new
     }
@@ -61,6 +62,16 @@ class PermissionManagerImpl(private val context: Context) : PermissionManager {
             ) == PackageManager.PERMISSION_GRANTED
         } else {
             true
+        }
+
+    private fun hasBluetoothConnectPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Pre-Android 12 — permission not required
         }
 
     private fun isLocationServicesEnabled(): Boolean {

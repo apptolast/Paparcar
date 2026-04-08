@@ -19,8 +19,13 @@ import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.presentation.app.SplashViewModel
+import androidx.work.WorkManager
+import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -57,6 +62,7 @@ class MainActivity : ComponentActivity() {
 
         val permState = permissionManager.permissionState.value
         val startRoute = when {
+            !appPreferences.hasVehicleRegistered -> Routes.VEHICLE_REGISTRATION
             !appPreferences.isOnboardingCompleted -> Routes.ONBOARDING
             !permState.allPermissionsGranted -> Routes.PERMISSIONS
             !permState.isLocationServicesEnabled -> Routes.PERMISSIONS
@@ -85,15 +91,21 @@ class MainActivity : ComponentActivity() {
                 },
             )
 
-            // Register Activity Recognition transitions whenever permissions are granted
+            // Start detection infrastructure when all permissions are granted.
+            // distinctUntilChanged + filter ensures we trigger only on false → true transition,
+            // not on every permission state update.
             LaunchedEffect(Unit) {
                 permissionManager.permissionState
-                    .onEach { state ->
-                        if (state.allPermissionsGranted) {
-                            activityRecognitionManager.registerTransitions()
-                        }
+                    .map { it.allPermissionsGranted }
+                    .distinctUntilChanged()
+                    .filter { granted -> granted }
+                    .onEach {
+                        activityRecognitionManager.registerTransitions()
+                        // Re-enqueue the periodic worker so it runs with the newly granted
+                        // ACTIVITY_RECOGNITION permission (KEEP avoids interrupting a running job).
+                        RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(this@MainActivity))
                     }
-                    .catch { e -> Log.e("Paparcar", "Error registrando transiciones", e) }
+                    .catch { e -> Log.e("Paparcar", "Error starting detection on permissions grant", e) }
                     .launchIn(this)
             }
         }

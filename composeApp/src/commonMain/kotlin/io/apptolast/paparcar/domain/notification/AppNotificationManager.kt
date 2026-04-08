@@ -13,9 +13,12 @@ interface AppNotificationManager {
      * Shows an ongoing notification asking the user to confirm they have parked.
      * Includes action buttons for "Yes" / "No" that send a broadcast back to the app.
      *
-     * @param score Confidence score (0f–1f) for display purposes (e.g. progress indicator).
+     * @param score       Confidence score (0f–1f) for display purposes (e.g. progress indicator).
+     * @param vehicleName Name of the vehicle that triggered detection (e.g. "Toyota Corolla").
+     *                    When provided, the notification title reads "Did you park your [name]?"
+     *                    instead of the generic "Did you park?".
      */
-    fun showParkingConfirmation(score: Float)
+    fun showParkingConfirmation(score: Float, vehicleName: String? = null)
 
     /**
      * Shows a transient notification confirming that a parking spot was saved.

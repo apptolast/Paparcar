@@ -29,6 +29,8 @@ class SettingsViewModel(
             }
             is SettingsIntent.NavigateBack ->
                 sendEffect(SettingsEffect.NavigateBack)
+            is SettingsIntent.NavigateToMyCar ->
+                sendEffect(SettingsEffect.NavigateToMyCar)
             is SettingsIntent.OpenPrivacyPolicy ->
                 sendEffect(SettingsEffect.OpenUrl("https://paparcar.app/privacy"))
         }

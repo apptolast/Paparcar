@@ -6,6 +6,7 @@
 
     <!-- Notificación: confirmación de aparcamiento -->
     <string name="notif_confirmation_title">¿Has aparcado?</string>
+    <string name="notif_confirmation_title_vehicle">¿Has aparcado el %1$s?</string>
     <string name="notif_confirmation_text">Parece que has aparcado el coche. ¿Confirmamos la plaza?</string>
     <string name="notif_action_yes_parked">Sí, he aparcado</string>
     <string name="notif_action_keep_driving">Sigo conduciendo</string>

@@ -45,6 +45,16 @@
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">%1$d min geleden</string>
     <string name="home_spot_freshness_hours">%1$d u geleden</string>
+    <!-- SpotCard — %1$d = number of users currently en route -->
+    <string name="spot_card_en_route">%1$d onderweg</string>
+    <string name="spot_card_reliability_high">Auto</string>
+    <string name="spot_card_reliability_high_desc">Automatisch gedetecteerd met hoge betrouwbaarheid — waarschijnlijk nog vrij.</string>
+    <string name="spot_card_reliability_medium">Circa</string>
+    <string name="spot_card_reliability_medium_desc">Automatisch gedetecteerd met gemiddelde betrouwbaarheid — mogelijk al bezet.</string>
+    <string name="spot_card_reliability_low">Oud</string>
+    <string name="spot_card_reliability_low_desc">Automatisch gedetecteerd met lage betrouwbaarheid — controleer voor vertrek.</string>
+    <string name="spot_card_reliability_manual">Handmatig</string>
+    <string name="spot_card_reliability_manual_desc">Handmatig gemeld door een community-bestuurder.</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welkom bij Paparcar</string>
@@ -72,6 +82,9 @@
     <string name="permissions_perm_activity_desc">Om automatisch te detecteren wanneer u begint te rijden en wanneer u parkeert</string>
     <string name="permissions_perm_notifications">Meldingen</string>
     <string name="permissions_perm_notifications_desc">Om uw parkeren te bevestigen en u te waarschuwen voor vrije parkeerplaatsen in de buurt</string>
+    <string name="permissions_perm_bluetooth">Bluetooth</string>
+    <string name="permissions_perm_bluetooth_desc">Maakt automatische parkeerdetectie mogelijk bij het verbinden of verbreken van de Bluetooth van je auto</string>
+    <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <string name="permissions_btn_background">Achtergrondlocatie activeren</string>
     <string name="permissions_btn_settings">Systeeminstellingen openen</string>
@@ -161,9 +174,14 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Instellingen</string>
     <string name="settings_cd_back">Terug</string>
+    <string name="settings_section_appearance">Weergave</string>
+    <string name="settings_dark_mode">Donkere modus</string>
+    <string name="settings_dark_mode_desc">Donker thema in de hele app gebruiken</string>
     <string name="settings_section_detection">Detectie</string>
     <string name="settings_auto_detect">Automatische parkeerdetectie</string>
     <string name="settings_auto_detect_desc">Parkeerplaats automatisch opslaan</string>
+    <string name="settings_nav_my_car">Mijn auto en Bluetooth</string>
+    <string name="settings_nav_my_car_desc">Beheer je voertuigen en Bluetooth-koppeling</string>
     <string name="settings_section_notifications">Meldingen</string>
     <string name="settings_notif_parking">Parkeren gedetecteerd</string>
     <string name="settings_notif_parking_desc">Melding wanneer een parkeerplaats wordt opgeslagen</string>
@@ -209,4 +227,65 @@
     <string name="my_car_title">Mijn Auto</string>
     <string name="my_car_placeholder_desc">Voertuigbeheer is beschikbaar in een toekomstige update.</string>
 
+    <string name="my_car_no_vehicle">Nog geen voertuig geregistreerd</string>
+    <string name="my_car_add_vehicle">Voertuig toevoegen</string>
+    <string name="my_car_active_vehicle">Actief voertuig</string>
+    <string name="my_car_set_active">Instellen als actief</string>
+
+    <!-- Voertuigregistratie -->
+    <string name="vehicle_registration_title">Voertuig registreren</string>
+    <string name="vehicle_registration_save">Opslaan</string>
+    <string name="vehicle_registration_brand_hint">Merk (optioneel)</string>
+    <string name="vehicle_registration_model_hint">Model (optioneel)</string>
+    <string name="vehicle_show_on_spot">Merk en model tonen op vrije parkeerplaatsen</string>
+    <string name="vehicle_show_on_spot_desc">Andere gebruikers zien het voertuigtype dat de parkeerplaats heeft vrijgemaakt</string>
+    <string name="vehicle_size_label">Voertuiggrootte</string>
+    <string name="vehicle_size_moto">Motor</string>
+    <string name="vehicle_size_moto_examples">bijv. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
+    <string name="vehicle_size_small">Klein</string>
+    <string name="vehicle_size_small_examples">bijv. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
+    <string name="vehicle_size_medium">Middelgroot</string>
+    <string name="vehicle_size_medium_examples">bijv. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
+    <string name="vehicle_size_large">Groot</string>
+    <string name="vehicle_size_large_examples">bijv. BMW 5 Serie, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
+    <string name="vehicle_size_van">Bestelbus / SUV</string>
+    <string name="vehicle_size_van_examples">bijv. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Machtigingen uitleg scherm -->
+    <string name="perm_rationale_title">Hoe Paparcar werkt</string>
+    <string name="perm_rationale_subtitle">We hebben een paar machtigingen nodig om uw parkeren automatisch te detecteren.</string>
+    <string name="perm_rationale_body">Paparcar detecteert wanneer je je parkeerplaats verlaat en deelt deze automatisch met nabijgelegen bestuurders — net zoals jij hiervan zou profiteren als iemand anders hetzelfde doet.\n\nHiervoor hebben we toegang nodig tot je locatie en bewegingssensoren. Je exacte locatie wordt nooit gedeeld met andere gebruikers.</string>
+    <string name="perm_rationale_cta">Begrepen, machtigingen inschakelen</string>
+    <string name="perm_rationale_skip">Nu niet</string>
+
+    <string name="bt_config_title">Auto Bluetooth-sleutel</string>
+    <string name="bt_config_subtitle">Selecteer het Bluetooth-apparaat dat al gekoppeld is aan je auto. De app gebruikt dit om te detecteren wanneer je parkeert of vertrekt.</string>
+    <string name="bt_config_bt_off">Bluetooth is uitgeschakeld. Schakel het in om je gekoppelde apparaten te zien.</string>
+    <string name="bt_config_no_devices">Geen gekoppelde Bluetooth-apparaten gevonden. Koppel eerst het Bluetooth van je auto via de systeeminstellingen.</string>
+    <string name="bt_config_save">Opslaan</string>
+    <string name="bt_config_none">Geen auto Bluetooth</string>
+    <string name="bt_config_remove">Koppeling verwijderen</string>
+    <string name="bt_config_device_classic">Klassiek</string>
+    <string name="bt_config_device_le">Bluetooth LE</string>
+    <string name="bt_config_device_dual">Dual</string>
+    <string name="my_car_bt_configure">Bluetooth configureren</string>
+    <string name="my_car_bt_device">Auto Bluetooth</string>
+    <string name="my_car_bt_not_configured">Niet geconfigureerd</string>
+    <!-- VehicleCard detection status badge labels -->
+    <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <string name="vehicle_card_detection_ar">Auto-detectie</string>
+    <string name="vehicle_card_detection_off">Geen detectie</string>
+    <!-- DetectionStatusBanner -->
+    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
+    <string name="detection_banner_ar_active">Automatische detectie actief</string>
+    <string name="detection_banner_pair_bt">Bluetooth koppelen</string>
+    <!-- SpotIndicators -->
+    <string name="spot_indicator_en_route">%1$d onderweg</string>
+    <string name="spot_indicator_ttl_expired">Verlopen</string>
+    <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- ConfirmationBottomSheet -->
+    <string name="confirmation_sheet_title">Parkeerplaats gedetecteerd</string>
+    <string name="confirmation_sheet_subtitle">Heeft u zojuist geparkeerd? Automatisch publiceren in %1$s.</string>
+    <string name="confirmation_sheet_confirm">Plaats publiceren</string>
+    <string name="confirmation_sheet_withdraw">Nu niet</string>
 </resources>

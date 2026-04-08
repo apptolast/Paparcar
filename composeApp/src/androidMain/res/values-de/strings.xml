@@ -6,6 +6,7 @@
 
     <!-- Benachrichtigung: Parkbestätigung -->
     <string name="notif_confirmation_title">Haben Sie geparkt?</string>
+    <string name="notif_confirmation_title_vehicle">Hast du deinen %1$s geparkt?</string>
     <string name="notif_confirmation_text">Es sieht aus, als hätten Sie geparkt. Sollen wir den Stellplatz bestätigen?</string>
     <string name="notif_action_yes_parked">Ja, ich habe geparkt</string>
     <string name="notif_action_keep_driving">Ich fahre weiter</string>

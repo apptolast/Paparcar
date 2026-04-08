@@ -4,7 +4,12 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
@@ -53,7 +58,10 @@ import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
 import io.apptolast.paparcar.presentation.mycar.MyCarScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
+import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigScreen
+import io.apptolast.paparcar.presentation.permissions.PermissionsRationaleScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
+import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -71,6 +79,9 @@ internal object Routes {
     const val SETTINGS = "settings"
     const val ONBOARDING = "onboarding"
     const val PERMISSIONS = "permissions"
+    const val PERMISSIONS_RATIONALE = "permissions_rationale"
+    const val VEHICLE_REGISTRATION = "vehicle_registration"
+    const val BT_CONFIG = "bt_config"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -79,7 +90,12 @@ private val BOTTOM_NAV_ROUTES = setOf(
     Routes.SETTINGS,
 )
 
-private val GATE_SCREENS = setOf(Routes.PERMISSIONS, Routes.ONBOARDING)
+private val GATE_SCREENS = setOf(
+    Routes.PERMISSIONS,
+    Routes.PERMISSIONS_RATIONALE,
+    Routes.ONBOARDING,
+    Routes.VEHICLE_REGISTRATION,
+)
 
 @Composable
 fun App(
@@ -91,7 +107,7 @@ fun App(
     val appState by appViewModel.state.collectAsStateWithLifecycle()
     val authState by splashViewModel.authState.collectAsStateWithLifecycle()
 
-    PaparcarTheme {
+    PaparcarTheme(darkTheme = appState.darkTheme) {
         // Each screen's Scaffold draws its own background.
         Surface(modifier = Modifier.fillMaxSize()) {
 
@@ -115,7 +131,9 @@ fun App(
                     is AuthState.Authenticated -> MainAppNavigation(
                         startRoute,
                         appState.isFullyOperational,
+                        appState.darkTheme,
                         { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
+                        { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
                         onOpenMapsNavigation,
                     )
                     else -> AuthNavigation()
@@ -149,7 +167,9 @@ private fun AuthNavigation() {
 private fun MainAppNavigation(
     startRoute: String,
     isFullyOperational: Boolean,
+    darkTheme: Boolean,
     onHandleIntent: () -> Unit,
+    onToggleDarkMode: (Boolean) -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -191,13 +211,49 @@ private fun MainAppNavigation(
             navController = navController,
             startDestination = startRoute,
             modifier = Modifier.fillMaxSize(),
+            enterTransition = { fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { it / NAV_SLIDE_FRACTION } },
+            exitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { -it / NAV_SLIDE_FRACTION } },
+            popEnterTransition = { fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { -it / NAV_SLIDE_FRACTION } },
+            popExitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { it / NAV_SLIDE_FRACTION } },
         ) {
+            composable(
+                route = "${Routes.VEHICLE_REGISTRATION}?origin={origin}",
+                arguments = listOf(navArgument("origin") { defaultValue = "onboarding" }),
+            ) { backStack ->
+                val origin = backStack.arguments?.getString("origin") ?: "onboarding"
+                VehicleRegistrationScreen(
+                    onRegistrationComplete = {
+                        if (origin == "my_car") {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate(Routes.ONBOARDING) {
+                                popUpTo(Routes.VEHICLE_REGISTRATION) { inclusive = true }
+                            }
+                        }
+                    },
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(
                     onComplete = {
                         onHandleIntent()
-                        navController.navigate(Routes.PERMISSIONS) {
+                        navController.navigate(Routes.PERMISSIONS_RATIONALE) {
                             popUpTo(Routes.ONBOARDING) { inclusive = true }
+                        }
+                    },
+                )
+            }
+            composable(Routes.PERMISSIONS_RATIONALE) {
+                PermissionsRationaleScreen(
+                    onAccept = {
+                        navController.navigate(Routes.PERMISSIONS) {
+                            popUpTo(Routes.PERMISSIONS_RATIONALE) { inclusive = true }
+                        }
+                    },
+                    onSkip = {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(Routes.PERMISSIONS_RATIONALE) { inclusive = true }
                         }
                     },
                 )
@@ -242,10 +298,30 @@ private fun MainAppNavigation(
                 )
             }
             composable(Routes.MY_CAR) {
-                MyCarScreen()
+                MyCarScreen(
+                    onAddVehicle = {
+                        navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car")
+                    },
+                    onConfigureBluetooth = { vehicleId ->
+                        navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
+                    },
+                )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
+                    darkMode = darkTheme,
+                    onToggleDarkMode = onToggleDarkMode,
+                )
+            }
+            composable(
+                route = "${Routes.BT_CONFIG}/{vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType }),
+            ) { backStack ->
+                val vehicleId = backStack.arguments?.getString("vehicleId") ?: return@composable
+                BluetoothConfigScreen(
+                    vehicleId = vehicleId,
                     onNavigateBack = { navController.popBackStack() },
                 )
             }
@@ -318,6 +394,10 @@ private fun PaparcarBottomNav(
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+private const val NAV_ENTER_MS = 280
+private const val NAV_EXIT_MS = 200
+private const val NAV_SLIDE_FRACTION = 6
 
 private fun NavController.navigateToTab(route: String) {
     navigate(route) {

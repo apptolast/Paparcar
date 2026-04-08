@@ -1,6 +1,5 @@
 package io.apptolast.paparcar.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -53,14 +52,14 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun PaparcarTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = AppTypography,
+        typography = rememberAppTypography(),
         shapes = AppShapes,
         content = content,
     )

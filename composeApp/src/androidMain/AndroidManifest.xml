@@ -23,12 +23,15 @@
     <!-- Reinicio al arrancar dispositivo (para reactivar acelerómetro) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Bluetooth — needed to read paired device names/addresses (Android 12+) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <application
         android:name=".PaparcarApp"
         android:allowBackup="true"
-        android:icon="@android:drawable/sym_def_app_icon"
+        android:icon="@mipmap/ic_launcher"
         android:label="Paparcar"
-        android:roundIcon="@android:drawable/sym_def_app_icon"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
@@ -78,6 +81,17 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBpOJ6G-AVGiEJLFl1acyjo82C2r0MIIP8" />
+
+        <!-- BluetoothConnectionReceiver — ACL connect/disconnect events for BT parking detection.
+             android:permission guard ensures delivery only when BLUETOOTH_CONNECT is held. -->
+        <receiver
+            android:name=".bluetooth.BluetoothConnectionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
 
         <!-- ParkingConfirmationReceiver — notification action buttons -->
         <receiver

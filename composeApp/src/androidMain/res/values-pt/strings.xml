@@ -6,6 +6,7 @@
 
     <!-- Notificação: confirmação de estacionamento -->
     <string name="notif_confirmation_title">Estacionou?</string>
+    <string name="notif_confirmation_title_vehicle">Estacionaste o %1$s?</string>
     <string name="notif_confirmation_text">Parece que estacionou. Queremos confirmar o lugar?</string>
     <string name="notif_action_yes_parked">Sim, estacionei</string>
     <string name="notif_action_keep_driving">Continuo a conduzir</string>
