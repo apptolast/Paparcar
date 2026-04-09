@@ -41,6 +41,7 @@ import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
+import io.apptolast.paparcar.ui.components.TTLIndicator
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_nav_button
 import paparcar.composeapp.generated.resources.home_spot_freshness_hours
@@ -72,6 +73,7 @@ import paparcar.composeapp.generated.resources.spot_card_reliability_medium_desc
  * @param reportedAtMs    Epoch-ms when the spot was reported (for freshness).
  * @param reliability     Confidence level of the auto-detection.
  * @param enRouteCount    Number of users currently heading to this spot.
+ * @param expiresAt       Epoch-ms when this spot expires; 0 = no TTL set.
  */
 data class SpotCardData(
     val id: String,
@@ -80,6 +82,7 @@ data class SpotCardData(
     val reportedAtMs: Long,
     val reliability: SpotReliabilityUiState = SpotReliabilityUiState.HIGH,
     val enRouteCount: Int = 0,
+    val expiresAt: Long = 0L,
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +166,11 @@ fun SpotCard(
                 }
             }
 
-            SpotFreshnessLabel(ageMinutes = ageMinutes)
+            if (data.expiresAt > 0L) {
+                TTLIndicator(expiresAtMs = data.expiresAt)
+            } else {
+                SpotFreshnessLabel(ageMinutes = ageMinutes)
+            }
         }
 
         HorizontalDivider(
