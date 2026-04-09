@@ -283,6 +283,9 @@
     <string name="spot_indicator_en_route">%1$d w drodze</string>
     <string name="spot_indicator_ttl_expired">Wygasło</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- HomeScreen size filter chips -->
+    <string name="home_size_filter_all">Wszystkie</string>
+
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Wykryto parkowanie</string>
     <string name="confirmation_sheet_subtitle">Czy właśnie zaparkowałeś? Automatyczna publikacja za %1$s.</string>

@@ -120,6 +120,7 @@ class HomeViewModel(
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
+            is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
         }
     }
 

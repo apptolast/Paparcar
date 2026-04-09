@@ -283,6 +283,9 @@
     <string name="spot_indicator_en_route">%1$d a caminho</string>
     <string name="spot_indicator_ttl_expired">Expirado</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- HomeScreen size filter chips -->
+    <string name="home_size_filter_all">Todos</string>
+
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Estacionamento detetado</string>
     <string name="confirmation_sheet_subtitle">Acabou de estacionar? Publicação automática em %1$s.</string>

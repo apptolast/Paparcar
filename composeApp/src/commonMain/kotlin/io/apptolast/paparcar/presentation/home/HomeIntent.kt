@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SearchResult
+import io.apptolast.paparcar.domain.model.VehicleSize
 
 sealed class HomeIntent {
     data object LoadNearbySpots : HomeIntent()
@@ -23,4 +24,6 @@ sealed class HomeIntent {
     data object ConfirmDetectedParking : HomeIntent()
     /** User dismissed the confirmation sheet without publishing. */
     data object DismissConfirmation : HomeIntent()
+    /** null clears the active size filter; non-null applies it. */
+    data class SetSizeFilter(val size: VehicleSize?) : HomeIntent()
 }
