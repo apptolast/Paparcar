@@ -18,6 +18,8 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotType
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import kotlin.time.Clock
@@ -48,18 +50,34 @@ class ReportSpotWorker(
         val lat = inputData.getDouble(KEY_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
         val lon = inputData.getDouble(KEY_LON, Double.NaN).takeIf { !it.isNaN() } ?: return Result.failure()
 
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        val spotType = inputData.getString(KEY_SPOT_TYPE)
+            ?.let { runCatching { SpotType.valueOf(it) }.getOrNull() }
+            ?: SpotType.AUTO_DETECTED
+        val confidence = inputData.getFloat(KEY_CONFIDENCE, 1f)
+        val sizeCategory = inputData.getString(KEY_SIZE_CATEGORY)
+            ?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
+        val expiresAt = nowMs + if (spotType == SpotType.MANUAL_REPORT) {
+            MANUAL_SPOT_TTL_MS
+        } else {
+            AUTO_SPOT_TTL_MS
+        }
         val spot = Spot(
             id = spotId,
             location = GpsPoint(
                 latitude = lat,
                 longitude = lon,
                 accuracy = 0f,
-                timestamp = inputData.getLong(KEY_TIMESTAMP, Clock.System.now().toEpochMilliseconds()),
+                timestamp = inputData.getLong(KEY_TIMESTAMP, nowMs),
                 speed = 0f,
             ),
             reportedBy = "anonymous",
             address = inputData.toAddressInfo(),
             placeInfo = inputData.toPlaceInfo(),
+            type = spotType,
+            confidence = confidence,
+            sizeCategory = sizeCategory,
+            expiresAt = expiresAt,
         )
 
         notificationPort.showSpotUploading()
@@ -85,6 +103,11 @@ class ReportSpotWorker(
         private const val MAX_RETRY_ATTEMPTS = 5
         private const val INITIAL_BACKOFF_SECONDS = 30L
 
+        /** TTL for auto-detected spots: 2 hours. */
+        private const val AUTO_SPOT_TTL_MS = 2 * 60 * 60 * 1_000L
+        /** TTL for manually reported spots: 15 minutes. */
+        private const val MANUAL_SPOT_TTL_MS = 15 * 60 * 1_000L
+
         private const val KEY_SPOT_ID = "spot_id"
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"
@@ -95,6 +118,10 @@ class ReportSpotWorker(
         private const val KEY_ADDRESS_COUNTRY = "address_country"
         private const val KEY_PLACE_NAME = "place_name"
         private const val KEY_PLACE_CATEGORY = "place_category"
+        // Phase 4 keys
+        private const val KEY_SPOT_TYPE = "spot_type"
+        private const val KEY_CONFIDENCE = "confidence"
+        private const val KEY_SIZE_CATEGORY = "size_category"
 
         fun buildRequest(
             spotId: String,
@@ -102,6 +129,9 @@ class ReportSpotWorker(
             lon: Double,
             address: AddressInfo?,
             placeInfo: PlaceInfo?,
+            spotType: SpotType = SpotType.AUTO_DETECTED,
+            confidence: Float = 1f,
+            sizeCategory: VehicleSize? = null,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<ReportSpotWorker>()
                 .setInputData(
@@ -116,6 +146,9 @@ class ReportSpotWorker(
                         KEY_ADDRESS_COUNTRY to address?.country,
                         KEY_PLACE_NAME to placeInfo?.name,
                         KEY_PLACE_CATEGORY to placeInfo?.category?.name,
+                        KEY_SPOT_TYPE to spotType.name,
+                        KEY_CONFIDENCE to confidence,
+                        KEY_SIZE_CATEGORY to sizeCategory?.name,
                     )
                 )
                 .setConstraints(

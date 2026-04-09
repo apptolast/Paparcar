@@ -2,6 +2,8 @@ package io.apptolast.paparcar.domain.usecase.spot
 
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.SpotType
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import kotlinx.coroutines.flow.catch
@@ -22,7 +24,14 @@ class ReportSpotReleasedUseCase(
     private val reportSpotScheduler: ReportSpotScheduler,
     private val getLocationInfo: GetLocationInfoUseCase,
 ) {
-    suspend operator fun invoke(lat: Double, lon: Double, spotId: String) {
+    suspend operator fun invoke(
+        lat: Double,
+        lon: Double,
+        spotId: String,
+        spotType: SpotType = SpotType.AUTO_DETECTED,
+        confidence: Float = 1f,
+        sizeCategory: VehicleSize? = null,
+    ) {
         var address: AddressInfo? = null
         var placeInfo: PlaceInfo? = null
         withTimeoutOrNull(GEOCODE_TIMEOUT_MS) {
@@ -33,7 +42,7 @@ class ReportSpotReleasedUseCase(
                     placeInfo = info.placeInfo ?: placeInfo
                 }
         }
-        reportSpotScheduler.schedule(spotId, lat, lon, address, placeInfo)
+        reportSpotScheduler.schedule(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory)
     }
 
     companion object {

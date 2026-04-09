@@ -5,7 +5,9 @@ package io.apptolast.paparcar.domain.usecase.parking
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -32,7 +34,12 @@ class ConfirmParkingUseCase(
     private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
 ) {
-    suspend operator fun invoke(location: GpsPoint, detectionReliability: Float) {
+    suspend operator fun invoke(
+        location: GpsPoint,
+        detectionReliability: Float,
+        spotType: SpotType = SpotType.AUTO_DETECTED,
+        sizeCategory: VehicleSize? = null,
+    ) {
         val userId = authRepository.getCurrentSession()?.userId ?: ""
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
@@ -49,6 +56,8 @@ class ConfirmParkingUseCase(
             geofenceId = sessionId,
             isActive = true,
             detectionReliability = detectionReliability,
+            spotType = spotType,
+            sizeCategory = sizeCategory,
         )
 
         userParkingRepository.saveSession(session).onFailure { return }

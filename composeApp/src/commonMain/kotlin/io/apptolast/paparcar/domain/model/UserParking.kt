@@ -9,6 +9,10 @@ package io.apptolast.paparcar.domain.model
  * [address] and [placeInfo] are enriched asynchronously after the session is saved
  * (via Overpass + geocoder). Both may be null for legacy records or if the network
  * was unavailable at parking time.
+ *
+ * Phase 4 additions:
+ * - [spotType]      – how the parking was detected / confirmed.
+ * - [sizeCategory]  – size of the user's vehicle at confirmation time (null = unknown).
  */
 data class UserParking(
     val id: String,
@@ -23,4 +27,8 @@ data class UserParking(
      *  1.0 = user manually confirmed; ~0.90 = vehicle-exit signal observed;
      *  ~0.75 = slow-path auto-detection only. */
     val detectionReliability: Float? = null,
+    /** How the parking was detected / confirmed. Propagated to the released [Spot]. */
+    val spotType: SpotType = SpotType.AUTO_DETECTED,
+    /** Size of the user's vehicle — null until vehicle integration wires it in. */
+    val sizeCategory: VehicleSize? = null,
 )
