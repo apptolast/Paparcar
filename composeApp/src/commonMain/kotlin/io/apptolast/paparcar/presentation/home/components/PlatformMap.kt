@@ -66,6 +66,7 @@ import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.ui.theme.PapAmber
@@ -166,6 +167,10 @@ private val CLUSTER_FONT_SMALL        = 16.sp  // count <= 9
 private val CLUSTER_LINE_HEIGHT_LARGE = 15.sp
 private val CLUSTER_LINE_HEIGHT_SMALL = 18.sp
 
+// ── Confidence thresholds (mirrors domain-layer constants) ────────────────────
+private const val HIGH_CONFIDENCE_THRESHOLD   = 0.75f
+private const val MEDIUM_CONFIDENCE_THRESHOLD = 0.55f
+
 // ── Marker content IDs ──────────────────────────────────────────────────────
 private const val MARKER_MY_CAR = "my_car"
 private const val MARKER_FREE_SPOT = "free_spot"
@@ -182,6 +187,20 @@ private const val CAMERA_MOVING_DEBOUNCE_MS = 280L
 private const val ZOOM_CLUSTER_DISABLE = 14f
 
 private data class SpotCluster(val lat: Double, val lon: Double, val spots: List<Spot>)
+
+/**
+ * Returns the non-selected [contentId] for a spot marker based on detection type and confidence.
+ *  - MANUAL_REPORT → blue ring
+ *  - HIGH (≥0.75)  → green ring (default)
+ *  - MEDIUM (≥0.55) → amber ring
+ *  - LOW           → red ring
+ */
+private fun Spot.reliabilityContentId(): String = when {
+    type == SpotType.MANUAL_REPORT              -> MARKER_FREE_SPOT_MANUAL
+    confidence >= HIGH_CONFIDENCE_THRESHOLD     -> MARKER_FREE_SPOT
+    confidence >= MEDIUM_CONFIDENCE_THRESHOLD   -> MARKER_FREE_SPOT_MEDIUM
+    else                                        -> MARKER_FREE_SPOT_LOW
+}
 
 /** Degree threshold used to group nearby spots at a given zoom level. */
 private fun clusterThresholdDeg(zoom: Float): Double = when {
@@ -276,7 +295,7 @@ fun PlatformMap(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
                             title = title,
                             contentId = if (spot.id == selectedSpotId) MARKER_FREE_SPOT_SELECTED
-                            else MARKER_FREE_SPOT,
+                            else spot.reliabilityContentId(),
                         ),
                     )
                 } else {
