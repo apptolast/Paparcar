@@ -283,12 +283,15 @@ fun PlatformMap(
             clusters.forEach { cluster ->
                 if (cluster.spots.size == 1) {
                     val spot = cluster.spots.first()
-                    // Encode sizeCategory after separator so SpotMarkerContent can render the badge.
-                    // Format: "<spotId>" or "<spotId>|<SIZE_NAME>"
-                    val title = if (spot.sizeCategory != null) {
-                        "${spot.id}$MARKER_DATA_SEP${spot.sizeCategory.name}"
-                    } else {
-                        spot.id
+                    // Encode sizeCategory and enRouteCount after the separator.
+                    // Format: "<spotId>" | "<spotId>|SIZE" | "<spotId>|SIZE|N" | "<spotId>||N"
+                    val sizeStr = spot.sizeCategory?.name ?: ""
+                    val title = when {
+                        spot.enRouteCount > 0 ->
+                            "${spot.id}$MARKER_DATA_SEP$sizeStr$MARKER_DATA_SEP${spot.enRouteCount}"
+                        spot.sizeCategory != null ->
+                            "${spot.id}$MARKER_DATA_SEP$sizeStr"
+                        else -> spot.id
                     }
                     add(
                         Marker(
@@ -317,20 +320,20 @@ fun PlatformMap(
         mapOf<String, @Composable (Marker) -> Unit>(
             MARKER_MY_CAR to { _ -> MyCarMarkerContent() },
             MARKER_FREE_SPOT to { marker ->
-                SpotMarkerContent(isSelected = false, sizeCategory = parseMarkerSize(marker.title))
+                SpotMarkerContent(isSelected = false, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
             },
             MARKER_FREE_SPOT_SELECTED to { marker ->
-                SpotMarkerContent(isSelected = true, sizeCategory = parseMarkerSize(marker.title))
+                SpotMarkerContent(isSelected = true, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
             },
             // Reliability variants — ring colour tied to Spot.confidence (SPOT-004)
             MARKER_FREE_SPOT_MEDIUM to { marker ->
-                SpotMarkerContent(isSelected = false, ringColor = PapAmber, sizeCategory = parseMarkerSize(marker.title))
+                SpotMarkerContent(isSelected = false, ringColor = PapAmber, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
             },
             MARKER_FREE_SPOT_LOW to { marker ->
-                SpotMarkerContent(isSelected = false, ringColor = PapRed, sizeCategory = parseMarkerSize(marker.title))
+                SpotMarkerContent(isSelected = false, ringColor = PapRed, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
             },
             MARKER_FREE_SPOT_MANUAL to { marker ->
-                SpotMarkerContent(isSelected = false, ringColor = PapBlue, sizeCategory = parseMarkerSize(marker.title))
+                SpotMarkerContent(isSelected = false, ringColor = PapBlue, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
             },
             MARKER_CLUSTER to { marker ->
                 val count = marker.title
@@ -611,10 +614,18 @@ private fun rememberCameraAnimationState(
 
 // ── Marker data helpers ───────────────────────────────────────────────────────
 
-/** Extracts the [VehicleSize] embedded after [MARKER_DATA_SEP] in a marker title, or null. */
+/** Extracts the [VehicleSize] from field[1] of the encoded marker title, or null. */
 private fun parseMarkerSize(title: String?): VehicleSize? {
-    val raw = title?.substringAfter(MARKER_DATA_SEP, "") ?: return null
+    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return null
+    val raw = after.substringBefore(MARKER_DATA_SEP)
     return if (raw.isEmpty()) null else runCatching { VehicleSize.valueOf(raw) }.getOrNull()
+}
+
+/** Extracts the enRoute count from field[2] of the encoded marker title, or 0. */
+private fun parseMarkerEnRoute(title: String?): Int {
+    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return 0
+    val second = after.substringAfter(MARKER_DATA_SEP, "")
+    return second.toIntOrNull() ?: 0
 }
 
 /**
@@ -660,6 +671,7 @@ private fun SpotMarkerContent(
     isSelected: Boolean = false,
     ringColor: Color = if (isSelected) PapGreen else PapForestDark,
     sizeCategory: VehicleSize? = null,
+    enRouteCount: Int = 0,
 ) {
     val size        = if (isSelected) SPOT_MARKER_SELECTED_SIZE else SPOT_MARKER_DEFAULT_SIZE
     val bg          = if (isSelected) PapForestDark              else PapGreen
@@ -704,6 +716,13 @@ private fun SpotMarkerContent(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(x = BADGE_OFFSET, y = BADGE_OFFSET),
+                )
+            }
+            if (enRouteCount > 0) {
+                SpotEnRouteDot(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .offset(x = -BADGE_OFFSET, y = -BADGE_OFFSET),
                 )
             }
         }
@@ -791,6 +810,22 @@ private fun SpotSizeBadge(
             color = textColor,
         )
     }
+}
+
+// ── en-route dot (top-left corner of spot marker) ────────────────────────────
+private val EN_ROUTE_DOT_SIZE = 8.dp
+
+/**
+ * Small blue dot shown on the top-left corner of a [SpotMarkerContent] when at least
+ * one user is currently navigating to the spot.
+ */
+@Composable
+private fun SpotEnRouteDot(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(EN_ROUTE_DOT_SIZE)
+            .background(PapBlue, CircleShape),
+    )
 }
 
 @Composable
