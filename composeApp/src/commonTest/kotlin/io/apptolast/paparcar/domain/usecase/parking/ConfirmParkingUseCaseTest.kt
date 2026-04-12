@@ -4,11 +4,14 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
+import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -151,6 +154,46 @@ class ConfirmParkingUseCaseTest {
         assertEquals(0, notification.parkingSpotSavedCallCount)
     }
 
+    // ── sizeCategory from VehicleRepository ──────────────────────────────────
+
+    @Test
+    fun `should resolve sizeCategory from default vehicle when not explicitly provided`() = runTest {
+        val repo = FakeUserParkingRepository()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE)
+        val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
+
+        useCase(location)
+
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertEquals(VehicleSize.LARGE, savedSession.sizeCategory)
+    }
+
+    @Test
+    fun `should use explicit sizeCategory when provided even if vehicle has different size`() = runTest {
+        val repo = FakeUserParkingRepository()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE)
+        val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
+
+        useCase(location, sizeCategory = VehicleSize.MOTO)
+
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertEquals(VehicleSize.MOTO, savedSession.sizeCategory)
+    }
+
+    @Test
+    fun `should save session with null sizeCategory when no default vehicle registered`() = runTest {
+        val repo = FakeUserParkingRepository()
+        val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(defaultVehicle = null))
+
+        useCase(location)
+
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertNull(savedSession.sizeCategory)
+    }
+
     // ── No authenticated user ─────────────────────────────────────────────────
 
     @Test
@@ -173,12 +216,14 @@ class ConfirmParkingUseCaseTest {
 
     private fun buildUseCase(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
+        vehicles: FakeVehicleRepository = FakeVehicleRepository(),
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),
         auth: FakeAuthRepository = FakeAuthRepository(initialSession = session),
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
+        vehicleRepository = vehicles,
         geofenceService = geofence,
         notificationPort = notification,
         enrichmentScheduler = enrichment,

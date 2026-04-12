@@ -11,11 +11,13 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.flow.first
 
 /**
  * Persists a confirmed parking spot, registers a geofence, notifies the user,
@@ -29,6 +31,7 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 class ConfirmParkingUseCase(
     private val userParkingRepository: UserParkingRepository,
+    private val vehicleRepository: VehicleRepository,
     private val geofenceService: GeofenceManager,
     private val notificationPort: AppNotificationManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
@@ -42,6 +45,8 @@ class ConfirmParkingUseCase(
         sizeCategory: VehicleSize? = null,
     ): Result<UserParking> {
         val userId = authRepository.getCurrentSession()?.userId ?: ""
+        val resolvedSizeCategory = sizeCategory
+            ?: vehicleRepository.observeDefaultVehicle().first()?.sizeCategory
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -58,7 +63,7 @@ class ConfirmParkingUseCase(
             isActive = true,
             detectionReliability = detectionReliability,
             spotType = spotType,
-            sizeCategory = sizeCategory,
+            sizeCategory = resolvedSizeCategory,
         )
 
         val saved = userParkingRepository.saveSession(session)

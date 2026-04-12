@@ -43,6 +43,7 @@ val domainModule = module {
     factory {
         ConfirmParkingUseCase(
             userParkingRepository = get(),
+            vehicleRepository = get(),
             geofenceService = get(),
             notificationPort = get(),
             enrichmentScheduler = get(),
