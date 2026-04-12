@@ -3,6 +3,7 @@ package io.apptolast.paparcar.di
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.data.datasource.local.room.SpotDao
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSourceImpl
 import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSource
@@ -27,7 +28,7 @@ val dataModule = module {
     single<UserProfileDataSource> { UserProfileDataSourceImpl(get()) }
 
     // Repositories
-    single<SpotRepository> { SpotRepositoryImpl(get()) }
+    single<SpotRepository> { SpotRepositoryImpl(get(), get()) }
     single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get()) }
     single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
     single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get()) }
@@ -36,6 +37,7 @@ val dataModule = module {
     single { get<AppDatabase>().parkingSessionDao() }
     single { get<AppDatabase>().userProfileDao() }
     single { get<AppDatabase>().vehicleDao() }
+    single<SpotDao> { get<AppDatabase>().spotDao() }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.
 }

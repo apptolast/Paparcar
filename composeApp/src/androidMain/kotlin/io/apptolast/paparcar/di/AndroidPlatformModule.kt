@@ -55,6 +55,36 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `cached_spots` (
+                `id` TEXT NOT NULL,
+                `latitude` REAL NOT NULL,
+                `longitude` REAL NOT NULL,
+                `accuracy` REAL NOT NULL,
+                `reportedAt` INTEGER NOT NULL,
+                `reportedBy` TEXT NOT NULL,
+                `speed` REAL NOT NULL DEFAULT 0,
+                `addressStreet` TEXT,
+                `addressCity` TEXT,
+                `addressRegion` TEXT,
+                `addressCountry` TEXT,
+                `placeInfoName` TEXT,
+                `placeInfoCategory` TEXT,
+                `type` TEXT NOT NULL DEFAULT 'AUTO_DETECTED',
+                `confidence` REAL NOT NULL DEFAULT 1,
+                `sizeCategory` TEXT,
+                `enRouteCount` INTEGER NOT NULL DEFAULT 0,
+                `expiresAt` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
 val androidPlatformModule = module {
     // Database
     single<AppDatabase> {
@@ -62,7 +92,7 @@ val androidPlatformModule = module {
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_7_8)
             .fallbackToDestructiveMigration(true)
             .build()
     }
