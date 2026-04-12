@@ -75,10 +75,21 @@ class ConfirmParkingUseCase(
             geofenceId = sessionId,
             latitude = gpsPoint.latitude,
             longitude = gpsPoint.longitude,
-            radiusMeters = config.geofenceRadiusMeters,
+            radiusMeters = computeGeofenceRadius(resolvedSizeCategory, gpsPoint.accuracy),
         )
         notificationPort.showParkingSpotSaved(gpsPoint.latitude, gpsPoint.longitude)
 
         return Result.success(session)
+    }
+
+    private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
+        val base = when (sizeCategory) {
+            VehicleSize.MOTO  -> config.geofenceRadiusMotoMeters
+            VehicleSize.LARGE -> config.geofenceRadiusLargeMeters
+            VehicleSize.VAN   -> config.geofenceRadiusVanMeters
+            else              -> config.geofenceRadiusMeters  // SMALL, MEDIUM, null
+        }
+        val padded = base + (accuracyMeters * config.geofenceAccuracyPadFactor)
+        return padded.coerceAtMost(config.geofenceMaxRadiusMeters)
     }
 }

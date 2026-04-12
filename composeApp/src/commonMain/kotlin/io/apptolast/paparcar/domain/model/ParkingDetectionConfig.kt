@@ -59,8 +59,22 @@ data class ParkingDetectionConfig(
     val minGpsAccuracyMeters: Float = 15f,
 
     // ── GEOFENCE ──────────────────────────────────────────────────────────────
-    /** Radius (meters) of the geofence registered around the confirmed parking spot. */
+    /** Base geofence radius (meters) for MOTO vehicles. Smaller because motorcycles park in tighter spots. */
+    val geofenceRadiusMotoMeters: Float = 60f,
+    /** Base geofence radius (meters) for SMALL, MEDIUM, and unknown-size vehicles. */
     val geofenceRadiusMeters: Float = 80f,
+    /** Base geofence radius (meters) for LARGE vehicles. */
+    val geofenceRadiusLargeMeters: Float = 100f,
+    /** Base geofence radius (meters) for VAN vehicles. */
+    val geofenceRadiusVanMeters: Float = 120f,
+    /**
+     * Multiplier applied to the GPS accuracy reading (meters) as additional padding on top of the
+     * base radius. Guards against false departures when the fix was imprecise at park time.
+     * e.g. accuracy=15m → 15 × 1.5 = 22.5m extra padding.
+     */
+    val geofenceAccuracyPadFactor: Float = 1.5f,
+    /** Maximum allowed geofence radius (meters) — caps the accuracy-padded result. */
+    val geofenceMaxRadiusMeters: Float = 200f,
 
     // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
     /** Time window (ms) after the vehicle first stops during which GPS fixes are
@@ -141,8 +155,23 @@ data class ParkingDetectionConfig(
         require(slowPathGateMs > fastPathMinStoppedMs) {
             "slowPathGateMs ($slowPathGateMs) must be > fastPathMinStoppedMs ($fastPathMinStoppedMs)"
         }
-        require(geofenceRadiusMeters > 0) {
-            "geofenceRadiusMeters must be > 0, was $geofenceRadiusMeters"
+        require(geofenceRadiusMotoMeters > 0) {
+            "geofenceRadiusMotoMeters must be > 0, was $geofenceRadiusMotoMeters"
+        }
+        require(geofenceRadiusMeters >= geofenceRadiusMotoMeters) {
+            "geofenceRadiusMeters ($geofenceRadiusMeters) must be >= geofenceRadiusMotoMeters ($geofenceRadiusMotoMeters)"
+        }
+        require(geofenceRadiusLargeMeters >= geofenceRadiusMeters) {
+            "geofenceRadiusLargeMeters ($geofenceRadiusLargeMeters) must be >= geofenceRadiusMeters ($geofenceRadiusMeters)"
+        }
+        require(geofenceRadiusVanMeters >= geofenceRadiusLargeMeters) {
+            "geofenceRadiusVanMeters ($geofenceRadiusVanMeters) must be >= geofenceRadiusLargeMeters ($geofenceRadiusLargeMeters)"
+        }
+        require(geofenceMaxRadiusMeters >= geofenceRadiusVanMeters) {
+            "geofenceMaxRadiusMeters ($geofenceMaxRadiusMeters) must be >= geofenceRadiusVanMeters ($geofenceRadiusVanMeters)"
+        }
+        require(geofenceAccuracyPadFactor >= 0f) {
+            "geofenceAccuracyPadFactor must be >= 0, was $geofenceAccuracyPadFactor"
         }
         require(vehicleEnterWindowMs > 0) {
             "vehicleEnterWindowMs must be > 0, was $vehicleEnterWindowMs"

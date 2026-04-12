@@ -212,6 +212,68 @@ class ConfirmParkingUseCaseTest {
         assertEquals("", savedSession.userId)
     }
 
+    // ── Adaptive geofence radius ──────────────────────────────────────────────
+
+    @Test
+    fun `should use moto radius for MOTO vehicle`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MOTO)
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(
+            geofence = geofence,
+            vehicles = FakeVehicleRepository(vehicle),
+            config = config,
+        )
+        val zeroAccuracy = location.copy(accuracy = 0f)
+
+        useCase(zeroAccuracy)
+
+        assertEquals(config.geofenceRadiusMotoMeters, geofence.lastCreatedRadiusMeters)
+    }
+
+    @Test
+    fun `should use van radius for VAN vehicle`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.VAN)
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(
+            geofence = geofence,
+            vehicles = FakeVehicleRepository(vehicle),
+            config = config,
+        )
+        val zeroAccuracy = location.copy(accuracy = 0f)
+
+        useCase(zeroAccuracy)
+
+        assertEquals(config.geofenceRadiusVanMeters, geofence.lastCreatedRadiusMeters)
+    }
+
+    @Test
+    fun `should pad radius with GPS accuracy`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(geofence = geofence, config = config)
+        val locationWith10mAccuracy = location.copy(accuracy = 10f)
+
+        useCase(locationWith10mAccuracy, sizeCategory = VehicleSize.MEDIUM)
+
+        val expected = config.geofenceRadiusMeters + (10f * config.geofenceAccuracyPadFactor)
+        assertEquals(expected, geofence.lastCreatedRadiusMeters)
+    }
+
+    @Test
+    fun `should cap radius at geofenceMaxRadiusMeters`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(geofence = geofence, config = config)
+        // accuracy=100m on a VAN (base 120m) → 120 + 150 = 270m > 200m max
+        val highInaccuracy = location.copy(accuracy = 100f)
+
+        useCase(highInaccuracy, sizeCategory = VehicleSize.VAN)
+
+        assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(
@@ -221,6 +283,7 @@ class ConfirmParkingUseCaseTest {
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),
         auth: FakeAuthRepository = FakeAuthRepository(initialSession = session),
+        config: ParkingDetectionConfig = ParkingDetectionConfig(),
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -228,6 +291,6 @@ class ConfirmParkingUseCaseTest {
         notificationPort = notification,
         enrichmentScheduler = enrichment,
         authRepository = auth,
-        config = ParkingDetectionConfig(),
+        config = config,
     )
 }
