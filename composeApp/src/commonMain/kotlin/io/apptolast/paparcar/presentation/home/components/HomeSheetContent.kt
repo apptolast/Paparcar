@@ -2,14 +2,17 @@
 package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,6 +25,7 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
 import org.jetbrains.compose.resources.stringResource
@@ -29,6 +33,12 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_parked_section
 import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
+import paparcar.composeapp.generated.resources.home_size_filter_all
+import paparcar.composeapp.generated.resources.vehicle_size_large
+import paparcar.composeapp.generated.resources.vehicle_size_medium
+import paparcar.composeapp.generated.resources.vehicle_size_moto
+import paparcar.composeapp.generated.resources.vehicle_size_small
+import paparcar.composeapp.generated.resources.vehicle_size_van
 
 @Composable
 internal fun HomeSheetContent(
@@ -137,22 +147,37 @@ private fun SpotsSection(
     selectedSpotId: String?,
     spotScrollPositions: MutableMap<String, Int>,
 ) {
+    val filteredSpots = if (state.sizeFilter == null) {
+        state.nearbySpots
+    } else {
+        state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
+    }
+
     HomeSectionHeader(
-        title = if (state.nearbySpots.isNotEmpty())
-            stringResource(Res.string.home_feed_nearby_with_count, state.nearbySpots.size)
+        title = if (filteredSpots.isNotEmpty())
+            stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
         else
             stringResource(Res.string.home_feed_nearby),
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
     )
+
+    if (state.allPermissionsGranted && state.nearbySpots.isNotEmpty()) {
+        HomeSizeFilterBar(
+            selectedSize = state.sizeFilter,
+            onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        )
+    }
+
     when {
         !state.allPermissionsGranted -> HomePermissionsCard(
             onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        state.nearbySpots.isEmpty() -> HomeEmptySpots(
+        filteredSpots.isEmpty() -> HomeEmptySpots(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
-        else -> state.nearbySpots.forEachIndexed { index, spot ->
+        else -> filteredSpots.forEachIndexed { index, spot ->
             HomeSpotRow(
                 spot = spot,
                 userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
@@ -166,12 +191,55 @@ private fun SpotsSection(
                 },
             )
             // Skip divider after the last item — no trailing separator
-            if (index < state.nearbySpots.lastIndex) {
+            if (index < filteredSpots.lastIndex) {
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 72.dp, end = 16.dp),
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
                 )
             }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Size filter bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HomeSizeFilterBar(
+    selectedSize: VehicleSize?,
+    onFilterSelect: (VehicleSize?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val allLabel   = stringResource(Res.string.home_size_filter_all)
+    val motoLabel  = stringResource(Res.string.vehicle_size_moto)
+    val smallLabel = stringResource(Res.string.vehicle_size_small)
+    val mediumLabel= stringResource(Res.string.vehicle_size_medium)
+    val largeLabel = stringResource(Res.string.vehicle_size_large)
+    val vanLabel   = stringResource(Res.string.vehicle_size_van)
+
+    Row(
+        modifier = modifier
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        FilterChip(
+            selected = selectedSize == null,
+            onClick = { onFilterSelect(null) },
+            label = { Text(allLabel, style = MaterialTheme.typography.labelSmall) },
+        )
+        listOf(
+            VehicleSize.MOTO   to motoLabel,
+            VehicleSize.SMALL  to smallLabel,
+            VehicleSize.MEDIUM to mediumLabel,
+            VehicleSize.LARGE  to largeLabel,
+            VehicleSize.VAN    to vanLabel,
+        ).forEach { (size, label) ->
+            FilterChip(
+                selected = selectedSize == size,
+                onClick = { onFilterSelect(if (selectedSize == size) null else size) },
+                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+            )
         }
     }
 }

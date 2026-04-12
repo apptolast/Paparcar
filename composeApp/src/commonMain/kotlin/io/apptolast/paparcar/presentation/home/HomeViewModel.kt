@@ -4,6 +4,7 @@ import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
@@ -120,17 +121,21 @@ class HomeViewModel(
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
+            is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
         }
     }
 
     private fun releaseParking(lat: Double, lon: Double) {
         viewModelScope.launch {
-            val spotId = state.value.userParking?.id
-                ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
+            val parking = state.value.userParking
+            val spotId = parking?.id ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
+            val spotType = parking?.spotType ?: SpotType.AUTO_DETECTED
+            val confidence = parking?.detectionReliability ?: 1f
+            val sizeCategory = parking?.sizeCategory
             // Schedule the WorkManager job BEFORE clearing so the report is durably
             // enqueued even if the ViewModel scope is cancelled mid-flight.
             // ReportSpotReleasedUseCase caps geocoding at 5 s, so this is fast.
-            reportSpotReleased(lat, lon, spotId)
+            reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)
             userParkingRepository.clearActive().onFailure { e ->
                 sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                 return@launch
@@ -152,8 +157,7 @@ class HomeViewModel(
     private fun reportManualSpot(lat: Double, lon: Double) {
         viewModelScope.launch {
             val spotId = "manual_${Clock.System.now().toEpochMilliseconds()}"
-            // TODO [Phase 2]: Replace with ReportManualSpotUseCase (type = MANUAL, TTL = 15 min)
-            reportSpotReleased(lat, lon, spotId)
+            reportSpotReleased(lat, lon, spotId, SpotType.MANUAL_REPORT, confidence = 1f)
             sendEffect(HomeEffect.ManualSpotReported)
         }
     }
@@ -174,7 +178,7 @@ class HomeViewModel(
             return
         }
         viewModelScope.launch {
-            confirmParking(gps, 1.0f)
+            confirmParking(gps, 1.0f, SpotType.MANUAL_REPORT)
         }
     }
 
@@ -182,7 +186,7 @@ class HomeViewModel(
         val gps = state.value.pendingParkingGps ?: return
         updateState { copy(pendingParkingGps = null) }
         viewModelScope.launch {
-            confirmParking(gps, 1.0f)
+            confirmParking(gps, 1.0f, SpotType.AUTO_DETECTED)
         }
     }
 

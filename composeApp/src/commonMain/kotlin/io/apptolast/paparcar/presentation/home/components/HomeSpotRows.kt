@@ -34,6 +34,8 @@ import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.ui.components.EnRouteIndicator
+import io.apptolast.paparcar.ui.components.TTLIndicator
 import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -205,8 +207,14 @@ private fun SpotRowContent(
             }
         }
 
-        // Freshness chip — age of spot
-        SpotFreshnessChip(ageMinutes = ageMinutes)
+        EnRouteIndicator(count = spot.enRouteCount)
+
+        // TTL badge if set, otherwise freshness chip
+        if (spot.expiresAt > 0L) {
+            TTLIndicator(expiresAtMs = spot.expiresAt)
+        } else {
+            SpotFreshnessChip(ageMinutes = ageMinutes)
+        }
     }
 }
 

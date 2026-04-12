@@ -283,6 +283,9 @@
     <string name="spot_indicator_en_route">%1$d onderweg</string>
     <string name="spot_indicator_ttl_expired">Verlopen</string>
     <string name="spot_indicator_ttl_minutes">%1$d min</string>
+    <!-- HomeScreen size filter chips -->
+    <string name="home_size_filter_all">Alle</string>
+
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Parkeerplaats gedetecteerd</string>
     <string name="confirmation_sheet_subtitle">Heeft u zojuist geparkeerd? Automatisch publiceren in %1$s.</string>

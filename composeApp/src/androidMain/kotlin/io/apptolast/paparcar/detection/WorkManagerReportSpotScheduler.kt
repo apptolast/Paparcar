@@ -6,6 +6,8 @@ import androidx.work.WorkManager
 import io.apptolast.paparcar.detection.worker.ReportSpotWorker
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.PlaceInfo
+import io.apptolast.paparcar.domain.model.SpotType
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 
 /**
@@ -18,11 +20,20 @@ class WorkManagerReportSpotScheduler(
     private val context: Context,
 ) : ReportSpotScheduler {
 
-    override fun schedule(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?) {
+    override fun schedule(
+        spotId: String,
+        lat: Double,
+        lon: Double,
+        address: AddressInfo?,
+        placeInfo: PlaceInfo?,
+        spotType: SpotType,
+        confidence: Float,
+        sizeCategory: VehicleSize?,
+    ) {
         WorkManager.getInstance(context).enqueueUniqueWork(
             "${ReportSpotWorker.TAG}_$spotId",
             ExistingWorkPolicy.REPLACE,
-            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo),
+            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory),
         )
     }
 }

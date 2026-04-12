@@ -28,4 +28,10 @@ data class SpotDto(
     val speed: Float = 0f,
     val address: AddressDto? = null,
     val placeInfo: PlaceInfoDto? = null,
+    // Phase 4 — defaults preserve backward compat with existing Firestore documents
+    val type: String = "AUTO_DETECTED",
+    val confidence: Float = 1f,
+    val sizeCategory: String? = null,
+    val enRouteCount: Int = 0,
+    val expiresAt: Long = 0L,
 )

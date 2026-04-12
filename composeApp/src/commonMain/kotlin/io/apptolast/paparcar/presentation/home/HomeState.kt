@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.model.LocationInfo
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.VehicleSize
 
 /**
  * Estado de la pantalla Home.
@@ -32,6 +33,8 @@ data class HomeState(
     val mapType: MapType = MapType.NORMAL,
     /** Non-null when a parking event has been detected and awaits user confirmation. */
     val pendingParkingGps: GpsPoint? = null,
+    /** Active size filter — null shows all spots; non-null filters to matching sizeCategory (or null). */
+    val sizeFilter: VehicleSize? = null,
 ) {
     companion object {
         /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */
