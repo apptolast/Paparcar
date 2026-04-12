@@ -90,9 +90,11 @@ fun SpotEntity.toDomain(): Spot = Spot(
     address = if (addressStreet != null || addressCity != null || addressRegion != null || addressCountry != null)
         AddressInfo(street = addressStreet, city = addressCity, region = addressRegion, country = addressCountry)
     else null,
-    placeInfo = if (placeInfoName != null && placeInfoCategory != null)
-        runCatching { PlaceInfo(placeInfoName, PlaceCategory.valueOf(placeInfoCategory)) }.getOrNull()
-    else null,
+    placeInfo = placeInfoName?.let { name ->
+        placeInfoCategory?.let { cat ->
+            runCatching { PlaceInfo(name, PlaceCategory.valueOf(cat)) }.getOrNull()
+        }
+    },
     type = runCatching { SpotType.valueOf(type) }.getOrDefault(SpotType.AUTO_DETECTED),
     confidence = confidence.coerceIn(0f, 1f),
     sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
