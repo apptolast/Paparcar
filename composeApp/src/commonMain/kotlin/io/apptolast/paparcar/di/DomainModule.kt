@@ -13,6 +13,7 @@ import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
@@ -23,6 +24,7 @@ val domainModule = module {
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }
     factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getLocationInfo = get()) }
+    factory { SendSpotSignalUseCase(get()) }
 
     // Location UseCases
     factory { GetLocationInfoUseCase(geocoder = get(), placesPort = get()) }

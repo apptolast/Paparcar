@@ -85,6 +85,13 @@ private val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+private val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `cached_spots` ADD COLUMN `acceptCount` INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE `cached_spots` ADD COLUMN `rejectCount` INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
 val androidPlatformModule = module {
     // Database
     single<AppDatabase> {
@@ -92,7 +99,7 @@ val androidPlatformModule = module {
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_7_8)
+        ).addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_7_8, MIGRATION_8_9)
             .fallbackToDestructiveMigration(true)
             .build()
     }

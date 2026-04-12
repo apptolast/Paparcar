@@ -29,4 +29,7 @@ data class SpotEntity(
     val sizeCategory: String? = null,
     val enRouteCount: Int = 0,
     val expiresAt: Long = 0L,
+    // Phase 7 — community signals
+    val acceptCount: Int = 0,
+    val rejectCount: Int = 0,
 )

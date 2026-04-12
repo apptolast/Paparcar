@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Automatisch gedetecteerd met lage betrouwbaarheid — controleer voor vertrek.</string>
     <string name="spot_card_reliability_manual">Handmatig</string>
     <string name="spot_card_reliability_manual_desc">Handmatig gemeld door een community-bestuurder.</string>
+    <string name="spot_signal_still_there">Nog vrij</string>
+    <string name="spot_signal_gone">Weg</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welkom bij Paparcar</string>

@@ -7,7 +7,7 @@ import androidx.room.RoomDatabaseConstructor
 
 @Database(
     entities = [UserParkingEntity::class, UserProfileEntity::class, VehicleEntity::class, SpotEntity::class],
-    version = 8,
+    version = 9,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

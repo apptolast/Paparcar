@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Detectat automat cu încredere scăzută — verificați înainte de a merge.</string>
     <string name="spot_card_reliability_manual">Manual</string>
     <string name="spot_card_reliability_manual_desc">Raportat manual de un șofer din comunitate.</string>
+    <string name="spot_signal_still_there">Încă acolo</string>
+    <string name="spot_signal_gone">Nu mai e</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bun venit la Paparcar</string>

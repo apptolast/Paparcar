@@ -34,4 +34,16 @@ class FakeSpotRepository : SpotRepository {
         reportCallCount++
         return reportResult
     }
+
+    var signalCallCount = 0
+        private set
+    var lastSignalAccepted: Boolean? = null
+        private set
+    var signalResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit> {
+        signalCallCount++
+        lastSignalAccepted = accepted
+        return signalResult
+    }
 }

@@ -72,6 +72,10 @@ class SpotRepositoryImpl(
         spotDao.delete(spot.id)
     }
 
+    override suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit> =
+        runCatching { firebaseDataSource.sendSpotSignal(spotId, accepted) }
+        // Room cache updates automatically via the Firestore real-time listener in observeNearbySpots.
+
     private fun boundingBox(lat: Double, lon: Double, radiusMeters: Double): BoundingBox {
         val deltaLat = radiusMeters / METERS_PER_DEGREE_LAT
         val deltaLon = radiusMeters / (METERS_PER_DEGREE_LAT * cos(lat * PI / 180.0))

@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Détecté automatiquement avec une faible fiabilité — vérifiez avant d’y aller.</string>
     <string name="spot_card_reliability_manual">Manuel</string>
     <string name="spot_card_reliability_manual_desc">Signalé manuellement par un conducteur de la communauté.</string>
+    <string name="spot_signal_still_there">Encore là</string>
+    <string name="spot_signal_gone">Parti</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenue sur Paparcar</string>

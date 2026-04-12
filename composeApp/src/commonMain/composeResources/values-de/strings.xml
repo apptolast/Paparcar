@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Automatisch mit geringer Zuverlässigkeit erkannt — vorher prüfen.</string>
     <string name="spot_card_reliability_manual">Manuell</string>
     <string name="spot_card_reliability_manual_desc">Manuell von einem Community-Fahrer gemeldet.</string>
+    <string name="spot_signal_still_there">Noch frei</string>
+    <string name="spot_signal_gone">Weg</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Willkommen bei Paparcar</string>

@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Detetado automaticamente com baixa confiança — verifique antes de ir.</string>
     <string name="spot_card_reliability_manual">Manual</string>
     <string name="spot_card_reliability_manual_desc">Reportado manualmente por um condutor da comunidade.</string>
+    <string name="spot_signal_still_there">Ainda lá</string>
+    <string name="spot_signal_gone">Já foi</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bem-vindo ao Paparcar</string>

@@ -56,6 +56,8 @@ import paparcar.composeapp.generated.resources.spot_card_reliability_manual
 import paparcar.composeapp.generated.resources.spot_card_reliability_manual_desc
 import paparcar.composeapp.generated.resources.spot_card_reliability_medium
 import paparcar.composeapp.generated.resources.spot_card_reliability_medium_desc
+import paparcar.composeapp.generated.resources.spot_signal_gone
+import paparcar.composeapp.generated.resources.spot_signal_still_there
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Presentation model
@@ -114,6 +116,11 @@ private val       DISTANCE_TEXT_SPACER         = 2.dp
  * @param onSelect  Called when the user taps the card body (not the button).
  *                   Typically centres the map on this spot.
  */
+/**
+ * Community signal row shown when the card is selected.
+ * [onAccept] = "Still there"; [onReject] = "Gone".
+ * Pass null for either to hide the corresponding button.
+ */
 @Composable
 fun SpotCard(
     data: SpotCardData,
@@ -121,6 +128,8 @@ fun SpotCard(
     modifier: Modifier = Modifier,
     onSelect: () -> Unit = {},
     isSelected: Boolean = false,
+    onAccept: (() -> Unit)? = null,
+    onReject: (() -> Unit)? = null,
 ) {
     val ageMinutes = remember(data.reportedAtMs) {
         (Clock.System.now().toEpochMilliseconds() - data.reportedAtMs) / MS_PER_MINUTE
@@ -225,6 +234,19 @@ fun SpotCard(
                     modifier = Modifier.padding(top = PaparcarSpacing.xs, bottom = PaparcarSpacing.sm),
                 )
             }
+
+            // Community signal buttons — visible only when the card is selected
+            AnimatedVisibility(
+                visible = isSelected && (onAccept != null || onReject != null),
+                enter = expandVertically(),
+                exit = shrinkVertically(),
+            ) {
+                SpotSignalRow(
+                    onAccept = onAccept,
+                    onReject = onReject,
+                    modifier = Modifier.padding(bottom = PaparcarSpacing.sm),
+                )
+            }
         }
     }
 }
@@ -320,5 +342,32 @@ private fun SpotReliabilityBadge(
             label = stringResource(Res.string.spot_card_reliability_manual),
             modifier = toggleModifier,
         )
+    }
+}
+
+@Composable
+private fun SpotSignalRow(
+    onAccept: (() -> Unit)?,
+    onReject: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
+    ) {
+        if (onAccept != null) {
+            PapSecondaryButton(
+                label = stringResource(Res.string.spot_signal_still_there),
+                onClick = onAccept,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (onReject != null) {
+            PapSecondaryButton(
+                label = stringResource(Res.string.spot_signal_gone),
+                onClick = onReject,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
