@@ -179,6 +179,7 @@ class HomeViewModel(
         }
         viewModelScope.launch {
             confirmParking(gps, 1.0f, SpotType.MANUAL_REPORT)
+                .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
     }
 
@@ -187,6 +188,7 @@ class HomeViewModel(
         updateState { copy(pendingParkingGps = null) }
         viewModelScope.launch {
             confirmParking(gps, 1.0f, SpotType.AUTO_DETECTED)
+                .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
     }
 

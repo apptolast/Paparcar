@@ -201,6 +201,7 @@
     <string name="error_gps_unavailable">Warte auf GPS-Signal…</string>
     <string name="error_network_no_connection">Keine Internetverbindung</string>
     <string name="error_profile_sync">Profil konnte nicht geladen werden. Bitte erneut anmelden</string>
+    <string name="error_parking_save_failed">Parkplatz konnte nicht gespeichert werden. Bitte versuche es erneut.</string>
 
     <!-- Unbekannter Standort -->
     <string name="address_unknown">Unbekannter Standort</string>

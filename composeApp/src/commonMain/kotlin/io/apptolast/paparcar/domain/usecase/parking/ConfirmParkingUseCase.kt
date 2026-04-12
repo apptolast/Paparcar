@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.SpotType
@@ -39,7 +40,7 @@ class ConfirmParkingUseCase(
         detectionReliability: Float,
         spotType: SpotType = SpotType.AUTO_DETECTED,
         sizeCategory: VehicleSize? = null,
-    ) {
+    ): Result<UserParking> {
         val userId = authRepository.getCurrentSession()?.userId ?: ""
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
@@ -60,7 +61,8 @@ class ConfirmParkingUseCase(
             sizeCategory = sizeCategory,
         )
 
-        userParkingRepository.saveSession(session).onFailure { return }
+        val saved = userParkingRepository.saveSession(session)
+        if (saved.isFailure) return Result.failure(PaparcarError.Parking.SaveFailed)
 
         enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)
 
@@ -71,5 +73,7 @@ class ConfirmParkingUseCase(
             radiusMeters = config.geofenceRadiusMeters,
         )
         notificationPort.showParkingSpotSaved(gpsPoint.latitude, gpsPoint.longitude)
+
+        return Result.success(session)
     }
 }

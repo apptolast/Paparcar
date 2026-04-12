@@ -201,6 +201,7 @@
     <string name="error_gps_unavailable">Oczekiwanie na sygnał GPS…</string>
     <string name="error_network_no_connection">Brak połączenia z internetem</string>
     <string name="error_profile_sync">Nie można załadować profilu. Zaloguj się ponownie</string>
+    <string name="error_parking_save_failed">Nie udało się zapisać miejsca parkingowego. Spróbuj ponownie.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Nieznana lokalizacja</string>

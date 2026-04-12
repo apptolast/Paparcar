@@ -76,8 +76,8 @@ class BluetoothParkingDetector(
                 .first()
 
             PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking")
-            runCatching { confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY) }
-                .onFailure { e -> PaparcarLogger.e(TAG, "ConfirmParkingUseCase failed", e) }
+            confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY)
+                .onFailure { e -> PaparcarLogger.e(TAG, "Failed to confirm parking", e) }
         }
     }
 

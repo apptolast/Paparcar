@@ -201,6 +201,7 @@
     <string name="error_gps_unavailable">Wachten op GPS-signaal…</string>
     <string name="error_network_no_connection">Geen internetverbinding</string>
     <string name="error_profile_sync">Kon uw profiel niet laden. Meld u opnieuw aan</string>
+    <string name="error_parking_save_failed">Kon je parkeerplaats niet opslaan. Probeer het opnieuw.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Onbekende locatie</string>

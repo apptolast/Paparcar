@@ -201,6 +201,7 @@
     <string name="error_gps_unavailable">Se așteaptă semnalul GPS…</string>
     <string name="error_network_no_connection">Nicio conexiune la internet</string>
     <string name="error_profile_sync">Nu s-a putut încărca profilul. Te rugăm să te conectezi din nou</string>
+    <string name="error_parking_save_failed">Nu s-a putut salva locul de parcare. Încearcă din nou.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Locație necunoscută</string>

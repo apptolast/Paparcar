@@ -187,6 +187,7 @@
     <string name="error_gps_unavailable">Waiting for GPS fix…</string>
     <string name="error_network_no_connection">No internet connection</string>
     <string name="error_profile_sync">Couldn\'t load your profile. Please sign in again</string>
+    <string name="error_parking_save_failed">Could not save your parking spot. Please try again.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Unknown location</string>

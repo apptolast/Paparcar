@@ -9,11 +9,14 @@ import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
+import io.apptolast.paparcar.domain.error.PaparcarError
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ConfirmParkingUseCaseTest {
 
@@ -34,8 +37,9 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, repo.saveSessionCallCount)
     }
 
@@ -44,8 +48,9 @@ class ConfirmParkingUseCaseTest {
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(enrichment = enrichment)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, enrichment.scheduleCallCount)
     }
 
@@ -54,8 +59,9 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(geofence = geofence)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, geofence.createGeofenceCallCount)
     }
 
@@ -64,8 +70,9 @@ class ConfirmParkingUseCaseTest {
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(notification = notification)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, notification.parkingSpotSavedCallCount)
     }
 
@@ -75,8 +82,9 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
         assertEquals(savedSession.id, savedSession.geofenceId)
@@ -88,8 +96,9 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
         assertEquals(session.userId, savedSession.userId)
@@ -105,8 +114,10 @@ class ConfirmParkingUseCaseTest {
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(repo = repo, enrichment = enrichment)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
         assertEquals(0, enrichment.scheduleCallCount)
     }
 
@@ -118,8 +129,10 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
         assertEquals(0, geofence.createGeofenceCallCount)
     }
 
@@ -131,8 +144,10 @@ class ConfirmParkingUseCaseTest {
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(repo = repo, notification = notification)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
         assertEquals(0, notification.parkingSpotSavedCallCount)
     }
 
@@ -146,8 +161,9 @@ class ConfirmParkingUseCaseTest {
             auth = FakeAuthRepository(initialSession = null),
         )
 
-        noAuthCase(location)
+        val result = noAuthCase(location)
 
+        assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
         assertEquals("", savedSession.userId)

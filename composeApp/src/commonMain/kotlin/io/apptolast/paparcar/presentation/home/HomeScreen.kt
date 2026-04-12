@@ -121,6 +121,7 @@ fun HomeScreen(
     val msgErrorLoadSession = stringResource(Res.string.error_load_session)
     val msgErrorReleaseParking = stringResource(Res.string.error_release_parking)
     val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
+    val msgErrorParkingSaveFailed = stringResource(Res.string.error_parking_save_failed)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
     val msgManualSpotReported = stringResource(Res.string.home_manual_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
@@ -134,6 +135,7 @@ fun HomeScreen(
                         is PaparcarError.Database.WriteError -> msgErrorReleaseParking
                         is PaparcarError.Network.Unknown -> msgErrorLoadSpots
                         is PaparcarError.Database.Unknown -> msgErrorLoadSession
+                        is PaparcarError.Parking.SaveFailed -> msgErrorParkingSaveFailed
                         else -> msgErrorUnknown
                     }
                     snackbarHostState.showSnackbar(msg)
