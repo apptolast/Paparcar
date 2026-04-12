@@ -36,7 +36,7 @@ class GeofenceManagerImpl(
             .build()
 
         val request = GeofencingRequest.Builder()
-            .setInitialTrigger(0) // no initial trigger on dwell
+            .setInitialTrigger(NO_INITIAL_TRIGGER)
             .addGeofence(geofence)
             .build()
 
@@ -62,5 +62,7 @@ class GeofenceManagerImpl(
     private companion object {
         const val REQUEST_CODE = 9100
         const val LOITERING_DELAY_MS = 60_000
+        /** Suppress the initial dwell trigger when registering a geofence. */
+        const val NO_INITIAL_TRIGGER = 0
     }
 }
