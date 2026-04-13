@@ -216,6 +216,7 @@
     <string name="home_fab_actions_collapse">Acties sluiten</string>
     <string name="home_cd_map_type">Kaarttype wisselen</string>
     <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
+    <string name="home_spot_signal_sent">Bedankt voor de update!</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

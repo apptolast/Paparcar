@@ -198,6 +198,7 @@
     <string name="home_spot_reported">Spot reported — uploading…</string>
     <string name="home_manual_spot_reported">Spot reported — thanks!</string>
     <string name="home_test_spot_sent">Test spot sent</string>
+    <string name="home_spot_signal_sent">Thanks for the update!</string>
 
     <!-- Home action FAB -->
     <string name="home_fab_release_car">Release my car</string>

@@ -216,6 +216,7 @@
     <string name="home_fab_actions_collapse">Închide acțiuni</string>
     <string name="home_cd_map_type">Schimbă tipul hărții</string>
     <string name="home_test_spot_sent">Loc de test trimis</string>
+    <string name="home_spot_signal_sent">Mul&#x21B;umim pentru actualizare!</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

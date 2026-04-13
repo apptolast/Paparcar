@@ -216,6 +216,7 @@
     <string name="home_fab_actions_collapse">Zamknij akcje</string>
     <string name="home_cd_map_type">Zmień typ mapy</string>
     <string name="home_test_spot_sent">Testowe miejsce wysłane</string>
+    <string name="home_spot_signal_sent">Dzi&#x0119;kujemy za aktualizacj&#x0119;!</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
