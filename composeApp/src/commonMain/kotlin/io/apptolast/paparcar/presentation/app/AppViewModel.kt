@@ -20,6 +20,7 @@ class AppViewModel(
                     permissionsGranted = current.allPermissionsGranted,
                     locationServicesEnabled = current.isLocationServicesEnabled,
                     darkTheme = appPreferences.darkModeEnabled,
+                    imperialUnits = appPreferences.useImperialUnits,
                 )
             }
         }
@@ -44,6 +45,10 @@ class AppViewModel(
             is AppIntent.ToggleDarkMode -> {
                 appPreferences.setDarkModeEnabled(intent.enabled)
                 updateState { copy(darkTheme = intent.enabled) }
+            }
+            is AppIntent.SetDistanceUnit -> {
+                appPreferences.setUseImperialUnits(intent.imperial)
+                updateState { copy(imperialUnits = intent.imperial) }
             }
         }
     }

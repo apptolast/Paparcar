@@ -9,6 +9,7 @@ private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_VEHICLE_REGISTERED = "vehicle_registered"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
+private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
 
 /**
  * iOS implementation of [AppPreferences] backed by [NSUserDefaults].
@@ -62,5 +63,12 @@ class IosAppPreferences : AppPreferences {
 
     override fun setDarkModeEnabled(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_DARK_MODE_ENABLED)
+    }
+
+    override val useImperialUnits: Boolean
+        get() = userDefaults.boolForKey(KEY_USE_IMPERIAL_UNITS)
+
+    override fun setUseImperialUnits(enabled: Boolean) {
+        userDefaults.setBool(enabled, forKey = KEY_USE_IMPERIAL_UNITS)
     }
 }

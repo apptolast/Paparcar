@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.ButtonDefaults
@@ -73,6 +74,9 @@ import paparcar.composeapp.generated.resources.settings_section_about
 import paparcar.composeapp.generated.resources.settings_section_appearance
 import paparcar.composeapp.generated.resources.settings_section_detection
 import paparcar.composeapp.generated.resources.settings_section_notifications
+import paparcar.composeapp.generated.resources.settings_distance_unit
+import paparcar.composeapp.generated.resources.settings_distance_unit_desc
+import paparcar.composeapp.generated.resources.settings_section_map
 import paparcar.composeapp.generated.resources.settings_title
 import paparcar.composeapp.generated.resources.settings_version
 
@@ -83,6 +87,8 @@ fun SettingsScreen(
     onNavigateToMyCar: () -> Unit = {},
     darkMode: Boolean = true,
     onToggleDarkMode: (Boolean) -> Unit = {},
+    imperialUnits: Boolean = false,
+    onToggleImperialUnits: (Boolean) -> Unit = {},
 ) {
     val viewModel: SettingsViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
@@ -158,6 +164,20 @@ fun SettingsScreen(
                     description = stringResource(Res.string.settings_dark_mode_desc),
                     checked = darkMode,
                     onCheckedChange = onToggleDarkMode,
+                )
+            }
+
+            // ── Map ───────────────────────────────────────────────────────────
+            item {
+                SettingsSectionHeader(stringResource(Res.string.settings_section_map))
+            }
+            item {
+                SettingsSwitchItem(
+                    icon = Icons.Outlined.Map,
+                    label = stringResource(Res.string.settings_distance_unit),
+                    description = stringResource(Res.string.settings_distance_unit_desc),
+                    checked = imperialUnits,
+                    onCheckedChange = onToggleImperialUnits,
                 )
             }
 

@@ -18,4 +18,7 @@ interface AppPreferences {
 
     val darkModeEnabled: Boolean
     fun setDarkModeEnabled(enabled: Boolean)
+
+    val useImperialUnits: Boolean
+    fun setUseImperialUnits(enabled: Boolean)
 }

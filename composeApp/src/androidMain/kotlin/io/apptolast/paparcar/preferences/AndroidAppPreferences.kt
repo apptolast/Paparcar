@@ -11,6 +11,7 @@ private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_VEHICLE_REGISTERED = "vehicle_registered"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
+private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
 
 class AndroidAppPreferences(context: Context) : AppPreferences {
 
@@ -56,5 +57,12 @@ class AndroidAppPreferences(context: Context) : AppPreferences {
 
     override fun setDarkModeEnabled(enabled: Boolean) {
         prefs.edit { putBoolean(KEY_DARK_MODE_ENABLED, enabled) }
+    }
+
+    override val useImperialUnits: Boolean
+        get() = prefs.getBoolean(KEY_USE_IMPERIAL_UNITS, false)
+
+    override fun setUseImperialUnits(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_USE_IMPERIAL_UNITS, enabled) }
     }
 }

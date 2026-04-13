@@ -294,4 +294,9 @@
     <string name="confirmation_sheet_subtitle">Heeft u zojuist geparkeerd? Automatisch publiceren in %1$s.</string>
     <string name="confirmation_sheet_confirm">Plaats publiceren</string>
     <string name="confirmation_sheet_withdraw">Nu niet</string>
+    <string name="settings_section_map">Kaart</string>
+    <string name="settings_distance_unit">Imperiale eenheden</string>
+    <string name="settings_distance_unit_desc">Toon afstanden in mijlen en voet</string>
+    <string name="settings_distance_imperial">Imperiaal</string>
+    <string name="settings_distance_metric">Metrisch</string>
 </resources>

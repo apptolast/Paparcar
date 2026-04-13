@@ -294,4 +294,9 @@
     <string name="confirmation_sheet_subtitle">Tocmai ați parcat? Publicare automată în %1$s.</string>
     <string name="confirmation_sheet_confirm">Publică locul</string>
     <string name="confirmation_sheet_withdraw">Nu acum</string>
+    <string name="settings_section_map">Hartă</string>
+    <string name="settings_distance_unit">Unități imperiale</string>
+    <string name="settings_distance_unit_desc">Afișează distanțele în mile și picioare</string>
+    <string name="settings_distance_imperial">Imperial</string>
+    <string name="settings_distance_metric">Metric</string>
 </resources>

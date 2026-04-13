@@ -299,4 +299,9 @@
     <string name="confirmation_sheet_subtitle">¿Acabas de aparcar? Se publicará en %1$s.</string>
     <string name="confirmation_sheet_confirm">Publicar plaza</string>
     <string name="confirmation_sheet_withdraw">Ahora no</string>
+    <string name="settings_section_map">Mapa</string>
+    <string name="settings_distance_unit">Unidades imperiales</string>
+    <string name="settings_distance_unit_desc">Mostrar distancias en millas y pies</string>
+    <string name="settings_distance_imperial">Imperial</string>
+    <string name="settings_distance_metric">Métrico</string>
 </resources>

@@ -294,4 +294,9 @@
     <string name="confirmation_sheet_subtitle">Hai appena parcheggiato? Pubblicazione automatica in %1$s.</string>
     <string name="confirmation_sheet_confirm">Pubblica posto</string>
     <string name="confirmation_sheet_withdraw">Non ora</string>
+    <string name="settings_section_map">Mappa</string>
+    <string name="settings_distance_unit">Unità imperiali</string>
+    <string name="settings_distance_unit_desc">Mostra le distanze in miglia e piedi</string>
+    <string name="settings_distance_imperial">Imperiale</string>
+    <string name="settings_distance_metric">Metrico</string>
 </resources>

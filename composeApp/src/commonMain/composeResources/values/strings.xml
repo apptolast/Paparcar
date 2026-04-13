@@ -302,4 +302,9 @@
     <string name="confirmation_sheet_subtitle">Did you just park? Auto-publishing in %1$s.</string>
     <string name="confirmation_sheet_confirm">Publish spot</string>
     <string name="confirmation_sheet_withdraw">Not now</string>
+    <string name="settings_section_map">Map</string>
+    <string name="settings_distance_unit">Imperial units</string>
+    <string name="settings_distance_unit_desc">Show distances in miles and feet</string>
+    <string name="settings_distance_imperial">Imperial</string>
+    <string name="settings_distance_metric">Metric</string>
 </resources>

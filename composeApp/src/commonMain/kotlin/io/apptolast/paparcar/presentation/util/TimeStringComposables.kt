@@ -71,8 +71,8 @@ fun driveTimeString(meters: Float): String {
 }
 
 /**
- * Composable wrapper for [formatDistance] that automatically resolves the
- * device's preferred unit system (metric / imperial) at composition time.
+ * Composable wrapper for [formatDistance] that resolves the active
+ * unit system from [LocalDistanceUnit] at composition time.
  */
 @Composable
-fun distanceString(meters: Float): String = formatDistance(meters, defaultDistanceUnit())
+fun distanceString(meters: Float): String = formatDistance(meters, LocalDistanceUnit.current)

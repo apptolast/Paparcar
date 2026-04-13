@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -61,6 +62,8 @@ import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsRationaleScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
+import io.apptolast.paparcar.presentation.util.DistanceUnit
+import io.apptolast.paparcar.presentation.util.LocalDistanceUnit
 import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
@@ -108,6 +111,9 @@ fun App(
     val authState by splashViewModel.authState.collectAsStateWithLifecycle()
 
     PaparcarTheme(darkTheme = appState.darkTheme) {
+        CompositionLocalProvider(
+            LocalDistanceUnit provides if (appState.imperialUnits) DistanceUnit.IMPERIAL else DistanceUnit.METRIC,
+        ) {
         // Each screen's Scaffold draws its own background.
         Surface(modifier = Modifier.fillMaxSize()) {
 
@@ -134,12 +140,15 @@ fun App(
                         appState.darkTheme,
                         { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
                         { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
+                        appState.imperialUnits,
+                        { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
                         onOpenMapsNavigation,
                     )
                     else -> AuthNavigation()
                 }
             }
 
+        }
         }
     }
 }
@@ -170,6 +179,8 @@ private fun MainAppNavigation(
     darkTheme: Boolean,
     onHandleIntent: () -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
+    imperialUnits: Boolean,
+    onToggleImperialUnits: (Boolean) -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -313,6 +324,8 @@ private fun MainAppNavigation(
                     onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
                     darkMode = darkTheme,
                     onToggleDarkMode = onToggleDarkMode,
+                    imperialUnits = imperialUnits,
+                    onToggleImperialUnits = onToggleImperialUnits,
                 )
             }
             composable(
