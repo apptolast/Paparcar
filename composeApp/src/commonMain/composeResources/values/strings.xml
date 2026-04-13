@@ -208,6 +208,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Settings</string>
     <string name="settings_cd_back">Back</string>
+    <string name="settings_section_profile">Profile</string>
+    <string name="settings_profile_logout">Log out</string>
+    <string name="settings_profile_name_placeholder">User</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_dark_mode">Dark mode</string>
     <string name="settings_dark_mode_desc">Use the dark theme throughout the app</string>

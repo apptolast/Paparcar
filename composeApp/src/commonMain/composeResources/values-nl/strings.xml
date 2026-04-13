@@ -174,6 +174,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Instellingen</string>
     <string name="settings_cd_back">Terug</string>
+        <string name="settings_section_profile">Profiel</string>
+    <string name="settings_profile_logout">Uitloggen</string>
+    <string name="settings_profile_name_placeholder">Gebruiker</string>
     <string name="settings_section_appearance">Weergave</string>
     <string name="settings_dark_mode">Donkere modus</string>
     <string name="settings_dark_mode_desc">Donker thema in de hele app gebruiken</string>
