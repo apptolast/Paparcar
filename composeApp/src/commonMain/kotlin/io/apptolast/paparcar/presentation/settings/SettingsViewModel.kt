@@ -17,14 +17,17 @@ class SettingsViewModel(
     private val userProfileRepository: UserProfileRepository,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
-    override fun initState(): SettingsState = SettingsState(
-        autoDetectParking = prefs.autoDetectParking,
-        notifyParkingDetected = prefs.notifyParkingDetected,
-        notifySpotFreed = prefs.notifySpotFreed,
-        mapType = prefs.defaultMapType.toMapType(),
-    )
+    override fun initState(): SettingsState = SettingsState()
 
     init {
+        updateState {
+            copy(
+                autoDetectParking = prefs.autoDetectParking,
+                notifyParkingDetected = prefs.notifyParkingDetected,
+                notifySpotFreed = prefs.notifySpotFreed,
+                mapType = prefs.defaultMapType.toMapType(),
+            )
+        }
         viewModelScope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId != null) {

@@ -46,6 +46,8 @@ class HomeViewModel(
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
+        updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
+
         userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
@@ -98,9 +100,7 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
-    override fun initState(): HomeState = HomeState(
-        mapType = appPreferences.defaultMapType.toMapType(),
-    )
+    override fun initState(): HomeState = HomeState()
 
     override fun handleIntent(intent: HomeIntent) {
         when (intent) {
