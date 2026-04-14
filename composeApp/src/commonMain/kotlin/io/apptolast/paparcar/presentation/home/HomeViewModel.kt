@@ -12,6 +12,7 @@ import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +40,7 @@ class HomeViewModel(
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
     private val searchAddress: SearchAddressUseCase,
+    private val appPreferences: AppPreferences,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
@@ -94,7 +96,9 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
-    override fun initState(): HomeState = HomeState()
+    override fun initState(): HomeState = HomeState(
+        mapType = appPreferences.defaultMapType.toMapType(),
+    )
 
     override fun handleIntent(intent: HomeIntent) {
         when (intent) {
@@ -151,6 +155,7 @@ class HomeViewModel(
             MapType.SATELLITE -> MapType.TERRAIN
             else -> MapType.NORMAL
         }
+        appPreferences.setDefaultMapType(next.toPreferenceString())
         updateState { copy(mapType = next) }
     }
 
@@ -241,5 +246,19 @@ class HomeViewModel(
         const val DEBUG_USER_ID = "user-123"
         const val DEBUG_LATITUDE = 40.416775
         const val DEBUG_LONGITUDE = -3.703790
+        const val MAP_TYPE_SATELLITE = "SATELLITE"
+        const val MAP_TYPE_TERRAIN = "TERRAIN"
+    }
+
+    private fun String.toMapType(): MapType = when (this) {
+        MAP_TYPE_SATELLITE -> MapType.SATELLITE
+        MAP_TYPE_TERRAIN -> MapType.TERRAIN
+        else -> MapType.NORMAL
+    }
+
+    private fun MapType.toPreferenceString(): String = when (this) {
+        MapType.SATELLITE -> MAP_TYPE_SATELLITE
+        MapType.TERRAIN -> MAP_TYPE_TERRAIN
+        else -> "NORMAL"
     }
 }

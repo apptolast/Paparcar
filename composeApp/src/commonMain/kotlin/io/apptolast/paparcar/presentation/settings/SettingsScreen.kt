@@ -28,6 +28,8 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +53,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.swmansion.kmpmaps.core.MapType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -76,6 +79,11 @@ import paparcar.composeapp.generated.resources.settings_section_detection
 import paparcar.composeapp.generated.resources.settings_section_notifications
 import paparcar.composeapp.generated.resources.settings_distance_unit
 import paparcar.composeapp.generated.resources.settings_distance_unit_desc
+import paparcar.composeapp.generated.resources.settings_map_type
+import paparcar.composeapp.generated.resources.settings_map_type_desc
+import paparcar.composeapp.generated.resources.settings_map_type_normal
+import paparcar.composeapp.generated.resources.settings_map_type_satellite
+import paparcar.composeapp.generated.resources.settings_map_type_terrain
 import paparcar.composeapp.generated.resources.settings_section_map
 import paparcar.composeapp.generated.resources.settings_title
 import paparcar.composeapp.generated.resources.settings_version
@@ -178,6 +186,21 @@ fun SettingsScreen(
                     description = stringResource(Res.string.settings_distance_unit_desc),
                     checked = imperialUnits,
                     onCheckedChange = onToggleImperialUnits,
+                )
+            }
+            item {
+                val mapTypeLabels = mapOf(
+                    MapType.NORMAL to stringResource(Res.string.settings_map_type_normal),
+                    MapType.SATELLITE to stringResource(Res.string.settings_map_type_satellite),
+                    MapType.TERRAIN to stringResource(Res.string.settings_map_type_terrain),
+                )
+                SettingsSegmentedItem(
+                    icon = Icons.Outlined.Map,
+                    label = stringResource(Res.string.settings_map_type),
+                    description = stringResource(Res.string.settings_map_type_desc),
+                    options = mapTypeLabels,
+                    selected = state.mapType,
+                    onSelect = { viewModel.handleIntent(SettingsIntent.SetMapType(it)) },
                 )
             }
 
@@ -470,6 +493,64 @@ private fun ProfileCard(
                     text = logoutLabel,
                     style = MaterialTheme.typography.labelLarge,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun <T> SettingsSegmentedItem(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    options: Map<T, String>,
+    selected: T,
+    onSelect: (T) -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            SettingsIconBox(icon = icon)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    options.forEach { (option, optionLabel) ->
+                        FilterChip(
+                            selected = option == selected,
+                            onClick = { onSelect(option) },
+                            label = {
+                                Text(
+                                    text = optionLabel,
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                    }
+                }
             }
         }
     }

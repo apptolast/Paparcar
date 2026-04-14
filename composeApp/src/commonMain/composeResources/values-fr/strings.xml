@@ -299,4 +299,9 @@
     <string name="settings_distance_unit_desc">Afficher les distances en miles et pieds</string>
     <string name="settings_distance_imperial">Impérial</string>
     <string name="settings_distance_metric">Métrique</string>
+    <string name="settings_map_type">Type de carte</string>
+    <string name="settings_map_type_desc">Vue par défaut à l\'ouverture de la carte</string>
+    <string name="settings_map_type_normal">Normal</string>
+    <string name="settings_map_type_satellite">Satellite</string>
+    <string name="settings_map_type_terrain">Relief</string>
 </resources>

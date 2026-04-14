@@ -299,4 +299,9 @@
     <string name="settings_distance_unit_desc">Afișează distanțele în mile și picioare</string>
     <string name="settings_distance_imperial">Imperial</string>
     <string name="settings_distance_metric">Metric</string>
+    <string name="settings_map_type">Tip hartă</string>
+    <string name="settings_map_type_desc">Vedere implicită la deschiderea hărții</string>
+    <string name="settings_map_type_normal">Normal</string>
+    <string name="settings_map_type_satellite">Satelit</string>
+    <string name="settings_map_type_terrain">Teren</string>
 </resources>

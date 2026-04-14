@@ -304,4 +304,9 @@
     <string name="settings_distance_unit_desc">Mostrar distancias en millas y pies</string>
     <string name="settings_distance_imperial">Imperial</string>
     <string name="settings_distance_metric">Métrico</string>
+    <string name="settings_map_type">Tipo de mapa</string>
+    <string name="settings_map_type_desc">Vista predeterminada al abrir el mapa</string>
+    <string name="settings_map_type_normal">Normal</string>
+    <string name="settings_map_type_satellite">Satélite</string>
+    <string name="settings_map_type_terrain">Terreno</string>
 </resources>

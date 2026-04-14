@@ -21,4 +21,8 @@ interface AppPreferences {
 
     val useImperialUnits: Boolean
     fun setUseImperialUnits(enabled: Boolean)
+
+    /** Stores map type as a plain string ("NORMAL" | "SATELLITE" | "TERRAIN"). */
+    val defaultMapType: String
+    fun setDefaultMapType(type: String)
 }

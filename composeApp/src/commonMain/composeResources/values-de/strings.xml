@@ -299,4 +299,9 @@
     <string name="settings_distance_unit_desc">Entfernungen in Meilen und Fuß anzeigen</string>
     <string name="settings_distance_imperial">Imperial</string>
     <string name="settings_distance_metric">Metrisch</string>
+    <string name="settings_map_type">Kartentyp</string>
+    <string name="settings_map_type_desc">Standardansicht beim Öffnen der Karte</string>
+    <string name="settings_map_type_normal">Normal</string>
+    <string name="settings_map_type_satellite">Satellit</string>
+    <string name="settings_map_type_terrain">Gelände</string>
 </resources>

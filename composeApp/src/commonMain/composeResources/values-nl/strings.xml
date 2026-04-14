@@ -299,4 +299,9 @@
     <string name="settings_distance_unit_desc">Toon afstanden in mijlen en voet</string>
     <string name="settings_distance_imperial">Imperiaal</string>
     <string name="settings_distance_metric">Metrisch</string>
+    <string name="settings_map_type">Kaarttype</string>
+    <string name="settings_map_type_desc">Standaardweergave bij het openen van de kaart</string>
+    <string name="settings_map_type_normal">Normaal</string>
+    <string name="settings_map_type_satellite">Satelliet</string>
+    <string name="settings_map_type_terrain">Terrein</string>
 </resources>

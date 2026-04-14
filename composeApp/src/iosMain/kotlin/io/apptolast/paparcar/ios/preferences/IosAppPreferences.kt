@@ -10,6 +10,8 @@ private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_VEHICLE_REGISTERED = "vehicle_registered"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
+private const val KEY_DEFAULT_MAP_TYPE = "default_map_type"
+private const val DEFAULT_MAP_TYPE = "NORMAL"
 
 /**
  * iOS implementation of [AppPreferences] backed by [NSUserDefaults].
@@ -70,5 +72,12 @@ class IosAppPreferences : AppPreferences {
 
     override fun setUseImperialUnits(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_USE_IMPERIAL_UNITS)
+    }
+
+    override val defaultMapType: String
+        get() = userDefaults.stringForKey(KEY_DEFAULT_MAP_TYPE) ?: DEFAULT_MAP_TYPE
+
+    override fun setDefaultMapType(type: String) {
+        userDefaults.setObject(type, forKey = KEY_DEFAULT_MAP_TYPE)
     }
 }

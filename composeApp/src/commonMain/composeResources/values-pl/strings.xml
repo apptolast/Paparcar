@@ -299,4 +299,9 @@
     <string name="settings_distance_unit_desc">Pokaż odległości w milach i stopach</string>
     <string name="settings_distance_imperial">Imperialne</string>
     <string name="settings_distance_metric">Metryczne</string>
+    <string name="settings_map_type">Typ mapy</string>
+    <string name="settings_map_type_desc">Domyślny widok przy otwieraniu mapy</string>
+    <string name="settings_map_type_normal">Normalny</string>
+    <string name="settings_map_type_satellite">Satelita</string>
+    <string name="settings_map_type_terrain">Teren</string>
 </resources>

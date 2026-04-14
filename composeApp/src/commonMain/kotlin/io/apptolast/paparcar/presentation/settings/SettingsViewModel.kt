@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.settings
 
 import com.apptolast.customlogin.domain.AuthRepository
+import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -20,6 +21,7 @@ class SettingsViewModel(
         autoDetectParking = prefs.autoDetectParking,
         notifyParkingDetected = prefs.notifyParkingDetected,
         notifySpotFreed = prefs.notifySpotFreed,
+        mapType = prefs.defaultMapType.toMapType(),
     )
 
     init {
@@ -46,6 +48,10 @@ class SettingsViewModel(
                 prefs.setNotifySpotFreed(intent.enabled)
                 updateState { copy(notifySpotFreed = intent.enabled) }
             }
+            is SettingsIntent.SetMapType -> {
+                prefs.setDefaultMapType(intent.type.toPreferenceString())
+                updateState { copy(mapType = intent.type) }
+            }
             is SettingsIntent.NavigateBack ->
                 sendEffect(SettingsEffect.NavigateBack)
             is SettingsIntent.NavigateToMyCar ->
@@ -60,5 +66,19 @@ class SettingsViewModel(
 
     private companion object {
         const val TAG = "SettingsViewModel"
+        const val MAP_TYPE_SATELLITE = "SATELLITE"
+        const val MAP_TYPE_TERRAIN = "TERRAIN"
+    }
+
+    private fun String.toMapType(): MapType = when (this) {
+        MAP_TYPE_SATELLITE -> MapType.SATELLITE
+        MAP_TYPE_TERRAIN -> MapType.TERRAIN
+        else -> MapType.NORMAL
+    }
+
+    private fun MapType.toPreferenceString(): String = when (this) {
+        MapType.SATELLITE -> MAP_TYPE_SATELLITE
+        MapType.TERRAIN -> MAP_TYPE_TERRAIN
+        else -> "NORMAL"
     }
 }
