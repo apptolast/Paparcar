@@ -5,20 +5,20 @@ sealed class PaparcarError : Exception() {
     sealed class Location : PaparcarError() {
         data object PermissionDenied : Location()
         data object ProviderDisabled : Location()
-        data class Unknown(val message: String) : Location()
+        data class Unknown(override val message: String) : Location()
     }
 
     sealed class Network : PaparcarError() {
         data object NoConnection : Network()
         data object Timeout : Network()
-        data class ServerError(val code: Int, val message: String) : Network()
-        data class Unknown(val message: String) : Network()
+        data class ServerError(val code: Int, override val message: String) : Network()
+        data class Unknown(override val message: String) : Network()
     }
 
     sealed class Database : PaparcarError() {
         data object NotFound : Database()
-        data class WriteError(val message: String) : Database()
-        data class Unknown(val message: String) : Database()
+        data class WriteError(override val message: String) : Database()
+        data class Unknown(override val message: String) : Database()
     }
 
     sealed class Detection : PaparcarError() {

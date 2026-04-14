@@ -78,6 +78,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_gps_unavailable
 import paparcar.composeapp.generated.resources.error_load_session
 import paparcar.composeapp.generated.resources.error_load_spots
+import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel

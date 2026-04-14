@@ -495,7 +495,7 @@ private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
                 nearbySpots = FakeData.nearbySpots,
             ),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
+            onManualPark = {}, onSpotSelect = { _, _, _ -> }, onNavigate = { _, _ -> },
             scrollState = scrollState,
             spotScrollPositions = scrollPositions,
         )
@@ -516,7 +516,7 @@ private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
                 nearbySpots = FakeData.nearbySpots,
             ),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
+            onManualPark = {}, onSpotSelect = { _, _, _ -> }, onNavigate = { _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
@@ -537,7 +537,7 @@ private fun HomeSheetContentSpotsFirstDarkPreview() {
                 nearbySpots = FakeData.nearbySpots,
             ),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
+            onManualPark = {}, onSpotSelect = { _, _, _ -> }, onNavigate = { _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
@@ -557,7 +557,7 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
                 nearbySpots = FakeData.nearbySpots,
             ),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
+            onManualPark = {}, onSpotSelect = { _, _, _ -> }, onNavigate = { _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
@@ -573,7 +573,7 @@ private fun HomeSheetContentEmptyDarkPreview() {
         HomeSheetContent(
             state = HomeState(allPermissionsGranted = true, userParking = null, nearbySpots = emptyList()),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
+            onManualPark = {}, onSpotSelect = { _, _, _ -> }, onNavigate = { _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
@@ -588,7 +588,7 @@ private fun HomeSheetContentNoPermissionsLightPreview() {
         HomeSheetContent(
             state = HomeState(allPermissionsGranted = false, userParking = null, nearbySpots = emptyList()),
             onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
+            onManualPark = {}, onSpotSelect = { _, _, _ -> }, onNavigate = { _, _ -> },
             scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
