@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -59,6 +62,9 @@ import paparcar.composeapp.generated.resources.settings_nav_my_car
 import paparcar.composeapp.generated.resources.settings_nav_my_car_desc
 import paparcar.composeapp.generated.resources.settings_licenses
 import paparcar.composeapp.generated.resources.settings_notif_parking
+import paparcar.composeapp.generated.resources.settings_profile_logout
+import paparcar.composeapp.generated.resources.settings_profile_name_placeholder
+import paparcar.composeapp.generated.resources.settings_section_profile
 import paparcar.composeapp.generated.resources.settings_notif_parking_desc
 import paparcar.composeapp.generated.resources.settings_notif_spot
 import paparcar.composeapp.generated.resources.settings_notif_spot_desc
@@ -127,6 +133,20 @@ fun SettingsScreen(
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // ── Profile ───────────────────────────────────────────────────────
+            item {
+                SettingsSectionHeader(stringResource(Res.string.settings_section_profile))
+            }
+            item {
+                ProfileCard(
+                    displayName = state.userProfile?.displayName
+                        ?: stringResource(Res.string.settings_profile_name_placeholder),
+                    email = state.userProfile?.email,
+                    onLogout = { viewModel.handleIntent(SettingsIntent.Logout) },
+                    logoutLabel = stringResource(Res.string.settings_profile_logout),
+                )
+            }
+
             // ── Appearance ────────────────────────────────────────────────────
             item {
                 SettingsSectionHeader(stringResource(Res.string.settings_section_appearance))
@@ -361,5 +381,76 @@ private fun SettingsIconBox(icon: ImageVector) {
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp),
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Profile card
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ProfileCard(
+    displayName: String,
+    email: String?,
+    logoutLabel: String,
+    onLogout: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                // Avatar circle with initials
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (email != null) {
+                        Text(
+                            text = email,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            TextButton(
+                onClick = onLogout,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = logoutLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
     }
 }

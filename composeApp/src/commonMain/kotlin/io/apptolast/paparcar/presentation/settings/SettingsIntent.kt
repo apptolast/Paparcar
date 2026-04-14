@@ -7,4 +7,5 @@ sealed class SettingsIntent {
     data object NavigateBack : SettingsIntent()
     data object NavigateToMyCar : SettingsIntent()
     data object OpenPrivacyPolicy : SettingsIntent()
+    data object Logout : SettingsIntent()
 }

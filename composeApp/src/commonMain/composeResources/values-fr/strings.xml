@@ -174,6 +174,9 @@
     <!-- SettingsScreen -->
     <string name="settings_title">Paramètres</string>
     <string name="settings_cd_back">Retour</string>
+        <string name="settings_section_profile">Profil</string>
+    <string name="settings_profile_logout">Se d&#xE9;connecter</string>
+    <string name="settings_profile_name_placeholder">Utilisateur</string>
     <string name="settings_section_appearance">Apparence</string>
     <string name="settings_dark_mode">Mode sombre</string>
     <string name="settings_dark_mode_desc">Utiliser le thème sombre dans toute l'appli</string>
