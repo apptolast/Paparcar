@@ -59,6 +59,8 @@
     <string name="spot_card_reliability_low_desc">Auto-detected with low confidence — verify before heading over.</string>
     <string name="spot_card_reliability_manual">Manual</string>
     <string name="spot_card_reliability_manual_desc">Manually reported by a community driver.</string>
+    <string name="spot_signal_still_there">Still there</string>
+    <string name="spot_signal_gone">Gone</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
@@ -187,6 +189,7 @@
     <string name="error_gps_unavailable">Waiting for GPS fix…</string>
     <string name="error_network_no_connection">No internet connection</string>
     <string name="error_profile_sync">Couldn\'t load your profile. Please sign in again</string>
+    <string name="error_parking_save_failed">Could not save your parking spot. Please try again.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Unknown location</string>
@@ -195,6 +198,7 @@
     <string name="home_spot_reported">Spot reported — uploading…</string>
     <string name="home_manual_spot_reported">Spot reported — thanks!</string>
     <string name="home_test_spot_sent">Test spot sent</string>
+    <string name="home_spot_signal_sent">Thanks for the update!</string>
 
     <!-- Home action FAB -->
     <string name="home_fab_release_car">Release my car</string>

@@ -26,4 +26,6 @@ sealed class HomeIntent {
     data object DismissConfirmation : HomeIntent()
     /** null clears the active size filter; non-null applies it. */
     data class SetSizeFilter(val size: VehicleSize?) : HomeIntent()
+    /** Community signal: accepted = "Still there"; !accepted = "Gone". */
+    data class SendSpotSignal(val spotId: String, val accepted: Boolean) : HomeIntent()
 }

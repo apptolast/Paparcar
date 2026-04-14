@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -160,6 +161,7 @@ class ParkingDetectionCoordinator(
                     completed = true
                     withContext(NonCancellable) {
                         confirmParking(locationToConfirm, config.reliabilityUserConfirmed)
+                            .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
                     }
                     return@collectLatest
                 }
@@ -185,7 +187,10 @@ class ParkingDetectionCoordinator(
                             config.reliabilitySlowPath
                         val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
                         completed = true
-                        withContext(NonCancellable) { confirmParking(locationToConfirm, reliability) }
+                        withContext(NonCancellable) {
+                            confirmParking(locationToConfirm, reliability)
+                                .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
+                        }
                     }
                     // Still within observation window — keep waiting.
                     return@collectLatest
@@ -321,6 +326,7 @@ class ParkingDetectionCoordinator(
     }
 
     private companion object {
+        const val TAG = "ParkingDetectionCoordinator"
         const val MAX_STOPPED_FIXES = 20
         const val STOPPED_SPEED_THRESHOLD_MPS = 1f
     }

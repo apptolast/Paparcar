@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Detetado automaticamente com baixa confiança — verifique antes de ir.</string>
     <string name="spot_card_reliability_manual">Manual</string>
     <string name="spot_card_reliability_manual_desc">Reportado manualmente por um condutor da comunidade.</string>
+    <string name="spot_signal_still_there">Ainda lá</string>
+    <string name="spot_signal_gone">Já foi</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bem-vindo ao Paparcar</string>
@@ -204,6 +206,7 @@
     <string name="error_gps_unavailable">A aguardar sinal GPS…</string>
     <string name="error_network_no_connection">Sem ligação à internet</string>
     <string name="error_profile_sync">Não foi possível carregar o perfil. Inicie sessão novamente</string>
+    <string name="error_parking_save_failed">Não foi possível guardar o teu lugar de estacionamento. Tenta novamente.</string>
 
     <!-- Localização desconhecida -->
     <string name="address_unknown">Localização desconhecida</string>
@@ -216,6 +219,7 @@
     <string name="home_fab_actions_collapse">Fechar ações</string>
     <string name="home_cd_map_type">Mudar tipo de mapa</string>
     <string name="home_test_spot_sent">Lugar de teste enviado</string>
+    <string name="home_spot_signal_sent">Obrigado pela atualiza&#xE7;&#xE3;o!</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

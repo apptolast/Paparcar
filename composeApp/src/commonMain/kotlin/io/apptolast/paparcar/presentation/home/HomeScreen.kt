@@ -86,6 +86,7 @@ import paparcar.composeapp.generated.resources.home_release_dialog_message
 import paparcar.composeapp.generated.resources.home_release_dialog_title
 import paparcar.composeapp.generated.resources.home_manual_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_reported
+import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -121,9 +122,11 @@ fun HomeScreen(
     val msgErrorLoadSession = stringResource(Res.string.error_load_session)
     val msgErrorReleaseParking = stringResource(Res.string.error_release_parking)
     val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
+    val msgErrorParkingSaveFailed = stringResource(Res.string.error_parking_save_failed)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
     val msgManualSpotReported = stringResource(Res.string.home_manual_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
+    val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -134,6 +137,7 @@ fun HomeScreen(
                         is PaparcarError.Database.WriteError -> msgErrorReleaseParking
                         is PaparcarError.Network.Unknown -> msgErrorLoadSpots
                         is PaparcarError.Database.Unknown -> msgErrorLoadSession
+                        is PaparcarError.Parking.SaveFailed -> msgErrorParkingSaveFailed
                         else -> msgErrorUnknown
                     }
                     snackbarHostState.showSnackbar(msg)
@@ -141,6 +145,7 @@ fun HomeScreen(
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
                 HomeEffect.ManualSpotReported -> snackbarHostState.showSnackbar(msgManualSpotReported)
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
+                HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
                 HomeEffect.RequestLocationPermission -> {}
             }
@@ -504,6 +509,7 @@ private fun HomeContent(
                         onSpotSelect = { _, _, spotId ->
                             onIntent(HomeIntent.SelectItem(spotId))
                         },
+                        onNavigate = onOpenMapsNavigation,
                         scrollState = scrollState,
                         spotScrollPositions = spotScrollPositions,
                     )

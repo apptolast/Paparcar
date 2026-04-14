@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -41,6 +42,7 @@ class HomeViewModel(
     private val confirmParking: ConfirmParkingUseCase,
     private val searchAddress: SearchAddressUseCase,
     private val appPreferences: AppPreferences,
+    private val sendSpotSignal: SendSpotSignalUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     init {
@@ -126,6 +128,7 @@ class HomeViewModel(
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
+            is HomeIntent.SendSpotSignal -> handleSpotSignal(intent.spotId, intent.accepted)
         }
     }
 
@@ -184,6 +187,7 @@ class HomeViewModel(
         }
         viewModelScope.launch {
             confirmParking(gps, 1.0f, SpotType.MANUAL_REPORT)
+                .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
     }
 
@@ -192,6 +196,7 @@ class HomeViewModel(
         updateState { copy(pendingParkingGps = null) }
         viewModelScope.launch {
             confirmParking(gps, 1.0f, SpotType.AUTO_DETECTED)
+                .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
     }
 
@@ -237,6 +242,14 @@ class HomeViewModel(
                 }
                 .catch { /* best-effort; ignore errors */ }
                 .collect { info -> updateState { copy(cameraLocationInfo = info) } }
+        }
+    }
+
+    private fun handleSpotSignal(spotId: String, accepted: Boolean) {
+        viewModelScope.launch {
+            sendSpotSignal(spotId, accepted)
+                .onSuccess { sendEffect(HomeEffect.SpotSignalSent) }
+                .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(it.message ?: ""))) }
         }
     }
 

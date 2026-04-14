@@ -34,4 +34,7 @@ data class SpotDto(
     val sizeCategory: String? = null,
     val enRouteCount: Int = 0,
     val expiresAt: Long = 0L,
+    // Phase 7 — community signals (default 0 for backward compat)
+    val acceptCount: Int = 0,
+    val rejectCount: Int = 0,
 )

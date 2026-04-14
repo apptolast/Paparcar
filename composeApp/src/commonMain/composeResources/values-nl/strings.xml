@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Automatisch gedetecteerd met lage betrouwbaarheid — controleer voor vertrek.</string>
     <string name="spot_card_reliability_manual">Handmatig</string>
     <string name="spot_card_reliability_manual_desc">Handmatig gemeld door een community-bestuurder.</string>
+    <string name="spot_signal_still_there">Nog vrij</string>
+    <string name="spot_signal_gone">Weg</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welkom bij Paparcar</string>
@@ -204,6 +206,7 @@
     <string name="error_gps_unavailable">Wachten op GPS-signaal…</string>
     <string name="error_network_no_connection">Geen internetverbinding</string>
     <string name="error_profile_sync">Kon uw profiel niet laden. Meld u opnieuw aan</string>
+    <string name="error_parking_save_failed">Kon je parkeerplaats niet opslaan. Probeer het opnieuw.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Onbekende locatie</string>
@@ -216,6 +219,7 @@
     <string name="home_fab_actions_collapse">Acties sluiten</string>
     <string name="home_cd_map_type">Kaarttype wisselen</string>
     <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
+    <string name="home_spot_signal_sent">Bedankt voor de update!</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

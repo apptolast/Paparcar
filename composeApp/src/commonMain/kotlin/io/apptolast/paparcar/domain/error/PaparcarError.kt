@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.domain.error
 
-sealed class PaparcarError {
+sealed class PaparcarError : Exception() {
 
     sealed class Location : PaparcarError() {
         data object PermissionDenied : Location()
@@ -28,5 +28,10 @@ sealed class PaparcarError {
 
     sealed class Auth : PaparcarError() {
         data object ProfileSyncFailed : Auth()
+    }
+
+    sealed class Parking : PaparcarError() {
+        /** Session could not be persisted to the local database. */
+        data object SaveFailed : Parking()
     }
 }

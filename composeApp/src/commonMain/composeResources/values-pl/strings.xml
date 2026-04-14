@@ -55,6 +55,8 @@
     <string name="spot_card_reliability_low_desc">Wykryte automatycznie z niską pewnością — sprawdź przed wyjazdem.</string>
     <string name="spot_card_reliability_manual">Ręczne</string>
     <string name="spot_card_reliability_manual_desc">Zgłoszone ręcznie przez kierowcę społeczności.</string>
+    <string name="spot_signal_still_there">Jeszcze jest</string>
+    <string name="spot_signal_gone">Już zajęte</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Witaj w Paparcar</string>
@@ -204,6 +206,7 @@
     <string name="error_gps_unavailable">Oczekiwanie na sygnał GPS…</string>
     <string name="error_network_no_connection">Brak połączenia z internetem</string>
     <string name="error_profile_sync">Nie można załadować profilu. Zaloguj się ponownie</string>
+    <string name="error_parking_save_failed">Nie udało się zapisać miejsca parkingowego. Spróbuj ponownie.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Nieznana lokalizacja</string>
@@ -216,6 +219,7 @@
     <string name="home_fab_actions_collapse">Zamknij akcje</string>
     <string name="home_cd_map_type">Zmień typ mapy</string>
     <string name="home_test_spot_sent">Testowe miejsce wysłane</string>
+    <string name="home_spot_signal_sent">Dzi&#x0119;kujemy za aktualizacj&#x0119;!</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

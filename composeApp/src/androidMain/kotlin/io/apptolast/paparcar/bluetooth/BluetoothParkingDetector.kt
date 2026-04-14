@@ -35,7 +35,7 @@ class BluetoothParkingDetector(
     private val confirmParking: ConfirmParkingUseCase,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var detectionJob: Job? = null
+    @Volatile private var detectionJob: Job? = null
 
     fun onCarDisconnected(deviceAddress: String) {
         detectionJob?.cancel()
@@ -65,7 +65,7 @@ class BluetoothParkingDetector(
             // Watch subsequent GPS updates for the distance departure check
             observeLocation()
                 .filter { current ->
-                    val dist = FloatArray(1)
+                    val dist = FloatArray(DISTANCE_RESULT_SIZE)
                     Location.distanceBetween(
                         parkingFix.latitude, parkingFix.longitude,
                         current.latitude, current.longitude,
@@ -76,8 +76,8 @@ class BluetoothParkingDetector(
                 .first()
 
             PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking")
-            runCatching { confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY) }
-                .onFailure { e -> PaparcarLogger.e(TAG, "ConfirmParkingUseCase failed", e) }
+            confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY)
+                .onFailure { e -> PaparcarLogger.e(TAG, "Failed to confirm parking", e) }
         }
     }
 
@@ -104,5 +104,8 @@ class BluetoothParkingDetector(
 
         /** Reliability reported to ConfirmParkingUseCase — BT is deterministic, very high. */
         const val PARKING_DETECTION_RELIABILITY = 0.95f
+
+        /** Required size of the FloatArray passed to [Location.distanceBetween]. */
+        const val DISTANCE_RESULT_SIZE = 1
     }
 }

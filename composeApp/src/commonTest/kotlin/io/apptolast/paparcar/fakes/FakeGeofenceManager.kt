@@ -9,6 +9,7 @@ class FakeGeofenceManager : GeofenceManager {
 
     var createGeofenceCallCount = 0
     var lastCreatedGeofenceId: String? = null
+    var lastCreatedRadiusMeters: Float? = null
     var createResult: Result<Unit> = Result.success(Unit)
 
     override suspend fun createGeofence(
@@ -19,6 +20,7 @@ class FakeGeofenceManager : GeofenceManager {
     ): Result<Unit> {
         createGeofenceCallCount++
         lastCreatedGeofenceId = geofenceId
+        lastCreatedRadiusMeters = radiusMeters
         return createResult
     }
 

@@ -4,16 +4,22 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
+import io.apptolast.paparcar.fakes.FakeVehicleRepository
+import io.apptolast.paparcar.domain.error.PaparcarError
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ConfirmParkingUseCaseTest {
 
@@ -34,8 +40,9 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, repo.saveSessionCallCount)
     }
 
@@ -44,8 +51,9 @@ class ConfirmParkingUseCaseTest {
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(enrichment = enrichment)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, enrichment.scheduleCallCount)
     }
 
@@ -54,8 +62,9 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(geofence = geofence)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, geofence.createGeofenceCallCount)
     }
 
@@ -64,8 +73,9 @@ class ConfirmParkingUseCaseTest {
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(notification = notification)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         assertEquals(1, notification.parkingSpotSavedCallCount)
     }
 
@@ -75,8 +85,9 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
         assertEquals(savedSession.id, savedSession.geofenceId)
@@ -88,8 +99,9 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
         assertEquals(session.userId, savedSession.userId)
@@ -105,8 +117,10 @@ class ConfirmParkingUseCaseTest {
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(repo = repo, enrichment = enrichment)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
         assertEquals(0, enrichment.scheduleCallCount)
     }
 
@@ -118,8 +132,10 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
 
-        useCase(location)
+        val result = useCase(location)
 
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
         assertEquals(0, geofence.createGeofenceCallCount)
     }
 
@@ -131,9 +147,51 @@ class ConfirmParkingUseCaseTest {
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(repo = repo, notification = notification)
 
+        val result = useCase(location)
+
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
+        assertEquals(0, notification.parkingSpotSavedCallCount)
+    }
+
+    // ── sizeCategory from VehicleRepository ──────────────────────────────────
+
+    @Test
+    fun `should resolve sizeCategory from default vehicle when not explicitly provided`() = runTest {
+        val repo = FakeUserParkingRepository()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE)
+        val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
+
         useCase(location)
 
-        assertEquals(0, notification.parkingSpotSavedCallCount)
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertEquals(VehicleSize.LARGE, savedSession.sizeCategory)
+    }
+
+    @Test
+    fun `should use explicit sizeCategory when provided even if vehicle has different size`() = runTest {
+        val repo = FakeUserParkingRepository()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE)
+        val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
+
+        useCase(location, sizeCategory = VehicleSize.MOTO)
+
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertEquals(VehicleSize.MOTO, savedSession.sizeCategory)
+    }
+
+    @Test
+    fun `should save session with null sizeCategory when no default vehicle registered`() = runTest {
+        val repo = FakeUserParkingRepository()
+        val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(defaultVehicle = null))
+
+        useCase(location)
+
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertNull(savedSession.sizeCategory)
     }
 
     // ── No authenticated user ─────────────────────────────────────────────────
@@ -146,27 +204,93 @@ class ConfirmParkingUseCaseTest {
             auth = FakeAuthRepository(initialSession = null),
         )
 
-        noAuthCase(location)
+        val result = noAuthCase(location)
 
+        assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
         assertEquals("", savedSession.userId)
+    }
+
+    // ── Adaptive geofence radius ──────────────────────────────────────────────
+
+    @Test
+    fun `should use moto radius for MOTO vehicle`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MOTO)
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(
+            geofence = geofence,
+            vehicles = FakeVehicleRepository(vehicle),
+            config = config,
+        )
+        val zeroAccuracy = location.copy(accuracy = 0f)
+
+        useCase(zeroAccuracy)
+
+        assertEquals(config.geofenceRadiusMotoMeters, geofence.lastCreatedRadiusMeters)
+    }
+
+    @Test
+    fun `should use van radius for VAN vehicle`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.VAN)
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(
+            geofence = geofence,
+            vehicles = FakeVehicleRepository(vehicle),
+            config = config,
+        )
+        val zeroAccuracy = location.copy(accuracy = 0f)
+
+        useCase(zeroAccuracy)
+
+        assertEquals(config.geofenceRadiusVanMeters, geofence.lastCreatedRadiusMeters)
+    }
+
+    @Test
+    fun `should pad radius with GPS accuracy`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(geofence = geofence, config = config)
+        val locationWith10mAccuracy = location.copy(accuracy = 10f)
+
+        useCase(locationWith10mAccuracy, sizeCategory = VehicleSize.MEDIUM)
+
+        val expected = config.geofenceRadiusMeters + (10f * config.geofenceAccuracyPadFactor)
+        assertEquals(expected, geofence.lastCreatedRadiusMeters)
+    }
+
+    @Test
+    fun `should cap radius at geofenceMaxRadiusMeters`() = runTest {
+        val geofence = FakeGeofenceManager()
+        val config = ParkingDetectionConfig()
+        val useCase = buildUseCase(geofence = geofence, config = config)
+        // accuracy=100m on a VAN (base 120m) → 120 + 150 = 270m > 200m max
+        val highInaccuracy = location.copy(accuracy = 100f)
+
+        useCase(highInaccuracy, sizeCategory = VehicleSize.VAN)
+
+        assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
+        vehicles: FakeVehicleRepository = FakeVehicleRepository(),
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),
         auth: FakeAuthRepository = FakeAuthRepository(initialSession = session),
+        config: ParkingDetectionConfig = ParkingDetectionConfig(),
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
+        vehicleRepository = vehicles,
         geofenceService = geofence,
         notificationPort = notification,
         enrichmentScheduler = enrichment,
         authRepository = auth,
-        config = ParkingDetectionConfig(),
+        config = config,
     )
 }

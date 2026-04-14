@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.data.datasource.remote
 
+import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
@@ -40,6 +41,12 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
         spotsCollection.document(spotDto.id).set(spotDto)
     }
 
+    @Suppress("DEPRECATION")
+    override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {
+        val field = if (accepted) FIELD_ACCEPT_COUNT else FIELD_REJECT_COUNT
+        spotsCollection.document(spotId).update(field to FieldValue.increment(1))
+    }
+
     // ─── Typed deserialization using GitLive SDK 2.x get<T?>() API ────────────
     // get<T?>(field) uses the KSerialization serializer for T — Any has none, so
     // each field must use its concrete type. Nested objects (AddressDto, PlaceInfoDto)
@@ -62,6 +69,8 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
                 speed = get<Double?>("speed")?.toFloat() ?: 0f,
                 address = runCatching { get<AddressDto?>("address") }.getOrNull(),
                 placeInfo = runCatching { get<PlaceInfoDto?>("placeInfo") }.getOrNull(),
+                acceptCount = runCatching { get<Long?>(FIELD_ACCEPT_COUNT)?.toInt() }.getOrNull() ?: 0,
+                rejectCount = runCatching { get<Long?>(FIELD_REJECT_COUNT)?.toInt() }.getOrNull() ?: 0,
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toSpotDto failed for doc=$id", e)
@@ -70,5 +79,7 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
 
     private companion object {
         const val TAG = "FirebaseDataSourceImpl"
+        const val FIELD_ACCEPT_COUNT = "acceptCount"
+        const val FIELD_REJECT_COUNT = "rejectCount"
     }
 }
