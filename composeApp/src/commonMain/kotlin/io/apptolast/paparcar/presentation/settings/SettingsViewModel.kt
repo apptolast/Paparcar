@@ -25,12 +25,14 @@ class SettingsViewModel(
     )
 
     init {
-        val userId = authRepository.getCurrentSession()?.userId
-        if (userId != null) {
-            userProfileRepository.observeProfile(userId)
-                .onEach { profile -> updateState { copy(userProfile = profile) } }
-                .catch { e -> PaparcarLogger.w(TAG, "Failed to observe profile", e) }
-                .launchIn(viewModelScope)
+        viewModelScope.launch {
+            val userId = authRepository.getCurrentSession()?.userId
+            if (userId != null) {
+                userProfileRepository.observeProfile(userId)
+                    .onEach { profile -> updateState { copy(userProfile = profile) } }
+                    .catch { e -> PaparcarLogger.w(TAG, "Failed to observe profile", e) }
+                    .launchIn(viewModelScope)
+            }
         }
     }
 
