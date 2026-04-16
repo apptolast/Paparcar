@@ -21,12 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -359,34 +357,14 @@ private fun HomeSizeFilterBar(
 internal fun HomeSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
-    badge: String? = null,
 ) {
-    Row(
+    Text(
+        title,
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.ExtraBold,
-            // Raised from 0.5f — section headers were nearly invisible before
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-            letterSpacing = 0.8.sp,
-        )
-        if (badge != null) {
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Text(
-                    badge,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                )
-            }
-        }
-    }
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.ExtraBold,
+        // Raised from 0.5f — section headers were nearly invisible before
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+        letterSpacing = 0.8.sp,
+    )
 }

@@ -267,26 +267,18 @@ private fun HomeParkingEmptyCardLightPreview() {
 
 // ─── A — HomeSectionHeader ────────────────────────────────────────────────────
 
-@Preview(name = "A — HomeSectionHeader: con badge (oscuro)", showBackground = true,
+@Preview(name = "A — HomeSectionHeader (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun HomeSectionHeaderBadgeDarkPreview() {
+private fun HomeSectionHeaderDarkPreview() {
     PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) { HomeSectionHeader(title = "CERCA DE TI", badge = "3 libres") }
+        Column(Modifier.padding(16.dp)) { HomeSectionHeader(title = "CERCA DE TI") }
     }
 }
 
-@Preview(name = "A — HomeSectionHeader: con badge (claro)", showBackground = true)
+@Preview(name = "A — HomeSectionHeader (claro)", showBackground = true)
 @Composable
-private fun HomeSectionHeaderBadgeLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        Column(Modifier.padding(16.dp)) { HomeSectionHeader(title = "CERCA DE TI", badge = "3 libres") }
-    }
-}
-
-@Preview(name = "A — HomeSectionHeader: sin badge (claro)", showBackground = true)
-@Composable
-private fun HomeSectionHeaderNoBadgeLightPreview() {
+private fun HomeSectionHeaderLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) { HomeSectionHeader(title = "ESTÁS APARCADO") }
     }
