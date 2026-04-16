@@ -56,8 +56,20 @@ class UserParkingRepositoryImpl(
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
         dao.getSessionsPaged(limit, offset).map { it.toDomain() }
 
-    override suspend fun clearActive(): Result<Unit> =
-        runCatching { dao.clearActive() }
+    override suspend fun clearActive(): Result<Unit> = runCatching {
+        val active = dao.getActive()
+        dao.clearActive()
+        // Keep Firestore in sync: mark the session as inactive so it is not
+        // re-imported as an active session on the next login via syncParkingHistoryFromRemote().
+        active?.let { entity ->
+            currentUserId()?.let { userId ->
+                userProfileDataSource.saveParkingSession(
+                    userId,
+                    entity.toDomain().copy(isActive = false).toParkingHistoryDto(),
+                )
+            }
+        }
+    }
 
     override suspend fun syncParkingHistoryFromRemote(userId: String): Result<Unit> =
         runCatching {
