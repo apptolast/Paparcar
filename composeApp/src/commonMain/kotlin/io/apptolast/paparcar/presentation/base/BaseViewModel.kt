@@ -67,6 +67,12 @@ abstract class BaseViewModel<S, I, E> : ViewModel() {
      * Call this when the ViewModel is permanently destroyed (KMP lifecycle hook).
      */
     fun onClear() {
-        viewModelScope.cancel()
+        viewModelJob.cancel()
+    }
+
+    /** Android lifecycle hook — delegates to [onClear] so the scope is always cancelled. */
+    override fun onCleared() {
+        super.onCleared()
+        onClear()
     }
 }

@@ -257,6 +257,8 @@
     <string name="vehicle_size_large_examples">z.B. BMW 5er, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Transporter / SUV</string>
     <string name="vehicle_size_van_examples">z.B. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+    <string name="spot_item_type_auto">Auto</string>
+    <string name="spot_item_type_manual">Manuell</string>
 
     <!-- Berechtigungs-Erklärungs-Bildschirm -->
     <string name="perm_rationale_title">So funktioniert Paparcar</string>

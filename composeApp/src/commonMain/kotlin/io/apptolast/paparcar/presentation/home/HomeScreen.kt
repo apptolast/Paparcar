@@ -510,7 +510,6 @@ private fun HomeContent(
                         onSpotSelect = { _, _, spotId ->
                             onIntent(HomeIntent.SelectItem(spotId))
                         },
-                        onNavigate = onOpenMapsNavigation,
                         scrollState = scrollState,
                         spotScrollPositions = spotScrollPositions,
                     )

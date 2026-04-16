@@ -257,6 +257,8 @@
     <string name="vehicle_size_large_examples">ex. BMW Seria 5, Mercedes Clasa E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Dubă / SUV</string>
     <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+    <string name="spot_item_type_auto">Auto</string>
+    <string name="spot_item_type_manual">Manual</string>
 
     <!-- Ecranul de justificare a permisiunilor -->
     <string name="perm_rationale_title">Cum funcționează Paparcar</string>

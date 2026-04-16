@@ -680,22 +680,13 @@ private fun SpotMarkerContent(
     val tailH       = if (isSelected) SPOT_TAIL_SELECTED_HEIGHT  else SPOT_TAIL_DEFAULT_HEIGHT
     val borderWidth = SPOT_MARKER_BORDER_WIDTH
 
-    // Spring pop-in on first composition
-    val scale = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium,
-            ),
-        )
-    }
-
+    // Note: no entry animation here — the map library captures marker composables
+    // as static bitmaps on the first composition frame. An Animatable starting at 0f
+    // would produce an empty bitmap (marker invisible). Cluster markers have no
+    // animation and render correctly; this must match that approach.
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(-borderWidth),
-        modifier = Modifier.scale(scale.value),
     ) {
         // Outer Box is intentionally NOT clipped — lets the size badge overflow the circle edge.
         Box(

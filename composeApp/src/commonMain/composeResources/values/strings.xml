@@ -61,6 +61,8 @@
     <string name="spot_card_reliability_manual_desc">Manually reported by a community driver.</string>
     <string name="spot_signal_still_there">Still there</string>
     <string name="spot_signal_gone">Gone</string>
+    <string name="spot_item_type_auto">Auto</string>
+    <string name="spot_item_type_manual">Manual</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>

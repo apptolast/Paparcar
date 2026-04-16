@@ -31,7 +31,7 @@ import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
-import io.apptolast.paparcar.ui.components.SpotCard
+import io.apptolast.paparcar.ui.components.ParkingSpotItem
 import io.apptolast.paparcar.ui.components.SpotCardData
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -53,7 +53,6 @@ internal fun HomeSheetContent(
     onParkingClick: () -> Unit,
     onManualPark: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
-    onNavigate: (lat: Double, lon: Double) -> Unit,
     scrollState: ScrollState,
     spotScrollPositions: MutableMap<String, Int>,
 ) {
@@ -86,7 +85,6 @@ internal fun HomeSheetContent(
                     onIntent = onIntent,
                     onCameraMove = onCameraMove,
                     onSpotSelect = onSpotSelect,
-                    onNavigate = onNavigate,
                     selectedSpotId = selectedSpotId,
                     spotScrollPositions = spotScrollPositions,
                 )
@@ -96,7 +94,6 @@ internal fun HomeSheetContent(
                     onIntent = onIntent,
                     onCameraMove = onCameraMove,
                     onSpotSelect = onSpotSelect,
-                    onNavigate = onNavigate,
                     selectedSpotId = selectedSpotId,
                     spotScrollPositions = spotScrollPositions,
                 )
@@ -152,7 +149,6 @@ private fun SpotsSection(
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
-    onNavigate: (lat: Double, lon: Double) -> Unit,
     selectedSpotId: String?,
     spotScrollPositions: MutableMap<String, Int>,
 ) {
@@ -187,7 +183,7 @@ private fun SpotsSection(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         else -> filteredSpots.forEachIndexed { index, spot ->
-            SpotCard(
+            ParkingSpotItem(
                 data = SpotCardData(
                     id = spot.id,
                     displayLocation = locationDisplayText(
@@ -205,22 +201,18 @@ private fun SpotsSection(
                     enRouteCount = spot.enRouteCount,
                     expiresAt = spot.expiresAt,
                 ),
-                onNavigate = { onNavigate(spot.location.latitude, spot.location.longitude) },
                 isSelected = spot.id == selectedSpotId,
-                onSelect = {
+                onClick = {
                     onCameraMove(spot.location.latitude, spot.location.longitude)
                     onSpotSelect(spot.location.latitude, spot.location.longitude, spot.id)
                 },
-                onAccept = { onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = true)) },
-                onReject = { onIntent(HomeIntent.SendSpotSignal(spot.id, accepted = false)) },
                 modifier = Modifier.onGloballyPositioned { coords ->
                     spotScrollPositions[spot.id] = coords.positionInParent().y.toInt()
                 },
             )
-            // Skip divider after the last item — no trailing separator
             if (index < filteredSpots.lastIndex) {
                 HorizontalDivider(
-                    modifier = Modifier.padding(start = 72.dp, end = 16.dp),
+                    modifier = Modifier.padding(start = 70.dp, end = 16.dp),
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
                 )
             }
