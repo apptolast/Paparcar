@@ -10,11 +10,12 @@ import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.location.LocationDataSource
-import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ObserveActiveParkingSessionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
-import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,7 +39,8 @@ class HomeViewModel(
     private val observeNearbySpots: ObserveNearbySpotsUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val activityRecognitionManager: ActivityRecognitionManager,
-    private val userParkingRepository: UserParkingRepository,
+    private val observeActiveSession: ObserveActiveParkingSessionUseCase,
+    private val releaseSession: ReleaseActiveParkingSessionUseCase,
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
     private val searchAddress: SearchAddressUseCase,
@@ -49,7 +51,7 @@ class HomeViewModel(
     init {
         updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
 
-        userParkingRepository.observeActiveSession()
+        observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
                 sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
@@ -139,19 +141,11 @@ class HomeViewModel(
 
     private fun releaseParking(lat: Double, lon: Double) {
         viewModelScope.launch {
-            val parking = state.value.userParking
-            val spotId = parking?.id ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
-            val spotType = parking?.spotType ?: SpotType.AUTO_DETECTED
-            val confidence = parking?.detectionReliability ?: 1f
-            val sizeCategory = parking?.sizeCategory
-            // Schedule the WorkManager job BEFORE clearing so the report is durably
-            // enqueued even if the ViewModel scope is cancelled mid-flight.
-            // ReportSpotReleasedUseCase caps geocoding at 5 s, so this is fast.
-            reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)
-            userParkingRepository.clearActive().onFailure { e ->
-                sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
-                return@launch
-            }
+            releaseSession(lat, lon, state.value.userParking)
+                .onFailure { e ->
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
+                    return@launch
+                }
             updateState { copy(selectedItemId = null) }
             sendEffect(HomeEffect.SpotReported)
         }

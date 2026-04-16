@@ -11,6 +11,8 @@ import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUs
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ObserveActiveParkingSessionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -66,6 +68,10 @@ val domainModule = module {
 
     // Notification UseCases
     factory { NotifyParkingConfirmationUseCase(get(), get()) }
+
+    // Parking session lifecycle use cases
+    factory { ObserveActiveParkingSessionUseCase(get()) }
+    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get()) }
 
     // Strategy Resolution
     factory { ParkingStrategyResolver(get(), get()) }
