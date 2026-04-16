@@ -1,7 +1,10 @@
 package io.apptolast.paparcar.data.repository
 
+import io.apptolast.paparcar.core.logging.PaparcarLogger
 import io.apptolast.paparcar.data.datasource.local.room.SpotDao
+import io.apptolast.paparcar.data.datasource.local.room.SpotEntity
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
+import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toDto
 import io.apptolast.paparcar.data.mapper.toEntity
@@ -9,8 +12,10 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.PI
@@ -55,20 +60,27 @@ class SpotRepositoryImpl(
         val bbox = boundingBox(location.latitude, location.longitude, radiusMeters)
         return channelFlow {
             // 1. Stream Room cache immediately — no network required.
+            //    distinctUntilChanged() skips re-emission when Firestore writes back identical
+            //    data, avoiding unnecessary recomposition in the UI.
             launch {
                 spotDao.observeNearby(bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon)
-                    .map { entities -> entities.map { it.toDomain() } }
+                    .map { it.map(SpotEntity::toDomain) }
+                    .distinctUntilChanged()
                     .collect { send(it) }
             }
             // 2. Subscribe to Firestore and atomically replace the bbox slice in Room.
             //    replaceForBoundingBox() deletes stale entries first so spots that were
             //    removed or expired in Firestore are not kept alive in the local cache.
             //    Room's Flow picks up every write and re-emits above.
+            //    .catch{} isolates Firestore errors so they do NOT cancel the Room
+            //    observation — the UI continues showing cached spots while Firestore
+            //    is temporarily unavailable.
             firebaseDataSource.observeNearbySpots(location.latitude, location.longitude, radiusMeters)
+                .catch { e -> PaparcarLogger.w(TAG, "Firestore spots listener error — using cache", e) }
                 .collect { dtoMap ->
                     spotDao.replaceForBoundingBox(
                         bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon,
-                        dtoMap.values.map { it.toEntity() },
+                        dtoMap.values.map(SpotDto::toEntity),
                     )
                 }
         }
@@ -102,6 +114,7 @@ class SpotRepositoryImpl(
     )
 
     private companion object {
+        const val TAG = "SpotRepositoryImpl"
         /** Approximate metres per degree of latitude (constant). */
         const val METERS_PER_DEGREE_LAT = 111_111.0
     }
