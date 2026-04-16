@@ -100,6 +100,13 @@ private val GATE_SCREENS = setOf(
     "${Routes.VEHICLE_REGISTRATION}?origin={origin}",
 )
 
+// Subset of gate screens that are skippable when permissions are already granted.
+// ONBOARDING and VEHICLE_REGISTRATION are intentional flows unrelated to permission state.
+private val PERMISSION_GATE_SCREENS = setOf(
+    Routes.PERMISSIONS,
+    Routes.PERMISSIONS_RATIONALE,
+)
+
 @Composable
 fun App(
     splashViewModel: SplashViewModel = koinViewModel(),
@@ -187,18 +194,21 @@ private fun MainAppNavigation(
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
 
-    // When permissions or GPS are lost mid-session, navigate straight to PermissionsScreen.
-    // Derived from state — never misses an update unlike a SharedFlow effect with no replay.
-    // The condition guards against re-firing while already on a gate screen.
+    // Bidirectional permission gate guard — derived from state so it never misses an update.
     LaunchedEffect(isFullyOperational, currentRoute) {
-        if (!isFullyOperational
-            && currentRoute != null
-            && currentRoute !in GATE_SCREENS
-        ) {
-            navController.navigate(Routes.PERMISSIONS) {
-                // Pop HOME so the back-stack is just PERMISSIONS.
-                // Prevents the user from pressing back to a permission-less state.
-                popUpTo(Routes.HOME) { inclusive = true }
+        when {
+            // Permissions lost mid-session → push to PERMISSIONS, clear HOME from back-stack.
+            !isFullyOperational && currentRoute != null && currentRoute !in GATE_SCREENS -> {
+                navController.navigate(Routes.PERMISSIONS) {
+                    popUpTo(Routes.HOME) { inclusive = true }
+                }
+            }
+            // Permissions already granted but stuck on a permission screen (e.g. deep-link or
+            // back-navigation landed here) → skip straight to HOME.
+            isFullyOperational && currentRoute in PERMISSION_GATE_SCREENS -> {
+                navController.navigate(Routes.HOME) {
+                    popUpTo(currentRoute!!) { inclusive = true }
+                }
             }
         }
     }
