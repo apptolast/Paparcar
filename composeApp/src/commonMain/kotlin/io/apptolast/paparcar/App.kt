@@ -303,8 +303,8 @@ private fun MainAppNavigation(
                     navArgument("lon") { type = NavType.StringType; defaultValue = "" },
                 ),
             ) { backStack ->
-                val lat = backStack.savedStateHandle.get<String>("lat")?.toDoubleOrNull()
-                val lon = backStack.savedStateHandle.get<String>("lon")?.toDoubleOrNull()
+                val lat = backStack.arguments?.getString("lat")?.toDoubleOrNull()
+                val lon = backStack.arguments?.getString("lon")?.toDoubleOrNull()
                 ParkingLocationScreen(
                     onNavigateBack = { navController.popBackStack() },
                     initialFocus = if (lat != null && lon != null) Pair(lat, lon) else null,
