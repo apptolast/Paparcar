@@ -28,6 +28,8 @@ sealed class PaparcarError : Exception() {
 
     sealed class Auth : PaparcarError() {
         data object ProfileSyncFailed : Auth()
+        /** The operation requires an authenticated user but no active session was found. */
+        data object NotAuthenticated : Auth()
     }
 
     sealed class Parking : PaparcarError() {

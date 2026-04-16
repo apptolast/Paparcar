@@ -44,7 +44,8 @@ class ConfirmParkingUseCase(
         spotType: SpotType = SpotType.AUTO_DETECTED,
         sizeCategory: VehicleSize? = null,
     ): Result<UserParking> {
-        val userId = authRepository.getCurrentSession()?.userId ?: ""
+        val userId = authRepository.getCurrentSession()?.userId
+            ?: return Result.failure(PaparcarError.Auth.NotAuthenticated)
         val resolvedSizeCategory = sizeCategory
             ?: vehicleRepository.observeDefaultVehicle().first()?.sizeCategory
         val sessionId = Uuid.random().toString()
