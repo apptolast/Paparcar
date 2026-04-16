@@ -272,6 +272,7 @@ class HomeViewModel(
         const val DEBUG_USER_ID = "user-123"
         const val DEBUG_LATITUDE = 40.416775
         const val DEBUG_LONGITUDE = -3.703790
+        const val MAP_TYPE_NORMAL = "NORMAL"
         const val MAP_TYPE_SATELLITE = "SATELLITE"
         const val MAP_TYPE_TERRAIN = "TERRAIN"
     }
@@ -285,6 +286,6 @@ class HomeViewModel(
     private fun MapType.toPreferenceString(): String = when (this) {
         MapType.SATELLITE -> MAP_TYPE_SATELLITE
         MapType.TERRAIN -> MAP_TYPE_TERRAIN
-        else -> "NORMAL"
+        else -> MAP_TYPE_NORMAL
     }
 }
