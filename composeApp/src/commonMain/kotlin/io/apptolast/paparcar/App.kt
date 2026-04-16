@@ -142,14 +142,14 @@ fun App(
                 when (state) {
                     is AuthState.Loading -> Box(Modifier.fillMaxSize()) // splash covers this
                     is AuthState.Authenticated -> MainAppNavigation(
-                        startRoute,
-                        appState.isFullyOperational,
-                        appState.darkTheme,
-                        { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
-                        { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
-                        appState.imperialUnits,
-                        { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
-                        onOpenMapsNavigation,
+                        startRoute = startRoute,
+                        isFullyOperational = appState.isFullyOperational,
+                        darkTheme = appState.darkTheme,
+                        onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
+                        onToggleDarkMode = { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
+                        imperialUnits = appState.imperialUnits,
+                        onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
+                        onOpenMapsNavigation = onOpenMapsNavigation,
                     )
                     else -> AuthNavigation()
                 }
@@ -184,7 +184,7 @@ private fun MainAppNavigation(
     startRoute: String,
     isFullyOperational: Boolean,
     darkTheme: Boolean,
-    onHandleIntent: () -> Unit,
+    onMarkOnboardingCompleted: () -> Unit,
     onToggleDarkMode: (Boolean) -> Unit,
     imperialUnits: Boolean,
     onToggleImperialUnits: (Boolean) -> Unit,
@@ -258,7 +258,7 @@ private fun MainAppNavigation(
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(
                     onComplete = {
-                        onHandleIntent()
+                        onMarkOnboardingCompleted()
                         navController.navigate(Routes.PERMISSIONS_RATIONALE) {
                             popUpTo(Routes.ONBOARDING) { inclusive = true }
                         }
