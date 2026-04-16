@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FilterAltOff
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +43,9 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
 import paparcar.composeapp.generated.resources.home_empty_title
+import paparcar.composeapp.generated.resources.home_filter_empty_clear
+import paparcar.composeapp.generated.resources.home_filter_empty_subtitle
+import paparcar.composeapp.generated.resources.home_filter_empty_title
 import paparcar.composeapp.generated.resources.home_spot_freshness_hours
 import paparcar.composeapp.generated.resources.home_spot_freshness_minutes
 import paparcar.composeapp.generated.resources.home_spot_freshness_under_min
@@ -338,6 +343,46 @@ internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
             stringResource(Res.string.home_empty_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+        )
+    }
+}
+
+@Composable
+internal fun HomeEmptyFilteredSpots(
+    onClearFilter: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Outlined.FilterAltOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+            modifier = Modifier.size(32.dp),
+        )
+        Text(
+            stringResource(Res.string.home_filter_empty_title),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+        )
+        Text(
+            stringResource(Res.string.home_filter_empty_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            stringResource(Res.string.home_filter_empty_clear),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable(onClick = onClearFilter),
         )
     }
 }

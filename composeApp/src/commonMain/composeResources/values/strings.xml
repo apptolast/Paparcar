@@ -318,4 +318,8 @@
     <string name="settings_map_type_normal">Normal</string>
     <string name="settings_map_type_satellite">Satellite</string>
     <string name="settings_map_type_terrain">Terrain</string>
+    <!-- Home — empty filtered spots feedback -->
+    <string name="home_filter_empty_title">No spots for this size</string>
+    <string name="home_filter_empty_subtitle">Try a different filter or check back later</string>
+    <string name="home_filter_empty_clear">Clear filter</string>
 </resources>

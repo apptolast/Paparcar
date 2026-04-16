@@ -310,4 +310,7 @@
     <string name="settings_map_type_normal">Normal</string>
     <string name="settings_map_type_satellite">Satelit</string>
     <string name="settings_map_type_terrain">Teren</string>
+    <string name="home_filter_empty_title">Niciun loc pentru această dimensiune</string>
+    <string name="home_filter_empty_subtitle">Încearcă alt filtru sau revino mai târziu</string>
+    <string name="home_filter_empty_clear">Șterge filtrul</string>
 </resources>

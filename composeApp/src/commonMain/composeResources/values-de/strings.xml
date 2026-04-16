@@ -310,4 +310,7 @@
     <string name="settings_map_type_normal">Normal</string>
     <string name="settings_map_type_satellite">Satellit</string>
     <string name="settings_map_type_terrain">Gelände</string>
+    <string name="home_filter_empty_title">Keine Plätze für diese Größe</string>
+    <string name="home_filter_empty_subtitle">Versuche einen anderen Filter oder komm später wieder</string>
+    <string name="home_filter_empty_clear">Filter entfernen</string>
 </resources>

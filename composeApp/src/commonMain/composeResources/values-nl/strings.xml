@@ -310,4 +310,7 @@
     <string name="settings_map_type_normal">Normaal</string>
     <string name="settings_map_type_satellite">Satelliet</string>
     <string name="settings_map_type_terrain">Terrein</string>
+    <string name="home_filter_empty_title">Geen plekken voor dit formaat</string>
+    <string name="home_filter_empty_subtitle">Probeer een ander filter of kom later terug</string>
+    <string name="home_filter_empty_clear">Filter verwijderen</string>
 </resources>

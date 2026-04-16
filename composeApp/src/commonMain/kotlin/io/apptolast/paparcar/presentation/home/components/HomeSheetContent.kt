@@ -192,6 +192,11 @@ private fun SpotsSection(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         state.isLoading -> SpotsSkeletonList()
+        filteredSpots.isEmpty() && state.sizeFilter != null && state.nearbySpots.isNotEmpty() ->
+            HomeEmptyFilteredSpots(
+                onClearFilter = { onIntent(HomeIntent.SetSizeFilter(null)) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
         filteredSpots.isEmpty() -> HomeEmptySpots(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
