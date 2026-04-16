@@ -4,6 +4,7 @@ import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
@@ -59,7 +60,11 @@ class HomeViewModel(
             .flatMapLatest { permissionState ->
                 updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
                 if (permissionState.allPermissionsGranted) {
-                    activityRecognitionManager.registerTransitions()
+                    // registerTransitions() is best-effort: if Play Services are unavailable or
+                    // the permission is revoked between recompositions, the GPS + spots chain
+                    // must not die. Parking detection degrades gracefully to GPS-only mode.
+                    runCatching { activityRecognitionManager.registerTransitions() }
+                        .onFailure { e -> PaparcarLogger.w(TAG, "AR registration failed — GPS-only mode", e) }
                     locationDataSource.observeBalancedLocation()
                 } else {
                     updateState { copy(nearbySpots = emptyList()) }
@@ -254,6 +259,7 @@ class HomeViewModel(
     }
 
     private companion object {
+        const val TAG = "HomeViewModel"
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
         const val DEBUG_USER_ID = "user-123"
