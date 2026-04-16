@@ -23,6 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,6 +37,7 @@ import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_cd_spot
 import paparcar.composeapp.generated.resources.home_spot_freshness_hours
 import paparcar.composeapp.generated.resources.home_spot_freshness_minutes
 import paparcar.composeapp.generated.resources.home_spot_freshness_under_min
@@ -75,9 +80,15 @@ fun ParkingSpotItem(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
 ) {
+    val cd = stringResource(Res.string.home_cd_spot, data.displayLocation)
     Surface(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics {
+                role = Role.Button
+                contentDescription = cd
+            },
         color = if (isSelected)
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f)
         else

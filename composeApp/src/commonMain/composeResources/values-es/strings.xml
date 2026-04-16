@@ -9,6 +9,7 @@
     <string name="home_parking_row_label">Tu vehículo</string>
     <string name="home_fab_report_spot">Reportar spot</string>
     <string name="home_cd_profile">Perfil</string>
+    <string name="home_cd_spot">Plaza libre en %1$s</string>
     <string name="home_search_placeholder">Busca una zona, calle…</string>
     <string name="home_stats_free_spots_badge">%1$d libres</string>
     <string name="home_banner_since">%1$s</string>
