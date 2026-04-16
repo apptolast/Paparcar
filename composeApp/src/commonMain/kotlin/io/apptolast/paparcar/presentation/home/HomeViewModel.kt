@@ -5,6 +5,7 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
@@ -22,12 +23,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -81,6 +82,14 @@ class HomeViewModel(
                 if (state.value.cameraLocationInfo == null) {
                     geocodeCameraLocation(userLocation.latitude, userLocation.longitude)
                 }
+            }
+            // Re-subscribe to Firestore only when the user moves more than the threshold.
+            // Without this, every GPS fix (every ~3–5 s) opens a new Firestore listener.
+            .distinctUntilChanged { old, new ->
+                haversineMeters(
+                    old.latitude, old.longitude,
+                    new.latitude, new.longitude,
+                ) < SPOT_RESUBSCRIBE_THRESHOLD_METERS
             }
             .flatMapLatest { userLocation ->
                 observeNearbySpots(
@@ -258,6 +267,8 @@ class HomeViewModel(
         const val TAG = "HomeViewModel"
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
+        /** Minimum displacement (metres) to trigger a new Firestore spot subscription. */
+        const val SPOT_RESUBSCRIBE_THRESHOLD_METERS = 100.0
         const val DEBUG_USER_ID = "user-123"
         const val DEBUG_LATITUDE = 40.416775
         const val DEBUG_LONGITUDE = -3.703790
