@@ -97,7 +97,7 @@ private val GATE_SCREENS = setOf(
     Routes.PERMISSIONS,
     Routes.PERMISSIONS_RATIONALE,
     Routes.ONBOARDING,
-    Routes.VEHICLE_REGISTRATION,
+    "${Routes.VEHICLE_REGISTRATION}?origin={origin}",
 )
 
 @Composable

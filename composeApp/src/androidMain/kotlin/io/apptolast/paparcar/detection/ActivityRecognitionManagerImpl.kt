@@ -1,16 +1,19 @@
 package io.apptolast.paparcar.detection
 
-import android.annotation.SuppressLint
+import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionRequest
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.receiver.ActivityTransitionReceiver
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.github.aakira.napier.Napier
 
 class ActivityRecognitionManagerImpl(
     private val context: Context,
@@ -27,8 +30,12 @@ class ActivityRecognitionManagerImpl(
         )
     }
 
-    @SuppressLint("MissingPermission")
     override fun registerTransitions() {
+        if (!hasActivityRecognitionPermission()) {
+            Napier.w("registerTransitions skipped — ACTIVITY_RECOGNITION permission not granted", tag = TAG)
+            return
+        }
+
         val transitions = listOf(
             ActivityTransition.Builder()
                 .setActivityType(DetectedActivity.IN_VEHICLE)
@@ -48,14 +55,28 @@ class ActivityRecognitionManagerImpl(
 
         activityClient.requestActivityTransitionUpdates(request, pendingIntent)
             .addOnSuccessListener {
-                Log.d("PaparcarApp", "Registro de transiciones de actividad exitoso.")
+                Napier.d("Activity transition updates registered", tag = TAG)
             }
             .addOnFailureListener { e ->
-                Log.e("PaparcarApp", "Error al registrar las transiciones de actividad.", e)
+                Napier.e("Failed to register activity transition updates", e, tag = TAG)
             }
     }
 
     override fun unregisterTransitions() {
         activityClient.removeActivityTransitionUpdates(pendingIntent)
+    }
+
+    private fun hasActivityRecognitionPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACTIVITY_RECOGNITION,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+    private companion object {
+        const val TAG = "ActivityRecognitionManager"
     }
 }

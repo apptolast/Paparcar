@@ -61,7 +61,7 @@ kmp-maps = "0.8.1"
 napier = "2.7.1"
 
 # ── Login Library ────────────────────────────────────────────────────────────
-baselogin = "1.0.8"
+baselogin = "1.0.14"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+

@@ -1,6 +1,10 @@
 package io.apptolast.paparcar
 
+import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.work.WorkManager
 import com.apptolast.customlogin.appContext
 import io.github.aakira.napier.DebugAntilog
@@ -24,6 +28,8 @@ class PaparcarApp : Application() {
 
         appContext = this
         Napier.base(DebugAntilog())
+
+        Napier.d("GOOGLE_WEB_CLIENT_ID = '${BuildConfig.GOOGLE_WEB_CLIENT_ID}'", tag = "PaparcarApp")
 
         val loginConfig = LoginLibraryConfig(
             googleSignInConfig = GoogleSignInConfig(
@@ -50,8 +56,21 @@ class PaparcarApp : Application() {
             )
         }
 
-        // Re-register Activity Recognition transitions every 12h.
-        // KEEP policy: if already enqueued, don't restart the running job.
-        RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(this))
+        // Re-register Activity Recognition transitions every 12h, but only if
+        // the permission is already granted (existing users). New users trigger
+        // enqueueKeep() from PermissionsScreen once they grant the permission.
+        if (hasActivityRecognitionPermission()) {
+            RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(this))
+        }
     }
+
+    private fun hasActivityRecognitionPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACTIVITY_RECOGNITION,
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
 }
