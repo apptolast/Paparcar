@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
@@ -73,6 +74,7 @@ class HomeViewModel(
                     emptyFlow()
                 }
             }
+            .onStart { updateState { copy(isLoading = true) } }
             .onEach { userLocation ->
                 updateState { copy(isLoading = false, userGpsPoint = userLocation) }
                 geocodeUserLocation(userLocation.latitude, userLocation.longitude)
