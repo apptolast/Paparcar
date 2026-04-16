@@ -10,8 +10,8 @@ import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.location.LocationDataSource
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ObserveActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -39,7 +39,7 @@ class HomeViewModel(
     private val observeNearbySpots: ObserveNearbySpotsUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val activityRecognitionManager: ActivityRecognitionManager,
-    private val observeActiveSession: ObserveActiveParkingSessionUseCase,
+    private val userParkingRepository: UserParkingRepository,
     private val releaseSession: ReleaseActiveParkingSessionUseCase,
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
@@ -51,7 +51,7 @@ class HomeViewModel(
     init {
         updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
 
-        observeActiveSession()
+        userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
                 sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))

@@ -143,8 +143,12 @@ fun HomeScreen(
                     }
                     snackbarHostState.showSnackbar(msg)
                 }
+
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
-                HomeEffect.ManualSpotReported -> snackbarHostState.showSnackbar(msgManualSpotReported)
+                HomeEffect.ManualSpotReported -> snackbarHostState.showSnackbar(
+                    msgManualSpotReported
+                )
+
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
@@ -196,10 +200,12 @@ private fun HomeContent(
         isParkingSelected -> state.userParking?.let { p ->
             locationDisplayText(p.placeInfo, p.address, p.location.latitude, p.location.longitude)
         } ?: ""
+
         selectedSpot != null -> locationDisplayText(
             selectedSpot.placeInfo, selectedSpot.address,
             selectedSpot.location.latitude, selectedSpot.location.longitude,
         )
+
         else -> ""
     }
     var showReleaseDialog by remember { mutableStateOf(false) }
@@ -223,7 +229,12 @@ private fun HomeContent(
                     navLabel = navLabel,
                     onNavigate = {
                         if (isParkingSelected) {
-                            state.userParking?.let { p -> onOpenMapsNavigation(p.location.latitude, p.location.longitude) }
+                            state.userParking?.let { p ->
+                                onOpenMapsNavigation(
+                                    p.location.latitude,
+                                    p.location.longitude
+                                )
+                            }
                         } else {
                             selectedNavTarget?.let { onOpenMapsNavigation(it.lat, it.lon) }
                         }
@@ -240,12 +251,19 @@ private fun HomeContent(
                 title = { Text(stringResource(Res.string.home_release_dialog_title)) },
                 text = { Text(stringResource(Res.string.home_release_dialog_message)) },
                 confirmButton = {
-                    TextButton(onClick = {
-                        showReleaseDialog = false
-                        state.userParking?.let { p ->
-                            onIntent(HomeIntent.ReleaseParking(p.location.latitude, p.location.longitude))
+                    TextButton(
+                        onClick = {
+                            showReleaseDialog = false
+                            state.userParking?.let { p ->
+                                onIntent(
+                                    HomeIntent.ReleaseParking(
+                                        p.location.latitude,
+                                        p.location.longitude
+                                    )
+                                )
+                            }
                         }
-                    }) {
+                    ) {
                         Text(stringResource(Res.string.home_release_dialog_confirm))
                     }
                 },
@@ -319,7 +337,8 @@ private fun HomeContent(
             val sheetExpanded = sheetOffsetPx.value <= fullSnapOffsetPx + 1f
             val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + 20.dp
             // FABs sit just above the sheet's current top edge and follow it as it moves.
-            val fabBottomDp = with(density) { (containerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
+            val fabBottomDp =
+                with(density) { (containerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
 
             // ── Map ──────────────────────────────────────────────────────────
             PlatformMap(
@@ -476,13 +495,17 @@ private fun HomeContent(
                                 state = rememberDraggableState { delta ->
                                     coroutineScope.launch {
                                         sheetOffsetPx.snapTo(
-                                            (sheetOffsetPx.value + delta).coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                            (sheetOffsetPx.value + delta).coerceIn(
+                                                fullSnapOffsetPx,
+                                                peekOffsetPx
+                                            ),
                                         )
                                     }
                                 },
                                 onDragStopped = { velocity ->
                                     coroutineScope.launch {
-                                        val target = snapToNearest(snapPoints, sheetOffsetPx.value, velocity)
+                                        val target =
+                                            snapToNearest(snapPoints, sheetOffsetPx.value, velocity)
                                         sheetOffsetPx.animateTo(target, SnapSpec)
                                     }
                                 },
@@ -555,7 +578,11 @@ private fun rememberSheetScrollConnection(
                 } else Offset.Zero
             }
 
-            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
                 val delta = available.y
                 return if (delta > 0f && sheetOffsetPx.value < peekState.value) {
                     val newOffset = (sheetOffsetPx.value + delta).coerceAtMost(peekState.value)
@@ -568,7 +595,10 @@ private fun rememberSheetScrollConnection(
             override suspend fun onPreFling(available: Velocity): Velocity {
                 val vy = available.y
                 return if (vy < -300f && sheetOffsetPx.value > fullSnapState.value) {
-                    sheetOffsetPx.animateTo(snapToNearest(snapPoints, sheetOffsetPx.value, vy), SnapSpec)
+                    sheetOffsetPx.animateTo(
+                        snapToNearest(snapPoints, sheetOffsetPx.value, vy),
+                        SnapSpec
+                    )
                     available
                 } else Velocity.Zero
             }
@@ -576,7 +606,10 @@ private fun rememberSheetScrollConnection(
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 val vy = available.y
                 return if (vy > 300f && sheetOffsetPx.value < peekState.value) {
-                    sheetOffsetPx.animateTo(snapToNearest(snapPoints, sheetOffsetPx.value, vy), SnapSpec)
+                    sheetOffsetPx.animateTo(
+                        snapToNearest(snapPoints, sheetOffsetPx.value, vy),
+                        SnapSpec
+                    )
                     available
                 } else Velocity.Zero
             }
