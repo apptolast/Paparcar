@@ -60,10 +60,17 @@ class SpotRepositoryImpl(
                     .map { entities -> entities.map { it.toDomain() } }
                     .collect { send(it) }
             }
-            // 2. Subscribe to Firestore and write every update to Room.
-            //    Room's Flow picks up the write and re-emits above.
+            // 2. Subscribe to Firestore and atomically replace the bbox slice in Room.
+            //    replaceForBoundingBox() deletes stale entries first so spots that were
+            //    removed or expired in Firestore are not kept alive in the local cache.
+            //    Room's Flow picks up every write and re-emits above.
             firebaseDataSource.observeNearbySpots(location.latitude, location.longitude, radiusMeters)
-                .collect { dtoMap -> spotDao.upsertAll(dtoMap.values.map { it.toEntity() }) }
+                .collect { dtoMap ->
+                    spotDao.replaceForBoundingBox(
+                        bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon,
+                        dtoMap.values.map { it.toEntity() },
+                    )
+                }
         }
     }
 
