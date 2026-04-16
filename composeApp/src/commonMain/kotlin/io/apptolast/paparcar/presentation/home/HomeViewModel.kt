@@ -22,9 +22,12 @@ import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onCompletion
@@ -50,8 +53,22 @@ class HomeViewModel(
     private val sendSpotSignal: SendSpotSignalUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
+    private val searchQueryFlow = MutableStateFlow("")
+
     init {
         updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
+
+        searchQueryFlow
+            .debounce(SEARCH_DEBOUNCE_MS)
+            .filter { it.isNotBlank() }
+            .onEach { query ->
+                updateState { copy(isSearching = true) }
+                searchAddress(query)
+                    .onSuccess { results -> updateState { copy(searchResults = results, isSearching = false) } }
+                    .onFailure { updateState { copy(searchResults = emptyList(), isSearching = false) } }
+            }
+            .catch { /* best-effort; debounce errors don't affect the rest of the chain */ }
+            .launchIn(viewModelScope)
 
         userParkingRepository.observeActiveSession()
             .onEach { session -> updateState { copy(userParking = session) } }
@@ -210,22 +227,12 @@ class HomeViewModel(
         }
     }
 
-    private var searchJob: Job? = null
-
     private fun handleSearchQueryChanged(query: String) {
         updateState { copy(searchQuery = query, isSearchActive = true) }
-        searchJob?.cancel()
         if (query.isBlank()) {
             updateState { copy(searchResults = emptyList(), isSearching = false) }
-            return
         }
-        searchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE_MS)
-            updateState { copy(isSearching = true) }
-            searchAddress(query)
-                .onSuccess { results -> updateState { copy(searchResults = results, isSearching = false) } }
-                .onFailure { updateState { copy(searchResults = emptyList(), isSearching = false) } }
-        }
+        searchQueryFlow.value = query
     }
 
     private var geocodeJob: Job? = null
