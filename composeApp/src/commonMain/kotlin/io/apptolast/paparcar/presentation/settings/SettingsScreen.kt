@@ -28,7 +28,9 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -68,7 +70,12 @@ import paparcar.composeapp.generated.resources.settings_dark_mode_desc
 import paparcar.composeapp.generated.resources.settings_nav_my_car
 import paparcar.composeapp.generated.resources.settings_nav_my_car_desc
 import paparcar.composeapp.generated.resources.settings_contact
+import paparcar.composeapp.generated.resources.settings_delete_account_cancel
+import paparcar.composeapp.generated.resources.settings_delete_account_confirm_action
+import paparcar.composeapp.generated.resources.settings_delete_account_confirm_message
+import paparcar.composeapp.generated.resources.settings_delete_account_confirm_title
 import paparcar.composeapp.generated.resources.settings_licenses
+import paparcar.composeapp.generated.resources.settings_profile_delete_account
 import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_profile_logout
 import paparcar.composeapp.generated.resources.settings_profile_name_placeholder
@@ -97,6 +104,7 @@ import paparcar.composeapp.generated.resources.settings_version
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToMyCar: () -> Unit = {},
+    onNavigateToAuth: () -> Unit = {},
     darkMode: Boolean = true,
     onToggleDarkMode: (Boolean) -> Unit = {},
     imperialUnits: Boolean = false,
@@ -111,9 +119,17 @@ fun SettingsScreen(
             when (effect) {
                 is SettingsEffect.NavigateBack -> onNavigateBack()
                 is SettingsEffect.NavigateToMyCar -> onNavigateToMyCar()
+                is SettingsEffect.NavigateToAuth -> onNavigateToAuth()
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
             }
         }
+    }
+
+    if (state.showDeleteAccountConfirmation) {
+        DeleteAccountConfirmDialog(
+            onConfirm = { viewModel.handleIntent(SettingsIntent.ConfirmDeleteAccount) },
+            onDismiss = { viewModel.handleIntent(SettingsIntent.DismissDeleteAccount) },
+        )
     }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -163,6 +179,9 @@ fun SettingsScreen(
                     email = state.userProfile?.email,
                     onLogout = { viewModel.handleIntent(SettingsIntent.Logout) },
                     logoutLabel = stringResource(Res.string.settings_profile_logout),
+                    onDeleteAccount = { viewModel.handleIntent(SettingsIntent.RequestDeleteAccount) },
+                    deleteAccountLabel = stringResource(Res.string.settings_profile_delete_account),
+                    isDeletingAccount = state.isDeletingAccount,
                 )
             }
 
@@ -456,6 +475,9 @@ private fun ProfileCard(
     email: String?,
     logoutLabel: String,
     onLogout: () -> Unit,
+    onDeleteAccount: () -> Unit = {},
+    deleteAccountLabel: String = "",
+    isDeletingAccount: Boolean = false,
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -513,8 +535,53 @@ private fun ProfileCard(
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
+            if (isDeletingAccount) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                TextButton(
+                    onClick = onDeleteAccount,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = deleteAccountLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delete account dialog
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DeleteAccountConfirmDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.settings_delete_account_confirm_title)) },
+        text = { Text(stringResource(Res.string.settings_delete_account_confirm_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) {
+                Text(stringResource(Res.string.settings_delete_account_confirm_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.settings_delete_account_cancel))
+            }
+        },
+    )
 }
 
 @Composable

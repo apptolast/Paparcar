@@ -217,6 +217,11 @@
     <string name="settings_cd_back">Back</string>
     <string name="settings_section_profile">Profile</string>
     <string name="settings_profile_logout">Log out</string>
+    <string name="settings_profile_delete_account">Delete account</string>
+    <string name="settings_delete_account_confirm_title">Delete account?</string>
+    <string name="settings_delete_account_confirm_message">All your data will be permanently deleted. This action cannot be undone.</string>
+    <string name="settings_delete_account_confirm_action">Delete account</string>
+    <string name="settings_delete_account_cancel">Cancel</string>
     <string name="settings_profile_name_placeholder">User</string>
     <string name="settings_section_appearance">Appearance</string>
     <string name="settings_dark_mode">Dark mode</string>

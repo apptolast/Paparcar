@@ -67,9 +67,26 @@ class SettingsViewModel(
                 sendEffect(SettingsEffect.OpenUrl("https://paparcar.app/licenses"))
             is SettingsIntent.OpenContact ->
                 sendEffect(SettingsEffect.OpenUrl("mailto:hola@paparcar.app"))
+            is SettingsIntent.RequestDeleteAccount ->
+                updateState { copy(showDeleteAccountConfirmation = true) }
+            is SettingsIntent.DismissDeleteAccount ->
+                updateState { copy(showDeleteAccountConfirmation = false) }
+            is SettingsIntent.ConfirmDeleteAccount -> deleteAccount()
             is SettingsIntent.Logout -> viewModelScope.launch {
                 authRepository.signOut()
             }
+        }
+    }
+
+    private fun deleteAccount() {
+        updateState { copy(isDeletingAccount = true, showDeleteAccountConfirmation = false) }
+        viewModelScope.launch {
+            authRepository.deleteAccount()
+                .onSuccess { sendEffect(SettingsEffect.NavigateToAuth) }
+                .onFailure { e ->
+                    PaparcarLogger.e(TAG, "Failed to delete account", e)
+                    updateState { copy(isDeletingAccount = false) }
+                }
         }
     }
 
