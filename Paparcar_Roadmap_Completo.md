@@ -352,7 +352,7 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 | `SET-004` | **Detección** | Sensibilidad (auto/manual), radio de geofence, auto-publicar | ✅ Partial (toggle autoDetect, falta sensibilidad/radio) |
 | `SET-005` | **Mapa** | Tipo default, unidades distancia, radio de búsqueda | ✅ Done |
 | `SET-006` | **Notificaciones** | Toggle por tipo: parking confirmado, plaza cerca, BT events | ✅ Done |
-| `SET-007` | **Privacidad** | Compartir ubicación, exportar/eliminar datos (GDPR), política | ⏳ Partial (link sin abrir browser, falta GDPR) |
+| `SET-007` | **Privacidad** | Compartir ubicación, exportar/eliminar datos (GDPR), política | ✅ Partial (OpenUrl OK, falta GDPR export/delete) |
 | `SET-008` | **Sobre la App** | Versión, licencias, contacto | ✅ Done |
 | `SET-009` | **Idioma** | Selector: Automático + 9 idiomas soportados | ⏳ Pending |
 

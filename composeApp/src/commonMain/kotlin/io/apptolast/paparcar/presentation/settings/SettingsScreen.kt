@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,13 +104,14 @@ fun SettingsScreen(
 ) {
     val viewModel: SettingsViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(viewModel.effect) {
         viewModel.effect.collect { effect ->
             when (effect) {
                 is SettingsEffect.NavigateBack -> onNavigateBack()
                 is SettingsEffect.NavigateToMyCar -> onNavigateToMyCar()
-                is SettingsEffect.OpenUrl -> { /* TODO: open browser */ }
+                is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
             }
         }
     }
