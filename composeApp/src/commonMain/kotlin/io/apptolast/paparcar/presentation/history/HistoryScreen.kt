@@ -372,19 +372,20 @@ internal fun HistoryContent(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+private const val DAY_MS = 86_400_000L
+
 private fun buildWeeklyStats(sessions: List<UserParking>, dayLabels: List<String>): List<WeekDayStats> {
     // dayLabels: index = isoDayNumber - 1 (Mon=0 … Sun=6)
     val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val dayMs = 24L * 60 * 60 * 1000
 
     val grouped = sessions
-        .filter { it.location.timestamp >= nowMs - 7 * dayMs }
+        .filter { it.location.timestamp >= nowMs - 7 * DAY_MS }
         .groupBy { Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz).date }
 
     // Build [today-6 … today] so today is always at index 6 (last bar)
     return (6 downTo 0).map { daysAgo ->
-        val date = Instant.fromEpochMilliseconds(nowMs - daysAgo * dayMs).toLocalDateTime(tz).date
+        val date = Instant.fromEpochMilliseconds(nowMs - daysAgo * DAY_MS).toLocalDateTime(tz).date
         WeekDayStats(
             label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
             sessions = grouped[date]?.size ?: 0,
@@ -401,7 +402,7 @@ private fun buildTimeline(
     val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
     val today = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz).date
-    val yesterday = Instant.fromEpochMilliseconds(nowMs - 86_400_000L).toLocalDateTime(tz).date
+    val yesterday = Instant.fromEpochMilliseconds(nowMs - DAY_MS).toLocalDateTime(tz).date
 
     val flat = mutableListOf<TimelineItem>()
 
