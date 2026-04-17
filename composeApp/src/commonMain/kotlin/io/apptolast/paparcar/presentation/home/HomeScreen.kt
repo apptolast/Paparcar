@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -34,10 +34,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
+import io.apptolast.paparcar.ui.components.GlassSurface
+import io.apptolast.paparcar.ui.components.LocalMapInteracting
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +49,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -62,7 +67,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.presentation.home.components.HomeActionFab
-import io.apptolast.paparcar.presentation.home.components.HomeFloatingHeader
+import io.apptolast.paparcar.presentation.home.components.HomeGlassNavBar
 import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
@@ -70,7 +75,6 @@ import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.components.HomeSheetContent
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
-import kotlinx.coroutines.launch
 import io.apptolast.paparcar.domain.error.PaparcarError
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -96,6 +100,9 @@ private data class SelectedNavTarget(val lat: Double, val lon: Double)
 
 // Peek = drag pill (22dp) + content row (82dp)
 private val SheetPeekHeight = 104.dp
+
+private const val MAP_INTERACTION_IDLE_DELAY_MS = 600L
+private const val GLASS_NAV_BAR_DEFAULT_HEIGHT_DP = 72
 
 private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
 
@@ -190,6 +197,9 @@ private fun HomeContent(
     val uiController = rememberHomeUiController()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
+    var isMapInteracting by remember { mutableStateOf(false) }
+    val mapIdleJob = remember { mutableStateOf<Job?>(null) }
+    var glassNavBarHeightPx by remember { mutableFloatStateOf(with(density) { GLASS_NAV_BAR_DEFAULT_HEIGHT_DP.dp.toPx() }) }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
@@ -216,6 +226,7 @@ private fun HomeContent(
         state.userGpsPoint?.let { uiController.onUserLocationAvailable(it.latitude, it.longitude) }
     }
 
+    CompositionLocalProvider(LocalMapInteracting provides isMapInteracting) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0),
@@ -284,7 +295,11 @@ private fun HomeContent(
             var peekHeightPx by remember { mutableFloatStateOf(with(density) { (SheetPeekHeight + navBarBottom).toPx() }) }
             val containerHeightDp = with(density) { containerHeightPx.toDp() }
 
-            val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
+            // Reserve space for the glass nav bar only when it's visible (no item selected).
+            // When an item is selected the HomeNavBar replaces it and the Scaffold already
+            // shrinks containerHeightPx, so no extra reserve is needed.
+            val navBarReservePx = if (state.selectedItemId == null) glassNavBarHeightPx else 0f
+            val peekOffsetPx = (containerHeightPx - peekHeightPx - navBarReservePx).coerceAtLeast(0f)
             val halfOffsetPx = containerHeightPx / 2f
 
             // Measured height of the sheet Surface (updated after each layout pass).
@@ -335,7 +350,6 @@ private fun HomeContent(
             )
 
             val sheetExpanded = sheetOffsetPx.value <= fullSnapOffsetPx + 1f
-            val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + 20.dp
             // FABs sit just above the sheet's current top edge and follow it as it moves.
             val fabBottomDp =
                 with(density) { (containerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
@@ -368,11 +382,15 @@ private fun HomeContent(
                 onCameraMove = { lat, lon ->
                     uiController.onCameraMoved(lat, lon)
                     onIntent(HomeIntent.CameraPositionChanged(lat, lon))
+                    isMapInteracting = true
+                    mapIdleJob.value?.cancel()
+                    mapIdleJob.value = coroutineScope.launch {
+                        delay(MAP_INTERACTION_IDLE_DELAY_MS)
+                        isMapInteracting = false
+                    }
                 },
                 cameraTarget = uiController.cameraTarget,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(mapHeightDp),
+                modifier = Modifier.fillMaxSize(),
             )
 
             // ── Floating search bar + action pills + GPS accuracy banner ─────
@@ -398,13 +416,7 @@ private fun HomeContent(
                             onIntent(HomeIntent.SelectSearchResult(result))
                         },
                         onClear = { onIntent(HomeIntent.ClearSearch) },
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    HomeFloatingHeader(
-                        onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
-                        onMyCarClick = onNavigateToMyCar,
-                        onSettingsClick = onNavigateToSettings,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 HomeGpsAccuracyBanner(
@@ -477,14 +489,13 @@ private fun HomeContent(
             // ── 3-state bottom sheet ─────────────────────────────────────────
             // Surface wraps content height (no fillMaxSize) — onSizeChanged reports
             // the actual height so fullSnapOffsetPx positions the sheet to show all content.
-            Surface(
+            GlassSurface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = containerHeightDp)
                     .offset { IntOffset(0, sheetOffsetPx.value.roundToInt()) }
                     .onSizeChanged { size -> sheetHeightPx = size.height.toFloat() },
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                color = MaterialTheme.colorScheme.surface,
             ) {
                 Column(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
                     // Handle: drives the sheet via draggable
@@ -538,8 +549,34 @@ private fun HomeContent(
                     )
                 }
             }
+
+            // ── Glass BottomNav — replaces HomeFloatingHeader ────────────────
+            // Visible when no item is selected. When a spot/parking is selected
+            // HomeNavBar (navigate bar) takes over via Scaffold bottomBar.
+            AnimatedVisibility(
+                visible = state.selectedItemId == null,
+                enter = fadeIn() + slideInVertically { it },
+                exit = fadeOut() + slideOutVertically { it },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .onSizeChanged { if (it.height > 0) glassNavBarHeightPx = it.height.toFloat() }
+                    .navigationBarsPadding()
+                    .padding(bottom = 10.dp),
+            ) {
+                HomeGlassNavBar(
+                    onMapClick = {
+                        state.userGpsPoint?.let {
+                            uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                        }
+                    },
+                    onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
+                    onMyCarClick = onNavigateToMyCar,
+                    onSettingsClick = onNavigateToSettings,
+                )
+            }
         }
     }
+    } // CompositionLocalProvider
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

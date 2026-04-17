@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.components.GlassDefaults
+import io.apptolast.paparcar.ui.components.GlassSurface
 
 /**
  * Shared circular map FAB used by both HomeMapFabColumn and MapControlButtons.
@@ -30,20 +31,21 @@ fun MapCircleFab(
     iconSize: Dp = 20.dp,
     shadowElevation: Dp = 6.dp,
 ) {
-    val resolvedContainer = if (containerColor == Color.Unspecified)
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-    else
-        containerColor
     val resolvedTint = if (iconTint == Color.Unspecified)
         MaterialTheme.colorScheme.onSurface
     else
         iconTint
 
-    Surface(
+    val glassColors = if (containerColor == Color.Unspecified)
+        GlassDefaults.colors()
+    else
+        GlassDefaults.colors(container = containerColor)
+
+    GlassSurface(
         onClick = onClick,
         modifier = modifier.size(size),
         shape = CircleShape,
-        color = resolvedContainer,
+        colors = glassColors,
         shadowElevation = shadowElevation,
     ) {
         Box(

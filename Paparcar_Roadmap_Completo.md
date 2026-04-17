@@ -15,7 +15,7 @@ Paparcar es una app de **compartición de plazas de aparcamiento en tiempo real*
 | **Phase 0** — Foundations | 4–5 semanas | Abr 2026 | ~95% hecho |
 | **Phase 1** — Home & Mapa | 5–6 semanas | May–Jun 2026 | ~97% hecho |
 | **Phase 2** — Vehículos & BT | 6–7 semanas | Jun–Jul 2026 | ~95% hecho |
-| **Phase 3** — UI/UX Design System | 4–5 semanas | Jul–Ago 2026 | ~95% hecho |
+| **Phase 3** — UI/UX Design System | 4–5 semanas | Jul–Ago 2026 | ✅ 100% |
 | **Phase 4** — History & Settings | 3–4 semanas | Ago–Sep 2026 | ~70% hecho |
 | **Phase 5** — QA & Estabilidad | 3–4 semanas | Sep–Oct 2026 | ~20% hecho |
 | **Phase 6** — iOS Port | 6–8 semanas | Oct–Dic 2026 | 0% |
@@ -304,7 +304,7 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 |----|-------|--------|------|-----------|
 | `UI-001` | Design tokens: color, tipografía, spacing, shapes | ✅ Done | Design | Alta |
 | `UI-002` | Componentes base MD3: Button, Card, TextField, Dialog, Badge | ✅ Done | UI | Alta |
-| `UI-003` | Rama `experiment/glass-ui`: glassmorphism para BottomSheet y overlays de mapa | ⏳ Pending | Experiment | Media |
+| `UI-003` | Glassmorphism para BottomSheet y overlays de mapa (GlassSurface component) | ✅ Done | Experiment | Media |
 | `UI-004` | Rediseño Onboarding: carrusel 3 pasos con ilustraciones | ✅ Done | UI | Media |
 | `UI-005` | `PermissionsRationaleScreen`: stepper visual, expansión por permiso | ✅ Done | UX | Alta |
 | `UI-006` | `SpotCard`: sin botones inline; acción única "Navegar" = en camino, delegada al parent | ✅ Done | UI | Alta |
@@ -472,12 +472,9 @@ feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 - `TEST-003` — SpotRepositoryImpl (offline-first)
 - ViewModel tests (Home, History, MyCar, Settings)
 
-**Prioridad 4 — Experimentos:**
-- `UI-003` — glass-ui experiment (rama separada)
-
 ### Fases completadas (no planificar)
 - ~~Phase 2 — Vehículos & BT~~ ✅ (16/16 tareas)
-- ~~Phase 3 — Design System~~ ✅ (16/17 tareas, solo UI-003 pendiente)
+- ~~Phase 3 — Design System~~ ✅ (17/17 tareas)
 - ~~Tech Debt QA-1/QA-4/QA-5~~ ✅ (todo completado)
 
 ---

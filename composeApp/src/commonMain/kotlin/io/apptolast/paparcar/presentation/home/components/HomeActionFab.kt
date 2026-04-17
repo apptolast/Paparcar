@@ -15,12 +15,10 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.presentation.util.MapCircleFab
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +41,9 @@ private const val ITEM_SPACING_DP = 10
 private const val LABEL_CORNER_RADIUS_DP = 8
 private const val LABEL_HORIZONTAL_PADDING_DP = 12
 private const val LABEL_VERTICAL_PADDING_DP = 8
+private const val MAIN_FAB_SIZE_DP = 56
+private const val MAIN_FAB_ICON_SIZE_DP = 24
+private const val MAIN_FAB_ELEVATION_DP = 6
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Speed-Dial FAB
@@ -98,20 +99,18 @@ internal fun HomeActionFab(
         }
 
         // ── Main FAB ──────────────────────────────────────────────────────────
-        FloatingActionButton(
+        MapCircleFab(
+            icon = if (isExpanded) Icons.Outlined.Close else Icons.Outlined.Add,
             onClick = { isExpanded = !isExpanded },
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            elevation = FloatingActionButtonDefaults.elevation(),
-        ) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Outlined.Close else Icons.Outlined.Add,
-                contentDescription = if (isExpanded)
-                    stringResource(Res.string.home_fab_actions_collapse)
-                else
-                    stringResource(Res.string.home_fab_actions_expand),
-            )
-        }
+            contentDescription = if (isExpanded)
+                stringResource(Res.string.home_fab_actions_collapse)
+            else
+                stringResource(Res.string.home_fab_actions_expand),
+            iconTint = MaterialTheme.colorScheme.primary,
+            size = MAIN_FAB_SIZE_DP.dp,
+            iconSize = MAIN_FAB_ICON_SIZE_DP.dp,
+            shadowElevation = MAIN_FAB_ELEVATION_DP.dp,
+        )
     }
 }
 
@@ -129,10 +128,8 @@ private fun HomeActionFabItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING_DP.dp),
     ) {
-        Surface(
+        GlassSurface(
             shape = RoundedCornerShape(LABEL_CORNER_RADIUS_DP.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            shadowElevation = 4.dp,
         ) {
             Text(
                 text = label,
