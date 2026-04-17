@@ -340,6 +340,7 @@ private fun MainAppNavigation(
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
+                    onNavigateToAuth = { /* AuthState change triggers auth nav automatically */ },
                     darkMode = darkTheme,
                     onToggleDarkMode = onToggleDarkMode,
                     imperialUnits = imperialUnits,

@@ -346,7 +346,7 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 
 | ID | Sección | Contenido | Estado |
 |----|---------|-----------|--------|
-| `SET-001` | **Perfil** | Nombre, foto, email, logout, eliminar cuenta | ✅ Partial (falta eliminar cuenta) |
+| `SET-001` | **Perfil** | Nombre, foto, email, logout, eliminar cuenta | ✅ Done |
 | `SET-002` | **Mis Vehículos** | Lista, añadir/editar/eliminar, activo por defecto | ✅ Partial (navega a MyCar, falta edit/delete inline) |
 | `SET-003` | **Bluetooth** | Dispositivos emparejados, re-escanear, toggle BT detection | ✅ Partial (navega a BT config) |
 | `SET-004` | **Detección** | Sensibilidad (auto/manual), radio de geofence, auto-publicar | ✅ Partial (toggle autoDetect, falta sensibilidad/radio) |

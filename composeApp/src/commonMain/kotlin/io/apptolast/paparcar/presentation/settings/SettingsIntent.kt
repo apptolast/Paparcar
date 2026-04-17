@@ -12,5 +12,8 @@ sealed class SettingsIntent {
     data object OpenPrivacyPolicy : SettingsIntent()
     data object OpenLicenses : SettingsIntent()
     data object OpenContact : SettingsIntent()
+    data object RequestDeleteAccount : SettingsIntent()
+    data object ConfirmDeleteAccount : SettingsIntent()
+    data object DismissDeleteAccount : SettingsIntent()
     data object Logout : SettingsIntent()
 }

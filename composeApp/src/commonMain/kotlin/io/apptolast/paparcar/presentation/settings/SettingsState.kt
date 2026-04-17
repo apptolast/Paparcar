@@ -10,4 +10,6 @@ data class SettingsState(
     val notifySpotFreed: Boolean = true,
     val appVersion: String = "1.0.0",
     val mapType: MapType = MapType.NORMAL,
+    val showDeleteAccountConfirmation: Boolean = false,
+    val isDeletingAccount: Boolean = false,
 )

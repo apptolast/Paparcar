@@ -185,7 +185,12 @@
     <string name="settings_title">Ajustes</string>
     <string name="settings_cd_back">Volver</string>
         <string name="settings_section_profile">Perfil</string>
-    <string name="settings_profile_logout">Cerrar sesi&#xF3;n</string>
+    <string name="settings_profile_logout">Cerrar sesión</string>
+    <string name="settings_profile_delete_account">Eliminar cuenta</string>
+    <string name="settings_delete_account_confirm_title">¿Eliminar cuenta?</string>
+    <string name="settings_delete_account_confirm_message">Todos tus datos se eliminarán permanentemente. Esta acción no se puede deshacer.</string>
+    <string name="settings_delete_account_confirm_action">Eliminar cuenta</string>
+    <string name="settings_delete_account_cancel">Cancelar</string>
     <string name="settings_profile_name_placeholder">Usuario</string>
     <string name="settings_section_appearance">Apariencia</string>
     <string name="settings_dark_mode">Modo oscuro</string>
