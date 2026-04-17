@@ -67,7 +67,7 @@ Completar la pantalla principal como experiencia core de la app.
 | `HOME-010` | ~~Pull-to-refresh spots cercanos~~ | ❌ Cancelled | Feature | — |
 | `HOME-011` | FAB unification: SpeedDial → right column, MapCircleFab visual language | ✅ Done | Refactor | Alta |
 | `HOME-012` | FloatingHeader: acceso a MyCar (DirectionsCar icon) | ✅ Done | UI | Alta |
-| `HOME-013` | Implementar pantalla MyCar completa (estado vehículo, selector) | ✅ Partial (VEH-003) | UI | Alta |
+| `HOME-013` | Implementar pantalla MyCar completa (estado vehículo, selector) | ✅ Done | UI | Alta |
 | `HOME-014` | HistoryScreen: lista de sesiones agrupadas por día con mini-mapa | ✅ Done | UI | Media |
 | `HOME-015` | Skeleton loading + animación peek handle | ✅ Done | UX | Media |
 | `HOME-016` | Prevenir flash "Unknown location" durante geocoding | ✅ Done | Bug | Alta |

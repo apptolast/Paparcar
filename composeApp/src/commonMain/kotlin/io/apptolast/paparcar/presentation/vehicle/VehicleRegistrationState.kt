@@ -8,4 +8,5 @@ data class VehicleRegistrationState(
     val sizeCategory: VehicleSize? = null,
     val showBrandModelOnSpot: Boolean = false,
     val isSaving: Boolean = false,
+    val editingVehicleId: String? = null,
 )

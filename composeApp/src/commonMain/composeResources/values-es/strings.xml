@@ -245,11 +245,18 @@
 
     <string name="my_car_no_vehicle">Aún no hay ningún vehículo registrado</string>
     <string name="my_car_add_vehicle">Añadir vehículo</string>
+    <string name="my_car_edit_vehicle">Editar</string>
+    <string name="my_car_delete_vehicle">Eliminar</string>
+    <string name="my_car_delete_confirm_title">¿Eliminar vehículo?</string>
+    <string name="my_car_delete_confirm_message">Este vehículo se eliminará permanentemente. Esta acción no se puede deshacer.</string>
+    <string name="my_car_delete_confirm_action">Eliminar</string>
+    <string name="my_car_delete_cancel">Cancelar</string>
     <string name="my_car_active_vehicle">Vehículo activo</string>
     <string name="my_car_set_active">Establecer como activo</string>
 
     <!-- Registro de vehículo -->
     <string name="vehicle_registration_title">Registrar tu vehículo</string>
+    <string name="vehicle_registration_edit_title">Editar vehículo</string>
     <string name="vehicle_registration_save">Guardar</string>
     <string name="vehicle_registration_brand_hint">Marca (opcional)</string>
     <string name="vehicle_registration_model_hint">Modelo (opcional)</string>

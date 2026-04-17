@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -30,9 +31,31 @@ class VehicleRegistrationViewModel(
                 updateState { copy(sizeCategory = intent.size) }
             is VehicleRegistrationIntent.SetShowOnSpot ->
                 updateState { copy(showBrandModelOnSpot = intent.enabled) }
+            is VehicleRegistrationIntent.LoadVehicle -> loadVehicle(intent.vehicleId)
             is VehicleRegistrationIntent.Save -> saveVehicle()
             is VehicleRegistrationIntent.NavigateBack ->
                 sendEffect(VehicleRegistrationEffect.NavigateBack)
+        }
+    }
+
+    private fun loadVehicle(vehicleId: String) {
+        viewModelScope.launch {
+            runCatching {
+                val vehicle = vehicleRepository.observeVehicles()
+                    .first { list -> list.any { it.id == vehicleId } }
+                    .first { it.id == vehicleId }
+                updateState {
+                    copy(
+                        editingVehicleId = vehicle.id,
+                        brand = vehicle.brand ?: "",
+                        model = vehicle.model ?: "",
+                        sizeCategory = vehicle.sizeCategory,
+                        showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
+                    )
+                }
+            }.onFailure { e ->
+                PaparcarLogger.e(TAG, "Failed to load vehicle", e)
+            }
         }
     }
 
@@ -47,8 +70,9 @@ class VehicleRegistrationViewModel(
         viewModelScope.launch {
             runCatching {
                 val userId = authRepository.getCurrentSession()?.userId ?: ""
+                val isEditing = current.editingVehicleId != null
                 val vehicle = Vehicle(
-                    id = Uuid.random().toString(),
+                    id = current.editingVehicleId ?: Uuid.random().toString(),
                     userId = userId,
                     brand = current.brand.trim().ifBlank { null },
                     model = current.model.trim().ifBlank { null },
@@ -57,9 +81,9 @@ class VehicleRegistrationViewModel(
                     isDefault = true,
                 )
                 vehicleRepository.saveVehicle(vehicle)
-                vehicleRepository.setDefaultVehicle(vehicle.id)
+                if (!isEditing) vehicleRepository.setDefaultVehicle(vehicle.id)
             }.onSuccess {
-                appPreferences.setVehicleRegistered()
+                if (state.value.editingVehicleId == null) appPreferences.setVehicleRegistered()
                 updateState { copy(isSaving = false) }
                 sendEffect(VehicleRegistrationEffect.SavedSuccessfully)
             }.onFailure { e ->
