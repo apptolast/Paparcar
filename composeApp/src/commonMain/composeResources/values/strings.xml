@@ -235,6 +235,7 @@
     <string name="settings_version">Version</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_licenses">Open source licenses</string>
+    <string name="settings_contact">Contact</string>
 
     <!-- Bottom navigation tabs -->
     <string name="nav_tab_map">Map</string>
