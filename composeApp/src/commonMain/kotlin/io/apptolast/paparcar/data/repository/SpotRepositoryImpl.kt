@@ -1,6 +1,5 @@
 package io.apptolast.paparcar.data.repository
 
-import io.apptolast.paparcar.core.logging.PaparcarLogger
 import io.apptolast.paparcar.data.datasource.local.room.SpotDao
 import io.apptolast.paparcar.data.datasource.local.room.SpotEntity
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
@@ -11,10 +10,10 @@ import io.apptolast.paparcar.data.mapper.toEntity
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.repository.SpotRepository
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch

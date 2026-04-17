@@ -12,12 +12,12 @@ Paparcar es una app de **compartición de plazas de aparcamiento en tiempo real*
 
 | Fase | Duración | Fechas Estimadas | Progreso Actual |
 |------|----------|------------------|-----------------|
-| **Phase 0** — Foundations | 4–5 semanas | Abr 2026 | ~85% hecho |
-| **Phase 1** — Home & Mapa | 5–6 semanas | May–Jun 2026 | ~95% hecho |
-| **Phase 2** — Vehículos & BT | 6–7 semanas | Jun–Jul 2026 | 0% |
-| **Phase 3** — UI/UX Design System | 4–5 semanas | Jul–Ago 2026 | 0% |
-| **Phase 4** — History & Settings | 3–4 semanas | Ago–Sep 2026 | ~55% hecho |
-| **Phase 5** — QA & Estabilidad | 3–4 semanas | Sep–Oct 2026 | ~15% hecho |
+| **Phase 0** — Foundations | 4–5 semanas | Abr 2026 | ~95% hecho |
+| **Phase 1** — Home & Mapa | 5–6 semanas | May–Jun 2026 | ~97% hecho |
+| **Phase 2** — Vehículos & BT | 6–7 semanas | Jun–Jul 2026 | ~95% hecho |
+| **Phase 3** — UI/UX Design System | 4–5 semanas | Jul–Ago 2026 | ~95% hecho |
+| **Phase 4** — History & Settings | 3–4 semanas | Ago–Sep 2026 | ~70% hecho |
+| **Phase 5** — QA & Estabilidad | 3–4 semanas | Sep–Oct 2026 | ~20% hecho |
 | **Phase 6** — iOS Port | 6–8 semanas | Oct–Dic 2026 | 0% |
 | **TOTAL** | **~7–9 meses** | **Abr–Dic 2026** | |
 
@@ -37,14 +37,14 @@ Solidificar la base antes de añadir features nuevas.
 | `FND-003` | Unificar manejo de errores con `PaparcarError` sealed class | ✅ Done | Arquitectura | Alta |
 | `FND-004` | Fix bug geofence departure: la plaza no se publica al desaparcar | ✅ Done | Bug | Crítica |
 | `FND-005` | Integrar Firebase Crashlytics (Android) | ✅ Done | Infra | Alta |
-| `FND-006` | Crear `expect/actual` wrappers pendientes para iOS | ⏳ Pending | Arquitectura | Media |
-| `FND-007` | Ampliar tests unitarios: UseCases, Repos, ViewModels | ⏳ Pending | Testing | Alta |
+| `FND-006` | Crear `expect/actual` wrappers pendientes para iOS | ✅ Done | Arquitectura | Media |
+| `FND-007` | Ampliar tests unitarios: UseCases, Repos, ViewModels | ✅ Partial (16 tests) | Testing | Alta |
 | `FND-008` | Limpiar archivos del repo: logs, `.kotlin/metadata/`, `build/` | ✅ Done | Repo | Baja |
 | `FND-009` | Configurar CI básico (GitHub Actions: build + tests) | ✅ Done | Infra | Media |
-| `FND-010` | Documentar expect/actual contracts para iOS | ⏳ Pending | Docs | Media |
+| `FND-010` | Documentar expect/actual contracts para iOS | ✅ Done | Docs | Media |
 | `FND-011` | Migrar `PaparcarLogger` de `println` a Napier/Kermit | ⏳ Pending | Refactor | Media |
-| `FND-012` | Extraer `MONTH_NAMES_SHORT` / `dayLabels` de HistoryScreen a strings.xml | ⏳ Pending | Refactor | Media |
-| `FND-013` | Persistir toggles de Settings en `AppPreferences` (DataStore) | ⏳ Pending | Feature | Media |
+| `FND-012` | Extraer `MONTH_NAMES_SHORT` / `dayLabels` de HistoryScreen a strings.xml | ✅ Done | Refactor | Media |
+| `FND-013` | Persistir toggles de Settings en `AppPreferences` (DataStore) | ✅ Done (SET-005) | Feature | Media |
 
 ---
 
@@ -67,7 +67,7 @@ Completar la pantalla principal como experiencia core de la app.
 | `HOME-010` | ~~Pull-to-refresh spots cercanos~~ | ❌ Cancelled | Feature | — |
 | `HOME-011` | FAB unification: SpeedDial → right column, MapCircleFab visual language | ✅ Done | Refactor | Alta |
 | `HOME-012` | FloatingHeader: acceso a MyCar (DirectionsCar icon) | ✅ Done | UI | Alta |
-| `HOME-013` | Implementar pantalla MyCar completa (estado vehículo, selector) | ⏳ Pending | UI | Alta |
+| `HOME-013` | Implementar pantalla MyCar completa (estado vehículo, selector) | ✅ Partial (VEH-003) | UI | Alta |
 | `HOME-014` | HistoryScreen: lista de sesiones agrupadas por día con mini-mapa | ✅ Done | UI | Media |
 | `HOME-015` | Skeleton loading + animación peek handle | ✅ Done | UX | Media |
 | `HOME-016` | Prevenir flash "Unknown location" durante geocoding | ✅ Done | Bug | Alta |
@@ -209,24 +209,24 @@ Spot → plaza libre visible a la comunidad
 
 ### Nomenclatura de tareas Phase 2
 
-| ID | Tarea | Tipo | Prioridad |
-|----|-------|------|-----------|
-| `VEH-001` | Modelo `Vehicle` definitivo (sin matrícula, con sizeCategory, showBrandModel) | Data | Alta |
-| `VEH-002` | `VehicleRegistration` screen: brand/model/size + BT opcional | Feature | Alta |
-| `VEH-003` | Selector de vehículo activo en MyCarScreen | UI | Alta |
-| `VEH-004` | Room + Firestore: tabla `vehicles` (1:N con UserProfile) | Data | Alta |
-| `VEH-005` | Strings `vehicle_size_*` + `vehicle_size_*_examples` en 9 idiomas | i18n | Alta |
-| `VEH-006` | Multi-vehicle: confirmación de vehículo al confirmar plaza (sin BT) | UX | Media |
-| `BT-001` | Bluetooth scanning: descubrir dispositivos BLE/Classic cercanos | Feature | Media |
-| `BT-002` | Emparejar dispositivo BT con vehículo específico | Feature | Media |
-| `BT-003` | `BluetoothConfigScreen`: scan, pair, manage | UI | Media |
-| `BT-004` | `BluetoothDetectionStrategy`: trigger en BT CONNECT + GPS sampling | Feature | Alta |
-| `BT-005` | Edge cases BT: ventana de parada breve, oscilación aftermarket, GPS drift check | Feature | Alta |
-| `BT-006` | Permiso BT en flujo de permisos (paso opcional, muy recomendado) | UX | Media |
-| `BT-007` | Acceso a BT Config desde Settings | UI | Baja |
-| `PERM-001` | `PermissionsRationaleScreen`: explica el pacto social antes de pedir permisos | UX | Alta |
-| `PERM-002` | Detection auto-start al aceptar todos los permisos requeridos | Feature | Alta |
-| `NOTIF-001` | Notificación de confirmación siempre para AR path (multi-vehicle selector) | UX | Alta |
+| ID | Tarea | Estado | Tipo | Prioridad |
+|----|-------|--------|------|-----------|
+| `VEH-001` | Modelo `Vehicle` definitivo (sin matrícula, con sizeCategory, showBrandModel) | ✅ Done | Data | Alta |
+| `VEH-002` | `VehicleRegistration` screen: brand/model/size + BT opcional | ✅ Done | Feature | Alta |
+| `VEH-003` | Selector de vehículo activo en MyCarScreen | ✅ Done | UI | Alta |
+| `VEH-004` | Room + Firestore: tabla `vehicles` (1:N con UserProfile) | ✅ Done | Data | Alta |
+| `VEH-005` | Strings `vehicle_size_*` + `vehicle_size_*_examples` en 9 idiomas | ✅ Done | i18n | Alta |
+| `VEH-006` | Seed Room desde Firestore on first launch / device change | ✅ Done | Data | Media |
+| `BT-001` | Bluetooth scanning: descubrir dispositivos BLE/Classic cercanos | ✅ Done | Feature | Media |
+| `BT-002` | Emparejar dispositivo BT con vehículo específico | ✅ Done | Feature | Media |
+| `BT-003` | `BluetoothConfigScreen`: scan, pair, manage | ✅ Done | UI | Media |
+| `BT-004` | `BluetoothDetectionStrategy`: trigger en BT CONNECT + GPS sampling | ✅ Done | Feature | Alta |
+| `BT-005` | Edge cases BT: ventana de parada breve, oscilación aftermarket, GPS drift check | ✅ Done | Feature | Alta |
+| `BT-006` | Permiso BT en flujo de permisos (paso opcional, muy recomendado) | ✅ Done | UX | Media |
+| `BT-007` | Acceso a BT Config desde Settings | ✅ Done | UI | Baja |
+| `PERM-001` | `PermissionsRationaleScreen`: explica el pacto social antes de pedir permisos | ✅ Done | UX | Alta |
+| `PERM-002` | Detection auto-start al aceptar todos los permisos requeridos | ✅ Done | Feature | Alta |
+| `NOTIF-001` | Notificación de confirmación siempre para AR path (multi-vehicle selector) | ✅ Done | UX | Alta |
 
 ### Estrategia BT — lógica definitiva
 
@@ -300,24 +300,25 @@ Permisos y su momento de petición:
 ### Objetivo
 Implementar el sistema de diseño y los componentes UI core definidos en la Sesión 4 del UX Audit.
 
-| ID | Tarea | Tipo | Prioridad |
-|----|-------|------|-----------|
-| `UI-001` | Design tokens: color, tipografía, spacing, shapes | Design | Alta |
-| `UI-002` | Componentes base MD3: Button, Card, TextField, Dialog, Badge | UI | Alta |
-| `UI-003` | Rama `experiment/glass-ui`: glassmorphism para BottomSheet y overlays de mapa | Experiment | Media |
-| `UI-004` | Rediseño Onboarding: carrusel 3 pasos con ilustraciones | UI | Media |
-| `UI-005` | `PermissionsRationaleScreen`: stepper visual, expansión por permiso | UX | Alta |
-| `UI-006` | `SpotCard`: sin botones inline; acción única "Navegar" = en camino, delegada al parent | UI | Alta |
-| `UI-007` | `DetectionStatusBanner` (BT / AR, con CTA de emparejamiento) | UI | Alta |
-| `UI-008` | `SpotMarker` custom con estados TTL y reliability | UI | Media |
-| `UI-009` | `ConfirmationBottomSheet`: countdown 4 min, timeout = publicar (no descartar) + notificación post-publicación con acción "Retirar" | UI | Alta |
-| `UI-010` | `VehicleCard` con estado de detección | UI | Alta |
-| `UI-011` | `TTLIndicator` y `EnRouteIndicator` | UI | Media |
-| `UI-012` | `VehicleSizeSelector` con ejemplos de modelos | UI | Alta |
-| `UI-013` | Dark mode como default, light mode como opción | UI | Alta |
-| `UI-014` | Animaciones y transiciones entre pantallas | UI | Baja |
-| `UI-015` | Añadir fuentes Syne/Jost a `composeResources/font/` | UI | Media |
-| `UI-016` | `SpotReliability` chip expandible en SpotCard | UI | Media |
+| ID | Tarea | Estado | Tipo | Prioridad |
+|----|-------|--------|------|-----------|
+| `UI-001` | Design tokens: color, tipografía, spacing, shapes | ✅ Done | Design | Alta |
+| `UI-002` | Componentes base MD3: Button, Card, TextField, Dialog, Badge | ✅ Done | UI | Alta |
+| `UI-003` | Rama `experiment/glass-ui`: glassmorphism para BottomSheet y overlays de mapa | ⏳ Pending | Experiment | Media |
+| `UI-004` | Rediseño Onboarding: carrusel 3 pasos con ilustraciones | ✅ Done | UI | Media |
+| `UI-005` | `PermissionsRationaleScreen`: stepper visual, expansión por permiso | ✅ Done | UX | Alta |
+| `UI-006` | `SpotCard`: sin botones inline; acción única "Navegar" = en camino, delegada al parent | ✅ Done | UI | Alta |
+| `UI-007` | `DetectionStatusBanner` (BT / AR, con CTA de emparejamiento) | ✅ Done | UI | Alta |
+| `UI-008` | `SpotMarker` custom con estados TTL y reliability | ✅ Done | UI | Media |
+| `UI-009` | `ConfirmationBottomSheet`: countdown 4 min, timeout = publicar (no descartar) | ✅ Done | UI | Alta |
+| `UI-010` | `VehicleCard` con estado de detección | ✅ Done | UI | Alta |
+| `UI-011` | `TTLIndicator` y `EnRouteIndicator` | ✅ Done | UI | Media |
+| `UI-012` | `VehicleSizeSelector` con ejemplos de modelos | ✅ Done | UI | Alta |
+| `UI-013` | Dark mode como default, light mode como opción | ✅ Done | UI | Alta |
+| `UI-014` | Animaciones y transiciones entre pantallas | ✅ Done | UI | Baja |
+| `UI-015` | Añadir fuentes Syne/Jost a `composeResources/font/` | ✅ Done | UI | Media |
+| `UI-016` | `SpotReliability` chip expandible en SpotCard | ✅ Done | UI | Media |
+| `UI-017` | Canvas-drawn P icon en spot marker | ✅ Done | UI | Media |
 
 ### Dirección visual definitiva
 
@@ -338,21 +339,21 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 | `HIST-003` | `ParkingLocationScreen`: mapa de detalle desde sesión | ✅ Done | UI | Media |
 | `HIST-004` | Tests: HistoryViewModel, mappers, filtrado | ⏳ Pending | Testing | Media |
 | `HIST-005` | Estadísticas básicas: tiempo medio aparcado, zonas frecuentes | ⏳ Pending | Feature | Baja |
-| `HIST-006` | Fix DT-002: `MONTH_NAMES_SHORT` y `dayLabels` → strings.xml | ⏳ Pending | Refactor | Media |
+| `HIST-006` | Fix DT-002: `MONTH_NAMES_SHORT` y `dayLabels` → strings.xml | ✅ Done | Refactor | Media |
 | `HIST-007` | Fix DT-003: extraer `DAY_MS = 86_400_000L` a companion object | ⏳ Pending | Refactor | Baja |
 
 ### Settings
 
 | ID | Sección | Contenido | Estado |
 |----|---------|-----------|--------|
-| `SET-001` | **Perfil** | Nombre, foto, email, logout, eliminar cuenta | ⏳ Pending |
-| `SET-002` | **Mis Vehículos** | Lista, añadir/editar/eliminar, activo por defecto | ⏳ Pending |
-| `SET-003` | **Bluetooth** | Dispositivos emparejados, re-escanear, toggle BT detection | ⏳ Pending |
-| `SET-004` | **Detección** | Sensibilidad (auto/manual), radio de geofence, auto-publicar | ⏳ Pending |
-| `SET-005` | **Mapa** | Tipo default, unidades distancia, radio de búsqueda | ⏳ Pending |
-| `SET-006` | **Notificaciones** | Toggle por tipo: parking confirmado, plaza cerca, BT events | ⏳ Pending |
-| `SET-007` | **Privacidad** | Compartir ubicación, exportar/eliminar datos (GDPR), política | ⏳ Pending |
-| `SET-008` | **Sobre la App** | Versión, licencias, contacto | ⏳ Pending |
+| `SET-001` | **Perfil** | Nombre, foto, email, logout, eliminar cuenta | ✅ Partial (falta eliminar cuenta) |
+| `SET-002` | **Mis Vehículos** | Lista, añadir/editar/eliminar, activo por defecto | ✅ Partial (navega a MyCar, falta edit/delete inline) |
+| `SET-003` | **Bluetooth** | Dispositivos emparejados, re-escanear, toggle BT detection | ✅ Partial (navega a BT config) |
+| `SET-004` | **Detección** | Sensibilidad (auto/manual), radio de geofence, auto-publicar | ✅ Partial (toggle autoDetect, falta sensibilidad/radio) |
+| `SET-005` | **Mapa** | Tipo default, unidades distancia, radio de búsqueda | ✅ Done |
+| `SET-006` | **Notificaciones** | Toggle por tipo: parking confirmado, plaza cerca, BT events | ✅ Done |
+| `SET-007` | **Privacidad** | Compartir ubicación, exportar/eliminar datos (GDPR), política | ⏳ Partial (link sin abrir browser, falta GDPR) |
+| `SET-008` | **Sobre la App** | Versión, licencias, contacto | ✅ Partial (versión OK, falta licencias/contacto) |
 | `SET-009` | **Idioma** | Selector: Automático + 9 idiomas soportados | ⏳ Pending |
 
 ---
@@ -448,29 +449,36 @@ feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 
 ## 12. Orden de Ejecución Recomendado
 
-### Sprint actual (Phase 0 + 1 pendientes)
-- `HOME-017` / `HOME-018` — deuda técnica menor en Home
-- `FND-011` — migrar Logger
-- `FND-012` / `FND-013` — strings y persistencia Settings
+### Sprint actual — Completar pendientes (actualizado 2026-04-17)
 
-### Sprint Phase 2 — arranque
-- `PERM-001` / `PERM-002` — pantalla de rationale + auto-start detección
-- `VEH-001` / `VEH-004` — modelo Vehicle + BD
-- `VEH-002` / `VEH-003` — registro y selector
-- `VEH-005` — strings de VehicleSize en 9 idiomas
+**Prioridad 1 — Funcionalidad:**
+- `FND-011` — migrar `PaparcarLogger` a Napier/Kermit
+- `SET-007` — implementar `OpenUrl` + GDPR (exportar/eliminar datos)
+- `SET-009` — selector de idioma
+- `HOME-013` — completar MyCarScreen (delete/edit vehicle)
 
-### Sprint Phase 2 — Bluetooth
-- `BT-001` / `BT-002` — scanning y emparejamiento
-- `BT-004` / `BT-005` — estrategia BT + edge cases
-- `NOTIF-001` — notificación confirmación con multi-vehicle
+**Prioridad 2 — Pulido:**
+- `HOME-017` — `ObserveAdaptiveLocationUseCase` en `ParkingLocationViewModel`
+- `HOME-018` — `PARKING_ITEM_ID` a companion object
+- `HIST-002` — filtros historial (por vehículo, fecha)
+- `HIST-005` — estadísticas básicas
+- `HIST-007` — extraer `DAY_MS` constant
+- `SET-001` — añadir eliminar cuenta
+- `SET-004` — sensibilidad detección y radio geofence
+- `SET-008` — licencias y contacto
 
-### Sprint Phase 3 — Design System
-- `UI-001` tokens → `UI-002` base components → componentes específicos (`UI-006` a `UI-012`)
-- `UI-003` experimento glass en rama separada
+**Prioridad 3 — Tests:**
+- `TEST-002` — ParkingDetectionCoordinator (3 paths)
+- `TEST-003` — SpotRepositoryImpl (offline-first)
+- ViewModel tests (Home, History, MyCar, Settings)
 
-### Sprint Phase 4 — Completar secundarias
-- `HIST-002` / `HIST-005` — filtros y estadísticas
-- `SET-001` a `SET-009` — todas las secciones de Settings
+**Prioridad 4 — Experimentos:**
+- `UI-003` — glass-ui experiment (rama separada)
+
+### Fases completadas (no planificar)
+- ~~Phase 2 — Vehículos & BT~~ ✅ (16/16 tareas)
+- ~~Phase 3 — Design System~~ ✅ (16/17 tareas, solo UI-003 pendiente)
+- ~~Tech Debt QA-1/QA-4/QA-5~~ ✅ (todo completado)
 
 ---
 
@@ -489,4 +497,4 @@ feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 ---
 
 *Documento vivo — actualizar conforme avance el desarrollo.*
-*Última actualización: Abril 2026 — post UX Audit Sessions 1–4*
+*Última actualización: 17 Abril 2026 — auditoría completa de progreso vs commits reales*
