@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -22,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +46,12 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
+import paparcar.composeapp.generated.resources.my_car_delete_cancel
+import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
+import paparcar.composeapp.generated.resources.my_car_delete_confirm_message
+import paparcar.composeapp.generated.resources.my_car_delete_confirm_title
+import paparcar.composeapp.generated.resources.my_car_delete_vehicle
+import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_title
 import paparcar.composeapp.generated.resources.vehicle_size_large
@@ -55,6 +64,7 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
 @Composable
 fun MyCarScreen(
     onAddVehicle: () -> Unit = {},
+    onEditVehicle: (vehicleId: String) -> Unit = {},
     onConfigureBluetooth: (vehicleId: String) -> Unit = {},
     viewModel: MyCarViewModel = koinViewModel(),
 ) {
@@ -66,9 +76,19 @@ fun MyCarScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is MyCarEffect.NavigateToAddVehicle -> onAddVehicle()
+                is MyCarEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
                 is MyCarEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
             }
         }
+    }
+
+    if (state.pendingDeleteVehicleId != null) {
+        DeleteVehicleConfirmDialog(
+            onConfirm = {
+                viewModel.handleIntent(MyCarIntent.ConfirmDeleteVehicle(state.pendingDeleteVehicleId!!))
+            },
+            onDismiss = { viewModel.handleIntent(MyCarIntent.DismissDeleteConfirmation) },
+        )
     }
 
     Scaffold(
@@ -105,12 +125,41 @@ fun MyCarScreen(
                         data = vehicle.toCardData(sizeLabel = vehicleSizeName(vehicle.sizeCategory)),
                         onSetActive = { viewModel.handleIntent(MyCarIntent.SetActiveVehicle(vehicle.id)) },
                         onConfigureBluetooth = { onConfigureBluetooth(vehicle.id) },
+                        onEdit = { viewModel.handleIntent(MyCarIntent.EditVehicle(vehicle.id)) },
+                        onDelete = { viewModel.handleIntent(MyCarIntent.RequestDeleteVehicle(vehicle.id)) },
                     )
                 }
                 item { Spacer(Modifier.height(FAB_CLEARANCE_HEIGHT)) }
             }
         }
     }
+}
+
+// ─── Delete confirmation dialog ───────────────────────────────────────────────
+
+@Composable
+private fun DeleteVehicleConfirmDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.my_car_delete_confirm_title)) },
+        text = { Text(stringResource(Res.string.my_car_delete_confirm_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+            ) {
+                Text(stringResource(Res.string.my_car_delete_confirm_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.my_car_delete_cancel))
+            }
+        },
+    )
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────

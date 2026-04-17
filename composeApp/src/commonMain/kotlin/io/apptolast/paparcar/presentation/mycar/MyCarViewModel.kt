@@ -29,6 +29,16 @@ class MyCarViewModel(
     override fun handleIntent(intent: MyCarIntent) {
         when (intent) {
             is MyCarIntent.SetActiveVehicle -> setActiveVehicle(intent.vehicleId)
+            is MyCarIntent.RequestDeleteVehicle ->
+                updateState { copy(pendingDeleteVehicleId = intent.vehicleId) }
+            is MyCarIntent.DismissDeleteConfirmation ->
+                updateState { copy(pendingDeleteVehicleId = null) }
+            is MyCarIntent.ConfirmDeleteVehicle -> {
+                updateState { copy(pendingDeleteVehicleId = null) }
+                deleteVehicle(intent.vehicleId)
+            }
+            is MyCarIntent.EditVehicle ->
+                sendEffect(MyCarEffect.NavigateToEditVehicle(intent.vehicleId))
             is MyCarIntent.AddVehicle -> sendEffect(MyCarEffect.NavigateToAddVehicle)
         }
     }
@@ -38,6 +48,16 @@ class MyCarViewModel(
             runCatching { vehicleRepository.setDefaultVehicle(vehicleId) }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to set default vehicle", e)
+                    sendEffect(MyCarEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                }
+        }
+    }
+
+    private fun deleteVehicle(vehicleId: String) {
+        viewModelScope.launch {
+            runCatching { vehicleRepository.deleteVehicle(vehicleId) }
+                .onFailure { e ->
+                    PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
                     sendEffect(MyCarEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
                 }
         }

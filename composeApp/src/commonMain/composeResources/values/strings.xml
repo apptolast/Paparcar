@@ -248,11 +248,18 @@
     <string name="my_car_placeholder_desc">Vehicle management is coming in a future update.</string>
     <string name="my_car_no_vehicle">No vehicle registered yet</string>
     <string name="my_car_add_vehicle">Add vehicle</string>
+    <string name="my_car_edit_vehicle">Edit</string>
+    <string name="my_car_delete_vehicle">Delete</string>
+    <string name="my_car_delete_confirm_title">Delete vehicle?</string>
+    <string name="my_car_delete_confirm_message">This vehicle will be permanently removed. This action cannot be undone.</string>
+    <string name="my_car_delete_confirm_action">Delete</string>
+    <string name="my_car_delete_cancel">Cancel</string>
     <string name="my_car_active_vehicle">Active vehicle</string>
     <string name="my_car_set_active">Set as active</string>
 
     <!-- Vehicle Registration screen -->
     <string name="vehicle_registration_title">Register your vehicle</string>
+    <string name="vehicle_registration_edit_title">Edit vehicle</string>
     <string name="vehicle_registration_save">Save</string>
     <string name="vehicle_registration_brand_hint">Brand (optional)</string>
     <string name="vehicle_registration_model_hint">Model (optional)</string>

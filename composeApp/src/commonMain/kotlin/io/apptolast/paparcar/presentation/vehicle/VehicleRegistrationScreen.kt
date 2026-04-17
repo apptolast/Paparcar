@@ -39,6 +39,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.vehicle_registration_brand_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
+import paparcar.composeapp.generated.resources.vehicle_registration_edit_title
 import paparcar.composeapp.generated.resources.vehicle_registration_save
 import paparcar.composeapp.generated.resources.vehicle_registration_title
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot
@@ -50,11 +51,18 @@ import paparcar.composeapp.generated.resources.vehicle_size_label
 fun VehicleRegistrationScreen(
     onRegistrationComplete: () -> Unit,
     onNavigateBack: () -> Unit = {},
+    vehicleId: String? = null,
     viewModel: VehicleRegistrationViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
+
+    LaunchedEffect(vehicleId) {
+        if (vehicleId != null) {
+            viewModel.handleIntent(VehicleRegistrationIntent.LoadVehicle(vehicleId))
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -67,10 +75,18 @@ fun VehicleRegistrationScreen(
         }
     }
 
+    val isEditing = state.editingVehicleId != null
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.vehicle_registration_title)) },
+                title = {
+                    Text(
+                        stringResource(
+                            if (isEditing) Res.string.vehicle_registration_edit_title
+                            else Res.string.vehicle_registration_title,
+                        ),
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.handleIntent(VehicleRegistrationIntent.NavigateBack) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)

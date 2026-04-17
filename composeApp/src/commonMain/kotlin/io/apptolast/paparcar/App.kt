@@ -238,11 +238,16 @@ private fun MainAppNavigation(
             popExitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { it / NAV_SLIDE_FRACTION } },
         ) {
             composable(
-                route = "${Routes.VEHICLE_REGISTRATION}?origin={origin}",
-                arguments = listOf(navArgument("origin") { defaultValue = "onboarding" }),
+                route = "${Routes.VEHICLE_REGISTRATION}?origin={origin}&vehicleId={vehicleId}",
+                arguments = listOf(
+                    navArgument("origin") { defaultValue = "onboarding" },
+                    navArgument("vehicleId") { nullable = true; defaultValue = null },
+                ),
             ) { backStack ->
                 val origin = backStack.arguments?.getString("origin") ?: "onboarding"
+                val vehicleId = backStack.arguments?.getString("vehicleId")
                 VehicleRegistrationScreen(
+                    vehicleId = vehicleId,
                     onRegistrationComplete = {
                         if (origin == "my_car") {
                             navController.popBackStack()
@@ -322,6 +327,9 @@ private fun MainAppNavigation(
                 MyCarScreen(
                     onAddVehicle = {
                         navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car")
+                    },
+                    onEditVehicle = { vehicleId ->
+                        navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car&vehicleId=$vehicleId")
                     },
                     onConfigureBluetooth = { vehicleId ->
                         navController.navigate("${Routes.BT_CONFIG}/$vehicleId")

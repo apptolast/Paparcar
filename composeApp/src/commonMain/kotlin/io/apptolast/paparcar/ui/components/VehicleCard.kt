@@ -28,6 +28,8 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_active_vehicle
 import paparcar.composeapp.generated.resources.my_car_bt_configure
+import paparcar.composeapp.generated.resources.my_car_delete_vehicle
+import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.my_car_set_active
 import paparcar.composeapp.generated.resources.vehicle_card_detection_ar
 import paparcar.composeapp.generated.resources.vehicle_card_detection_bt
@@ -94,6 +96,8 @@ fun VehicleCard(
     data: VehicleCardData,
     onSetActive: () -> Unit,
     onConfigureBluetooth: () -> Unit,
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     PapCard(
@@ -156,6 +160,21 @@ fun VehicleCard(
             PapSecondaryButton(
                 label = stringResource(Res.string.my_car_bt_configure),
                 onClick = onConfigureBluetooth,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
+        ) {
+            PapSecondaryButton(
+                label = stringResource(Res.string.my_car_edit_vehicle),
+                onClick = onEdit,
+                modifier = Modifier.weight(1f),
+            )
+            PapSecondaryButton(
+                label = stringResource(Res.string.my_car_delete_vehicle),
+                onClick = onDelete,
                 modifier = Modifier.weight(1f),
             )
         }
