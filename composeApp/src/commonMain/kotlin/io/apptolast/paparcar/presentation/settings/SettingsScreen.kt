@@ -22,10 +22,12 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -64,6 +66,7 @@ import paparcar.composeapp.generated.resources.settings_dark_mode
 import paparcar.composeapp.generated.resources.settings_dark_mode_desc
 import paparcar.composeapp.generated.resources.settings_nav_my_car
 import paparcar.composeapp.generated.resources.settings_nav_my_car_desc
+import paparcar.composeapp.generated.resources.settings_contact
 import paparcar.composeapp.generated.resources.settings_licenses
 import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_profile_logout
@@ -271,6 +274,20 @@ fun SettingsScreen(
                     icon = Icons.Outlined.Shield,
                     label = stringResource(Res.string.settings_privacy),
                     onClick = { viewModel.handleIntent(SettingsIntent.OpenPrivacyPolicy) },
+                )
+            }
+            item {
+                SettingsNavItem(
+                    icon = Icons.Outlined.VerifiedUser,
+                    label = stringResource(Res.string.settings_licenses),
+                    onClick = { viewModel.handleIntent(SettingsIntent.OpenLicenses) },
+                )
+            }
+            item {
+                SettingsNavItem(
+                    icon = Icons.Outlined.Email,
+                    label = stringResource(Res.string.settings_contact),
+                    onClick = { viewModel.handleIntent(SettingsIntent.OpenContact) },
                 )
             }
         }

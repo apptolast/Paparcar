@@ -63,6 +63,10 @@ class SettingsViewModel(
                 sendEffect(SettingsEffect.NavigateToMyCar)
             is SettingsIntent.OpenPrivacyPolicy ->
                 sendEffect(SettingsEffect.OpenUrl("https://paparcar.app/privacy"))
+            is SettingsIntent.OpenLicenses ->
+                sendEffect(SettingsEffect.OpenUrl("https://paparcar.app/licenses"))
+            is SettingsIntent.OpenContact ->
+                sendEffect(SettingsEffect.OpenUrl("mailto:hola@paparcar.app"))
             is SettingsIntent.Logout -> viewModelScope.launch {
                 authRepository.signOut()
             }

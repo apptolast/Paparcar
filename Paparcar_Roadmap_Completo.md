@@ -42,7 +42,7 @@ Solidificar la base antes de añadir features nuevas.
 | `FND-008` | Limpiar archivos del repo: logs, `.kotlin/metadata/`, `build/` | ✅ Done | Repo | Baja |
 | `FND-009` | Configurar CI básico (GitHub Actions: build + tests) | ✅ Done | Infra | Media |
 | `FND-010` | Documentar expect/actual contracts para iOS | ✅ Done | Docs | Media |
-| `FND-011` | Migrar `PaparcarLogger` de `println` a Napier/Kermit | ⏳ Pending | Refactor | Media |
+| `FND-011` | Migrar `PaparcarLogger` de `println` a Napier/Kermit | ✅ Done | Refactor | Media |
 | `FND-012` | Extraer `MONTH_NAMES_SHORT` / `dayLabels` de HistoryScreen a strings.xml | ✅ Done | Refactor | Media |
 | `FND-013` | Persistir toggles de Settings en `AppPreferences` (DataStore) | ✅ Done (SET-005) | Feature | Media |
 
@@ -71,8 +71,8 @@ Completar la pantalla principal como experiencia core de la app.
 | `HOME-014` | HistoryScreen: lista de sesiones agrupadas por día con mini-mapa | ✅ Done | UI | Media |
 | `HOME-015` | Skeleton loading + animación peek handle | ✅ Done | UX | Media |
 | `HOME-016` | Prevenir flash "Unknown location" durante geocoding | ✅ Done | Bug | Alta |
-| `HOME-017` | `ObserveAdaptiveLocationUseCase` en `ParkingLocationViewModel` (DT-005) | ⏳ Pending | Refactor | Media |
-| `HOME-018` | Mover `PARKING_ITEM_ID` a `HomeState` companion object (DT-007) | ⏳ Pending | Refactor | Baja |
+| `HOME-017` | `ObserveAdaptiveLocationUseCase` en `ParkingLocationViewModel` (DT-005) | ✅ Done | Refactor | Media |
+| `HOME-018` | Mover `PARKING_ITEM_ID` a `HomeState` companion object (DT-007) | ✅ Done | Refactor | Baja |
 | `HOME-019` | Rename `MapScreen` → `ParkingLocationScreen` + eliminar dead code | ✅ Done | Refactor | Alta |
 
 ### Navegación: Pattern A — IMPLEMENTADO Y CONFIRMADO DEFINITIVAMENTE
@@ -340,7 +340,7 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 | `HIST-004` | Tests: HistoryViewModel, mappers, filtrado | ⏳ Pending | Testing | Media |
 | `HIST-005` | Estadísticas básicas: tiempo medio aparcado, zonas frecuentes | ⏳ Pending | Feature | Baja |
 | `HIST-006` | Fix DT-002: `MONTH_NAMES_SHORT` y `dayLabels` → strings.xml | ✅ Done | Refactor | Media |
-| `HIST-007` | Fix DT-003: extraer `DAY_MS = 86_400_000L` a companion object | ⏳ Pending | Refactor | Baja |
+| `HIST-007` | Fix DT-003: extraer `DAY_MS = 86_400_000L` a companion object | ✅ Done | Refactor | Baja |
 
 ### Settings
 
@@ -353,7 +353,7 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 | `SET-005` | **Mapa** | Tipo default, unidades distancia, radio de búsqueda | ✅ Done |
 | `SET-006` | **Notificaciones** | Toggle por tipo: parking confirmado, plaza cerca, BT events | ✅ Done |
 | `SET-007` | **Privacidad** | Compartir ubicación, exportar/eliminar datos (GDPR), política | ⏳ Partial (link sin abrir browser, falta GDPR) |
-| `SET-008` | **Sobre la App** | Versión, licencias, contacto | ✅ Partial (versión OK, falta licencias/contacto) |
+| `SET-008` | **Sobre la App** | Versión, licencias, contacto | ✅ Done |
 | `SET-009` | **Idioma** | Selector: Automático + 9 idiomas soportados | ⏳ Pending |
 
 ---
