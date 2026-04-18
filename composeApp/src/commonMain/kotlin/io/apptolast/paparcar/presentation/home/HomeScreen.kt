@@ -46,22 +46,16 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
@@ -319,12 +313,6 @@ private fun HomeContent(
                 }
             }
 
-            val nestedScrollConnection = rememberSheetScrollConnection(
-                sheetOffsetPx = sheetOffsetPx,
-                peekOffsetPx = peekOffsetPx,
-                fullSnapOffsetPx = fullSnapOffsetPx,
-            )
-
             val sheetExpanded = sheetOffsetPx.value <= fullSnapOffsetPx + 1f
             // FABs sit just above the sheet's current top edge and follow it as it moves.
             val fabBottomDp =
@@ -473,7 +461,7 @@ private fun HomeContent(
                     .offset { IntOffset(0, sheetOffsetPx.value.roundToInt()) },
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             ) {
-                Column(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     // Handle: the only area that drags the sheet
                     Box(
                         modifier = Modifier
@@ -557,56 +545,5 @@ private fun HomeContent(
         }
     }
     } // CompositionLocalProvider
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sheet scroll connection
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * NestedScrollConnection that coordinates the 3-state bottom sheet with an
- * inner scrollable list:
- *  • onPreScroll  (UP)   — expand sheet before the list scrolls
- *  • onPostScroll (DOWN) — collapse only after the list has reached its top
- *  • onPreFling   (UP)   — snap sheet open on upward fling
- *  • onPostFling  (DOWN) — snap sheet closed on downward fling once list is exhausted
- */
-@Composable
-private fun rememberSheetScrollConnection(
-    sheetOffsetPx: Animatable<Float, *>,
-    peekOffsetPx: Float,
-    fullSnapOffsetPx: Float,
-): NestedScrollConnection {
-    val coroutineScope = rememberCoroutineScope()
-    val fullSnapState = rememberUpdatedState(fullSnapOffsetPx)
-    val peekState = rememberUpdatedState(peekOffsetPx)
-    return remember(sheetOffsetPx) {
-        object : NestedScrollConnection {
-            // List scrolls freely — sheet only moves via handle drag.
-            // onPostScroll: list has reached top and there's leftover downward delta → collapse sheet.
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset {
-                val delta = available.y
-                return if (delta > 0f && sheetOffsetPx.value < peekState.value) {
-                    val newOffset = (sheetOffsetPx.value + delta).coerceAtMost(peekState.value)
-                    val consumedY = newOffset - sheetOffsetPx.value
-                    coroutineScope.launch { sheetOffsetPx.snapTo(newOffset) }
-                    Offset(0f, consumedY)
-                } else Offset.Zero
-            }
-
-            // onPostFling: list exhausted scroll and user flings down → snap sheet to peek.
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                val vy = available.y
-                return if (vy > FLING_SNAP_VELOCITY && sheetOffsetPx.value < peekState.value) {
-                    sheetOffsetPx.animateTo(peekState.value, SnapSpec)
-                    available
-                } else Velocity.Zero
-            }
-        }
-    }
 }
 
