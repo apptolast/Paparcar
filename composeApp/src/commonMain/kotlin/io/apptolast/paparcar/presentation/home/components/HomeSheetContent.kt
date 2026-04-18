@@ -67,10 +67,11 @@ internal fun HomeSheetContent(
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     scrollState: ScrollState,
     spotScrollPositions: MutableMap<String, Int>,
+    modifier: Modifier = Modifier,
 ) {
     val selectedSpotId = state.selectedItemId?.takeIf { it != HomeState.PARKING_ITEM_ID }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .verticalScroll(scrollState)
             .navigationBarsPadding()

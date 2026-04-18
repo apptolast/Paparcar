@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -307,32 +306,16 @@ private fun HomeContent(
             val peekOffsetPx = (containerHeightPx - peekHeightPx - navBarReservePx).coerceAtLeast(0f)
             val halfOffsetPx = containerHeightPx / 2f
 
-            // Measured height of the sheet Surface (updated after each layout pass).
-            // Defaults to containerHeightPx so the initial fullSnapOffsetPx = 0 (same as before).
-            var sheetHeightPx by remember(containerHeightPx) { mutableFloatStateOf(containerHeightPx) }
+            // Sheet is always full-height — fullSnap = 0 means "sheet top at screen top".
+            // List inside uses weight(1f) so its verticalScroll always has a real viewport.
+            val fullSnapOffsetPx = 0f
 
-            // Full snap: how far to offset the sheet so ALL content is just visible.
-            val fullSnapOffsetPx = (containerHeightPx - sheetHeightPx).coerceAtLeast(0f)
-
-            // Initialized at peek on first composition. Does NOT reset on subsequent peekOffsetPx
-            // changes (e.g. nav bar appearing) so the sheet stays open when nav bar shows.
             val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
-            // If the sheet was at (or beyond) peek when the container resizes, keep it at peek.
-            // If it was open, leave it in place — just clamp so it can't go past the new peek.
-            // When no item is selected the sheet always lives at peek.
-            // Key on both peekOffsetPx AND selectedItemId so we re-evaluate:
-            //  • when the nav bar appears/disappears (container resizes → new peekOffsetPx)
-            //  • when the AnimatedVisibility exit animation finishes (second peekOffsetPx change)
             LaunchedEffect(peekOffsetPx, state.selectedItemId) {
                 if (state.selectedItemId == null) {
                     sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
                 } else if (sheetOffsetPx.value >= peekOffsetPx) {
                     sheetOffsetPx.snapTo(peekOffsetPx)
-                }
-            }
-            LaunchedEffect(fullSnapOffsetPx) {
-                if (sheetOffsetPx.value < fullSnapOffsetPx) {
-                    sheetOffsetPx.animateTo(fullSnapOffsetPx, SnapSpec)
                 }
             }
 
@@ -479,19 +462,19 @@ private fun HomeContent(
                 }
             }
 
-            // ── 3-state bottom sheet ─────────────────────────────────────────
-            // Surface wraps content height (no fillMaxSize) — onSizeChanged reports
-            // the actual height so fullSnapOffsetPx positions the sheet to show all content.
+            // ── Bottom sheet ─────────────────────────────────────────────────
+            // Fixed full-height sheet (Instagram-style): handle at top is the
+            // ONLY draggable region; the list fills the rest via weight(1f)
+            // and scrolls internally through its own verticalScroll viewport.
             GlassSurface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = containerHeightDp)
-                    .offset { IntOffset(0, sheetOffsetPx.value.roundToInt()) }
-                    .onSizeChanged { size -> sheetHeightPx = size.height.toFloat() },
+                    .height(containerHeightDp)
+                    .offset { IntOffset(0, sheetOffsetPx.value.roundToInt()) },
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             ) {
-                Column(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
-                    // Handle: drives the sheet via draggable
+                Column(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
+                    // Handle: the only area that drags the sheet
                     Box(
                         modifier = Modifier
                             .draggable(
@@ -542,6 +525,7 @@ private fun HomeContent(
                         },
                         scrollState = scrollState,
                         spotScrollPositions = spotScrollPositions,
+                        modifier = Modifier.weight(1f),
                     )
                 }
             }
