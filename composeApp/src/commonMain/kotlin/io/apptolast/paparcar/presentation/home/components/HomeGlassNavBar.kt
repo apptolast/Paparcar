@@ -1,40 +1,34 @@
 package io.apptolast.paparcar.presentation.home.components
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.ui.components.GlassDefaults
 import io.apptolast.paparcar.ui.components.GlassSurface
-import org.jetbrains.compose.resources.stringResource
-import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_nav_history
-import paparcar.composeapp.generated.resources.home_nav_map
-import paparcar.composeapp.generated.resources.home_nav_my_car
-import paparcar.composeapp.generated.resources.home_nav_settings
 
-private val NAV_BAR_CORNER_DP = 24.dp
-private val TAB_CORNER_DP = 16.dp
-private val ICON_SIZE_DP = 20.dp
+private val NAV_BAR_CORNER = 28.dp
+private val ICON_SIZE = 22.dp
+private val HIT_TARGET = 44.dp
 
 @Composable
 internal fun HomeGlassNavBar(
@@ -45,36 +39,37 @@ internal fun HomeGlassNavBar(
     modifier: Modifier = Modifier,
 ) {
     GlassSurface(
-        shape = RoundedCornerShape(NAV_BAR_CORNER_DP),
+        shape = RoundedCornerShape(NAV_BAR_CORNER),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 28.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            NavTabItem(
-                icon = Icons.Outlined.Map,
-                label = stringResource(Res.string.home_nav_map),
+            NavIcon(
+                selected = Icons.Filled.Map,
+                unselected = Icons.Outlined.Map,
                 isSelected = true,
                 onClick = onMapClick,
             )
-            NavTabItem(
-                icon = Icons.Outlined.History,
-                label = stringResource(Res.string.home_nav_history),
+            NavIcon(
+                selected = Icons.Filled.History,
+                unselected = Icons.Outlined.History,
                 onClick = onHistoryClick,
             )
-            NavTabItem(
-                icon = Icons.Outlined.DirectionsCar,
-                label = stringResource(Res.string.home_nav_my_car),
+            NavIcon(
+                selected = Icons.Filled.DirectionsCar,
+                unselected = Icons.Outlined.DirectionsCar,
                 onClick = onMyCarClick,
             )
-            NavTabItem(
-                icon = Icons.Outlined.Settings,
-                label = stringResource(Res.string.home_nav_settings),
+            NavIcon(
+                selected = Icons.Filled.Settings,
+                unselected = Icons.Outlined.Settings,
                 onClick = onSettingsClick,
             )
         }
@@ -82,40 +77,29 @@ internal fun HomeGlassNavBar(
 }
 
 @Composable
-private fun NavTabItem(
-    icon: ImageVector,
-    label: String,
+private fun NavIcon(
+    selected: ImageVector,
+    unselected: ImageVector,
     isSelected: Boolean = false,
     onClick: () -> Unit,
 ) {
     val tint = if (isSelected) MaterialTheme.colorScheme.primary
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
 
-    GlassSurface(
+    Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(TAB_CORNER_DP),
-        colors = if (isSelected) GlassDefaults.colors(
-            container = MaterialTheme.colorScheme.primaryContainer,
-        ) else GlassDefaults.colors(
-            container = Color.Transparent,
-        ),
-        modifier = Modifier.padding(2.dp),
+        color = androidx.compose.ui.graphics.Color.Transparent,
+        shape = RoundedCornerShape(12.dp),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(HIT_TARGET),
         ) {
             Icon(
-                imageVector = icon,
-                contentDescription = label,
+                imageVector = if (isSelected) selected else unselected,
+                contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(ICON_SIZE_DP),
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = tint,
+                modifier = Modifier.size(ICON_SIZE),
             )
         }
     }

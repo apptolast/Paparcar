@@ -93,7 +93,6 @@ import paparcar.composeapp.generated.resources.home_manual_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private data class SelectedNavTarget(val lat: Double, val lon: Double)
@@ -101,13 +100,14 @@ private data class SelectedNavTarget(val lat: Double, val lon: Double)
 // Peek = drag pill (22dp) + content row (82dp)
 private val SheetPeekHeight = 104.dp
 
-private const val MAP_INTERACTION_IDLE_DELAY_MS = 600L
-private const val GLASS_NAV_BAR_DEFAULT_HEIGHT_DP = 72
+private const val MAP_INTERACTION_IDLE_DELAY_MS = 150L
+// Nav bar content height (without navigationBarsPadding or bottom spacing)
+private const val GLASS_NAV_BAR_DEFAULT_HEIGHT_DP = 56
 
 private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
 
-// Minimum pixel gap between two snap points — avoids duplicates after rounding
-private const val SNAP_THRESHOLD_PX = 120f
+// Velocity (px/s) required to snap the sheet on fling; below this the sheet stays in place
+private const val FLING_SNAP_VELOCITY = 1200f
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root
@@ -314,17 +314,6 @@ private fun HomeContent(
             // Full snap: how far to offset the sheet so ALL content is just visible.
             val fullSnapOffsetPx = (containerHeightPx - sheetHeightPx).coerceAtLeast(0f)
 
-            // Build snap points, skipping half when content is shorter than half-screen.
-            val snapPoints = remember(peekOffsetPx, halfOffsetPx, fullSnapOffsetPx) {
-                buildList {
-                    add(peekOffsetPx)
-                    if (halfOffsetPx < peekOffsetPx - SNAP_THRESHOLD_PX &&
-                        halfOffsetPx > fullSnapOffsetPx + SNAP_THRESHOLD_PX
-                    ) add(halfOffsetPx)
-                    if (fullSnapOffsetPx < peekOffsetPx - SNAP_THRESHOLD_PX) add(fullSnapOffsetPx)
-                }
-            }
-
             // Initialized at peek on first composition. Does NOT reset on subsequent peekOffsetPx
             // changes (e.g. nav bar appearing) so the sheet stays open when nav bar shows.
             val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
@@ -349,7 +338,6 @@ private fun HomeContent(
 
             val nestedScrollConnection = rememberSheetScrollConnection(
                 sheetOffsetPx = sheetOffsetPx,
-                snapPoints = snapPoints,
                 peekOffsetPx = peekOffsetPx,
                 fullSnapOffsetPx = fullSnapOffsetPx,
             )
@@ -520,8 +508,11 @@ private fun HomeContent(
                                 },
                                 onDragStopped = { velocity ->
                                     coroutineScope.launch {
-                                        val target =
-                                            snapToNearest(snapPoints, sheetOffsetPx.value, velocity)
+                                        val target = when {
+                                            velocity < -FLING_SNAP_VELOCITY -> fullSnapOffsetPx
+                                            velocity > FLING_SNAP_VELOCITY -> peekOffsetPx
+                                            else -> sheetOffsetPx.value
+                                        }.coerceIn(fullSnapOffsetPx, peekOffsetPx)
                                         sheetOffsetPx.animateTo(target, SnapSpec)
                                     }
                                 },
@@ -599,16 +590,13 @@ private fun HomeContent(
 @Composable
 private fun rememberSheetScrollConnection(
     sheetOffsetPx: Animatable<Float, *>,
-    snapPoints: List<Float>,
     peekOffsetPx: Float,
     fullSnapOffsetPx: Float,
 ): NestedScrollConnection {
     val coroutineScope = rememberCoroutineScope()
-    // rememberUpdatedState ensures the lambdas below always read the latest values
-    // even when the connection is not recreated (e.g. minor fullSnapOffsetPx changes).
     val fullSnapState = rememberUpdatedState(fullSnapOffsetPx)
     val peekState = rememberUpdatedState(peekOffsetPx)
-    return remember(sheetOffsetPx, snapPoints) {
+    return remember(sheetOffsetPx) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 val delta = available.y
@@ -636,22 +624,16 @@ private fun rememberSheetScrollConnection(
 
             override suspend fun onPreFling(available: Velocity): Velocity {
                 val vy = available.y
-                return if (vy < -300f && sheetOffsetPx.value > fullSnapState.value) {
-                    sheetOffsetPx.animateTo(
-                        snapToNearest(snapPoints, sheetOffsetPx.value, vy),
-                        SnapSpec
-                    )
+                return if (vy < -FLING_SNAP_VELOCITY && sheetOffsetPx.value > fullSnapState.value) {
+                    sheetOffsetPx.animateTo(fullSnapState.value, SnapSpec)
                     available
                 } else Velocity.Zero
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 val vy = available.y
-                return if (vy > 300f && sheetOffsetPx.value < peekState.value) {
-                    sheetOffsetPx.animateTo(
-                        snapToNearest(snapPoints, sheetOffsetPx.value, vy),
-                        SnapSpec
-                    )
+                return if (vy > FLING_SNAP_VELOCITY && sheetOffsetPx.value < peekState.value) {
+                    sheetOffsetPx.animateTo(peekState.value, SnapSpec)
                     available
                 } else Velocity.Zero
             }
@@ -659,17 +641,3 @@ private fun rememberSheetScrollConnection(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Snap logic
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Returns the target snap point given current offset and drag velocity.
- * velocity < -300 → snap up (expand), velocity > 300 → snap down (collapse), else → nearest.
- */
-private fun snapToNearest(snapPoints: List<Float>, current: Float, velocity: Float): Float =
-    when {
-        velocity < -300f -> snapPoints.filter { it < current }.maxOrNull() ?: snapPoints.first()
-        velocity > 300f -> snapPoints.filter { it > current }.minOrNull() ?: snapPoints.last()
-        else -> snapPoints.minByOrNull { abs(it - current) } ?: current
-    }

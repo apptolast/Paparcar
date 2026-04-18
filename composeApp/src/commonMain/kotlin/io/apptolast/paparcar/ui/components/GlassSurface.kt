@@ -89,7 +89,7 @@ object GlassDefaults {
 
     internal const val ALPHA_IDLE = 1.0f
     internal const val ALPHA_INTERACTING = 0.52f
-    internal const val ANIM_DURATION_MS = 350
+    internal const val ANIM_DURATION_MS = 180
     internal const val BORDER_ALPHA = 0.18f
     internal val IDLE_ELEVATION = 3.dp
     private val BORDER_WIDTH = 0.5.dp
