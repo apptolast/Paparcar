@@ -5,7 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Surface
 
 /**
  * Provided by HomeScreen when the user is actively dragging the map camera.
@@ -23,12 +24,12 @@ import androidx.compose.ui.unit.dp
 val LocalMapInteracting = compositionLocalOf { false }
 
 /**
- * A Surface with a frosted-glass appearance: semi-transparent tinted background
- * with a subtle luminous border that lets the map show through.
+ * A Surface that is fully opaque and tonally elevated at rest, and
+ * transitions to a translucent frosted-glass style when the map camera
+ * is being moved ([LocalMapInteracting] == true).
  *
- * When [LocalMapInteracting] is true the surface animates to a more transparent
- * state so the map is clearly visible beneath UI overlays. When false it
- * transitions back to a nearly-opaque solid state.
+ * Idle  : solid [MaterialTheme.colorScheme.surfaceColorAtElevation] (tonal tint, no border)
+ * Active: semi-transparent + subtle luminous border so the map shows through
  */
 @Composable
 fun GlassSurface(
@@ -40,14 +41,20 @@ fun GlassSurface(
     content: @Composable () -> Unit,
 ) {
     val isInteracting = LocalMapInteracting.current
+
     val containerAlpha by animateFloatAsState(
         targetValue = if (isInteracting) GlassDefaults.ALPHA_INTERACTING else GlassDefaults.ALPHA_IDLE,
         animationSpec = tween(durationMillis = GlassDefaults.ANIM_DURATION_MS),
-        label = "glassAlpha",
+        label = "glassContainerAlpha",
+    )
+    val borderAlpha by animateFloatAsState(
+        targetValue = if (isInteracting) GlassDefaults.BORDER_ALPHA else 0f,
+        animationSpec = tween(durationMillis = GlassDefaults.ANIM_DURATION_MS),
+        label = "glassBorderAlpha",
     )
 
     val resolvedContainer = colors.container.copy(alpha = containerAlpha)
-    val border = BorderStroke(colors.borderWidth, colors.border)
+    val border = BorderStroke(colors.borderWidth, colors.border.copy(alpha = borderAlpha))
 
     if (onClick != null) {
         Surface(
@@ -80,16 +87,17 @@ data class GlassColors(
 
 object GlassDefaults {
 
-    internal const val ALPHA_IDLE = 0.92f
-    internal const val ALPHA_INTERACTING = 0.48f
+    internal const val ALPHA_IDLE = 1.0f
+    internal const val ALPHA_INTERACTING = 0.52f
     internal const val ANIM_DURATION_MS = 350
-    private const val BORDER_ALPHA = 0.12f
+    internal const val BORDER_ALPHA = 0.18f
+    internal val IDLE_ELEVATION = 3.dp
     private val BORDER_WIDTH = 0.5.dp
 
     @Composable
     fun colors(
-        container: Color = MaterialTheme.colorScheme.surface,
-        border: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = BORDER_ALPHA),
+        container: Color = MaterialTheme.colorScheme.surfaceColorAtElevation(IDLE_ELEVATION),
+        border: Color = MaterialTheme.colorScheme.onSurface,
         borderWidth: Dp = BORDER_WIDTH,
     ): GlassColors = GlassColors(
         container = container,

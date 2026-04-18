@@ -32,8 +32,8 @@ import paparcar.composeapp.generated.resources.home_nav_map
 import paparcar.composeapp.generated.resources.home_nav_my_car
 import paparcar.composeapp.generated.resources.home_nav_settings
 
-private val NAV_BAR_CORNER_DP = 20.dp
-private val TAB_CORNER_DP = 14.dp
+private val NAV_BAR_CORNER_DP = 24.dp
+private val TAB_CORNER_DP = 16.dp
 private val ICON_SIZE_DP = 20.dp
 
 @Composable
@@ -48,12 +48,12 @@ internal fun HomeGlassNavBar(
         shape = RoundedCornerShape(NAV_BAR_CORNER_DP),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = 16.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             NavTabItem(
@@ -95,15 +95,15 @@ private fun NavTabItem(
         onClick = onClick,
         shape = RoundedCornerShape(TAB_CORNER_DP),
         colors = if (isSelected) GlassDefaults.colors(
-            container = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            container = MaterialTheme.colorScheme.primaryContainer,
         ) else GlassDefaults.colors(
             container = Color.Transparent,
         ),
-        modifier = Modifier.padding(4.dp),
+        modifier = Modifier.padding(2.dp),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             Icon(
                 imageVector = icon,

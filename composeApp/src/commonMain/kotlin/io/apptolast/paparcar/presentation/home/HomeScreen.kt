@@ -298,7 +298,12 @@ private fun HomeContent(
             // Reserve space for the glass nav bar only when it's visible (no item selected).
             // When an item is selected the HomeNavBar replaces it and the Scaffold already
             // shrinks containerHeightPx, so no extra reserve is needed.
-            val navBarReservePx = if (state.selectedItemId == null) glassNavBarHeightPx else 0f
+            // glassNavBarHeightPx = nav bar content height (measured before navigationBarsPadding).
+            // HomePeekHandle already handles navBarBottom internally, so we only add the
+            // nav bar's 10.dp bottom spacing on top of its content height to avoid overlap.
+            val navBarReservePx = if (state.selectedItemId == null) {
+                glassNavBarHeightPx + with(density) { (navBarBottom + 10.dp).toPx() }
+            } else 0f
             val peekOffsetPx = (containerHeightPx - peekHeightPx - navBarReservePx).coerceAtLeast(0f)
             val halfOffsetPx = containerHeightPx / 2f
 
