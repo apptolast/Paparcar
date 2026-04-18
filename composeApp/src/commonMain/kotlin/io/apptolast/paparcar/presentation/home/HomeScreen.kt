@@ -598,16 +598,8 @@ private fun rememberSheetScrollConnection(
     val peekState = rememberUpdatedState(peekOffsetPx)
     return remember(sheetOffsetPx) {
         object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                return if (delta < 0f && sheetOffsetPx.value > fullSnapState.value) {
-                    val newOffset = (sheetOffsetPx.value + delta).coerceAtLeast(fullSnapState.value)
-                    val consumed = newOffset - sheetOffsetPx.value
-                    coroutineScope.launch { sheetOffsetPx.snapTo(newOffset) }
-                    Offset(0f, consumed)
-                } else Offset.Zero
-            }
-
+            // List scrolls freely — sheet only moves via handle drag.
+            // onPostScroll: list has reached top and there's leftover downward delta → collapse sheet.
             override fun onPostScroll(
                 consumed: Offset,
                 available: Offset,
@@ -622,14 +614,7 @@ private fun rememberSheetScrollConnection(
                 } else Offset.Zero
             }
 
-            override suspend fun onPreFling(available: Velocity): Velocity {
-                val vy = available.y
-                return if (vy < -FLING_SNAP_VELOCITY && sheetOffsetPx.value > fullSnapState.value) {
-                    sheetOffsetPx.animateTo(fullSnapState.value, SnapSpec)
-                    available
-                } else Velocity.Zero
-            }
-
+            // onPostFling: list exhausted scroll and user flings down → snap sheet to peek.
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 val vy = available.y
                 return if (vy > FLING_SNAP_VELOCITY && sheetOffsetPx.value < peekState.value) {
