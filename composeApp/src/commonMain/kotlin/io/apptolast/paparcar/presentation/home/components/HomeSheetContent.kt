@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -16,13 +15,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -32,11 +31,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
@@ -57,183 +55,203 @@ import paparcar.composeapp.generated.resources.vehicle_size_moto
 import paparcar.composeapp.generated.resources.vehicle_size_small
 import paparcar.composeapp.generated.resources.vehicle_size_van
 
-@Composable
-internal fun HomeSheetContent(
+/**
+ * Emits the sheet content items into a [LazyListScope]. The LazyColumn
+ * itself lives in HomeScreen so its Modifier.weight(1f) is applied directly
+ * on the Column layout (no indirection across composable boundaries).
+ */
+internal fun LazyListScope.homeSheetItems(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
     onParkingClick: () -> Unit,
     onManualPark: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
-    scrollState: ScrollState,
-    spotScrollPositions: MutableMap<String, Int>,
-    modifier: Modifier = Modifier,
 ) {
     val selectedSpotId = state.selectedItemId?.takeIf { it != HomeState.PARKING_ITEM_ID }
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(scrollState)
-            .navigationBarsPadding()
-            .padding(top = 4.dp, bottom = 40.dp),
-    ) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
-
-            // ── Section order: spots are the primary goal when no car is parked.
-            // When the user has an active parking, show it first (it needs action to release).
-            // When there is no parking, show spots first so the user doesn't have to scroll past
-            // an empty/CTA card to reach actionable content.
-            if (state.userParking != null) {
-                ParkingSection(
-                    state = state,
-                    onParkingClick = onParkingClick,
-                    onManualPark = onManualPark,
-                )
-                HorizontalDivider(
-                    modifier = Modifier.padding(top = 8.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-                )
-                SpotsSection(
-                    state = state,
-                    onIntent = onIntent,
-                    onCameraMove = onCameraMove,
-                    onSpotSelect = onSpotSelect,
-                    selectedSpotId = selectedSpotId,
-                    spotScrollPositions = spotScrollPositions,
-                )
-            } else {
-                SpotsSection(
-                    state = state,
-                    onIntent = onIntent,
-                    onCameraMove = onCameraMove,
-                    onSpotSelect = onSpotSelect,
-                    selectedSpotId = selectedSpotId,
-                    spotScrollPositions = spotScrollPositions,
-                )
-                // Only show the manual-park CTA after spots — the user needs the map first,
-                // and the CTA is a fallback action, not the primary one.
-                if (state.allPermissionsGranted) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(top = 8.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-                    )
-                    ParkingSection(
-                        state = state,
-                        onParkingClick = onParkingClick,
-                        onManualPark = onManualPark,
-                    )
-                }
-            }
-        }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Section composables (extracted to keep HomeSheetContent readable)
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun ParkingSection(
-    state: HomeState,
-    onParkingClick: () -> Unit,
-    onManualPark: () -> Unit,
-) {
-    HomeSectionHeader(
-        title = stringResource(Res.string.home_parked_section),
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-    )
-    if (state.userParking != null) {
-        HomeParkingRow(
-            parking = state.userParking,
-            userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-            isSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID,
-            onSelect = onParkingClick,
-        )
-    } else if (state.allPermissionsGranted) {
-        HomeParkingEmptyCard(
-            onManualPark = onManualPark,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun SpotsSection(
-    state: HomeState,
-    onIntent: (HomeIntent) -> Unit,
-    onCameraMove: (Double, Double) -> Unit,
-    onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
-    selectedSpotId: String?,
-    spotScrollPositions: MutableMap<String, Int>,
-) {
     val filteredSpots = if (state.sizeFilter == null) {
         state.nearbySpots
     } else {
         state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
     }
+    val showParkingFirst = state.userParking != null
+    val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
+    val showParkingCta = !showParkingFirst && state.allPermissionsGranted
 
-    HomeSectionHeader(
-        title = if (filteredSpots.isNotEmpty())
-            stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
-        else
-            stringResource(Res.string.home_feed_nearby),
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
-    )
+    item("top_divider") {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
+    }
 
-    if (state.allPermissionsGranted && state.nearbySpots.isNotEmpty()) {
-        HomeSizeFilterBar(
-            selectedSize = state.sizeFilter,
-            onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+    if (showParkingFirst) {
+        parkingSection(state, onParkingClick, onManualPark)
+        item("mid_divider") {
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+            )
+        }
+        spotsSection(
+            state, onIntent, onCameraMove, onSpotSelect,
+            selectedSpotId, filteredSpots, showFilterBar,
         )
+    } else {
+        spotsSection(
+            state, onIntent, onCameraMove, onSpotSelect,
+            selectedSpotId, filteredSpots, showFilterBar,
+        )
+        if (showParkingCta) {
+            item("mid_divider") {
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 8.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+                )
+            }
+            parkingSection(state, onParkingClick, onManualPark)
+        }
+    }
+}
+
+/**
+ * Returns the absolute item index of a spot card in the LazyColumn emitted
+ * by [homeSheetItems], or -1 if the spot is not part of the current list.
+ */
+internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
+    val filteredSpots = if (state.sizeFilter == null) {
+        state.nearbySpots
+    } else {
+        state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
+    }
+    val spotIdx = filteredSpots.indexOfFirst { it.id == spotId }
+    if (spotIdx < 0) return -1
+
+    val showParkingFirst = state.userParking != null
+    val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
+
+    var base = 1 // top_divider
+    if (showParkingFirst) {
+        base += 1 // parking_header
+        base += 1 // parking_row
+        base += 1 // mid_divider
+    }
+    base += 1 // spots_header
+    if (showFilterBar) base += 1
+    return base + spotIdx
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sections
+// ─────────────────────────────────────────────────────────────────────────────
+
+private fun LazyListScope.parkingSection(
+    state: HomeState,
+    onParkingClick: () -> Unit,
+    onManualPark: () -> Unit,
+) {
+    item("parking_header") {
+        HomeSectionHeader(
+            title = stringResource(Res.string.home_parked_section),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        )
+    }
+    if (state.userParking != null) {
+        item("parking_row") {
+            HomeParkingRow(
+                parking = state.userParking,
+                userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                isSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID,
+                onSelect = onParkingClick,
+            )
+        }
+    } else if (state.allPermissionsGranted) {
+        item("parking_empty") {
+            HomeParkingEmptyCard(
+                onManualPark = onManualPark,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+    }
+}
+
+private fun LazyListScope.spotsSection(
+    state: HomeState,
+    onIntent: (HomeIntent) -> Unit,
+    onCameraMove: (Double, Double) -> Unit,
+    onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
+    selectedSpotId: String?,
+    filteredSpots: List<Spot>,
+    showFilterBar: Boolean,
+) {
+    item("spots_header") {
+        HomeSectionHeader(
+            title = if (filteredSpots.isNotEmpty())
+                stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
+            else
+                stringResource(Res.string.home_feed_nearby),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+        )
+    }
+    if (showFilterBar) {
+        item("filter_bar") {
+            HomeSizeFilterBar(
+                selectedSize = state.sizeFilter,
+                onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            )
+        }
     }
 
     when {
-        !state.allPermissionsGranted -> HomePermissionsCard(
-            onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-        state.isLoading -> SpotsSkeletonList()
-        filteredSpots.isEmpty() && state.sizeFilter != null && state.nearbySpots.isNotEmpty() ->
-            HomeEmptyFilteredSpots(
-                onClearFilter = { onIntent(HomeIntent.SetSizeFilter(null)) },
+        !state.allPermissionsGranted -> item("permissions") {
+            HomePermissionsCard(
+                onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
-        filteredSpots.isEmpty() -> HomeEmptySpots(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-        else -> filteredSpots.forEachIndexed { index, spot ->
-            ParkingSpotItem(
-                data = SpotCardData(
-                    id = spot.id,
-                    displayLocation = locationDisplayText(
-                        spot.placeInfo, spot.address,
-                        spot.location.latitude, spot.location.longitude,
-                    ),
-                    distanceMeters = state.userGpsPoint?.let { gps ->
-                        distanceMeters(
-                            gps.latitude, gps.longitude,
-                            spot.location.latitude, spot.location.longitude,
-                        )
-                    },
-                    reportedAtMs = spot.location.timestamp,
-                    reliability = spot.toReliabilityUiState(),
-                    enRouteCount = spot.enRouteCount,
-                    expiresAt = spot.expiresAt,
-                ),
-                isSelected = spot.id == selectedSpotId,
-                onClick = {
-                    onCameraMove(spot.location.latitude, spot.location.longitude)
-                    onSpotSelect(spot.location.latitude, spot.location.longitude, spot.id)
-                },
-                modifier = Modifier.onGloballyPositioned { coords ->
-                    spotScrollPositions[spot.id] = coords.positionInParent().y.toInt()
-                },
-            )
-            if (index < filteredSpots.lastIndex) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 70.dp, end = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
+        }
+        state.isLoading -> item("skeleton") { SpotsSkeletonList() }
+        filteredSpots.isEmpty() && state.sizeFilter != null && state.nearbySpots.isNotEmpty() ->
+            item("empty_filtered") {
+                HomeEmptyFilteredSpots(
+                    onClearFilter = { onIntent(HomeIntent.SetSizeFilter(null)) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
+            }
+        filteredSpots.isEmpty() -> item("empty") {
+            HomeEmptySpots(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+        }
+        else -> itemsIndexed(filteredSpots, key = { _, spot -> spot.id }) { index, spot ->
+            Column {
+                ParkingSpotItem(
+                    data = SpotCardData(
+                        id = spot.id,
+                        displayLocation = locationDisplayText(
+                            spot.placeInfo, spot.address,
+                            spot.location.latitude, spot.location.longitude,
+                        ),
+                        distanceMeters = state.userGpsPoint?.let { gps ->
+                            distanceMeters(
+                                gps.latitude, gps.longitude,
+                                spot.location.latitude, spot.location.longitude,
+                            )
+                        },
+                        reportedAtMs = spot.location.timestamp,
+                        reliability = spot.toReliabilityUiState(),
+                        enRouteCount = spot.enRouteCount,
+                        expiresAt = spot.expiresAt,
+                    ),
+                    isSelected = spot.id == selectedSpotId,
+                    onClick = {
+                        onCameraMove(spot.location.latitude, spot.location.longitude)
+                        onSpotSelect(spot.location.latitude, spot.location.longitude, spot.id)
+                    },
+                )
+                if (index < filteredSpots.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(start = 70.dp, end = 16.dp),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
+                    )
+                }
             }
         }
     }
@@ -366,7 +384,6 @@ internal fun HomeSectionHeader(
         modifier = modifier.fillMaxWidth(),
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.ExtraBold,
-        // Raised from 0.5f — section headers were nearly invisible before
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
         letterSpacing = 0.8.sp,
     )

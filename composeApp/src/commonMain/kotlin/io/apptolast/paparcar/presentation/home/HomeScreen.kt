@@ -23,10 +23,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +47,12 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -55,7 +61,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
@@ -66,7 +71,8 @@ import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
-import io.apptolast.paparcar.presentation.home.components.HomeSheetContent
+import io.apptolast.paparcar.presentation.home.components.homeSheetItems
+import io.apptolast.paparcar.presentation.home.components.homeSheetSpotItemIndex
 import io.apptolast.paparcar.presentation.home.components.PlatformMap
 import io.apptolast.paparcar.domain.error.PaparcarError
 import org.jetbrains.compose.resources.stringResource
@@ -86,7 +92,6 @@ import paparcar.composeapp.generated.resources.home_manual_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
-import kotlin.math.roundToInt
 
 private data class SelectedNavTarget(val lat: Double, val lon: Double)
 
@@ -94,8 +99,8 @@ private data class SelectedNavTarget(val lat: Double, val lon: Double)
 private val SheetPeekHeight = 104.dp
 
 private const val MAP_INTERACTION_IDLE_DELAY_MS = 150L
-// Nav bar content height (without navigationBarsPadding or bottom spacing)
-private const val GLASS_NAV_BAR_DEFAULT_HEIGHT_DP = 56
+// Material3 NavigationBar default content height (80dp) — its window insets add to this once measured
+private const val GLASS_NAV_BAR_DEFAULT_HEIGHT_DP = 80
 
 private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
 
@@ -212,11 +217,16 @@ private fun HomeContent(
         else -> ""
     }
     var showReleaseDialog by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
-    val spotScrollPositions = remember { mutableMapOf<String, Int>() }
+    val lazyListState = rememberLazyListState()
 
     LaunchedEffect(state.userGpsPoint) {
         state.userGpsPoint?.let { uiController.onUserLocationAvailable(it.latitude, it.longitude) }
+    }
+
+    LaunchedEffect(selectedSpotId) {
+        val spotId = selectedSpotId ?: return@LaunchedEffect
+        val idx = homeSheetSpotItemIndex(state, spotId)
+        if (idx >= 0) lazyListState.animateScrollToItem(idx)
     }
 
     CompositionLocalProvider(LocalMapInteracting provides isMapInteracting) {
@@ -286,22 +296,17 @@ private fun HomeContent(
         ) {
             val containerHeightPx = constraints.maxHeight.toFloat()
             var peekHeightPx by remember { mutableFloatStateOf(with(density) { (SheetPeekHeight + navBarBottom).toPx() }) }
-            val containerHeightDp = with(density) { containerHeightPx.toDp() }
-
             // Reserve space for the glass nav bar only when it's visible (no item selected).
             // When an item is selected the HomeNavBar replaces it and the Scaffold already
             // shrinks containerHeightPx, so no extra reserve is needed.
-            // glassNavBarHeightPx = nav bar content height (measured before navigationBarsPadding).
-            // HomePeekHandle already handles navBarBottom internally, so we only add the
-            // nav bar's 10.dp bottom spacing on top of its content height to avoid overlap.
-            val navBarReservePx = if (state.selectedItemId == null) {
-                glassNavBarHeightPx + with(density) { (navBarBottom + 10.dp).toPx() }
-            } else 0f
+            // Material3 NavigationBar includes its own bottom inset, so glassNavBarHeightPx
+            // already accounts for navigation bar padding.
+            val navBarReservePx = if (state.selectedItemId == null) glassNavBarHeightPx else 0f
             val peekOffsetPx = (containerHeightPx - peekHeightPx - navBarReservePx).coerceAtLeast(0f)
             val halfOffsetPx = containerHeightPx / 2f
 
             // Sheet is always full-height — fullSnap = 0 means "sheet top at screen top".
-            // List inside uses weight(1f) so its verticalScroll always has a real viewport.
+            // List inside is a LazyColumn with weight(1f), always scrollable.
             val fullSnapOffsetPx = 0f
 
             val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
@@ -313,10 +318,37 @@ private fun HomeContent(
                 }
             }
 
+            // Instagram-style nested scroll: when the list is scrolled to the very top and
+            // the user drags down, collapse the sheet instead of letting the gesture be wasted.
+            // Upward gestures are never intercepted — they always scroll the list.
+            val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
+            val currentFullSnap = rememberUpdatedState(fullSnapOffsetPx)
+            val sheetNestedScroll = remember {
+                object : NestedScrollConnection {
+                    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                        val listAtTop = lazyListState.firstVisibleItemIndex == 0 &&
+                            lazyListState.firstVisibleItemScrollOffset == 0
+                        val peek = currentPeekOffset.value
+                        val full = currentFullSnap.value
+                        val sheetCanCollapse = sheetOffsetPx.value < peek
+                        if (available.y > 0f && listAtTop && sheetCanCollapse) {
+                            val newOffset = (sheetOffsetPx.value + available.y).coerceIn(full, peek)
+                            val consumed = newOffset - sheetOffsetPx.value
+                            coroutineScope.launch { sheetOffsetPx.snapTo(newOffset) }
+                            return Offset(0f, consumed)
+                        }
+                        return Offset.Zero
+                    }
+                }
+            }
+
             val sheetExpanded = sheetOffsetPx.value <= fullSnapOffsetPx + 1f
             // FABs sit just above the sheet's current top edge and follow it as it moves.
             val fabBottomDp =
                 with(density) { (containerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
+
+            // Map shrinks as the sheet expands — its bottom edge tracks the sheet top.
+            val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() }
 
             // ── Map ──────────────────────────────────────────────────────────
             PlatformMap(
@@ -337,9 +369,6 @@ private fun HomeContent(
                                 halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
                                 SnapSpec,
                             )
-                            spotScrollPositions[spotId]?.let { yOffset ->
-                                scrollState.scrollTo(yOffset)
-                            }
                         }
                     }
                 },
@@ -354,7 +383,10 @@ private fun HomeContent(
                     }
                 },
                 cameraTarget = uiController.cameraTarget,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .height(mapHeightDp),
             )
 
             // ── Floating search bar + action pills + GPS accuracy banner ─────
@@ -451,14 +483,19 @@ private fun HomeContent(
             }
 
             // ── Bottom sheet ─────────────────────────────────────────────────
-            // Fixed full-height sheet (Instagram-style): handle at top is the
-            // ONLY draggable region; the list fills the rest via weight(1f)
-            // and scrolls internally through its own verticalScroll viewport.
+            // Instagram-style: sheet height = visible area (containerHeight - top).
+            // This gives the inner LazyColumn a viewport that matches the visible
+            // portion of the sheet, so content outside the viewport actually
+            // scrolls. Anchored to BottomCenter; drag updates sheetOffsetPx, which
+            // in turn changes the sheet height (top moves up/down).
+            val sheetHeightDp = with(density) {
+                (containerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
+            }
             GlassSurface(
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(containerHeightDp)
-                    .offset { IntOffset(0, sheetOffsetPx.value.roundToInt()) },
+                    .height(sheetHeightDp),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -497,24 +534,39 @@ private fun HomeContent(
                         )
                     }
 
-                    HomeSheetContent(
-                        state = state,
-                        onIntent = onIntent,
-                        onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
-                        onParkingClick = {
-                            onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
-                            state.userParking?.location?.let { loc ->
-                                uiController.moveCamera(loc.latitude, loc.longitude)
-                            }
-                        },
-                        onManualPark = { onIntent(HomeIntent.ManualPark) },
-                        onSpotSelect = { _, _, spotId ->
-                            onIntent(HomeIntent.SelectItem(spotId))
-                        },
-                        scrollState = scrollState,
-                        spotScrollPositions = spotScrollPositions,
-                        modifier = Modifier.weight(1f),
-                    )
+                    // navigationBarsPadding() covers the system nav bar inset; the extra
+                    // GLASS_NAV_BAR_DEFAULT_HEIGHT_DP pushes content above the floating
+                    // HomeGlassNavBar so the last row is not hidden behind it.
+                    val listBottomPadding = if (state.selectedItemId == null) {
+                        GLASS_NAV_BAR_DEFAULT_HEIGHT_DP.dp + 16.dp
+                    } else {
+                        16.dp
+                    }
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .nestedScroll(sheetNestedScroll),
+                        contentPadding = PaddingValues(top = 4.dp, bottom = listBottomPadding),
+                    ) {
+                        homeSheetItems(
+                            state = state,
+                            onIntent = onIntent,
+                            onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
+                            onParkingClick = {
+                                onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
+                                state.userParking?.location?.let { loc ->
+                                    uiController.moveCamera(loc.latitude, loc.longitude)
+                                }
+                            },
+                            onManualPark = { onIntent(HomeIntent.ManualPark) },
+                            onSpotSelect = { _, _, spotId ->
+                                onIntent(HomeIntent.SelectItem(spotId))
+                            },
+                        )
+                    }
                 }
             }
 
@@ -527,9 +579,7 @@ private fun HomeContent(
                 exit = fadeOut() + slideOutVertically { it },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .onSizeChanged { if (it.height > 0) glassNavBarHeightPx = it.height.toFloat() }
-                    .navigationBarsPadding()
-                    .padding(bottom = 10.dp),
+                    .onSizeChanged { if (it.height > 0) glassNavBarHeightPx = it.height.toFloat() },
             ) {
                 HomeGlassNavBar(
                     onMapClick = {
