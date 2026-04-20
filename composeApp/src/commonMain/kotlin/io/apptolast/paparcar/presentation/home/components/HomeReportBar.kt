@@ -106,12 +106,15 @@ internal fun HomeReportSpotFab(
                 fontWeight = FontWeight.Bold,
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = REPORT_FAB_CONTAINER_ALPHA),
         contentColor = MaterialTheme.colorScheme.primary,
         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp),
         modifier = modifier,
     )
 }
+
+private const val REPORT_FAB_CONTAINER_ALPHA = 0.72f
+private const val PERMISSIONS_CARD_ALPHA = 0.5f
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Permissions card
@@ -126,7 +129,7 @@ internal fun HomePermissionsCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = PERMISSIONS_CARD_ALPHA),
         ),
     ) {
         Column(

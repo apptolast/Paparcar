@@ -42,8 +42,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,12 +55,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -98,7 +100,10 @@ private data class SelectedNavTarget(val lat: Double, val lon: Double)
 // Peek = drag pill (22dp) + content row (82dp)
 private val SheetPeekHeight = 104.dp
 
-private const val MAP_INTERACTION_IDLE_DELAY_MS = 150L
+// Glass stays "interacting" for this long after the last onCameraMove tick.
+// Must be ≥ PlatformMap's CAMERA_MOVING_DEBOUNCE_MS (280) so the glass fade-out
+// does not start while the map is still settling out of a fling.
+private const val MAP_INTERACTION_IDLE_DELAY_MS = 320L
 // Material3 NavigationBar default content height (80dp) — its window insets add to this once measured
 private const val GLASS_NAV_BAR_DEFAULT_HEIGHT_DP = 80
 
@@ -106,6 +111,17 @@ private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowIn
 
 // Velocity (px/s) required to snap the sheet on fling; below this the sheet stays in place
 private const val FLING_SNAP_VELOCITY = 1200f
+
+// Sheet top position when fully expanded ("sheet top at screen top").
+private const val FULL_SNAP_OFFSET_PX = 0f
+
+// Matches SnapSpec so nav bar enter/exit stays coherent with sheet snap.
+private const val NAV_ANIM_MS = 300
+
+// Fraction of peek offset at/above which the nav bar starts hiding. Remaps the
+// raw sheet progress so the nav is fully gone well before the sheet is fully
+// expanded — responsive feel instead of a linear fade across the whole drag.
+private const val NAV_HIDE_START = 0.65f
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root
@@ -195,8 +211,17 @@ private fun HomeContent(
     val uiController = rememberHomeUiController()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
+    // Single source of truth for the glass effect. A monotonic tick is bumped
+    // on every onCameraMove; a LaunchedEffect keyed on it restarts the debounce
+    // and flips isMapInteracting back to false once the map settles.
+    var mapMoveTick by remember { mutableLongStateOf(0L) }
     var isMapInteracting by remember { mutableStateOf(false) }
-    val mapIdleJob = remember { mutableStateOf<Job?>(null) }
+    LaunchedEffect(mapMoveTick) {
+        if (mapMoveTick == 0L) return@LaunchedEffect
+        isMapInteracting = true
+        delay(MAP_INTERACTION_IDLE_DELAY_MS)
+        isMapInteracting = false
+    }
     var glassNavBarHeightPx by remember { mutableFloatStateOf(with(density) { GLASS_NAV_BAR_DEFAULT_HEIGHT_DP.dp.toPx() }) }
     val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
@@ -305,10 +330,6 @@ private fun HomeContent(
             val peekOffsetPx = (containerHeightPx - peekHeightPx - navBarReservePx).coerceAtLeast(0f)
             val halfOffsetPx = containerHeightPx / 2f
 
-            // Sheet is always full-height — fullSnap = 0 means "sheet top at screen top".
-            // List inside is a LazyColumn with weight(1f), always scrollable.
-            val fullSnapOffsetPx = 0f
-
             val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
             LaunchedEffect(peekOffsetPx, state.selectedItemId) {
                 if (state.selectedItemId == null) {
@@ -322,17 +343,15 @@ private fun HomeContent(
             // the user drags down, collapse the sheet instead of letting the gesture be wasted.
             // Upward gestures are never intercepted — they always scroll the list.
             val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
-            val currentFullSnap = rememberUpdatedState(fullSnapOffsetPx)
             val sheetNestedScroll = remember {
                 object : NestedScrollConnection {
                     override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                         val listAtTop = lazyListState.firstVisibleItemIndex == 0 &&
                             lazyListState.firstVisibleItemScrollOffset == 0
                         val peek = currentPeekOffset.value
-                        val full = currentFullSnap.value
                         val sheetCanCollapse = sheetOffsetPx.value < peek
                         if (available.y > 0f && listAtTop && sheetCanCollapse) {
-                            val newOffset = (sheetOffsetPx.value + available.y).coerceIn(full, peek)
+                            val newOffset = (sheetOffsetPx.value + available.y).coerceIn(FULL_SNAP_OFFSET_PX, peek)
                             val consumed = newOffset - sheetOffsetPx.value
                             coroutineScope.launch { sheetOffsetPx.snapTo(newOffset) }
                             return Offset(0f, consumed)
@@ -342,7 +361,11 @@ private fun HomeContent(
                 }
             }
 
-            val sheetExpanded = sheetOffsetPx.value <= fullSnapOffsetPx + 1f
+            // Boolean — equality short-circuits recomposition for downstream readers
+            // (e.g. PlatformMap.reportMode) on every drag frame.
+            val sheetExpanded by remember {
+                derivedStateOf { sheetOffsetPx.value <= FULL_SNAP_OFFSET_PX + 1f }
+            }
             // FABs sit just above the sheet's current top edge and follow it as it moves.
             val fabBottomDp =
                 with(density) { (containerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
@@ -366,7 +389,7 @@ private fun HomeContent(
                         uiController.moveCamera(spot.location.latitude, spot.location.longitude)
                         coroutineScope.launch {
                             sheetOffsetPx.animateTo(
-                                halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                halfOffsetPx.coerceIn(FULL_SNAP_OFFSET_PX, peekOffsetPx),
                                 SnapSpec,
                             )
                         }
@@ -375,12 +398,7 @@ private fun HomeContent(
                 onCameraMove = { lat, lon ->
                     uiController.onCameraMoved(lat, lon)
                     onIntent(HomeIntent.CameraPositionChanged(lat, lon))
-                    isMapInteracting = true
-                    mapIdleJob.value?.cancel()
-                    mapIdleJob.value = coroutineScope.launch {
-                        delay(MAP_INTERACTION_IDLE_DELAY_MS)
-                        isMapInteracting = false
-                    }
+                    mapMoveTick++
                 },
                 cameraTarget = uiController.cameraTarget,
                 modifier = Modifier
@@ -446,7 +464,7 @@ private fun HomeContent(
                                 uiController.moveCamera(p.location.latitude, p.location.longitude)
                                 coroutineScope.launch {
                                     sheetOffsetPx.animateTo(
-                                        halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                        halfOffsetPx.coerceIn(FULL_SNAP_OFFSET_PX, peekOffsetPx),
                                         SnapSpec,
                                     )
                                 }
@@ -508,7 +526,7 @@ private fun HomeContent(
                                     coroutineScope.launch {
                                         sheetOffsetPx.snapTo(
                                             (sheetOffsetPx.value + delta).coerceIn(
-                                                fullSnapOffsetPx,
+                                                FULL_SNAP_OFFSET_PX,
                                                 peekOffsetPx
                                             ),
                                         )
@@ -517,10 +535,10 @@ private fun HomeContent(
                                 onDragStopped = { velocity ->
                                     coroutineScope.launch {
                                         val target = when {
-                                            velocity < -FLING_SNAP_VELOCITY -> fullSnapOffsetPx
+                                            velocity < -FLING_SNAP_VELOCITY -> FULL_SNAP_OFFSET_PX
                                             velocity > FLING_SNAP_VELOCITY -> peekOffsetPx
                                             else -> sheetOffsetPx.value
-                                        }.coerceIn(fullSnapOffsetPx, peekOffsetPx)
+                                        }.coerceIn(FULL_SNAP_OFFSET_PX, peekOffsetPx)
                                         sheetOffsetPx.animateTo(target, SnapSpec)
                                     }
                                 },
@@ -571,15 +589,33 @@ private fun HomeContent(
             }
 
             // ── Glass BottomNav — replaces HomeFloatingHeader ────────────────
-            // Visible when no item is selected. When a spot/parking is selected
-            // HomeNavBar (navigate bar) takes over via Scaffold bottomBar.
+            // Discrete gate: hidden entirely when an item is selected — HomeNavBar
+            // takes over via Scaffold bottomBar.
+            // Continuous gate: the Modifier.graphicsLayer block below fades + slides
+            // the bar 1:1 with the sheet drag (Google Maps / Instagram style). State
+            // is read inside the layer lambda so frame-by-frame sheet offset updates
+            // happen in the layer phase without recomposing the nav subtree.
             AnimatedVisibility(
                 visible = state.selectedItemId == null,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it },
+                enter = fadeIn(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) +
+                    slideInVertically(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it },
+                exit = fadeOut(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) +
+                    slideOutVertically(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .onSizeChanged { if (it.height > 0) glassNavBarHeightPx = it.height.toFloat() },
+                    .onSizeChanged { if (it.height > 0) glassNavBarHeightPx = it.height.toFloat() }
+                    .graphicsLayer {
+                        // progress = 1 when sheet is at peek (fully collapsed),
+                        // progress = 0 once sheet has moved past (1 - NAV_HIDE_START)
+                        // of the peek offset → nav disappears faster than the sheet
+                        // completes its expansion.
+                        val peek = peekOffsetPx
+                        val raw = if (peek > 0f) sheetOffsetPx.value / peek else 1f
+                        val progress = ((raw - NAV_HIDE_START) / (1f - NAV_HIDE_START))
+                            .coerceIn(0f, 1f)
+                        alpha = progress
+                        translationY = (1f - progress) * glassNavBarHeightPx
+                    },
             ) {
                 HomeGlassNavBar(
                     onMapClick = {

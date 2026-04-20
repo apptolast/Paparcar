@@ -1,11 +1,11 @@
 package io.apptolast.paparcar.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
@@ -28,7 +28,7 @@ val LocalMapInteracting = compositionLocalOf { false }
  * transitions to a translucent frosted-glass style when the map camera
  * is being moved ([LocalMapInteracting] == true).
  *
- * Idle  : solid [MaterialTheme.colorScheme.surfaceColorAtElevation] (tonal tint, no border)
+ * Idle  : solid [MaterialTheme.colorScheme.surfaceContainer] (shared with NavigationBar)
  * Active: semi-transparent + subtle luminous border so the map shows through
  */
 @Composable
@@ -42,14 +42,26 @@ fun GlassSurface(
 ) {
     val isInteracting = LocalMapInteracting.current
 
+    // Asymmetric easing avoids flicker during a fling: fade-in is quick so the
+    // glass appears immediately when the user starts dragging, but fade-out is
+    // noticeably slower to ride out any residual onCameraMove ticks emitted
+    // while the camera settles from the fling. If both directions used the
+    // same duration, a single late event could yo-yo the alpha back to
+    // "interacting" mid-fade — visible as a flicker.
     val containerAlpha by animateFloatAsState(
         targetValue = if (isInteracting) GlassDefaults.ALPHA_INTERACTING else GlassDefaults.ALPHA_IDLE,
-        animationSpec = tween(durationMillis = GlassDefaults.ANIM_DURATION_MS),
+        animationSpec = tween(
+            durationMillis = if (isInteracting) GlassDefaults.FADE_IN_MS else GlassDefaults.FADE_OUT_MS,
+            easing = FastOutSlowInEasing,
+        ),
         label = "glassContainerAlpha",
     )
     val borderAlpha by animateFloatAsState(
         targetValue = if (isInteracting) GlassDefaults.BORDER_ALPHA else 0f,
-        animationSpec = tween(durationMillis = GlassDefaults.ANIM_DURATION_MS),
+        animationSpec = tween(
+            durationMillis = if (isInteracting) GlassDefaults.FADE_IN_MS else GlassDefaults.FADE_OUT_MS,
+            easing = FastOutSlowInEasing,
+        ),
         label = "glassBorderAlpha",
     )
 
@@ -89,14 +101,16 @@ object GlassDefaults {
 
     internal const val ALPHA_IDLE = 1.0f
     internal const val ALPHA_INTERACTING = 0.52f
-    internal const val ANIM_DURATION_MS = 180
+    internal const val FADE_IN_MS = 160
+    internal const val FADE_OUT_MS = 320
     internal const val BORDER_ALPHA = 0.18f
-    internal val IDLE_ELEVATION = 3.dp
     private val BORDER_WIDTH = 0.5.dp
 
     @Composable
     fun colors(
-        container: Color = MaterialTheme.colorScheme.surfaceColorAtElevation(IDLE_ELEVATION),
+        // surfaceContainer is the same token NavigationBar uses by default, so
+        // the sheet and the nav bar read as one cohesive bottom surface.
+        container: Color = MaterialTheme.colorScheme.surfaceContainer,
         border: Color = MaterialTheme.colorScheme.onSurface,
         borderWidth: Dp = BORDER_WIDTH,
     ): GlassColors = GlassColors(
