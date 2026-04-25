@@ -158,7 +158,7 @@ class HomeViewModel(
             }
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
             is HomeIntent.ReportManualSpot -> reportManualSpot(intent.lat, intent.lon)
-            is HomeIntent.CycleMapType -> cycleMapType()
+            is HomeIntent.SetMapType -> setMapType(intent.type)
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
@@ -179,14 +179,10 @@ class HomeViewModel(
         }
     }
 
-    private fun cycleMapType() {
-        val next = when (state.value.mapType) {
-            MapType.NORMAL -> MapType.SATELLITE
-            MapType.SATELLITE -> MapType.TERRAIN
-            else -> MapType.NORMAL
-        }
-        appPreferences.setDefaultMapType(next.toPreferenceString())
-        updateState { copy(mapType = next) }
+    private fun setMapType(type: MapType) {
+        if (state.value.mapType == type) return
+        appPreferences.setDefaultMapType(type.toPreferenceString())
+        updateState { copy(mapType = type) }
     }
 
     private fun reportManualSpot(lat: Double, lon: Double) {

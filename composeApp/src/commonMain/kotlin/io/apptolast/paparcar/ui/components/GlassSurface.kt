@@ -64,9 +64,22 @@ fun GlassSurface(
         ),
         label = "glassBorderAlpha",
     )
+    // Drop the elevation when going translucent: a shadow on a semi-transparent
+    // surface paints as an inner darker disc/rectangle (most visible on circular
+    // FABs), since there's no opaque shape to absorb the shadow. Fading the
+    // elevation in/out alongside the alpha keeps the glass effect clean.
+    val shadowFactor by animateFloatAsState(
+        targetValue = if (isInteracting) 0f else 1f,
+        animationSpec = tween(
+            durationMillis = if (isInteracting) GlassDefaults.FADE_IN_MS else GlassDefaults.FADE_OUT_MS,
+            easing = FastOutSlowInEasing,
+        ),
+        label = "glassShadowFactor",
+    )
 
     val resolvedContainer = colors.container.copy(alpha = containerAlpha)
     val border = BorderStroke(colors.borderWidth, colors.border.copy(alpha = borderAlpha))
+    val resolvedShadow = shadowElevation * shadowFactor
 
     if (onClick != null) {
         Surface(
@@ -75,7 +88,7 @@ fun GlassSurface(
             shape = shape,
             color = resolvedContainer,
             border = border,
-            shadowElevation = shadowElevation,
+            shadowElevation = resolvedShadow,
             content = content,
         )
     } else {
@@ -84,7 +97,7 @@ fun GlassSurface(
             shape = shape,
             color = resolvedContainer,
             border = border,
-            shadowElevation = shadowElevation,
+            shadowElevation = resolvedShadow,
             content = content,
         )
     }

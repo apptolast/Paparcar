@@ -22,6 +22,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.SatelliteAlt
+import androidx.compose.material.icons.outlined.Terrain
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.swmansion.kmpmaps.core.MapType
+import io.apptolast.paparcar.presentation.util.MapCircleFab
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.PaddingValues
@@ -83,6 +99,7 @@ import paparcar.composeapp.generated.resources.error_load_spots
 import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_unknown
+import paparcar.composeapp.generated.resources.home_cd_map_type
 import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_release_dialog_confirm
 import paparcar.composeapp.generated.resources.home_release_dialog_message
@@ -91,6 +108,9 @@ import paparcar.composeapp.generated.resources.home_manual_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
+import paparcar.composeapp.generated.resources.settings_map_type_normal
+import paparcar.composeapp.generated.resources.settings_map_type_satellite
+import paparcar.composeapp.generated.resources.settings_map_type_terrain
 
 private data class SelectedNavTarget(val lat: Double, val lon: Double)
 
@@ -440,6 +460,8 @@ private fun HomeContent(
             // Map shrinks as the sheet expands — its bottom edge extends 20dp past
             // the sheet top so the sheet's rounded top corners sit on top of the
             // map tiles instead of exposing the dark background behind the curves.
+            // The sheet itself is opaque (it does NOT participate in glass mode),
+            // so there is no need for the map to render under it.
             val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + 20.dp
 
             // ── Map ──────────────────────────────────────────────────────────
@@ -499,8 +521,55 @@ private fun HomeContent(
                             onIntent(HomeIntent.SelectSearchResult(result))
                         },
                         onClear = { onIntent(HomeIntent.ClearSearch) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                     )
+                    Spacer(Modifier.width(8.dp))
+                    // Layers chip: same 56dp diameter as the search TextField's
+                    // height so the two sit as visual peers in the row. Tapping
+                    // opens a Google-Maps-style picker anchored to the chip; the
+                    // active type is marked with a check.
+                    Box {
+                        var mapTypeMenuExpanded by remember { mutableStateOf(false) }
+                        MapCircleFab(
+                            icon = Icons.Outlined.Layers,
+                            onClick = { mapTypeMenuExpanded = true },
+                            contentDescription = stringResource(Res.string.home_cd_map_type),
+                            size = 56.dp,
+                            iconSize = 24.dp,
+                        )
+                        DropdownMenu(
+                            expanded = mapTypeMenuExpanded,
+                            onDismissRequest = { mapTypeMenuExpanded = false },
+                        ) {
+                            MapTypeMenuItem(
+                                icon = Icons.Outlined.Map,
+                                label = stringResource(Res.string.settings_map_type_normal),
+                                selected = state.mapType == MapType.NORMAL,
+                                onClick = {
+                                    onIntent(HomeIntent.SetMapType(MapType.NORMAL))
+                                    mapTypeMenuExpanded = false
+                                },
+                            )
+                            MapTypeMenuItem(
+                                icon = Icons.Outlined.SatelliteAlt,
+                                label = stringResource(Res.string.settings_map_type_satellite),
+                                selected = state.mapType == MapType.SATELLITE,
+                                onClick = {
+                                    onIntent(HomeIntent.SetMapType(MapType.SATELLITE))
+                                    mapTypeMenuExpanded = false
+                                },
+                            )
+                            MapTypeMenuItem(
+                                icon = Icons.Outlined.Terrain,
+                                label = stringResource(Res.string.settings_map_type_terrain),
+                                selected = state.mapType == MapType.TERRAIN,
+                                onClick = {
+                                    onIntent(HomeIntent.SetMapType(MapType.TERRAIN))
+                                    mapTypeMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
                 }
                 HomeGpsAccuracyBanner(
                     accuracy = state.userGpsPoint?.accuracy,
@@ -508,7 +577,7 @@ private fun HomeContent(
                 )
             }
 
-            // ── Right FAB column (map controls + action speed-dial) ──────────
+            // ── Right FAB column (MyLocation + Coche + contextual primary) ───
             AnimatedVisibility(
                 visible = sheetOffsetPx.value >= halfOffsetPx,
                 enter = fadeIn(),
@@ -526,7 +595,6 @@ private fun HomeContent(
                                 uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
                             }
                         },
-                        onLayersClick = { onIntent(HomeIntent.CycleMapType) },
                         onParkedCar = {
                             state.userParking?.let { p ->
                                 onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
@@ -578,12 +646,19 @@ private fun HomeContent(
             val sheetHeightDp = with(density) {
                 (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
             }
-            GlassSurface(
+            // Sheet stays opaque even while the map is being dragged. Glass would
+            // require the map to render full-screen behind it (otherwise the
+            // "frosted" pass exposes the empty Scaffold background), and there's
+            // no UX gain — the sheet's whole purpose is to host content the user
+            // is reading. Glass treatment is reserved for the search bar and the
+            // map FABs, which sit directly over the map.
+            Surface(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .height(sheetHeightDp),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // Handle: the only area that drags the sheet
@@ -706,5 +781,28 @@ private fun HomeContent(
         }
     }
     } // CompositionLocalProvider
+}
+
+// Map-type picker row used by the Layers chip dropdown. Mirrors Google Maps:
+// type icon on the left, label, trailing check on the active type. Selection
+// is represented visually only — DropdownMenuItem's interaction state still
+// drives ripple/hover, so we don't need RadioButton semantics here.
+@Composable
+private fun MapTypeMenuItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(label) },
+        leadingIcon = {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        },
+        trailingIcon = if (selected) {
+            { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(20.dp)) }
+        } else null,
+        onClick = onClick,
+    )
 }
 

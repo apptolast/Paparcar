@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.MaterialTheme
@@ -19,12 +18,13 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.MapCircleFab
-import org.jetbrains.compose.resources.stringResource
-import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_cd_map_type
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FAB column — location + parked car + midpoint controls
+// Right-side map control column — strictly "where am I" affordances:
+//   • Coche (only when a parking session is active) → recenters on the spot.
+//   • Midpoint (only when both parking and GPS are known) → fits both in view
+//     so the user can see how to reach the car.
+//   • MyLocation → recenters on the live GPS position.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -34,7 +34,6 @@ internal fun HomeMapFabColumn(
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
-    onLayersClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -60,11 +59,6 @@ internal fun HomeMapFabColumn(
             HomeMapFab(icon = Icons.Outlined.Route, onClick = onMidpoint)
         }
         HomeMapFab(icon = Icons.Outlined.MyLocation, onClick = onMyLocation)
-        HomeMapFab(
-            icon = Icons.Outlined.Layers,
-            onClick = onLayersClick,
-            contentDescription = stringResource(Res.string.home_cd_map_type),
-        )
     }
 }
 
