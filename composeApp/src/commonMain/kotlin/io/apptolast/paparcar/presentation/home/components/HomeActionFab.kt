@@ -1,54 +1,39 @@
 package io.apptolast.paparcar.presentation.home.components
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Campaign
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import io.apptolast.paparcar.presentation.util.MapCircleFab
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.presentation.util.MapCircleFab
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_fab_actions_collapse
-import paparcar.composeapp.generated.resources.home_fab_actions_expand
 import paparcar.composeapp.generated.resources.home_fab_release_car
 import paparcar.composeapp.generated.resources.home_fab_report_spot
 
-private const val ITEM_SPACING_DP = 10
-private const val LABEL_CORNER_RADIUS_DP = 8
-private const val LABEL_HORIZONTAL_PADDING_DP = 12
-private const val LABEL_VERTICAL_PADDING_DP = 8
+private const val MAIN_FAB_SIZE_DP = 56
+private const val MAIN_FAB_ICON_SIZE_DP = 24
+private const val MAIN_FAB_ELEVATION_DP = 6
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Speed-Dial FAB
-// Expands into two actions:
-//   • "Report spot"    — always available
-//   • "Release my car" — only when user has an active parking session
+// Primary action FAB — single, contextual.
+//   • not parked → "Report spot"   (Campaign)
+//   • parked     → "Release my car" (Logout)
+//
+// Replaces the previous Speed-Dial: with at most 1 action visible per state,
+// the dial cost (tap-to-expand + tap-to-act) wasn't worth it. The opposite
+// action (release while not parked, report while parked) is intentionally
+// unavailable from the FAB — release lives inside the parking peek row, and
+// reporting after a release is so close to "leaving the parking" that the
+// state will already have flipped.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -58,97 +43,25 @@ internal fun HomeActionFab(
     onReleaseParking: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
-
-    Column(
+    AnimatedContent(
+        targetState = hasActiveParking,
+        transitionSpec = {
+            (fadeIn() + scaleIn(initialScale = 0.85f)) togetherWith
+                (fadeOut() + scaleOut(targetScale = 0.85f))
+        },
         modifier = modifier,
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(ITEM_SPACING_DP.dp, Alignment.Bottom),
-    ) {
-        // ── "Release my car" — only when parked ──────────────────────────────
-        AnimatedVisibility(
-            visible = isExpanded && hasActiveParking,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
-        ) {
-            HomeActionFabItem(
-                label = stringResource(Res.string.home_fab_release_car),
-                icon = Icons.Outlined.DirectionsCar,
-                onClick = {
-                    isExpanded = false
-                    onReleaseParking()
-                },
-            )
-        }
-
-        // ── "Report spot" — always available ─────────────────────────────────
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = fadeIn() + slideInVertically { it / 2 },
-            exit = fadeOut() + slideOutVertically { it / 2 },
-        ) {
-            HomeActionFabItem(
-                label = stringResource(Res.string.home_fab_report_spot),
-                icon = Icons.Outlined.Campaign,
-                onClick = {
-                    isExpanded = false
-                    onReportManualSpot()
-                },
-            )
-        }
-
-        // ── Main FAB ──────────────────────────────────────────────────────────
-        FloatingActionButton(
-            onClick = { isExpanded = !isExpanded },
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            elevation = FloatingActionButtonDefaults.elevation(),
-        ) {
-            Icon(
-                imageVector = if (isExpanded) Icons.Outlined.Close else Icons.Outlined.Add,
-                contentDescription = if (isExpanded)
-                    stringResource(Res.string.home_fab_actions_collapse)
-                else
-                    stringResource(Res.string.home_fab_actions_expand),
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Single speed-dial item: label chip + small FAB
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun HomeActionFabItem(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ITEM_SPACING_DP.dp),
-    ) {
-        Surface(
-            shape = RoundedCornerShape(LABEL_CORNER_RADIUS_DP.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            shadowElevation = 4.dp,
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(
-                    horizontal = LABEL_HORIZONTAL_PADDING_DP.dp,
-                    vertical = LABEL_VERTICAL_PADDING_DP.dp,
-                ),
-            )
-        }
+        label = "primary_fab",
+    ) { parked ->
         MapCircleFab(
-            icon = icon,
-            onClick = onClick,
-            contentDescription = label,
+            icon = if (parked) Icons.AutoMirrored.Outlined.Logout else Icons.Outlined.Campaign,
+            onClick = if (parked) onReleaseParking else onReportManualSpot,
+            contentDescription = stringResource(
+                if (parked) Res.string.home_fab_release_car else Res.string.home_fab_report_spot
+            ),
+            iconTint = MaterialTheme.colorScheme.primary,
+            size = MAIN_FAB_SIZE_DP.dp,
+            iconSize = MAIN_FAB_ICON_SIZE_DP.dp,
+            shadowElevation = MAIN_FAB_ELEVATION_DP.dp,
         )
     }
 }

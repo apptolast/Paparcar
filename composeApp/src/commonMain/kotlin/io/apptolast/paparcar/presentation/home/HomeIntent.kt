@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
+import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -17,7 +18,7 @@ sealed class HomeIntent {
     data class SelectSearchResult(val result: SearchResult) : HomeIntent()
     data object ClearSearch : HomeIntent()
     data class ReportManualSpot(val lat: Double, val lon: Double) : HomeIntent()
-    data object CycleMapType : HomeIntent()
+    data class SetMapType(val type: MapType) : HomeIntent()
     /** Detection pipeline calls this to trigger the confirmation bottom sheet. */
     data class ShowParkingConfirmation(val gps: GpsPoint) : HomeIntent()
     /** User confirmed the pending parking event (or countdown expired). */

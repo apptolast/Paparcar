@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
@@ -83,6 +84,54 @@ object PaparcarIcons {
                 lineTo(15f, 17.5f)
             }
 
+        }.build()
+    }
+
+    /**
+     * Brand pin — map-pin teardrop with a "P" cut-out (evenOdd). Mirrors the
+     * launcher foreground geometry so the app icon and the in-map markers are
+     * visually the same mark. Single fill, tint with the desired status colour
+     * via Icon(imageVector = …, tint = …).
+     *
+     * Viewport : 24 × 24 dp.
+     * Pin head : center (12,9), tip (12,22).
+     * P bar    : x 10–11, y 5–12.
+     * P bowl   : outer arc r=2 peaking at (13,7); inner counter r=1 returns the
+     *            bowl hole to filled so the P keeps its shape via XOR winding.
+     */
+    val SpotPin: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "SpotPin",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = SolidColor(Color.Black),
+                pathFillType = PathFillType.EvenOdd,
+            ) {
+                // ── Pin teardrop ──────────────────────────────────────────────
+                moveTo(12f, 2f)
+                curveTo(8.13f, 2f, 5f, 5.13f, 5f, 9f)
+                curveTo(5f, 14.25f, 12f, 22f, 12f, 22f)
+                curveTo(12f, 22f, 19f, 14.25f, 19f, 9f)
+                curveTo(19f, 5.13f, 15.87f, 2f, 12f, 2f)
+                close()
+
+                // ── Outer P (punches a P-shaped hole through the pin) ─────────
+                moveTo(10f, 5f)
+                lineTo(11f, 5f)
+                arcTo(2f, 2f, 0f, false, true, 11f, 9f)
+                lineTo(11f, 12f)
+                lineTo(10f, 12f)
+                close()
+
+                // ── Inner counter (returns the bowl hole to filled) ───────────
+                moveTo(11f, 6f)
+                arcTo(1f, 1f, 0f, false, true, 11f, 8f)
+                close()
+            }
         }.build()
     }
 }

@@ -22,7 +22,7 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import io.apptolast.paparcar.ui.components.GlassSurface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,11 +55,9 @@ internal fun HomeFloatingHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ── Hamburger menu button — same height as the search bar ──────────
-        Surface(
+        GlassSurface(
             onClick = { expanded = !expanded },
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-            shadowElevation = 6.dp,
             modifier = Modifier
                 .width(MenuButtonSize)
                 .height(MenuButtonSize),
@@ -83,14 +81,12 @@ internal fun HomeFloatingHeader(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Spacer(Modifier.height(8.dp))
 
-                Surface(
+                GlassSurface(
                     onClick = {
                         expanded = false
                         onHistoryClick()
                     },
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 6.dp,
                 ) {
                     Box(
                         modifier = Modifier.padding(12.dp),
@@ -107,14 +103,12 @@ internal fun HomeFloatingHeader(
 
                 Spacer(Modifier.height(8.dp))
 
-                Surface(
+                GlassSurface(
                     onClick = {
                         expanded = false
                         onMyCarClick()
                     },
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 6.dp,
                 ) {
                     Box(
                         modifier = Modifier.padding(12.dp),
@@ -131,14 +125,12 @@ internal fun HomeFloatingHeader(
 
                 Spacer(Modifier.height(8.dp))
 
-                Surface(
+                GlassSurface(
                     onClick = {
                         expanded = false
                         onSettingsClick()
                     },
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                    shadowElevation = 6.dp,
                 ) {
                     Box(
                         modifier = Modifier.padding(12.dp),

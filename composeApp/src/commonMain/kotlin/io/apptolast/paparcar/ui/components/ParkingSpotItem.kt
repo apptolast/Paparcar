@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -92,7 +93,7 @@ fun ParkingSpotItem(
         color = if (isSelected)
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.18f)
         else
-            MaterialTheme.colorScheme.surface,
+            Color.Transparent,
     ) {
         Row(
             modifier = Modifier

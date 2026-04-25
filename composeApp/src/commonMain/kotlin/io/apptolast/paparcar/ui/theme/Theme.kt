@@ -6,24 +6,38 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// ── Dark scheme — uses the Pap forest/neon-green palette ─────────────────────
+// ── Dark scheme — near-black ink surfaces with neon-green brand accent ──────
+// Surfaces (background + surface family) now use the PapInk ramp; dark greens
+// (PapForest*, PapGreen*) are reserved for interactive accents (primary container,
+// outlines, hero cards) so the app reads as dark and elegant while keeping the
+// brand's green identity on actionable elements.
 private val DarkColorScheme = darkColorScheme(
     primary = PapGreen,
-    onPrimary = PapForest,
-    primaryContainer = PapGreenMuted,
+    onPrimary = PapInk,
+    primaryContainer = PapGreenMuted,          // dark green as accent container
     onPrimaryContainer = PapGreen,
     secondary = PapAmber,
-    onSecondary = PapForest,
+    onSecondary = PapInk,
     secondaryContainer = PapAmberMuted,
     onSecondaryContainer = PapAmber,
-    background = PapForest,
+    background = PapInkDeep,
     onBackground = PapOnDark,
-    surface = PapForestMid,
+    surface = PapInk,
     onSurface = PapOnDark,
-    surfaceVariant = PapGreenMuted,
+    surfaceVariant = PapInkHigh,
     onSurfaceVariant = PapOnDarkMuted,
+    surfaceContainerLowest = PapInkDeep,
+    surfaceContainerLow = PapInk,
+    surfaceContainer = PapInkContainer,        // sheet + nav bar share this token
+    surfaceContainerHigh = PapInkHigh,
+    surfaceContainerHighest = PapInkHighest,
+    surfaceTint = PapGreen,                    // elevation tonal overlay stays green
     outline = PapGreenElement,
     outlineVariant = PapGreenMuted,
+    error = PapRed,
+    errorContainer = PapRedMuted,
+    onError = PapOnRed,
+    onErrorContainer = PapRed,
 )
 
 // ── Light scheme — green-on-white counterpart ─────────────────────────────────
@@ -43,6 +57,13 @@ private val LightColorScheme = lightColorScheme(
     onSurface = PapOnSurfaceLight,
     surfaceVariant = PapVariantLight,
     onSurfaceVariant = PapOnVariantLight,
+    // Explicit surfaceContainer* ramp — overrides Material3's default rose-tinted
+    // light palette with the neutral cool-grey PapMist ramp.
+    surfaceContainerLowest = PapMistLowest,
+    surfaceContainerLow = PapMistLow,
+    surfaceContainer = PapMist,
+    surfaceContainerHigh = PapMistHigh,
+    surfaceContainerHighest = PapMistHighest,
     outline = PapOutlineLight,
     outlineVariant = PapOutlineVariantLight, // subtle dividers
     inverseSurface = PapInverseSurfaceLight,

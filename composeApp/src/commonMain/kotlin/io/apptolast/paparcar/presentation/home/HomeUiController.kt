@@ -18,18 +18,38 @@ class HomeUiController {
     var cameraLon: Double? by mutableStateOf(null)
         private set
 
+    /**
+     * True while the map is running a programmatic camera animation
+     * (moveCamera / moveCameraToBounds / initial GPS centering). The Map
+     * library fires onCameraMove at ~60 fps during the animation, which
+     * would otherwise trigger the idle-drag glass effect — HomeContent
+     * reads this flag to suppress the effect for synthetic frames.
+     *
+     * Set synchronously from [moveCamera] / [moveCameraToBounds] so it is
+     * true before the first animation frame arrives, and cleared by
+     * HomeContent once the animation has settled.
+     */
+    var isProgrammaticMove: Boolean by mutableStateOf(false)
+        private set
+
     fun onCameraMoved(lat: Double, lon: Double) {
         cameraLat = lat
         cameraLon = lon
     }
 
+    fun clearProgrammaticMove() {
+        isProgrammaticMove = false
+    }
+
     private var centeredOnUser = false
 
     fun moveCamera(lat: Double, lon: Double, zoom: Float = 17f) {
+        isProgrammaticMove = true
         cameraTarget = CameraTarget(lat, lon, zoom, token = (cameraTarget?.token ?: 0) + 1)
     }
 
     fun moveCameraToBounds(lat1: Double, lon1: Double, lat2: Double, lon2: Double) {
+        isProgrammaticMove = true
         cameraTarget = CameraTarget(
             lat = lat1,
             lon = lon1,

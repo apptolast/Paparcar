@@ -13,17 +13,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import io.apptolast.paparcar.ui.components.GlassDefaults
+import io.apptolast.paparcar.ui.components.GlassSurface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,14 +47,12 @@ internal fun HomeSearchBar(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        Surface(
+        GlassSurface(
             shape = RoundedCornerShape(
                 topStart = 16.dp, topEnd = 16.dp,
                 bottomStart = if (results.isEmpty()) 16.dp else 0.dp,
                 bottomEnd = if (results.isEmpty()) 16.dp else 0.dp,
             ),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-            shadowElevation = 6.dp,
             modifier = Modifier.fillMaxWidth(),
         ) {
             TextField(
@@ -91,12 +88,11 @@ internal fun HomeSearchBar(
 
         // ── Results card ──────────────────────────────────────────────
         if (results.isNotEmpty()) {
-            Card(
+            GlassSurface(
                 shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                colors = GlassDefaults.colors(
+                    border = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column {

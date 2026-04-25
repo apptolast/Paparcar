@@ -3,6 +3,7 @@
     <!-- HomeScreen -->
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Eco-Driver</string>
+    <string name="home_nav_map">Map</string>
     <string name="home_nav_history">History</string>
     <string name="home_nav_my_car">My car</string>
     <string name="home_nav_settings">Settings</string>

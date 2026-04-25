@@ -4,8 +4,10 @@ package io.apptolast.paparcar.presentation.home.components
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -472,24 +474,33 @@ private fun HomeReportSpotFabLightPreview() {
 
 // ─── A — HomeSheetContent: pantallas completas ────────────────────────────────
 
+@Composable
+private fun PreviewSheet(state: HomeState) {
+    val lazyListState = rememberLazyListState()
+    LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
+        homeSheetItems(
+            state = state,
+            onIntent = {},
+            onCameraMove = { _, _ -> },
+            onParkingClick = {},
+            onManualPark = {},
+            onSpotSelect = { _, _, _ -> },
+        )
+    }
+}
+
 @Preview(name = "A — Sheet: coche + spots (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES, heightDp = 600)
 @Composable
 private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
-    val scrollState = rememberScrollState()
-    val scrollPositions = remember { mutableMapOf<String, Int>() }
     PaparcarTheme(darkTheme = true) {
-        HomeSheetContent(
+        PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
                 userParking = FakeData.activeSession,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
-            onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState,
-            spotScrollPositions = scrollPositions,
         )
     }
 }
@@ -497,19 +508,14 @@ private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
 @Preview(name = "A — Sheet: coche + spots (claro)", showBackground = true, heightDp = 600)
 @Composable
 private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
-    val scrollState = rememberScrollState()
-    val scrollPositions = remember { mutableMapOf<String, Int>() }
     PaparcarTheme(darkTheme = false) {
-        HomeSheetContent(
+        PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
                 userParking = FakeData.activeSessionSupermarket,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
-            onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
 }
@@ -518,19 +524,14 @@ private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES, heightDp = 600)
 @Composable
 private fun HomeSheetContentSpotsFirstDarkPreview() {
-    val scrollState = rememberScrollState()
-    val scrollPositions = remember { mutableMapOf<String, Int>() }
     PaparcarTheme(darkTheme = true) {
-        HomeSheetContent(
+        PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
                 userParking = null,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
-            onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
 }
@@ -538,19 +539,14 @@ private fun HomeSheetContentSpotsFirstDarkPreview() {
 @Preview(name = "A — Sheet: sin coche, spots primero (claro)", showBackground = true, heightDp = 600)
 @Composable
 private fun HomeSheetContentSpotsFirstLightPreview() {
-    val scrollState = rememberScrollState()
-    val scrollPositions = remember { mutableMapOf<String, Int>() }
     PaparcarTheme(darkTheme = false) {
-        HomeSheetContent(
+        PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
                 userParking = null,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
-            onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
 }
@@ -559,14 +555,9 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES, heightDp = 500)
 @Composable
 private fun HomeSheetContentEmptyDarkPreview() {
-    val scrollState = rememberScrollState()
-    val scrollPositions = remember { mutableMapOf<String, Int>() }
     PaparcarTheme(darkTheme = true) {
-        HomeSheetContent(
+        PreviewSheet(
             state = HomeState(allPermissionsGranted = true, userParking = null, nearbySpots = emptyList()),
-            onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
 }
@@ -574,14 +565,9 @@ private fun HomeSheetContentEmptyDarkPreview() {
 @Preview(name = "A — Sheet: sin permisos (claro)", showBackground = true, heightDp = 400)
 @Composable
 private fun HomeSheetContentNoPermissionsLightPreview() {
-    val scrollState = rememberScrollState()
-    val scrollPositions = remember { mutableMapOf<String, Int>() }
     PaparcarTheme(darkTheme = false) {
-        HomeSheetContent(
+        PreviewSheet(
             state = HomeState(allPermissionsGranted = false, userParking = null, nearbySpots = emptyList()),
-            onIntent = {}, onCameraMove = { _, _ -> }, onParkingClick = {},
-            onManualPark = {}, onSpotSelect = { _, _, _ -> },
-            scrollState = scrollState, spotScrollPositions = scrollPositions,
         )
     }
 }
