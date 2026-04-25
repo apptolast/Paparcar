@@ -17,6 +17,7 @@ Paparcar es una app de **compartición de plazas de aparcamiento en tiempo real*
 | **Phase 2** — Vehículos & BT | 6–7 semanas | Jun–Jul 2026 | ~95% hecho |
 | **Phase 3** — UI/UX Design System | 4–5 semanas | Jul–Ago 2026 | ✅ 100% |
 | **Phase 4** — History & Settings | 3–4 semanas | Ago–Sep 2026 | ~70% hecho |
+| **Phase 4.5** — UX Refinements (Nav + Theme + Connectivity + AddFreeSpot) | 3–4 semanas | May 2026 | 🆕 0% |
 | **Phase 5** — QA & Estabilidad | 3–4 semanas | Sep–Oct 2026 | ~20% hecho |
 | **Phase 6** — iOS Port | 6–8 semanas | Oct–Dic 2026 | 0% |
 | **TOTAL** | **~7–9 meses** | **Abr–Dic 2026** | |
@@ -358,6 +359,153 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 
 ---
 
+## 7.5. PHASE 4.5 — UX Refinements (Nav + Theme + Connectivity + AddFreeSpot)
+
+### Objetivo
+Refinar la experiencia core post-MVP: simplificar navegación inferior, soportar
+modo claro/oscuro/sistema completo, dedicar pantalla específica al reporte
+manual de plaza libre, y comunicar estados de red al usuario.
+
+> **Nota:** Las tareas de tipo "Refactor / Arquitectura" derivadas de estas
+> features (extracción de `PaparcarMapView`, `PaparcarBottomActionBar`,
+> `ConnectivityObserver`, NavGraph updates, DataStore migration) se rastrean
+> en `Paparcar_Roadmap_TechDebt.md` bajo la fase **QA-6**.
+
+---
+
+### A — Bottom Navigation Restructure (merge MyCar + History)
+
+**Objetivo:** unificar `Mi Coche` + `Historial` en una única pantalla
+"Vehículos" donde el usuario ve la lista de vehículos y, al tocar uno, accede
+al historial de aparcamientos de ese vehículo en pestañas. Reducir el BottomNav
+de 4 a 3 destinos lógicos.
+
+| ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
+|----|-------|--------|------|-----------|--------|
+| `NAV-001` | Definir orden definitivo de BottomNav (3 tabs: Mapa \| Vehículos \| Ajustes) | ⏳ Pending | UX | Alta | [SHORT] |
+| `NAV-002` | Crear `VehiclesScreen` (lista vehículos + detalle con pestañas Historial/Detección/BT) | ⏳ Pending | UI | Alta | [LARGE] |
+| `NAV-003` | `VehiclesViewModel` unifica `VehicleRepository` + `UserParkingRepository` agrupando sesiones por `vehicleId` | ⏳ Pending | Feature | Alta | [MEDIUM] |
+| `NAV-004` | Lógica de "vehículo activo": prioridad BT-conectado, fallback a `isDefault = true` | ⏳ Pending | Feature | Alta | [MEDIUM] |
+| `NAV-005` | Migrar funcionalidad de `MyCarScreen` a la pestaña "Detalles" del nuevo flujo | ⏳ Pending | Refactor | Alta | [MEDIUM] |
+| `NAV-006` | Migrar `HistoryScreen` (timeline + WeeklyActivityCard + StatsRow) a pestaña por vehículo | ⏳ Pending | Refactor | Alta | [MEDIUM] |
+| `NAV-007` | Eliminar tabs `MY_CAR` y `HISTORY` del NavGraph; añadir route `vehicles` | ⏳ Pending | Refactor | Alta | [SHORT] |
+| `NAV-008` | Conservar deep-link a `ParkingLocationScreen` desde el historial por vehículo | ⏳ Pending | Refactor | Media | [SHORT] |
+
+**Criterios de aceptación:**
+- BottomNav muestra 3 destinos en el orden acordado.
+- Tocar un vehículo en la lista abre su detalle con tabs (Historial / Detección / BT).
+- El historial filtrado por vehículo respeta el mismo timeline + WeeklyActivityCard que ya existe.
+- Si hay un vehículo conectado por BT, la UI lo marca como "activo" aunque otro tenga `isDefault = true`.
+- No se rompe el deep-link "Ver en mapa" desde una sesión histórica.
+
+**Dependencias:** ninguna externa. Conviene hacer NAV-002 después de
+`PaparcarBottomActionBar` (D-002) si las tabs van a usarlo.
+
+---
+
+### B — Theme & Dark Mode (Light / Dark / System)
+
+**Objetivo:** dar al usuario control completo sobre la apariencia. Hoy
+`darkModeEnabled` es un Boolean — debe pasar a un enum `ThemeMode` con
+`LIGHT`, `DARK`, `SYSTEM` y propagarse al MaterialTheme y al estilo de Google
+Maps (light/dark JSON).
+
+| ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
+|----|-------|--------|------|-----------|--------|
+| `THEME-001` | Definir enum `ThemeMode { LIGHT, DARK, SYSTEM }` en `domain/preferences` | ⏳ Pending | Data | Alta | [SHORT] |
+| `THEME-002` | Reemplazar `appPreferences.darkModeEnabled: Boolean` por `themeMode: ThemeMode` (migración compatible) | ⏳ Pending | Refactor | Alta | [SHORT] |
+| `THEME-003` | `AppState.darkTheme: Boolean` se calcula a partir de `ThemeMode` + `isSystemInDarkTheme()` | ⏳ Pending | Feature | Alta | [SHORT] |
+| `THEME-004` | UI Settings: reemplazar Switch por segmented control de 3 opciones (Claro / Oscuro / Sistema) con strings i18n | ⏳ Pending | UI | Alta | [SHORT] |
+| `THEME-005` | `PlatformMap` recibe `MapStyleMode` resuelto por el tema activo y aplica `LIGHT_MAP_STYLE` o `DARK_MAP_STYLE` | ⏳ Pending | Feature | Alta | [MEDIUM] |
+| `THEME-006` | Añadir JSON de `LIGHT_MAP_STYLE` (paleta neutra) en `PlatformMap`/`PaparcarMapView` | ⏳ Pending | Asset | Media | [SHORT] |
+| `THEME-007` | Auditar Composables que ignoran `MaterialTheme` (hex colors hardcoded) y migrarlos | ⏳ Pending | Refactor | Media | [MEDIUM] |
+| `THEME-008` | Strings `settings_theme_light`, `settings_theme_dark`, `settings_theme_system` en EN + ES | ⏳ Pending | i18n | Alta | [SHORT] |
+
+**Criterios de aceptación:**
+- Selector "Claro / Oscuro / Sistema" en Settings persiste entre relanzamientos.
+- Modo "Sistema" cambia automáticamente cuando el usuario alterna el tema del SO sin reiniciar la app.
+- Google Maps adopta estilo claro u oscuro según el tema activo.
+- Ningún Composable conserva colores hex hardcoded que rompan el contraste en modo claro.
+
+**Dependencias:** afecta a `PaparcarMapView` (D-001). THEME-005/006 deben
+ejecutarse después de la extracción del mapa o coordinarse con ella.
+
+---
+
+### C — AddFreeSpot Flow (nueva pantalla + refactor del FAB)
+
+**Objetivo:** sacar la responsabilidad de "reportar plaza libre" del HomeScreen
+a una pantalla dedicada con UI mínima (mapa + pin animado + barra de acción).
+Eliminar el FAB de logout/release del Home (su acción ya vive en el peek row).
+
+| ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
+|----|-------|--------|------|-----------|--------|
+| `AFS-001` | Eliminar el "logout/release" FAB de `HomeActionFab.kt` (variante `parked`) | ⏳ Pending | Refactor | Alta | [SHORT] |
+| `AFS-002` | El megáfono FAB del Home ahora navega a `Routes.ADD_FREE_SPOT` en lugar de invocar `ReportManualSpot` directamente | ⏳ Pending | Refactor | Alta | [SHORT] |
+| `AFS-003` | Crear `AddFreeSpotScreen` (mapa fullscreen + pin centrado animado + `PaparcarBottomActionBar`) | ⏳ Pending | UI | Alta | [MEDIUM] |
+| `AFS-004` | `AddFreeSpotViewModel` + State/Intent/Effect aislados (centro de mapa + estado de envío + acción publicar) | ⏳ Pending | Feature | Alta | [MEDIUM] |
+| `AFS-005` | Animación de "pin drop" del marcador central (drop+rebote al asentar la cámara) | ⏳ Pending | UX | Alta | [SHORT] |
+| `AFS-006` | Añadir route `add_free_spot` al NavGraph con `popBackStack` al publicar éxito | ⏳ Pending | Refactor | Alta | [SHORT] |
+| `AFS-007` | Strings `add_free_spot_title`, `add_free_spot_publish`, `add_free_spot_success` en EN + ES | ⏳ Pending | i18n | Alta | [SHORT] |
+| `AFS-008` | `HomeViewModel` deja de manejar `ReportManualSpot`; mover lógica de publicación a `AddFreeSpotViewModel` | ⏳ Pending | Refactor | Alta | [MEDIUM] |
+
+**Criterios de aceptación:**
+- HomeScreen ya no contiene el FAB de logout (release sigue accesible desde la peek row del bottom sheet).
+- El megáfono del Home abre AddFreeSpot sin animación abrupta (transición consistente con el resto de la app).
+- El pin central anima un "drop" al asentarse la cámara y reposiciona en cada `onCameraMove` con suavidad.
+- Tocar "Publicar" envía el spot al `cameraTarget` actual; al éxito hace `popBackStack` y muestra snackbar.
+- AddFreeSpot no muestra BottomNav, ni FABs auxiliares, ni overlays de parking.
+
+**Dependencias:** depende de `PaparcarMapView` (D-001) y `PaparcarBottomActionBar` (D-002).
+
+---
+
+### E — Connectivity Listener & No Internet UX
+
+**Objetivo:** detectar cambios de conectividad en tiempo real e informar al
+usuario sin destruir el estado de la pantalla.
+
+#### Decisión recomendada — Opción 2: Banner persistente / Snackbar overlay
+
+**Justificación:**
+1. **Paparcar tiene funcionalidad parcial offline.** El mapa con tiles cacheados
+   sigue siendo visible, Room cachea spots y sesiones, y la lógica de detección
+   BT/AR funciona sin red (sólo el publish a Firestore se difiere). Forzar al
+   usuario a una pantalla bloqueante (Opción 1) destruiría contexto útil.
+2. **No-destructivo del back stack.** Volver al estado previo en la reconexión
+   es trivial cuando no hay navegación que restaurar.
+3. **Implementable a nivel de root scaffold.** `PaparcarApp` ya tiene un
+   `Surface` raíz; el banner se ancla bajo el TopAppBar (o sobre el BottomNav)
+   sin tocar pantallas individuales.
+4. **Las acciones que requieren red ya tienen feedback granular** (Snackbar de
+   error desde efectos ViewModel). El banner ofrece el contexto global; el
+   feedback puntual sigue por pantalla.
+
+> Las opciones 1 (full-screen) y 3 (overlay semi-transparente) quedan
+> descartadas: la primera por destructiva, la segunda por sobre-bloquear UX
+> que sí debería seguir siendo navegable (ver mapa cacheado, abrir Settings).
+
+| ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
+|----|-------|--------|------|-----------|--------|
+| `NET-001` | Definir tipo `ConnectivityStatus { Online, Offline }` en domain | ⏳ Pending | Data | Alta | [SHORT] |
+| `NET-002` | Banner persistente "Sin conexión" anclado al root scaffold de `PaparcarApp` (visible mientras `Offline`) | ⏳ Pending | UI | Alta | [SHORT] |
+| `NET-003` | Snackbar transitorio "Conexión restablecida" al pasar `Offline → Online` (auto-dismiss 2s) | ⏳ Pending | UX | Media | [SHORT] |
+| `NET-004` | En reconexión: re-emitir `LoadNearbySpots` desde `HomeViewModel` y `observeAllSessions` desde repos | ⏳ Pending | Feature | Alta | [MEDIUM] |
+| `NET-005` | Strings `connectivity_offline_banner`, `connectivity_restored_snackbar` en EN + ES | ⏳ Pending | i18n | Alta | [SHORT] |
+| `NET-006` | Acciones que requieren red (publish spot, set active vehicle) muestran Snackbar de bloqueo si offline | ⏳ Pending | UX | Media | [SHORT] |
+
+**Criterios de aceptación:**
+- Activar modo avión muestra el banner en menos de 2 segundos.
+- Desactivar modo avión hace desaparecer el banner y muestra un Snackbar breve.
+- El back-stack y el state de cada ViewModel se preservan durante el evento.
+- Spots cacheados en Room siguen visibles mientras está offline.
+- Al reconectar, los spots se refrescan automáticamente (sin acción del usuario).
+
+**Dependencias:** ninguna externa. La arquitectura concreta del observer
+(expect/actual, lifecycle, inyección Koin) está en TechDebt.md (`NET-ARCH-*`).
+
+---
+
 ## 8. PHASE 5 — QA & Estabilidad
 
 | ID | Tarea | Tipo |
@@ -449,18 +597,35 @@ feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 
 ## 12. Orden de Ejecución Recomendado
 
-### Sprint actual — Completar pendientes (actualizado 2026-04-17)
+### Sprint actual — Phase 4.5 (UX Refinements) — actualizado 2026-04-25
+
+**Orden recomendado** (justificación: dependencias y entrega incremental):
+
+**Sprint 1 — Base reutilizable:**
+- `D-001` (TechDebt) — extraer `PaparcarMapView` reutilizable
+- `D-002` (TechDebt) — extraer `PaparcarBottomActionBar`
+- `THEME-001..003` — sustituir `darkModeEnabled: Boolean` por `ThemeMode` enum
+
+**Sprint 2 — Conectividad y AddFreeSpot:**
+- `NET-001..006` — Connectivity observer + banner + reconexión
+- `AFS-001..008` — Nueva pantalla AddFreeSpot + retiro del FAB de logout
+
+**Sprint 3 — Restructure y polish de tema:**
+- `NAV-001..008` — Merge Mi Coche + Historial → Vehículos
+- `THEME-004..008` — UI selector 3-way + estilo de mapa por tema
+
+### Sprint paralelo — Pendientes pre-Phase-4.5 (no bloqueantes)
 
 **Prioridad 1 — Funcionalidad:**
 - `FND-011` — migrar `PaparcarLogger` a Napier/Kermit
 - `SET-007` — implementar `OpenUrl` + GDPR (exportar/eliminar datos)
 - `SET-009` — selector de idioma
-- `HOME-013` — completar MyCarScreen (delete/edit vehicle)
+- `HOME-013` — completar MyCarScreen (delete/edit vehicle) — *NOTA: parte de esto se reabsorbe en NAV-005*
 
 **Prioridad 2 — Pulido:**
 - `HOME-017` — `ObserveAdaptiveLocationUseCase` en `ParkingLocationViewModel`
 - `HOME-018` — `PARKING_ITEM_ID` a companion object
-- `HIST-002` — filtros historial (por vehículo, fecha)
+- `HIST-002` — filtros historial (por vehículo, fecha) — *NOTA: el filtro por vehículo se cumple gratis con NAV-006*
 - `HIST-005` — estadísticas básicas
 - `HIST-007` — extraer `DAY_MS` constant
 - `SET-001` — añadir eliminar cuenta
@@ -494,4 +659,4 @@ feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 ---
 
 *Documento vivo — actualizar conforme avance el desarrollo.*
-*Última actualización: 17 Abril 2026 — auditoría completa de progreso vs commits reales*
+*Última actualización: 25 Abril 2026 — añadida Phase 4.5 (Nav restructure + Theme + AddFreeSpot + Connectivity)*

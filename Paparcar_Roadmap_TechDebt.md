@@ -1,6 +1,7 @@
 # Paparcar — Roadmap Deuda Técnica & Calidad
 
-> Generado el 2026-04-16. Actualizado el 2026-04-17 con estado real de commits en master.
+> Generado el 2026-04-16. Actualizado el 2026-04-25 con la fase QA-6 (refactors
+> derivados de Phase 4.5 — UX Refinements).
 > Cada tarea corresponde a una rama Git y uno o más commits siguiendo Conventional Commits.
 > Las fases son secuenciales por impacto: completar una fase antes de empezar la siguiente.
 
@@ -15,6 +16,7 @@
 | **QA-3** | Cobertura de Tests | TEST-001 → TEST-004 | 2–3 semanas | ✅ Partial (16 tests) |
 | **QA-4** | UX & Estados Vacíos | UI-001 → UI-004 | 3–4 días | ✅ Done |
 | **QA-5** | Limpieza & Refactor | REF-001 → REF-003 | 2–3 días | ✅ Done |
+| **QA-6** | Refactors UX Phase 4.5 | D-* / NET-ARCH-* / NAV-ARCH-* / THEME-ARCH-* / DS-* | 2–3 semanas | ⏳ Pending |
 
 ---
 
@@ -178,6 +180,259 @@
 ### REF-003 — Reemplazar debounce manual con operadores Flow — ✅ Done
 
 **Commit:** `350b567` refactor(home): replace manual Job+delay search debounce with Flow.debounce [REF-003]
+
+---
+
+## PHASE QA-6 — Refactors UX Phase 4.5
+
+> Tareas de arquitectura/refactor que habilitan las features A, B, C, D, E
+> del roadmap de producto (`Paparcar_Roadmap_Completo.md` §7.5).
+> Hacer **antes** o **en paralelo** con sus features correspondientes.
+
+> Tamaños: `[SHORT]` (<2h) · `[MEDIUM]` (2–6h) · `[LARGE]` (>6h / dividir).
+
+---
+
+### D-001 — Extraer `PaparcarMapView` reutilizable — ⏳ Pending  `[LARGE]`
+
+**Motivación.** El mapa core hoy vive en
+`presentation/home/components/PlatformMap.kt` y se consume desde `HomeScreen`,
+`ParkingLocationScreen` y será necesario en `AddFreeSpotScreen`. Mezcla
+responsabilidades de UI específica de Home (clusters, markers de spot, badges,
+loading arc, indicador de posición central) con la base genérica del mapa.
+
+**Plan.**
+1. Mover `PlatformMap` → `ui/components/PaparcarMapView.kt` y renombrar.
+2. Definir `PaparcarMapConfig`:
+   ```kotlin
+   data class PaparcarMapConfig(
+       val interactionMode: MapInteractionMode = MapInteractionMode.FULL,
+       val showFreeSpotOverlays: Boolean = true,
+       val showAnimatedCenterPin: Boolean = false,
+       val initialCamera: CameraTarget? = null,
+       val mapType: MapType = MapType.NORMAL,
+       val styleMode: MapStyleMode = MapStyleMode.AUTO, // AUTO | LIGHT | DARK
+   )
+   enum class MapInteractionMode { FULL, POSITION_ONLY, READ_ONLY }
+   enum class MapStyleMode { AUTO, LIGHT, DARK }
+   ```
+3. Callbacks opcionales: `onCameraMove`, `onMapReady`, `onSpotClick`.
+4. Sacar fuera del componente lo que es exclusivo de Home: lista de spots,
+   sheet, FAB column, glass overlays. Eso se queda en `HomeScreen`.
+5. La animación de "pin drop" (Feature C) vive en `PaparcarMapView` cuando
+   `showAnimatedCenterPin = true`; usa `Animatable` con `Spring(MediumBouncy)`
+   sobre la posición Y del pin (drop de -8dp a 0dp + escala 1.1→1.0).
+
+**Criterios de aceptación.**
+- [ ] HomeScreen, AddFreeSpotScreen y ParkingLocationScreen consumen `PaparcarMapView` con configuraciones distintas.
+- [ ] Ningún recompose extra introducido vs. el `PlatformMap` actual (verificar con Layout Inspector).
+- [ ] `READ_ONLY` desactiva drag, zoom y `onCameraMove`.
+- [ ] Loading overlay y crosshair siguen funcionando idénticos en HomeScreen.
+
+---
+
+### D-002 — Extraer `PaparcarBottomActionBar` — ⏳ Pending  `[MEDIUM]`
+
+**Motivación.** El componente `HomeNavBar` en
+`presentation/home/components/HomeReportBar.kt` ya implementa la "barra de
+acción inferior" (icono + texto + onClick + onPrimary container). Es la base
+del componente reutilizable que necesitan HomeScreen ("Navegar a…") y
+AddFreeSpotScreen ("Publicar plaza").
+
+**Plan.**
+1. Mover a `ui/components/PaparcarBottomActionBar.kt`.
+2. API:
+   ```kotlin
+   @Composable
+   fun PaparcarBottomActionBar(
+       label: String,
+       onClick: () -> Unit,
+       modifier: Modifier = Modifier,
+       icon: ImageVector? = Icons.Outlined.Navigation,
+       isLoading: Boolean = false,
+       enabled: Boolean = true,
+   )
+   ```
+3. Estados:
+   - **Normal**: surface `colorScheme.primary` + `onPrimary`.
+   - **Disabled**: alpha 0.4f sobre surface; ignora ripple.
+   - **Loading**: reemplaza icon por `CircularProgressIndicator` 18dp; ignora taps.
+4. Adaptación tema: usa `MaterialTheme.colorScheme` — sin colores hardcoded.
+5. Eliminar la versión actual `HomeNavBar` y migrar el call site de `HomeScreen` al nuevo componente.
+
+**Criterios de aceptación.**
+- [ ] HomeScreen y AddFreeSpotScreen comparten exactamente la misma altura, padding y typografía en la barra.
+- [ ] Loading state visible al pulsar "Publicar" y vuelve a Normal en éxito o error.
+- [ ] Funciona en modo claro y oscuro sin retoques.
+
+---
+
+### NAV-ARCH-001 — Reestructurar NavGraph para 3 tabs + AddFreeSpot — ⏳ Pending  `[MEDIUM]`
+
+**Motivación.** Feature A reduce el BottomNav a 3 tabs y Feature C añade una
+nueva ruta. El NavGraph actual en `App.kt` usa rutas string-based con `Routes`
+object — la transformación es directa.
+
+**Plan.**
+1. Eliminar de `Routes` constants `MY_CAR` y `HISTORY`.
+2. Añadir `Routes.VEHICLES = "vehicles"` y `Routes.ADD_FREE_SPOT = "add_free_spot"`.
+3. Actualizar `BOTTOM_NAV_ROUTES` y `bottomNavItems`.
+4. La ruta `vehicles` recibe un `vehicleId?` opcional para deep-link a un detalle concreto.
+5. La ruta `add_free_spot` no participa en `BOTTOM_NAV_ROUTES` (no muestra BottomNav).
+6. Conservar `Routes.PARKING_LOCATION` — el deep-link "Ver en mapa" desde el historial unificado debe seguir funcionando.
+
+**Criterios de aceptación.**
+- [ ] Backstack queda limpio al volver desde AddFreeSpot a Home (1 sólo `popBackStack`).
+- [ ] Deep-link desde notificación (si llega) sigue resolviendo `PARKING_LOCATION`.
+- [ ] No se rompen los `navigateToTab` existentes.
+
+---
+
+### THEME-ARCH-001 — Migrar `darkModeEnabled: Boolean` a `ThemeMode` enum — ⏳ Pending  `[SHORT]`
+
+**Motivación.** Feature B exige tres modos. El esquema actual sólo soporta dos.
+
+**Plan.**
+1. `ThemeMode { LIGHT, DARK, SYSTEM }` en `domain/preferences`.
+2. `AppPreferences.themeMode: ThemeMode` (getter) + `setThemeMode(mode)`.
+3. Migración SharedPreferences: si existe `dark_mode_enabled`, leerlo una vez como `LIGHT`/`DARK` y persistir el nuevo key `theme_mode`. Borrar el viejo key.
+4. `AppViewModel` calcula `darkTheme: Boolean` en composición usando `isSystemInDarkTheme()` cuando `mode == SYSTEM`.
+5. `PaparcarTheme(darkTheme: Boolean)` se conserva — sólo cambia quién decide el booleano.
+
+**Criterios de aceptación.**
+- [ ] Tras la migración, usuarios actuales con `darkModeEnabled = true` aterrizan en `ThemeMode.DARK` y los que tenían `false` en `LIGHT`.
+- [ ] No quedan referencias a `darkModeEnabled` ni a `KEY_DARK_MODE_ENABLED` en el código.
+
+---
+
+### THEME-ARCH-002 — Estilo de Google Maps por modo de tema — ⏳ Pending  `[MEDIUM]`
+
+**Motivación.** Hoy el JSON `DARK_MAP_STYLE` se aplica si la luminancia del
+fondo del tema es < 0.5 — funciona para dark, pero no hay JSON light explícito
+y la lógica está enterrada en `PlatformMap`. Con `MapStyleMode` parametrizado
+(D-001), el estilo se elige fuera del componente y se inyecta como dato.
+
+**Plan.**
+1. Crear `LIGHT_MAP_STYLE` (paleta neutra, baja saturación, sin POIs ruidosos).
+2. `PaparcarMapView` recibe `MapStyleMode` y resuelve el JSON apropiado.
+3. Cuando `MapStyleMode.AUTO`, calcula el modo a partir de `MaterialTheme.colorScheme.background.luminance()` (mantener el comportamiento actual).
+4. Conservar `DARK_MAP_STYLE` y empaquetar ambos en `ui/components/MapStyles.kt`.
+
+---
+
+### NET-ARCH-001 — Arquitectura de `ConnectivityObserver` — ⏳ Pending  `[MEDIUM]`
+
+**Motivación.** Feature E necesita un observable de conectividad reactivo,
+lifecycle-safe, e inyectable. KMP exige `expect/actual`.
+
+**Decisión arquitectónica recomendada.**
+
+```
+domain/
+└── connectivity/
+    ├── ConnectivityStatus.kt        // sealed { Online, Offline }
+    └── ConnectivityObserver.kt      // interface { val status: StateFlow<ConnectivityStatus>; fun start(); fun stop() }
+
+androidMain/
+└── connectivity/
+    └── AndroidConnectivityObserver.kt   // ConnectivityManager + NetworkCallback → MutableStateFlow
+
+iosMain/
+└── connectivity/
+    └── IosConnectivityObserver.kt   // stub (Phase 6)
+```
+
+**Lifecycle.**
+- Singleton inyectado en `AppModule` (Koin).
+- `start()` se llama en `MainActivity.onCreate` y `stop()` en `onDestroy` — NO desde Composables (un `DisposableEffect` por pantalla causaría registrar/desregistrar en cada navegación).
+- `status: StateFlow<ConnectivityStatus>` se expone como `Hot Flow` global.
+
+**Consumo.**
+- En `PaparcarApp` (root scaffold) se observa con `collectAsStateWithLifecycle()`. Eso decide visibilidad del banner.
+- Pantallas que necesitan reaccionar (HomeViewModel para refrescar spots) lo inyectan vía constructor, no vía `CompositionLocal` — la lógica es de dominio, no de UI.
+- Evitar `CompositionLocalProvider` para esto: complica los tests de ViewModels y mezcla niveles.
+
+**Plan.**
+1. Definir `ConnectivityStatus` y `ConnectivityObserver` en `domain/connectivity`.
+2. `AndroidConnectivityObserver` con `ConnectivityManager.NetworkCallback` (API 24+ ya está cubierto).
+3. Registrar singleton en Koin (`single<ConnectivityObserver> { AndroidConnectivityObserver(get()) }`).
+4. `MainActivity` invoca `start()`/`stop()`.
+5. `HomeViewModel` recibe `ConnectivityObserver` y, en `viewModelScope`, observa transiciones `Offline → Online` para emitir `LoadNearbySpots`.
+
+**Criterios de aceptación.**
+- [ ] El observer emite el estado correcto en menos de 1s tras un cambio (medido con tests instrumentados).
+- [ ] No se filtran callbacks: `stop()` desregistra el `NetworkCallback` correctamente.
+- [ ] El consumo no causa recomposiciones innecesarias (banner sólo recompone cuando cambia el estado).
+
+---
+
+### DS-001 — Migrar `AppPreferences` SharedPreferences → DataStore — ⏳ Pending  `[MEDIUM]`
+
+**Motivación.** El proyecto persiste configuración con `SharedPreferences`.
+Aunque funciona, DataStore aporta API basada en Flow, escritura asíncrona y
+esquema más auditable. Aprovechar la migración del Boolean → enum (THEME-ARCH-001)
+es el momento natural.
+
+**Plan.**
+1. Añadir dependencia `androidx.datastore:datastore-preferences-core`.
+2. Crear `AppPreferencesDataStore` que implementa `AppPreferences`.
+3. Mantener `AndroidAppPreferences` como capa legacy: en primer arranque tras
+   la actualización, leer las prefs existentes y migrarlas al DataStore.
+4. Borrar `AndroidAppPreferences` cuando todos los usuarios objetivo hayan migrado (≥1 versión publicada).
+
+**Criterios de aceptación.**
+- [ ] Lecturas devuelven `Flow<T>` en lugar de getter síncrono — refactor de los call sites.
+- [ ] Migración idempotente: re-ejecutarla no corrompe datos.
+- [ ] `themeMode`, `useImperialUnits`, `defaultMapType`, `autoDetectParking`, etc. se persisten correctamente.
+
+> **Decisión a confirmar:** ¿Es DS-001 obligatorio para Phase 4.5 o puede
+> diferirse? Recomendación: diferirlo. THEME-ARCH-001 funciona bien sobre
+> SharedPreferences. DS-001 puede ejecutarse en una iteración aparte cuando
+> haya capacidad para refactorizar todos los call sites.
+
+---
+
+### NAV-ARCH-002 — `VehiclesViewModel` unifica VehicleRepository + UserParkingRepository — ⏳ Pending  `[MEDIUM]`
+
+**Motivación.** Feature A requiere un único ViewModel que combine la lista de
+vehículos con sus sesiones agrupadas. Las dos fuentes (`VehicleRepository.observeVehicles()`
++ `UserParkingRepository.observeAllSessions()`) deben combinarse con
+`combine { vehicles, sessions -> ... }`.
+
+**Plan.**
+1. Crear `VehiclesViewModel` en `presentation/vehicles/`.
+2. State expone:
+   - `vehicles: List<VehicleWithStats>` (incluye sesiones agrupadas, último parking).
+   - `selectedVehicleId: String?` para navegación a detalle.
+3. Lógica de "vehículo activo": derivar en estado, no en repo:
+   ```kotlin
+   val activeVehicle: Vehicle? = bluetoothConnectedVehicle
+       ?: vehicles.firstOrNull { it.isDefault }
+   ```
+4. Conservar `MyCarViewModel` y `HistoryViewModel` mientras dure la migración; eliminarlos cuando la nueva pantalla se cierre como done.
+
+**Criterios de aceptación.**
+- [ ] No regresiones en performance vs. `HistoryViewModel` actual (cold start <300ms para una lista de 50 sesiones).
+- [ ] La lógica de "activo BT > activo manual" se cubre con tests unitarios.
+
+---
+
+### AFS-ARCH-001 — Separar `AddFreeSpotViewModel` de `HomeViewModel` — ⏳ Pending  `[MEDIUM]`
+
+**Motivación.** Hoy el HomeViewModel maneja `ReportManualSpot(lat, lon)`. Eso
+debe migrar a un ViewModel propio con responsabilidad única.
+
+**Plan.**
+1. Localizar el `UseCase` actual que se invoca en `ReportManualSpot` (probablemente `ReportSpotUseCase` o similar bajo `domain/usecase/spot`).
+2. Crear `AddFreeSpotViewModel` en `presentation/addfreespot/`.
+3. State: `cameraCenter: GpsPoint?`, `isSubmitting: Boolean`, `submitError: PaparcarError?`.
+4. Intent: `CameraMoved(lat, lon)`, `Publish`, `Cancel`.
+5. Effect: `NavigateBack`, `ShowError`.
+6. Eliminar `HomeIntent.ReportManualSpot` y la rama correspondiente del `HomeViewModel.handleIntent`.
+
+**Criterios de aceptación.**
+- [ ] HomeViewModel ya no contiene lógica de "publicar plaza manual".
+- [ ] `AddFreeSpotViewModel` tiene cobertura de test (success path + offline path).
 
 ---
 
