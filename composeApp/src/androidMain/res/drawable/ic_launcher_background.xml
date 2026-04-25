@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launcher icon background — deep forest green (PapForest #0D1C14) -->
+<!--
+  Launcher background — forest dark with a faint top-left highlight for depth
+  (PapForest base #0D1C14, lifted to #173024 near the upper-left corner).
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:pathData="M0,0H108V108H0Z"
-        android:fillColor="#0D1C14" />
+
+    <path android:pathData="M0,0 H108 V108 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="36"
+                android:centerY="36"
+                android:gradientRadius="120"
+                android:startColor="#173024"
+                android:endColor="#0D1C14" />
+        </aapt:attr>
+    </path>
+
 </vector>

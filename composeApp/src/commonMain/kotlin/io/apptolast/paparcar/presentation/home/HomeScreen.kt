@@ -17,12 +17,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,7 +27,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -41,11 +37,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,19 +52,19 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.presentation.home.components.HomeActionFab
-import io.apptolast.paparcar.presentation.home.components.HomeGlassNavBar
 import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomeNavBar
@@ -97,15 +94,21 @@ import paparcar.composeapp.generated.resources.home_test_spot_sent
 
 private data class SelectedNavTarget(val lat: Double, val lon: Double)
 
-// Peek = drag pill (22dp) + content row (82dp)
-private val SheetPeekHeight = 104.dp
+// Initial/fallback peek size used before the handle has been measured.
+// After first layout, peekHeightPx tracks the handle's real measured height
+// so the sheet's collapsed edge sits exactly at the bottom-nav divider.
+private val SheetPeekHeightInitial = 88.dp
 
 // Glass stays "interacting" for this long after the last onCameraMove tick.
 // Must be ≥ PlatformMap's CAMERA_MOVING_DEBOUNCE_MS (280) so the glass fade-out
 // does not start while the map is still settling out of a fling.
 private const val MAP_INTERACTION_IDLE_DELAY_MS = 320L
-// Material3 NavigationBar default content height (80dp) — its window insets add to this once measured
-private const val GLASS_NAV_BAR_DEFAULT_HEIGHT_DP = 80
+
+// Guard window for programmatic camera animations. Must cover the full
+// PlatformMap CAMERA_ANIM_MS (700) + idle debounce so no synthetic
+// onCameraMove frame leaks through and flips the glass on while the map is
+// animating to a tapped spot / "my location" / bounds fit.
+private const val PROGRAMMATIC_MOVE_GUARD_MS = 1100L
 
 private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
 
@@ -115,13 +118,15 @@ private const val FLING_SNAP_VELOCITY = 1200f
 // Sheet top position when fully expanded ("sheet top at screen top").
 private const val FULL_SNAP_OFFSET_PX = 0f
 
-// Matches SnapSpec so nav bar enter/exit stays coherent with sheet snap.
-private const val NAV_ANIM_MS = 300
-
-// Fraction of peek offset at/above which the nav bar starts hiding. Remaps the
-// raw sheet progress so the nav is fully gone well before the sheet is fully
-// expanded — responsive feel instead of a linear fade across the whole drag.
+// Fraction of peek offset at/above which the global bottom nav starts hiding.
+// Remaps raw sheet progress so the nav disappears well before the sheet is
+// fully expanded — responsive feel instead of a linear fade across the drag.
 private const val NAV_HIDE_START = 0.65f
+
+// Soft-drag auto-collapse zone: if the user releases the drag past this fraction
+// of the peek offset (i.e. very close to the collapsed position), snap fully
+// collapsed instead of leaving the sheet floating near the bottom.
+private const val SOFT_DRAG_COLLAPSE_ZONE = 0.85f
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root
@@ -130,9 +135,10 @@ private const val NAV_HIDE_START = 0.65f
 @Composable
 fun HomeScreen(
     onNavigateToHistory: () -> Unit = {},
-    onNavigateToMyCar: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {},
     onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> },
+    navProgressState: MutableFloatState = remember { mutableFloatStateOf(1f) },
+    onItemSelectedChange: (Boolean) -> Unit = {},
+    bottomPadding: Dp = 0.dp,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -181,10 +187,11 @@ fun HomeScreen(
     HomeContent(
         state = state,
         onIntent = viewModel::handleIntent,
-        onNavigateToMyCar = onNavigateToMyCar,
-        onNavigateToSettings = onNavigateToSettings,
         onOpenMapsNavigation = onOpenMapsNavigation,
         snackbarHostState = snackbarHostState,
+        navProgressState = navProgressState,
+        onItemSelectedChange = onItemSelectedChange,
+        bottomPadding = bottomPadding,
     )
 
     if (state.pendingParkingGps != null) {
@@ -203,27 +210,59 @@ fun HomeScreen(
 private fun HomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
-    onNavigateToMyCar: () -> Unit,
-    onNavigateToSettings: () -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
     snackbarHostState: SnackbarHostState,
+    navProgressState: MutableFloatState,
+    onItemSelectedChange: (Boolean) -> Unit,
+    bottomPadding: Dp,
 ) {
     val uiController = rememberHomeUiController()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
-    // Single source of truth for the glass effect. A monotonic tick is bumped
-    // on every onCameraMove; a LaunchedEffect keyed on it restarts the debounce
-    // and flips isMapInteracting back to false once the map settles.
-    var mapMoveTick by remember { mutableLongStateOf(0L) }
-    var isMapInteracting by remember { mutableStateOf(false) }
-    LaunchedEffect(mapMoveTick) {
-        if (mapMoveTick == 0L) return@LaunchedEffect
-        isMapInteracting = true
-        delay(MAP_INTERACTION_IDLE_DELAY_MS)
-        isMapInteracting = false
+
+    // Stabilized bottom padding for the sheet's inner LazyColumn. The root
+    // Scaffold shrinks its content padding to 0 while the global nav slides
+    // out during a drag — if the sheet consumed that raw value, its scroll
+    // area would visibly shift underfoot. Latch the last non-zero padding
+    // so the sheet keeps reserving space for the nav while it animates away.
+    var lastKnownNavHeight by remember { mutableStateOf(0.dp) }
+    if (bottomPadding > 0.dp && bottomPadding != lastKnownNavHeight) {
+        lastKnownNavHeight = bottomPadding
     }
-    var glassNavBarHeightPx by remember { mutableFloatStateOf(with(density) { GLASS_NAV_BAR_DEFAULT_HEIGHT_DP.dp.toPx() }) }
-    val navBarBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val stableBottomPadding = if (bottomPadding > 0.dp) bottomPadding else lastKnownNavHeight
+
+    // ── Glass interaction tracking ───────────────────────────────────────────
+    // isMapInteracting is the only snapshot state that feeds the glass effect,
+    // and it only flips twice per gesture (true on first real drag frame,
+    // false once MAP_INTERACTION_IDLE_DELAY_MS elapses without new frames).
+    // The idle Job lives in a non-snapshot holder so rapid onCameraMove ticks
+    // never invalidate a composition scope — HomeContent does not recompose
+    // per frame while the user is dragging the map.
+    var isMapInteracting by remember { mutableStateOf(false) }
+    val idleJobHolder = remember { arrayOfNulls<Job>(1) }
+
+    // Clear the programmatic-move flag once the camera animation has settled.
+    // isProgrammaticMove is flipped synchronously by uiController.moveCamera*
+    // before cameraTarget mutates, so this effect runs after the flag is
+    // already true — it only needs to clear it when the animation is done.
+    LaunchedEffect(uiController.cameraTarget?.token) {
+        if (!uiController.isProgrammaticMove) return@LaunchedEffect
+        delay(PROGRAMMATIC_MOVE_GUARD_MS)
+        uiController.clearProgrammaticMove()
+    }
+
+    val onCameraFrame: () -> Unit = remember(coroutineScope, uiController) {
+        {
+            if (!uiController.isProgrammaticMove) {
+                if (!isMapInteracting) isMapInteracting = true
+                idleJobHolder[0]?.cancel()
+                idleJobHolder[0] = coroutineScope.launch {
+                    delay(MAP_INTERACTION_IDLE_DELAY_MS)
+                    isMapInteracting = false
+                }
+            }
+        }
+    }
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
     val selectedSpot = selectedSpotId?.let { id -> state.nearbySpots.find { it.id == id } }
@@ -258,29 +297,11 @@ private fun HomeContent(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0),
-        bottomBar = {
-            AnimatedVisibility(
-                visible = state.selectedItemId != null,
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
-            ) {
-                HomeNavBar(
-                    navLabel = navLabel,
-                    onNavigate = {
-                        if (isParkingSelected) {
-                            state.userParking?.let { p ->
-                                onOpenMapsNavigation(
-                                    p.location.latitude,
-                                    p.location.longitude
-                                )
-                            }
-                        } else {
-                            selectedNavTarget?.let { onOpenMapsNavigation(it.lat, it.lon) }
-                        }
-                    },
-                )
-            }
-        },
+        // HomeNavBar renders as an overlay inside BoxWithConstraints below —
+        // NOT as Scaffold.bottomBar. When it was a bottomBar, its
+        // AnimatedVisibility enter/exit resized the scaffold content slot and
+        // the sheet shifted in the middle of the item-selection transition.
+        // As an overlay the nav doesn't participate in sheet-sizing layout.
         containerColor = Color.Transparent,
     ) { scaffoldPadding ->
 
@@ -319,16 +340,41 @@ private fun HomeContent(
                 .fillMaxSize()
                 .padding(scaffoldPadding),
         ) {
-            val containerHeightPx = constraints.maxHeight.toFloat()
-            var peekHeightPx by remember { mutableFloatStateOf(with(density) { (SheetPeekHeight + navBarBottom).toPx() }) }
-            // Reserve space for the glass nav bar only when it's visible (no item selected).
-            // When an item is selected the HomeNavBar replaces it and the Scaffold already
-            // shrinks containerHeightPx, so no extra reserve is needed.
-            // Material3 NavigationBar includes its own bottom inset, so glassNavBarHeightPx
-            // already accounts for navigation bar padding.
-            val navBarReservePx = if (state.selectedItemId == null) glassNavBarHeightPx else 0f
-            val peekOffsetPx = (containerHeightPx - peekHeightPx - navBarReservePx).coerceAtLeast(0f)
+            // Home renders full-screen — the root NavHost intentionally does
+            // NOT apply scaffoldPadding for this route (only non-Home routes
+            // pad themselves). So BoxWithConstraints spans the entire window
+            // including the AppBottomNavigation slot, which lets the sheet
+            // extend down and fill the space the nav leaves behind as it
+            // fades away during a drag (no black gap).
+            //
+            // rawContainerHeightPx = full screen height.
+            // containerHeightPx   = screen − latched nav height. Used ONLY
+            //                       for snap points (peek / half) so those
+            //                       stay stable while the nav animates.
+            //   - Peek  →  sheet top at (screen − nav − peekHeight).
+            //   - Half  →  (screen − nav) / 2.
+            //   - Full  →  0 (sheet spans the entire window).
+            val rawContainerHeightPx = constraints.maxHeight.toFloat()
+            val navHeightPx = with(density) { stableBottomPadding.toPx() }
+            val containerHeightPx = (rawContainerHeightPx - navHeightPx).coerceAtLeast(0f)
+
+            // Peek height tracks the HomePeekHandle's real measured height so the
+            // sheet's collapsed top edge sits flush with the AppBottomNavigation
+            // divider. It's bootstrapped from SheetPeekHeightInitial and updated
+            // via onSizeChanged on the handle Box. Zero-height readings are
+            // filtered: the handle layout depends on sheet height, which depends
+            // on peekOffsetPx → peekHeightPx, so a 0 transient would otherwise
+            // collapse the whole chain and make the sheet disappear.
+            var peekHeightPx by remember {
+                mutableFloatStateOf(with(density) { SheetPeekHeightInitial.toPx() })
+            }
+            val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
             val halfOffsetPx = containerHeightPx / 2f
+
+            // Measured height of the HomeNavBar overlay (reported via onSizeChanged below).
+            // The LazyColumn reads this to reserve space so the last item never sits
+            // behind the overlay while an item is selected.
+            var homeNavBarHeightPx by remember { mutableFloatStateOf(0f) }
 
             val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
             LaunchedEffect(peekOffsetPx, state.selectedItemId) {
@@ -337,6 +383,23 @@ private fun HomeContent(
                 } else if (sheetOffsetPx.value >= peekOffsetPx) {
                     sheetOffsetPx.snapTo(peekOffsetPx)
                 }
+            }
+
+            // Hoist sheet progress up to the root so the global bottom nav can
+            // fade + slide with the drag via graphicsLayer. snapshotFlow keeps
+            // this off the composition path — only the layer phase reacts.
+            LaunchedEffect(peekOffsetPx) {
+                snapshotFlow {
+                    val raw = if (peekOffsetPx > 0f) sheetOffsetPx.value / peekOffsetPx else 1f
+                    ((raw - NAV_HIDE_START) / (1f - NAV_HIDE_START)).coerceIn(0f, 1f)
+                }.collect { progress -> navProgressState.floatValue = progress }
+            }
+
+            // Discrete signal: when an item is selected, the per-screen
+            // HomeNavBar takes over and the root-level AppBottomNavigation
+            // should hide entirely.
+            LaunchedEffect(state.selectedItemId) {
+                onItemSelectedChange(state.selectedItemId != null)
             }
 
             // Instagram-style nested scroll: when the list is scrolled to the very top and
@@ -366,12 +429,18 @@ private fun HomeContent(
             val sheetExpanded by remember {
                 derivedStateOf { sheetOffsetPx.value <= FULL_SNAP_OFFSET_PX + 1f }
             }
-            // FABs sit just above the sheet's current top edge and follow it as it moves.
+            // FABs sit just above the sheet's current top edge. The sheet is
+            // aligned BottomCenter of BoxWithConstraints (whose inner area =
+            // rawContainerHeightPx), so its top is at rawContainer - sheetHeight
+            // = sheetOffsetPx measured from the container top — hence the FAB
+            // bottom inset equals (rawContainer - sheetOffsetPx) + 12dp.
             val fabBottomDp =
-                with(density) { (containerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
+                with(density) { (rawContainerHeightPx - sheetOffsetPx.value).toDp() } + 12.dp
 
-            // Map shrinks as the sheet expands — its bottom edge tracks the sheet top.
-            val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() }
+            // Map shrinks as the sheet expands — its bottom edge extends 20dp past
+            // the sheet top so the sheet's rounded top corners sit on top of the
+            // map tiles instead of exposing the dark background behind the curves.
+            val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + 20.dp
 
             // ── Map ──────────────────────────────────────────────────────────
             PlatformMap(
@@ -398,7 +467,7 @@ private fun HomeContent(
                 onCameraMove = { lat, lon ->
                     uiController.onCameraMoved(lat, lon)
                     onIntent(HomeIntent.CameraPositionChanged(lat, lon))
-                    mapMoveTick++
+                    onCameraFrame()
                 },
                 cameraTarget = uiController.cameraTarget,
                 modifier = Modifier
@@ -501,13 +570,13 @@ private fun HomeContent(
             }
 
             // ── Bottom sheet ─────────────────────────────────────────────────
-            // Instagram-style: sheet height = visible area (containerHeight - top).
-            // This gives the inner LazyColumn a viewport that matches the visible
-            // portion of the sheet, so content outside the viewport actually
-            // scrolls. Anchored to BottomCenter; drag updates sheetOffsetPx, which
-            // in turn changes the sheet height (top moves up/down).
+            // Instagram-style: sheet height = visible area (bottomBound - top).
+            // Uses rawContainerHeightPx (current constraints) so the sheet fills
+            // whatever space is actually available — when an item is selected
+            // and the AppBottomNavigation hides, the sheet reclaims that area
+            // (HomeNavBar overlays on top and LazyColumn pads around it).
             val sheetHeightDp = with(density) {
-                (containerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
+                (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
             }
             GlassSurface(
                 modifier = Modifier
@@ -520,6 +589,10 @@ private fun HomeContent(
                     // Handle: the only area that drags the sheet
                     Box(
                         modifier = Modifier
+                            .onSizeChanged { size ->
+                                // Guard 0 transients — see peekHeightPx comment above.
+                                if (size.height > 0) peekHeightPx = size.height.toFloat()
+                            }
                             .draggable(
                                 orientation = Orientation.Vertical,
                                 state = rememberDraggableState { delta ->
@@ -534,16 +607,28 @@ private fun HomeContent(
                                 },
                                 onDragStopped = { velocity ->
                                     coroutineScope.launch {
+                                        val halfPoint = (FULL_SNAP_OFFSET_PX + peekOffsetPx) / 2f
+                                        val current = sheetOffsetPx.value
                                         val target = when {
-                                            velocity < -FLING_SNAP_VELOCITY -> FULL_SNAP_OFFSET_PX
-                                            velocity > FLING_SNAP_VELOCITY -> peekOffsetPx
-                                            else -> sheetOffsetPx.value
+                                            velocity < -FLING_SNAP_VELOCITY -> {
+                                                // Fling up: collapsed → half, half → expanded
+                                                if (current > halfPoint) halfPoint else FULL_SNAP_OFFSET_PX
+                                            }
+                                            velocity > FLING_SNAP_VELOCITY -> {
+                                                // Fling down: expanded → half, half → collapsed
+                                                if (current < halfPoint) halfPoint else peekOffsetPx
+                                            }
+                                            else -> {
+                                                // Soft drag (no fling): if released near the bottom,
+                                                // finish collapsing instead of leaving it floating.
+                                                val collapseSnapZone = peekOffsetPx * SOFT_DRAG_COLLAPSE_ZONE
+                                                if (current > collapseSnapZone) peekOffsetPx else current
+                                            }
                                         }.coerceIn(FULL_SNAP_OFFSET_PX, peekOffsetPx)
                                         sheetOffsetPx.animateTo(target, SnapSpec)
                                     }
                                 },
-                            )
-                            .onSizeChanged { size -> peekHeightPx = size.height.toFloat() },
+                            ),
                     ) {
                         HomePeekHandle(
                             state = state,
@@ -552,22 +637,24 @@ private fun HomeContent(
                         )
                     }
 
-                    // navigationBarsPadding() covers the system nav bar inset; the extra
-                    // GLASS_NAV_BAR_DEFAULT_HEIGHT_DP pushes content above the floating
-                    // HomeGlassNavBar so the last row is not hidden behind it.
-                    val listBottomPadding = if (state.selectedItemId == null) {
-                        GLASS_NAV_BAR_DEFAULT_HEIGHT_DP.dp + 16.dp
-                    } else {
-                        16.dp
-                    }
                     LazyColumn(
                         state = lazyListState,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .navigationBarsPadding()
                             .nestedScroll(sheetNestedScroll),
-                        contentPadding = PaddingValues(top = 4.dp, bottom = listBottomPadding),
+                        contentPadding = PaddingValues(
+                            top = 4.dp,
+                            // The sheet extends the full window height now, so its
+                            // bottom rows would sit behind either the AppBottomNavigation
+                            // (when no item is selected) or the HomeNavBar overlay
+                            // (when an item is selected). Reserve the height of
+                            // whichever is covering the sheet so the last list row
+                            // stays visible above it.
+                            bottom = 16.dp + if (state.selectedItemId != null) {
+                                with(density) { homeNavBarHeightPx.toDp() }
+                            } else stableBottomPadding,
+                        ),
                     ) {
                         homeSheetItems(
                             state = state,
@@ -588,44 +675,32 @@ private fun HomeContent(
                 }
             }
 
-            // ── Glass BottomNav — replaces HomeFloatingHeader ────────────────
-            // Discrete gate: hidden entirely when an item is selected — HomeNavBar
-            // takes over via Scaffold bottomBar.
-            // Continuous gate: the Modifier.graphicsLayer block below fades + slides
-            // the bar 1:1 with the sheet drag (Google Maps / Instagram style). State
-            // is read inside the layer lambda so frame-by-frame sheet offset updates
-            // happen in the layer phase without recomposing the nav subtree.
+            // ── HomeNavBar overlay ───────────────────────────────────────────
+            // Moved out of Scaffold.bottomBar so its enter/exit animation no
+            // longer resizes the sheet's containing layout. Rendered last in
+            // BoxWithConstraints so it draws on top of the sheet.
             AnimatedVisibility(
-                visible = state.selectedItemId == null,
-                enter = fadeIn(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) +
-                    slideInVertically(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it },
-                exit = fadeOut(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) +
-                    slideOutVertically(tween(NAV_ANIM_MS, easing = FastOutSlowInEasing)) { it },
+                visible = state.selectedItemId != null,
+                enter = slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + fadeOut(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .onSizeChanged { if (it.height > 0) glassNavBarHeightPx = it.height.toFloat() }
-                    .graphicsLayer {
-                        // progress = 1 when sheet is at peek (fully collapsed),
-                        // progress = 0 once sheet has moved past (1 - NAV_HIDE_START)
-                        // of the peek offset → nav disappears faster than the sheet
-                        // completes its expansion.
-                        val peek = peekOffsetPx
-                        val raw = if (peek > 0f) sheetOffsetPx.value / peek else 1f
-                        val progress = ((raw - NAV_HIDE_START) / (1f - NAV_HIDE_START))
-                            .coerceIn(0f, 1f)
-                        alpha = progress
-                        translationY = (1f - progress) * glassNavBarHeightPx
-                    },
+                    .onSizeChanged { size -> homeNavBarHeightPx = size.height.toFloat() },
             ) {
-                HomeGlassNavBar(
-                    onMapClick = {
-                        state.userGpsPoint?.let {
-                            uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                HomeNavBar(
+                    navLabel = navLabel,
+                    onNavigate = {
+                        if (isParkingSelected) {
+                            state.userParking?.let { p ->
+                                onOpenMapsNavigation(
+                                    p.location.latitude,
+                                    p.location.longitude,
+                                )
+                            }
+                        } else {
+                            selectedNavTarget?.let { onOpenMapsNavigation(it.lat, it.lon) }
                         }
                     },
-                    onHistoryClick = { onIntent(HomeIntent.OpenHistory) },
-                    onMyCarClick = onNavigateToMyCar,
-                    onSettingsClick = onNavigateToSettings,
                 )
             }
         }

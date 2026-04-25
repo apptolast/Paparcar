@@ -14,7 +14,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.History
@@ -24,18 +26,21 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
+import io.apptolast.paparcar.ui.components.AppBottomNavItem
+import io.apptolast.paparcar.ui.components.AppBottomNavigation
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -87,6 +92,7 @@ internal object Routes {
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
+    Routes.HOME,
     Routes.HISTORY,
     Routes.MY_CAR,
     Routes.SETTINGS,
@@ -212,21 +218,49 @@ private fun MainAppNavigation(
         }
     }
 
+    // Nav progress is a lifted state holder: HomeScreen writes the sheet-drag
+    // progress into it each frame, and the bottom bar reads it inside a
+    // graphicsLayer lambda so the visual update stays in the layer phase with
+    // no cross-tree recomposition. Other screens leave it at 1f (fully shown).
+    val navProgress = remember { mutableFloatStateOf(1f) }
+    // Discrete visibility override driven by HomeScreen when an item is
+    // selected — at that point the per-screen HomeNavBar takes over the
+    // bottom slot and the global bar should step aside.
+    var showBottomNav by remember { mutableStateOf(true) }
+
+    // Reset nav state when leaving HOME so other screens see a pristine bar.
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != Routes.HOME) {
+            navProgress.floatValue = 1f
+            showBottomNav = true
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
             AnimatedVisibility(
-                visible = currentRoute in BOTTOM_NAV_ROUTES,
+                visible = currentRoute in BOTTOM_NAV_ROUTES && showBottomNav,
                 enter = slideInVertically { it },
                 exit = slideOutVertically { it },
             ) {
-                PaparcarBottomNav(
+                AppBottomNavigation(
+                    items = bottomNavItems,
                     currentRoute = currentRoute,
                     onNavigate = { route -> navController.navigateToTab(route) },
+                    modifier = Modifier.graphicsLayer {
+                        alpha = navProgress.floatValue
+                        translationY = (1f - navProgress.floatValue) * size.height
+                    },
                 )
             }
         },
-    ) { _ ->
+    ) { scaffoldPadding ->
+        // NavHost intentionally fills the full screen — the Home route needs to
+        // extend its bottom sheet under the AppBottomNavigation slot so the
+        // sheet background fills the gap left when the nav fades away during
+        // a drag. Each non-Home destination wraps its content in a Box that
+        // applies scaffoldPadding so their content sits above the nav.
         NavHost(
             navController = navController,
             startDestination = startRoute,
@@ -290,9 +324,10 @@ private fun MainAppNavigation(
             composable(Routes.HOME) {
                 HomeScreen(
                     onNavigateToHistory = { navController.navigateToTab(Routes.HISTORY) },
-                    onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
-                    onNavigateToSettings = { navController.navigateToTab(Routes.SETTINGS) },
                     onOpenMapsNavigation = onOpenMapsNavigation,
+                    navProgressState = navProgress,
+                    onItemSelectedChange = { selected -> showBottomNav = !selected },
+                    bottomPadding = scaffoldPadding.calculateBottomPadding(),
                 )
             }
             composable(
@@ -310,32 +345,54 @@ private fun MainAppNavigation(
                 )
             }
             composable(Routes.HISTORY) {
-                HistoryScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToMap = { lat, lon ->
-                        navController.navigate("${Routes.PARKING_LOCATION}?lat=$lat&lon=$lon")
-                    },
-                )
+                // consumeWindowInsets prevents the nested HistoryScreen Scaffold
+                // from re-applying navigationBars padding on top of scaffoldPadding
+                // (which already includes the nav inset via AppBottomNavigation),
+                // which would otherwise leave a blank band above the bottom nav.
+                Box(
+                    modifier = Modifier
+                        .padding(scaffoldPadding)
+                        .consumeWindowInsets(scaffoldPadding),
+                ) {
+                    HistoryScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToMap = { lat, lon ->
+                            navController.navigate("${Routes.PARKING_LOCATION}?lat=$lat&lon=$lon")
+                        },
+                    )
+                }
             }
             composable(Routes.MY_CAR) {
-                MyCarScreen(
-                    onAddVehicle = {
-                        navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car")
-                    },
-                    onConfigureBluetooth = { vehicleId ->
-                        navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
-                    },
-                )
+                Box(
+                    modifier = Modifier
+                        .padding(scaffoldPadding)
+                        .consumeWindowInsets(scaffoldPadding),
+                ) {
+                    MyCarScreen(
+                        onAddVehicle = {
+                            navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car")
+                        },
+                        onConfigureBluetooth = { vehicleId ->
+                            navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
+                        },
+                    )
+                }
             }
             composable(Routes.SETTINGS) {
-                SettingsScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
-                    darkMode = darkTheme,
-                    onToggleDarkMode = onToggleDarkMode,
-                    imperialUnits = imperialUnits,
-                    onToggleImperialUnits = onToggleImperialUnits,
-                )
+                Box(
+                    modifier = Modifier
+                        .padding(scaffoldPadding)
+                        .consumeWindowInsets(scaffoldPadding),
+                ) {
+                    SettingsScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
+                        darkMode = darkTheme,
+                        onToggleDarkMode = onToggleDarkMode,
+                        imperialUnits = imperialUnits,
+                        onToggleImperialUnits = onToggleImperialUnits,
+                    )
+                }
             }
             composable(
                 route = "${Routes.BT_CONFIG}/{vehicleId}",
@@ -352,66 +409,35 @@ private fun MainAppNavigation(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bottom Navigation Bar
+// Bottom Navigation Bar — single source of truth for the app's tab items
 // ─────────────────────────────────────────────────────────────────────────────
 
-private data class BottomNavItem(
-    val route: String,
-    val labelRes: @Composable () -> String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
+private val bottomNavItems = listOf(
+    AppBottomNavItem(
+        route = Routes.HOME,
+        label = { stringResource(Res.string.nav_tab_map) },
+        iconFilled = Icons.Filled.Map,
+        iconOutline = Icons.Outlined.Map,
+    ),
+    AppBottomNavItem(
+        route = Routes.HISTORY,
+        label = { stringResource(Res.string.nav_tab_history) },
+        iconFilled = Icons.Filled.History,
+        iconOutline = Icons.Outlined.History,
+    ),
+    AppBottomNavItem(
+        route = Routes.MY_CAR,
+        label = { stringResource(Res.string.nav_tab_my_car) },
+        iconFilled = Icons.Filled.DirectionsCar,
+        iconOutline = Icons.Outlined.DirectionsCar,
+    ),
+    AppBottomNavItem(
+        route = Routes.SETTINGS,
+        label = { stringResource(Res.string.nav_tab_settings) },
+        iconFilled = Icons.Filled.Settings,
+        iconOutline = Icons.Outlined.Settings,
+    ),
 )
-
-@Composable
-private fun PaparcarBottomNav(
-    currentRoute: String?,
-    onNavigate: (String) -> Unit,
-) {
-    val items = listOf(
-        BottomNavItem(
-            route = Routes.HOME,
-            labelRes = { stringResource(Res.string.nav_tab_map) },
-            selectedIcon = Icons.Filled.Map,
-            unselectedIcon = Icons.Outlined.Map,
-        ),
-        BottomNavItem(
-            route = Routes.HISTORY,
-            labelRes = { stringResource(Res.string.nav_tab_history) },
-            selectedIcon = Icons.Filled.History,
-            unselectedIcon = Icons.Outlined.History,
-        ),
-        BottomNavItem(
-            route = Routes.MY_CAR,
-            labelRes = { stringResource(Res.string.nav_tab_my_car) },
-            selectedIcon = Icons.Filled.DirectionsCar,
-            unselectedIcon = Icons.Outlined.DirectionsCar,
-        ),
-        BottomNavItem(
-            route = Routes.SETTINGS,
-            labelRes = { stringResource(Res.string.nav_tab_settings) },
-            selectedIcon = Icons.Filled.Settings,
-            unselectedIcon = Icons.Outlined.Settings,
-        ),
-    )
-
-    NavigationBar {
-        items.forEach { item ->
-            val selected = currentRoute == item.route
-            val label = item.labelRes()
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onNavigate(item.route) },
-                icon = {
-                    Icon(
-                        imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = label,
-                    )
-                },
-                label = { Text(label) },
-            )
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
