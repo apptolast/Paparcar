@@ -16,6 +16,7 @@ import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.presentation.app.SplashViewModel
@@ -36,6 +37,7 @@ class MainActivity : ComponentActivity() {
     private val permissionManager: PermissionManager by inject()
     private val activityRecognitionManager: ActivityRecognitionManager by inject()
     private val appPreferences: AppPreferences by inject()
+    private val connectivityObserver: ConnectivityObserver by inject()
 
     // Detects GPS toggled on/off from the quick-settings panel without leaving the app.
     // Registered dynamically (not in manifest) so it is scoped to the Activity lifecycle.
@@ -58,6 +60,7 @@ class MainActivity : ComponentActivity() {
         }
         super.onCreate(savedInstanceState)
 
+        connectivityObserver.start()
         permissionManager.refreshPermissions()
 
         val permState = permissionManager.permissionState.value
@@ -128,6 +131,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        connectivityObserver.stop()
         ActivityHolder.clearActivity(this)
     }
 

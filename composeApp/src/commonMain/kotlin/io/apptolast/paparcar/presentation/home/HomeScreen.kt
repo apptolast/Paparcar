@@ -93,6 +93,7 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.connectivity_action_blocked_offline
 import paparcar.composeapp.generated.resources.error_gps_unavailable
 import paparcar.composeapp.generated.resources.error_load_session
 import paparcar.composeapp.generated.resources.error_load_spots
@@ -175,6 +176,7 @@ fun HomeScreen(
     val msgManualSpotReported = stringResource(Res.string.home_manual_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
     val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
+    val msgOfflineBlocked = stringResource(Res.string.connectivity_action_blocked_offline)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -198,6 +200,7 @@ fun HomeScreen(
 
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
+                HomeEffect.OfflineActionBlocked -> snackbarHostState.showSnackbar(msgOfflineBlocked)
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
                 HomeEffect.RequestLocationPermission -> {}
             }

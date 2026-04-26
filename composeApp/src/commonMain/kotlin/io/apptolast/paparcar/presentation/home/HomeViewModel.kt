@@ -3,6 +3,8 @@ package io.apptolast.paparcar.presentation.home
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
@@ -24,6 +26,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
@@ -51,12 +54,30 @@ class HomeViewModel(
     private val searchAddress: SearchAddressUseCase,
     private val appPreferences: AppPreferences,
     private val sendSpotSignal: SendSpotSignalUseCase,
+    private val connectivityObserver: ConnectivityObserver,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     private val searchQueryFlow = MutableStateFlow("")
 
+    // Increments on each Offline → Online transition so combine() with the
+    // permission stream forces flatMapLatest to rebuild the Firestore listener
+    // — a fresh `observeNearbySpots` call after the network drops cached data.
+    private val reconnectTick = MutableStateFlow(0)
+
     init {
         updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
+
+        var previousConnectivity = connectivityObserver.status.value
+        connectivityObserver.status
+            .onEach { current ->
+                if (previousConnectivity == ConnectivityStatus.Offline &&
+                    current == ConnectivityStatus.Online
+                ) {
+                    reconnectTick.value = reconnectTick.value + 1
+                }
+                previousConnectivity = current
+            }
+            .launchIn(viewModelScope)
 
         searchQueryFlow
             .debounce(SEARCH_DEBOUNCE_MS)
@@ -77,7 +98,7 @@ class HomeViewModel(
             }
             .launchIn(viewModelScope)
 
-        permissionManager.permissionState
+        combine(permissionManager.permissionState, reconnectTick) { perm, _ -> perm }
             .flatMapLatest { permissionState ->
                 updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
                 if (permissionState.allPermissionsGranted) {
@@ -206,6 +227,10 @@ class HomeViewModel(
         val gps = state.value.userGpsPoint
         if (gps == null) {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
+            return
+        }
+        if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
+            sendEffect(HomeEffect.OfflineActionBlocked)
             return
         }
         viewModelScope.launch {

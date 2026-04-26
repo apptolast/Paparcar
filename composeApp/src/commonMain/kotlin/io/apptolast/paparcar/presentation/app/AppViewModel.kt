@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.presentation.app
 
+import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -8,7 +10,8 @@ import kotlinx.coroutines.launch
 class AppViewModel(
     private val permissionManager: PermissionManager,
     private val appPreferences: AppPreferences,
-) : BaseViewModel<AppState, AppIntent, Nothing>() {
+    private val connectivityObserver: ConnectivityObserver,
+) : BaseViewModel<AppState, AppIntent, AppEffect>() {
 
     init {
         // Synchronously correct state before first composition.
@@ -21,6 +24,7 @@ class AppViewModel(
                     locationServicesEnabled = current.isLocationServicesEnabled,
                     darkTheme = appPreferences.darkModeEnabled,
                     imperialUnits = appPreferences.useImperialUnits,
+                    connectivity = connectivityObserver.status.value,
                 )
             }
         }
@@ -34,6 +38,19 @@ class AppViewModel(
                     )
                 }
             }
+        }
+        viewModelScope.launch {
+            // Track the previous status locally so we only fire the "Back online"
+            // snackbar on a real Offline → Online transition, not on cold start.
+            var previous = connectivityObserver.status.value
+            connectivityObserver.status
+                .collect { current ->
+                    updateState { copy(connectivity = current) }
+                    if (previous == ConnectivityStatus.Offline && current == ConnectivityStatus.Online) {
+                        sendEffect(AppEffect.ShowConnectionRestored)
+                    }
+                    previous = current
+                }
         }
     }
 
