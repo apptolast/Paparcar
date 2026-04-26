@@ -224,7 +224,7 @@ private fun MainAppNavigation(
     // no cross-tree recomposition. Other screens leave it at 1f (fully shown).
     val navProgress = remember { mutableFloatStateOf(1f) }
     // Discrete visibility override driven by HomeScreen when an item is
-    // selected — at that point the per-screen HomeNavBar takes over the
+    // selected — at that point the per-screen PaparcarBottomActionBar takes over the
     // bottom slot and the global bar should step aside.
     var showBottomNav by remember { mutableStateOf(true) }
 
