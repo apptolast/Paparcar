@@ -247,7 +247,11 @@
     <string name="nav_tab_map">Map</string>
     <string name="nav_tab_history">History</string>
     <string name="nav_tab_my_car">My Car</string>
+    <string name="nav_tab_vehicles">Vehicles</string>
     <string name="nav_tab_settings">Settings</string>
+
+    <!-- Vehicles screen actions -->
+    <string name="vehicles_view_history">View parking history</string>
 
     <!-- My Car screen -->
     <string name="my_car_title">My Car</string>

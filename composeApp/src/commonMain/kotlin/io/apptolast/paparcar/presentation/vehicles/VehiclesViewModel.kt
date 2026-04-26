@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.mycar
+package io.apptolast.paparcar.presentation.vehicles
 
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -9,11 +9,11 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class MyCarViewModel(
+class VehiclesViewModel(
     private val vehicleRepository: VehicleRepository,
-) : BaseViewModel<MyCarState, MyCarIntent, MyCarEffect>() {
+) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
-    override fun initState(): MyCarState = MyCarState()
+    override fun initState(): VehiclesState = VehiclesState()
 
     init {
         vehicleRepository.observeVehicles()
@@ -21,25 +21,27 @@ class MyCarViewModel(
             .catch { e ->
                 PaparcarLogger.e(TAG, "Failed to observe vehicles", e)
                 updateState { copy(isLoading = false) }
-                sendEffect(MyCarEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
     }
 
-    override fun handleIntent(intent: MyCarIntent) {
+    override fun handleIntent(intent: VehiclesIntent) {
         when (intent) {
-            is MyCarIntent.SetActiveVehicle -> setActiveVehicle(intent.vehicleId)
-            is MyCarIntent.RequestDeleteVehicle ->
+            is VehiclesIntent.SetActiveVehicle -> setActiveVehicle(intent.vehicleId)
+            is VehiclesIntent.RequestDeleteVehicle ->
                 updateState { copy(pendingDeleteVehicleId = intent.vehicleId) }
-            is MyCarIntent.DismissDeleteConfirmation ->
+            is VehiclesIntent.DismissDeleteConfirmation ->
                 updateState { copy(pendingDeleteVehicleId = null) }
-            is MyCarIntent.ConfirmDeleteVehicle -> {
+            is VehiclesIntent.ConfirmDeleteVehicle -> {
                 updateState { copy(pendingDeleteVehicleId = null) }
                 deleteVehicle(intent.vehicleId)
             }
-            is MyCarIntent.EditVehicle ->
-                sendEffect(MyCarEffect.NavigateToEditVehicle(intent.vehicleId))
-            is MyCarIntent.AddVehicle -> sendEffect(MyCarEffect.NavigateToAddVehicle)
+            is VehiclesIntent.EditVehicle ->
+                sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
+            is VehiclesIntent.AddVehicle -> sendEffect(VehiclesEffect.NavigateToAddVehicle)
+            is VehiclesIntent.ViewHistory ->
+                sendEffect(VehiclesEffect.NavigateToHistory(intent.vehicleId))
         }
     }
 
@@ -48,7 +50,7 @@ class MyCarViewModel(
             runCatching { vehicleRepository.setDefaultVehicle(vehicleId) }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to set default vehicle", e)
-                    sendEffect(MyCarEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                    sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
                 }
         }
     }
@@ -58,12 +60,12 @@ class MyCarViewModel(
             runCatching { vehicleRepository.deleteVehicle(vehicleId) }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
-                    sendEffect(MyCarEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                    sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
                 }
         }
     }
 
     private companion object {
-        const val TAG = "MyCarViewModel"
+        const val TAG = "VehiclesViewModel"
     }
 }

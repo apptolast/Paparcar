@@ -34,6 +34,7 @@ import paparcar.composeapp.generated.resources.my_car_set_active
 import paparcar.composeapp.generated.resources.vehicle_card_detection_ar
 import paparcar.composeapp.generated.resources.vehicle_card_detection_bt
 import paparcar.composeapp.generated.resources.vehicle_card_detection_off
+import paparcar.composeapp.generated.resources.vehicles_view_history
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Detection status model
@@ -98,6 +99,7 @@ fun VehicleCard(
     onConfigureBluetooth: () -> Unit,
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {},
+    onViewHistory: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     PapCard(
@@ -176,6 +178,13 @@ fun VehicleCard(
                 label = stringResource(Res.string.my_car_delete_vehicle),
                 onClick = onDelete,
                 modifier = Modifier.weight(1f),
+            )
+        }
+        if (onViewHistory != null) {
+            PapSecondaryButton(
+                label = stringResource(Res.string.vehicles_view_history),
+                onClick = onViewHistory,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
