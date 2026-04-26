@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.presentation.map
 
 /**
- * Drives a one-shot camera animation in PlatformMap.
+ * Drives a one-shot camera animation in PaparcarMapView.
  *
  * [token] is incremented on each request so that [LaunchedEffect] fires even when
  * the same coordinates are targeted twice in a row.

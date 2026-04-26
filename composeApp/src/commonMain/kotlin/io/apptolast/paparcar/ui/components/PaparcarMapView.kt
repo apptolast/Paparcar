@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.home.components
+package io.apptolast.paparcar.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -16,7 +16,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -78,6 +79,67 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PaparcarMapView — reusable map surface
+//
+// Single entry point for every map screen: HomeScreen (FULL), AddFreeSpotScreen
+// (POSITION_ONLY + animated pin), ParkingLocationScreen (READ_ONLY).
+// Specific overlays (sheet, FAB column, search bar, glass surfaces) live in
+// their host screens — this component only owns the map surface, markers,
+// crosshair / center pin, loading state and camera animation.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Bundles every flag that changes how `PaparcarMapView` renders or behaves.
+ *
+ * @property interactionMode Gates user gestures (drag, zoom, rotate). See
+ *   [MapInteractionMode]. `READ_ONLY` also short-circuits the `onCameraMove`
+ *   callback so callers never receive movement events.
+ * @property showFreeSpotOverlays When `false`, spot and cluster markers are
+ *   skipped. The parking ("my-car") marker is independent — it renders whenever
+ *   `parkingLocation` is non-null, regardless of this flag.
+ * @property showAnimatedCenterPin Replaces the default crosshair indicator with
+ *   a drop-in pin animation. Used by AddFreeSpotScreen to communicate "this is
+ *   the spot you are pinning".
+ * @property initialCamera Seed camera position used on first composition when
+ *   no live `userLocation` and no dynamic `cameraTarget` are available.
+ * @property mapType Underlying tile style (NORMAL / SATELLITE / TERRAIN).
+ * @property styleMode Selects between LIGHT and DARK Google Maps styles. `AUTO`
+ *   resolves from `MaterialTheme.colorScheme.background.luminance()`.
+ */
+data class PaparcarMapConfig(
+    val interactionMode: MapInteractionMode = MapInteractionMode.FULL,
+    val showFreeSpotOverlays: Boolean = true,
+    val showAnimatedCenterPin: Boolean = false,
+    val initialCamera: CameraTarget? = null,
+    val mapType: MapType = MapType.NORMAL,
+    val styleMode: MapStyleMode = MapStyleMode.AUTO,
+)
+
+/**
+ * Controls which user gestures are allowed on the map.
+ *
+ *  - `FULL`: pan / zoom / rotate / tilt all enabled. Default for HomeScreen.
+ *  - `POSITION_ONLY`: same gestures as FULL, but typically paired with
+ *    `showFreeSpotOverlays = false` and `showAnimatedCenterPin = true` so the
+ *    user picks a location by moving the map underneath a fixed pin
+ *    (AddFreeSpotScreen).
+ *  - `READ_ONLY`: every gesture disabled and `onCameraMove` is suppressed.
+ *    Used for purely informational map renders (ParkingLocationScreen detail).
+ */
+enum class MapInteractionMode { FULL, POSITION_ONLY, READ_ONLY }
+
+/**
+ * Selects which Google Maps style JSON is applied.
+ *
+ *  - `AUTO`: resolves DARK vs LIGHT from the current Material colour scheme,
+ *    matching the in-app theme.
+ *  - `LIGHT` / `DARK`: forces the corresponding style regardless of theme.
+ *    Note: `LIGHT_MAP_STYLE` is owned by THEME-ARCH-002 — until it lands,
+ *    `LIGHT` falls back to Google Maps' default light style (no JSON applied).
+ */
+enum class MapStyleMode { AUTO, LIGHT, DARK }
+
 // ── Crosshair / pulse animations ─────────────────────────────────────────────
 private const val CROSSHAIR_SCALE_HIDDEN  = 0f
 private const val CROSSHAIR_SCALE_AIMING  = 1.25f
@@ -88,6 +150,12 @@ private const val PULSE_MAX_SCALE         = 2.4f
 private const val PULSE_ANIM_MS           = 600
 private const val LOADING_ARC_ANIM_MS     = 1100
 private const val LOADING_FADE_MS         = 300
+
+// ── Center pin drop (showAnimatedCenterPin = true) ───────────────────────────
+private const val CENTER_PIN_DROP_OFFSET_DP = -8f
+private const val CENTER_PIN_DROP_REST_DP   = 0f
+private const val CENTER_PIN_DROP_SCALE_FROM = 1.1f
+private const val CENTER_PIN_DROP_SCALE_TO   = 1.0f
 
 // ── Location indicator (canvas drawing) ──────────────────────────────────────
 private val   LOCATION_INDICATOR_BOX_SIZE = 56.dp
@@ -246,26 +314,86 @@ private fun clusterSpots(spots: List<Spot>, thresholdDeg: Double): List<SpotClus
     return clusters
 }
 
+// ── Marker data helpers ───────────────────────────────────────────────────────
+
+/** Extracts the [VehicleSize] from field[1] of the encoded marker title, or null. */
+private fun parseMarkerSize(title: String?): VehicleSize? {
+    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return null
+    val raw = after.substringBefore(MARKER_DATA_SEP)
+    return if (raw.isEmpty()) null else runCatching { VehicleSize.valueOf(raw) }.getOrNull()
+}
+
+/** Extracts the enRoute count from field[2] of the encoded marker title, or 0. */
+private fun parseMarkerEnRoute(title: String?): Int {
+    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return 0
+    val second = after.substringAfter(MARKER_DATA_SEP, "")
+    return second.toIntOrNull() ?: 0
+}
+
+/**
+ * Single-character label shown on the size badge.
+ * MEDIUM returns null → no badge (it is the most common size, no annotation needed).
+ */
+private fun VehicleSize.badgeLabel(): String? = when (this) {
+    VehicleSize.MOTO   -> "M"
+    VehicleSize.SMALL  -> "S"
+    VehicleSize.MEDIUM -> null
+    VehicleSize.LARGE  -> "L"
+    VehicleSize.VAN    -> "V"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Public composable
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Reusable Paparcar map surface.
+ *
+ * Behaviour is parameterised entirely through [config] — the same composable
+ * powers HomeScreen (FULL + free-spot overlays), AddFreeSpotScreen
+ * (POSITION_ONLY + animated center pin) and ParkingLocationScreen detail
+ * (READ_ONLY).
+ *
+ * The host screen owns everything *around* the map: bottom sheets, FAB
+ * columns, search bars, glass overlays, etc. This component owns only the
+ * map tiles, markers, central indicator, loading state and camera animation.
+ *
+ * @param onSpotClick fires with the plain spot ID (extra title-encoded data
+ *   is stripped before calling). Cluster taps and the my-car marker are
+ *   silently ignored.
+ * @param onCameraMove suppressed when [PaparcarMapConfig.interactionMode] is
+ *   `READ_ONLY` — read-only callers should not need to react to camera moves
+ *   they cannot trigger.
+ * @param onMapReady fires once, when the underlying Google Map finishes its
+ *   first load. Useful to dismiss loading overlays in callers.
+ */
 @Composable
-fun PlatformMap(
+fun PaparcarMapView(
+    config: PaparcarMapConfig,
     spots: List<Spot>,
     userLocation: GpsPoint?,
     parkingLocation: GpsPoint?,
-    onSpotClick: (String) -> Unit,
-    onCameraMove: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
     cameraTarget: CameraTarget? = null,
     selectedSpotId: String? = null,
     reportMode: Boolean = false,
     isAnyItemSelected: Boolean = false,
     isLoading: Boolean = false,
-    mapType: MapType = MapType.NORMAL,
+    onSpotClick: (String) -> Unit = {},
+    onCameraMove: (lat: Double, lon: Double) -> Unit = { _, _ -> },
+    onMapReady: () -> Unit = {},
 ) {
+    val isReadOnly = config.interactionMode == MapInteractionMode.READ_ONLY
+
     // ── Clustering ───────────────────────────────────────────────────────────
     var currentZoom by remember { mutableStateOf(ZOOM_DEFAULT) }
 
-    val clusters = remember(spots, currentZoom) {
-        clusterSpots(spots, clusterThresholdDeg(currentZoom))
+    val clusters = remember(spots, currentZoom, config.showFreeSpotOverlays) {
+        if (config.showFreeSpotOverlays) {
+            clusterSpots(spots, clusterThresholdDeg(currentZoom))
+        } else {
+            emptyList()
+        }
     }
 
     // ── Build markers list ───────────────────────────────────────────────────
@@ -359,11 +487,17 @@ fun PlatformMap(
     }
 
     // ── Loading state ────────────────────────────────────────────────────
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val isThemeDark = backgroundColor.luminance() < 0.5f
+    val resolvedDark = when (config.styleMode) {
+        MapStyleMode.AUTO -> isThemeDark
+        MapStyleMode.DARK -> true
+        MapStyleMode.LIGHT -> false
+    }
     var mapLoaded by remember { mutableStateOf(false) }
     val showLoading = !mapLoaded || isLoading
 
-    // ── Crosshair animations ─────────────────────────────────────────────
+    // ── Crosshair animations (used when showAnimatedCenterPin = false) ───
     val crosshairScale by animateFloatAsState(
         targetValue = when {
             isAnyItemSelected -> CROSSHAIR_SCALE_HIDDEN   // hide when any item is focused
@@ -402,12 +536,11 @@ fun PlatformMap(
     val cameraPosition = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
         userLocation = userLocation,
+        initialCamera = config.initialCamera,
         actualCamLat = actualCamLat,
         actualCamLon = actualCamLon,
     )
 
-    // ── Map styling ──────────────────────────────────────────────────────────
-    val backgroundColor = MaterialTheme.colorScheme.background
     val loadingAlpha by animateFloatAsState(
         targetValue = if (showLoading && !isAnyItemSelected) 1f else 0f,
         animationSpec = tween(LOADING_FADE_MS),
@@ -422,14 +555,18 @@ fun PlatformMap(
                 isMyLocationEnabled = true,
                 isTrafficEnabled = false,
                 mapTheme = MapTheme.SYSTEM,
-                mapType = mapType,
+                mapType = config.mapType,
                 androidMapProperties = AndroidMapProperties(
-                    mapStyleOptions = if (isDark) GoogleMapsMapStyleOptions(DARK_MAP_STYLE) else null,
+                    mapStyleOptions = if (resolvedDark) GoogleMapsMapStyleOptions(DARK_MAP_STYLE) else null,
                 ),
             ),
             uiSettings = MapUISettings(
                 myLocationButtonEnabled = false,
                 compassEnabled = false,
+                scrollEnabled = !isReadOnly,
+                zoomEnabled = !isReadOnly,
+                rotateEnabled = !isReadOnly,
+                togglePitchEnabled = !isReadOnly,
                 androidUISettings = AndroidUISettings(
                     zoomControlsEnabled = false,
                     mapToolbarEnabled = false,
@@ -441,7 +578,9 @@ fun PlatformMap(
                 actualCamLat = pos.coordinates.latitude.toFloat()
                 actualCamLon = pos.coordinates.longitude.toFloat()
                 currentZoom = pos.zoom
-                onCameraMove(pos.coordinates.latitude, pos.coordinates.longitude)
+                if (!isReadOnly) {
+                    onCameraMove(pos.coordinates.latitude, pos.coordinates.longitude)
+                }
             },
             onMarkerClick = { marker ->
                 // Strip encoded size data to recover the plain spot ID
@@ -449,7 +588,12 @@ fun PlatformMap(
                 if (id == MARKER_MY_CAR || id.startsWith("$MARKER_CLUSTER:")) return@Map
                 onSpotClick(id)
             },
-            onMapLoaded = { mapLoaded = true },
+            onMapLoaded = {
+                if (!mapLoaded) {
+                    mapLoaded = true
+                    onMapReady()
+                }
+            },
         )
 
         // ── Loading overlay — hides partial map tiles; central pointer is the indicator ──
@@ -465,94 +609,149 @@ fun PlatformMap(
             )
         }
 
-        // ── Location indicator ───────────────────────────────────────────────
-        val indicatorColor = if (reportMode) PapGreen else Color.White
-        val shadowAlpha = if (reportMode) REPORT_MODE_SHADOW_ALPHA else NORMAL_MODE_SHADOW_ALPHA
+        // ── Center indicator: animated pin (pin-drop) OR crosshair ───────────
+        if (config.showAnimatedCenterPin) {
+            AnimatedCenterPin(
+                cameraMoving = cameraMoving,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        } else {
+            val indicatorColor = if (reportMode) PapGreen else Color.White
+            val shadowAlpha = if (reportMode) REPORT_MODE_SHADOW_ALPHA else NORMAL_MODE_SHADOW_ALPHA
 
-        Box(
-            modifier = Modifier
-                .size(LOCATION_INDICATOR_BOX_SIZE)
-                .align(Alignment.Center)
-                .scale(crosshairScale),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Pulse ring (expands outward on settle)
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val r = (size.minDimension / 2f) * pulseScale.value
-                drawCircle(
-                    color = indicatorColor.copy(alpha = pulseAlpha.value),
-                    radius = r,
-                    center = Offset(size.width / 2f, size.height / 2f),
-                    style = Stroke(width = PULSE_STROKE_DP.dp.toPx()),
-                )
-            }
-            // Ring + center dot (+ loading arc when fetching content)
-            Canvas(modifier = Modifier.size(RING_CANVAS_SIZE)) {
-                val cx = size.width / 2f
-                val cy = size.height / 2f
-                val ringRadius = size.minDimension * RING_RADIUS_FACTOR
-                val ringStroke = RING_STROKE_DP.dp.toPx()
-
-                // Shadow (subtle drop, offset down-right)
-                drawCircle(
-                    color = Color.Black.copy(alpha = shadowAlpha),
-                    radius = ringRadius + SHADOW_RADIUS_OFFSET,
-                    center = Offset(cx + SHADOW_OFFSET_X, cy + SHADOW_OFFSET_Y),
-                    style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE),
-                )
-                // Main ring
-                drawCircle(
-                    color = indicatorColor,
-                    radius = ringRadius,
-                    center = Offset(cx, cy),
-                    style = Stroke(width = ringStroke),
-                )
-                // Loading comet: gradient arc spinning while content loads.
-                // HEAD (opaque, fraction ≈0.721) leads clockwise; TAIL fades to transparent.
-                // Replaces CircularProgressIndicator — fades out when loading completes,
-                // then the pulse ring fires to signal "ready".
-                if (loadingAlpha > 0f) {
-                    withTransform({ rotate(loadingAngle, pivot = Offset(cx, cy)) }) {
-                        drawArc(
-                            brush = Brush.sweepGradient(
-                                colorStops = arrayOf(
-                                    0f                         to Color.Transparent,
-                                    LOADING_GRADIENT_TAIL_START to indicatorColor.copy(alpha = 0.04f),
-                                    LOADING_GRADIENT_HEAD       to indicatorColor,
-                                    LOADING_GRADIENT_CUTOFF     to Color.Transparent,
-                                    1f                         to Color.Transparent,
-                                ),
-                                center = Offset(cx, cy),
-                            ),
-                            startAngle = 0f,
-                            sweepAngle = LOADING_ARC_SWEEP_ANGLE,
-                            useCenter = false,
-                            topLeft = Offset(cx - ringRadius, cy - ringRadius),
-                            size = Size(ringRadius * 2, ringRadius * 2),
-                            alpha = loadingAlpha,
-                            style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE, cap = StrokeCap.Round),
-                        )
-                    }
+            Box(
+                modifier = Modifier
+                    .size(LOCATION_INDICATOR_BOX_SIZE)
+                    .align(Alignment.Center)
+                    .scale(crosshairScale),
+                contentAlignment = Alignment.Center,
+            ) {
+                // Pulse ring (expands outward on settle)
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val r = (size.minDimension / 2f) * pulseScale.value
+                    drawCircle(
+                        color = indicatorColor.copy(alpha = pulseAlpha.value),
+                        radius = r,
+                        center = Offset(size.width / 2f, size.height / 2f),
+                        style = Stroke(width = PULSE_STROKE_DP.dp.toPx()),
+                    )
                 }
-                // Center dot shadow
-                drawCircle(
-                    color = Color.Black.copy(alpha = shadowAlpha),
-                    radius = CENTER_DOT_SHADOW_RADIUS_DP.dp.toPx(),
-                    center = Offset(cx + SHADOW_OFFSET_X / 2, cy + SHADOW_OFFSET_Y / 2),
-                )
-                // Center dot
-                drawCircle(
-                    color = indicatorColor,
-                    radius = CENTER_DOT_RADIUS_DP.dp.toPx(),
-                    center = Offset(cx, cy),
-                )
+                // Ring + center dot (+ loading arc when fetching content)
+                Canvas(modifier = Modifier.size(RING_CANVAS_SIZE)) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    val ringRadius = size.minDimension * RING_RADIUS_FACTOR
+                    val ringStroke = RING_STROKE_DP.dp.toPx()
+
+                    // Shadow (subtle drop, offset down-right)
+                    drawCircle(
+                        color = Color.Black.copy(alpha = shadowAlpha),
+                        radius = ringRadius + SHADOW_RADIUS_OFFSET,
+                        center = Offset(cx + SHADOW_OFFSET_X, cy + SHADOW_OFFSET_Y),
+                        style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE),
+                    )
+                    // Main ring
+                    drawCircle(
+                        color = indicatorColor,
+                        radius = ringRadius,
+                        center = Offset(cx, cy),
+                        style = Stroke(width = ringStroke),
+                    )
+                    // Loading comet: gradient arc spinning while content loads.
+                    // HEAD (opaque, fraction ≈0.721) leads clockwise; TAIL fades to transparent.
+                    // Replaces CircularProgressIndicator — fades out when loading completes,
+                    // then the pulse ring fires to signal "ready".
+                    if (loadingAlpha > 0f) {
+                        withTransform({ rotate(loadingAngle, pivot = Offset(cx, cy)) }) {
+                            drawArc(
+                                brush = Brush.sweepGradient(
+                                    colorStops = arrayOf(
+                                        0f                         to Color.Transparent,
+                                        LOADING_GRADIENT_TAIL_START to indicatorColor.copy(alpha = 0.04f),
+                                        LOADING_GRADIENT_HEAD       to indicatorColor,
+                                        LOADING_GRADIENT_CUTOFF     to Color.Transparent,
+                                        1f                         to Color.Transparent,
+                                    ),
+                                    center = Offset(cx, cy),
+                                ),
+                                startAngle = 0f,
+                                sweepAngle = LOADING_ARC_SWEEP_ANGLE,
+                                useCenter = false,
+                                topLeft = Offset(cx - ringRadius, cy - ringRadius),
+                                size = Size(ringRadius * 2, ringRadius * 2),
+                                alpha = loadingAlpha,
+                                style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE, cap = StrokeCap.Round),
+                            )
+                        }
+                    }
+                    // Center dot shadow
+                    drawCircle(
+                        color = Color.Black.copy(alpha = shadowAlpha),
+                        radius = CENTER_DOT_SHADOW_RADIUS_DP.dp.toPx(),
+                        center = Offset(cx + SHADOW_OFFSET_X / 2, cy + SHADOW_OFFSET_Y / 2),
+                    )
+                    // Center dot
+                    drawCircle(
+                        color = indicatorColor,
+                        radius = CENTER_DOT_RADIUS_DP.dp.toPx(),
+                        center = Offset(cx, cy),
+                    )
+                }
             }
         }
-
     }
 }
 
-// ── Camera animation ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Animated center pin (showAnimatedCenterPin = true)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Pin-drop indicator used by AddFreeSpotScreen. While the camera is being
+ * dragged, the pin "lifts" (offset Y -8dp, scale 1.1×); when the camera
+ * settles, it drops back (offset Y 0dp, scale 1.0×). Both transitions ride
+ * a `Spring(MediumBouncy)` for the characteristic bounce-on-land feel.
+ */
+@Composable
+private fun AnimatedCenterPin(
+    cameraMoving: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val offsetY = remember { Animatable(CENTER_PIN_DROP_REST_DP) }
+    val scale = remember { Animatable(CENTER_PIN_DROP_SCALE_TO) }
+    LaunchedEffect(cameraMoving) {
+        val (yTarget, scaleTarget) = if (cameraMoving) {
+            CENTER_PIN_DROP_OFFSET_DP to CENTER_PIN_DROP_SCALE_FROM
+        } else {
+            CENTER_PIN_DROP_REST_DP to CENTER_PIN_DROP_SCALE_TO
+        }
+        launch {
+            offsetY.animateTo(
+                yTarget,
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            )
+        }
+        launch {
+            scale.animateTo(
+                scaleTarget,
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            )
+        }
+    }
+    Icon(
+        imageVector = Icons.Filled.Place,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = modifier
+            .offset(y = offsetY.value.dp)
+            .scale(scale.value)
+            .size(48.dp),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Camera animation
+// ─────────────────────────────────────────────────────────────────────────────
 
 private const val CAMERA_ANIM_MS = 700
 
@@ -560,15 +759,20 @@ private const val CAMERA_ANIM_MS = 700
 private fun rememberCameraAnimationState(
     cameraTarget: CameraTarget?,
     userLocation: GpsPoint?,
+    initialCamera: CameraTarget?,
     actualCamLat: Float?,
     actualCamLon: Float?,
 ): CameraPosition {
+    // Seed priority: explicit cameraTarget > config.initialCamera > live userLocation > origin.
     val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
+        ?: initialCamera?.let { Coordinates(it.lat, it.lon) }
         ?: userLocation?.let { Coordinates(it.latitude, it.longitude) }
         ?: Coordinates(0.0, 0.0)
     val animLat = remember { Animatable(initCoords.latitude.toFloat()) }
     val animLon = remember { Animatable(initCoords.longitude.toFloat()) }
-    val animZoom = remember { Animatable(cameraTarget?.zoom ?: ZOOM_DEFAULT) }
+    val animZoom = remember {
+        Animatable(cameraTarget?.zoom ?: initialCamera?.zoom ?: ZOOM_DEFAULT)
+    }
 
     // Snap Animatables to the actual map position only right before launching
     // a programmatic animation. This ensures animations start from wherever
@@ -612,35 +816,9 @@ private fun rememberCameraAnimationState(
     )
 }
 
-// ── Marker data helpers ───────────────────────────────────────────────────────
-
-/** Extracts the [VehicleSize] from field[1] of the encoded marker title, or null. */
-private fun parseMarkerSize(title: String?): VehicleSize? {
-    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return null
-    val raw = after.substringBefore(MARKER_DATA_SEP)
-    return if (raw.isEmpty()) null else runCatching { VehicleSize.valueOf(raw) }.getOrNull()
-}
-
-/** Extracts the enRoute count from field[2] of the encoded marker title, or 0. */
-private fun parseMarkerEnRoute(title: String?): Int {
-    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return 0
-    val second = after.substringAfter(MARKER_DATA_SEP, "")
-    return second.toIntOrNull() ?: 0
-}
-
-/**
- * Single-character label shown on the size badge.
- * MEDIUM returns null → no badge (it is the most common size, no annotation needed).
- */
-private fun VehicleSize.badgeLabel(): String? = when (this) {
-    VehicleSize.MOTO   -> "M"
-    VehicleSize.SMALL  -> "S"
-    VehicleSize.MEDIUM -> null
-    VehicleSize.LARGE  -> "L"
-    VehicleSize.VAN    -> "V"
-}
-
-// ── Custom marker composables ────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom marker composables
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun MyCarMarkerContent() {
@@ -673,7 +851,7 @@ private fun SpotMarkerContent(
     sizeCategory: VehicleSize? = null,
     enRouteCount: Int = 0,
 ) {
-    val size        = if (isSelected) SPOT_MARKER_SELECTED_SIZE else SPOT_MARKER_DEFAULT_SIZE
+    val markerSize  = if (isSelected) SPOT_MARKER_SELECTED_SIZE else SPOT_MARKER_DEFAULT_SIZE
     val bg          = if (isSelected) PapForestDark              else PapGreen
     val iconTint    = if (isSelected) PapGreen                   else PapForestDark
     val tailW       = if (isSelected) SPOT_TAIL_SELECTED_WIDTH   else SPOT_TAIL_DEFAULT_WIDTH
@@ -691,7 +869,7 @@ private fun SpotMarkerContent(
         // Outer Box is intentionally NOT clipped — lets the size badge overflow the circle edge.
         Box(
             modifier = Modifier
-                .size(size)
+                .size(markerSize)
                 .shadow(SPOT_MARKER_SHADOW_ELEVATION, CircleShape, clip = false)
                 .background(bg, CircleShape)
                 .border(borderWidth, ringColor, CircleShape),
@@ -852,7 +1030,9 @@ private fun PinTail(color: Color, width: Dp, height: Dp) {
     }
 }
 
-// ── Google Maps "Night Mode" style (applied on Android when system is dark) ──
+// ── Google Maps "Night Mode" style (applied when MapStyleMode resolves to DARK) ──
+// THEME-ARCH-002 will move this (and an upcoming LIGHT_MAP_STYLE) into a dedicated
+// MapStyles.kt file alongside the theme work.
 private const val DARK_MAP_STYLE = """[
   {"elementType":"geometry","stylers":[{"color":"#212121"}]},
   {"elementType":"labels.icon","stylers":[{"visibility":"off"}]},
