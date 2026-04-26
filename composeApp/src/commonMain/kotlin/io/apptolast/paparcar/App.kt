@@ -57,6 +57,7 @@ import com.apptolast.customlogin.presentation.navigation.authRoutesFlow
 import io.apptolast.paparcar.presentation.app.AppIntent
 import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.app.SplashViewModel
+import io.apptolast.paparcar.presentation.addspot.AddFreeSpotScreen
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
@@ -89,6 +90,7 @@ internal object Routes {
     const val PERMISSIONS_RATIONALE = "permissions_rationale"
     const val VEHICLE_REGISTRATION = "vehicle_registration"
     const val BT_CONFIG = "bt_config"
+    const val ADD_FREE_SPOT = "add_free_spot"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -329,10 +331,17 @@ private fun MainAppNavigation(
             composable(Routes.HOME) {
                 HomeScreen(
                     onNavigateToHistory = { navController.navigateToTab(Routes.HISTORY) },
+                    onNavigateToAddFreeSpot = { navController.navigate(Routes.ADD_FREE_SPOT) },
                     onOpenMapsNavigation = onOpenMapsNavigation,
                     navProgressState = navProgress,
                     onItemSelectedChange = { selected -> showBottomNav = !selected },
                     bottomPadding = scaffoldPadding.calculateBottomPadding(),
+                )
+            }
+            composable(Routes.ADD_FREE_SPOT) {
+                AddFreeSpotScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSpotReported = { navController.popBackStack() },
                 )
             }
             composable(

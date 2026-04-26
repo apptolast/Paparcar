@@ -104,7 +104,6 @@ import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_release_dialog_confirm
 import paparcar.composeapp.generated.resources.home_release_dialog_message
 import paparcar.composeapp.generated.resources.home_release_dialog_title
-import paparcar.composeapp.generated.resources.home_manual_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
@@ -155,6 +154,7 @@ private const val SOFT_DRAG_COLLAPSE_ZONE = 0.85f
 @Composable
 fun HomeScreen(
     onNavigateToHistory: () -> Unit = {},
+    onNavigateToAddFreeSpot: () -> Unit = {},
     onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> },
     navProgressState: MutableFloatState = remember { mutableFloatStateOf(1f) },
     onItemSelectedChange: (Boolean) -> Unit = {},
@@ -172,7 +172,6 @@ fun HomeScreen(
     val msgErrorGpsUnavailable = stringResource(Res.string.error_gps_unavailable)
     val msgErrorParkingSaveFailed = stringResource(Res.string.error_parking_save_failed)
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
-    val msgManualSpotReported = stringResource(Res.string.home_manual_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
     val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
 
@@ -192,10 +191,6 @@ fun HomeScreen(
                 }
 
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
-                HomeEffect.ManualSpotReported -> snackbarHostState.showSnackbar(
-                    msgManualSpotReported
-                )
-
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
@@ -208,6 +203,7 @@ fun HomeScreen(
         state = state,
         onIntent = viewModel::handleIntent,
         onOpenMapsNavigation = onOpenMapsNavigation,
+        onNavigateToAddFreeSpot = onNavigateToAddFreeSpot,
         snackbarHostState = snackbarHostState,
         navProgressState = navProgressState,
         onItemSelectedChange = onItemSelectedChange,
@@ -231,6 +227,7 @@ private fun HomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
+    onNavigateToAddFreeSpot: () -> Unit,
     snackbarHostState: SnackbarHostState,
     navProgressState: MutableFloatState,
     onItemSelectedChange: (Boolean) -> Unit,
@@ -622,17 +619,7 @@ private fun HomeContent(
                     )
                     Spacer(Modifier.height(10.dp))
                     HomeActionFab(
-                        hasActiveParking = state.userParking != null,
-                        onReportManualSpot = {
-                            val lat = uiController.cameraLat
-                                ?: state.userGpsPoint?.latitude
-                                ?: return@HomeActionFab
-                            val lon = uiController.cameraLon
-                                ?: state.userGpsPoint?.longitude
-                                ?: return@HomeActionFab
-                            onIntent(HomeIntent.ReportManualSpot(lat, lon))
-                        },
-                        onReleaseParking = { showReleaseDialog = true },
+                        onReportFreeSpot = onNavigateToAddFreeSpot,
                     )
                 }
             }
