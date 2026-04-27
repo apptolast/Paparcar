@@ -23,7 +23,7 @@ import io.apptolast.paparcar.location.OverpassPlacesDataSourceImpl
 import io.apptolast.paparcar.notification.AppNotificationManagerImpl
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import io.apptolast.paparcar.permissions.PermissionManagerImpl
-import io.apptolast.paparcar.preferences.AndroidAppPreferences
+import io.apptolast.paparcar.preferences.AndroidDataStoreAppPreferences
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -128,7 +128,7 @@ val androidPlatformModule = module {
     single<PermissionManager> { PermissionManagerImpl(androidContext()) }
 
     // Preferences
-    single<AppPreferences> { AndroidAppPreferences(androidContext()) }
+    single<AppPreferences> { AndroidDataStoreAppPreferences(androidContext()) }
 
     // Bluetooth
     single<BluetoothScanner> { AndroidBluetoothScanner(androidContext()) }

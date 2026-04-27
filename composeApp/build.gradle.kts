@@ -133,6 +133,9 @@ kotlin {
             // WorkManager (tareas en background opcionales)
             implementation(libs.work.runtime.ktx)
 
+            // DataStore Preferences (reemplaza SharedPreferences)
+            implementation(libs.androidx.datastore.preferences)
+
             // GeoFirestore — queries de proximidad por geohash
             implementation(libs.geofire.android)
         }
