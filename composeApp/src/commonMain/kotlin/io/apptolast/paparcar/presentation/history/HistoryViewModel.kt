@@ -8,11 +8,17 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 class HistoryViewModel(
+    private val vehicleId: String? = null,
     private val userParkingRepository: UserParkingRepository,
 ) : BaseViewModel<HistoryState, HistoryIntent, HistoryEffect>() {
 
     init {
-        userParkingRepository.observeAllSessions()
+        val sessionsFlow = if (vehicleId != null) {
+            userParkingRepository.observeSessionsByVehicle(vehicleId)
+        } else {
+            userParkingRepository.observeAllSessions()
+        }
+        sessionsFlow
             .onEach { sessions -> updateState { copy(isLoading = false, sessions = sessions) } }
             .catch { e ->
                 updateState { copy(isLoading = false) }

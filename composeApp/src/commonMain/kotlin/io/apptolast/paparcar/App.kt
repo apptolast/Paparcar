@@ -67,6 +67,7 @@ import io.apptolast.paparcar.presentation.addspot.AddFreeSpotScreen
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
+import io.apptolast.paparcar.presentation.vehicles.VehicleDetailScreen
 import io.apptolast.paparcar.presentation.vehicles.VehiclesScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
@@ -98,6 +99,7 @@ internal object Routes {
     const val VEHICLE_REGISTRATION = "vehicle_registration"
     const val BT_CONFIG = "bt_config"
     const val ADD_FREE_SPOT = "add_free_spot"
+    const val VEHICLE_DETAIL = "vehicle_detail"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -429,9 +431,30 @@ private fun MainAppNavigation(
                         onConfigureBluetooth = { vehicleId ->
                             navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
                         },
-                        onViewHistory = { navController.navigate(Routes.HISTORY) },
+                        onViewHistory = { vehicleId ->
+                            navController.navigate("${Routes.VEHICLE_DETAIL}/$vehicleId")
+                        },
                     )
                 }
+            }
+            composable(
+                route = "${Routes.VEHICLE_DETAIL}/{vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType }),
+            ) { backStack ->
+                val vehicleId = backStack.arguments?.getString("vehicleId") ?: return@composable
+                VehicleDetailScreen(
+                    vehicleId = vehicleId,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToMap = { lat, lon ->
+                        navController.navigate("${Routes.PARKING_LOCATION}?lat=$lat&lon=$lon")
+                    },
+                    onEditVehicle = { id ->
+                        navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=vehicles&vehicleId=$id")
+                    },
+                    onConfigureBluetooth = { id ->
+                        navController.navigate("${Routes.BT_CONFIG}/$id")
+                    },
+                )
             }
             composable(Routes.SETTINGS) {
                 Box(
