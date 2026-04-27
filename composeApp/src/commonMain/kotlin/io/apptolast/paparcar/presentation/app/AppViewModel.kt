@@ -22,7 +22,7 @@ class AppViewModel(
                 copy(
                     permissionsGranted = current.allPermissionsGranted,
                     locationServicesEnabled = current.isLocationServicesEnabled,
-                    darkTheme = appPreferences.darkModeEnabled,
+                    themeMode = appPreferences.themeMode,
                     imperialUnits = appPreferences.useImperialUnits,
                     connectivity = connectivityObserver.status.value,
                 )
@@ -59,9 +59,9 @@ class AppViewModel(
     override fun handleIntent(intent: AppIntent) {
         when (intent) {
             AppIntent.MarkOnboardingCompleted -> appPreferences.setOnboardingCompleted()
-            is AppIntent.ToggleDarkMode -> {
-                appPreferences.setDarkModeEnabled(intent.enabled)
-                updateState { copy(darkTheme = intent.enabled) }
+            is AppIntent.SetThemeMode -> {
+                appPreferences.setThemeMode(intent.mode)
+                updateState { copy(themeMode = intent.mode) }
             }
             is AppIntent.SetDistanceUnit -> {
                 appPreferences.setUseImperialUnits(intent.imperial)

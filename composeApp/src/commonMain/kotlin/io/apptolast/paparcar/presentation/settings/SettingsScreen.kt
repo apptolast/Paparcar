@@ -59,14 +59,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swmansion.kmpmaps.core.MapType
+import io.apptolast.paparcar.domain.preferences.ThemeMode
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.settings_auto_detect
 import paparcar.composeapp.generated.resources.settings_auto_detect_desc
 import paparcar.composeapp.generated.resources.settings_cd_back
-import paparcar.composeapp.generated.resources.settings_dark_mode
-import paparcar.composeapp.generated.resources.settings_dark_mode_desc
+import paparcar.composeapp.generated.resources.settings_theme_mode
+import paparcar.composeapp.generated.resources.settings_theme_mode_dark
+import paparcar.composeapp.generated.resources.settings_theme_mode_desc
+import paparcar.composeapp.generated.resources.settings_theme_mode_light
+import paparcar.composeapp.generated.resources.settings_theme_mode_system
 import paparcar.composeapp.generated.resources.settings_nav_my_car
 import paparcar.composeapp.generated.resources.settings_nav_my_car_desc
 import paparcar.composeapp.generated.resources.settings_contact
@@ -105,8 +109,8 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToVehicles: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
-    darkMode: Boolean = true,
-    onToggleDarkMode: (Boolean) -> Unit = {},
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
     onToggleImperialUnits: (Boolean) -> Unit = {},
 ) {
@@ -190,12 +194,18 @@ fun SettingsScreen(
                 SettingsSectionHeader(stringResource(Res.string.settings_section_appearance))
             }
             item {
-                SettingsSwitchItem(
+                val themeLabels = mapOf(
+                    ThemeMode.LIGHT to stringResource(Res.string.settings_theme_mode_light),
+                    ThemeMode.DARK to stringResource(Res.string.settings_theme_mode_dark),
+                    ThemeMode.SYSTEM to stringResource(Res.string.settings_theme_mode_system),
+                )
+                SettingsSegmentedItem(
                     icon = Icons.Outlined.DarkMode,
-                    label = stringResource(Res.string.settings_dark_mode),
-                    description = stringResource(Res.string.settings_dark_mode_desc),
-                    checked = darkMode,
-                    onCheckedChange = onToggleDarkMode,
+                    label = stringResource(Res.string.settings_theme_mode),
+                    description = stringResource(Res.string.settings_theme_mode_desc),
+                    options = themeLabels,
+                    selected = themeMode,
+                    onSelect = onSetThemeMode,
                 )
             }
 

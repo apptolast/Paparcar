@@ -12,6 +12,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -57,6 +58,7 @@ import com.apptolast.customlogin.presentation.navigation.AuthRoutesFlow
 import com.apptolast.customlogin.presentation.navigation.LoginRoute
 import com.apptolast.customlogin.presentation.navigation.NavTransitions
 import com.apptolast.customlogin.presentation.navigation.authRoutesFlow
+import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.app.AppEffect
 import io.apptolast.paparcar.presentation.app.AppIntent
 import io.apptolast.paparcar.presentation.app.AppViewModel
@@ -128,7 +130,13 @@ fun App(
     val appState by appViewModel.state.collectAsStateWithLifecycle()
     val authState by splashViewModel.authState.collectAsStateWithLifecycle()
 
-    PaparcarTheme(darkTheme = appState.darkTheme) {
+    val darkTheme = when (appState.themeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    PaparcarTheme(darkTheme = darkTheme) {
         CompositionLocalProvider(
             LocalDistanceUnit provides if (appState.imperialUnits) DistanceUnit.IMPERIAL else DistanceUnit.METRIC,
         ) {
@@ -219,9 +227,9 @@ private fun AuthNavigation() {
 private fun MainAppNavigation(
     startRoute: String,
     isFullyOperational: Boolean,
-    darkTheme: Boolean,
     onMarkOnboardingCompleted: () -> Unit,
-    onToggleDarkMode: (Boolean) -> Unit,
+    themeMode: ThemeMode,
+    onSetThemeMode: (ThemeMode) -> Unit,
     imperialUnits: Boolean,
     onToggleImperialUnits: (Boolean) -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
@@ -435,8 +443,8 @@ private fun MainAppNavigation(
                         onNavigateBack = { navController.popBackStack() },
                         onNavigateToVehicles = { navController.navigateToTab(Routes.VEHICLES) },
                         onNavigateToAuth = { /* AuthState change triggers auth nav automatically */ },
-                        darkMode = darkTheme,
-                        onToggleDarkMode = onToggleDarkMode,
+                        themeMode = themeMode,
+                        onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,
                         onToggleImperialUnits = onToggleImperialUnits,
                     )

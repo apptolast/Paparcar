@@ -180,8 +180,11 @@
     <string name="settings_profile_logout">Esci</string>
     <string name="settings_profile_name_placeholder">Utente</string>
     <string name="settings_section_appearance">Aspetto</string>
-    <string name="settings_dark_mode">Modalità scura</string>
-    <string name="settings_dark_mode_desc">Usa il tema scuro in tutta l'app</string>
+    <string name="settings_theme_mode">Tema</string>
+    <string name="settings_theme_mode_desc">Scegli chiaro, scuro o segui il sistema</string>
+    <string name="settings_theme_mode_light">Chiaro</string>
+    <string name="settings_theme_mode_dark">Scuro</string>
+    <string name="settings_theme_mode_system">Sistema</string>
     <string name="settings_section_detection">Rilevamento</string>
     <string name="settings_auto_detect">Rilevamento automatico parcheggio</string>
     <string name="settings_auto_detect_desc">Salva automaticamente il posto di parcheggio</string>

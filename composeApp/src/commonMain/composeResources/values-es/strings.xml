@@ -194,8 +194,11 @@
     <string name="settings_delete_account_cancel">Cancelar</string>
     <string name="settings_profile_name_placeholder">Usuario</string>
     <string name="settings_section_appearance">Apariencia</string>
-    <string name="settings_dark_mode">Modo oscuro</string>
-    <string name="settings_dark_mode_desc">Usar el tema oscuro en toda la app</string>
+    <string name="settings_theme_mode">Tema</string>
+    <string name="settings_theme_mode_desc">Elige claro, oscuro o seguir el sistema</string>
+    <string name="settings_theme_mode_light">Claro</string>
+    <string name="settings_theme_mode_dark">Oscuro</string>
+    <string name="settings_theme_mode_system">Sistema</string>
     <string name="settings_section_detection">Detección</string>
     <string name="settings_auto_detect">Detección automática</string>
     <string name="settings_auto_detect_desc">Guarda automáticamente tu plaza de aparcamiento</string>

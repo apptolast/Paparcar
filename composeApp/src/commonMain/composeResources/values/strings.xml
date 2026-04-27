@@ -230,8 +230,11 @@
     <string name="settings_delete_account_cancel">Cancel</string>
     <string name="settings_profile_name_placeholder">User</string>
     <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_dark_mode">Dark mode</string>
-    <string name="settings_dark_mode_desc">Use the dark theme throughout the app</string>
+    <string name="settings_theme_mode">Theme</string>
+    <string name="settings_theme_mode_desc">Choose light, dark, or follow the system</string>
+    <string name="settings_theme_mode_light">Light</string>
+    <string name="settings_theme_mode_dark">Dark</string>
+    <string name="settings_theme_mode_system">System</string>
     <string name="settings_section_detection">Detection</string>
     <string name="settings_auto_detect">Auto-detect parking</string>
     <string name="settings_auto_detect_desc">Automatically save your parking spot</string>

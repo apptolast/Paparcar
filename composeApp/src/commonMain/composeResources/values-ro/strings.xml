@@ -180,8 +180,11 @@
     <string name="settings_profile_logout">Deconectare</string>
     <string name="settings_profile_name_placeholder">Utilizator</string>
     <string name="settings_section_appearance">Aspect</string>
-    <string name="settings_dark_mode">Mod íntunecat</string>
-    <string name="settings_dark_mode_desc">Folosiți tema íntunecată în întreaga aplicație</string>
+    <string name="settings_theme_mode">Temă</string>
+    <string name="settings_theme_mode_desc">Alege luminos, întunecat sau urmează sistemul</string>
+    <string name="settings_theme_mode_light">Luminos</string>
+    <string name="settings_theme_mode_dark">Întunecat</string>
+    <string name="settings_theme_mode_system">Sistem</string>
     <string name="settings_section_detection">Detecție</string>
     <string name="settings_auto_detect">Detecție automată parcare</string>
     <string name="settings_auto_detect_desc">Salvează automat locul de parcare</string>

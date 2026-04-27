@@ -16,8 +16,8 @@ interface AppPreferences {
     val hasVehicleRegistered: Boolean
     fun setVehicleRegistered()
 
-    val darkModeEnabled: Boolean
-    fun setDarkModeEnabled(enabled: Boolean)
+    val themeMode: ThemeMode
+    fun setThemeMode(mode: ThemeMode)
 
     val useImperialUnits: Boolean
     fun setUseImperialUnits(enabled: Boolean)

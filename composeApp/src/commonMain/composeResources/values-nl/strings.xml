@@ -180,8 +180,11 @@
     <string name="settings_profile_logout">Uitloggen</string>
     <string name="settings_profile_name_placeholder">Gebruiker</string>
     <string name="settings_section_appearance">Weergave</string>
-    <string name="settings_dark_mode">Donkere modus</string>
-    <string name="settings_dark_mode_desc">Donker thema in de hele app gebruiken</string>
+    <string name="settings_theme_mode">Thema</string>
+    <string name="settings_theme_mode_desc">Kies licht, donker of volg het systeem</string>
+    <string name="settings_theme_mode_light">Licht</string>
+    <string name="settings_theme_mode_dark">Donker</string>
+    <string name="settings_theme_mode_system">Systeem</string>
     <string name="settings_section_detection">Detectie</string>
     <string name="settings_auto_detect">Automatische parkeerdetectie</string>
     <string name="settings_auto_detect_desc">Parkeerplaats automatisch opslaan</string>

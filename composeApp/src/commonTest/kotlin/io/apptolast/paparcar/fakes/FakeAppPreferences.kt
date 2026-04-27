@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.domain.preferences.ThemeMode
 
 class FakeAppPreferences(
     initialCompleted: Boolean = false,
@@ -8,7 +9,9 @@ class FakeAppPreferences(
     initialNotifyParking: Boolean = true,
     initialNotifySpot: Boolean = true,
     initialVehicleRegistered: Boolean = false,
-    initialDarkMode: Boolean = true,
+    initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
+    initialUseImperialUnits: Boolean = false,
+    initialDefaultMapType: String = "NORMAL",
 ) : AppPreferences {
 
     private var _isOnboardingCompleted = initialCompleted
@@ -38,7 +41,15 @@ class FakeAppPreferences(
     override val hasVehicleRegistered: Boolean get() = _hasVehicleRegistered
     override fun setVehicleRegistered() { _hasVehicleRegistered = true }
 
-    private var _darkModeEnabled = initialDarkMode
-    override val darkModeEnabled: Boolean get() = _darkModeEnabled
-    override fun setDarkModeEnabled(enabled: Boolean) { _darkModeEnabled = enabled }
+    private var _themeMode = initialThemeMode
+    override val themeMode: ThemeMode get() = _themeMode
+    override fun setThemeMode(mode: ThemeMode) { _themeMode = mode }
+
+    private var _useImperialUnits = initialUseImperialUnits
+    override val useImperialUnits: Boolean get() = _useImperialUnits
+    override fun setUseImperialUnits(enabled: Boolean) { _useImperialUnits = enabled }
+
+    private var _defaultMapType = initialDefaultMapType
+    override val defaultMapType: String get() = _defaultMapType
+    override fun setDefaultMapType(type: String) { _defaultMapType = type }
 }
