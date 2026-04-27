@@ -88,7 +88,8 @@ import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.components.homeSheetItems
 import io.apptolast.paparcar.presentation.home.components.homeSheetSpotItemIndex
-import io.apptolast.paparcar.presentation.home.components.PlatformMap
+import io.apptolast.paparcar.ui.components.PaparcarMapConfig
+import io.apptolast.paparcar.ui.components.PaparcarMapView
 import io.apptolast.paparcar.domain.error.PaparcarError
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -120,12 +121,12 @@ private data class SelectedNavTarget(val lat: Double, val lon: Double)
 private val SheetPeekHeightInitial = 88.dp
 
 // Glass stays "interacting" for this long after the last onCameraMove tick.
-// Must be ≥ PlatformMap's CAMERA_MOVING_DEBOUNCE_MS (280) so the glass fade-out
+// Must be ≥ PaparcarMapView's CAMERA_MOVING_DEBOUNCE_MS (280) so the glass fade-out
 // does not start while the map is still settling out of a fling.
 private const val MAP_INTERACTION_IDLE_DELAY_MS = 320L
 
 // Guard window for programmatic camera animations. Must cover the full
-// PlatformMap CAMERA_ANIM_MS (700) + idle debounce so no synthetic
+// PaparcarMapView CAMERA_ANIM_MS (700) + idle debounce so no synthetic
 // onCameraMove frame leaks through and flips the glass on while the map is
 // animating to a tapped spot / "my location" / bounds fit.
 private const val PROGRAMMATIC_MOVE_GUARD_MS = 1100L
@@ -445,7 +446,7 @@ private fun HomeContent(
             }
 
             // Boolean — equality short-circuits recomposition for downstream readers
-            // (e.g. PlatformMap.reportMode) on every drag frame.
+            // (e.g. PaparcarMapView.reportMode) on every drag frame.
             val sheetExpanded by remember {
                 derivedStateOf { sheetOffsetPx.value <= FULL_SNAP_OFFSET_PX + 1f }
             }
@@ -465,7 +466,8 @@ private fun HomeContent(
             val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + 20.dp
 
             // ── Map ──────────────────────────────────────────────────────────
-            PlatformMap(
+            PaparcarMapView(
+                config = PaparcarMapConfig(mapType = state.mapType),
                 spots = state.nearbySpots,
                 userLocation = state.userGpsPoint,
                 parkingLocation = state.userParking?.location,
@@ -473,7 +475,6 @@ private fun HomeContent(
                 reportMode = !sheetExpanded,
                 isAnyItemSelected = state.selectedItemId != null,
                 isLoading = state.isLoading,
-                mapType = state.mapType,
                 onSpotClick = { spotId ->
                     state.nearbySpots.find { it.id == spotId }?.let { spot ->
                         onIntent(HomeIntent.SelectItem(spotId))

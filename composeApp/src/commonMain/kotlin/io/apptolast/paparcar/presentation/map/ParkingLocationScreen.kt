@@ -25,7 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.presentation.home.components.PlatformMap
+import io.apptolast.paparcar.ui.components.PaparcarMapConfig
+import io.apptolast.paparcar.ui.components.PaparcarMapView
 import io.apptolast.paparcar.presentation.map.components.MapControlButtons
 import io.apptolast.paparcar.domain.error.PaparcarError
 import org.jetbrains.compose.resources.stringResource
@@ -90,7 +91,8 @@ fun ParkingLocationScreen(
                 .padding(padding),
             contentAlignment = Alignment.Center,
         ) {
-            PlatformMap(
+            PaparcarMapView(
+                config = PaparcarMapConfig(),
                 spots = state.spots,
                 userLocation = state.userLocation,
                 parkingLocation = initialFocus
@@ -105,7 +107,6 @@ fun ParkingLocationScreen(
                     }
                     ?: state.userParking?.location,
                 onSpotClick = { spotId -> viewModel.handleIntent(ParkingLocationIntent.OnSpotSelected(spotId)) },
-                onCameraMove = { _, _ -> },
                 cameraTarget = cameraTarget,
                 modifier = Modifier.fillMaxSize(),
             )
