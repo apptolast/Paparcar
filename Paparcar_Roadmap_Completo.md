@@ -355,7 +355,7 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 | `SET-006` | **Notificaciones** | Toggle por tipo: parking confirmado, plaza cerca, BT events | ✅ Done |
 | `SET-007` | **Privacidad** | Compartir ubicación, exportar/eliminar datos (GDPR), política | ✅ Partial (OpenUrl OK, falta GDPR export/delete) |
 | `SET-008` | **Sobre la App** | Versión, licencias, contacto | ✅ Done |
-| `SET-009` | **Idioma** | Selector: Automático + 9 idiomas soportados | ⏳ Pending |
+| `SET-009` | **Idioma** | Selector: Automático + 9 idiomas soportados | ✅ Done — branch `feat/SET-009-language-selector` |
 
 ---
 

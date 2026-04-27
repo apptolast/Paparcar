@@ -8,6 +8,7 @@ data class AppState(
     val locationServicesEnabled: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val imperialUnits: Boolean = false,
+    val selectedLanguage: String = "auto",
     val connectivity: ConnectivityStatus = ConnectivityStatus.Online,
 ) {
     /** True only when runtime permissions AND GPS are both ready. */

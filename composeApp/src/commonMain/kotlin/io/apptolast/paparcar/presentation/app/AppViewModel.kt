@@ -24,6 +24,7 @@ class AppViewModel(
                     locationServicesEnabled = current.isLocationServicesEnabled,
                     themeMode = appPreferences.themeMode,
                     imperialUnits = appPreferences.useImperialUnits,
+                    selectedLanguage = appPreferences.selectedLanguage,
                     connectivity = connectivityObserver.status.value,
                 )
             }
@@ -66,6 +67,11 @@ class AppViewModel(
             is AppIntent.SetDistanceUnit -> {
                 appPreferences.setUseImperialUnits(intent.imperial)
                 updateState { copy(imperialUnits = intent.imperial) }
+            }
+            is AppIntent.SetLanguage -> {
+                appPreferences.setSelectedLanguage(intent.tag)
+                updateState { copy(selectedLanguage = intent.tag) }
+                sendEffect(AppEffect.ApplyLocale(intent.tag))
             }
         }
     }
