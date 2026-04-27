@@ -48,6 +48,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
+import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -83,7 +84,6 @@ import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.presentation.home.components.HomeActionFab
 import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
-import io.apptolast.paparcar.presentation.home.components.HomeNavBar
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.components.homeSheetItems
@@ -318,7 +318,7 @@ private fun HomeContent(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0),
-        // HomeNavBar renders as an overlay inside BoxWithConstraints below —
+        // PaparcarBottomActionBar renders as an overlay inside BoxWithConstraints below —
         // NOT as Scaffold.bottomBar. When it was a bottomBar, its
         // AnimatedVisibility enter/exit resized the scaffold content slot and
         // the sheet shifted in the middle of the item-selection transition.
@@ -392,7 +392,7 @@ private fun HomeContent(
             val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
             val halfOffsetPx = containerHeightPx / 2f
 
-            // Measured height of the HomeNavBar overlay (reported via onSizeChanged below).
+            // Measured height of the PaparcarBottomActionBar overlay (reported via onSizeChanged below).
             // The LazyColumn reads this to reserve space so the last item never sits
             // behind the overlay while an item is selected.
             var homeNavBarHeightPx by remember { mutableFloatStateOf(0f) }
@@ -417,7 +417,7 @@ private fun HomeContent(
             }
 
             // Discrete signal: when an item is selected, the per-screen
-            // HomeNavBar takes over and the root-level AppBottomNavigation
+            // PaparcarBottomActionBar takes over and the root-level AppBottomNavigation
             // should hide entirely.
             LaunchedEffect(state.selectedItemId) {
                 onItemSelectedChange(state.selectedItemId != null)
@@ -643,7 +643,7 @@ private fun HomeContent(
             // Uses rawContainerHeightPx (current constraints) so the sheet fills
             // whatever space is actually available — when an item is selected
             // and the AppBottomNavigation hides, the sheet reclaims that area
-            // (HomeNavBar overlays on top and LazyColumn pads around it).
+            // (PaparcarBottomActionBar overlays on top and LazyColumn pads around it).
             val sheetHeightDp = with(density) {
                 (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
             }
@@ -723,7 +723,7 @@ private fun HomeContent(
                             top = 4.dp,
                             // The sheet extends the full window height now, so its
                             // bottom rows would sit behind either the AppBottomNavigation
-                            // (when no item is selected) or the HomeNavBar overlay
+                            // (when no item is selected) or the PaparcarBottomActionBar overlay
                             // (when an item is selected). Reserve the height of
                             // whichever is covering the sheet so the last list row
                             // stays visible above it.
@@ -751,7 +751,7 @@ private fun HomeContent(
                 }
             }
 
-            // ── HomeNavBar overlay ───────────────────────────────────────────
+            // ── PaparcarBottomActionBar overlay ───────────────────────────────────────────
             // Moved out of Scaffold.bottomBar so its enter/exit animation no
             // longer resizes the sheet's containing layout. Rendered last in
             // BoxWithConstraints so it draws on top of the sheet.
@@ -763,9 +763,9 @@ private fun HomeContent(
                     .align(Alignment.BottomCenter)
                     .onSizeChanged { size -> homeNavBarHeightPx = size.height.toFloat() },
             ) {
-                HomeNavBar(
-                    navLabel = navLabel,
-                    onNavigate = {
+                PaparcarBottomActionBar(
+                    label = navLabel,
+                    onClick = {
                         if (isParkingSelected) {
                             state.userParking?.let { p ->
                                 onOpenMapsNavigation(

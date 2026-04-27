@@ -41,8 +41,8 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 //  Flota sobre el mapa en la parte inferior, estilo glass.
 //  Visible solo en HomeScreen. En las demás pantallas el BottomNav estándar toma el control.
 //
-//  Coordinación con HomeNavBar (navigate bar):
-//    • HomeNavBar visible  → HomeGlassNavBar oculto (AnimatedVisibility fadeOut)
+//  Coordinación con PaparcarBottomActionBar (navigate bar):
+//    • PaparcarBottomActionBar visible  → HomeGlassNavBar oculto (AnimatedVisibility fadeOut)
 //    • Sheet en half/full  → HomeGlassNavBar sigue visible por encima del sheet
 //    • Mapa moviéndose     → se vuelve glass como el resto de overlays (LocalMapInteracting)
 // ═══════════════════════════════════════════════════════════════════════════════

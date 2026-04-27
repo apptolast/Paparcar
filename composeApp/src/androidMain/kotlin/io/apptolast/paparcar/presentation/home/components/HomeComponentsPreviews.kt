@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.preview.FakeData
+import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import kotlin.time.Clock
 
@@ -69,7 +70,7 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 //  Componentes: HomeSheetContent · HomeSpotRow · HomeSpotRowGlass ·
 //               HomeParkingRow · HomePeekHandle · HomeParkingEmptyCard ·
 //               HomeSectionHeader · HomeEmptySpots · HomePermissionsCard ·
-//               HomeNavBar · HomeReportSpotFab · HomeFloatingHeader
+//               PaparcarBottomActionBar · HomeReportSpotFab · HomeFloatingHeader
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─── A — HomeFloatingHeader ───────────────────────────────────────────────────
@@ -438,22 +439,22 @@ private fun HomePermissionsCardLightPreview() {
     }
 }
 
-// ─── A — HomeNavBar ───────────────────────────────────────────────────────────
+// ─── A — PaparcarBottomActionBar ──────────────────────────────────────────────
 
-@Preview(name = "A — HomeNavBar: spot seleccionado (oscuro)", showBackground = true,
+@Preview(name = "A — PaparcarBottomActionBar: spot seleccionado (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun HomeNavBarSpotDarkPreview() {
+private fun PaparcarBottomActionBarSpotDarkPreview() {
     PaparcarTheme(darkTheme = true) {
-        HomeNavBar(navLabel = "⛽ Repsol Av. Castellana  ·  Av. de la Castellana 110", onNavigate = {})
+        PaparcarBottomActionBar(label = "⛽ Repsol Av. Castellana  ·  Av. de la Castellana 110", onClick = {})
     }
 }
 
-@Preview(name = "A — HomeNavBar: parking seleccionado (claro)", showBackground = true)
+@Preview(name = "A — PaparcarBottomActionBar: parking seleccionado (claro)", showBackground = true)
 @Composable
-private fun HomeNavBarParkingLightPreview() {
+private fun PaparcarBottomActionBarParkingLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        HomeNavBar(navLabel = "Tu coche  ·  Calle Gran Vía 32", onNavigate = {})
+        PaparcarBottomActionBar(label = "Tu coche  ·  Calle Gran Vía 32", onClick = {})
     }
 }
 
