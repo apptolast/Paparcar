@@ -21,11 +21,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Scaffold
@@ -67,7 +65,7 @@ import io.apptolast.paparcar.presentation.addspot.AddFreeSpotScreen
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
-import io.apptolast.paparcar.presentation.mycar.MyCarScreen
+import io.apptolast.paparcar.presentation.vehicles.VehiclesScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigScreen
@@ -83,14 +81,14 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
 import paparcar.composeapp.generated.resources.nav_tab_history
 import paparcar.composeapp.generated.resources.nav_tab_map
-import paparcar.composeapp.generated.resources.nav_tab_my_car
 import paparcar.composeapp.generated.resources.nav_tab_settings
+import paparcar.composeapp.generated.resources.nav_tab_vehicles
 
 internal object Routes {
     const val HOME = "home"
     const val PARKING_LOCATION = "map"
     const val HISTORY = "history"
-    const val MY_CAR = "my_car"
+    const val VEHICLES = "vehicles"
     const val SETTINGS = "settings"
     const val ONBOARDING = "onboarding"
     const val PERMISSIONS = "permissions"
@@ -102,8 +100,7 @@ internal object Routes {
 
 private val BOTTOM_NAV_ROUTES = setOf(
     Routes.HOME,
-    Routes.HISTORY,
-    Routes.MY_CAR,
+    Routes.VEHICLES,
     Routes.SETTINGS,
 )
 
@@ -316,7 +313,7 @@ private fun MainAppNavigation(
                 VehicleRegistrationScreen(
                     vehicleId = vehicleId,
                     onRegistrationComplete = {
-                        if (origin == "my_car") {
+                        if (origin == "vehicles") {
                             navController.popBackStack()
                         } else {
                             navController.navigate(Routes.ONBOARDING) {
@@ -408,22 +405,23 @@ private fun MainAppNavigation(
                     )
                 }
             }
-            composable(Routes.MY_CAR) {
+            composable(Routes.VEHICLES) {
                 Box(
                     modifier = Modifier
                         .padding(scaffoldPadding)
                         .consumeWindowInsets(scaffoldPadding),
                 ) {
-                    MyCarScreen(
+                    VehiclesScreen(
                         onAddVehicle = {
-                            navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car")
+                            navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=vehicles")
                         },
                         onEditVehicle = { vehicleId ->
-                            navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=my_car&vehicleId=$vehicleId")
+                            navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=vehicles&vehicleId=$vehicleId")
                         },
                         onConfigureBluetooth = { vehicleId ->
                             navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
                         },
+                        onViewHistory = { navController.navigate(Routes.HISTORY) },
                     )
                 }
             }
@@ -435,7 +433,7 @@ private fun MainAppNavigation(
                 ) {
                     SettingsScreen(
                         onNavigateBack = { navController.popBackStack() },
-                        onNavigateToMyCar = { navController.navigateToTab(Routes.MY_CAR) },
+                        onNavigateToVehicles = { navController.navigateToTab(Routes.VEHICLES) },
                         onNavigateToAuth = { /* AuthState change triggers auth nav automatically */ },
                         darkMode = darkTheme,
                         onToggleDarkMode = onToggleDarkMode,
@@ -470,14 +468,8 @@ private val bottomNavItems = listOf(
         iconOutline = Icons.Outlined.Map,
     ),
     AppBottomNavItem(
-        route = Routes.HISTORY,
-        label = { stringResource(Res.string.nav_tab_history) },
-        iconFilled = Icons.Filled.History,
-        iconOutline = Icons.Outlined.History,
-    ),
-    AppBottomNavItem(
-        route = Routes.MY_CAR,
-        label = { stringResource(Res.string.nav_tab_my_car) },
+        route = Routes.VEHICLES,
+        label = { stringResource(Res.string.nav_tab_vehicles) },
         iconFilled = Icons.Filled.DirectionsCar,
         iconOutline = Icons.Outlined.DirectionsCar,
     ),

@@ -248,7 +248,11 @@
     <string name="nav_tab_map">Mapa</string>
     <string name="nav_tab_history">Historial</string>
     <string name="nav_tab_my_car">Mi Coche</string>
+    <string name="nav_tab_vehicles">Vehículos</string>
     <string name="nav_tab_settings">Ajustes</string>
+
+    <!-- Acciones de la pantalla de vehículos -->
+    <string name="vehicles_view_history">Ver historial de aparcamientos</string>
 
     <!-- Pantalla Mi Coche -->
     <string name="my_car_title">Mi Coche</string>

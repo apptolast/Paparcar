@@ -8,7 +8,7 @@ sealed class SettingsIntent {
     data class ToggleSpotFreedNotif(val enabled: Boolean) : SettingsIntent()
     data class SetMapType(val type: MapType) : SettingsIntent()
     data object NavigateBack : SettingsIntent()
-    data object NavigateToMyCar : SettingsIntent()
+    data object NavigateToVehicles : SettingsIntent()
     data object OpenPrivacyPolicy : SettingsIntent()
     data object OpenLicenses : SettingsIntent()
     data object OpenContact : SettingsIntent()

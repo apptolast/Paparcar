@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.mycar
+package io.apptolast.paparcar.presentation.vehicles
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,8 +50,6 @@ import paparcar.composeapp.generated.resources.my_car_delete_cancel
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_message
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_title
-import paparcar.composeapp.generated.resources.my_car_delete_vehicle
-import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_title
 import paparcar.composeapp.generated.resources.vehicle_size_large
@@ -62,11 +60,12 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyCarScreen(
+fun VehiclesScreen(
     onAddVehicle: () -> Unit = {},
     onEditVehicle: (vehicleId: String) -> Unit = {},
     onConfigureBluetooth: (vehicleId: String) -> Unit = {},
-    viewModel: MyCarViewModel = koinViewModel(),
+    onViewHistory: (vehicleId: String) -> Unit = {},
+    viewModel: VehiclesViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -75,9 +74,10 @@ fun MyCarScreen(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is MyCarEffect.NavigateToAddVehicle -> onAddVehicle()
-                is MyCarEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
-                is MyCarEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
+                is VehiclesEffect.NavigateToAddVehicle -> onAddVehicle()
+                is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
+                is VehiclesEffect.NavigateToHistory -> onViewHistory(effect.vehicleId)
+                is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
             }
         }
     }
@@ -85,9 +85,9 @@ fun MyCarScreen(
     if (state.pendingDeleteVehicleId != null) {
         DeleteVehicleConfirmDialog(
             onConfirm = {
-                viewModel.handleIntent(MyCarIntent.ConfirmDeleteVehicle(state.pendingDeleteVehicleId!!))
+                viewModel.handleIntent(VehiclesIntent.ConfirmDeleteVehicle(state.pendingDeleteVehicleId!!))
             },
-            onDismiss = { viewModel.handleIntent(MyCarIntent.DismissDeleteConfirmation) },
+            onDismiss = { viewModel.handleIntent(VehiclesIntent.DismissDeleteConfirmation) },
         )
     }
 
@@ -98,7 +98,7 @@ fun MyCarScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.handleIntent(MyCarIntent.AddVehicle) },
+                onClick = { viewModel.handleIntent(VehiclesIntent.AddVehicle) },
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.my_car_add_vehicle))
             }
@@ -113,7 +113,7 @@ fun MyCarScreen(
             }
             state.vehicles.isEmpty() -> EmptyVehicleState(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                onAddVehicle = { viewModel.handleIntent(MyCarIntent.AddVehicle) },
+                onAddVehicle = { viewModel.handleIntent(VehiclesIntent.AddVehicle) },
             )
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = PaparcarSpacing.lg),
@@ -123,10 +123,11 @@ fun MyCarScreen(
                 items(items = state.vehicles, key = { it.id }) { vehicle ->
                     VehicleCard(
                         data = vehicle.toCardData(sizeLabel = vehicleSizeName(vehicle.sizeCategory)),
-                        onSetActive = { viewModel.handleIntent(MyCarIntent.SetActiveVehicle(vehicle.id)) },
+                        onSetActive = { viewModel.handleIntent(VehiclesIntent.SetActiveVehicle(vehicle.id)) },
                         onConfigureBluetooth = { onConfigureBluetooth(vehicle.id) },
-                        onEdit = { viewModel.handleIntent(MyCarIntent.EditVehicle(vehicle.id)) },
-                        onDelete = { viewModel.handleIntent(MyCarIntent.RequestDeleteVehicle(vehicle.id)) },
+                        onEdit = { viewModel.handleIntent(VehiclesIntent.EditVehicle(vehicle.id)) },
+                        onDelete = { viewModel.handleIntent(VehiclesIntent.RequestDeleteVehicle(vehicle.id)) },
+                        onViewHistory = { viewModel.handleIntent(VehiclesIntent.ViewHistory(vehicle.id)) },
                     )
                 }
                 item { Spacer(Modifier.height(FAB_CLEARANCE_HEIGHT)) }

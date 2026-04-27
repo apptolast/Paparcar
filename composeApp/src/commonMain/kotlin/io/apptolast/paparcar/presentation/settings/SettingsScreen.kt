@@ -103,7 +103,7 @@ import paparcar.composeapp.generated.resources.settings_version
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToMyCar: () -> Unit = {},
+    onNavigateToVehicles: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
     darkMode: Boolean = true,
     onToggleDarkMode: (Boolean) -> Unit = {},
@@ -118,7 +118,7 @@ fun SettingsScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is SettingsEffect.NavigateBack -> onNavigateBack()
-                is SettingsEffect.NavigateToMyCar -> onNavigateToMyCar()
+                is SettingsEffect.NavigateToVehicles -> onNavigateToVehicles()
                 is SettingsEffect.NavigateToAuth -> onNavigateToAuth()
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
             }
@@ -248,7 +248,7 @@ fun SettingsScreen(
                     icon = Icons.Outlined.Bluetooth,
                     label = stringResource(Res.string.settings_nav_my_car),
                     description = stringResource(Res.string.settings_nav_my_car_desc),
-                    onClick = { viewModel.handleIntent(SettingsIntent.NavigateToMyCar) },
+                    onClick = { viewModel.handleIntent(SettingsIntent.NavigateToVehicles) },
                 )
             }
 
