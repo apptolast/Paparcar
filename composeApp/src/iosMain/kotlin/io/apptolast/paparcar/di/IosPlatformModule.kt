@@ -5,6 +5,7 @@ package io.apptolast.paparcar.di
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -13,6 +14,7 @@ import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.ios.preferences.IosAppPreferences
 import io.apptolast.paparcar.ios.stub.StubAppNotificationManager
+import io.apptolast.paparcar.ios.stub.StubConnectivityObserver
 import io.apptolast.paparcar.ios.stub.StubGeocoderDataSource
 import io.apptolast.paparcar.ios.stub.StubLocationDataSource
 import io.apptolast.paparcar.ios.stub.StubPlacesDataSource
@@ -45,6 +47,9 @@ val iosPlatformModule = module {
 
     // Preferences — real iOS implementation (NSUserDefaults)
     single<AppPreferences> { IosAppPreferences() }
+
+    // Connectivity (stub — Phase 6 will use NWPathMonitor)
+    single<ConnectivityObserver> { StubConnectivityObserver() }
 }
 
 private fun documentDirectory(): String {

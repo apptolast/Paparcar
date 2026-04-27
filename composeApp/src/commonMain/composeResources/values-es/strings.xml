@@ -333,4 +333,8 @@
     <string name="home_filter_empty_title">Sin plazas para este tamaño</string>
     <string name="home_filter_empty_subtitle">Prueba otro filtro o vuelve más tarde</string>
     <string name="home_filter_empty_clear">Quitar filtro</string>
+    <!-- Connectivity banner / snackbar -->
+    <string name="connectivity_offline_banner">Sin conexión</string>
+    <string name="connectivity_restored_snackbar">Conexión restablecida</string>
+    <string name="connectivity_action_blocked_offline">Conéctate a internet para hacer eso</string>
 </resources>

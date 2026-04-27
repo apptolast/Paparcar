@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.History
@@ -37,10 +39,13 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.AppBottomNavItem
 import io.apptolast.paparcar.ui.components.AppBottomNavigation
+import io.apptolast.paparcar.ui.components.ConnectivityOfflineBanner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -54,6 +59,7 @@ import com.apptolast.customlogin.presentation.navigation.AuthRoutesFlow
 import com.apptolast.customlogin.presentation.navigation.LoginRoute
 import com.apptolast.customlogin.presentation.navigation.NavTransitions
 import com.apptolast.customlogin.presentation.navigation.authRoutesFlow
+import io.apptolast.paparcar.presentation.app.AppEffect
 import io.apptolast.paparcar.presentation.app.AppIntent
 import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.app.SplashViewModel
@@ -73,6 +79,7 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
 import paparcar.composeapp.generated.resources.nav_tab_history
 import paparcar.composeapp.generated.resources.nav_tab_map
 import paparcar.composeapp.generated.resources.nav_tab_my_car
@@ -128,38 +135,63 @@ fun App(
         ) {
         // Each screen's Scaffold draws its own background.
         Surface(modifier = Modifier.fillMaxSize()) {
-
-            // AnimatedContent switches between auth and app content.
-            // When coming from Loading (initial auth check), no animation is played because
-            // the splash screen covers the content — animating here would cause a flash of
-            // the login screen on cold start for already-authenticated users.
-            AnimatedContent(
-                targetState = authState,
-                transitionSpec = {
-                    if (initialState is AuthState.Loading) {
-                        EnterTransition.None togetherWith ExitTransition.None
-                    } else {
-                        NavTransitions.enter togetherWith NavTransitions.exit
+            val rootSnackbarHostState = remember { SnackbarHostState() }
+            val connectionRestored = stringResource(Res.string.connectivity_restored_snackbar)
+            LaunchedEffect(Unit) {
+                appViewModel.effect.collect { effect ->
+                    when (effect) {
+                        AppEffect.ShowConnectionRestored ->
+                            rootSnackbarHostState.showSnackbar(connectionRestored)
                     }
-                },
-                label = "RootNavigationAnimation"
-            ) { state ->
-                when (state) {
-                    is AuthState.Loading -> Box(Modifier.fillMaxSize()) // splash covers this
-                    is AuthState.Authenticated -> MainAppNavigation(
-                        startRoute = startRoute,
-                        isFullyOperational = appState.isFullyOperational,
-                        darkTheme = appState.darkTheme,
-                        onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
-                        onToggleDarkMode = { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
-                        imperialUnits = appState.imperialUnits,
-                        onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
-                        onOpenMapsNavigation = onOpenMapsNavigation,
-                    )
-                    else -> AuthNavigation()
                 }
             }
 
+            Box(modifier = Modifier.fillMaxSize()) {
+                // AnimatedContent switches between auth and app content.
+                // When coming from Loading (initial auth check), no animation is played because
+                // the splash screen covers the content — animating here would cause a flash of
+                // the login screen on cold start for already-authenticated users.
+                AnimatedContent(
+                    targetState = authState,
+                    transitionSpec = {
+                        if (initialState is AuthState.Loading) {
+                            EnterTransition.None togetherWith ExitTransition.None
+                        } else {
+                            NavTransitions.enter togetherWith NavTransitions.exit
+                        }
+                    },
+                    label = "RootNavigationAnimation"
+                ) { state ->
+                    when (state) {
+                        is AuthState.Loading -> Box(Modifier.fillMaxSize()) // splash covers this
+                        is AuthState.Authenticated -> MainAppNavigation(
+                            startRoute = startRoute,
+                            isFullyOperational = appState.isFullyOperational,
+                            darkTheme = appState.darkTheme,
+                            onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
+                            onToggleDarkMode = { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
+                            imperialUnits = appState.imperialUnits,
+                            onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
+                            onOpenMapsNavigation = onOpenMapsNavigation,
+                        )
+                        else -> AuthNavigation()
+                    }
+                }
+
+                // Persistent offline banner — anchored to the root scaffold so it
+                // survives navigation between auth and app, between tabs, etc.
+                ConnectivityOfflineBanner(
+                    visible = appState.isOffline,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+
+                SnackbarHost(
+                    hostState = rootSnackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 80.dp),
+                )
+            }
         }
         }
     }
