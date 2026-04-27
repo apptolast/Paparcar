@@ -8,10 +8,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
-class FakeUserParkingRepository(initialSession: UserParking? = null) : UserParkingRepository {
+class FakeUserParkingRepository(
+    initialSession: UserParking? = null,
+    initialSessions: List<UserParking> = emptyList(),
+) : UserParkingRepository {
 
     private val sessions = mutableListOf<UserParking>().also { list ->
         initialSession?.let { list.add(it) }
+        list.addAll(initialSessions)
     }
     private val _sessionsFlow = MutableStateFlow<List<UserParking>>(sessions.toList())
 
@@ -39,6 +43,9 @@ class FakeUserParkingRepository(initialSession: UserParking? = null) : UserParki
         _sessionsFlow.map { it.firstOrNull { s -> s.isActive } }
 
     override fun observeAllSessions(): Flow<List<UserParking>> = _sessionsFlow
+
+    override fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>> =
+        _sessionsFlow.map { list -> list.filter { it.vehicleId == vehicleId } }
 
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
         sessions.drop(offset).take(limit)

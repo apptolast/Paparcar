@@ -174,6 +174,30 @@ class ParkingSessionMapperTest {
         assertEquals("Madrid", entity.addressCity)
     }
 
+    // ── vehicleId round-trip ─────────────────────────────────────────────────
+
+    @Test
+    fun `entity toDomain preserves vehicleId when set`() {
+        val entity = baseEntity.copy(vehicleId = "vehicle-99")
+        assertEquals("vehicle-99", entity.toDomain().vehicleId)
+    }
+
+    @Test
+    fun `entity toDomain produces null vehicleId when not set`() {
+        assertNull(baseEntity.toDomain().vehicleId)
+    }
+
+    @Test
+    fun `parking toEntity preserves vehicleId`() {
+        val parking = baseParking.copy(vehicleId = "vehicle-99")
+        assertEquals("vehicle-99", parking.toEntity().vehicleId)
+    }
+
+    @Test
+    fun `parking toEntity produces null vehicleId when not set`() {
+        assertNull(baseParking.toEntity().vehicleId)
+    }
+
     // ── Shared helpers ────────────────────────────────────────────────────────
 
     @Test
