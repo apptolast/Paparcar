@@ -58,9 +58,9 @@ fun HomeGpsAccuracyBanner(
         modifier = modifier,
     ) {
         val containerColor = if (level == GpsAccuracyLevel.POOR) {
-            Color(0xFFEF4444).copy(alpha = 0.88f)
+            MaterialTheme.colorScheme.error.copy(alpha = 0.88f)
         } else {
-            Color(0xFFF59E0B).copy(alpha = 0.88f)
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.88f)
         }
 
         Surface(
