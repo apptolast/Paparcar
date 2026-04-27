@@ -272,6 +272,10 @@
     <string name="my_car_delete_confirm_message">This vehicle will be permanently removed. This action cannot be undone.</string>
     <string name="my_car_delete_confirm_action">Delete</string>
     <string name="my_car_delete_cancel">Cancel</string>
+    <string name="vehicle_detail_tab_details">Details</string>
+    <string name="vehicle_detail_tab_history">History</string>
+    <string name="vehicle_detail_cd_back">Back</string>
+    <string name="vehicle_detail_history_empty">No parking sessions recorded yet for this vehicle.</string>
     <string name="my_car_active_vehicle">Active vehicle</string>
     <string name="my_car_set_active">Set as active</string>
 

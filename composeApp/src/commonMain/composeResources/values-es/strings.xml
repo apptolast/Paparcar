@@ -269,6 +269,10 @@
     <string name="my_car_delete_confirm_message">Este vehículo se eliminará permanentemente. Esta acción no se puede deshacer.</string>
     <string name="my_car_delete_confirm_action">Eliminar</string>
     <string name="my_car_delete_cancel">Cancelar</string>
+    <string name="vehicle_detail_tab_details">Detalles</string>
+    <string name="vehicle_detail_tab_history">Historial</string>
+    <string name="vehicle_detail_cd_back">Volver</string>
+    <string name="vehicle_detail_history_empty">Todavía no hay sesiones de aparcamiento registradas para este vehículo.</string>
     <string name="my_car_active_vehicle">Vehículo activo</string>
     <string name="my_car_set_active">Establecer como activo</string>
 

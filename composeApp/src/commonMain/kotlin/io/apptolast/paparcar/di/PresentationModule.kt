@@ -20,7 +20,8 @@ val presentationModule = module {
     viewModelOf(::AppViewModel)
     viewModelOf(::HomeViewModel)
     viewModelOf(::AddFreeSpotViewModel)
-    viewModelOf(::HistoryViewModel)
+    // vehicleId = null → all sessions; vehicleId = "xyz" → per-vehicle filter
+    viewModel { params -> HistoryViewModel(params.getOrNull(), get()) }
     viewModelOf(::ParkingLocationViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::PermissionsViewModel)

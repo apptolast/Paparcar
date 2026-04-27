@@ -72,6 +72,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
 import paparcar.composeapp.generated.resources.history_cd_back
@@ -208,9 +209,12 @@ internal sealed class TimelineItem {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
+    vehicleId: String? = null,
     onNavigateBack: () -> Unit = {},
     onNavigateToMap: (lat: Double, lon: Double) -> Unit = { _, _ -> },
-    viewModel: HistoryViewModel = koinViewModel(),
+    viewModel: HistoryViewModel = koinViewModel(
+        parameters = if (vehicleId != null) ({ parametersOf(vehicleId) }) else null,
+    ),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
