@@ -16,6 +16,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 fun UserParkingEntity.toDomain(): UserParking = UserParking(
     id = id,
     userId = userId,
+    vehicleId = vehicleId,
     location = GpsPoint(
         latitude = latitude,
         longitude = longitude,
@@ -52,6 +53,7 @@ private fun UserParkingEntity.placeInfoOrNull(): PlaceInfo? {
 fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     id = id,
     userId = userId,
+    vehicleId = vehicleId,
     latitude = location.latitude,
     longitude = location.longitude,
     accuracy = location.accuracy,

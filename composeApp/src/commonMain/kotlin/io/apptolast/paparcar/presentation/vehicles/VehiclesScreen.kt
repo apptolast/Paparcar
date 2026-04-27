@@ -35,8 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
-import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.components.VehicleCard
 import io.apptolast.paparcar.ui.components.VehicleCardData
@@ -120,14 +120,16 @@ fun VehiclesScreen(
                 verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
             ) {
                 item { Spacer(Modifier.height(PaparcarSpacing.xs)) }
-                items(items = state.vehicles, key = { it.id }) { vehicle ->
+                items(items = state.vehicles, key = { it.vehicle.id }) { vehicleWithStats ->
                     VehicleCard(
-                        data = vehicle.toCardData(sizeLabel = vehicleSizeName(vehicle.sizeCategory)),
-                        onSetActive = { viewModel.handleIntent(VehiclesIntent.SetActiveVehicle(vehicle.id)) },
-                        onConfigureBluetooth = { onConfigureBluetooth(vehicle.id) },
-                        onEdit = { viewModel.handleIntent(VehiclesIntent.EditVehicle(vehicle.id)) },
-                        onDelete = { viewModel.handleIntent(VehiclesIntent.RequestDeleteVehicle(vehicle.id)) },
-                        onViewHistory = { viewModel.handleIntent(VehiclesIntent.ViewHistory(vehicle.id)) },
+                        data = vehicleWithStats.toCardData(
+                            sizeLabel = vehicleSizeName(vehicleWithStats.vehicle.sizeCategory),
+                        ),
+                        onSetActive = { viewModel.handleIntent(VehiclesIntent.SetActiveVehicle(vehicleWithStats.vehicle.id)) },
+                        onConfigureBluetooth = { onConfigureBluetooth(vehicleWithStats.vehicle.id) },
+                        onEdit = { viewModel.handleIntent(VehiclesIntent.EditVehicle(vehicleWithStats.vehicle.id)) },
+                        onDelete = { viewModel.handleIntent(VehiclesIntent.RequestDeleteVehicle(vehicleWithStats.vehicle.id)) },
+                        onViewHistory = { viewModel.handleIntent(VehiclesIntent.ViewHistory(vehicleWithStats.vehicle.id)) },
                     )
                 }
                 item { Spacer(Modifier.height(FAB_CLEARANCE_HEIGHT)) }
@@ -197,19 +199,19 @@ private fun EmptyVehicleState(
 
 // ─── Mapper ───────────────────────────────────────────────────────────────────
 
-private fun Vehicle.toCardData(sizeLabel: String): VehicleCardData {
-    val displayName = listOfNotNull(brand, model).joinToString(" ").ifBlank { sizeLabel }
+private fun VehicleWithStats.toCardData(sizeLabel: String): VehicleCardData {
+    val displayName = listOfNotNull(vehicle.brand, vehicle.model).joinToString(" ").ifBlank { sizeLabel }
     val detectionStatus = when {
-        bluetoothDeviceId != null -> VehicleDetectionStatus.Bluetooth(
-            deviceLabel = bluetoothDeviceId.takeLast(BT_ADDRESS_LABEL_LENGTH),
+        vehicle.bluetoothDeviceId != null -> VehicleDetectionStatus.Bluetooth(
+            deviceLabel = vehicle.bluetoothDeviceId.takeLast(BT_ADDRESS_LABEL_LENGTH),
         )
         else -> VehicleDetectionStatus.ActivityRecognition
     }
     return VehicleCardData(
-        id = id,
+        id = vehicle.id,
         displayName = displayName,
         sizeLabel = sizeLabel,
-        isActive = isDefault,
+        isActive = vehicle.isDefault,
         detectionStatus = detectionStatus,
     )
 }

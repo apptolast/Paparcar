@@ -46,8 +46,9 @@ class ConfirmParkingUseCase(
     ): Result<UserParking> {
         val userId = authRepository.getCurrentSession()?.userId
             ?: return Result.failure(PaparcarError.Auth.NotAuthenticated)
-        val resolvedSizeCategory = sizeCategory
-            ?: vehicleRepository.observeDefaultVehicle().first()?.sizeCategory
+        val defaultVehicle = vehicleRepository.observeDefaultVehicle().first()
+        val resolvedSizeCategory = sizeCategory ?: defaultVehicle?.sizeCategory
+        val resolvedVehicleId = defaultVehicle?.id
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -59,6 +60,7 @@ class ConfirmParkingUseCase(
         val session = UserParking(
             id = sessionId,
             userId = userId,
+            vehicleId = resolvedVehicleId,
             location = gpsPoint,
             geofenceId = sessionId,
             isActive = true,

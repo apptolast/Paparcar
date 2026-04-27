@@ -53,6 +53,9 @@ class UserParkingRepositoryImpl(
     override fun observeAllSessions(): Flow<List<UserParking>> =
         dao.observeAll().map { list -> list.map { it.toDomain() } }
 
+    override fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>> =
+        dao.observeByVehicle(vehicleId).map { list -> list.map { it.toDomain() } }
+
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
         dao.getSessionsPaged(limit, offset).map { it.toDomain() }
 
