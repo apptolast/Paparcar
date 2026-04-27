@@ -1,23 +1,42 @@
 package io.apptolast.paparcar.presentation.vehicles
 
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.VehicleWithStats
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class VehiclesViewModel(
     private val vehicleRepository: VehicleRepository,
+    private val userParkingRepository: UserParkingRepository,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
 
     init {
-        vehicleRepository.observeVehicles()
-            .onEach { vehicles -> updateState { copy(vehicles = vehicles, isLoading = false) } }
+        combine(
+            vehicleRepository.observeVehicles(),
+            userParkingRepository.observeAllSessions(),
+        ) { vehicles, sessions ->
+            val sessionsByVehicle = sessions.groupBy { it.vehicleId }
+            vehicles.map { vehicle ->
+                val vehicleSessions = sessionsByVehicle[vehicle.id].orEmpty()
+                VehicleWithStats(
+                    vehicle = vehicle,
+                    sessionCount = vehicleSessions.size,
+                    lastSession = vehicleSessions.firstOrNull(),
+                )
+            }
+        }
+            .onEach { vehiclesWithStats ->
+                updateState { copy(vehicles = vehiclesWithStats, isLoading = false) }
+            }
             .catch { e ->
                 PaparcarLogger.e(TAG, "Failed to observe vehicles", e)
                 updateState { copy(isLoading = false) }

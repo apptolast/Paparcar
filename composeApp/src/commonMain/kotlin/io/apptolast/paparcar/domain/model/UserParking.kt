@@ -17,6 +17,7 @@ package io.apptolast.paparcar.domain.model
 data class UserParking(
     val id: String,
     val userId: String = "",
+    val vehicleId: String? = null,
     val location: GpsPoint,
     val spotId: String? = null,
     val geofenceId: String? = null,

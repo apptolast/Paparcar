@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class UserParkingEntity(
     @PrimaryKey val id: String,
     val userId: String = "",
+    val vehicleId: String? = null,
     val latitude: Double,
     val longitude: Double,
     val accuracy: Float,

@@ -10,6 +10,7 @@ interface UserParkingRepository {
     suspend fun getActiveSession(): UserParking?
     fun observeActiveSession(): Flow<UserParking?>
     fun observeAllSessions(): Flow<List<UserParking>>
+    fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>>
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking>
     suspend fun clearActive(): Result<Unit>
     /**

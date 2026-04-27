@@ -27,6 +27,9 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
     fun observeActive(): Flow<UserParkingEntity?>
 
+    @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
+    fun observeByVehicle(vehicleId: String): Flow<List<UserParkingEntity>>
+
     @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1")
     suspend fun clearActive()
 
