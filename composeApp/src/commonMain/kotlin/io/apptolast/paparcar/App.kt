@@ -174,9 +174,9 @@ fun App(
                         is AuthState.Authenticated -> MainAppNavigation(
                             startRoute = startRoute,
                             isFullyOperational = appState.isFullyOperational,
-                            darkTheme = appState.darkTheme,
                             onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
-                            onToggleDarkMode = { appViewModel.handleIntent(AppIntent.ToggleDarkMode(it)) },
+                            themeMode = appState.themeMode,
+                            onSetThemeMode = { appViewModel.handleIntent(AppIntent.SetThemeMode(it)) },
                             imperialUnits = appState.imperialUnits,
                             onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
                             onOpenMapsNavigation = onOpenMapsNavigation,

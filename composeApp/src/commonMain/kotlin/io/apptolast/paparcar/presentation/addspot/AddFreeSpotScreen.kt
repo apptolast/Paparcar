@@ -22,7 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import io.apptolast.paparcar.domain.error.PaparcarError
-import io.apptolast.paparcar.presentation.home.components.PlatformMap
+import io.apptolast.paparcar.ui.components.PaparcarMapConfig
+import io.apptolast.paparcar.ui.components.PaparcarMapView
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -88,7 +89,8 @@ fun AddFreeSpotScreen(
                 .padding(padding),
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                PlatformMap(
+                PaparcarMapView(
+                    config = PaparcarMapConfig(showAnimatedCenterPin = true),
                     spots = emptyList(),
                     userLocation = state.userGpsPoint,
                     parkingLocation = null,
