@@ -180,8 +180,11 @@
     <string name="settings_profile_logout">Wyloguj si&#x0119;</string>
     <string name="settings_profile_name_placeholder">U&#x017C;ytkownik</string>
     <string name="settings_section_appearance">Wygląd</string>
-    <string name="settings_dark_mode">Tryb ciemny</string>
-    <string name="settings_dark_mode_desc">Używaj ciemnego motywu w całej aplikacji</string>
+    <string name="settings_theme_mode">Motyw</string>
+    <string name="settings_theme_mode_desc">Wybierz jasny, ciemny lub zgodny z systemem</string>
+    <string name="settings_theme_mode_light">Jasny</string>
+    <string name="settings_theme_mode_dark">Ciemny</string>
+    <string name="settings_theme_mode_system">Systemowy</string>
     <string name="settings_section_detection">Wykrywanie</string>
     <string name="settings_auto_detect">Automatyczne wykrywanie parkowania</string>
     <string name="settings_auto_detect_desc">Automatycznie zapisz swoje miejsce parkingowe</string>

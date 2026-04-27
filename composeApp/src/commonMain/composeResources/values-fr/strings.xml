@@ -180,8 +180,11 @@
     <string name="settings_profile_logout">Se d&#xE9;connecter</string>
     <string name="settings_profile_name_placeholder">Utilisateur</string>
     <string name="settings_section_appearance">Apparence</string>
-    <string name="settings_dark_mode">Mode sombre</string>
-    <string name="settings_dark_mode_desc">Utiliser le thème sombre dans toute l'appli</string>
+    <string name="settings_theme_mode">Thème</string>
+    <string name="settings_theme_mode_desc">Choisissez clair, sombre ou suivre le système</string>
+    <string name="settings_theme_mode_light">Clair</string>
+    <string name="settings_theme_mode_dark">Sombre</string>
+    <string name="settings_theme_mode_system">Système</string>
     <string name="settings_section_detection">Détection</string>
     <string name="settings_auto_detect">Détection automatique du stationnement</string>
     <string name="settings_auto_detect_desc">Enregistrer automatiquement votre place de stationnement</string>

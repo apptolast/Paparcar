@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.ios.preferences
 
 import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.domain.preferences.ThemeMode
 import platform.Foundation.NSUserDefaults
 
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
@@ -9,6 +10,7 @@ private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_VEHICLE_REGISTERED = "vehicle_registered"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
+private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
 private const val KEY_DEFAULT_MAP_TYPE = "default_map_type"
 private const val DEFAULT_MAP_TYPE = "NORMAL"
@@ -59,12 +61,24 @@ class IosAppPreferences : AppPreferences {
         userDefaults.setBool(true, forKey = KEY_VEHICLE_REGISTERED)
     }
 
-    override val darkModeEnabled: Boolean
-        get() = if (userDefaults.objectForKey(KEY_DARK_MODE_ENABLED) == null) true
-                else userDefaults.boolForKey(KEY_DARK_MODE_ENABLED)
+    override val themeMode: ThemeMode
+        get() {
+            userDefaults.stringForKey(KEY_THEME_MODE)?.let { stored ->
+                return runCatching { ThemeMode.valueOf(stored) }.getOrDefault(ThemeMode.SYSTEM)
+            }
+            // Migration: legacy boolean → enum, then drop the old key.
+            return if (userDefaults.objectForKey(KEY_DARK_MODE_ENABLED) != null) {
+                val migrated = if (userDefaults.boolForKey(KEY_DARK_MODE_ENABLED)) ThemeMode.DARK else ThemeMode.LIGHT
+                userDefaults.setObject(migrated.name, forKey = KEY_THEME_MODE)
+                userDefaults.removeObjectForKey(KEY_DARK_MODE_ENABLED)
+                migrated
+            } else {
+                ThemeMode.SYSTEM
+            }
+        }
 
-    override fun setDarkModeEnabled(enabled: Boolean) {
-        userDefaults.setBool(enabled, forKey = KEY_DARK_MODE_ENABLED)
+    override fun setThemeMode(mode: ThemeMode) {
+        userDefaults.setObject(mode.name, forKey = KEY_THEME_MODE)
     }
 
     override val useImperialUnits: Boolean

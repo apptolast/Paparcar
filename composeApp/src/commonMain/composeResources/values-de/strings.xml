@@ -180,8 +180,11 @@
     <string name="settings_profile_logout">Abmelden</string>
     <string name="settings_profile_name_placeholder">Benutzer</string>
     <string name="settings_section_appearance">Erscheinungsbild</string>
-    <string name="settings_dark_mode">Dunkelmodus</string>
-    <string name="settings_dark_mode_desc">Dunkles Design in der gesamten App verwenden</string>
+    <string name="settings_theme_mode">Design</string>
+    <string name="settings_theme_mode_desc">Hell, Dunkel oder dem System folgen</string>
+    <string name="settings_theme_mode_light">Hell</string>
+    <string name="settings_theme_mode_dark">Dunkel</string>
+    <string name="settings_theme_mode_system">System</string>
     <string name="settings_section_detection">Erkennung</string>
     <string name="settings_auto_detect">Automatische Parkerkennung</string>
     <string name="settings_auto_detect_desc">Parkplatz automatisch speichern</string>
