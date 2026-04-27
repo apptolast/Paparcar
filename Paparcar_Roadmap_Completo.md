@@ -17,7 +17,7 @@ Paparcar es una app de **compartición de plazas de aparcamiento en tiempo real*
 | **Phase 2** — Vehículos & BT | 6–7 semanas | Jun–Jul 2026 | ~95% hecho |
 | **Phase 3** — UI/UX Design System | 4–5 semanas | Jul–Ago 2026 | ✅ 100% |
 | **Phase 4** — History & Settings | 3–4 semanas | Ago–Sep 2026 | ~70% hecho |
-| **Phase 4.5** — UX Refinements (Nav + Theme + Connectivity + AddFreeSpot) | 3–4 semanas | May 2026 | 🆕 0% |
+| **Phase 4.5** — UX Refinements (Nav + Theme + Connectivity + AddFreeSpot) | 3–4 semanas | May 2026 | 📦 ~75% (6 ramas listas, ninguna mergeada) |
 | **Phase 5** — QA & Estabilidad | 3–4 semanas | Sep–Oct 2026 | ~20% hecho |
 | **Phase 6** — iOS Port | 6–8 semanas | Oct–Dic 2026 | 0% |
 | **TOTAL** | **~7–9 meses** | **Abr–Dic 2026** | |
@@ -371,6 +371,36 @@ manual de plaza libre, y comunicar estados de red al usuario.
 > `ConnectivityObserver`, NavGraph updates, DataStore migration) se rastrean
 > en `Paparcar_Roadmap_TechDebt.md` bajo la fase **QA-6**.
 
+### Estado de ramas — auditado 2026-04-27
+
+Sprint autónomo entregado en 6 ramas independientes. **Ninguna está mergeada
+en `master`** — pendiente de revisión y merge por el desarrollador.
+
+| Rama | Commit | Grupos cubiertos | Build | Estado |
+|------|--------|------------------|-------|--------|
+| `refactor/D-001-paparcar-map-view` | `23e47b4` | D-001 | ✅ verde | 📦 Listo |
+| `refactor/D-002-paparcar-bottom-action-bar` | `fb86fb1` | D-002 | ✅ verde | 📦 Listo |
+| `feat/E-connectivity-observer` | `54a5dbc` | NET-001..006 + NET-ARCH-001 | ✅ verde | 📦 Listo |
+| `feat/C-add-free-spot` | `c206eba` *(incluye D-002)* | AFS-001..008 + AFS-ARCH-001 | ✅ verde | 📦 Listo |
+| `feat/A-nav-tabs-vehicles` | `17658e4` | NAV-001, 002 (parcial), 005, 007, 008 | ✅ verde | 📦 Listo (alcance reducido) |
+| `feat/B-theme-mode-tri-state` | `51a9bf5` | THEME-001..004 | ✅ verde | 📦 Listo |
+
+**Orden de merge sugerido** (para minimizar conflictos en `App.kt` / `HomeScreen.kt`):
+`D-001` → `D-002` → `feat/E` → `feat/C` (resolver D-002 ya presente) →
+`feat/A` → `feat/B`.
+
+**Tareas explícitamente diferidas dentro de Phase 4.5:**
+- NAV-003 (`VehiclesViewModel` unificado) — re-planificar tras merge de A
+- NAV-004 (lógica de vehículo activo BT) — re-planificar tras merge de A
+- NAV-006 (Historial como pestaña por vehículo) — re-planificar tras merge de A
+- THEME-005..007 (mapa estilo por tema + auditoría hex) — emparejado con TechDebt `THEME-ARCH-002`
+- THEME-008 (strings) — entregadas con naming `settings_theme_mode_*` (no `settings_theme_*`); aceptable funcionalmente
+
+Las leyendas que verás abajo:
+- ✅ **Done [`branch`@`commit`]** — entregado en una rama, build verde, **aún no mergeado**
+- ⚠️ **Partial** — alcance entregado < acceptance criteria del grupo; ver nota
+- ⏳ **Deferred** — aplazado a iteración posterior por el desarrollador
+
 ---
 
 ### A — Bottom Navigation Restructure (merge MyCar + History)
@@ -382,14 +412,14 @@ de 4 a 3 destinos lógicos.
 
 | ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
 |----|-------|--------|------|-----------|--------|
-| `NAV-001` | Definir orden definitivo de BottomNav (3 tabs: Mapa \| Vehículos \| Ajustes) | ⏳ Pending | UX | Alta | [SHORT] |
-| `NAV-002` | Crear `VehiclesScreen` (lista vehículos + detalle con pestañas Historial/Detección/BT) | ⏳ Pending | UI | Alta | [LARGE] |
-| `NAV-003` | `VehiclesViewModel` unifica `VehicleRepository` + `UserParkingRepository` agrupando sesiones por `vehicleId` | ⏳ Pending | Feature | Alta | [MEDIUM] |
-| `NAV-004` | Lógica de "vehículo activo": prioridad BT-conectado, fallback a `isDefault = true` | ⏳ Pending | Feature | Alta | [MEDIUM] |
-| `NAV-005` | Migrar funcionalidad de `MyCarScreen` a la pestaña "Detalles" del nuevo flujo | ⏳ Pending | Refactor | Alta | [MEDIUM] |
-| `NAV-006` | Migrar `HistoryScreen` (timeline + WeeklyActivityCard + StatsRow) a pestaña por vehículo | ⏳ Pending | Refactor | Alta | [MEDIUM] |
-| `NAV-007` | Eliminar tabs `MY_CAR` y `HISTORY` del NavGraph; añadir route `vehicles` | ⏳ Pending | Refactor | Alta | [SHORT] |
-| `NAV-008` | Conservar deep-link a `ParkingLocationScreen` desde el historial por vehículo | ⏳ Pending | Refactor | Media | [SHORT] |
+| `NAV-001` | Definir orden definitivo de BottomNav (3 tabs: Mapa \| Vehículos \| Ajustes) | ✅ Done [`feat/A-nav-tabs-vehicles`@`17658e4`] | UX | Alta | [SHORT] |
+| `NAV-002` | Crear `VehiclesScreen` (lista vehículos + detalle con pestañas Historial/Detección/BT) | ⚠️ Partial — sólo rename de `MyCarScreen` + botón "View History"; **sin pestañas de detalle** [`feat/A-nav-tabs-vehicles`@`17658e4`] | UI | Alta | [LARGE] |
+| `NAV-003` | `VehiclesViewModel` unifica `VehicleRepository` + `UserParkingRepository` agrupando sesiones por `vehicleId` | ⏳ Deferred — re-planificar tras merge de A | Feature | Alta | [MEDIUM] |
+| `NAV-004` | Lógica de "vehículo activo": prioridad BT-conectado, fallback a `isDefault = true` | ⏳ Deferred — re-planificar tras merge de A | Feature | Alta | [MEDIUM] |
+| `NAV-005` | Migrar funcionalidad de `MyCarScreen` a la pestaña "Detalles" del nuevo flujo | ⚠️ Partial — funcionalidad migrada via rename; sin estructura de pestañas [`feat/A-nav-tabs-vehicles`@`17658e4`] | Refactor | Alta | [MEDIUM] |
+| `NAV-006` | Migrar `HistoryScreen` (timeline + WeeklyActivityCard + StatsRow) a pestaña por vehículo | ⏳ Deferred — re-planificar tras merge de A | Refactor | Alta | [MEDIUM] |
+| `NAV-007` | Eliminar tabs `MY_CAR` y `HISTORY` del NavGraph; añadir route `vehicles` | ✅ Done — `MY_CAR` eliminado de tabs, `HISTORY` conservado como ruta no-tab para deep-link (NAV-008) [`feat/A-nav-tabs-vehicles`@`17658e4`] | Refactor | Alta | [SHORT] |
+| `NAV-008` | Conservar deep-link a `ParkingLocationScreen` desde el historial por vehículo | ✅ Done [`feat/A-nav-tabs-vehicles`@`17658e4`] | Refactor | Media | [SHORT] |
 
 **Criterios de aceptación:**
 - BottomNav muestra 3 destinos en el orden acordado.
@@ -412,14 +442,14 @@ Maps (light/dark JSON).
 
 | ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
 |----|-------|--------|------|-----------|--------|
-| `THEME-001` | Definir enum `ThemeMode { LIGHT, DARK, SYSTEM }` en `domain/preferences` | ⏳ Pending | Data | Alta | [SHORT] |
-| `THEME-002` | Reemplazar `appPreferences.darkModeEnabled: Boolean` por `themeMode: ThemeMode` (migración compatible) | ⏳ Pending | Refactor | Alta | [SHORT] |
-| `THEME-003` | `AppState.darkTheme: Boolean` se calcula a partir de `ThemeMode` + `isSystemInDarkTheme()` | ⏳ Pending | Feature | Alta | [SHORT] |
-| `THEME-004` | UI Settings: reemplazar Switch por segmented control de 3 opciones (Claro / Oscuro / Sistema) con strings i18n | ⏳ Pending | UI | Alta | [SHORT] |
-| `THEME-005` | `PlatformMap` recibe `MapStyleMode` resuelto por el tema activo y aplica `LIGHT_MAP_STYLE` o `DARK_MAP_STYLE` | ⏳ Pending | Feature | Alta | [MEDIUM] |
-| `THEME-006` | Añadir JSON de `LIGHT_MAP_STYLE` (paleta neutra) en `PlatformMap`/`PaparcarMapView` | ⏳ Pending | Asset | Media | [SHORT] |
-| `THEME-007` | Auditar Composables que ignoran `MaterialTheme` (hex colors hardcoded) y migrarlos | ⏳ Pending | Refactor | Media | [MEDIUM] |
-| `THEME-008` | Strings `settings_theme_light`, `settings_theme_dark`, `settings_theme_system` en EN + ES | ⏳ Pending | i18n | Alta | [SHORT] |
+| `THEME-001` | Definir enum `ThemeMode { LIGHT, DARK, SYSTEM }` en `domain/preferences` | ✅ Done [`feat/B-theme-mode-tri-state`@`51a9bf5`] | Data | Alta | [SHORT] |
+| `THEME-002` | Reemplazar `appPreferences.darkModeEnabled: Boolean` por `themeMode: ThemeMode` (migración compatible) | ✅ Done — migración lazy del key legacy a enum en Android+iOS [`feat/B-theme-mode-tri-state`@`51a9bf5`] | Refactor | Alta | [SHORT] |
+| `THEME-003` | `AppState.darkTheme: Boolean` se calcula a partir de `ThemeMode` + `isSystemInDarkTheme()` | ✅ Done — `darkTheme` se computa en App() composable, `AppState.darkTheme` eliminado del state [`feat/B-theme-mode-tri-state`@`51a9bf5`] | Feature | Alta | [SHORT] |
+| `THEME-004` | UI Settings: reemplazar Switch por segmented control de 3 opciones (Claro / Oscuro / Sistema) con strings i18n | ✅ Done — `SettingsSegmentedItem<ThemeMode>` reutilizado [`feat/B-theme-mode-tri-state`@`51a9bf5`] | UI | Alta | [SHORT] |
+| `THEME-005` | `PlatformMap` recibe `MapStyleMode` resuelto por el tema activo y aplica `LIGHT_MAP_STYLE` o `DARK_MAP_STYLE` | ⏳ Deferred — emparejado con TechDebt `THEME-ARCH-002`, ejecutar tras merge de D-001 | Feature | Alta | [MEDIUM] |
+| `THEME-006` | Añadir JSON de `LIGHT_MAP_STYLE` (paleta neutra) en `PlatformMap`/`PaparcarMapView` | ⏳ Deferred — depende de THEME-005 | Asset | Media | [SHORT] |
+| `THEME-007` | Auditar Composables que ignoran `MaterialTheme` (hex colors hardcoded) y migrarlos | ⏳ Deferred — independiente, planificar por separado | Refactor | Media | [MEDIUM] |
+| `THEME-008` | Strings `settings_theme_light`, `settings_theme_dark`, `settings_theme_system` en EN + ES | ✅ Done — entregado con prefijo `settings_theme_mode_*` (light/dark/system + label/desc), translaciones en 9 locales [`feat/B-theme-mode-tri-state`@`51a9bf5`] | i18n | Alta | [SHORT] |
 
 **Criterios de aceptación:**
 - Selector "Claro / Oscuro / Sistema" en Settings persiste entre relanzamientos.
@@ -440,14 +470,14 @@ Eliminar el FAB de logout/release del Home (su acción ya vive en el peek row).
 
 | ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
 |----|-------|--------|------|-----------|--------|
-| `AFS-001` | Eliminar el "logout/release" FAB de `HomeActionFab.kt` (variante `parked`) | ⏳ Pending | Refactor | Alta | [SHORT] |
-| `AFS-002` | El megáfono FAB del Home ahora navega a `Routes.ADD_FREE_SPOT` en lugar de invocar `ReportManualSpot` directamente | ⏳ Pending | Refactor | Alta | [SHORT] |
-| `AFS-003` | Crear `AddFreeSpotScreen` (mapa fullscreen + pin centrado animado + `PaparcarBottomActionBar`) | ⏳ Pending | UI | Alta | [MEDIUM] |
-| `AFS-004` | `AddFreeSpotViewModel` + State/Intent/Effect aislados (centro de mapa + estado de envío + acción publicar) | ⏳ Pending | Feature | Alta | [MEDIUM] |
-| `AFS-005` | Animación de "pin drop" del marcador central (drop+rebote al asentar la cámara) | ⏳ Pending | UX | Alta | [SHORT] |
-| `AFS-006` | Añadir route `add_free_spot` al NavGraph con `popBackStack` al publicar éxito | ⏳ Pending | Refactor | Alta | [SHORT] |
-| `AFS-007` | Strings `add_free_spot_title`, `add_free_spot_publish`, `add_free_spot_success` en EN + ES | ⏳ Pending | i18n | Alta | [SHORT] |
-| `AFS-008` | `HomeViewModel` deja de manejar `ReportManualSpot`; mover lógica de publicación a `AddFreeSpotViewModel` | ⏳ Pending | Refactor | Alta | [MEDIUM] |
+| `AFS-001` | Eliminar el "logout/release" FAB de `HomeActionFab.kt` (variante `parked`) | ✅ Done [`feat/C-add-free-spot`@`c206eba`] | Refactor | Alta | [SHORT] |
+| `AFS-002` | El megáfono FAB del Home ahora navega a `Routes.ADD_FREE_SPOT` en lugar de invocar `ReportManualSpot` directamente | ✅ Done [`feat/C-add-free-spot`@`c206eba`] | Refactor | Alta | [SHORT] |
+| `AFS-003` | Crear `AddFreeSpotScreen` (mapa fullscreen + pin centrado animado + `PaparcarBottomActionBar`) | ✅ Done [`feat/C-add-free-spot`@`c206eba`] | UI | Alta | [MEDIUM] |
+| `AFS-004` | `AddFreeSpotViewModel` + State/Intent/Effect aislados (centro de mapa + estado de envío + acción publicar) | ✅ Done [`feat/C-add-free-spot`@`c206eba`] | Feature | Alta | [MEDIUM] |
+| `AFS-005` | Animación de "pin drop" del marcador central (drop+rebote al asentar la cámara) | ✅ Done — animación `crosshairScale` con `spring` integrada en `PlatformMap` (modo `reportMode=true`) [`feat/C-add-free-spot`@`c206eba`] | UX | Alta | [SHORT] |
+| `AFS-006` | Añadir route `add_free_spot` al NavGraph con `popBackStack` al publicar éxito | ✅ Done [`feat/C-add-free-spot`@`c206eba`] | Refactor | Alta | [SHORT] |
+| `AFS-007` | Strings `add_free_spot_title`, `add_free_spot_publish`, `add_free_spot_success` en EN + ES | ✅ Done — entregado con `add_free_spot_title` + `add_free_spot_action` (en lugar de `_publish`); el "success" reusa `home_manual_spot_reported` [`feat/C-add-free-spot`@`c206eba`] | i18n | Alta | [SHORT] |
+| `AFS-008` | `HomeViewModel` deja de manejar `ReportManualSpot`; mover lógica de publicación a `AddFreeSpotViewModel` | ✅ Done — `HomeIntent.ReportManualSpot` eliminado; lógica vive en `AddFreeSpotViewModel` [`feat/C-add-free-spot`@`c206eba`] | Refactor | Alta | [MEDIUM] |
 
 **Criterios de aceptación:**
 - HomeScreen ya no contiene el FAB de logout (release sigue accesible desde la peek row del bottom sheet).
@@ -487,12 +517,12 @@ usuario sin destruir el estado de la pantalla.
 
 | ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
 |----|-------|--------|------|-----------|--------|
-| `NET-001` | Definir tipo `ConnectivityStatus { Online, Offline }` en domain | ⏳ Pending | Data | Alta | [SHORT] |
-| `NET-002` | Banner persistente "Sin conexión" anclado al root scaffold de `PaparcarApp` (visible mientras `Offline`) | ⏳ Pending | UI | Alta | [SHORT] |
-| `NET-003` | Snackbar transitorio "Conexión restablecida" al pasar `Offline → Online` (auto-dismiss 2s) | ⏳ Pending | UX | Media | [SHORT] |
-| `NET-004` | En reconexión: re-emitir `LoadNearbySpots` desde `HomeViewModel` y `observeAllSessions` desde repos | ⏳ Pending | Feature | Alta | [MEDIUM] |
-| `NET-005` | Strings `connectivity_offline_banner`, `connectivity_restored_snackbar` en EN + ES | ⏳ Pending | i18n | Alta | [SHORT] |
-| `NET-006` | Acciones que requieren red (publish spot, set active vehicle) muestran Snackbar de bloqueo si offline | ⏳ Pending | UX | Media | [SHORT] |
+| `NET-001` | Definir tipo `ConnectivityStatus { Online, Offline }` en domain | ✅ Done [`feat/E-connectivity-observer`@`54a5dbc`] | Data | Alta | [SHORT] |
+| `NET-002` | Banner persistente "Sin conexión" anclado al root scaffold de `PaparcarApp` (visible mientras `Offline`) | ✅ Done — `ConnectivityBanner` ancla al root [`feat/E-connectivity-observer`@`54a5dbc`] | UI | Alta | [SHORT] |
+| `NET-003` | Snackbar transitorio "Conexión restablecida" al pasar `Offline → Online` (auto-dismiss 2s) | ✅ Done [`feat/E-connectivity-observer`@`54a5dbc`] | UX | Media | [SHORT] |
+| `NET-004` | En reconexión: re-emitir `LoadNearbySpots` desde `HomeViewModel` y `observeAllSessions` desde repos | ✅ Done — `reconnectTick` en `HomeViewModel` re-dispara la carga al pasar Offline→Online [`feat/E-connectivity-observer`@`54a5dbc`] | Feature | Alta | [MEDIUM] |
+| `NET-005` | Strings `connectivity_offline_banner`, `connectivity_restored_snackbar` en EN + ES | ✅ Done [`feat/E-connectivity-observer`@`54a5dbc`] | i18n | Alta | [SHORT] |
+| `NET-006` | Acciones que requieren red (publish spot, set active vehicle) muestran Snackbar de bloqueo si offline | ✅ Done — string `connectivity_action_blocked_offline` + chequeo en `HomeViewModel` [`feat/E-connectivity-observer`@`54a5dbc`] | UX | Media | [SHORT] |
 
 **Criterios de aceptación:**
 - Activar modo avión muestra el banner en menos de 2 segundos.
@@ -597,22 +627,30 @@ feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 
 ## 12. Orden de Ejecución Recomendado
 
-### Sprint actual — Phase 4.5 (UX Refinements) — actualizado 2026-04-25
+### Sprint actual — Phase 4.5 (UX Refinements) — actualizado 2026-04-27
 
 **Orden recomendado** (justificación: dependencias y entrega incremental):
 
-**Sprint 1 — Base reutilizable:**
-- `D-001` (TechDebt) — extraer `PaparcarMapView` reutilizable
-- `D-002` (TechDebt) — extraer `PaparcarBottomActionBar`
-- `THEME-001..003` — sustituir `darkModeEnabled: Boolean` por `ThemeMode` enum
+**Sprint 1 — Base reutilizable:** ✅ Code-complete (ramas listas, sin merge)
+- `D-001` (TechDebt) — extraer `PaparcarMapView` reutilizable → `refactor/D-001-paparcar-map-view`
+- `D-002` (TechDebt) — extraer `PaparcarBottomActionBar` → `refactor/D-002-paparcar-bottom-action-bar`
+- `THEME-001..003` — sustituir `darkModeEnabled: Boolean` por `ThemeMode` enum → `feat/B-theme-mode-tri-state`
 
-**Sprint 2 — Conectividad y AddFreeSpot:**
-- `NET-001..006` — Connectivity observer + banner + reconexión
-- `AFS-001..008` — Nueva pantalla AddFreeSpot + retiro del FAB de logout
+**Sprint 2 — Conectividad y AddFreeSpot:** ✅ Code-complete (ramas listas, sin merge)
+- `NET-001..006` — Connectivity observer + banner + reconexión → `feat/E-connectivity-observer`
+- `AFS-001..008` — Nueva pantalla AddFreeSpot + retiro del FAB de logout → `feat/C-add-free-spot`
 
-**Sprint 3 — Restructure y polish de tema:**
-- `NAV-001..008` — Merge Mi Coche + Historial → Vehículos
-- `THEME-004..008` — UI selector 3-way + estilo de mapa por tema
+**Sprint 3 — Restructure y polish de tema:** ⚠️ Parcial
+- `NAV-001..008` — Merge Mi Coche + Historial → Vehículos → `feat/A-nav-tabs-vehicles`
+  - Entregado: NAV-001, 002 (parcial), 005 (parcial), 007, 008
+  - Diferido: NAV-003 (VM unificado), NAV-004 (BT-active), NAV-006 (Historial-tab)
+- `THEME-004..008` — UI selector 3-way + estilo de mapa por tema → `feat/B-theme-mode-tri-state`
+  - Entregado: THEME-004, 008 (con naming alternativo)
+  - Diferido: THEME-005, 006 (Map style — emparejado con `THEME-ARCH-002`), THEME-007 (audit hex)
+
+**Próxima acción del desarrollador:**
+1. Revisar y mergear las 6 ramas en el orden listado en "Estado de ramas — auditado 2026-04-27".
+2. Decidir prioridad para los grupos diferidos (NAV-003/004/006, THEME-005/006/007) o cerrar Phase 4.5 sin ellos y replanificar como follow-up.
 
 ### Sprint paralelo — Pendientes pre-Phase-4.5 (no bloqueantes)
 
@@ -659,4 +697,4 @@ feat(ui): implement SpotCard with TTL and reliability indicators [UI-006]
 ---
 
 *Documento vivo — actualizar conforme avance el desarrollo.*
-*Última actualización: 25 Abril 2026 — añadida Phase 4.5 (Nav restructure + Theme + AddFreeSpot + Connectivity)*
+*Última actualización: 27 Abril 2026 — auditadas las 6 ramas del sprint Phase 4.5; ninguna mergeada todavía. Estados de tareas reflejan el contenido real de cada rama, no asumen merge.*

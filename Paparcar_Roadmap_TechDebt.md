@@ -16,7 +16,7 @@
 | **QA-3** | Cobertura de Tests | TEST-001 → TEST-004 | 2–3 semanas | ✅ Partial (16 tests) |
 | **QA-4** | UX & Estados Vacíos | UI-001 → UI-004 | 3–4 días | ✅ Done |
 | **QA-5** | Limpieza & Refactor | REF-001 → REF-003 | 2–3 días | ✅ Done |
-| **QA-6** | Refactors UX Phase 4.5 | D-* / NET-ARCH-* / NAV-ARCH-* / THEME-ARCH-* / DS-* | 2–3 semanas | ⏳ Pending |
+| **QA-6** | Refactors UX Phase 4.5 | D-* / NET-ARCH-* / NAV-ARCH-* / THEME-ARCH-* / DS-* | 2–3 semanas | 📦 ~60% (ramas listas, sin merge) |
 
 ---
 
@@ -191,9 +191,16 @@
 
 > Tamaños: `[SHORT]` (<2h) · `[MEDIUM]` (2–6h) · `[LARGE]` (>6h / dividir).
 
+> **Estado actual (auditado 2026-04-27).** 6 de las 9 tareas QA-6 están entregadas
+> en ramas independientes pero **ninguna está mergeada en `master`**. Ver detalle
+> por tarea abajo y la tabla "Estado de ramas" en `Paparcar_Roadmap_Completo.md` §7.5.
+> Tareas pendientes 100%: `THEME-ARCH-002`, `DS-001`, `NAV-ARCH-002`.
+
 ---
 
-### D-001 — Extraer `PaparcarMapView` reutilizable — ⏳ Pending  `[LARGE]`
+### D-001 — Extraer `PaparcarMapView` reutilizable — 📦 Code-complete  `[LARGE]`
+
+**Rama:** `refactor/D-001-paparcar-map-view` @ `23e47b4` — sin merge a master.
 
 **Motivación.** El mapa core hoy vive en
 `presentation/home/components/PlatformMap.kt` y se consume desde `HomeScreen`,
@@ -231,7 +238,9 @@ loading arc, indicador de posición central) con la base genérica del mapa.
 
 ---
 
-### D-002 — Extraer `PaparcarBottomActionBar` — ⏳ Pending  `[MEDIUM]`
+### D-002 — Extraer `PaparcarBottomActionBar` — 📦 Code-complete  `[MEDIUM]`
+
+**Rama:** `refactor/D-002-paparcar-bottom-action-bar` @ `fb86fb1` — sin merge a master. (Misma commit incluida en `feat/C-add-free-spot`.)
 
 **Motivación.** El componente `HomeNavBar` en
 `presentation/home/components/HomeReportBar.kt` ya implementa la "barra de
@@ -267,7 +276,9 @@ AddFreeSpotScreen ("Publicar plaza").
 
 ---
 
-### NAV-ARCH-001 — Reestructurar NavGraph para 3 tabs + AddFreeSpot — ⏳ Pending  `[MEDIUM]`
+### NAV-ARCH-001 — Reestructurar NavGraph para 3 tabs + AddFreeSpot — 📦 Code-complete (parcial)  `[MEDIUM]`
+
+**Estado:** la parte "3 tabs" está en `feat/A-nav-tabs-vehicles` @ `17658e4` y la parte "ruta `add_free_spot`" está en `feat/C-add-free-spot` @ `c206eba`. Ambas ramas sin merge. La unificación final se valida sólo cuando ambas estén mergeadas; mientras tanto cada rama por separado pasa su build.
 
 **Motivación.** Feature A reduce el BottomNav a 3 tabs y Feature C añade una
 nueva ruta. El NavGraph actual en `App.kt` usa rutas string-based con `Routes`
@@ -288,7 +299,9 @@ object — la transformación es directa.
 
 ---
 
-### THEME-ARCH-001 — Migrar `darkModeEnabled: Boolean` a `ThemeMode` enum — ⏳ Pending  `[SHORT]`
+### THEME-ARCH-001 — Migrar `darkModeEnabled: Boolean` a `ThemeMode` enum — 📦 Code-complete  `[SHORT]`
+
+**Rama:** `feat/B-theme-mode-tri-state` @ `51a9bf5` — sin merge a master. La migración lazy desde el key legacy `dark_mode_enabled` está implementada en Android (`AndroidAppPreferences`) e iOS (`IosAppPreferences`).
 
 **Motivación.** Feature B exige tres modos. El esquema actual sólo soporta dos.
 
@@ -307,6 +320,8 @@ object — la transformación es directa.
 
 ### THEME-ARCH-002 — Estilo de Google Maps por modo de tema — ⏳ Pending  `[MEDIUM]`
 
+**Bloqueante:** depende del merge de D-001 y de B-THEME para tener `MapStyleMode` parametrizable y `themeMode` accesible. Iniciar después del orden de merge sugerido.
+
 **Motivación.** Hoy el JSON `DARK_MAP_STYLE` se aplica si la luminancia del
 fondo del tema es < 0.5 — funciona para dark, pero no hay JSON light explícito
 y la lógica está enterrada en `PlatformMap`. Con `MapStyleMode` parametrizado
@@ -320,7 +335,9 @@ y la lógica está enterrada en `PlatformMap`. Con `MapStyleMode` parametrizado
 
 ---
 
-### NET-ARCH-001 — Arquitectura de `ConnectivityObserver` — ⏳ Pending  `[MEDIUM]`
+### NET-ARCH-001 — Arquitectura de `ConnectivityObserver` — 📦 Code-complete  `[MEDIUM]`
+
+**Rama:** `feat/E-connectivity-observer` @ `54a5dbc` — sin merge a master. Implementación: `domain/connectivity/{ConnectivityStatus, ConnectivityObserver}`, `androidMain/connectivity/AndroidConnectivityObserver`, `iosMain/ios/stub/StubConnectivityObserver`. Singleton inyectado vía Koin, `start()`/`stop()` en `MainActivity`.
 
 **Motivación.** Feature E necesita un observable de conectividad reactivo,
 lifecycle-safe, e inyectable. KMP exige `expect/actual`.
@@ -394,6 +411,8 @@ es el momento natural.
 
 ### NAV-ARCH-002 — `VehiclesViewModel` unifica VehicleRepository + UserParkingRepository — ⏳ Pending  `[MEDIUM]`
 
+**Estado:** sin abordar. La rama `feat/A-nav-tabs-vehicles` solo renombró `MyCarViewModel`→`VehiclesViewModel` sin unificar fuentes. Ejecutar tras el merge de A.
+
 **Motivación.** Feature A requiere un único ViewModel que combine la lista de
 vehículos con sus sesiones agrupadas. Las dos fuentes (`VehicleRepository.observeVehicles()`
 + `UserParkingRepository.observeAllSessions()`) deben combinarse con
@@ -417,7 +436,9 @@ vehículos con sus sesiones agrupadas. Las dos fuentes (`VehicleRepository.obser
 
 ---
 
-### AFS-ARCH-001 — Separar `AddFreeSpotViewModel` de `HomeViewModel` — ⏳ Pending  `[MEDIUM]`
+### AFS-ARCH-001 — Separar `AddFreeSpotViewModel` de `HomeViewModel` — 📦 Code-complete  `[MEDIUM]`
+
+**Rama:** `feat/C-add-free-spot` @ `c206eba` — sin merge a master. `HomeIntent.ReportManualSpot` eliminado, lógica de publicación migrada a `presentation/addspot/AddFreeSpotViewModel`.
 
 **Motivación.** Hoy el HomeViewModel maneja `ReportManualSpot(lat, lon)`. Eso
 debe migrar a un ViewModel propio con responsabilidad única.
@@ -438,9 +459,26 @@ debe migrar a un ViewModel propio con responsabilidad única.
 
 ## Referencia rápida: estado de ramas
 
-Todas las ramas completadas fueron cherry-pickeadas a master vía `temp/linear-merge`.
+QA-1 a QA-5: todas las ramas completadas fueron cherry-pickeadas a master vía `temp/linear-merge`.
 
-**Pendientes:**
+**QA-6 — sprint Phase 4.5 (auditado 2026-04-27, ninguna mergeada):**
+```
+refactor/D-001-paparcar-map-view              📦 23e47b4 — listo
+refactor/D-002-paparcar-bottom-action-bar     📦 fb86fb1 — listo
+feat/E-connectivity-observer                  📦 54a5dbc — listo (NET-001..006 + NET-ARCH-001)
+feat/C-add-free-spot                          📦 c206eba — listo (AFS-001..008 + AFS-ARCH-001 + D-002)
+feat/A-nav-tabs-vehicles                      📦 17658e4 — listo parcial (NAV-001/002p/005p/007/008)
+feat/B-theme-mode-tri-state                   📦 51a9bf5 — listo (THEME-001..004)
+```
+
+**QA-6 pendientes 100%:**
+```
+THEME-ARCH-002  Map style por tema (depende de D-001 + B-THEME)   ⏳
+NAV-ARCH-002    VehiclesViewModel unificado (depende de NAV-A)    ⏳
+DS-001          DataStore migration                                ⏳ (decisión: diferir)
+```
+
+**Pendientes Phase QA-3 (tests):**
 ```
 test/TEST-002-parking-detection-coordinator     ⏳
 test/TEST-003-spot-repository-offline-first     ⏳
