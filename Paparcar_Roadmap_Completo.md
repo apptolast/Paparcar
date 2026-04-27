@@ -338,7 +338,7 @@ Implementar el sistema de diseño y los componentes UI core definidos en la Sesi
 | `HIST-001` | UI base: lista agrupada por día con mini-mapa en cada sesión | ✅ Done | UI | Alta |
 | `HIST-002` | Filtros: por vehículo, rango de fechas | ⏳ Pending | Feature | Baja |
 | `HIST-003` | `ParkingLocationScreen`: mapa de detalle desde sesión | ✅ Done | UI | Media |
-| `HIST-004` | Tests: HistoryViewModel, mappers, filtrado | ⏳ Pending | Testing | Media |
+| `HIST-004` | Tests: HistoryViewModel, mappers, filtrado | ✅ Done — branch `feat/HIST-004-history-tests` |
 | `HIST-005` | Estadísticas básicas: tiempo medio aparcado, zonas frecuentes | ⏳ Pending | Feature | Baja |
 | `HIST-006` | Fix DT-002: `MONTH_NAMES_SHORT` y `dayLabels` → strings.xml | ✅ Done | Refactor | Media |
 | `HIST-007` | Fix DT-003: extraer `DAY_MS = 86_400_000L` a companion object | ✅ Done | Refactor | Baja |
