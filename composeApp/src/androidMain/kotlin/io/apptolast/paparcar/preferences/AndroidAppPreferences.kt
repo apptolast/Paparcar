@@ -15,7 +15,9 @@ private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
 private const val KEY_DEFAULT_MAP_TYPE = "default_map_type"
+private const val KEY_SELECTED_LANGUAGE = "selected_language"
 private const val DEFAULT_MAP_TYPE = "NORMAL"
+private const val LANGUAGE_AUTO = "auto"
 
 class AndroidAppPreferences(context: Context) : AppPreferences {
 
@@ -90,5 +92,12 @@ class AndroidAppPreferences(context: Context) : AppPreferences {
 
     override fun setDefaultMapType(type: String) {
         prefs.edit { putString(KEY_DEFAULT_MAP_TYPE, type) }
+    }
+
+    override val selectedLanguage: String
+        get() = prefs.getString(KEY_SELECTED_LANGUAGE, LANGUAGE_AUTO) ?: LANGUAGE_AUTO
+
+    override fun setSelectedLanguage(tag: String) {
+        prefs.edit { putString(KEY_SELECTED_LANGUAGE, tag) }
     }
 }

@@ -6,8 +6,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.migrations.SharedPreferencesMigration
 import androidx.datastore.preferences.preferencesDataStore
-import androidx.datastore.preferences.preferencesDataStoreMigration
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.first
@@ -17,7 +17,7 @@ import kotlinx.coroutines.runBlocking
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = DATASTORE_NAME,
     produceMigrations = { context ->
-        listOf(preferencesDataStoreMigration(context.getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)))
+        listOf(SharedPreferencesMigration(context, LEGACY_PREFS_NAME))
     },
 )
 
@@ -28,8 +28,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     private fun <T> get(key: Preferences.Key<T>, default: T): T =
         runBlocking { store.data.map { it[key] ?: default }.first() }
 
-    private fun <T> set(key: Preferences.Key<T>, value: T) =
-        runBlocking { store.edit { it[key] = value } }
+    private fun <T> set(key: Preferences.Key<T>, value: T): Unit =
+        runBlocking { store.edit { it[key] = value }.let {} }
 
     // ── Onboarding ──────────────────────────────────────────────────────────
 
