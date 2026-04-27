@@ -413,11 +413,11 @@ de 4 a 3 destinos lógicos.
 | ID | Tarea | Estado | Tipo | Prioridad | Tamaño |
 |----|-------|--------|------|-----------|--------|
 | `NAV-001` | Definir orden definitivo de BottomNav (3 tabs: Mapa \| Vehículos \| Ajustes) | ✅ Done [`feat/A-nav-tabs-vehicles`@`17658e4`] | UX | Alta | [SHORT] |
-| `NAV-002` | Crear `VehiclesScreen` (lista vehículos + detalle con pestañas Historial/Detección/BT) | ⚠️ Partial — sólo rename de `MyCarScreen` + botón "View History"; **sin pestañas de detalle** [`feat/A-nav-tabs-vehicles`@`17658e4`] | UI | Alta | [LARGE] |
-| `NAV-003` | `VehiclesViewModel` unifica `VehicleRepository` + `UserParkingRepository` agrupando sesiones por `vehicleId` | ⏳ Deferred — re-planificar tras merge de A | Feature | Alta | [MEDIUM] |
-| `NAV-004` | Lógica de "vehículo activo": prioridad BT-conectado, fallback a `isDefault = true` | ⏳ Deferred — re-planificar tras merge de A | Feature | Alta | [MEDIUM] |
-| `NAV-005` | Migrar funcionalidad de `MyCarScreen` a la pestaña "Detalles" del nuevo flujo | ⚠️ Partial — funcionalidad migrada via rename; sin estructura de pestañas [`feat/A-nav-tabs-vehicles`@`17658e4`] | Refactor | Alta | [MEDIUM] |
-| `NAV-006` | Migrar `HistoryScreen` (timeline + WeeklyActivityCard + StatsRow) a pestaña por vehículo | ⏳ Deferred — re-planificar tras merge de A | Refactor | Alta | [MEDIUM] |
+| `NAV-002` | Crear `VehiclesScreen` (lista vehículos + detalle con pestañas Historial/Detección/BT) | ✅ Done — `VehicleDetailScreen` con tabs Details/History [`feat/NAV-005-006-vehicle-detail-history-tab`@`07c912f`] | UI | Alta | [LARGE] |
+| `NAV-003` | `VehiclesViewModel` unifica `VehicleRepository` + `UserParkingRepository` agrupando sesiones por `vehicleId` | ✅ Done — `combine()` ambos repos, `VehicleWithStats` model, Room migration 9→10 [`feat/NAV-ARCH-002-vehicles-viewmodel-unify`@`bf19e41`] | Feature | Alta | [MEDIUM] |
+| `NAV-004` | Lógica de "vehículo activo": prioridad BT-conectado, fallback a `isDefault = true` | ✅ Done — `VehiclesState.activeVehicle` derived property [`feat/NAV-ARCH-002-vehicles-viewmodel-unify`@`d5107b8`] | Feature | Alta | [MEDIUM] |
+| `NAV-005` | Migrar funcionalidad de `MyCarScreen` a la pestaña "Detalles" del nuevo flujo | ✅ Done — `VehicleDetailsTab` con `VehicleCard` expandido [`feat/NAV-005-006-vehicle-detail-history-tab`@`07c912f`] | Refactor | Alta | [MEDIUM] |
+| `NAV-006` | Migrar `HistoryScreen` (timeline + WeeklyActivityCard + StatsRow) a pestaña por vehículo | ✅ Done — `HistoryViewModel` acepta `vehicleId?`, filtra con `observeSessionsByVehicle()` [`feat/NAV-005-006-vehicle-detail-history-tab`@`07c912f`] | Refactor | Alta | [MEDIUM] |
 | `NAV-007` | Eliminar tabs `MY_CAR` y `HISTORY` del NavGraph; añadir route `vehicles` | ✅ Done — `MY_CAR` eliminado de tabs, `HISTORY` conservado como ruta no-tab para deep-link (NAV-008) [`feat/A-nav-tabs-vehicles`@`17658e4`] | Refactor | Alta | [SHORT] |
 | `NAV-008` | Conservar deep-link a `ParkingLocationScreen` desde el historial por vehículo | ✅ Done [`feat/A-nav-tabs-vehicles`@`17658e4`] | Refactor | Media | [SHORT] |
 
@@ -446,9 +446,9 @@ Maps (light/dark JSON).
 | `THEME-002` | Reemplazar `appPreferences.darkModeEnabled: Boolean` por `themeMode: ThemeMode` (migración compatible) | ✅ Done — migración lazy del key legacy a enum en Android+iOS [`feat/B-theme-mode-tri-state`@`51a9bf5`] | Refactor | Alta | [SHORT] |
 | `THEME-003` | `AppState.darkTheme: Boolean` se calcula a partir de `ThemeMode` + `isSystemInDarkTheme()` | ✅ Done — `darkTheme` se computa en App() composable, `AppState.darkTheme` eliminado del state [`feat/B-theme-mode-tri-state`@`51a9bf5`] | Feature | Alta | [SHORT] |
 | `THEME-004` | UI Settings: reemplazar Switch por segmented control de 3 opciones (Claro / Oscuro / Sistema) con strings i18n | ✅ Done — `SettingsSegmentedItem<ThemeMode>` reutilizado [`feat/B-theme-mode-tri-state`@`51a9bf5`] | UI | Alta | [SHORT] |
-| `THEME-005` | `PlatformMap` recibe `MapStyleMode` resuelto por el tema activo y aplica `LIGHT_MAP_STYLE` o `DARK_MAP_STYLE` | ⏳ Deferred — emparejado con TechDebt `THEME-ARCH-002`, ejecutar tras merge de D-001 | Feature | Alta | [MEDIUM] |
-| `THEME-006` | Añadir JSON de `LIGHT_MAP_STYLE` (paleta neutra) en `PlatformMap`/`PaparcarMapView` | ⏳ Deferred — depende de THEME-005 | Asset | Media | [SHORT] |
-| `THEME-007` | Auditar Composables que ignoran `MaterialTheme` (hex colors hardcoded) y migrarlos | ⏳ Deferred — independiente, planificar por separado | Refactor | Media | [MEDIUM] |
+| `THEME-005` | `PaparcarMapView` recibe `MapStyleMode` resuelto por el tema activo y aplica `LIGHT_MAP_STYLE` o `DARK_MAP_STYLE` | ✅ Done — `MapStyleMode.AUTO` usa `background.luminance()` del tema [`feat/THEME-005-006-map-style-by-theme`@`75c0a45`] | Feature | Alta | [MEDIUM] |
+| `THEME-006` | Añadir JSON de `LIGHT_MAP_STYLE` (paleta neutra) en `PaparcarMapView` | ✅ Done — `MapStyles.kt` con `LIGHT_MAP_STYLE` + `DARK_MAP_STYLE` extraídos [`feat/THEME-005-006-map-style-by-theme`@`75c0a45`] | Asset | Media | [SHORT] |
+| `THEME-007` | Auditar Composables que ignoran `MaterialTheme` (hex colors hardcoded) y migrarlos | ✅ Done — `HomeGpsAccuracyBanner` migrado a `error`/`secondary` tokens [`feat/THEME-005-006-map-style-by-theme`@`4910b89`] | Refactor | Media | [MEDIUM] |
 | `THEME-008` | Strings `settings_theme_light`, `settings_theme_dark`, `settings_theme_system` en EN + ES | ✅ Done — entregado con prefijo `settings_theme_mode_*` (light/dark/system + label/desc), translaciones en 9 locales [`feat/B-theme-mode-tri-state`@`51a9bf5`] | i18n | Alta | [SHORT] |
 
 **Criterios de aceptación:**
