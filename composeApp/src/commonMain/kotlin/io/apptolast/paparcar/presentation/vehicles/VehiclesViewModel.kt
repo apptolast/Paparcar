@@ -48,6 +48,8 @@ class VehiclesViewModel(
     override fun handleIntent(intent: VehiclesIntent) {
         when (intent) {
             is VehiclesIntent.SetActiveVehicle -> setActiveVehicle(intent.vehicleId)
+            is VehiclesIntent.BluetoothVehicleConnected ->
+                updateState { copy(bluetoothConnectedVehicleId = intent.vehicleId) }
             is VehiclesIntent.RequestDeleteVehicle ->
                 updateState { copy(pendingDeleteVehicleId = intent.vehicleId) }
             is VehiclesIntent.DismissDeleteConfirmation ->
