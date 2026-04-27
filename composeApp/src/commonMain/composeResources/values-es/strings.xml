@@ -199,6 +199,9 @@
     <string name="settings_theme_mode_light">Claro</string>
     <string name="settings_theme_mode_dark">Oscuro</string>
     <string name="settings_theme_mode_system">Sistema</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_desc">Idioma de la interfaz</string>
+    <string name="settings_language_auto">Automático</string>
     <string name="settings_section_detection">Detección</string>
     <string name="settings_auto_detect">Detección automática</string>
     <string name="settings_auto_detect_desc">Guarda automáticamente tu plaza de aparcamiento</string>

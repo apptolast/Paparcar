@@ -13,7 +13,9 @@ private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
 private const val KEY_DEFAULT_MAP_TYPE = "default_map_type"
+private const val KEY_SELECTED_LANGUAGE = "selected_language"
 private const val DEFAULT_MAP_TYPE = "NORMAL"
+private const val LANGUAGE_AUTO = "auto"
 
 /**
  * iOS implementation of [AppPreferences] backed by [NSUserDefaults].
@@ -93,5 +95,12 @@ class IosAppPreferences : AppPreferences {
 
     override fun setDefaultMapType(type: String) {
         userDefaults.setObject(type, forKey = KEY_DEFAULT_MAP_TYPE)
+    }
+
+    override val selectedLanguage: String
+        get() = userDefaults.stringForKey(KEY_SELECTED_LANGUAGE) ?: LANGUAGE_AUTO
+
+    override fun setSelectedLanguage(tag: String) {
+        userDefaults.setObject(tag, forKey = KEY_SELECTED_LANGUAGE)
     }
 }

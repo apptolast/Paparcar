@@ -88,21 +88,30 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setDefaultMapType(type: String) = set(Keys.DEFAULT_MAP_TYPE, type)
 
+    // ── Language ─────────────────────────────────────────────────────────────
+
+    override val selectedLanguage: String
+        get() = get(Keys.SELECTED_LANGUAGE, LANGUAGE_AUTO)
+
+    override fun setSelectedLanguage(tag: String) = set(Keys.SELECTED_LANGUAGE, tag)
+
     // ── Keys ─────────────────────────────────────────────────────────────────
 
     private object Keys {
-        val ONBOARDING_COMPLETED   = booleanPreferencesKey("onboarding_completed")
-        val AUTO_DETECT_PARKING    = booleanPreferencesKey("auto_detect_parking")
+        val ONBOARDING_COMPLETED    = booleanPreferencesKey("onboarding_completed")
+        val AUTO_DETECT_PARKING     = booleanPreferencesKey("auto_detect_parking")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
-        val NOTIFY_SPOT_FREED      = booleanPreferencesKey("notify_spot_freed")
-        val VEHICLE_REGISTERED     = booleanPreferencesKey("vehicle_registered")
-        val THEME_MODE             = stringPreferencesKey("theme_mode")
-        val USE_IMPERIAL_UNITS     = booleanPreferencesKey("use_imperial_units")
-        val DEFAULT_MAP_TYPE       = stringPreferencesKey("default_map_type")
+        val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")
+        val VEHICLE_REGISTERED      = booleanPreferencesKey("vehicle_registered")
+        val THEME_MODE              = stringPreferencesKey("theme_mode")
+        val USE_IMPERIAL_UNITS      = booleanPreferencesKey("use_imperial_units")
+        val DEFAULT_MAP_TYPE        = stringPreferencesKey("default_map_type")
+        val SELECTED_LANGUAGE       = stringPreferencesKey("selected_language")
     }
 
     private companion object {
         const val DEFAULT_MAP_TYPE = "NORMAL"
+        const val LANGUAGE_AUTO    = "auto"
     }
 }
 

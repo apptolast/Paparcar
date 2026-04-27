@@ -76,6 +76,7 @@ import io.apptolast.paparcar.presentation.permissions.PermissionsRationaleScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.presentation.util.DistanceUnit
 import io.apptolast.paparcar.presentation.util.LocalDistanceUnit
+import io.apptolast.paparcar.presentation.util.applyAppLocale
 import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
@@ -151,6 +152,8 @@ fun App(
                     when (effect) {
                         AppEffect.ShowConnectionRestored ->
                             rootSnackbarHostState.showSnackbar(connectionRestored)
+                        is AppEffect.ApplyLocale ->
+                            applyAppLocale(effect.tag)
                     }
                 }
             }
@@ -181,6 +184,8 @@ fun App(
                             onSetThemeMode = { appViewModel.handleIntent(AppIntent.SetThemeMode(it)) },
                             imperialUnits = appState.imperialUnits,
                             onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
+                            selectedLanguage = appState.selectedLanguage,
+                            onSetLanguage = { appViewModel.handleIntent(AppIntent.SetLanguage(it)) },
                             onOpenMapsNavigation = onOpenMapsNavigation,
                         )
                         else -> AuthNavigation()
@@ -234,6 +239,8 @@ private fun MainAppNavigation(
     onSetThemeMode: (ThemeMode) -> Unit,
     imperialUnits: Boolean,
     onToggleImperialUnits: (Boolean) -> Unit,
+    selectedLanguage: String,
+    onSetLanguage: (String) -> Unit,
     onOpenMapsNavigation: (Double, Double) -> Unit,
 ) {
     val navController = rememberNavController()
@@ -470,6 +477,8 @@ private fun MainAppNavigation(
                         onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,
                         onToggleImperialUnits = onToggleImperialUnits,
+                        selectedLanguage = selectedLanguage,
+                        onSetLanguage = onSetLanguage,
                     )
                 }
             }
