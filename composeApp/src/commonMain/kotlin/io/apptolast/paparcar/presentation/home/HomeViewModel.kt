@@ -178,7 +178,6 @@ class HomeViewModel(
                 geocodeCameraLocation(intent.result.lat, intent.result.lon)
             }
             is HomeIntent.ClearSearch -> updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
-            is HomeIntent.ReportManualSpot -> reportManualSpot(intent.lat, intent.lon)
             is HomeIntent.SetMapType -> setMapType(intent.type)
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
@@ -204,14 +203,6 @@ class HomeViewModel(
         if (state.value.mapType == type) return
         appPreferences.setDefaultMapType(type.toPreferenceString())
         updateState { copy(mapType = type) }
-    }
-
-    private fun reportManualSpot(lat: Double, lon: Double) {
-        viewModelScope.launch {
-            val spotId = "manual_${Clock.System.now().toEpochMilliseconds()}"
-            reportSpotReleased(lat, lon, spotId, SpotType.MANUAL_REPORT, confidence = 1f)
-            sendEffect(HomeEffect.ManualSpotReported)
-        }
     }
 
     private fun reportTestSpot() {

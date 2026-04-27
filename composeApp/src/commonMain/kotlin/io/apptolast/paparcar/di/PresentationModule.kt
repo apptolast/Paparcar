@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.di
 
+import io.apptolast.paparcar.presentation.addspot.AddFreeSpotViewModel
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
@@ -18,6 +19,7 @@ val presentationModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AppViewModel)
     viewModelOf(::HomeViewModel)
+    viewModelOf(::AddFreeSpotViewModel)
     viewModelOf(::HistoryViewModel)
     viewModelOf(::ParkingLocationViewModel)
     viewModelOf(::SettingsViewModel)

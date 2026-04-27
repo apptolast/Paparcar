@@ -236,6 +236,11 @@
     <string name="home_test_spot_sent">Plaza de prueba enviada</string>
     <string name="home_spot_signal_sent">&#xA1;Gracias por la actualizaci&#xF3;n!</string>
 
+    <!-- Marcar plaza libre -->
+    <string name="add_free_spot_title">Marcar plaza libre</string>
+    <string name="add_free_spot_action">Marcar plaza aqu&#xED;</string>
+    <string name="add_free_spot_cd_back">Atr&#xE1;s</string>
+
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
