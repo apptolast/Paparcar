@@ -318,9 +318,9 @@ object — la transformación es directa.
 
 ---
 
-### THEME-ARCH-002 — Estilo de Google Maps por modo de tema — ⏳ Pending  `[MEDIUM]`
+### THEME-ARCH-002 — Estilo de Google Maps por modo de tema — ✅ Done  `[MEDIUM]`
 
-**Bloqueante:** depende del merge de D-001 y de B-THEME para tener `MapStyleMode` parametrizable y `themeMode` accesible. Iniciar después del orden de merge sugerido.
+**Rama:** `feat/THEME-005-006-map-style-by-theme` @ `75c0a45` — mergeado en master 2026-04-27.
 
 **Motivación.** Hoy el JSON `DARK_MAP_STYLE` se aplica si la luminancia del
 fondo del tema es < 0.5 — funciona para dark, pero no hay JSON light explícito
@@ -383,7 +383,9 @@ iosMain/
 
 ---
 
-### DS-001 — Migrar `AppPreferences` SharedPreferences → DataStore — ⏳ Pending  `[MEDIUM]`
+### DS-001 — Migrar `AppPreferences` SharedPreferences → DataStore — 📦 Code-complete  `[MEDIUM]`
+
+**Rama:** `feat/DS-001-datastore-migration` @ `e946873` — pendiente merge.
 
 **Motivación.** El proyecto persiste configuración con `SharedPreferences`.
 Aunque funciona, DataStore aporta API basada en Flow, escritura asíncrona y
@@ -409,9 +411,9 @@ es el momento natural.
 
 ---
 
-### NAV-ARCH-002 — `VehiclesViewModel` unifica VehicleRepository + UserParkingRepository — ⏳ Pending  `[MEDIUM]`
+### NAV-ARCH-002 — `VehiclesViewModel` unifica VehicleRepository + UserParkingRepository — ✅ Done  `[MEDIUM]`
 
-**Estado:** sin abordar. La rama `feat/A-nav-tabs-vehicles` solo renombró `MyCarViewModel`→`VehiclesViewModel` sin unificar fuentes. Ejecutar tras el merge de A.
+**Rama:** `feat/NAV-ARCH-002-vehicles-viewmodel-unify` @ `bf19e41` — mergeado en master 2026-04-27. `VehicleWithStats`, `vehicleId` en `UserParking`, Room migration 9→10, `observeSessionsByVehicle()`.
 
 **Motivación.** Feature A requiere un único ViewModel que combine la lista de
 vehículos con sus sesiones agrupadas. Las dos fuentes (`VehicleRepository.observeVehicles()`
