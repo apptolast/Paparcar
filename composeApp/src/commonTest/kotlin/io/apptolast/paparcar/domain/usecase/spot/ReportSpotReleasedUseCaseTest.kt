@@ -61,13 +61,14 @@ class ReportSpotReleasedUseCaseTest {
     }
 
     @Test
-    fun `should_passNullAddress_when_geocodingFails`() = runTest {
+    fun `should_passEmptyAddress_when_geocodingFails`() = runTest {
         geocoder.addressResult = Result.failure(RuntimeException("Geocoder unavailable"))
 
         useCase(40.416775, -3.703790, "spot-1")
 
         assertEquals(1, scheduler.scheduleCallCount)
-        assertNull(scheduler.lastAddress)
+        // GetLocationInfoUseCase falls back to AddressInfo(null,null,null,null) on geocode failure
+        assertEquals(AddressInfo(null, null, null, null), scheduler.lastAddress)
     }
 
     @Test

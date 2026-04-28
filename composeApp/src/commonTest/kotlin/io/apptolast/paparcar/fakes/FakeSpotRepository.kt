@@ -46,4 +46,14 @@ class FakeSpotRepository : SpotRepository {
         lastSignalAccepted = accepted
         return signalResult
     }
+
+    var clearCacheCallCount = 0
+        private set
+    var clearCacheResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun clearCache(): Result<Unit> {
+        clearCacheCallCount++
+        if (clearCacheResult.isSuccess) _spots.value = emptyList()
+        return clearCacheResult
+    }
 }

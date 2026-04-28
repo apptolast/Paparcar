@@ -29,6 +29,6 @@ object PaparcarLogger {
 
     fun e(tag: String, message: String, throwable: Throwable? = null) {
         Napier.e(message, throwable = throwable, tag = tag)
-        throwable?.let { CrashReporter.recordNonFatal(tag, message, it) }
+        throwable?.let { runCatching { CrashReporter.recordNonFatal(tag, message, it) } }
     }
 }

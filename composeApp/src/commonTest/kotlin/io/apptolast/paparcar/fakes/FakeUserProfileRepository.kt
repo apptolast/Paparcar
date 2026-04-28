@@ -31,6 +31,19 @@ class FakeUserProfileRepository : UserProfileRepository {
         return _profileFlow.map { it[userId] }
     }
 
+    var deleteAllDataCallCount = 0
+        private set
+    var deleteAllDataResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun deleteAllData(userId: String): Result<Unit> {
+        deleteAllDataCallCount++
+        if (deleteAllDataResult.isSuccess) {
+            profiles.clear()
+            _profileFlow.value = emptyMap()
+        }
+        return deleteAllDataResult
+    }
+
     companion object {
         fun defaultProfile(userId: String = "user-123") = UserProfile(
             userId = userId,

@@ -61,6 +61,19 @@ class FakeUserParkingRepository(
         return syncResult
     }
 
+    var deleteAllDataCallCount = 0
+        private set
+    var deleteAllDataResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun deleteAllData(userId: String): Result<Unit> {
+        deleteAllDataCallCount++
+        if (deleteAllDataResult.isSuccess) {
+            sessions.clear()
+            _sessionsFlow.value = emptyList()
+        }
+        return deleteAllDataResult
+    }
+
     override suspend fun updateLocationInfo(
         id: String,
         address: AddressInfo?,

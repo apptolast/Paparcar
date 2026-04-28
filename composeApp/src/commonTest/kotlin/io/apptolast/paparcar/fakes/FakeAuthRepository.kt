@@ -16,15 +16,17 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class FakeAuthRepository(
     initialSession: UserSession? = null,
+    initialState: AuthState = if (initialSession != null) AuthState.Authenticated(initialSession) else AuthState.Unauthenticated,
 ) : AuthRepository {
 
-    private val _authState = MutableStateFlow<AuthState>(
-        if (initialSession != null) AuthState.Authenticated(initialSession) else AuthState.Unauthenticated,
-    )
-    private var _currentSession: UserSession? = initialSession
+    private val _authState = MutableStateFlow<AuthState>(initialState)
+    private var _currentSession: UserSession? = (initialState as? AuthState.Authenticated)?.session ?: initialSession
 
     var signOutCount = 0
         private set
+    var deleteAccountCallCount = 0
+        private set
+    var deleteAccountResult: Result<Unit> = Result.success(Unit)
 
     override val currentProviderId: String = "fake"
 
@@ -60,7 +62,10 @@ class FakeAuthRepository(
     override suspend fun refreshSession(): AuthResult =
         AuthResult.Failure(AuthError.Unknown("stub"))
 
-    override suspend fun deleteAccount(): Result<Unit> = Result.success(Unit)
+    override suspend fun deleteAccount(): Result<Unit> {
+        deleteAccountCallCount++
+        return deleteAccountResult
+    }
 
     override suspend fun updateDisplayName(displayName: String): Result<Unit> = Result.success(Unit)
 
@@ -89,8 +94,8 @@ class FakeAuthRepository(
     // ── Test helpers ──────────────────────────────────────────────────────────
 
     fun emitState(state: AuthState) {
-        _authState.value = state
         _currentSession = (state as? AuthState.Authenticated)?.session
+        _authState.value = state
     }
 
     companion object {

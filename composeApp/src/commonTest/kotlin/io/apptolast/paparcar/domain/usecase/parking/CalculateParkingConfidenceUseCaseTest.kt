@@ -105,7 +105,7 @@ class CalculateParkingConfidenceUseCaseTest {
     }
 
     @Test
-    fun `should return Medium when stopped 3 minutes with no bonuses`() {
+    fun `should return Low when stopped 3 minutes with no bonuses`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPath3MinMs,
@@ -113,14 +113,12 @@ class CalculateParkingConfidenceUseCaseTest {
             gpsAccuracy = 20f,
             activityStill = false,
         )
-        // 0.55 → Medium (exactly at threshold)
-        val result = useCase(signals)
-        assertIs<ParkingConfidence.Medium>(result)
-        assertEquals(config.slowPath3MinScore, result.score)
+        // slowPath3MinScore=0.45 < mediumConfidenceThreshold=0.55 → Low
+        assertIs<ParkingConfidence.Low>(useCase(signals))
     }
 
     @Test
-    fun `should return High when stopped 3 minutes with all bonuses`() {
+    fun `should return Medium when stopped 3 minutes with all bonuses`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPath3MinMs,
@@ -128,8 +126,8 @@ class CalculateParkingConfidenceUseCaseTest {
             gpsAccuracy = 10f,
             activityStill = true,
         )
-        // 0.55 + 0.10 + 0.05 + 0.05 = 0.75 → High
-        assertIs<ParkingConfidence.High>(useCase(signals))
+        // 0.45 + 0.10 + 0.05 + 0.05 = 0.65 → Medium (below highConfidenceThreshold=0.75)
+        assertIs<ParkingConfidence.Medium>(useCase(signals))
     }
 
     @Test

@@ -27,4 +27,14 @@ class FakeVehicleRepository(
     override suspend fun setDefaultVehicle(id: String) {}
 
     override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {}
+
+    var deleteAllDataCallCount = 0
+        private set
+    var deleteAllDataResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun deleteAllData(userId: String): Result<Unit> {
+        deleteAllDataCallCount++
+        if (deleteAllDataResult.isSuccess) _defaultVehicle.value = null
+        return deleteAllDataResult
+    }
 }

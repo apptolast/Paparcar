@@ -32,7 +32,7 @@ class SplashViewModelTest {
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        fakeAuth = FakeAuthRepository()
+        fakeAuth = FakeAuthRepository(initialState = AuthState.Loading)
         fakeProfileRepo = FakeUserProfileRepository()
         fakeParkingRepo = FakeUserParkingRepository()
     }

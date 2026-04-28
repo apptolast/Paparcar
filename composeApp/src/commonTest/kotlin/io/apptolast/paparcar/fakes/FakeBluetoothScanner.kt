@@ -5,8 +5,8 @@ import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 
 class FakeBluetoothScanner(
     var bluetoothEnabled: Boolean = true,
-    var bondedDevices: List<BluetoothDeviceInfo> = emptyList(),
+    var pairedDevices: List<BluetoothDeviceInfo> = emptyList(),
 ) : BluetoothScanner {
     override fun isBluetoothEnabled(): Boolean = bluetoothEnabled
-    override fun getBondedDevices(): List<BluetoothDeviceInfo> = bondedDevices
+    override fun getBondedDevices(): List<BluetoothDeviceInfo> = pairedDevices
 }
