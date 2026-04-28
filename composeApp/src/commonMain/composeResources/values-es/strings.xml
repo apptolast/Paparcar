@@ -136,6 +136,15 @@
     <string name="history_stat_total">Total</string>
     <string name="history_stat_this_week">Esta semana</string>
     <string name="history_stat_this_month">Este mes</string>
+    <string name="history_filter_all">Todos</string>
+    <string name="history_filter_this_week">Esta semana</string>
+    <string name="history_filter_this_month">Este mes</string>
+    <string name="history_filter_last_3_months">Últimos 3 meses</string>
+    <string name="history_insights_title">Estadísticas</string>
+    <string name="history_insights_avg_week">Media / semana</string>
+    <string name="history_insights_peak_day">Día pico</string>
+    <string name="history_insights_top_street">Calle habitual</string>
+    <string name="history_insights_reliability">Fiabilidad</string>
     <!-- %1$d = día, %2$s = nombre del mes, %3$s = hora (con ceros), %4$s = minuto (con ceros) -->
     <string name="history_date_pattern">%1$d de %2$s, %3$s:%4$s</string>
     <string name="history_month_1">enero</string>
@@ -251,7 +260,7 @@
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
     <!-- Pestañas de navegación inferior -->
-    <string name="nav_tab_map">Mapa</string>
+    <string name="nav_tab_spots">Plazas</string>
     <string name="nav_tab_history">Historial</string>
     <string name="nav_tab_my_car">Mi Coche</string>
     <string name="nav_tab_vehicles">Vehículos</string>

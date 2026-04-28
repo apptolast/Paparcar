@@ -136,6 +136,15 @@
     <string name="history_stat_total">Total</string>
     <string name="history_stat_this_week">This week</string>
     <string name="history_stat_this_month">This month</string>
+    <string name="history_filter_all">All</string>
+    <string name="history_filter_this_week">This week</string>
+    <string name="history_filter_this_month">This month</string>
+    <string name="history_filter_last_3_months">Last 3 months</string>
+    <string name="history_insights_title">Insights</string>
+    <string name="history_insights_avg_week">Avg / week</string>
+    <string name="history_insights_peak_day">Peak day</string>
+    <string name="history_insights_top_street">Top street</string>
+    <string name="history_insights_reliability">Reliability</string>
     <!-- %1$d = day, %2$s = month name, %3$s = hour (padded), %4$s = minute (padded) -->
     <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
     <string name="history_month_1">January</string>
@@ -255,7 +264,7 @@
     <string name="settings_contact">Contact</string>
 
     <!-- Bottom navigation tabs -->
-    <string name="nav_tab_map">Map</string>
+    <string name="nav_tab_spots">Spots</string>
     <string name="nav_tab_history">History</string>
     <string name="nav_tab_my_car">My Car</string>
     <string name="nav_tab_vehicles">Vehicles</string>

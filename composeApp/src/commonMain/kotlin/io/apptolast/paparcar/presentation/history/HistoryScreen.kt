@@ -63,6 +63,8 @@ import io.apptolast.paparcar.presentation.history.components.ActiveSectionHeader
 import io.apptolast.paparcar.presentation.history.components.DayHeaderRow
 import io.apptolast.paparcar.presentation.history.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.history.components.EndedSessionTimelineNode
+import io.apptolast.paparcar.presentation.history.components.HistoryFilterBar
+import io.apptolast.paparcar.presentation.history.components.HistoryInsightsCard
 import io.apptolast.paparcar.presentation.history.components.StatsRow
 import io.apptolast.paparcar.presentation.history.components.WeeklyActivityCard
 import kotlinx.datetime.TimeZone
@@ -243,6 +245,9 @@ fun HistoryScreen(
     val onViewOnMap: (Double, Double) -> Unit = remember(viewModel) {
         { lat, lon -> viewModel.handleIntent(HistoryIntent.ViewOnMap(lat, lon)) }
     }
+    val onFilterSelected: (HistoryFilter) -> Unit = remember(viewModel) {
+        { filter -> viewModel.handleIntent(HistoryIntent.SetFilter(filter)) }
+    }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
     Scaffold(
@@ -280,6 +285,7 @@ fun HistoryScreen(
             state = state,
             contentPadding = padding,
             onViewOnMap = onViewOnMap,
+            onFilterSelected = onFilterSelected,
         )
     }
 }
@@ -290,6 +296,7 @@ internal fun HistoryContent(
     state: HistoryState,
     contentPadding: PaddingValues,
     onViewOnMap: (Double, Double) -> Unit,
+    onFilterSelected: (HistoryFilter) -> Unit = {},
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
@@ -311,11 +318,15 @@ internal fun HistoryContent(
             }
 
             else -> {
-                val activeSession = remember(state.sessions) {
-                    state.sessions.firstOrNull { it.isActive }
+                // stats always computed from all sessions (unfiltered)
+                val allEnded = remember(state.sessions) { state.sessions.filter { !it.isActive } }
+                val weeklyStats = remember(allEnded, dayLabels) { buildWeeklyStats(allEnded, dayLabels) }
+
+                // timeline uses filteredSessions
+                val activeSession = remember(state.filteredSessions) {
+                    state.filteredSessions.firstOrNull { it.isActive }
                 }
-                val ended = remember(state.sessions) { state.sessions.filter { !it.isActive } }
-                val weeklyStats = remember(ended, dayLabels) { buildWeeklyStats(ended, dayLabels) }
+                val ended = remember(state.filteredSessions) { state.filteredSessions.filter { !it.isActive } }
                 val timelineItems = remember(ended, todayLabel, yesterdayLabel, monthNamesShort) {
                     buildTimeline(ended, todayLabel, yesterdayLabel, monthNamesShort)
                 }
@@ -333,10 +344,25 @@ internal fun HistoryContent(
                         StatsRow(sessions = state.sessions)
                     }
 
+                    if (state.statsData != null) {
+                        item(key = "insights") {
+                            Spacer(Modifier.height(8.dp))
+                            HistoryInsightsCard(stats = state.statsData)
+                        }
+                    }
+
+                    item(key = "filter_bar") {
+                        Spacer(Modifier.height(4.dp))
+                        HistoryFilterBar(
+                            activeFilter = state.activeFilter,
+                            onFilterSelected = onFilterSelected,
+                        )
+                    }
+
                     val hasTimeline = activeSession != null || timelineItems.isNotEmpty()
                     if (hasTimeline) {
                         item(key = "timeline_spacer") {
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(4.dp))
                         }
                     }
 
