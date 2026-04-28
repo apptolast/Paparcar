@@ -4,6 +4,7 @@ import com.apptolast.customlogin.domain.AuthRepository
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
+import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
@@ -15,6 +16,7 @@ class SettingsViewModel(
     private val prefs: AppPreferences,
     private val authRepository: AuthRepository,
     private val userProfileRepository: UserProfileRepository,
+    private val deleteAccountUseCase: DeleteAccountUseCase,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
     override fun initState(): SettingsState = SettingsState()
@@ -81,11 +83,11 @@ class SettingsViewModel(
     private fun deleteAccount() {
         updateState { copy(isDeletingAccount = true, showDeleteAccountConfirmation = false) }
         viewModelScope.launch {
-            authRepository.deleteAccount()
+            deleteAccountUseCase()
                 .onSuccess { sendEffect(SettingsEffect.NavigateToAuth) }
                 .onFailure { e ->
-                    PaparcarLogger.e(TAG, "Failed to delete account", e)
                     updateState { copy(isDeletingAccount = false) }
+                    PaparcarLogger.e(TAG, "Failed to delete account", e)
                 }
         }
     }

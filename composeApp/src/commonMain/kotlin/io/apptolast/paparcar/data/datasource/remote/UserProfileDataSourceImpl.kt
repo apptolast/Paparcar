@@ -51,6 +51,11 @@ class UserProfileDataSourceImpl(
                 .mapNotNull { it.toParkingHistoryDto() }
         }.getOrElse { emptyList() }
 
+    override suspend fun deleteUserData(userId: String) {
+        parkingHistoryCollection(userId).get().documents.forEach { it.reference.delete() }
+        usersCollection().document(userId).delete()
+    }
+
     // ─── Deserialization ──────────────────────────────────────────────────────
 
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toUserProfileDto(): UserProfileDto? =

@@ -17,4 +17,7 @@ interface UserProfileDao {
 
     @Query("SELECT * FROM user_profile WHERE userId = :userId LIMIT 1")
     fun observeProfile(userId: String): Flow<UserProfileEntity?>
+
+    @Query("DELETE FROM user_profile WHERE userId = :userId")
+    suspend fun deleteByUser(userId: String)
 }

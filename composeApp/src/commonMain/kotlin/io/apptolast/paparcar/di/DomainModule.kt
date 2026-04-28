@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.di
 
+import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
@@ -22,6 +23,7 @@ val domainModule = module {
 
     // User UseCases
     factory { GetOrCreateUserProfileUseCase(get(), get(), get()) }
+    factory { DeleteAccountUseCase(get(), get(), get(), get(), get()) }
 
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }

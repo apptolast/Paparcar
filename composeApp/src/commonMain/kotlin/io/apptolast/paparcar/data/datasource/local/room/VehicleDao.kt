@@ -38,4 +38,7 @@ interface VehicleDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(vehicles: List<VehicleEntity>)
+
+    @Query("DELETE FROM vehicles WHERE userId = :userId")
+    suspend fun deleteByUser(userId: String)
 }

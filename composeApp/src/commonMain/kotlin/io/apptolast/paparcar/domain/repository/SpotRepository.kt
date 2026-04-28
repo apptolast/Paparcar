@@ -18,4 +18,7 @@ interface SpotRepository {
      * listener will propagate the update to the local Room cache.
      */
     suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit>
+
+    /** Wipes the local spot cache. Called during account deletion. */
+    suspend fun clearCache(): Result<Unit>
 }

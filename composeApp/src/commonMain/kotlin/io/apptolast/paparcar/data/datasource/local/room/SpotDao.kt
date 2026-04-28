@@ -48,6 +48,9 @@ interface SpotDao {
     @Query("DELETE FROM cached_spots WHERE expiresAt != 0 AND expiresAt < :nowMillis")
     suspend fun deleteExpired(nowMillis: Long)
 
+    @Query("DELETE FROM cached_spots")
+    suspend fun deleteAll()
+
     /**
      * Atomically replaces all cached spots within the bounding box with [spots].
      * Ensures that spots removed from Firestore are also removed from the local cache —

@@ -24,4 +24,7 @@ interface UserParkingRepository {
         address: AddressInfo?,
         placeInfo: PlaceInfo?,
     ): Result<Unit>
+
+    /** Deletes all local parking sessions for [userId]. Called during account deletion. */
+    suspend fun deleteAllData(userId: String): Result<Unit>
 }

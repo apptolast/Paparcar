@@ -11,4 +11,5 @@ interface UserProfileDataSource {
     suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto)
     suspend fun updateParkingSessionLocation(userId: String, sessionId: String, address: AddressDto?, placeInfo: PlaceInfoDto?)
     suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto>
+    suspend fun deleteUserData(userId: String)
 }

@@ -83,6 +83,9 @@ class UserParkingRepositoryImpl(
             }
         }
 
+    override suspend fun deleteAllData(userId: String): Result<Unit> =
+        runCatching { dao.deleteByUser(userId) }
+
     override suspend fun updateLocationInfo(
         id: String,
         address: AddressInfo?,

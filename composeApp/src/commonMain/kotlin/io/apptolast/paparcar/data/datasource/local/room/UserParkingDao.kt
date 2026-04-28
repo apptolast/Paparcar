@@ -33,6 +33,9 @@ interface UserParkingDao {
     @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1")
     suspend fun clearActive()
 
+    @Query("DELETE FROM parking_sessions WHERE userId = :userId")
+    suspend fun deleteByUser(userId: String)
+
     @Query("""
         UPDATE parking_sessions SET
             addressStreet      = :street,

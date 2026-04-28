@@ -47,4 +47,9 @@ class UserProfileRepositoryImpl(
 
     override fun observeProfile(userId: String): Flow<UserProfile?> =
         profileDao.observeProfile(userId).map { it?.toDomain() }
+
+    override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
+        remoteDataSource.deleteUserData(userId)
+        profileDao.deleteByUser(userId)
+    }
 }

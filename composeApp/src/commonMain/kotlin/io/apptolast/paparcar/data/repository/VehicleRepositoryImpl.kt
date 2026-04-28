@@ -66,6 +66,11 @@ class VehicleRepositoryImpl(
         dao.updateBluetoothDevice(vehicleId, deviceAddress)
     }
 
+    override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
+        firestoreVehiclesCol(userId).get().documents.forEach { it.reference.delete() }
+        dao.deleteByUser(userId)
+    }
+
     private suspend fun syncFromFirestore(userId: String) {
         val snapshot = firestoreVehiclesCol(userId).get()
         val entities = snapshot.documents.mapNotNull { it.data<Map<String, Any?>>().toVehicleEntity() }

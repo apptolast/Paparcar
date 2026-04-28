@@ -28,4 +28,7 @@ interface VehicleRepository {
      * Stored on-device only — never synced to Firestore.
      */
     suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?)
+
+    /** Deletes all local and remote vehicles for [userId]. Called during account deletion. */
+    suspend fun deleteAllData(userId: String): Result<Unit>
 }
