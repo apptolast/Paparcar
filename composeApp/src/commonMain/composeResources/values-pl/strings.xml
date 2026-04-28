@@ -330,4 +330,6 @@
     <string name="gps_disclaimer_title">Informacja o dokładności GPS</string>
     <string name="gps_disclaimer_body">Dokładność GPS wynosi od 5 do 30 metrów w zależności od otoczenia. Aby uzyskać najlepsze wyniki, korzystaj z aplikacji na zewnątrz z widokiem na niebo. W pomieszczeniach lub pod ziemią dokładność może być mniejsza.</string>
     <string name="gps_disclaimer_confirm">Rozumiem</string>
+    <string name="home_peek_dismiss_cd">Zamknij</string>
+    <string name="bt_config_cd_back">Wróć</string>
 </resources>

@@ -374,4 +374,7 @@
     <string name="gps_disclaimer_title">GPS Accuracy Notice</string>
     <string name="gps_disclaimer_body">GPS precision varies between 5 and 30 metres depending on your surroundings. For the best results, use the app outdoors with a clear view of the sky. Indoor or underground accuracy may be reduced.</string>
     <string name="gps_disclaimer_confirm">Got it</string>
+    <!-- Accessibility content descriptions (QA-006) -->
+    <string name="home_peek_dismiss_cd">Dismiss</string>
+    <string name="bt_config_cd_back">Back</string>
 </resources>

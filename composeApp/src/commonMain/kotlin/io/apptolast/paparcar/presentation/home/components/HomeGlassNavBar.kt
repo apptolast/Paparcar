@@ -22,6 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_nav_history
+import paparcar.composeapp.generated.resources.home_nav_map
+import paparcar.composeapp.generated.resources.home_nav_my_car
+import paparcar.composeapp.generated.resources.home_nav_settings
 
 @Composable
 internal fun HomeGlassNavBar(
@@ -46,21 +52,25 @@ internal fun HomeGlassNavBar(
                 unselected = Icons.Outlined.NearMe,
                 isSelected = true,
                 onClick = onMapClick,
+                contentDescription = stringResource(Res.string.home_nav_map),
             )
             HomeNavItem(
                 selected = Icons.Filled.History,
                 unselected = Icons.Outlined.History,
                 onClick = onHistoryClick,
+                contentDescription = stringResource(Res.string.home_nav_history),
             )
             HomeNavItem(
                 selected = Icons.Filled.DirectionsCar,
                 unselected = Icons.Outlined.DirectionsCar,
                 onClick = onMyCarClick,
+                contentDescription = stringResource(Res.string.home_nav_my_car),
             )
             HomeNavItem(
                 selected = Icons.Filled.Settings,
                 unselected = Icons.Outlined.Settings,
                 onClick = onSettingsClick,
+                contentDescription = stringResource(Res.string.home_nav_settings),
             )
         }
     }
@@ -72,6 +82,7 @@ private fun RowScope.HomeNavItem(
     unselected: ImageVector,
     isSelected: Boolean = false,
     onClick: () -> Unit,
+    contentDescription: String,
 ) {
     NavigationBarItem(
         selected = isSelected,
@@ -79,7 +90,7 @@ private fun RowScope.HomeNavItem(
         icon = {
             Icon(
                 imageVector = if (isSelected) selected else unselected,
-                contentDescription = null,
+                contentDescription = contentDescription,
             )
         },
         colors = NavigationBarItemDefaults.colors(

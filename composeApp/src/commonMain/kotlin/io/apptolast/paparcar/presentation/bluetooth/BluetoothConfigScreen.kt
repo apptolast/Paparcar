@@ -53,6 +53,7 @@ import paparcar.composeapp.generated.resources.bt_config_device_le
 import paparcar.composeapp.generated.resources.bt_config_no_devices
 import paparcar.composeapp.generated.resources.bt_config_none
 import paparcar.composeapp.generated.resources.bt_config_remove
+import paparcar.composeapp.generated.resources.bt_config_cd_back
 import paparcar.composeapp.generated.resources.bt_config_save
 import paparcar.composeapp.generated.resources.bt_config_subtitle
 import paparcar.composeapp.generated.resources.bt_config_title
@@ -85,7 +86,7 @@ fun BluetoothConfigScreen(
                 title = { Text(stringResource(Res.string.bt_config_title)) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.handleIntent(BluetoothConfigIntent.NavigateBack) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.bt_config_cd_back))
                     }
                 },
             )

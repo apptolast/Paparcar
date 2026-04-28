@@ -330,4 +330,6 @@
     <string name="gps_disclaimer_title">Avviso sulla precisione GPS</string>
     <string name="gps_disclaimer_body">La precisione GPS varia tra 5 e 30 metri in base all\'ambiente. Per risultati ottimali, usa l\'app all\'aperto con visuale libera del cielo. In ambienti chiusi o sotterranei la precisione può ridursi.</string>
     <string name="gps_disclaimer_confirm">Capito</string>
+    <string name="home_peek_dismiss_cd">Chiudi</string>
+    <string name="bt_config_cd_back">Indietro</string>
 </resources>

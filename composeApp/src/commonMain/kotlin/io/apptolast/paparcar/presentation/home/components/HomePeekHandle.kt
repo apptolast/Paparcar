@@ -57,6 +57,7 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_parking_release
+import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 
 @Composable
@@ -189,7 +190,7 @@ private fun SpotPeekRow(
         ) {
             Icon(
                 Icons.Outlined.Close,
-                contentDescription = null,
+                contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .padding(6.dp)
@@ -271,7 +272,7 @@ private fun ParkingPeekRow(
             ) {
                 Icon(
                     Icons.Outlined.Close,
-                    contentDescription = null,
+                    contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .padding(6.dp)

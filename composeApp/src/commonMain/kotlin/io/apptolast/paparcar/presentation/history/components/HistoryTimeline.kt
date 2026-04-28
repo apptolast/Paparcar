@@ -39,6 +39,9 @@ import io.apptolast.paparcar.presentation.history.LabelBold
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import kotlinx.datetime.TimeZone
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.history_view_map
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
@@ -173,7 +176,7 @@ private fun SessionCardContent(
             IconButton(
                 onClick = { onViewOnMap(session.location.latitude, session.location.longitude) },
             ) {
-                Icon(Icons.Filled.Map, contentDescription = null, tint = cs.primary)
+                Icon(Icons.Filled.Map, contentDescription = stringResource(Res.string.history_view_map), tint = cs.primary)
             }
         }
     }

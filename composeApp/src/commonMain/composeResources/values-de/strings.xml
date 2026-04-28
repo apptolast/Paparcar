@@ -330,4 +330,6 @@
     <string name="gps_disclaimer_title">Hinweis zur GPS-Genauigkeit</string>
     <string name="gps_disclaimer_body">Die GPS-Genauigkeit variiert je nach Umgebung zwischen 5 und 30 Metern. Für beste Ergebnisse nutze die App im Freien mit freier Sicht zum Himmel. In Gebäuden oder unterirdisch kann die Genauigkeit eingeschränkt sein.</string>
     <string name="gps_disclaimer_confirm">Verstanden</string>
+    <string name="home_peek_dismiss_cd">Schließen</string>
+    <string name="bt_config_cd_back">Zurück</string>
 </resources>

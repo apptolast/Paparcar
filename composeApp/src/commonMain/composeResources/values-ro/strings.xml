@@ -330,4 +330,6 @@
     <string name="gps_disclaimer_title">Notă despre precizia GPS</string>
     <string name="gps_disclaimer_body">Precizia GPS variază între 5 și 30 de metri în funcție de mediu. Pentru cele mai bune rezultate, utilizați aplicația în aer liber cu cer liber. În interior sau subteran, precizia poate fi redusă.</string>
     <string name="gps_disclaimer_confirm">Am înțeles</string>
+    <string name="home_peek_dismiss_cd">Închide</string>
+    <string name="bt_config_cd_back">Înapoi</string>
 </resources>

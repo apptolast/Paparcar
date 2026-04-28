@@ -330,4 +330,6 @@
     <string name="gps_disclaimer_title">GPS-nauwkeurigheid</string>
     <string name="gps_disclaimer_body">De GPS-nauwkeurigheid varieert tussen 5 en 30 meter afhankelijk van de omgeving. Gebruik de app buiten met vrij zicht op de lucht voor de beste resultaten. Binnen of ondergronds kan de nauwkeurigheid verminderd zijn.</string>
     <string name="gps_disclaimer_confirm">Begrepen</string>
+    <string name="home_peek_dismiss_cd">Sluiten</string>
+    <string name="bt_config_cd_back">Terug</string>
 </resources>
