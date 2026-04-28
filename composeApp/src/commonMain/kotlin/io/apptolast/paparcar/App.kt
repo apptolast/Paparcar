@@ -22,10 +22,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -84,7 +84,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
 import paparcar.composeapp.generated.resources.nav_tab_history
-import paparcar.composeapp.generated.resources.nav_tab_map
+import paparcar.composeapp.generated.resources.nav_tab_spots
 import paparcar.composeapp.generated.resources.nav_tab_settings
 import paparcar.composeapp.generated.resources.nav_tab_vehicles
 
@@ -503,9 +503,9 @@ private fun MainAppNavigation(
 private val bottomNavItems = listOf(
     AppBottomNavItem(
         route = Routes.HOME,
-        label = { stringResource(Res.string.nav_tab_map) },
-        iconFilled = Icons.Filled.Map,
-        iconOutline = Icons.Outlined.Map,
+        label = { stringResource(Res.string.nav_tab_spots) },
+        iconFilled = Icons.Filled.NearMe,
+        iconOutline = Icons.Outlined.NearMe,
     ),
     AppBottomNavItem(
         route = Routes.VEHICLES,

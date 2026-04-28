@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,8 +42,8 @@ internal fun HomeGlassNavBar(
         )
         NavigationBar(tonalElevation = 0.dp) {
             HomeNavItem(
-                selected = Icons.Filled.Map,
-                unselected = Icons.Outlined.Map,
+                selected = Icons.Filled.NearMe,
+                unselected = Icons.Outlined.NearMe,
                 isSelected = true,
                 onClick = onMapClick,
             )

@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
+import kotlin.math.absoluteValue
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -369,33 +370,63 @@ private fun HomeContent(
             // fades away during a drag (no black gap).
             //
             // rawContainerHeightPx = full screen height.
-            // containerHeightPx   = screen − latched nav height. Used ONLY
-            //                       for snap points (peek / half) so those
-            //                       stay stable while the nav animates.
-            //   - Peek  →  sheet top at (screen − nav − peekHeight).
-            //   - Half  →  (screen − nav) / 2.
-            //   - Full  →  0 (sheet spans the entire window).
+            // containerHeightPx   = screen − active bar height. Used ONLY for snap
+            //                       points so those stay stable while bars animate.
+            //   - Peek  →  sheet top at (screen − bar − peekHeight).
+            //   - Half  →  midpoint between fullSnap and peek.
+            //   - Full  →  fullSnapOffsetPx (0 when content overflows, content-fit otherwise).
             val rawContainerHeightPx = constraints.maxHeight.toFloat()
             val navHeightPx = with(density) { stableBottomPadding.toPx() }
-            val containerHeightPx = (rawContainerHeightPx - navHeightPx).coerceAtLeast(0f)
+
+            // Measured height of the PaparcarBottomActionBar overlay (reported via onSizeChanged
+            // below). Declared here so containerHeightPx can adapt: when an item is selected the
+            // action bar replaces the global nav — if both have different heights the peek
+            // position would drift, showing list content below the action bar.
+            var homeNavBarHeightPx by remember { mutableFloatStateOf(0f) }
+            val effectiveNavHeightPx =
+                if (state.selectedItemId != null && homeNavBarHeightPx > 0f) homeNavBarHeightPx
+                else navHeightPx
+            val containerHeightPx = (rawContainerHeightPx - effectiveNavHeightPx).coerceAtLeast(0f)
 
             // Peek height tracks the HomePeekHandle's real measured height so the
-            // sheet's collapsed top edge sits flush with the AppBottomNavigation
-            // divider. It's bootstrapped from SheetPeekHeightInitial and updated
-            // via onSizeChanged on the handle Box. Zero-height readings are
-            // filtered: the handle layout depends on sheet height, which depends
-            // on peekOffsetPx → peekHeightPx, so a 0 transient would otherwise
-            // collapse the whole chain and make the sheet disappear.
+            // sheet's collapsed top edge sits flush with whichever bar is visible.
+            // Bootstrapped from SheetPeekHeightInitial; zero-height readings are
+            // filtered to avoid a layout-cycle collapse.
             var peekHeightPx by remember {
                 mutableFloatStateOf(with(density) { SheetPeekHeightInitial.toPx() })
             }
             val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
-            val halfOffsetPx = containerHeightPx / 2f
 
-            // Measured height of the PaparcarBottomActionBar overlay (reported via onSizeChanged below).
-            // The LazyColumn reads this to reserve space so the last item never sits
-            // behind the overlay while an item is selected.
-            var homeNavBarHeightPx by remember { mutableFloatStateOf(0f) }
+            // Content-aware full snap: when ALL list items are visible in the current
+            // viewport (nothing to scroll) the sheet stops at content height instead of
+            // expanding all the way to the screen top and leaving empty space.
+            // derivedStateOf isolates the layoutInfo reads so they don't retrigger the
+            // whole composition on every scroll frame — only when the boolean flips.
+            val allItemsFit by remember {
+                derivedStateOf {
+                    lazyListState.layoutInfo.let { info ->
+                        info.totalItemsCount > 0 &&
+                            info.visibleItemsInfo.size >= info.totalItemsCount
+                    }
+                }
+            }
+            val listNaturalHeightPx by remember {
+                derivedStateOf {
+                    if (!allItemsFit) 0f
+                    else lazyListState.layoutInfo.let { info ->
+                        info.visibleItemsInfo.sumOf { it.size }.toFloat() +
+                            info.beforeContentPadding + info.afterContentPadding
+                    }
+                }
+            }
+            val fullSnapOffsetPx =
+                if (allItemsFit && peekHeightPx > 0f)
+                    (containerHeightPx - peekHeightPx - listNaturalHeightPx).coerceAtLeast(0f)
+                else FULL_SNAP_OFFSET_PX
+
+            // True midpoint between the two expansion extremes — more accurate than
+            // containerHeight/2 when content-aware full snap is in play.
+            val halfOffsetPx = (fullSnapOffsetPx + peekOffsetPx) / 2f
 
             val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
             LaunchedEffect(peekOffsetPx, state.selectedItemId) {
@@ -427,6 +458,7 @@ private fun HomeContent(
             // the user drags down, collapse the sheet instead of letting the gesture be wasted.
             // Upward gestures are never intercepted — they always scroll the list.
             val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
+            val currentFullSnap = rememberUpdatedState(fullSnapOffsetPx)
             val sheetNestedScroll = remember {
                 object : NestedScrollConnection {
                     override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -435,7 +467,8 @@ private fun HomeContent(
                         val peek = currentPeekOffset.value
                         val sheetCanCollapse = sheetOffsetPx.value < peek
                         if (available.y > 0f && listAtTop && sheetCanCollapse) {
-                            val newOffset = (sheetOffsetPx.value + available.y).coerceIn(FULL_SNAP_OFFSET_PX, peek)
+                            val newOffset = (sheetOffsetPx.value + available.y)
+                                .coerceIn(currentFullSnap.value, peek)
                             val consumed = newOffset - sheetOffsetPx.value
                             coroutineScope.launch { sheetOffsetPx.snapTo(newOffset) }
                             return Offset(0f, consumed)
@@ -447,8 +480,9 @@ private fun HomeContent(
 
             // Boolean — equality short-circuits recomposition for downstream readers
             // (e.g. PaparcarMapView.reportMode) on every drag frame.
+            // "Expanded" = sheet past the halfway point between peek and full snap.
             val sheetExpanded by remember {
-                derivedStateOf { sheetOffsetPx.value <= FULL_SNAP_OFFSET_PX + 1f }
+                derivedStateOf { sheetOffsetPx.value < halfOffsetPx }
             }
             // FABs sit just above the sheet's current top edge. The sheet is
             // aligned BottomCenter of BoxWithConstraints (whose inner area =
@@ -481,7 +515,7 @@ private fun HomeContent(
                         uiController.moveCamera(spot.location.latitude, spot.location.longitude)
                         coroutineScope.launch {
                             sheetOffsetPx.animateTo(
-                                halfOffsetPx.coerceIn(FULL_SNAP_OFFSET_PX, peekOffsetPx),
+                                halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
                                 SnapSpec,
                             )
                         }
@@ -602,7 +636,7 @@ private fun HomeContent(
                                 uiController.moveCamera(p.location.latitude, p.location.longitude)
                                 coroutineScope.launch {
                                     sheetOffsetPx.animateTo(
-                                        halfOffsetPx.coerceIn(FULL_SNAP_OFFSET_PX, peekOffsetPx),
+                                        halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
                                         SnapSpec,
                                     )
                                 }
@@ -665,7 +699,7 @@ private fun HomeContent(
                                     coroutineScope.launch {
                                         sheetOffsetPx.snapTo(
                                             (sheetOffsetPx.value + delta).coerceIn(
-                                                FULL_SNAP_OFFSET_PX,
+                                                fullSnapOffsetPx,
                                                 peekOffsetPx
                                             ),
                                         )
@@ -673,24 +707,28 @@ private fun HomeContent(
                                 },
                                 onDragStopped = { velocity ->
                                     coroutineScope.launch {
-                                        val halfPoint = (FULL_SNAP_OFFSET_PX + peekOffsetPx) / 2f
                                         val current = sheetOffsetPx.value
                                         val target = when {
                                             velocity < -FLING_SNAP_VELOCITY -> {
-                                                // Fling up: collapsed → half, half → expanded
-                                                if (current > halfPoint) halfPoint else FULL_SNAP_OFFSET_PX
+                                                // Fling up: collapsed → half, half → full
+                                                if (current > halfOffsetPx) halfOffsetPx else fullSnapOffsetPx
                                             }
                                             velocity > FLING_SNAP_VELOCITY -> {
-                                                // Fling down: expanded → half, half → collapsed
-                                                if (current < halfPoint) halfPoint else peekOffsetPx
+                                                // Fling down: full → half, half → collapsed
+                                                if (current < halfOffsetPx) halfOffsetPx else peekOffsetPx
                                             }
                                             else -> {
-                                                // Soft drag (no fling): if released near the bottom,
-                                                // finish collapsing instead of leaving it floating.
-                                                val collapseSnapZone = peekOffsetPx * SOFT_DRAG_COLLAPSE_ZONE
-                                                if (current > collapseSnapZone) peekOffsetPx else current
+                                                // Soft drag: snap to nearest of full/half/peek
+                                                val distFull = (current - fullSnapOffsetPx).absoluteValue
+                                                val distHalf = (current - halfOffsetPx).absoluteValue
+                                                val distPeek = (current - peekOffsetPx).absoluteValue
+                                                when {
+                                                    distPeek <= distHalf && distPeek <= distFull -> peekOffsetPx
+                                                    distHalf <= distFull -> halfOffsetPx
+                                                    else -> fullSnapOffsetPx
+                                                }
                                             }
-                                        }.coerceIn(FULL_SNAP_OFFSET_PX, peekOffsetPx)
+                                        }.coerceIn(fullSnapOffsetPx, peekOffsetPx)
                                         sheetOffsetPx.animateTo(target, SnapSpec)
                                     }
                                 },

@@ -6,10 +6,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
@@ -141,10 +139,10 @@ enum class MapStyleMode { AUTO, LIGHT, DARK }
 private const val CROSSHAIR_SCALE_HIDDEN  = 0f
 private const val CROSSHAIR_SCALE_AIMING  = 1.25f
 private const val CROSSHAIR_SCALE_NORMAL  = 1f
-private const val PULSE_INITIAL_ALPHA     = 0.55f
-private const val PULSE_INITIAL_SCALE     = 0.5f
-private const val PULSE_MAX_SCALE         = 2.4f
-private const val PULSE_ANIM_MS           = 600
+private const val PULSE_INITIAL_ALPHA     = 0.28f
+private const val PULSE_INITIAL_SCALE     = 0.6f
+private const val PULSE_MAX_SCALE         = 1.7f
+private const val PULSE_ANIM_MS           = 500
 private const val LOADING_ARC_ANIM_MS     = 1100
 private const val LOADING_FADE_MS         = 300
 
@@ -155,17 +153,17 @@ private const val CENTER_PIN_DROP_SCALE_FROM = 1.1f
 private const val CENTER_PIN_DROP_SCALE_TO   = 1.0f
 
 // ── Location indicator (canvas drawing) ──────────────────────────────────────
-private val   LOCATION_INDICATOR_BOX_SIZE = 56.dp
-private val   RING_CANVAS_SIZE            = 36.dp
+private val   LOCATION_INDICATOR_BOX_SIZE = 48.dp
+private val   RING_CANVAS_SIZE            = 30.dp
 private const val RING_RADIUS_FACTOR      = 0.38f
-private const val RING_STROKE_DP          = 1.8f
-private const val PULSE_STROKE_DP         = 1.5f
+private const val RING_STROKE_DP          = 1.5f
+private const val PULSE_STROKE_DP         = 1.2f
 private const val SHADOW_EXTRA_STROKE     = 1.5f
 private const val SHADOW_OFFSET_X         = 1f
 private const val SHADOW_OFFSET_Y         = 1.5f
 private const val SHADOW_RADIUS_OFFSET    = 0.5f
-private const val CENTER_DOT_SHADOW_RADIUS_DP = 3f
-private const val CENTER_DOT_RADIUS_DP    = 2.5f
+private const val CENTER_DOT_SHADOW_RADIUS_DP = 2.2f
+private const val CENTER_DOT_RADIUS_DP    = 2.0f
 private const val LOADING_ARC_SWEEP_ANGLE = 260f
 private const val REPORT_MODE_SHADOW_ALPHA = 0.35f
 private const val NORMAL_MODE_SHADOW_ALPHA = 0.22f
@@ -518,17 +516,22 @@ fun PaparcarMapView(
             launch { pulseScale.animateTo(PULSE_MAX_SCALE, tween(PULSE_ANIM_MS, easing = FastOutSlowInEasing)) }
         }
     }
-    // Loading arc: spins while content is being fetched
-    val loadingTransition = rememberInfiniteTransition(label = "loading")
-    val loadingAngle by loadingTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(LOADING_ARC_ANIM_MS, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "loading_angle",
-    )
+    // Loading arc: spins only while content is being fetched; stops automatically when done
+    val loadingAngle = remember { Animatable(0f) }
+    LaunchedEffect(showLoading) {
+        if (showLoading) {
+            loadingAngle.snapTo(0f)
+            loadingAngle.animateTo(
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(LOADING_ARC_ANIM_MS, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart,
+                ),
+            )
+        } else {
+            loadingAngle.stop()
+        }
+    }
 
     val cameraPosition = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
@@ -661,7 +664,7 @@ fun PaparcarMapView(
                     // Replaces CircularProgressIndicator — fades out when loading completes,
                     // then the pulse ring fires to signal "ready".
                     if (loadingAlpha > 0f) {
-                        withTransform({ rotate(loadingAngle, pivot = Offset(cx, cy)) }) {
+                        withTransform({ rotate(loadingAngle.value, pivot = Offset(cx, cy)) }) {
                             drawArc(
                                 brush = Brush.sweepGradient(
                                     colorStops = arrayOf(
