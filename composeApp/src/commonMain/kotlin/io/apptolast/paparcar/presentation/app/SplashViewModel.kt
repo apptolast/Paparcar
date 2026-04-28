@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.apptolast.customlogin.domain.AuthRepository
 import com.apptolast.customlogin.domain.model.AuthState
+import io.apptolast.paparcar.core.crash.CrashReporter
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -49,7 +50,9 @@ class SplashViewModel(
                 .filter { it is AuthState.Authenticated }
                 .distinctUntilChanged()
                 .catch { e -> PaparcarLogger.e(TAG, "authState stream error", e) }
-                .collect {
+                .collect { state ->
+                    val userId = (state as? AuthState.Authenticated)?.session?.userId
+                    CrashReporter.setUserId(userId)
                     getOrCreateUserProfile()
                         .onFailure { e ->
                             PaparcarLogger.e(TAG, "profile sync failed", e)

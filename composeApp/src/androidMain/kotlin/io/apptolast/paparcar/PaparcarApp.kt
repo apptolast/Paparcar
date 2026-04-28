@@ -27,9 +27,10 @@ class PaparcarApp : Application() {
         super.onCreate()
 
         appContext = this
-        Napier.base(DebugAntilog())
-
-        Napier.d("GOOGLE_WEB_CLIENT_ID = '${BuildConfig.GOOGLE_WEB_CLIENT_ID}'", tag = "PaparcarApp")
+        if (BuildConfig.DEBUG) {
+            Napier.base(DebugAntilog())
+            Napier.d("GOOGLE_WEB_CLIENT_ID = '${BuildConfig.GOOGLE_WEB_CLIENT_ID}'", tag = "PaparcarApp")
+        }
 
         val loginConfig = LoginLibraryConfig(
             googleSignInConfig = GoogleSignInConfig(

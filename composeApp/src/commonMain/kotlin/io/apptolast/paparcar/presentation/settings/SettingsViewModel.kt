@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.settings
 
 import com.apptolast.customlogin.domain.AuthRepository
 import com.swmansion.kmpmaps.core.MapType
+import io.apptolast.paparcar.core.crash.CrashReporter
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
@@ -75,6 +76,7 @@ class SettingsViewModel(
                 updateState { copy(showDeleteAccountConfirmation = false) }
             is SettingsIntent.ConfirmDeleteAccount -> deleteAccount()
             is SettingsIntent.Logout -> viewModelScope.launch {
+                CrashReporter.setUserId(null)
                 authRepository.signOut()
             }
         }
@@ -84,7 +86,10 @@ class SettingsViewModel(
         updateState { copy(isDeletingAccount = true, showDeleteAccountConfirmation = false) }
         viewModelScope.launch {
             deleteAccountUseCase()
-                .onSuccess { sendEffect(SettingsEffect.NavigateToAuth) }
+                .onSuccess {
+                    CrashReporter.setUserId(null)
+                    sendEffect(SettingsEffect.NavigateToAuth)
+                }
                 .onFailure { e ->
                     updateState { copy(isDeletingAccount = false) }
                     PaparcarLogger.e(TAG, "Failed to delete account", e)

@@ -1,0 +1,118 @@
+name: Distribute (Firebase App Distribution)
+
+# Triggers:
+#   - Manually via GitHub UI (workflow_dispatch) for on-demand beta drops
+#   - Automatically on every push to master (nightly-style beta)
+#
+# Required secrets (Settings → Secrets → Actions):
+#   GOOGLE_SERVICES_JSON   — base64-encoded or raw google-services.json content
+#   GOOGLE_WEB_CLIENT_ID   — OAuth web client ID used by BaseLogin
+#   FIREBASE_APP_ID        — Android app ID from Firebase console
+#                            (Project settings → Your apps → App ID, e.g. 1:123:android:abc)
+#   FIREBASE_TOKEN         — Firebase CI token from `firebase login:ci`
+#                            Alternatively, use CREDENTIAL_FILE_CONTENT (service account JSON)
+#
+# Optional secrets:
+#   FIREBASE_TESTER_GROUPS — comma-separated tester group aliases (e.g. "beta-testers,qa-team")
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: "Release notes for this build (optional — defaults to last commit message)"
+        required: false
+        default: ""
+      tester_groups:
+        description: "Tester groups to distribute to (comma-separated, overrides default)"
+        required: false
+        default: ""
+
+concurrency:
+  group: distribute-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  distribute:
+    name: Build debug APK & distribute
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed to read git log for release notes
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Inject google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: echo "$GOOGLE_SERVICES_JSON" > composeApp/google-services.json
+
+      - name: Inject local.properties
+        env:
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" > local.properties
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew :composeApp:assembleDebug --no-daemon --stacktrace
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          if [ -n "${{ github.event.inputs.release_notes }}" ]; then
+            NOTES="${{ github.event.inputs.release_notes }}"
+          else
+            # Last 10 commits on master, one per line
+            NOTES=$(git log --oneline -10 --pretty=format:"• %s (%h)")
+          fi
+          # Write to file (multiline safe)
+          echo "$NOTES" > release_notes.txt
+          echo "Generated release notes:"
+          cat release_notes.txt
+
+      - name: Resolve tester groups
+        id: groups
+        run: |
+          if [ -n "${{ github.event.inputs.tester_groups }}" ]; then
+            echo "groups=${{ github.event.inputs.tester_groups }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ secrets.FIREBASE_TESTER_GROUPS }}" ]; then
+            echo "groups=${{ secrets.FIREBASE_TESTER_GROUPS }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "groups=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          groups: ${{ steps.groups.outputs.groups }}
+          file: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          releaseNotesFile: release_notes.txt
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paparcar-debug-${{ github.sha }}
+          path: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          retention-days: 14

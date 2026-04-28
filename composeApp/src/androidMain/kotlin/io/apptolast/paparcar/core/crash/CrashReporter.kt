@@ -9,4 +9,10 @@ actual object CrashReporter {
         crashlytics.log("$tag: $message")
         crashlytics.recordException(throwable)
     }
+
+    actual fun setUserId(userId: String?) {
+        runCatching {
+            FirebaseCrashlytics.getInstance().setUserId(userId ?: "")
+        }
+    }
 }
