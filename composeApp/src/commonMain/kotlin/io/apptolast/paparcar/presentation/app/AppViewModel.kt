@@ -26,6 +26,7 @@ class AppViewModel(
                     imperialUnits = appPreferences.useImperialUnits,
                     selectedLanguage = appPreferences.selectedLanguage,
                     connectivity = connectivityObserver.status.value,
+                    hasSeenGpsAccuracyDisclaimer = appPreferences.hasSeenGpsAccuracyDisclaimer,
                 )
             }
         }
@@ -60,6 +61,10 @@ class AppViewModel(
     override fun handleIntent(intent: AppIntent) {
         when (intent) {
             AppIntent.MarkOnboardingCompleted -> appPreferences.setOnboardingCompleted()
+            AppIntent.DismissGpsAccuracyDisclaimer -> {
+                appPreferences.setGpsAccuracyDisclaimerSeen()
+                updateState { copy(hasSeenGpsAccuracyDisclaimer = true) }
+            }
             is AppIntent.SetThemeMode -> {
                 appPreferences.setThemeMode(intent.mode)
                 updateState { copy(themeMode = intent.mode) }

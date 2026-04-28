@@ -4,6 +4,9 @@ interface AppPreferences {
     val isOnboardingCompleted: Boolean
     fun setOnboardingCompleted()
 
+    val hasSeenGpsAccuracyDisclaimer: Boolean
+    fun setGpsAccuracyDisclaimerSeen()
+
     val autoDetectParking: Boolean
     fun setAutoDetectParking(enabled: Boolean)
 

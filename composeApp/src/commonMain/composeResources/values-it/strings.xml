@@ -325,4 +325,9 @@
     <string name="home_filter_empty_title">Nessun posto per questa dimensione</string>
     <string name="home_filter_empty_subtitle">Prova un altro filtro o riprova più tardi</string>
     <string name="home_filter_empty_clear">Rimuovi filtro</string>
+
+    <!-- GPS accuracy disclaimer (QA-008) -->
+    <string name="gps_disclaimer_title">Avviso sulla precisione GPS</string>
+    <string name="gps_disclaimer_body">La precisione GPS varia tra 5 e 30 metri in base all\'ambiente. Per risultati ottimali, usa l\'app all\'aperto con visuale libera del cielo. In ambienti chiusi o sotterranei la precisione può ridursi.</string>
+    <string name="gps_disclaimer_confirm">Capito</string>
 </resources>

@@ -325,4 +325,9 @@
     <string name="home_filter_empty_title">Brak miejsc dla tego rozmiaru</string>
     <string name="home_filter_empty_subtitle">Spróbuj innego filtru lub wróć później</string>
     <string name="home_filter_empty_clear">Usuń filtr</string>
+
+    <!-- GPS accuracy disclaimer (QA-008) -->
+    <string name="gps_disclaimer_title">Informacja o dokładności GPS</string>
+    <string name="gps_disclaimer_body">Dokładność GPS wynosi od 5 do 30 metrów w zależności od otoczenia. Aby uzyskać najlepsze wyniki, korzystaj z aplikacji na zewnątrz z widokiem na niebo. W pomieszczeniach lub pod ziemią dokładność może być mniejsza.</string>
+    <string name="gps_disclaimer_confirm">Rozumiem</string>
 </resources>

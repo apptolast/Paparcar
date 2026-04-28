@@ -38,6 +38,11 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setOnboardingCompleted() = set(Keys.ONBOARDING_COMPLETED, true)
 
+    override val hasSeenGpsAccuracyDisclaimer: Boolean
+        get() = get(Keys.GPS_ACCURACY_DISCLAIMER_SEEN, false)
+
+    override fun setGpsAccuracyDisclaimerSeen() = set(Keys.GPS_ACCURACY_DISCLAIMER_SEEN, true)
+
     // ── Parking detection ────────────────────────────────────────────────────
 
     override val autoDetectParking: Boolean
@@ -98,7 +103,8 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     // ── Keys ─────────────────────────────────────────────────────────────────
 
     private object Keys {
-        val ONBOARDING_COMPLETED    = booleanPreferencesKey("onboarding_completed")
+        val ONBOARDING_COMPLETED            = booleanPreferencesKey("onboarding_completed")
+        val GPS_ACCURACY_DISCLAIMER_SEEN    = booleanPreferencesKey("gps_accuracy_disclaimer_seen")
         val AUTO_DETECT_PARKING     = booleanPreferencesKey("auto_detect_parking")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")

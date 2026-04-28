@@ -26,6 +26,10 @@ class FakeAppPreferences(
         setOnboardingCompletedCount++
     }
 
+    private var _hasSeenGpsAccuracyDisclaimer = false
+    override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer
+    override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer = true }
+
     private var _autoDetectParking = initialAutoDetect
     override val autoDetectParking: Boolean get() = _autoDetectParking
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking = enabled }

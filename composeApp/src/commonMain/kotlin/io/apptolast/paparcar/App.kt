@@ -18,8 +18,11 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.NearMe
@@ -83,6 +86,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
+import paparcar.composeapp.generated.resources.gps_disclaimer_body
+import paparcar.composeapp.generated.resources.gps_disclaimer_confirm
+import paparcar.composeapp.generated.resources.gps_disclaimer_title
 import paparcar.composeapp.generated.resources.nav_tab_history
 import paparcar.composeapp.generated.resources.nav_tab_spots
 import paparcar.composeapp.generated.resources.nav_tab_settings
@@ -204,6 +210,19 @@ fun App(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 80.dp),
+                )
+            }
+
+            if (appState.showGpsAccuracyDisclaimer) {
+                AlertDialog(
+                    onDismissRequest = { appViewModel.handleIntent(AppIntent.DismissGpsAccuracyDisclaimer) },
+                    title = { Text(stringResource(Res.string.gps_disclaimer_title)) },
+                    text = { Text(stringResource(Res.string.gps_disclaimer_body)) },
+                    confirmButton = {
+                        TextButton(onClick = { appViewModel.handleIntent(AppIntent.DismissGpsAccuracyDisclaimer) }) {
+                            Text(stringResource(Res.string.gps_disclaimer_confirm))
+                        }
+                    },
                 )
             }
         }

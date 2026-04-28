@@ -369,4 +369,9 @@
     <string name="connectivity_offline_banner">You\'re offline</string>
     <string name="connectivity_restored_snackbar">Back online</string>
     <string name="connectivity_action_blocked_offline">Connect to the internet to do that</string>
+
+    <!-- GPS accuracy disclaimer (QA-008) -->
+    <string name="gps_disclaimer_title">GPS Accuracy Notice</string>
+    <string name="gps_disclaimer_body">GPS precision varies between 5 and 30 metres depending on your surroundings. For the best results, use the app outdoors with a clear view of the sky. Indoor or underground accuracy may be reduced.</string>
+    <string name="gps_disclaimer_confirm">Got it</string>
 </resources>
