@@ -38,6 +38,7 @@ class VehiclesViewModelTest {
         id = id,
         vehicleId = vehicleId,
         location = location,
+        isActive = false,
     )
 
     private lateinit var vehicleRepo: FakeVehicleRepository
