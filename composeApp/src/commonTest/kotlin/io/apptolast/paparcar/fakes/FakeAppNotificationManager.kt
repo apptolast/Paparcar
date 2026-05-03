@@ -2,7 +2,7 @@ package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 
-class FakeAppNotificationManager : AppNotificationManager {
+open class FakeAppNotificationManager : AppNotificationManager {
 
     var parkingSpotSavedCallCount = 0
     var parkingConfirmationCallCount = 0

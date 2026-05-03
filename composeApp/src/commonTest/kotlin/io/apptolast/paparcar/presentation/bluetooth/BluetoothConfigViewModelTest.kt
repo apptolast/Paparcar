@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
+import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
 import io.apptolast.paparcar.fakes.FakeBluetoothScanner
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +28,7 @@ class BluetoothConfigViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private val vehicleId = "v-bt-1"
-    private val btDevice = BluetoothDeviceInfo(address = "AA:BB:CC:DD:EE:FF", name = "Car BT")
+    private val btDevice = BluetoothDeviceInfo(address = "AA:BB:CC:DD:EE:FF", name = "Car BT", type = BluetoothDeviceType.CLASSIC)
 
     private fun vehicle(btDeviceId: String? = null) = Vehicle(
         id = vehicleId,
