@@ -9,10 +9,15 @@ import io.apptolast.paparcar.data.mapper.toVehicleEntity
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.Flow
+import com.apptolast.customlogin.domain.model.AuthState
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class VehicleRepositoryImpl(
     private val dao: VehicleDao,
     private val firestore: FirebaseFirestore,
@@ -22,16 +27,28 @@ class VehicleRepositoryImpl(
     private suspend fun currentUserId(): String? =
         authRepository.getCurrentSession()?.userId
 
-    override fun observeVehicles(): Flow<List<Vehicle>> = flow {
-        val uid = currentUserId() ?: return@flow
-        if (dao.countByUser(uid) == 0) syncFromFirestore(uid)
-        emitAll(dao.observeByUser(uid).map { list -> list.map { it.toDomain() } })
-    }
+    override fun observeVehicles(): Flow<List<Vehicle>> =
+        authRepository.observeAuthState()
+            .filter { it is AuthState.Authenticated } // Solo procedemos si hay un usuario real
+            .flatMapLatest { state ->
+                val uid = (state as AuthState.Authenticated).session.userId
+                
+                flow {
+                    // Si Room está vacío, sincronizamos una vez de Firebase
+                    if (dao.countByUser(uid) == 0) {
+                        syncFromFirestore(uid)
+                    }
+                    emitAll(dao.observeByUser(uid).map { list -> list.map { it.toDomain() } })
+                }
+            }
 
-    override fun observeDefaultVehicle(): Flow<Vehicle?> = flow {
-        val uid = currentUserId() ?: return@flow
-        emitAll(dao.observeDefault(uid).map { it?.toDomain() })
-    }
+    override fun observeDefaultVehicle(): Flow<Vehicle?> =
+        authRepository.observeAuthState()
+            .filter { it is AuthState.Authenticated }
+            .flatMapLatest { state ->
+                val uid = (state as AuthState.Authenticated).session.userId
+                dao.observeDefault(uid).map { it?.toDomain() }
+            }
 
     override suspend fun saveVehicle(vehicle: Vehicle) {
         dao.insert(vehicle.toEntity())

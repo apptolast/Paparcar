@@ -457,9 +457,7 @@ private fun MainAppNavigation(
                         onConfigureBluetooth = { vehicleId ->
                             navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
                         },
-                        onViewHistory = { vehicleId ->
-                            navController.navigate("${Routes.VEHICLE_DETAIL}/$vehicleId")
-                        },
+                        onNavigateToMap = onOpenMapsNavigation,
                     )
                 }
             }

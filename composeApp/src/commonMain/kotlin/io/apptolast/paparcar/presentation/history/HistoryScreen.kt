@@ -20,6 +20,7 @@ package io.apptolast.paparcar.presentation.history
 // Then uncomment the FontFamily declarations below and remove the fallback lines.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -292,11 +293,12 @@ fun HistoryScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun HistoryContent(
+fun HistoryContent(
     state: HistoryState,
     contentPadding: PaddingValues,
     onViewOnMap: (Double, Double) -> Unit,
     onFilterSelected: (HistoryFilter) -> Unit = {},
+    header: (@Composable () -> Unit)? = null,
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
@@ -304,9 +306,7 @@ internal fun HistoryContent(
     val dayLabels = DAY_SHORT_RES.map { stringResource(it) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(contentPadding),
+        modifier = Modifier.fillMaxSize(),
     ) {
         when {
             state.isLoading -> {
@@ -314,7 +314,14 @@ internal fun HistoryContent(
             }
 
             state.sessions.isEmpty() -> {
-                EmptyHistoryState(modifier = Modifier.align(Alignment.Center))
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(contentPadding),
+                ) {
+                    header?.invoke()
+                    EmptyHistoryState(modifier = Modifier.weight(1f))
+                }
             }
 
             else -> {
@@ -333,8 +340,19 @@ internal fun HistoryContent(
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(
+                        top = contentPadding.calculateTopPadding() + 8.dp,
+                        bottom = contentPadding.calculateBottomPadding() + 80.dp, // Extra espacio para el FAB
+                        start = 16.dp,
+                        end = 16.dp,
+                    ),
                 ) {
+                    if (header != null) {
+                        item(key = "header") {
+                            header()
+                        }
+                    }
+
                     item(key = "chart") {
                         WeeklyActivityCard(data = weeklyStats)
                     }

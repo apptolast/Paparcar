@@ -38,6 +38,7 @@ class SpotRepositoryImpl(
     private val spotDao: SpotDao,
 ) : SpotRepository {
 
+    //FIXME: Esto tiene unica fuente de la verdad?
     override suspend fun getNearbySpots(
         location: GpsPoint,
         radiusMeters: Double,
@@ -85,6 +86,7 @@ class SpotRepositoryImpl(
         }
     }
 
+    //FIXME: Alomejor el usuario esta reportando un spot que ha visto sin necesidad que sea el suyo
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> = runCatching {
         firebaseDataSource.reportSpotReleased(spot.toDto())
         spotDao.delete(spot.id)

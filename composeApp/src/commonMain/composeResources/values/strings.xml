@@ -274,7 +274,7 @@
     <string name="vehicles_view_history">View parking history</string>
 
     <!-- My Car screen -->
-    <string name="my_car_title">My Car</string>
+    <string name="my_car_title">My vehicles</string>
     <string name="my_car_placeholder_desc">Vehicle management is coming in a future update.</string>
     <string name="my_car_no_vehicle">No vehicle registered yet</string>
     <string name="my_car_add_vehicle">Add vehicle</string>

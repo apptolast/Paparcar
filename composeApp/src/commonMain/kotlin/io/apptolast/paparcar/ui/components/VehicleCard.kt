@@ -1,18 +1,28 @@
 package io.apptolast.paparcar.ui.components
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.BluetoothConnected
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -78,8 +88,6 @@ data class VehicleCardData(
 // VehicleCard
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val   CarIconSize                 = 20.dp
-private const val ACTIVE_CARD_CONTAINER_ALPHA = 0.35f
 private const val INACTIVE_ICON_ALPHA         = 0.5f
 private const val DISABLED_DETECTION_ALPHA    = 0.45f
 
@@ -102,90 +110,115 @@ fun VehicleCard(
     onViewHistory: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
-    PapCard(
-        modifier = modifier.fillMaxWidth(),
-        containerColor = if (data.isActive)
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = ACTIVE_CARD_CONTAINER_ALPHA)
-        else
-            MaterialTheme.colorScheme.surface,
+    val isRedundant = data.displayName.trim().equals(data.sizeLabel.trim(), ignoreCase = true)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(
+                color = if (data.isActive) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                        else MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.medium
+            )
+            .padding(PaparcarSpacing.md)
     ) {
-        // ── Header: icon + name + active badge ───────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.DirectionsCar,
-                contentDescription = null,
-                tint = if (data.isActive) MaterialTheme.colorScheme.primary
-                       else MaterialTheme.colorScheme.onSurface.copy(alpha = INACTIVE_ICON_ALPHA),
-                modifier = Modifier.size(CarIconSize),
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = data.displayName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = data.sizeLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (data.isActive) {
-                PapStatusBadge(label = stringResource(Res.string.my_car_active_vehicle))
-            }
-        }
-
-        Spacer(Modifier.height(PaparcarSpacing.sm))
-
-        // ── Detection status row ──────────────────────────────────────────────
-        VehicleDetectionBadge(status = data.detectionStatus)
-
-        Spacer(Modifier.height(PaparcarSpacing.md))
-
-        // ── Action buttons ────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
-        ) {
-            if (!data.isActive) {
-                PapSecondaryButton(
-                    label = stringResource(Res.string.my_car_set_active),
-                    onClick = onSetActive,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            PapSecondaryButton(
-                label = stringResource(Res.string.my_car_bt_configure),
-                onClick = onConfigureBluetooth,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
-        ) {
-            PapSecondaryButton(
-                label = stringResource(Res.string.my_car_edit_vehicle),
-                onClick = onEdit,
-                modifier = Modifier.weight(1f),
-            )
-            PapSecondaryButton(
-                label = stringResource(Res.string.my_car_delete_vehicle),
-                onClick = onDelete,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (onViewHistory != null) {
-            PapSecondaryButton(
-                label = stringResource(Res.string.vehicles_view_history),
-                onClick = onViewHistory,
+        Column {
+            // ── Header: icon + name + Edit/Delete ───────────────────────────────
+            Row(
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.DirectionsCar,
+                    contentDescription = null,
+                    tint = if (data.isActive) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = INACTIVE_ICON_ALPHA),
+                    modifier = Modifier.size(24.dp).padding(top = 2.dp),
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = data.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (!isRedundant) {
+                        Text(
+                            text = data.sizeLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.height(PaparcarSpacing.xs))
+                    VehicleDetectionBadge(status = data.detectionStatus)
+                }
+
+                // Botones de acción rápida (Edit/Delete)
+                Row {
+                    IconButton(
+                        onClick = onEdit,
+                        colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(Icons.Outlined.Edit, contentDescription = stringResource(Res.string.my_car_edit_vehicle), modifier = Modifier.size(18.dp))
+                    }
+                    IconButton(
+                        onClick = onDelete,
+                        colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)),
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(Icons.Outlined.Delete, contentDescription = stringResource(Res.string.my_car_delete_vehicle), modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+
+            if (data.isActive) {
+                Spacer(Modifier.height(PaparcarSpacing.sm))
+                PapStatusBadge(
+                    label = stringResource(Res.string.my_car_active_vehicle),
+                )
+            }
+
+            Spacer(Modifier.height(PaparcarSpacing.md))
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
             )
+            Spacer(Modifier.height(PaparcarSpacing.md))
+
+            // ── Bottom Action Row ──────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (!data.isActive) {
+                    PapSecondaryButton(
+                        label = stringResource(Res.string.my_car_set_active),
+                        onClick = onSetActive,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(PaparcarSpacing.sm))
+                }
+
+                PapSecondaryButton(
+                    label = stringResource(Res.string.my_car_bt_configure),
+                    onClick = onConfigureBluetooth,
+                    modifier = if (data.isActive) Modifier.fillMaxWidth() else Modifier.weight(1f),
+                )
+            }
+
+            if (onViewHistory != null) {
+                Spacer(Modifier.height(PaparcarSpacing.sm))
+                PapSecondaryButton(
+                    label = stringResource(Res.string.vehicles_view_history),
+                    onClick = onViewHistory,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

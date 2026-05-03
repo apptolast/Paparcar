@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
@@ -93,6 +95,8 @@ class ParkingDetectionCoordinator(
         /** Snapshot of [vehicleExitConfirmed] at the moment the CANDIDATE phase was entered.
          *  Determines which observation window applies for auto-confirmation. */
         val highCandidateHadVehicleExit: Boolean = false,
+        /** True when detection should end (e.g. parking confirmed or spurious start timed out). */
+        val isFinished: Boolean = false,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -120,13 +124,13 @@ class ParkingDetectionCoordinator(
      */
     suspend operator fun invoke(locations: Flow<GpsPoint>) {
         reset()
-        var completed = false
         val sessionStartMs = Clock.System.now().toEpochMilliseconds()
 
-        locations
-            .takeWhile { !completed }
+        combine(locations, _detectionState) { loc, state -> loc to state }
+            .takeWhile { (_, state) -> !state.isFinished }
             .catch { /* upstream error — detection ends gracefully */ }
-            .collectLatest { location ->
+            .onCompletion { PaparcarLogger.d(TAG, "Detection loop finished") }
+            .collectLatest { (location, state) ->
                 val now = Clock.System.now().toEpochMilliseconds()
                 val stoppedDuration = updateStopTracking(location, now)
 
@@ -144,13 +148,11 @@ class ParkingDetectionCoordinator(
                     )
                 }
 
-                val state = _detectionState.value
-
                 // Guard: if real driving movement never appeared within maxNoMovementMs,
                 // this session was started by a spurious/batched IN_VEHICLE_ENTER while
                 // the user was already stationary. End detection silently.
                 if (!state.hasEverMoved && (now - sessionStartMs) > config.maxNoMovementMs) {
-                    completed = true
+                    _detectionState.update { it.copy(isFinished = true) }
                     return@collectLatest
                 }
 
@@ -158,7 +160,7 @@ class ParkingDetectionCoordinator(
                 // Immediate confirmation at reliability 1.0 — user provided ground truth.
                 if (state.userConfirmedParking) {
                     val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
-                    completed = true
+                    _detectionState.update { it.copy(isFinished = true) }
                     withContext(NonCancellable) {
                         confirmParking(locationToConfirm, config.reliabilityUserConfirmed)
                             .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
@@ -169,10 +171,6 @@ class ParkingDetectionCoordinator(
                 if (!state.hasEverMoved) return@collectLatest
 
                 // ── CANDIDATE phase: observation window ───────────────────────────────
-                // Once High confidence is reached the CANDIDATE phase runs an observation
-                // window before auto-confirming. If the vehicle drives away at
-                // clearBestStopSpeedMps, updateStopTracking clears highConfidenceReachedAt
-                // and bestStopLocation, cancelling the candidate automatically.
                 if (state.highConfidenceReachedAt != null) {
                     val window = if (state.highCandidateHadVehicleExit)
                         config.vehicleExitObservationWindowMs
@@ -186,7 +184,7 @@ class ParkingDetectionCoordinator(
                         else
                             config.reliabilitySlowPath
                         val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
-                        completed = true
+                        _detectionState.update { it.copy(isFinished = true) }
                         withContext(NonCancellable) {
                             confirmParking(locationToConfirm, reliability)
                                 .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
@@ -288,7 +286,7 @@ class ParkingDetectionCoordinator(
      * and always shows a confirmation notification. Does not confirm immediately — the
      * observation window in [invoke] handles auto-confirmation timing.
      */
-    private fun evaluateConfidence(
+    private suspend fun evaluateConfidence(
         location: GpsPoint,
         stoppedDuration: Long,
         state: ParkingDetectionState,

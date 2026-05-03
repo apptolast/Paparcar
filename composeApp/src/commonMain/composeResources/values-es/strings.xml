@@ -270,7 +270,7 @@
     <string name="vehicles_view_history">Ver historial de aparcamientos</string>
 
     <!-- Pantalla Mi Coche -->
-    <string name="my_car_title">Mi Coche</string>
+    <string name="my_car_title">Mis vehículos</string>
     <string name="my_car_placeholder_desc">La gestión de vehículos estará disponible en una próxima actualización.</string>
 
     <string name="my_car_no_vehicle">Aún no hay ningún vehículo registrado</string>

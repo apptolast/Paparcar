@@ -15,6 +15,7 @@ class UserProfileDataSourceImpl(
     private fun parkingHistoryCollection(userId: String) =
         usersCollection().document(userId).collection(COLLECTION_PARKING_HISTORY)
 
+//FIXME: esto podria ser un flow con snapshot que este escuchando cambios de perfil
     override suspend fun getProfile(userId: String): UserProfileDto? =
         runCatching {
             val doc = usersCollection().document(userId).get()
@@ -36,7 +37,7 @@ class UserProfileDataSourceImpl(
         address: AddressDto?,
         placeInfo: PlaceInfoDto?,
     ) {
-        val updates = buildMap<String, Any?> {
+        val updates = buildMap {
             put(FIELD_ADDRESS, address)
             put(FIELD_PLACE_INFO, placeInfo)
         }

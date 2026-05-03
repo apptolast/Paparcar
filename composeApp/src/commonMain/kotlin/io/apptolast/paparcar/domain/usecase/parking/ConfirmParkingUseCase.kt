@@ -69,6 +69,10 @@ class ConfirmParkingUseCase(
             sizeCategory = resolvedSizeCategory,
         )
 
+        //Fixme: esta funcionalidad requeire internet para agregarse, si en el momento no se da,
+        // se guarda en room pero no firestore quizas podriamos meterlo en work manager que ejecuta
+        // enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)
+
         val saved = userParkingRepository.saveSession(session)
         if (saved.isFailure) return Result.failure(PaparcarError.Parking.SaveFailed)
 
