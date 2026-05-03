@@ -115,7 +115,6 @@ import paparcar.composeapp.generated.resources.settings_section_map
 import paparcar.composeapp.generated.resources.settings_title
 import paparcar.composeapp.generated.resources.settings_version
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
@@ -143,10 +142,36 @@ fun SettingsScreen(
         }
     }
 
+    SettingsContent(
+        state = state,
+        onIntent = viewModel::handleIntent,
+        onNavigateBack = onNavigateBack,
+        themeMode = themeMode,
+        onSetThemeMode = onSetThemeMode,
+        imperialUnits = imperialUnits,
+        onToggleImperialUnits = onToggleImperialUnits,
+        selectedLanguage = selectedLanguage,
+        onSetLanguage = onSetLanguage,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun SettingsContent(
+    state: SettingsState,
+    onIntent: (SettingsIntent) -> Unit = {},
+    onNavigateBack: () -> Unit = {},
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onSetThemeMode: (ThemeMode) -> Unit = {},
+    imperialUnits: Boolean = false,
+    onToggleImperialUnits: (Boolean) -> Unit = {},
+    selectedLanguage: String = "auto",
+    onSetLanguage: (String) -> Unit = {},
+) {
     if (state.showDeleteAccountConfirmation) {
         DeleteAccountConfirmDialog(
-            onConfirm = { viewModel.handleIntent(SettingsIntent.ConfirmDeleteAccount) },
-            onDismiss = { viewModel.handleIntent(SettingsIntent.DismissDeleteAccount) },
+            onConfirm = { onIntent(SettingsIntent.ConfirmDeleteAccount) },
+            onDismiss = { onIntent(SettingsIntent.DismissDeleteAccount) },
         )
     }
 
@@ -195,9 +220,9 @@ fun SettingsScreen(
                     displayName = state.userProfile?.displayName
                         ?: stringResource(Res.string.settings_profile_name_placeholder),
                     email = state.userProfile?.email,
-                    onLogout = { viewModel.handleIntent(SettingsIntent.Logout) },
+                    onLogout = { onIntent(SettingsIntent.Logout) },
                     logoutLabel = stringResource(Res.string.settings_profile_logout),
-                    onDeleteAccount = { viewModel.handleIntent(SettingsIntent.RequestDeleteAccount) },
+                    onDeleteAccount = { onIntent(SettingsIntent.RequestDeleteAccount) },
                     deleteAccountLabel = stringResource(Res.string.settings_profile_delete_account),
                     isDeletingAccount = state.isDeletingAccount,
                 )
@@ -273,7 +298,7 @@ fun SettingsScreen(
                     description = stringResource(Res.string.settings_map_type_desc),
                     options = mapTypeLabels,
                     selected = state.mapType,
-                    onSelect = { viewModel.handleIntent(SettingsIntent.SetMapType(it)) },
+                    onSelect = { onIntent(SettingsIntent.SetMapType(it)) },
                 )
             }
 
@@ -287,9 +312,7 @@ fun SettingsScreen(
                     label = stringResource(Res.string.settings_auto_detect),
                     description = stringResource(Res.string.settings_auto_detect_desc),
                     checked = state.autoDetectParking,
-                    onCheckedChange = {
-                        viewModel.handleIntent(SettingsIntent.ToggleAutoDetect(it))
-                    },
+                    onCheckedChange = { onIntent(SettingsIntent.ToggleAutoDetect(it)) },
                 )
             }
             item {
@@ -297,7 +320,7 @@ fun SettingsScreen(
                     icon = Icons.Outlined.Bluetooth,
                     label = stringResource(Res.string.settings_nav_my_car),
                     description = stringResource(Res.string.settings_nav_my_car_desc),
-                    onClick = { viewModel.handleIntent(SettingsIntent.NavigateToVehicles) },
+                    onClick = { onIntent(SettingsIntent.NavigateToVehicles) },
                 )
             }
 
@@ -311,9 +334,7 @@ fun SettingsScreen(
                     label = stringResource(Res.string.settings_notif_parking),
                     description = stringResource(Res.string.settings_notif_parking_desc),
                     checked = state.notifyParkingDetected,
-                    onCheckedChange = {
-                        viewModel.handleIntent(SettingsIntent.ToggleParkingDetectedNotif(it))
-                    },
+                    onCheckedChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
                 )
             }
             item {
@@ -322,9 +343,7 @@ fun SettingsScreen(
                     label = stringResource(Res.string.settings_notif_spot),
                     description = stringResource(Res.string.settings_notif_spot_desc),
                     checked = state.notifySpotFreed,
-                    onCheckedChange = {
-                        viewModel.handleIntent(SettingsIntent.ToggleSpotFreedNotif(it))
-                    },
+                    onCheckedChange = { onIntent(SettingsIntent.ToggleSpotFreedNotif(it)) },
                 )
             }
 
@@ -343,21 +362,21 @@ fun SettingsScreen(
                 SettingsNavItem(
                     icon = Icons.Outlined.Shield,
                     label = stringResource(Res.string.settings_privacy),
-                    onClick = { viewModel.handleIntent(SettingsIntent.OpenPrivacyPolicy) },
+                    onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
                 )
             }
             item {
                 SettingsNavItem(
                     icon = Icons.Outlined.VerifiedUser,
                     label = stringResource(Res.string.settings_licenses),
-                    onClick = { viewModel.handleIntent(SettingsIntent.OpenLicenses) },
+                    onClick = { onIntent(SettingsIntent.OpenLicenses) },
                 )
             }
             item {
                 SettingsNavItem(
                     icon = Icons.Outlined.Email,
                     label = stringResource(Res.string.settings_contact),
-                    onClick = { viewModel.handleIntent(SettingsIntent.OpenContact) },
+                    onClick = { onIntent(SettingsIntent.OpenContact) },
                 )
             }
         }

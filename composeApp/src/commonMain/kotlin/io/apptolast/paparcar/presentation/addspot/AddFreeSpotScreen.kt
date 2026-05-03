@@ -22,9 +22,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
 import io.apptolast.paparcar.ui.components.PaparcarMapView
-import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -35,7 +35,6 @@ import paparcar.composeapp.generated.resources.error_gps_unavailable
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_manual_spot_reported
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFreeSpotScreen(
     onNavigateBack: () -> Unit = {},
@@ -67,6 +66,26 @@ fun AddFreeSpotScreen(
         }
     }
 
+    AddFreeSpotContent(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onNavigateBack = onNavigateBack,
+        onCameraMove = { lat, lon ->
+            viewModel.handleIntent(AddFreeSpotIntent.CameraPositionChanged(lat, lon))
+        },
+        onConfirmReport = { viewModel.handleIntent(AddFreeSpotIntent.ConfirmReport) },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun AddFreeSpotContent(
+    state: AddFreeSpotState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onNavigateBack: () -> Unit = {},
+    onCameraMove: (lat: Double, lon: Double) -> Unit = { _, _ -> },
+    onConfirmReport: () -> Unit = {},
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -95,9 +114,7 @@ fun AddFreeSpotScreen(
                     userLocation = state.userGpsPoint,
                     parkingLocation = null,
                     onSpotClick = {},
-                    onCameraMove = { lat, lon ->
-                        viewModel.handleIntent(AddFreeSpotIntent.CameraPositionChanged(lat, lon))
-                    },
+                    onCameraMove = onCameraMove,
                     reportMode = true,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -105,7 +122,7 @@ fun AddFreeSpotScreen(
             PaparcarBottomActionBar(
                 label = stringResource(Res.string.add_free_spot_action),
                 icon = Icons.Outlined.Campaign,
-                onClick = { viewModel.handleIntent(AddFreeSpotIntent.ConfirmReport) },
+                onClick = onConfirmReport,
                 isLoading = state.isReporting,
             )
         }

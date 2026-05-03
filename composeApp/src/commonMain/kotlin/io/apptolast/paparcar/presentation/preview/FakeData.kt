@@ -9,6 +9,11 @@ import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleWithStats
+import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
+import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
 import io.apptolast.paparcar.presentation.history.WeekDayStats
 import kotlin.time.Clock
 
@@ -212,5 +217,43 @@ internal object FakeData {
             address = addrSupermarket,
             placeInfo = placeInfoSupermarket,
         ),
+    )
+
+    // ── Vehicles ──────────────────────────────────────────────────────────────
+
+    val vehicleSedan = Vehicle(
+        id = "v1",
+        userId = "user-1",
+        brand = "Toyota",
+        model = "Corolla",
+        sizeCategory = VehicleSize.MEDIUM,
+        isDefault = true,
+    )
+
+    val vehicleVan = Vehicle(
+        id = "v2",
+        userId = "user-1",
+        brand = "Ford",
+        model = "Transit",
+        sizeCategory = VehicleSize.VAN,
+        bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+    )
+
+    val vehicleNoName = Vehicle(
+        id = "v3",
+        userId = "user-1",
+        sizeCategory = VehicleSize.MOTO,
+    )
+
+    val vehiclesWithStats = listOf(
+        VehicleWithStats(vehicle = vehicleSedan, sessionCount = 5, lastSession = null),
+        VehicleWithStats(vehicle = vehicleVan, sessionCount = 2, lastSession = null),
+    )
+
+    // ── Bluetooth devices ─────────────────────────────────────────────────────
+
+    val btDevices = listOf(
+        BluetoothDeviceInfo(address = "AA:BB:CC:DD:EE:FF", name = "Toyota BT Audio", type = BluetoothDeviceType.CLASSIC),
+        BluetoothDeviceInfo(address = "11:22:33:44:55:66", name = "Ford Transit", type = BluetoothDeviceType.DUAL),
     )
 }

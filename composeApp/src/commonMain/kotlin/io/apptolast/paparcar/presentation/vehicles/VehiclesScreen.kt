@@ -82,12 +82,28 @@ fun VehiclesScreen(
         }
     }
 
+    VehiclesContent(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onIntent = viewModel::handleIntent,
+        onConfigureBluetooth = onConfigureBluetooth,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun VehiclesContent(
+    state: VehiclesState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onIntent: (VehiclesIntent) -> Unit = {},
+    onConfigureBluetooth: (vehicleId: String) -> Unit = {},
+) {
     if (state.pendingDeleteVehicleId != null) {
         DeleteVehicleConfirmDialog(
             onConfirm = {
-                viewModel.handleIntent(VehiclesIntent.ConfirmDeleteVehicle(state.pendingDeleteVehicleId!!))
+                onIntent(VehiclesIntent.ConfirmDeleteVehicle(state.pendingDeleteVehicleId!!))
             },
-            onDismiss = { viewModel.handleIntent(VehiclesIntent.DismissDeleteConfirmation) },
+            onDismiss = { onIntent(VehiclesIntent.DismissDeleteConfirmation) },
         )
     }
 
@@ -98,7 +114,7 @@ fun VehiclesScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.handleIntent(VehiclesIntent.AddVehicle) },
+                onClick = { onIntent(VehiclesIntent.AddVehicle) },
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(Res.string.my_car_add_vehicle))
             }
@@ -113,7 +129,7 @@ fun VehiclesScreen(
             }
             state.vehicles.isEmpty() -> EmptyVehicleState(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                onAddVehicle = { viewModel.handleIntent(VehiclesIntent.AddVehicle) },
+                onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
             )
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = PaparcarSpacing.lg),
@@ -125,11 +141,11 @@ fun VehiclesScreen(
                         data = vehicleWithStats.toCardData(
                             sizeLabel = vehicleSizeName(vehicleWithStats.vehicle.sizeCategory),
                         ),
-                        onSetActive = { viewModel.handleIntent(VehiclesIntent.SetActiveVehicle(vehicleWithStats.vehicle.id)) },
+                        onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleWithStats.vehicle.id)) },
                         onConfigureBluetooth = { onConfigureBluetooth(vehicleWithStats.vehicle.id) },
-                        onEdit = { viewModel.handleIntent(VehiclesIntent.EditVehicle(vehicleWithStats.vehicle.id)) },
-                        onDelete = { viewModel.handleIntent(VehiclesIntent.RequestDeleteVehicle(vehicleWithStats.vehicle.id)) },
-                        onViewHistory = { viewModel.handleIntent(VehiclesIntent.ViewHistory(vehicleWithStats.vehicle.id)) },
+                        onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleWithStats.vehicle.id)) },
+                        onDelete = { onIntent(VehiclesIntent.RequestDeleteVehicle(vehicleWithStats.vehicle.id)) },
+                        onViewHistory = { onIntent(VehiclesIntent.ViewHistory(vehicleWithStats.vehicle.id)) },
                     )
                 }
                 item { Spacer(Modifier.height(FAB_CLEARANCE_HEIGHT)) }
