@@ -1,14 +1,15 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
+@file:OptIn(kotlin.time.ExperimentalTime::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package io.apptolast.paparcar.domain.usecase.location
 
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.time.Duration.Companion.seconds
 
 class GetOneLocationUseCaseTest {
 
@@ -25,9 +26,11 @@ class GetOneLocationUseCaseTest {
 
     @Test
     fun `should return location when emitted within timeout`() = runTest {
+        // Start the use case coroutine first so it subscribes before the emission
+        val deferred = async { useCase() }
+        runCurrent()
         fakeDataSource.emitBalanced(point)
-        val result = useCase()
-        assertEquals(point, result)
+        assertEquals(point, deferred.await())
     }
 
     @Test
@@ -39,9 +42,10 @@ class GetOneLocationUseCaseTest {
     @Test
     fun `should return first emission only`() = runTest {
         val second = point.copy(latitude = 41.0)
+        val deferred = async { useCase() }
+        runCurrent()
         fakeDataSource.emitBalanced(point)
         fakeDataSource.emitBalanced(second)
-        val result = useCase()
-        assertEquals(point, result)
+        assertEquals(point, deferred.await())
     }
 }

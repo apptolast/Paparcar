@@ -9,18 +9,20 @@ class FakeVehicleRepository(
     defaultVehicle: Vehicle? = null,
 ) : VehicleRepository {
 
+    private val _vehicles = MutableStateFlow<List<Vehicle>>(listOfNotNull(defaultVehicle))
     private val _defaultVehicle = MutableStateFlow(defaultVehicle)
 
-    override fun observeVehicles(): Flow<List<Vehicle>> =
-        MutableStateFlow(listOfNotNull(_defaultVehicle.value))
+    override fun observeVehicles(): Flow<List<Vehicle>> = _vehicles
 
     override fun observeDefaultVehicle(): Flow<Vehicle?> = _defaultVehicle
 
     override suspend fun saveVehicle(vehicle: Vehicle) {
+        _vehicles.value = _vehicles.value.filter { it.id != vehicle.id } + vehicle
         _defaultVehicle.value = vehicle
     }
 
     override suspend fun deleteVehicle(id: String) {
+        _vehicles.value = _vehicles.value.filter { it.id != id }
         if (_defaultVehicle.value?.id == id) _defaultVehicle.value = null
     }
 
@@ -34,7 +36,10 @@ class FakeVehicleRepository(
 
     override suspend fun deleteAllData(userId: String): Result<Unit> {
         deleteAllDataCallCount++
-        if (deleteAllDataResult.isSuccess) _defaultVehicle.value = null
+        if (deleteAllDataResult.isSuccess) {
+            _vehicles.value = emptyList()
+            _defaultVehicle.value = null
+        }
         return deleteAllDataResult
     }
 }

@@ -16,10 +16,14 @@ class BluetoothConfigViewModel(
     private val vehicleRepository: VehicleRepository,
 ) : BaseViewModel<BluetoothConfigState, BluetoothConfigIntent, BluetoothConfigEffect>() {
 
-    override fun initState() = BluetoothConfigState(vehicleId = vehicleId)
+    override fun initState() = BluetoothConfigState()
 
     init {
-        // Load the current vehicle's BT device and bonded device list
+        // vehicleId is available here (subclass init runs after super()).
+        // Capture in local val: inside updateState { } the receiver is BluetoothConfigState,
+        // so a bare 'vehicleId' reference would resolve to the state property (empty string).
+        val id = vehicleId
+        updateState { copy(vehicleId = id) }
         vehicleRepository.observeVehicles()
             .onEach { vehicles ->
                 val vehicle = vehicles.find { it.id == vehicleId }
