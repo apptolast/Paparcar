@@ -4,5 +4,19 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Paparcar uses your location to detect when you park and to show free parking spots near you.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Paparcar needs background location to publish your spot when you leave, even if the app is closed.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Paparcar uses motion data to detect when you switch from walking to driving so it can offer your parking spot to others.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Paparcar uses Bluetooth to recognise when you connect to your car so it can detect parking events more reliably.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
 </dict>
 </plist>

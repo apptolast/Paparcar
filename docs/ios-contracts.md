@@ -38,7 +38,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 
 | Interface | Stub / Impl | Android equivalent | iOS native (Phase 6) |
 |-----------|-------------|--------------------|----------------------|
-| `LocationDataSource` | `StubLocationDataSource` (stub) | `AndroidLocationDataSourceImpl` (FusedLocationProvider) | `CLLocationManager` |
+| `LocationDataSource` | `IosLocationDataSourceImpl` ✅ | `AndroidLocationDataSourceImpl` (FusedLocationProvider) | Done — `CLLocationManager` |
 | `GeocoderDataSource` | `StubGeocoderDataSource` (stub) | `AndroidGeocoderDataSourceImpl` | `CLGeocoder` |
 | `PlacesDataSource` | `StubPlacesDataSource` (stub) | `OverpassPlacesDataSourceImpl` (HTTP) | MapKit / same HTTP endpoint |
 | `AppNotificationManager` | `StubAppNotificationManager` (stub) | `AppNotificationManagerImpl` | `UNUserNotificationCenter` |
@@ -61,7 +61,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 
 ## 4. Phase 6 Implementation Order (Suggested)
 
-1. `LocationDataSource` → `CLLocationManagerLocationDataSource` (blocks all GPS-dependent features)
+1. ~~`LocationDataSource` → `CLLocationManagerLocationDataSource`~~ ✅ Done [`feature/IOS-LOC-001-cl-location-manager`]
 2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager`
 3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`
 4. `ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`
