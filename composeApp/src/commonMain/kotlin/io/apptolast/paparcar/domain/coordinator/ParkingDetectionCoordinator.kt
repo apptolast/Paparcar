@@ -119,25 +119,41 @@ class ParkingDetectionCoordinator(
      * Resets all session state on entry and dismisses any stale confirmation notification.
      */
     suspend operator fun invoke(locations: Flow<GpsPoint>) {
+        PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry — calling reset()")
         reset()
         var completed = false
         val sessionStartMs = Clock.System.now().toEpochMilliseconds()
+        var locationCount = 0
 
         locations
-            .takeWhile { !completed }
-            .catch { /* upstream error — detection ends gracefully */ }
+            .takeWhile {
+                val keep = !completed
+                if (!keep) PaparcarLogger.d(DIAG, "  takeWhile=false — flow will end")
+                keep
+            }
+            .catch { e -> PaparcarLogger.e(DIAG, "✗ upstream flow error", e) }
             .collectLatest { location ->
+                locationCount++
                 val now = Clock.System.now().toEpochMilliseconds()
+                val sessionAgeMs = now - sessionStartMs
+                PaparcarLogger.d(
+                    DIAG,
+                    "─ loc#$locationCount speed=${location.speed}m/s acc=${location.accuracy}m sessionAge=${sessionAgeMs}ms"
+                )
                 val stoppedDuration = updateStopTracking(location, now)
 
                 _detectionState.update { s ->
                     val origin = s.sessionOrigin ?: location
+                    val distFromOrigin = io.apptolast.paparcar.domain.util.haversineMeters(
+                        origin.latitude, origin.longitude,
+                        location.latitude, location.longitude,
+                    )
                     val hasJustMoved = !s.hasEverMoved &&
                             location.speed >= config.minimumTripSpeedMps &&
-                            io.apptolast.paparcar.domain.util.haversineMeters(
-                                origin.latitude, origin.longitude,
-                                location.latitude, location.longitude,
-                            ) >= config.minimumTripDistanceMeters
+                            distFromOrigin >= config.minimumTripDistanceMeters
+                    if (hasJustMoved) {
+                        PaparcarLogger.d(DIAG, "  ✓ hasEverMoved → true (speed≥${config.minimumTripSpeedMps}, dist≥${config.minimumTripDistanceMeters}m, actual=${distFromOrigin}m)")
+                    }
                     s.copy(
                         sessionOrigin = s.sessionOrigin ?: location,
                         hasEverMoved = s.hasEverMoved || hasJustMoved,
@@ -145,84 +161,94 @@ class ParkingDetectionCoordinator(
                 }
 
                 val state = _detectionState.value
+                PaparcarLogger.d(
+                    DIAG,
+                    "  state hasEverMoved=${state.hasEverMoved} userConfirmed=${state.userConfirmedParking} " +
+                            "vehicleExit=${state.vehicleExitConfirmed} stoppedSince=${state.stoppedSince} " +
+                            "stoppedDur=${stoppedDuration}ms highReachedAt=${state.highConfidenceReachedAt} " +
+                            "mediumShown=${state.mediumNotificationShown}"
+                )
 
-                // Guard: if real driving movement never appeared within maxNoMovementMs,
-                // this session was started by a spurious/batched IN_VEHICLE_ENTER while
-                // the user was already stationary. End detection silently.
                 if (!state.hasEverMoved && (now - sessionStartMs) > config.maxNoMovementMs) {
+                    PaparcarLogger.d(DIAG, "  ⚑ maxNoMovementMs guard hit → completed=true (spurious IN_VEHICLE_ENTER)")
                     completed = true
                     return@collectLatest
                 }
 
-                // ── User-confirmed path ───────────────────────────────────────────────
-                // Immediate confirmation at reliability 1.0 — user provided ground truth.
                 if (state.userConfirmedParking) {
+                    PaparcarLogger.d(DIAG, "  ▶ USER-CONFIRMED path — entering confirmParking")
                     val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
                     completed = true
                     withContext(NonCancellable) {
+                        PaparcarLogger.d(DIAG, "    → confirmParking(reliability=user) START")
                         confirmParking(locationToConfirm, config.reliabilityUserConfirmed)
                             .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
+                        PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=user) END")
                     }
+                    PaparcarLogger.d(DIAG, "  ◀ USER-CONFIRMED path done — returning from collectLatest")
                     return@collectLatest
                 }
 
-                if (!state.hasEverMoved) return@collectLatest
+                if (!state.hasEverMoved) {
+                    PaparcarLogger.d(DIAG, "  ⏸ skipping: !hasEverMoved")
+                    return@collectLatest
+                }
 
-                // ── CANDIDATE phase: observation window ───────────────────────────────
-                // Once High confidence is reached the CANDIDATE phase runs an observation
-                // window before auto-confirming. If the vehicle drives away at
-                // clearBestStopSpeedMps, updateStopTracking clears highConfidenceReachedAt
-                // and bestStopLocation, cancelling the candidate automatically.
                 if (state.highConfidenceReachedAt != null) {
                     val window = if (state.highCandidateHadVehicleExit)
                         config.vehicleExitObservationWindowMs
                     else
                         config.confirmationObservationWindowMs
+                    val elapsed = now - state.highConfidenceReachedAt
+                    PaparcarLogger.d(DIAG, "  ⏳ CANDIDATE phase — elapsed=${elapsed}ms window=${window}ms")
 
-                    if (now - state.highConfidenceReachedAt >= window) {
-                        // Observation window elapsed with no vehicle movement → auto-confirm.
+                    if (elapsed >= window) {
                         val reliability = if (state.highCandidateHadVehicleExit)
                             config.reliabilityVehicleExit
                         else
                             config.reliabilitySlowPath
+                        PaparcarLogger.d(DIAG, "  ▶ CANDIDATE window expired — entering confirmParking(reliability=$reliability)")
                         val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
                         completed = true
                         withContext(NonCancellable) {
+                            PaparcarLogger.d(DIAG, "    → confirmParking(reliability=$reliability) START")
                             confirmParking(locationToConfirm, reliability)
                                 .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
+                            PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=$reliability) END")
                         }
+                        PaparcarLogger.d(DIAG, "  ◀ CANDIDATE confirm done — returning from collectLatest")
                     }
-                    // Still within observation window — keep waiting.
                     return@collectLatest
                 }
 
-                // ── Normal confidence scoring ─────────────────────────────────────────
                 evaluateConfidence(location, stoppedDuration, state, now)
             }
+        PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=$locationCount completed=$completed")
     }
 
     /** Signals that the `IN_VEHICLE → EXIT` transition was received. Thread-safe. */
     fun onVehicleExit() {
+        PaparcarLogger.d(DIAG, "✱ onVehicleExit() called")
         _detectionState.update { it.copy(vehicleExitConfirmed = true) }
     }
 
     /** Signals that the device is now reporting STILL activity. Thread-safe. */
     fun onStillDetected() {
+        PaparcarLogger.d(DIAG, "✱ onStillDetected() called")
         _detectionState.update { it.copy(activityStillDetected = true) }
     }
 
     /** User tapped "Yes, I parked". Dismisses the notification and marks confirmation. Thread-safe. */
     fun onUserConfirmedParking() {
+        PaparcarLogger.d(DIAG, "✱ onUserConfirmedParking() called")
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
         _detectionState.update { it.copy(userConfirmedParking = true) }
     }
 
     /** User dismissed the confirmation ("Keep driving"). Resets all heuristics. Thread-safe. */
     fun onUserDeniedParking() {
+        PaparcarLogger.d(DIAG, "✱ onUserDeniedParking() called")
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-        // Preserve hasEverMoved: sessionStartMs is fixed at invoke() entry and never reset,
-        // so a full ParkingDetectionState() reset (hasEverMoved=false) would immediately
-        // trigger the maxNoMovementMs timeout guard on the next GPS fix and kill the session.
         _detectionState.update { ParkingDetectionState(hasEverMoved = it.hasEverMoved) }
     }
 
@@ -301,32 +327,39 @@ class ParkingDetectionCoordinator(
             activityExit = state.vehicleExitConfirmed,
             activityStill = state.activityStillDetected,
         )
-        when (val confidence = calculateParkingConfidence(signals)) {
+        val confidence = calculateParkingConfidence(signals)
+        PaparcarLogger.d(DIAG, "  ⚖ scoring=$confidence (signals: speed=${signals.speed} stopped=${signals.stoppedDurationMs}ms accuracy=${signals.gpsAccuracy} exit=${signals.activityExit} still=${signals.activityStill})")
+        when (confidence) {
             is ParkingConfidence.NotYet -> Unit
             is ParkingConfidence.Low,
             is ParkingConfidence.Medium -> {
                 if (!state.mediumNotificationShown) {
+                    PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium)")
                     _detectionState.update { it.copy(mediumNotificationShown = true) }
+                    PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
                     notifyParkingConfirmation(confidence)
+                    PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
                 }
             }
 
             is ParkingConfidence.High -> {
-                // Enter CANDIDATE phase. Notification is always shown so the user can
-                // confirm early or dismiss if this is a false positive (e.g. double-park).
+                PaparcarLogger.d(DIAG, "  ▶ HIGH reached — entering CANDIDATE phase, vehicleExit=${state.vehicleExitConfirmed}")
                 _detectionState.update { s ->
                     s.copy(
                         highConfidenceReachedAt = now,
                         highCandidateHadVehicleExit = s.vehicleExitConfirmed,
                     )
                 }
+                PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
                 notifyParkingConfirmation(confidence)
+                PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
             }
         }
     }
 
     private companion object {
         const val TAG = "ParkingDetectionCoordinator"
+        const val DIAG = "PARKDIAG/Coord"
         const val MAX_STOPPED_FIXES = 20
         const val STOPPED_SPEED_THRESHOLD_MPS = 1f
     }
