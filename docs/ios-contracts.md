@@ -41,7 +41,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | `LocationDataSource` | `StubLocationDataSource` (stub) | `AndroidLocationDataSourceImpl` (FusedLocationProvider) | `CLLocationManager` |
 | `GeocoderDataSource` | `StubGeocoderDataSource` (stub) | `AndroidGeocoderDataSourceImpl` | `CLGeocoder` |
 | `PlacesDataSource` | `StubPlacesDataSource` (stub) | `OverpassPlacesDataSourceImpl` (HTTP) | MapKit / same HTTP endpoint |
-| `AppNotificationManager` | `StubAppNotificationManager` (stub) | `AppNotificationManagerImpl` | `UNUserNotificationCenter` |
+| `AppNotificationManager` | `IosAppNotificationManagerImpl` ✅ | `AppNotificationManagerImpl` | Done — `UNUserNotificationCenter` (action routing pending detection pipeline) |
 | `PermissionManager` | `IosPermissionManagerImpl` ✅ | `PermissionManagerImpl` | Done — `CLLocationManager` + `CMMotion` + `UNUserNotificationCenter` |
 | `AppPreferences` | `IosAppPreferences` ✅ | `AndroidAppPreferences` | Done — `NSUserDefaults` |
 | `AppDatabase` | Room KMP ✅ | Room KMP | Done — `BundledSQLiteDriver` + document directory |
@@ -61,8 +61,8 @@ The stub pattern lets iOS compile and run while native implementations are defer
 
 ## 4. Phase 6 Implementation Order (Suggested)
 
-1. `LocationDataSource` → `CLLocationManagerLocationDataSource` (blocks all GPS-dependent features)
-2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager`
+1. `LocationDataSource` → `CLLocationManagerLocationDataSource` (blocks all GPS-dependent features) — see [IOS-LOC-001]
+2. ~~`AppNotificationManager` → `UNUserNotificationCenterNotificationManager`~~ ✅ Done [`feature/IOS-NOTIF-001-un-notification-center`]
 3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`
 4. `ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`
 5. `ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers
