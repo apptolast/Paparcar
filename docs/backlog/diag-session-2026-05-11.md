@@ -189,7 +189,7 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 9. `feature/PIPE-002-sync-clear-active-and-update-location` — ⚪ Pending (follow-up of PIPE-001)
+## 9. `feature/PIPE-002-sync-clear-active-and-update-location` — 🔵 Branch ready (feature/PIPE-002-sync-clear-active-and-update-location)
 
 **Priority:** Low — same failure mode as PIPE-001 (in-flight Firestore call can hang), but on much less critical paths.
 
@@ -219,7 +219,9 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 11. `chore/ARCH-003-add-architecture-lint-rules` — 🔵 Branch ready (chore/ARCH-003-add-architecture-lint-rules)
+## 11. `chore/ARCH-003-add-architecture-lint-rules` — ✅ Done
+
+**Merged:** 2026-05-12, commit `e38ab18` (branch deleted post-merge). Konsist 0.17.3 in `androidUnitTest`; 5 rules: presentation→data, data→presentation, domain→data/presentation, runBlocking in commonMain, UseCase placement.
 
 **Priority:** Low-medium — preventive. Catches discipline gaps at compile time.
 

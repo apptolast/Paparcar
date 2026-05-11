@@ -67,7 +67,7 @@ class ConfirmParkingUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals(1, parkingSync.scheduleCallCount)
-        assertNull(parkingSync.calls.first().previousSessionId)
+        assertNull(parkingSync.scheduleCalls.first().previousSessionId)
     }
 
     @Test
@@ -86,7 +86,7 @@ class ConfirmParkingUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals(1, parkingSync.scheduleCallCount)
-        assertEquals("previous-session-id", parkingSync.calls.first().previousSessionId)
+        assertEquals("previous-session-id", parkingSync.scheduleCalls.first().previousSessionId)
     }
 
     @Test

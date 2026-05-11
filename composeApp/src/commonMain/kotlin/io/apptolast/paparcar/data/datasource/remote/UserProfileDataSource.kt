@@ -9,6 +9,7 @@ interface UserProfileDataSource {
     suspend fun getProfile(userId: String): UserProfileDto?
     suspend fun createOrUpdateProfile(profile: UserProfileDto)
     suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto)
+    suspend fun updateParkingSessionActiveFlag(userId: String, sessionId: String, isActive: Boolean)
     suspend fun updateParkingSessionLocation(userId: String, sessionId: String, address: AddressDto?, placeInfo: PlaceInfoDto?)
     suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto>
     suspend fun deleteUserData(userId: String)

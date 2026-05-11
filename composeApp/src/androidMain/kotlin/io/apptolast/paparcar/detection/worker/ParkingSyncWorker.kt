@@ -54,16 +54,11 @@ class ParkingSyncWorker(
         PaparcarLogger.d(TAG, "▶ ParkingSyncWorker.doWork session=${newSession.id} previous=$previousSessionId attempt=$runAttemptCount")
 
         return runCatching {
-            // Mark previous active session as inactive in Firestore.
-            // Only the isActive flag flips — we don't have the rest of the previous
-            // session payload here, but Firestore set() merges only the fields present.
-            // We use a partial DTO that carries id + isActive=false; saveParkingSession
-            // performs a set() on the document by id.
+            // Mark previous active session as inactive in Firestore via update()
+            // (not set()) so we only flip the isActive flag without overwriting
+            // existing coordinates or other fields. [PIPE-001 bugfix in PIPE-002]
             previousSessionId?.let { prevId ->
-                userProfileDataSource.saveParkingSession(
-                    userId,
-                    ParkingHistoryDto(id = prevId, userId = userId, latitude = 0.0, longitude = 0.0, isActive = false),
-                )
+                userProfileDataSource.updateParkingSessionActiveFlag(userId, prevId, false)
             }
             userProfileDataSource.saveParkingSession(userId, newSession)
         }.fold(

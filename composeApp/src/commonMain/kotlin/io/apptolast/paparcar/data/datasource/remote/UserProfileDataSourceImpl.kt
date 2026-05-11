@@ -30,6 +30,10 @@ class UserProfileDataSourceImpl(
         parkingHistoryCollection(userId).document(session.id).set(session)
     }
 
+    override suspend fun updateParkingSessionActiveFlag(userId: String, sessionId: String, isActive: Boolean) {
+        parkingHistoryCollection(userId).document(sessionId).update(mapOf(FIELD_IS_ACTIVE to isActive))
+    }
+
     override suspend fun updateParkingSessionLocation(
         userId: String,
         sessionId: String,

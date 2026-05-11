@@ -29,7 +29,7 @@ val dataModule = module {
 
     // Repositories
     single<SpotRepository> { SpotRepositoryImpl(get(), get()) }
-    single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get()) }
+    single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get(), get()) }
     single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
     single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get()) }
 
