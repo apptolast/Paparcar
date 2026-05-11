@@ -1,0 +1,177 @@
+# Diagnostic session — 2026-05-11
+
+Tickets surfaced during the debug session for the "blue foreground-service notification stays forever" bug. The original bug stopped reproducing after a clean reinstall of the debug APK on both an OPPO CPH2371 and a Redmi Note 11 — likely a stale state from local DB migrations that cleared itself when the new build force-stopped + re-initialized the app. Even so, the session uncovered five concrete issues worth addressing as separate tickets.
+
+Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PREFIX-NNN-…`). Numbers are suggested; renumber if they collide with anything in flight.
+
+---
+
+## 1. `bugfix/LOC-001-parked-spot-captures-walk-destination`
+
+**Priority:** High — directly degrades the core product (wrong spot saved).
+**Reproducible on:** Redmi Note 11 (master) and Samsung A53 (master), tests on 2026-05-11. Saved spot was the user's home (~5 m from front door) instead of the actual parking position a few hundred metres away. Same symptom on both devices → not an OEM quirk, a coordinator-logic bug.
+
+**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/coordinator/ParkingDetectionCoordinator.kt:251-283` — `updateStopTracking`.
+
+**What:** `bestStopLocation` is updated for the entire duration of the stop (any GPS fix with `speed < STOPPED_SPEED_THRESHOLD_MPS = 1 m/s` and better `accuracy` overwrites the running best). The sibling `stoppedFixes` list IS gated to `initialStopWindowMs = 30 s`, but `bestStopLocation` is not. Walking speed (~1.4 m/s) is below `clearBestStopSpeedMps = 2.5 m/s`, so walking from the car to the user's destination does **not** reset the candidate location — it shadows it with whatever the user's new GPS reads when they sit down at home.
+
+**Fix:** gate `bestStopLocation` updates with `withinInitialWindow` so it freezes after 30 s, matching `stoppedFixes`. Optionally, additionally reject updates whose distance from the existing `bestStopLocation` exceeds ~30 m as a defence-in-depth.
+
+**Effort:** Small (1-line change + a coordinator test for the walking-after-park scenario).
+
+---
+
+## 2. `bugfix/MAPPER-001-detection-reliability-not-mapped`
+
+**Priority:** Low — does not break functionality, but it kills reliability-based analytics.
+**Evidence:** Database Inspector dump on 2026-05-05 — every row in `parking_sessions` had `detectionReliability = NULL`, including new ones written by the current coordinator.
+
+**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/mapper/ParkingSessionMapper.kt:53-70` — `UserParking.toEntity()`.
+
+**What:** The domain → entity mapper omits `detectionReliability = detectionReliability`. The entity falls back to its default (`null`). The reverse mapping (`UserParkingEntity.toDomain`) and the Firestore-DTO mapping (`ParkingHistoryDto.toEntity`) DO map it. Pre-existing bug — not introduced this week.
+
+**Fix:** Add the missing line. Add a mapper test that round-trips reliability.
+
+**Effort:** Trivial.
+
+---
+
+## 3. `feature/HIST-001-vehicles-screen-rework`
+
+**Priority:** Medium — UX rework bundled with the legacy-session backfill discovered in this session.
+**Scope:** Two parts in one branch — the data fix and the screen redesign go together because they touch the same surface.
+
+### 3.a — Data: legacy sessions with `vehicleId = NULL`
+
+**Evidence:** All `parking_sessions` rows on the OPPO have `vehicleId = NULL`. The new "Mis Vehículos" screen filters with `observeSessionsByVehicle(vehicleId)` so legacy rows never appear anywhere.
+
+**Where:**
+- Migration: `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/di/AndroidPlatformModule.kt` — `MIGRATION_9_10` adds the column nullable, no backfill.
+- Filter: `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/datasource/local/room/UserParkingDao.kt:30-31` — `observeByVehicle`.
+
+**Fix:** Backfill at first launch post-migration: rows with `vehicleId = NULL` get assigned to the user's `isDefault = true` vehicle. If no default exists, fall back to the only vehicle (single-vehicle accounts). If multiple vehicles and no default, leave NULL and surface them in an "Unassigned" tab (see 3.b). Idempotent — re-runs are no-ops.
+
+Made obsolete by DB-001 if you choose to reset the schema before this lands; in that case skip 3.a entirely.
+
+### 3.b — UX: flatten the Vehicles screen
+
+**Current state:** Top-level `Column` with N elevated cards (one per vehicle). Tap a card → nested screen with `Details` / `Historial` tabs. Two layers of navigation for the same primary action.
+
+**Desired state:**
+- Top-level `HorizontalPager` + `TabRow` — one tab per vehicle, swipe between them. No card → details → tabs chain.
+- Each tab page is **a single scrollable layout** containing, top-down:
+  - Vehicle details (brand, model, plate, size, active marker, edit/delete actions) — flat surface, minimal elevation, just visual grouping. Drop the heavy elevated card look.
+  - Parking history for that vehicle below, no nested screen, no separate tab.
+- Match Material 3 minimalist style: tonal containers over shadow elevation, generous spacing, no redundant titles per section.
+
+**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicles/` — `VehiclesScreen.kt`, `VehicleDetailScreen.kt`, `VehicleDetailsTab.kt`, plus relevant components in `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/ui/components/VehicleCard.kt` (probably delete or repurpose).
+
+**Out of scope for this ticket:** changing the VM contract (`VehiclesViewModel` stays as-is; `HistoryViewModel` reuse per tab as the pager pages need their own scope).
+
+**Effort:** Medium (UX rework + tests for both data backfill and the pager structure).
+
+---
+
+## 4. `feature/PIPE-001-confirm-parking-pipeline`
+
+**Priority:** Medium — preventive refactor, not a bug. Eliminates the root cause class of the "service hangs forever" failure mode.
+
+**Where:** Full plan in `docs/refactors/PIPE-001-confirm-parking-pipeline.md`. Open the branch from `master` **after** the diagnostic-logger branch is merged.
+
+**What:** Move Firestore writes (the only network-bound suspending step in `confirmParking`) into a `ParkingSyncWorker`. Coordinator's `withContext(NonCancellable) { confirmParking(...) }` becomes bounded by Room + GMS Geofence + a local notification — none of which can hang indefinitely.
+
+**Effort:** Medium. Detailed step-by-step in the refactor doc.
+
+---
+
+## 5. `bugfix/FND-009-runblocking-in-notify-usecase`
+
+**Priority:** Medium-High — latent ANR. We captured 1.2-1.4 s of Main-thread blocking in the diagnostic logs.
+
+**Evidence:** Diagnostic captures on 2026-05-10 (emulator):
+```
+PARKDIAG/Notify → entering runBlocking { observeDefaultVehicle.firstOrNull() }
+PARKDIAG/Notify ← runBlocking returned, vehicleName=Seat Ibiza     (1.35 s later)
+```
+That delay was on a stationary, well-fed emulator. On a real device with cold Room, contended IO, or auth-token refresh, this can spike past 5 s and trigger an ANR.
+
+**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/usecase/notification/NotifyParkingConfirmationUseCase.kt:14-23`.
+
+**What:** The use case is non-suspend; it wraps `vehicleRepository.observeDefaultVehicle().firstOrNull()` in `runBlocking` to read the vehicle name for the notification title. The caller (`ParkingDetectionCoordinator.evaluateConfidence`) is already inside a coroutine — `runBlocking` is gratuitous.
+
+**Fix:** Convert `invoke` to `suspend operator fun invoke(...)`. Make `evaluateConfidence` and its caller suspending — the change ripples a couple of frames up but they're all already inside coroutines. The same fix was already part of the abandoned `gemini-changes` branch (commit `d0a4ece`); cherry-pick that hunk if convenient.
+
+**Effort:** Small. Ripple confined to coordinator's internal calls.
+
+---
+
+## 6. `chore/DB-001-reset-room-schema-baseline`
+
+**Priority:** Medium — opportunistic cleanup while the app is still pre-release.
+**Trigger:** Pre-production state. No external users have data we need to preserve.
+
+**Where:**
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/datasource/local/room/AppDatabase.kt` — version + entities list.
+- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/di/AndroidPlatformModule.kt` — `MIGRATION_3_4`, `MIGRATION_4_5`, `MIGRATION_5_6`, `MIGRATION_7_8`, `MIGRATION_8_9`, `MIGRATION_9_10`.
+
+**What:** Collapse the Room schema history. Delete all `MIGRATION_*` objects and the `.addMigrations(...)` chain. Reset `@Database(version = N)` to `1` (or whatever number you prefer as the new baseline). Existing devices nuke their DB on next launch via `fallbackToDestructiveMigration(true)` — that flag is already there, so legacy installs reset cleanly. The user will manually wipe accounts + Firestore data to start clean.
+
+**Why it's worth it:** Six migrations in commonMain that nobody benefits from. They're code, they're risk, and the chain has already been the indirect cause of `HIST-001` and our zombie-session investigation. Resetting now buys us a clean slate for `PIPE-001` and any future schema changes.
+
+**Pre-requisites:**
+- Confirm with the user that **all** existing test accounts have been wiped (Firestore + local installs).
+- HIST-001 sub-task 3.a (data backfill) becomes unnecessary if this lands first.
+
+**Effort:** Trivial code change, but coordinate with user-data wipe so we don't lose track of devices mid-flight.
+
+---
+
+## 7. `chore/ARCH-002-architecture-and-modularization-review`
+
+**Priority:** Low (exploratory), but high leverage if acted on.
+**Note:** `ARCH-001` was the cancelled `CurrentUserProvider` over-engineering attempt; numbering forward.
+
+**What:** Write up a short analysis (1-2 pages) covering:
+- Current architecture honest assessment: Clean + MVI in commonMain, platform layer in androidMain, Koin for DI. Where it's pulling its weight, where it's overkill, where boundaries blur.
+- Module structure today: one `:composeApp` module with sourcesets. Compare against options:
+  - **Status quo** — keep monolithic `:composeApp`, just discipline package boundaries.
+  - **Mixed modularization** — extract `:domain` (pure Kotlin), `:data`, `:detection`, `:presentation` as separate Gradle modules. Faster incremental builds, enforced dependency rules, better testability isolation.
+  - **Feature modules** — split by feature (`:feature-home`, `:feature-vehicles`, …) on top of a `:core` set.
+- Concrete recommendation with trade-offs (build time, ceremony, ROI given solo-dev context).
+
+**Inputs to gather first:**
+- Current `clean + assemble` time for the app.
+- Pain points the user feels day-to-day (slow builds? hard to test in isolation? circular deps?).
+
+**Output:** `docs/architecture/ARCH-002-modularization-review.md`. No code changes — that's a separate ticket if the recommendation is acted on.
+
+**Effort:** 2-4 hours of analysis + write-up.
+
+---
+
+## 8. `chore/REL-001-release-build-pipeline`
+
+**Priority:** Medium — gates being able to share the app publicly.
+
+**Scope:** Everything needed to produce a signed release artifact reliably.
+
+- **Signing config**: generate an upload keystore, wire it into `composeApp/build.gradle.kts` `signingConfigs` (read from `gradle.properties` / env vars, NEVER commit the keystore).
+- **R8 / ProGuard**: review `isMinifyEnabled = false` in the release block — flip on minification and shrinking, add keep rules for Koin, GitLive Firebase, Compose, Napier, kotlinx-serialization. Verify nothing in release builds crashes due to obfuscation (especially reflection-based DI).
+- **Version scheme**: define `versionCode` / `versionName` strategy. Tag commits, automate bumping (e.g. via Gradle task or CI).
+- **Release-only configs**: confirm `BuildConfig.DEBUG = false` paths are right — no debug notifications, no `FileAntilog` (already gated), no verbose Napier antilogs.
+- **Distribution**: today there's a Firebase App Distribution workflow (`.github/workflows/distribute.yml` from QA-007). Decide whether release goes through App Distribution → internal testers → Play Store internal track, or straight to Play Console.
+- **Play Console listing**: store listing assets, privacy policy URL, data-safety form, permissions justification (especially `ACCESS_BACKGROUND_LOCATION`, `ACTIVITY_RECOGNITION`).
+- **Smoke test**: install a signed release APK on a real device, run a parking detection end-to-end, verify Crashlytics still receives events and Firestore writes succeed.
+
+**Pre-requisites:**
+- DB-001 ideally lands first so the first release ships with a clean schema baseline.
+- PIPE-001 strongly recommended before any "first impression" public release — it removes the worst class of hang we've seen.
+
+**Effort:** Medium-large. Signing + R8 keep rules are the highest-risk steps (a single missing keep rule can crash release on first launch).
+
+---
+
+## Out of scope for this list
+
+- The actual cause of the original "blue notification hangs forever" symptom is unconfirmed. Once any of the above fixes ships and the user has driven a few times in production without recurrence, mark this session as closed.
+- The diagnostic logging infrastructure itself (`FileAntilog`, `PARKDIAG` log lines, debug manifest override) stays as long as the branch `debug/parking-hang-diag` lives. Strip before merging anything diagnostic-related to master, OR keep `FileAntilog` behind `BuildConfig.DEBUG` (already the case) if you want it permanently available.
