@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -22,20 +23,23 @@ class ParkingDetectionService : LifecycleService() {
     private val notificationPort: AppNotificationManager by inject()
     private var detectionJob: Job? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        PaparcarLogger.d(DIAG, "▶ Service onCreate")
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
 
+        PaparcarLogger.d(DIAG, "▶ onStartCommand action=${intent?.action} flags=$flags startId=$startId")
+
         when (intent?.action) {
             ACTION_START_TRACKING -> {
-                // If a real trip is already in progress (coordinator has confirmed movement),
-                // the incoming IN_VEHICLE_ENTER is likely a spurious batched/delayed duplicate.
-                // Restarting would destroy accumulated stop data and leave the service stuck
-                // with hasEverMoved=false if the user is already parked.
-                // Only restart if no real movement has been detected yet (false start) or if
-                // no detection job is running.
                 if (detectionJob?.isActive == true && parkingDetectionCoordinator.hasDetectedMovement) {
+                    PaparcarLogger.d(DIAG, "  ↻ START_TRACKING ignored — job active + hasDetectedMovement=true")
                     return START_STICKY
                 }
+                PaparcarLogger.d(DIAG, "  → START_TRACKING — (re)starting detection")
                 detectionJob?.cancel()
                 detectionJob = null
                 val notification = foregroundNotificationProvider.buildDetectionNotification()
@@ -48,20 +52,23 @@ class ParkingDetectionService : LifecycleService() {
                 } else {
                     startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
                 }
+                PaparcarLogger.d(DIAG, "  ✓ startForeground done (notif ${AppNotificationManager.DETECTION_NOTIFICATION_ID})")
                 startParkingDetection()
             }
             ACTION_VEHICLE_EXIT -> {
+                PaparcarLogger.d(DIAG, "  → VEHICLE_EXIT delivered to coordinator")
                 parkingDetectionCoordinator.onVehicleExit()
             }
             ACTION_PARKING_CONFIRMED -> {
-                // Notification is dismissed inside onUserConfirmedParking().
+                PaparcarLogger.d(DIAG, "  → PARKING_CONFIRMED delivered to coordinator")
                 parkingDetectionCoordinator.onUserConfirmedParking()
             }
             ACTION_PARKING_DENIED -> {
-                // Notification is dismissed inside onUserDeniedParking().
+                PaparcarLogger.d(DIAG, "  → PARKING_DENIED delivered to coordinator")
                 parkingDetectionCoordinator.onUserDeniedParking()
             }
             ACTION_STOP_TRACKING -> {
+                PaparcarLogger.d(DIAG, "  → STOP_TRACKING — stopSelf()")
                 stopSelf()
             }
         }
@@ -70,22 +77,30 @@ class ParkingDetectionService : LifecycleService() {
     }
 
     private fun startParkingDetection() {
+        PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator")
         detectionJob = lifecycleScope.launch {
             try {
+                PaparcarLogger.d(DIAG, "    ▶ detection coroutine entered, invoking coordinator")
                 parkingDetectionCoordinator(observeAdaptiveLocation())
+                PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
             } catch (e: CancellationException) {
+                PaparcarLogger.d(DIAG, "    ✗ detection cancelled: ${e.message}")
                 throw e
             } catch (e: Exception) {
+                PaparcarLogger.e(DIAG, "    ✗ detection error", e)
                 notificationPort.showDebug("Detection error: ${e.message}")
             } finally {
+                PaparcarLogger.d(DIAG, "    ■ finally → calling stopSelf()")
                 stopSelf()
             }
         }
     }
 
     override fun onDestroy() {
+        PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")
         detectionJob?.cancel()
         super.onDestroy()
+        PaparcarLogger.d(DIAG, "■ Service onDestroy DONE")
     }
 
     companion object {
@@ -94,5 +109,6 @@ class ParkingDetectionService : LifecycleService() {
         const val ACTION_VEHICLE_EXIT = "io.apptolast.paparcar.ACTION_VEHICLE_EXIT"
         const val ACTION_PARKING_CONFIRMED = "io.apptolast.paparcar.ACTION_PARKING_CONFIRMED"
         const val ACTION_PARKING_DENIED = "io.apptolast.paparcar.ACTION_PARKING_DENIED"
+        private const val DIAG = "PARKDIAG/Service"
     }
 }

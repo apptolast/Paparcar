@@ -20,6 +20,7 @@ import io.apptolast.paparcar.di.androidPlatformModule
 import io.apptolast.paparcar.di.dataModule
 import io.apptolast.paparcar.di.domainModule
 import io.apptolast.paparcar.di.presentationModule
+import io.apptolast.paparcar.logging.FileAntilog
 import org.koin.android.ext.koin.androidContext
 
 class PaparcarApp : Application() {
@@ -29,6 +30,7 @@ class PaparcarApp : Application() {
         appContext = this
         if (BuildConfig.DEBUG) {
             Napier.base(DebugAntilog())
+            Napier.base(FileAntilog(this))
             Napier.d("GOOGLE_WEB_CLIENT_ID = '${BuildConfig.GOOGLE_WEB_CLIENT_ID}'", tag = "PaparcarApp")
         }
 

@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -44,9 +45,20 @@ class ConfirmParkingUseCase(
         spotType: SpotType = SpotType.AUTO_DETECTED,
         sizeCategory: VehicleSize? = null,
     ): Result<UserParking> {
+        PaparcarLogger.d(DIAG, "▶ ConfirmParking.invoke reliability=$detectionReliability spotType=$spotType")
+
+        PaparcarLogger.d(DIAG, "  → authRepository.getCurrentSession() BEFORE")
         val userId = authRepository.getCurrentSession()?.userId
-            ?: return Result.failure(PaparcarError.Auth.NotAuthenticated)
+            ?: run {
+                PaparcarLogger.d(DIAG, "  ✗ getCurrentSession returned null — abort NotAuthenticated")
+                return Result.failure(PaparcarError.Auth.NotAuthenticated)
+            }
+        PaparcarLogger.d(DIAG, "  ← getCurrentSession AFTER userId=$userId")
+
+        PaparcarLogger.d(DIAG, "  → observeDefaultVehicle().first() BEFORE")
         val defaultVehicle = vehicleRepository.observeDefaultVehicle().first()
+        PaparcarLogger.d(DIAG, "  ← observeDefaultVehicle AFTER vehicleId=${defaultVehicle?.id}")
+
         val resolvedSizeCategory = sizeCategory ?: defaultVehicle?.sizeCategory
         val resolvedVehicleId = defaultVehicle?.id
         val sessionId = Uuid.random().toString()
@@ -69,20 +81,37 @@ class ConfirmParkingUseCase(
             sizeCategory = resolvedSizeCategory,
         )
 
+        PaparcarLogger.d(DIAG, "  → saveSession BEFORE sessionId=$sessionId")
         val saved = userParkingRepository.saveSession(session)
-        if (saved.isFailure) return Result.failure(PaparcarError.Parking.SaveFailed)
+        PaparcarLogger.d(DIAG, "  ← saveSession AFTER isSuccess=${saved.isSuccess}")
+        if (saved.isFailure) {
+            PaparcarLogger.e(DIAG, "  ✗ saveSession failed", saved.exceptionOrNull())
+            return Result.failure(PaparcarError.Parking.SaveFailed)
+        }
 
+        PaparcarLogger.d(DIAG, "  → enrichmentScheduler.schedule BEFORE")
         enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)
+        PaparcarLogger.d(DIAG, "  ← enrichmentScheduler.schedule AFTER")
 
+        PaparcarLogger.d(DIAG, "  → geofenceService.createGeofence BEFORE")
         geofenceService.createGeofence(
             geofenceId = sessionId,
             latitude = gpsPoint.latitude,
             longitude = gpsPoint.longitude,
             radiusMeters = computeGeofenceRadius(resolvedSizeCategory, gpsPoint.accuracy),
         )
-        notificationPort.showParkingSpotSaved(gpsPoint.latitude, gpsPoint.longitude)
+        PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
 
+        PaparcarLogger.d(DIAG, "  → notificationPort.showParkingSpotSaved BEFORE")
+        notificationPort.showParkingSpotSaved(gpsPoint.latitude, gpsPoint.longitude)
+        PaparcarLogger.d(DIAG, "  ← showParkingSpotSaved AFTER")
+
+        PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS")
         return Result.success(session)
+    }
+
+    private companion object {
+        const val DIAG = "PARKDIAG/Confirm"
     }
 
     private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
