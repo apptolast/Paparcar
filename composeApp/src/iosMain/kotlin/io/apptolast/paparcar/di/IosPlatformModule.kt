@@ -15,9 +15,9 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.ios.preferences.IosAppPreferences
 import io.apptolast.paparcar.ios.stub.StubAppNotificationManager
 import io.apptolast.paparcar.ios.stub.StubConnectivityObserver
-import io.apptolast.paparcar.ios.stub.StubGeocoderDataSource
 import io.apptolast.paparcar.ios.stub.StubLocationDataSource
 import io.apptolast.paparcar.ios.stub.StubPlacesDataSource
+import io.apptolast.paparcar.location.IosGeocoderDataSourceImpl
 import io.apptolast.paparcar.permissions.IosPermissionManagerImpl
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
@@ -36,7 +36,7 @@ val iosPlatformModule = module {
 
     // Location (stub)
     single<LocationDataSource> { StubLocationDataSource() }
-    single<GeocoderDataSource> { StubGeocoderDataSource() }
+    single<GeocoderDataSource> { IosGeocoderDataSourceImpl() }
     single<PlacesDataSource> { StubPlacesDataSource() }
 
     // Notifications (stub)

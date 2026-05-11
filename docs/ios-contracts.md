@@ -39,7 +39,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | Interface | Stub / Impl | Android equivalent | iOS native (Phase 6) |
 |-----------|-------------|--------------------|----------------------|
 | `LocationDataSource` | `StubLocationDataSource` (stub) | `AndroidLocationDataSourceImpl` (FusedLocationProvider) | `CLLocationManager` |
-| `GeocoderDataSource` | `StubGeocoderDataSource` (stub) | `AndroidGeocoderDataSourceImpl` | `CLGeocoder` |
+| `GeocoderDataSource` | `IosGeocoderDataSourceImpl` ✅ | `AndroidGeocoderDataSourceImpl` | Done — `CLGeocoder` (reverse + forward, rate-limited ~50/min) |
 | `PlacesDataSource` | `StubPlacesDataSource` (stub) | `OverpassPlacesDataSourceImpl` (HTTP) | MapKit / same HTTP endpoint |
 | `AppNotificationManager` | `StubAppNotificationManager` (stub) | `AppNotificationManagerImpl` | `UNUserNotificationCenter` |
 | `PermissionManager` | `IosPermissionManagerImpl` ✅ | `PermissionManagerImpl` | Done — `CLLocationManager` + `CMMotion` + `UNUserNotificationCenter` |
@@ -66,7 +66,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`
 4. `ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`
 5. `ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers
-6. `GeocoderDataSource` → `CLGeocoderDataSource`
+6. ~~`GeocoderDataSource` → `CLGeocoderDataSource`~~ ✅ Done [`feature/IOS-GEOCODE-001-cl-geocoder`]
 7. `CrashReporter` → Firebase iOS Crashlytics SDK
 8. `isDebugBuild` → Xcode build configuration flag
 
