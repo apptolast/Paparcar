@@ -67,6 +67,7 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     addressCountry = address?.country,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category?.name,
+    detectionReliability = detectionReliability,
 )
 
 // ── Domain → Spot (when user departs, spot is published for others) ───────────

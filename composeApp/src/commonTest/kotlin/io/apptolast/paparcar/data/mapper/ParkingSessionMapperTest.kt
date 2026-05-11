@@ -174,6 +174,32 @@ class ParkingSessionMapperTest {
         assertEquals("Madrid", entity.addressCity)
     }
 
+    // ── detectionReliability round-trip ──────────────────────────────────────
+
+    @Test
+    fun `parking toEntity preserves detectionReliability`() {
+        val parking = baseParking.copy(detectionReliability = 0.9f)
+        assertEquals(0.9f, parking.toEntity().detectionReliability)
+    }
+
+    @Test
+    fun `parking toEntity produces null detectionReliability when not set`() {
+        assertNull(baseParking.toEntity().detectionReliability)
+    }
+
+    @Test
+    fun `entity toDomain preserves detectionReliability when set`() {
+        val entity = baseEntity.copy(detectionReliability = 0.75f)
+        assertEquals(0.75f, entity.toDomain().detectionReliability)
+    }
+
+    @Test
+    fun `parking toEntity then toDomain round-trips detectionReliability`() {
+        val original = baseParking.copy(detectionReliability = 1.0f)
+        val restored = original.toEntity().toDomain()
+        assertEquals(1.0f, restored.detectionReliability)
+    }
+
     // ── vehicleId round-trip ─────────────────────────────────────────────────
 
     @Test
