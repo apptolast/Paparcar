@@ -209,7 +209,7 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 10. `chore/PIPE-003-parking-sync-worker-test` — ⚪ Pending (follow-up of PIPE-001)
+## 10. `chore/PIPE-003-parking-sync-worker-test` — 🔵 Branch ready (chore/PIPE-003-parking-sync-worker-test)
 
 **Priority:** Low — `ParkingSyncWorker.doWork()` is currently exercised only by manual smoke testing.
 

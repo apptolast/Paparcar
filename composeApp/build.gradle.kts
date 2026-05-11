@@ -153,6 +153,9 @@ kotlin {
                 implementation(libs.kotlin.test.junit)
                 implementation(libs.junit)
                 implementation(libs.konsist)
+                implementation(libs.work.testing)
+                implementation(libs.robolectric)
+                implementation(libs.androidx.test.core)
             }
         }
 
