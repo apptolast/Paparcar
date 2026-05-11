@@ -46,7 +46,11 @@ Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PR
 
 ---
 
-## 3. `feature/HIST-001-vehicles-screen-rework` — ⚪ Pending
+## 3. `feature/HIST-001-vehicles-screen-rework` — ✅ Done
+
+**Merged:** 2026-05-12, commit `2d7e44f` (branch deleted post-merge). HorizontalPager + ScrollableTabRow replaces LazyColumn card list; VehiclePageContent hosts scoped HistoryViewModel per tab; VEHICLE_DETAIL route removed; HistoryContent accepts modifier param.
+
+
 
 **Priority:** Medium — UX rework bundled with the legacy-session backfill discovered in this session.
 **Scope:** Two parts in one branch — the data fix and the screen redesign go together because they touch the same surface.
