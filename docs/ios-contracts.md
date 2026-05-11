@@ -28,8 +28,8 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | Interface | Stub | Android equivalent | iOS native (Phase 6) |
 |-----------|------|--------------------|----------------------|
 | `ActivityRecognitionManager` | `IosActivityRecognitionManagerImpl` ✅ | `ActivityRecognitionManagerImpl` (Google Activity Transitions API) | Done — `CMMotionActivityManager` (snapshots synthesised into transitions; pipeline dispatch deferred) |
-| `GeofenceManager` | `StubGeofenceManager` | `GeofenceManagerImpl` (GeofencingClient) | `CLCircularRegion` + `CLLocationManager` |
-| `GeofenceEventBus` | `StubGeofenceEventBus` | `GeofenceEventBusImpl` (BroadcastReceiver) | `CLLocationManagerDelegate` |
+| `GeofenceManager` | `IosGeofenceManagerImpl` ✅ | `GeofenceManagerImpl` (GeofencingClient) | Done — `CLCircularRegion` + `CLLocationManager` region monitoring |
+| `GeofenceEventBus` | `IosGeofenceEventBusImpl` ✅ | `GeofenceEventBusImpl` (BroadcastReceiver) | Done — `Channel`-backed bus, fed by `CLLocationManagerDelegate` |
 | `DepartureEventBus` | `StubDepartureEventBus` | `DepartureEventBusImpl` (in-memory singleton) | In-memory singleton (no native API needed) |
 | `ParkingEnrichmentScheduler` | `IosParkingEnrichmentScheduler` ✅ | `WorkManagerParkingEnrichmentScheduler` | Done — coroutine scope + retry (BGTaskScheduler persistence deferred) |
 | `ReportSpotScheduler` | `IosReportSpotScheduler` ✅ | `WorkManagerReportSpotScheduler` | Done — coroutine scope + retry (BGTaskScheduler persistence deferred) |
@@ -63,8 +63,8 @@ The stub pattern lets iOS compile and run while native implementations are defer
 ## 4. Phase 6 Implementation Order (Suggested)
 
 1. ~~`LocationDataSource` → `CLLocationManagerLocationDataSource`~~ ✅ Done [`feature/IOS-LOC-001-cl-location-manager`]
-2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager`
-3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager` — see [IOS-GEOFENCE-001]
+2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager` — see [IOS-NOTIF-001]
+3. ~~`GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`~~ ✅ Done [`feature/IOS-GEOFENCE-001-cl-circular-region`]
 4. ~~`ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`~~ ✅ Done [`feature/IOS-AR-001-cm-motion-activity`]
 5. ~~`ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers~~ ✅ Done [`feature/IOS-BG-001-bg-task-scheduler`] (coroutine-scope impl; BGTaskScheduler persistence is a future follow-up)
 6. ~~`GeocoderDataSource` → `CLGeocoderDataSource`~~ ✅ Done [`feature/IOS-GEOCODE-001-cl-geocoder`]
