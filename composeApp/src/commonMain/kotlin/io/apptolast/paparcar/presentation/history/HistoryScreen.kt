@@ -297,6 +297,7 @@ internal fun HistoryContent(
     contentPadding: PaddingValues,
     onViewOnMap: (Double, Double) -> Unit,
     onFilterSelected: (HistoryFilter) -> Unit = {},
+    modifier: Modifier = Modifier.fillMaxSize(),
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
@@ -304,8 +305,7 @@ internal fun HistoryContent(
     val dayLabels = DAY_SHORT_RES.map { stringResource(it) }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = modifier
             .padding(contentPadding),
     ) {
         when {

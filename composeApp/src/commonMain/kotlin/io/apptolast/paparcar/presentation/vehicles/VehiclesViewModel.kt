@@ -61,8 +61,6 @@ class VehiclesViewModel(
             is VehiclesIntent.EditVehicle ->
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
             is VehiclesIntent.AddVehicle -> sendEffect(VehiclesEffect.NavigateToAddVehicle)
-            is VehiclesIntent.ViewHistory ->
-                sendEffect(VehiclesEffect.NavigateToHistory(intent.vehicleId))
         }
     }
 

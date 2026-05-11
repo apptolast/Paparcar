@@ -162,14 +162,4 @@ class VehiclesViewModelTest {
         }
     }
 
-    @Test
-    fun `should_emit_NavigateToHistory_with_vehicleId`() = runTest {
-        vm.effect.test {
-            vm.handleIntent(VehiclesIntent.ViewHistory("v7"))
-            val effect = awaitItem()
-            assertIs<VehiclesEffect.NavigateToHistory>(effect)
-            assertEquals("v7", effect.vehicleId)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 }
