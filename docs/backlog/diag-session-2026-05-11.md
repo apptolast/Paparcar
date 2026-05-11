@@ -125,7 +125,11 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 6. `chore/DB-001-reset-room-schema-baseline` — 🟡 Blocked (waiting on user data wipe)
+## 6. `chore/DB-001-reset-room-schema-baseline` — ✅ Done
+
+**Merged:** 2026-05-12, commit `ecf352b`. Version reset to 1, all MIGRATION_* objects removed, fallbackToDestructiveMigration already in place.
+
+
 
 **Priority:** Medium — opportunistic cleanup while the app is still pre-release.
 **Trigger:** Pre-production state. No external users have data we need to preserve.
