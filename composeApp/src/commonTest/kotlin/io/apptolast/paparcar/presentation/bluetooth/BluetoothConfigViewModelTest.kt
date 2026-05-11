@@ -27,7 +27,11 @@ class BluetoothConfigViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
 
     private val vehicleId = "v-bt-1"
-    private val btDevice = BluetoothDeviceInfo(address = "AA:BB:CC:DD:EE:FF", name = "Car BT")
+    private val btDevice = BluetoothDeviceInfo(
+        address = "AA:BB:CC:DD:EE:FF",
+        name = "Car BT",
+        type = io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType.CLASSIC,
+    )
 
     private fun vehicle(btDeviceId: String? = null) = Vehicle(
         id = vehicleId,

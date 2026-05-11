@@ -2,10 +2,11 @@ package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 
-class FakeAppNotificationManager : AppNotificationManager {
+open class FakeAppNotificationManager : AppNotificationManager {
 
     var parkingSpotSavedCallCount = 0
     var parkingConfirmationCallCount = 0
+    val dismissedIds: MutableList<Int> = mutableListOf()
 
     override fun showParkingConfirmation(score: Float, vehicleName: String?) {
         parkingConfirmationCallCount++
@@ -19,5 +20,7 @@ class FakeAppNotificationManager : AppNotificationManager {
 
     override fun showDebug(message: String) = Unit
 
-    override fun dismiss(notificationId: Int) = Unit
+    final override fun dismiss(notificationId: Int) {
+        dismissedIds.add(notificationId)
+    }
 }
