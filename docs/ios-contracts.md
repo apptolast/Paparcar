@@ -31,8 +31,8 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | `GeofenceManager` | `StubGeofenceManager` | `GeofenceManagerImpl` (GeofencingClient) | `CLCircularRegion` + `CLLocationManager` |
 | `GeofenceEventBus` | `StubGeofenceEventBus` | `GeofenceEventBusImpl` (BroadcastReceiver) | `CLLocationManagerDelegate` |
 | `DepartureEventBus` | `StubDepartureEventBus` | `DepartureEventBusImpl` (in-memory singleton) | In-memory singleton (no native API needed) |
-| `ParkingEnrichmentScheduler` | `StubParkingEnrichmentScheduler` | `WorkManagerParkingEnrichmentScheduler` | `BGProcessingTaskRequest` |
-| `ReportSpotScheduler` | `StubReportSpotScheduler` | `WorkManagerReportSpotScheduler` | `BGAppRefreshTask` + Firestore |
+| `ParkingEnrichmentScheduler` | `IosParkingEnrichmentScheduler` ✅ | `WorkManagerParkingEnrichmentScheduler` | Done — coroutine scope + retry (BGTaskScheduler persistence deferred) |
+| `ReportSpotScheduler` | `IosReportSpotScheduler` ✅ | `WorkManagerReportSpotScheduler` | Done — coroutine scope + retry (BGTaskScheduler persistence deferred) |
 
 ### Platform Module (`IosPlatformModule`)
 
@@ -65,7 +65,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager`
 3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager` — see [IOS-GEOFENCE-001]
 4. ~~`ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`~~ ✅ Done [`feature/IOS-AR-001-cm-motion-activity`]
-5. `ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers
+5. ~~`ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers~~ ✅ Done [`feature/IOS-BG-001-bg-task-scheduler`] (coroutine-scope impl; BGTaskScheduler persistence is a future follow-up)
 6. `GeocoderDataSource` → `CLGeocoderDataSource`
 7. `CrashReporter` → Firebase iOS Crashlytics SDK
 8. ~~`isDebugBuild` → Xcode build configuration flag~~ ✅ Done [`feature/IOS-DEBUG-001-is-debug-build-flag`] — uses K/N stdlib `Platform.isDebugBinary`
