@@ -2,17 +2,28 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "cf3f3648fece309ba359e5189e4eb39c",
+    "identityHash": "a0452362efaa1f0961ae17fc367860a3",
     "entities": [
       {
-        "tableName": "locations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `speed` REAL NOT NULL)",
+        "tableName": "parking_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `vehicleId` TEXT, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `spotId` TEXT, `geofenceId` TEXT, `isActive` INTEGER NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `detectionReliability` REAL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
-            "affinity": "INTEGER",
+            "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicleId",
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "latitude",
@@ -39,14 +50,286 @@
             "notNull": true
           },
           {
-            "fieldPath": "speed",
-            "columnName": "speed",
-            "affinity": "REAL",
+            "fieldPath": "spotId",
+            "columnName": "spotId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "geofenceId",
+            "columnName": "geofenceId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addressStreet",
+            "columnName": "addressStreet",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressCity",
+            "columnName": "addressCity",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressRegion",
+            "columnName": "addressRegion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressCountry",
+            "columnName": "addressCountry",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "placeInfoName",
+            "columnName": "placeInfoName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "placeInfoCategory",
+            "columnName": "placeInfoCategory",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "detectionReliability",
+            "columnName": "detectionReliability",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "user_profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` TEXT NOT NULL, `email` TEXT, `displayName` TEXT, `photoUrl` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`userId`))",
+        "fields": [
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "email",
+            "columnName": "email",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "photoUrl",
+            "columnName": "photoUrl",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
             "notNull": true
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
+          "columnNames": [
+            "userId"
+          ]
+        }
+      },
+      {
+        "tableName": "vehicles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `brand` TEXT, `model` TEXT, `sizeCategory` TEXT NOT NULL, `bluetoothDeviceId` TEXT, `showBrandModelOnSpot` INTEGER NOT NULL, `isDefault` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "brand",
+            "columnName": "brand",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "sizeCategory",
+            "columnName": "sizeCategory",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bluetoothDeviceId",
+            "columnName": "bluetoothDeviceId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "showBrandModelOnSpot",
+            "columnName": "showBrandModelOnSpot",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDefault",
+            "columnName": "isDefault",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "cached_spots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `reportedAt` INTEGER NOT NULL, `reportedBy` TEXT NOT NULL, `speed` REAL NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `type` TEXT NOT NULL, `confidence` REAL NOT NULL, `sizeCategory` TEXT, `enRouteCount` INTEGER NOT NULL, `expiresAt` INTEGER NOT NULL, `acceptCount` INTEGER NOT NULL, `rejectCount` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accuracy",
+            "columnName": "accuracy",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reportedAt",
+            "columnName": "reportedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reportedBy",
+            "columnName": "reportedBy",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speed",
+            "columnName": "speed",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addressStreet",
+            "columnName": "addressStreet",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressCity",
+            "columnName": "addressCity",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressRegion",
+            "columnName": "addressRegion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressCountry",
+            "columnName": "addressCountry",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "placeInfoName",
+            "columnName": "placeInfoName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "placeInfoCategory",
+            "columnName": "placeInfoCategory",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sizeCategory",
+            "columnName": "sizeCategory",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "enRouteCount",
+            "columnName": "enRouteCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expiresAt",
+            "columnName": "expiresAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "acceptCount",
+            "columnName": "acceptCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rejectCount",
+            "columnName": "rejectCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
           "columnNames": [
             "id"
           ]
@@ -55,7 +338,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cf3f3648fece309ba359e5189e4eb39c')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a0452362efaa1f0961ae17fc367860a3')"
     ]
   }
 }
