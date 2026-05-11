@@ -45,6 +45,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | `PermissionManager` | `IosPermissionManagerImpl` ✅ | `PermissionManagerImpl` | Done — `CLLocationManager` + `CMMotion` + `UNUserNotificationCenter` |
 | `AppPreferences` | `IosAppPreferences` ✅ | `AndroidAppPreferences` | Done — `NSUserDefaults` |
 | `AppDatabase` | Room KMP ✅ | Room KMP | Done — `BundledSQLiteDriver` + document directory |
+| `BluetoothScanner` | `IosBluetoothScanner` ✅ | `AndroidBluetoothScanner` | Partial — `CBCentralManager` for state; `getBondedDevices()` is empty by iOS design (no system-wide bonded list). The pair-your-car UX needs a redesign on iOS. |
 
 ---
 

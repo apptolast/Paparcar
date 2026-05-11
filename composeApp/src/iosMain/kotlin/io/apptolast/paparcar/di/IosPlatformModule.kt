@@ -4,7 +4,9 @@ package io.apptolast.paparcar.di
 
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import io.apptolast.paparcar.bluetooth.IosBluetoothScanner
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
@@ -50,6 +52,9 @@ val iosPlatformModule = module {
 
     // Connectivity (stub — Phase 6 will use NWPathMonitor)
     single<ConnectivityObserver> { StubConnectivityObserver() }
+
+    // Bluetooth — real iOS implementation (CBCentralManager for state; getBondedDevices is empty by design)
+    single<BluetoothScanner> { IosBluetoothScanner() }
 }
 
 private fun documentDirectory(): String {
