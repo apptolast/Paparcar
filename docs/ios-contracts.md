@@ -39,7 +39,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | Interface | Stub / Impl | Android equivalent | iOS native (Phase 6) |
 |-----------|-------------|--------------------|----------------------|
 | `LocationDataSource` | `IosLocationDataSourceImpl` ✅ | `AndroidLocationDataSourceImpl` (FusedLocationProvider) | Done — `CLLocationManager` |
-| `GeocoderDataSource` | `StubGeocoderDataSource` (stub) | `AndroidGeocoderDataSourceImpl` | `CLGeocoder` |
+| `GeocoderDataSource` | `IosGeocoderDataSourceImpl` ✅ | `AndroidGeocoderDataSourceImpl` | Done — `CLGeocoder` (reverse + forward, rate-limited ~50/min) |
 | `PlacesDataSource` | `StubPlacesDataSource` (stub) | `OverpassPlacesDataSourceImpl` (HTTP) | MapKit / same HTTP endpoint |
 | `AppNotificationManager` | `StubAppNotificationManager` (stub) | `AppNotificationManagerImpl` | `UNUserNotificationCenter` |
 | `PermissionManager` | `IosPermissionManagerImpl` ✅ | `PermissionManagerImpl` | Done — `CLLocationManager` + `CMMotion` + `UNUserNotificationCenter` |
@@ -67,7 +67,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager` — see [IOS-GEOFENCE-001]
 4. ~~`ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`~~ ✅ Done [`feature/IOS-AR-001-cm-motion-activity`]
 5. ~~`ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers~~ ✅ Done [`feature/IOS-BG-001-bg-task-scheduler`] (coroutine-scope impl; BGTaskScheduler persistence is a future follow-up)
-6. `GeocoderDataSource` → `CLGeocoderDataSource`
+6. ~~`GeocoderDataSource` → `CLGeocoderDataSource`~~ ✅ Done [`feature/IOS-GEOCODE-001-cl-geocoder`]
 7. ~~`CrashReporter` → Firebase iOS Crashlytics SDK~~ ✅ Bridge done [`feature/IOS-CRASH-001-firebase-crashlytics`] — Swift wiring + Firebase iOS SDK pod still needed on Mac
 8. ~~`isDebugBuild` → Xcode build configuration flag~~ ✅ Done [`feature/IOS-DEBUG-001-is-debug-build-flag`] — uses K/N stdlib `Platform.isDebugBinary`
 
