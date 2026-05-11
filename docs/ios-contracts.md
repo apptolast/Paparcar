@@ -41,7 +41,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | `LocationDataSource` | `IosLocationDataSourceImpl` ✅ | `AndroidLocationDataSourceImpl` (FusedLocationProvider) | Done — `CLLocationManager` |
 | `GeocoderDataSource` | `IosGeocoderDataSourceImpl` ✅ | `AndroidGeocoderDataSourceImpl` | Done — `CLGeocoder` (reverse + forward, rate-limited ~50/min) |
 | `PlacesDataSource` | `StubPlacesDataSource` (stub) | `OverpassPlacesDataSourceImpl` (HTTP) | MapKit / same HTTP endpoint |
-| `AppNotificationManager` | `StubAppNotificationManager` (stub) | `AppNotificationManagerImpl` | `UNUserNotificationCenter` |
+| `AppNotificationManager` | `IosAppNotificationManagerImpl` ✅ | `AppNotificationManagerImpl` | Done — `UNUserNotificationCenter` (action routing pending detection pipeline) |
 | `PermissionManager` | `IosPermissionManagerImpl` ✅ | `PermissionManagerImpl` | Done — `CLLocationManager` + `CMMotion` + `UNUserNotificationCenter` |
 | `AppPreferences` | `IosAppPreferences` ✅ | `AndroidAppPreferences` | Done — `NSUserDefaults` |
 | `AppDatabase` | Room KMP ✅ | Room KMP | Done — `BundledSQLiteDriver` + document directory |
@@ -63,7 +63,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 ## 4. Phase 6 Implementation Order (Suggested)
 
 1. ~~`LocationDataSource` → `CLLocationManagerLocationDataSource`~~ ✅ Done [`feature/IOS-LOC-001-cl-location-manager`]
-2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager` — see [IOS-NOTIF-001]
+2. ~~`AppNotificationManager` → `UNUserNotificationCenterNotificationManager`~~ ✅ Done [`feature/IOS-NOTIF-001-un-notification-center`]
 3. ~~`GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`~~ ✅ Done [`feature/IOS-GEOFENCE-001-cl-circular-region`]
 4. ~~`ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`~~ ✅ Done [`feature/IOS-AR-001-cm-motion-activity`]
 5. ~~`ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers~~ ✅ Done [`feature/IOS-BG-001-bg-task-scheduler`] (coroutine-scope impl; BGTaskScheduler persistence is a future follow-up)
