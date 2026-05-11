@@ -82,9 +82,9 @@ Made obsolete by DB-001 if you choose to reset the schema before this lands; in 
 
 ---
 
-## 4. `feature/PIPE-001-confirm-parking-pipeline` — 🔵 Branch ready
+## 4. `feature/PIPE-001-confirm-parking-pipeline` — ✅ Done
 
-**Branch:** `feature/PIPE-001-confirm-parking-pipeline`, commit `371ce85`. Tests green, Android compile clean. Awaiting merge.
+**Merged:** 2026-05-11, merge commit `2f4eef2` (branch deleted post-merge). Work commit `371ce85` + docs follow-up `a8d1a14`. Tests green, Android compile clean.
 
 **Priority:** Medium — preventive refactor, not a bug. Eliminates the root cause class of the "service hangs forever" failure mode.
 
