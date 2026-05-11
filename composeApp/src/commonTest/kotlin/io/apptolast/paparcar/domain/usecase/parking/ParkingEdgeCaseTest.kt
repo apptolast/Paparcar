@@ -14,6 +14,7 @@ import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
+import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -239,12 +240,14 @@ class ParkingEdgeCaseTest {
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),
+        parkingSync: FakeParkingSyncScheduler = FakeParkingSyncScheduler(),
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
         geofenceService = geofence,
         notificationPort = notification,
         enrichmentScheduler = enrichment,
+        parkingSyncScheduler = parkingSync,
         authRepository = FakeAuthRepository(initialSession = session),
         config = config,
     )

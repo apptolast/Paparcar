@@ -8,12 +8,14 @@ import io.apptolast.paparcar.detection.DepartureEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceManagerImpl
 import io.apptolast.paparcar.detection.WorkManagerParkingEnrichmentScheduler
+import io.apptolast.paparcar.detection.WorkManagerParkingSyncScheduler
 import io.apptolast.paparcar.detection.WorkManagerReportSpotScheduler
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
+import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
@@ -34,6 +36,9 @@ val androidDetectionModule = module {
 
     // --- Parking Enrichment ---
     single<ParkingEnrichmentScheduler> { WorkManagerParkingEnrichmentScheduler(androidContext()) }
+
+    // --- Parking Sync (Firestore propagation, off the confirm-parking critical path) ---
+    single<ParkingSyncScheduler> { WorkManagerParkingSyncScheduler(androidContext(), get()) }
 
     // --- Spot Report ---
     single<ReportSpotScheduler> { WorkManagerReportSpotScheduler(androidContext()) }

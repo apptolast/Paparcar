@@ -15,6 +15,7 @@ import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
+import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -59,6 +60,7 @@ class ParkingFlowIntegrationTest {
     private val geofence = FakeGeofenceManager()
     private val notification = FakeAppNotificationManager()
     private val enrichment = FakeParkingEnrichmentScheduler()
+    private val parkingSync = FakeParkingSyncScheduler()
     private val auth = FakeAuthRepository(initialSession = session)
 
     private val confirmParking = ConfirmParkingUseCase(
@@ -67,6 +69,7 @@ class ParkingFlowIntegrationTest {
         geofenceService = geofence,
         notificationPort = notification,
         enrichmentScheduler = enrichment,
+        parkingSyncScheduler = parkingSync,
         authRepository = auth,
         config = ParkingDetectionConfig(),
     )
