@@ -80,12 +80,26 @@ fun BluetoothConfigScreen(
         }
     }
 
+    BluetoothConfigContent(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onIntent = viewModel::handleIntent,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun BluetoothConfigContent(
+    state: BluetoothConfigState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onIntent: (BluetoothConfigIntent) -> Unit = {},
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(Res.string.bt_config_title)) },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.handleIntent(BluetoothConfigIntent.NavigateBack) }) {
+                    IconButton(onClick = { onIntent(BluetoothConfigIntent.NavigateBack) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.bt_config_cd_back))
                     }
                 },
@@ -101,7 +115,7 @@ fun BluetoothConfigScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Button(
-                    onClick = { viewModel.handleIntent(BluetoothConfigIntent.Save) },
+                    onClick = { onIntent(BluetoothConfigIntent.Save) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = state.hasChanges && !state.isSaving,
                 ) {
@@ -144,7 +158,7 @@ fun BluetoothConfigScreen(
                         name = stringResource(Res.string.bt_config_none),
                         typeLabel = null,
                         selected = state.selectedAddress == null,
-                        onClick = { viewModel.handleIntent(BluetoothConfigIntent.SelectDevice(null)) },
+                        onClick = { onIntent(BluetoothConfigIntent.SelectDevice(null)) },
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 }
@@ -164,7 +178,7 @@ fun BluetoothConfigScreen(
                             name = device.name ?: device.address,
                             typeLabel = device.typeLabel(),
                             selected = device.address == state.selectedAddress,
-                            onClick = { viewModel.handleIntent(BluetoothConfigIntent.SelectDevice(device.address)) },
+                            onClick = { onIntent(BluetoothConfigIntent.SelectDevice(device.address)) },
                         )
                     }
                 }
@@ -174,7 +188,7 @@ fun BluetoothConfigScreen(
                     item {
                         Spacer(Modifier.height(8.dp))
                         TextButton(
-                            onClick = { viewModel.handleIntent(BluetoothConfigIntent.SelectDevice(null)) },
+                            onClick = { onIntent(BluetoothConfigIntent.SelectDevice(null)) },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(

@@ -38,15 +38,14 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.vehicle_registration_brand_hint
-import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_edit_title
+import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_save
 import paparcar.composeapp.generated.resources.vehicle_registration_title
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot_desc
 import paparcar.composeapp.generated.resources.vehicle_size_label
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleRegistrationScreen(
     onRegistrationComplete: () -> Unit,
@@ -75,6 +74,20 @@ fun VehicleRegistrationScreen(
         }
     }
 
+    VehicleRegistrationContent(
+        state = state,
+        snackbarHostState = snackbarHostState,
+        onIntent = viewModel::handleIntent,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun VehicleRegistrationContent(
+    state: VehicleRegistrationState,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    onIntent: (VehicleRegistrationIntent) -> Unit = {},
+) {
     val isEditing = state.editingVehicleId != null
     Scaffold(
         topBar = {
@@ -88,7 +101,7 @@ fun VehicleRegistrationScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.handleIntent(VehicleRegistrationIntent.NavigateBack) }) {
+                    IconButton(onClick = { onIntent(VehicleRegistrationIntent.NavigateBack) }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
@@ -108,7 +121,7 @@ fun VehicleRegistrationScreen(
 
             OutlinedTextField(
                 value = state.brand,
-                onValueChange = { viewModel.handleIntent(VehicleRegistrationIntent.SetBrand(it)) },
+                onValueChange = { onIntent(VehicleRegistrationIntent.SetBrand(it)) },
                 label = { Text(stringResource(Res.string.vehicle_registration_brand_hint)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -116,7 +129,7 @@ fun VehicleRegistrationScreen(
 
             OutlinedTextField(
                 value = state.model,
-                onValueChange = { viewModel.handleIntent(VehicleRegistrationIntent.SetModel(it)) },
+                onValueChange = { onIntent(VehicleRegistrationIntent.SetModel(it)) },
                 label = { Text(stringResource(Res.string.vehicle_registration_model_hint)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -131,7 +144,7 @@ fun VehicleRegistrationScreen(
 
             VehicleSizeSelector(
                 selected = state.sizeCategory,
-                onSelect = { viewModel.handleIntent(VehicleRegistrationIntent.SetSize(it)) },
+                onSelect = { onIntent(VehicleRegistrationIntent.SetSize(it)) },
             )
 
             Spacer(Modifier.height(4.dp))
@@ -154,9 +167,7 @@ fun VehicleRegistrationScreen(
                 }
                 Switch(
                     checked = state.showBrandModelOnSpot,
-                    onCheckedChange = {
-                        viewModel.handleIntent(VehicleRegistrationIntent.SetShowOnSpot(it))
-                    },
+                    onCheckedChange = { onIntent(VehicleRegistrationIntent.SetShowOnSpot(it)) },
                 )
             }
 
@@ -164,7 +175,7 @@ fun VehicleRegistrationScreen(
 
             PapPrimaryButton(
                 label = stringResource(Res.string.vehicle_registration_save),
-                onClick = { viewModel.handleIntent(VehicleRegistrationIntent.Save) },
+                onClick = { onIntent(VehicleRegistrationIntent.Save) },
                 enabled = state.sizeCategory != null,
                 isLoading = state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
@@ -174,4 +185,3 @@ fun VehicleRegistrationScreen(
         }
     }
 }
-
