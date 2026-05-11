@@ -189,7 +189,9 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 9. `feature/PIPE-002-sync-clear-active-and-update-location` — 🔵 Branch ready (feature/PIPE-002-sync-clear-active-and-update-location)
+## 9. `feature/PIPE-002-sync-clear-active-and-update-location` — ✅ Done
+
+**Merged:** 2026-05-12, commit `ec89592` (branch deleted post-merge). clearActive + updateLocationInfo are Room-only; ClearActiveSyncWorker + LocationUpdateSyncWorker handle Firestore. Also fixed PIPE-001 latent bug (partial DTO with lat=0.0 overwriting coordinates).
 
 **Priority:** Low — same failure mode as PIPE-001 (in-flight Firestore call can hang), but on much less critical paths.
 
