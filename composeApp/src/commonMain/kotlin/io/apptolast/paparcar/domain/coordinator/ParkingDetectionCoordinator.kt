@@ -279,7 +279,13 @@ class ParkingDetectionCoordinator(
             _detectionState.update { s ->
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
+                // Freeze bestStopLocation after the initial-stop window (default 30 s).
+                // Without this, a user walking from their parked car towards a destination
+                // — at speeds well below clearBestStopSpeedMps (2.5 m/s) — keeps producing
+                // GPS fixes whose accuracy may beat the parked-car fix, overwriting the
+                // saved spot with the user's walking destination. [LOC-001]
                 val newBestStop = when {
+                    !withinInitialWindow -> s.bestStopLocation
                     s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
                     else -> s.bestStopLocation
                 }
