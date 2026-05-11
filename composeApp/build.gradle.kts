@@ -152,6 +152,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.test.junit)
                 implementation(libs.junit)
+                implementation(libs.konsist)
             }
         }
 

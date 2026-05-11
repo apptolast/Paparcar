@@ -219,7 +219,7 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 11. `chore/ARCH-003-add-architecture-lint-rules` — ⚪ Pending (follow-up of ARCH-002)
+## 11. `chore/ARCH-003-add-architecture-lint-rules` — 🔵 Branch ready (chore/ARCH-003-add-architecture-lint-rules)
 
 **Priority:** Low-medium — preventive. Catches discipline gaps at compile time.
 
