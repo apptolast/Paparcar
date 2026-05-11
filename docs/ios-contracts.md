@@ -27,7 +27,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 
 | Interface | Stub | Android equivalent | iOS native (Phase 6) |
 |-----------|------|--------------------|----------------------|
-| `ActivityRecognitionManager` | `StubActivityRecognitionManager` | `ActivityRecognitionManagerImpl` (Google Activity Transitions API) | `CMMotionActivityManager` |
+| `ActivityRecognitionManager` | `IosActivityRecognitionManagerImpl` ✅ | `ActivityRecognitionManagerImpl` (Google Activity Transitions API) | Done — `CMMotionActivityManager` (snapshots synthesised into transitions; pipeline dispatch deferred) |
 | `GeofenceManager` | `StubGeofenceManager` | `GeofenceManagerImpl` (GeofencingClient) | `CLCircularRegion` + `CLLocationManager` |
 | `GeofenceEventBus` | `StubGeofenceEventBus` | `GeofenceEventBusImpl` (BroadcastReceiver) | `CLLocationManagerDelegate` |
 | `DepartureEventBus` | `StubDepartureEventBus` | `DepartureEventBusImpl` (in-memory singleton) | In-memory singleton (no native API needed) |
@@ -63,8 +63,8 @@ The stub pattern lets iOS compile and run while native implementations are defer
 
 1. ~~`LocationDataSource` → `CLLocationManagerLocationDataSource`~~ ✅ Done [`feature/IOS-LOC-001-cl-location-manager`]
 2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager`
-3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`
-4. `ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`
+3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager` — see [IOS-GEOFENCE-001]
+4. ~~`ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`~~ ✅ Done [`feature/IOS-AR-001-cm-motion-activity`]
 5. `ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers
 6. `GeocoderDataSource` → `CLGeocoderDataSource`
 7. `CrashReporter` → Firebase iOS Crashlytics SDK
