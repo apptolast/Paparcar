@@ -243,7 +243,7 @@
     <string name="nav_tab_settings">Configurações</string>
 
     <!-- Ecrã Meu Carro -->
-    <string name="my_car_title">Meu Carro</string>
+    <string name="my_car_title">Os meus veículos</string>
     <string name="my_car_placeholder_desc">A gestão de veículos estará disponível numa futura atualização.</string>
 
     <string name="my_car_no_vehicle">Nenhum veículo registado ainda</string>

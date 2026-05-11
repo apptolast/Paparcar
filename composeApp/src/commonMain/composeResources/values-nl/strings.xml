@@ -243,7 +243,7 @@
     <string name="nav_tab_settings">Instellingen</string>
 
     <!-- Mijn Auto scherm -->
-    <string name="my_car_title">Mijn Auto</string>
+    <string name="my_car_title">Mijn voertuigen</string>
     <string name="my_car_placeholder_desc">Voertuigbeheer is beschikbaar in een toekomstige update.</string>
 
     <string name="my_car_no_vehicle">Nog geen voertuig geregistreerd</string>

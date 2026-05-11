@@ -8,60 +8,60 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.jost_bold
-import paparcar.composeapp.generated.resources.jost_medium
-import paparcar.composeapp.generated.resources.jost_regular
-import paparcar.composeapp.generated.resources.syne_bold
-import paparcar.composeapp.generated.resources.syne_extrabold
-import paparcar.composeapp.generated.resources.syne_medium
-import paparcar.composeapp.generated.resources.syne_regular
-import paparcar.composeapp.generated.resources.syne_semibold
+import paparcar.composeapp.generated.resources.outfit_regular
+import paparcar.composeapp.generated.resources.outfit_medium
+import paparcar.composeapp.generated.resources.outfit_semibold
+import paparcar.composeapp.generated.resources.outfit_bold
+import paparcar.composeapp.generated.resources.outfit_extrabold
+import paparcar.composeapp.generated.resources.plus_jakarta_sans_regular
+import paparcar.composeapp.generated.resources.plus_jakarta_sans_medium
+import paparcar.composeapp.generated.resources.plus_jakarta_sans_bold
 
 // ─── Font families ────────────────────────────────────────────────────────────
 
-/** Syne — display / headline / title (geometric brand feel). */
+/** Outfit — display / headline / title (geometric modern brand feel). */
 @Composable
-fun rememberSyneFontFamily() = FontFamily(
-    Font(Res.font.syne_regular,   weight = FontWeight.Normal),
-    Font(Res.font.syne_medium,    weight = FontWeight.Medium),
-    Font(Res.font.syne_semibold,  weight = FontWeight.SemiBold),
-    Font(Res.font.syne_bold,      weight = FontWeight.Bold),
-    Font(Res.font.syne_extrabold, weight = FontWeight.ExtraBold),
+fun rememberOutfitFontFamily() = FontFamily(
+    Font(Res.font.outfit_regular,   weight = FontWeight.Normal),
+    Font(Res.font.outfit_medium,    weight = FontWeight.Medium),
+    Font(Res.font.outfit_semibold,  weight = FontWeight.SemiBold),
+    Font(Res.font.outfit_bold,      weight = FontWeight.Bold),
+    Font(Res.font.outfit_extrabold, weight = FontWeight.ExtraBold),
 )
 
-/** Jost — body / label (readable modern sans-serif). */
+/** Plus Jakarta Sans — body / label (readable with personality). */
 @Composable
-fun rememberJostFontFamily() = FontFamily(
-    Font(Res.font.jost_regular, weight = FontWeight.Normal),
-    Font(Res.font.jost_medium,  weight = FontWeight.Medium),
-    Font(Res.font.jost_bold,    weight = FontWeight.Bold),
+fun rememberPlusJakartaSansFontFamily() = FontFamily(
+    Font(Res.font.plus_jakarta_sans_regular, weight = FontWeight.Normal),
+    Font(Res.font.plus_jakarta_sans_medium,  weight = FontWeight.Medium),
+    Font(Res.font.plus_jakarta_sans_bold,    weight = FontWeight.Bold),
 )
 
 // ─── Typography ───────────────────────────────────────────────────────────────
 
-/** Full MD3 scale: Syne (Display–Title) + Jost (Body–Label). */
+/** Full MD3 scale: Outfit (Display–Title) + Plus Jakarta Sans (Body–Label). */
 @Composable
 fun rememberAppTypography(): Typography {
-    val syne = rememberSyneFontFamily()
-    val jost = rememberJostFontFamily()
+    val outfit = rememberOutfitFontFamily()
+    val jakarta = rememberPlusJakartaSansFontFamily()
     return Typography(
         // ── Display ──────────────────────────────────────────────────────────
         displayLarge = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.Normal,
             fontSize = 57.sp,
             lineHeight = 64.sp,
             letterSpacing = (-0.25).sp,
         ),
         displayMedium = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.Normal,
             fontSize = 45.sp,
             lineHeight = 52.sp,
             letterSpacing = 0.sp,
         ),
         displaySmall = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.Normal,
             fontSize = 36.sp,
             lineHeight = 44.sp,
@@ -69,21 +69,21 @@ fun rememberAppTypography(): Typography {
         ),
         // ── Headline ─────────────────────────────────────────────────────────
         headlineLarge = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.SemiBold,
             fontSize = 32.sp,
             lineHeight = 40.sp,
             letterSpacing = 0.sp,
         ),
         headlineMedium = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.SemiBold,
             fontSize = 28.sp,
             lineHeight = 36.sp,
             letterSpacing = 0.sp,
         ),
         headlineSmall = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.Bold,
             fontSize = 24.sp,
             lineHeight = 32.sp,
@@ -91,21 +91,21 @@ fun rememberAppTypography(): Typography {
         ),
         // ── Title ────────────────────────────────────────────────────────────
         titleLarge = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.SemiBold,
             fontSize = 22.sp,
             lineHeight = 28.sp,
             letterSpacing = 0.sp,
         ),
         titleMedium = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.SemiBold,
             fontSize = 18.sp,
             lineHeight = 24.sp,
             letterSpacing = 0.15.sp,
         ),
         titleSmall = TextStyle(
-            fontFamily = syne,
+            fontFamily = outfit,
             fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
             lineHeight = 20.sp,
@@ -113,21 +113,21 @@ fun rememberAppTypography(): Typography {
         ),
         // ── Body ─────────────────────────────────────────────────────────────
         bodyLarge = TextStyle(
-            fontFamily = jost,
+            fontFamily = jakarta,
             fontWeight = FontWeight.Normal,
             fontSize = 16.sp,
             lineHeight = 24.sp,
             letterSpacing = 0.5.sp,
         ),
         bodyMedium = TextStyle(
-            fontFamily = jost,
+            fontFamily = jakarta,
             fontWeight = FontWeight.Normal,
             fontSize = 14.sp,
             lineHeight = 20.sp,
             letterSpacing = 0.25.sp,
         ),
         bodySmall = TextStyle(
-            fontFamily = jost,
+            fontFamily = jakarta,
             fontWeight = FontWeight.Normal,
             fontSize = 12.sp,
             lineHeight = 16.sp,
@@ -135,21 +135,21 @@ fun rememberAppTypography(): Typography {
         ),
         // ── Label ────────────────────────────────────────────────────────────
         labelLarge = TextStyle(
-            fontFamily = jost,
+            fontFamily = jakarta,
             fontWeight = FontWeight.Medium,
             fontSize = 14.sp,
             lineHeight = 20.sp,
             letterSpacing = 0.1.sp,
         ),
         labelMedium = TextStyle(
-            fontFamily = jost,
+            fontFamily = jakarta,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
             lineHeight = 16.sp,
             letterSpacing = 0.5.sp,
         ),
         labelSmall = TextStyle(
-            fontFamily = jost,
+            fontFamily = jakarta,
             fontWeight = FontWeight.Medium,
             fontSize = 11.sp,
             lineHeight = 16.sp,
