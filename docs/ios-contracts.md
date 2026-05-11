@@ -28,8 +28,8 @@ The stub pattern lets iOS compile and run while native implementations are defer
 | Interface | Stub | Android equivalent | iOS native (Phase 6) |
 |-----------|------|--------------------|----------------------|
 | `ActivityRecognitionManager` | `StubActivityRecognitionManager` | `ActivityRecognitionManagerImpl` (Google Activity Transitions API) | `CMMotionActivityManager` |
-| `GeofenceManager` | `StubGeofenceManager` | `GeofenceManagerImpl` (GeofencingClient) | `CLCircularRegion` + `CLLocationManager` |
-| `GeofenceEventBus` | `StubGeofenceEventBus` | `GeofenceEventBusImpl` (BroadcastReceiver) | `CLLocationManagerDelegate` |
+| `GeofenceManager` | `IosGeofenceManagerImpl` ✅ | `GeofenceManagerImpl` (GeofencingClient) | Done — `CLCircularRegion` + `CLLocationManager` region monitoring |
+| `GeofenceEventBus` | `IosGeofenceEventBusImpl` ✅ | `GeofenceEventBusImpl` (BroadcastReceiver) | Done — `Channel`-backed bus, fed by `CLLocationManagerDelegate` |
 | `DepartureEventBus` | `StubDepartureEventBus` | `DepartureEventBusImpl` (in-memory singleton) | In-memory singleton (no native API needed) |
 | `ParkingEnrichmentScheduler` | `StubParkingEnrichmentScheduler` | `WorkManagerParkingEnrichmentScheduler` | `BGProcessingTaskRequest` |
 | `ReportSpotScheduler` | `StubReportSpotScheduler` | `WorkManagerReportSpotScheduler` | `BGAppRefreshTask` + Firestore |
@@ -61,9 +61,9 @@ The stub pattern lets iOS compile and run while native implementations are defer
 
 ## 4. Phase 6 Implementation Order (Suggested)
 
-1. `LocationDataSource` → `CLLocationManagerLocationDataSource` (blocks all GPS-dependent features)
-2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager`
-3. `GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`
+1. `LocationDataSource` → `CLLocationManagerLocationDataSource` (blocks all GPS-dependent features) — see [IOS-LOC-001]
+2. `AppNotificationManager` → `UNUserNotificationCenterNotificationManager` — see [IOS-NOTIF-001]
+3. ~~`GeofenceManager` + `GeofenceEventBus` → `CLCircularRegionGeofenceManager`~~ ✅ Done [`feature/IOS-GEOFENCE-001-cl-circular-region`]
 4. `ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`
 5. `ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers
 6. `GeocoderDataSource` → `CLGeocoderDataSource`
