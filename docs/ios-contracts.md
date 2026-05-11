@@ -10,7 +10,7 @@ These declarations use Kotlin's `expect/actual` mechanism and require a concrete
 
 | Contract | commonMain | androidMain | iosMain | Status iOS |
 |----------|-----------|-------------|---------|------------|
-| `isDebugBuild: Boolean` | `Platform.kt` | `BuildConfig.DEBUG` | `false` (hardcoded) | ⚠️ Always false — use compiler flag in Phase 6 |
+| `isDebugBuild: Boolean` | `Platform.kt` | `BuildConfig.DEBUG` | `kotlin.native.Platform.isDebugBinary` | ✅ Tracks Xcode build config (Debug/Release) |
 | `CrashReporter.recordNonFatal()` | `core/crash/CrashReporter.kt` | Firebase Crashlytics | No-op | ⏳ Needs Firebase iOS SDK (Phase 6) |
 | `PermissionsScreen()` | `presentation/permissions/PermissionsScreen.kt` | `rememberLauncherForActivityResult` | `IosPermissionRequester` | ✅ Real implementation |
 | `defaultDistanceUnit()` | `presentation/util/DistanceUnit.kt` | `java.util.Locale` | `NSLocale` | ✅ Real implementation |
@@ -68,7 +68,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 5. `ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers
 6. `GeocoderDataSource` → `CLGeocoderDataSource`
 7. `CrashReporter` → Firebase iOS Crashlytics SDK
-8. `isDebugBuild` → Xcode build configuration flag
+8. ~~`isDebugBuild` → Xcode build configuration flag~~ ✅ Done [`feature/IOS-DEBUG-001-is-debug-build-flag`] — uses K/N stdlib `Platform.isDebugBinary`
 
 ---
 
