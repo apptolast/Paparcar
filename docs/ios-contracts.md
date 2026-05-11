@@ -11,7 +11,7 @@ These declarations use Kotlin's `expect/actual` mechanism and require a concrete
 | Contract | commonMain | androidMain | iosMain | Status iOS |
 |----------|-----------|-------------|---------|------------|
 | `isDebugBuild: Boolean` | `Platform.kt` | `BuildConfig.DEBUG` | `kotlin.native.Platform.isDebugBinary` | ✅ Tracks Xcode build config (Debug/Release) |
-| `CrashReporter.recordNonFatal()` | `core/crash/CrashReporter.kt` | Firebase Crashlytics | No-op | ⏳ Needs Firebase iOS SDK (Phase 6) |
+| `CrashReporter.recordNonFatal()` | `core/crash/CrashReporter.kt` | Firebase Crashlytics | Bridge to Swift `CrashReporterBridge` | ✅ Bridge-ready — Swift impl + Firebase iOS SDK to land on Mac |
 | `PermissionsScreen()` | `presentation/permissions/PermissionsScreen.kt` | `rememberLauncherForActivityResult` | `IosPermissionRequester` | ✅ Real implementation |
 | `defaultDistanceUnit()` | `presentation/util/DistanceUnit.kt` | `java.util.Locale` | `NSLocale` | ✅ Real implementation |
 | `AppDatabaseConstructor` | `data/datasource/local/room/AppDatabase.kt` | Room KMP codegen | Room KMP codegen | ✅ Auto-generated |
@@ -68,7 +68,7 @@ The stub pattern lets iOS compile and run while native implementations are defer
 4. ~~`ActivityRecognitionManager` → `CMMotionActivityRecognitionManager`~~ ✅ Done [`feature/IOS-AR-001-cm-motion-activity`]
 5. ~~`ParkingEnrichmentScheduler` + `ReportSpotScheduler` → `BGTaskScheduler` wrappers~~ ✅ Done [`feature/IOS-BG-001-bg-task-scheduler`] (coroutine-scope impl; BGTaskScheduler persistence is a future follow-up)
 6. `GeocoderDataSource` → `CLGeocoderDataSource`
-7. `CrashReporter` → Firebase iOS Crashlytics SDK
+7. ~~`CrashReporter` → Firebase iOS Crashlytics SDK~~ ✅ Bridge done [`feature/IOS-CRASH-001-firebase-crashlytics`] — Swift wiring + Firebase iOS SDK pod still needed on Mac
 8. ~~`isDebugBuild` → Xcode build configuration flag~~ ✅ Done [`feature/IOS-DEBUG-001-is-debug-build-flag`] — uses K/N stdlib `Platform.isDebugBinary`
 
 ---
