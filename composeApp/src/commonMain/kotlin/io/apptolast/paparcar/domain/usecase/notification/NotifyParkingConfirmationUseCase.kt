@@ -6,18 +6,15 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.runBlocking
 
 class NotifyParkingConfirmationUseCase(
     private val notificationPort: AppNotificationManager,
     private val vehicleRepository: VehicleRepository,
 ) {
-    operator fun invoke(confidence: ParkingConfidence) {
+    suspend operator fun invoke(confidence: ParkingConfidence) {
         PaparcarLogger.d(DIAG, "▶ NotifyParkingConfirmation.invoke confidence=$confidence")
-        PaparcarLogger.d(DIAG, "  → entering runBlocking { observeDefaultVehicle.firstOrNull() }")
-        val vehicleName = runBlocking { vehicleRepository.observeDefaultVehicle().firstOrNull() }
-            ?.displayName()
-        PaparcarLogger.d(DIAG, "  ← runBlocking returned, vehicleName=$vehicleName")
+        val vehicleName = vehicleRepository.observeDefaultVehicle().firstOrNull()?.displayName()
+        PaparcarLogger.d(DIAG, "  observeDefaultVehicle resolved vehicleName=$vehicleName")
         when (confidence) {
             is ParkingConfidence.Low -> notificationPort.showParkingConfirmation(0f, vehicleName)
             is ParkingConfidence.Medium -> notificationPort.showParkingConfirmation(confidence.score, vehicleName)

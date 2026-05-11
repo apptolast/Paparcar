@@ -320,7 +320,7 @@ class ParkingDetectionCoordinator(
      * and always shows a confirmation notification. Does not confirm immediately — the
      * observation window in [invoke] handles auto-confirmation timing.
      */
-    private fun evaluateConfidence(
+    private suspend fun evaluateConfidence(
         location: GpsPoint,
         stoppedDuration: Long,
         state: ParkingDetectionState,
