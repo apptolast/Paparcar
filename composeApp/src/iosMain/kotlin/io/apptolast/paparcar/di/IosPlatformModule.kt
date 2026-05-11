@@ -14,9 +14,9 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.connectivity.IosConnectivityObserver
 import io.apptolast.paparcar.ios.preferences.IosAppPreferences
 import io.apptolast.paparcar.ios.stub.StubAppNotificationManager
-import io.apptolast.paparcar.ios.stub.StubConnectivityObserver
 import io.apptolast.paparcar.ios.stub.StubPlacesDataSource
 import io.apptolast.paparcar.location.IosGeocoderDataSourceImpl
 import io.apptolast.paparcar.location.IosLocationDataSourceImpl
@@ -51,8 +51,8 @@ val iosPlatformModule = module {
     // Preferences — real iOS implementation (NSUserDefaults)
     single<AppPreferences> { IosAppPreferences() }
 
-    // Connectivity (stub — Phase 6 will use NWPathMonitor)
-    single<ConnectivityObserver> { StubConnectivityObserver() }
+    // Connectivity — real iOS implementation (nw_path_monitor)
+    single<ConnectivityObserver> { IosConnectivityObserver() }
 
     // Bluetooth — real iOS implementation (CBCentralManager for state; getBondedDevices is empty by design)
     single<BluetoothScanner> { IosBluetoothScanner() }
