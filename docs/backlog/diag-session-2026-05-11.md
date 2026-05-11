@@ -4,9 +4,17 @@ Tickets surfaced during the debug session for the "blue foreground-service notif
 
 Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PREFIX-NNN-…`). Numbers are suggested; renumber if they collide with anything in flight.
 
+## Status legend
+✅ **Done** — merged to master (commit/branch noted).
+🔵 **Branch ready** — work complete on its branch, awaiting review/merge.
+⚪ **Pending** — not started.
+🟡 **Blocked** — waiting on the user (data wipe, design call, etc.).
+
 ---
 
-## 1. `bugfix/LOC-001-parked-spot-captures-walk-destination`
+## 1. `bugfix/LOC-001-parked-spot-captures-walk-destination` — ✅ Done
+
+**Merged:** 2026-05-11, commit `e153d6e` (branch deleted post-merge).
 
 **Priority:** High — directly degrades the core product (wrong spot saved).
 **Reproducible on:** Redmi Note 11 (master) and Samsung A53 (master), tests on 2026-05-11. Saved spot was the user's home (~5 m from front door) instead of the actual parking position a few hundred metres away. Same symptom on both devices → not an OEM quirk, a coordinator-logic bug.
@@ -21,7 +29,9 @@ Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PR
 
 ---
 
-## 2. `bugfix/MAPPER-001-detection-reliability-not-mapped`
+## 2. `bugfix/MAPPER-001-detection-reliability-not-mapped` — ✅ Done
+
+**Merged:** 2026-05-11, commit `1a97dea` (branch deleted post-merge). Added 4 round-trip tests covering set/unset cases.
 
 **Priority:** Low — does not break functionality, but it kills reliability-based analytics.
 **Evidence:** Database Inspector dump on 2026-05-05 — every row in `parking_sessions` had `detectionReliability = NULL`, including new ones written by the current coordinator.
@@ -36,7 +46,7 @@ Branch names follow the project convention (`bugfix/PREFIX-NNN-…`, `feature/PR
 
 ---
 
-## 3. `feature/HIST-001-vehicles-screen-rework`
+## 3. `feature/HIST-001-vehicles-screen-rework` — ⚪ Pending
 
 **Priority:** Medium — UX rework bundled with the legacy-session backfill discovered in this session.
 **Scope:** Two parts in one branch — the data fix and the screen redesign go together because they touch the same surface.
@@ -72,7 +82,9 @@ Made obsolete by DB-001 if you choose to reset the schema before this lands; in 
 
 ---
 
-## 4. `feature/PIPE-001-confirm-parking-pipeline`
+## 4. `feature/PIPE-001-confirm-parking-pipeline` — 🔵 Branch ready
+
+**Branch:** `feature/PIPE-001-confirm-parking-pipeline`, commit `371ce85`. Tests green, Android compile clean. Awaiting merge.
 
 **Priority:** Medium — preventive refactor, not a bug. Eliminates the root cause class of the "service hangs forever" failure mode.
 
@@ -82,9 +94,13 @@ Made obsolete by DB-001 if you choose to reset the schema before this lands; in 
 
 **Effort:** Medium. Detailed step-by-step in the refactor doc.
 
+**Follow-ups deliberately scoped out — see tickets 9 and 10 below.**
+
 ---
 
-## 5. `bugfix/FND-009-runblocking-in-notify-usecase`
+## 5. `bugfix/FND-009-runblocking-in-notify-usecase` — ✅ Done
+
+**Merged:** 2026-05-11, commit `b05ef61` (branch deleted post-merge). `invoke` is now `suspend`; ripple confined to `evaluateConfidence` in the coordinator.
 
 **Priority:** Medium-High — latent ANR. We captured 1.2-1.4 s of Main-thread blocking in the diagnostic logs.
 
@@ -105,7 +121,7 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 6. `chore/DB-001-reset-room-schema-baseline`
+## 6. `chore/DB-001-reset-room-schema-baseline` — 🟡 Blocked (waiting on user data wipe)
 
 **Priority:** Medium — opportunistic cleanup while the app is still pre-release.
 **Trigger:** Pre-production state. No external users have data we need to preserve.
@@ -126,7 +142,9 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 7. `chore/ARCH-002-architecture-and-modularization-review`
+## 7. `chore/ARCH-002-architecture-and-modularization-review` — ✅ Done
+
+**Merged:** 2026-05-11, commit `4288d71` (branch deleted post-merge). Output lives at `docs/architecture/ARCH-002-modularization-review.md`. Recommendation: stay monolithic, add lint rules — see ARCH-003 below if you act on it.
 
 **Priority:** Low (exploratory), but high leverage if acted on.
 **Note:** `ARCH-001` was the cancelled `CurrentUserProvider` over-engineering attempt; numbering forward.
@@ -149,7 +167,7 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 8. `chore/REL-001-release-build-pipeline`
+## 8. `chore/REL-001-release-build-pipeline` — ⚪ Pending
 
 **Priority:** Medium — gates being able to share the app publicly.
 
@@ -168,6 +186,53 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 - PIPE-001 strongly recommended before any "first impression" public release — it removes the worst class of hang we've seen.
 
 **Effort:** Medium-large. Signing + R8 keep rules are the highest-risk steps (a single missing keep rule can crash release on first launch).
+
+---
+
+## 9. `feature/PIPE-002-sync-clear-active-and-update-location` — ⚪ Pending (follow-up of PIPE-001)
+
+**Priority:** Low — same failure mode as PIPE-001 (in-flight Firestore call can hang), but on much less critical paths.
+
+**What:** `UserParkingRepositoryImpl.clearActive()` and `updateLocationInfo()` still call `userProfileDataSource.saveParkingSession` / `updateParkingSessionLocation` directly inside `runCatching`. Same hang-on-Firestore risk as the original PIPE-001 case, but the contexts are less critical:
+- `clearActive()` runs on the release path (user departs → spot becomes public). Currently invoked from `ReleaseActiveParkingSessionUseCase`, which is not called from a foreground service. ANR risk is low, but inconsistency with PIPE-001 is real.
+- `updateLocationInfo()` is already invoked from inside a worker (`EnrichParkingSessionWorker`), so it's already async from the user's perspective — but the worker itself can be killed mid-Firestore-write, leaving Room and Firestore inconsistent.
+
+**Fix sketch:**
+- Add `ParkingSyncScheduler.scheduleClearActive(sessionId, userId)` or extend the existing `schedule()` signature with a clear-active variant.
+- Add `ParkingSyncScheduler.scheduleLocationInfoUpdate(sessionId, userId, address, placeInfo)`.
+- Have `clearActive()` do only the Room write (clear `isActive=1`) and schedule the Firestore reconciliation via the worker.
+- Same for `updateLocationInfo()`.
+
+**Effort:** Small once PIPE-001 lands — same pattern, fewer fields per payload.
+
+---
+
+## 10. `chore/PIPE-003-parking-sync-worker-test` — ⚪ Pending (follow-up of PIPE-001)
+
+**Priority:** Low — `ParkingSyncWorker.doWork()` is currently exercised only by manual smoke testing.
+
+**What:** Unit test the worker body. The challenge: `doWork()` runs inside a real `CoroutineWorker` with `WorkerParameters` injected by WorkManager. Two viable approaches:
+- **Robolectric in `androidUnitTest`**. Use `androidx.work:work-testing` (`TestWorkerBuilder`, `TestListenableWorkerBuilder.from(...)`). Verify: success path writes new session to Firestore; previous-id path writes inactive marker first; retry on `Result.retry()` after fake failure; final failure after `MAX_RETRY_ATTEMPTS`.
+- **Instrumented test** under `androidInstrumentedTest`. Heavier infra; only worth it if Robolectric mismatches production behaviour.
+
+**Effort:** Small-medium. Robolectric setup for KMP+Compose Multiplatform projects sometimes needs nudging (compose dependencies, manifest merger) — budget some friction time.
+
+---
+
+## 11. `chore/ARCH-003-add-architecture-lint-rules` — ⚪ Pending (follow-up of ARCH-002)
+
+**Priority:** Low-medium — preventive. Catches discipline gaps at compile time.
+
+**Where:** Recommended by `docs/architecture/ARCH-002-modularization-review.md`, section 5.
+
+**What:** Add 4–5 layering rules via Konsist (recommended — KMP-friendly, runs as commonTest) or Detekt custom rules:
+- `presentation` cannot import `data.*`.
+- `data` cannot import `presentation.*`.
+- `commonMain` cannot import `androidMain.*` (defence in depth; Kotlin already errors but documents intent).
+- `domain` cannot import `data.*` or `presentation.*`.
+- Optional: ban `runBlocking` outside `androidMain`/`iosMain` test helpers (we just shipped FND-009 to fix one — a rule prevents the next).
+
+**Effort:** 2–3 hours including CI wiring.
 
 ---
 
