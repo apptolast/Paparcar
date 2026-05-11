@@ -209,7 +209,9 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 10. `chore/PIPE-003-parking-sync-worker-test` — 🔵 Branch ready (chore/PIPE-003-parking-sync-worker-test)
+## 10. `chore/PIPE-003-parking-sync-worker-test` — ✅ Done
+
+**Merged:** 2026-05-12, commit `daeeb2d` (branch deleted post-merge). 9 tests via Robolectric + work-testing covering all 3 workers: success, retry, permanent failure, missing input.
 
 **Priority:** Low — `ParkingSyncWorker.doWork()` is currently exercised only by manual smoke testing.
 
