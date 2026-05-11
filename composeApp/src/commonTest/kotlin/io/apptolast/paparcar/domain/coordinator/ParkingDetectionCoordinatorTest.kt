@@ -13,6 +13,7 @@ import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
+import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.cancelAndJoin
@@ -58,12 +59,14 @@ class ParkingDetectionCoordinatorTest {
         val geofence = FakeGeofenceManager()
         val notification = FakeAppNotificationManager()
         val enrichment = FakeParkingEnrichmentScheduler()
+        val parkingSync = FakeParkingSyncScheduler()
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
             vehicleRepository = vehicleRepo,
             geofenceService = geofence,
             notificationPort = notification,
             enrichmentScheduler = enrichment,
+            parkingSyncScheduler = parkingSync,
             authRepository = auth,
             config = config,
         )

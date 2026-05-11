@@ -25,15 +25,19 @@ class FakeUserParkingRepository(
 
     var saveSessionCallCount = 0
         private set
-    var saveSessionResult: Result<Unit> = Result.success(Unit)
+    /** Failure override for tests. On success, the fake returns the previously-active session id. */
+    var saveSessionResult: Result<String?>? = null
 
-    override suspend fun saveSession(session: UserParking): Result<Unit> {
+    override suspend fun saveSession(session: UserParking): Result<String?> {
         saveSessionCallCount++
-        if (saveSessionResult.isFailure) return saveSessionResult
+        saveSessionResult?.let { override ->
+            if (override.isFailure) return override
+        }
+        val previousActiveId = sessions.firstOrNull { it.isActive }?.id
         sessions.removeAll { it.isActive }
         sessions.add(session)
         _sessionsFlow.value = sessions.toList()
-        return saveSessionResult
+        return Result.success(previousActiveId)
     }
 
     override suspend fun getActiveSession(): UserParking? =

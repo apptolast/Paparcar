@@ -6,7 +6,13 @@ import io.apptolast.paparcar.domain.model.UserParking
 import kotlinx.coroutines.flow.Flow
 
 interface UserParkingRepository {
-    suspend fun saveSession(session: UserParking): Result<Unit>
+    /**
+     * Inserts [session] into Room as the new active session, clearing any previously active
+     * row. Returns the id of the previous active session (if any) wrapped in a [Result] so
+     * the caller can hand it to [io.apptolast.paparcar.domain.service.ParkingSyncScheduler]
+     * for remote backfill — Firestore writes happen off the critical path.
+     */
+    suspend fun saveSession(session: UserParking): Result<String?>
     suspend fun getActiveSession(): UserParking?
     fun observeActiveSession(): Flow<UserParking?>
     fun observeAllSessions(): Flow<List<UserParking>>

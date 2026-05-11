@@ -53,6 +53,7 @@ val domainModule = module {
             geofenceService = get(),
             notificationPort = get(),
             enrichmentScheduler = get(),
+            parkingSyncScheduler = get(),
             authRepository = get(),
             config = get(),
         )

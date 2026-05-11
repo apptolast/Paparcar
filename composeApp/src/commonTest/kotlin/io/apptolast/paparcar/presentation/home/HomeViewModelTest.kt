@@ -25,6 +25,7 @@ import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
+import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
@@ -78,6 +79,7 @@ class HomeViewModelTest {
             geofenceService = FakeGeofenceManager(),
             notificationPort = FakeAppNotificationManager(),
             enrichmentScheduler = FakeParkingEnrichmentScheduler(),
+            parkingSyncScheduler = FakeParkingSyncScheduler(),
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
         )

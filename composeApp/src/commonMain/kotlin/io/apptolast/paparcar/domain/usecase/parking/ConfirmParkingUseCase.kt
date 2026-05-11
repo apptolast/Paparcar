@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
+import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -36,6 +37,7 @@ class ConfirmParkingUseCase(
     private val geofenceService: GeofenceManager,
     private val notificationPort: AppNotificationManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
+    private val parkingSyncScheduler: ParkingSyncScheduler,
     private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
 ) {
@@ -88,6 +90,10 @@ class ConfirmParkingUseCase(
             PaparcarLogger.e(DIAG, "  ✗ saveSession failed", saved.exceptionOrNull())
             return Result.failure(PaparcarError.Parking.SaveFailed)
         }
+        val previousSessionId = saved.getOrNull()
+
+        parkingSyncScheduler.schedule(session, previousSessionId)
+        PaparcarLogger.d(DIAG, "  ↳ parkingSyncScheduler.schedule scheduled (previousSessionId=$previousSessionId)")
 
         PaparcarLogger.d(DIAG, "  → enrichmentScheduler.schedule BEFORE")
         enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)

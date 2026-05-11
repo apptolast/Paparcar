@@ -10,6 +10,7 @@ import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
+import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -55,6 +56,51 @@ class ConfirmParkingUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals(1, enrichment.scheduleCallCount)
+    }
+
+    @Test
+    fun `should schedule parking sync after successful save with null previous when none existed`() = runTest {
+        val parkingSync = FakeParkingSyncScheduler()
+        val useCase = buildUseCase(parkingSync = parkingSync)
+
+        val result = useCase(location, detectionReliability = 0.9f)
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, parkingSync.scheduleCallCount)
+        assertNull(parkingSync.calls.first().previousSessionId)
+    }
+
+    @Test
+    fun `should pass previous session id to parking sync when a session was already active`() = runTest {
+        val previousSession = io.apptolast.paparcar.domain.model.UserParking(
+            id = "previous-session-id",
+            userId = "user-42",
+            location = location,
+            isActive = true,
+        )
+        val repo = FakeUserParkingRepository(initialSession = previousSession)
+        val parkingSync = FakeParkingSyncScheduler()
+        val useCase = buildUseCase(repo = repo, parkingSync = parkingSync)
+
+        val result = useCase(location, detectionReliability = 0.9f)
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, parkingSync.scheduleCallCount)
+        assertEquals("previous-session-id", parkingSync.calls.first().previousSessionId)
+    }
+
+    @Test
+    fun `should NOT schedule parking sync when save fails`() = runTest {
+        val parkingSync = FakeParkingSyncScheduler()
+        val repo = FakeUserParkingRepository().apply {
+            saveSessionResult = Result.failure(RuntimeException("DB error"))
+        }
+        val useCase = buildUseCase(repo = repo, parkingSync = parkingSync)
+
+        val result = useCase(location, detectionReliability = 0.9f)
+
+        assertTrue(result.isFailure)
+        assertEquals(0, parkingSync.scheduleCallCount)
     }
 
     @Test
@@ -278,6 +324,7 @@ class ConfirmParkingUseCaseTest {
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),
+        parkingSync: FakeParkingSyncScheduler = FakeParkingSyncScheduler(),
         auth: FakeAuthRepository = FakeAuthRepository(initialSession = session),
         config: ParkingDetectionConfig = ParkingDetectionConfig(),
     ) = ConfirmParkingUseCase(
@@ -286,6 +333,7 @@ class ConfirmParkingUseCaseTest {
         geofenceService = geofence,
         notificationPort = notification,
         enrichmentScheduler = enrichment,
+        parkingSyncScheduler = parkingSync,
         authRepository = auth,
         config = config,
     )

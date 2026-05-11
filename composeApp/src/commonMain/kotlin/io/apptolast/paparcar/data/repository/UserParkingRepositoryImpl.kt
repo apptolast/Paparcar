@@ -24,24 +24,19 @@ class UserParkingRepositoryImpl(
     private suspend fun currentUserId(): String? =
         authRepository.getCurrentSession()?.userId
 
-    override suspend fun saveSession(session: UserParking): Result<Unit> =
+    /**
+     * Room-only. Firestore propagation lives in
+     * [io.apptolast.paparcar.detection.worker.ParkingSyncWorker], scheduled by
+     * [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase] using
+     * the [previousActive] id returned here. Keeps the confirm-parking critical
+     * path bounded by local I/O only (no network suspending in foreground service). [PIPE-001]
+     */
+    override suspend fun saveSession(session: UserParking): Result<String?> =
         runCatching {
             val previousActive = dao.getActive()
-
             dao.clearActive()
             dao.insert(session.toEntity())
-
-            currentUserId()?.let { userId ->
-                // Persist the now-deactivated previous session to Firestore
-                previousActive?.let { prev ->
-                    userProfileDataSource.saveParkingSession(
-                        userId,
-                        prev.toDomain().copy(isActive = false).toParkingHistoryDto(),
-                    )
-                }
-                // Persist the new active session
-                userProfileDataSource.saveParkingSession(userId, session.toParkingHistoryDto())
-            }
+            previousActive?.id
         }
 
     override suspend fun getActiveSession(): UserParking? =
