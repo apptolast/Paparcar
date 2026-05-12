@@ -50,8 +50,14 @@ class VehiclesViewModel(
             is VehiclesIntent.SetActiveVehicle -> setActiveVehicle(intent.vehicleId)
             is VehiclesIntent.BluetoothVehicleConnected ->
                 updateState { copy(bluetoothConnectedVehicleId = intent.vehicleId) }
-            is VehiclesIntent.RequestDeleteVehicle ->
-                updateState { copy(pendingDeleteVehicleId = intent.vehicleId) }
+            is VehiclesIntent.RequestDeleteVehicle -> {
+                // Business rule: the user must keep at least one registered vehicle.
+                if (state.value.vehicles.size <= 1) {
+                    sendEffect(VehiclesEffect.ShowCannotDeleteLastVehicle)
+                } else {
+                    updateState { copy(pendingDeleteVehicleId = intent.vehicleId) }
+                }
+            }
             is VehiclesIntent.DismissDeleteConfirmation ->
                 updateState { copy(pendingDeleteVehicleId = null) }
             is VehiclesIntent.ConfirmDeleteVehicle -> {

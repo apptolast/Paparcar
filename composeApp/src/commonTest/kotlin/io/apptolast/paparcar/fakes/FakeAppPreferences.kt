@@ -8,7 +8,6 @@ class FakeAppPreferences(
     initialAutoDetect: Boolean = true,
     initialNotifyParking: Boolean = true,
     initialNotifySpot: Boolean = true,
-    initialVehicleRegistered: Boolean = false,
     initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
     initialUseImperialUnits: Boolean = false,
     initialDefaultMapType: String = "NORMAL",
@@ -41,10 +40,6 @@ class FakeAppPreferences(
     private var _notifySpotFreed = initialNotifySpot
     override val notifySpotFreed: Boolean get() = _notifySpotFreed
     override fun setNotifySpotFreed(enabled: Boolean) { _notifySpotFreed = enabled }
-
-    private var _hasVehicleRegistered = initialVehicleRegistered
-    override val hasVehicleRegistered: Boolean get() = _hasVehicleRegistered
-    override fun setVehicleRegistered() { _hasVehicleRegistered = true }
 
     private var _themeMode = initialThemeMode
     override val themeMode: ThemeMode get() = _themeMode

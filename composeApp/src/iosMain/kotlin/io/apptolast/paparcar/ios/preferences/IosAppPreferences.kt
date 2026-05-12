@@ -8,7 +8,6 @@ private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
-private const val KEY_VEHICLE_REGISTERED = "vehicle_registered"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
 private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
@@ -54,13 +53,6 @@ class IosAppPreferences : AppPreferences {
 
     override fun setNotifySpotFreed(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_NOTIFY_SPOT_FREED)
-    }
-
-    override val hasVehicleRegistered: Boolean
-        get() = userDefaults.boolForKey(KEY_VEHICLE_REGISTERED)
-
-    override fun setVehicleRegistered() {
-        userDefaults.setBool(true, forKey = KEY_VEHICLE_REGISTERED)
     }
 
     override val themeMode: ThemeMode

@@ -6,8 +6,8 @@ import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.local.room.SpotDao
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSourceImpl
-import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSource
-import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSourceImpl
+import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
+import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
 import io.apptolast.paparcar.data.repository.SpotRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserParkingRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserProfileRepositoryImpl
@@ -25,13 +25,13 @@ val dataModule = module {
 
     // DataSources
     single<FirebaseDataSource> { FirebaseDataSourceImpl(get()) }
-    single<UserProfileDataSource> { UserProfileDataSourceImpl(get()) }
+    single<RemoteUserProfileDataSource> { RemoteUserProfileDataSourceImpl(get()) }
 
     // Repositories
     single<SpotRepository> { SpotRepositoryImpl(get(), get()) }
     single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get(), get()) }
     single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
-    single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get()) }
+    single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get(), get(), get()) }
 
     // DAOs (from AppDatabase)
     single { get<AppDatabase>().parkingSessionDao() }

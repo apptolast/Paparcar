@@ -99,13 +99,30 @@ class VehiclesViewModelTest {
     // ── Delete flow ───────────────────────────────────────────────────────────
 
     @Test
-    fun `should_set_pendingDeleteVehicleId_on_RequestDeleteVehicle`() = runTest {
+    fun `should_set_pendingDeleteVehicleId_on_RequestDeleteVehicle_when_more_than_one_vehicle`() = runTest {
+        // Need 2+ vehicles so the "keep at least one" guard does not fire.
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        vehicleRepo.saveVehicle(vehicle("v2"))
         vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
         assertEquals("v1", vm.state.value.pendingDeleteVehicleId)
     }
 
     @Test
+    fun `should_emit_ShowCannotDeleteLastVehicle_when_only_one_vehicle_remains`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        vm.effect.test {
+            vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
+            assertIs<VehiclesEffect.ShowCannotDeleteLastVehicle>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        // State should NOT enter the delete-confirm flow.
+        assertNull(vm.state.value.pendingDeleteVehicleId)
+    }
+
+    @Test
     fun `should_clear_pendingDeleteVehicleId_on_DismissDeleteConfirmation`() = runTest {
+        vehicleRepo.saveVehicle(vehicle("v1"))
+        vehicleRepo.saveVehicle(vehicle("v2"))
         vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
         vm.handleIntent(VehiclesIntent.DismissDeleteConfirmation)
         assertNull(vm.state.value.pendingDeleteVehicleId)
@@ -114,11 +131,12 @@ class VehiclesViewModelTest {
     @Test
     fun `should_delete_vehicle_and_clear_pending_on_ConfirmDeleteVehicle`() = runTest {
         vehicleRepo.saveVehicle(vehicle("v1"))
+        vehicleRepo.saveVehicle(vehicle("v2"))
         vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
         vm.handleIntent(VehiclesIntent.ConfirmDeleteVehicle("v1"))
 
         assertNull(vm.state.value.pendingDeleteVehicleId)
-        assertEquals(0, vm.state.value.vehicles.size)
+        assertEquals(1, vm.state.value.vehicles.size)
     }
 
     // ── Bluetooth connected vehicle ───────────────────────────────────────────

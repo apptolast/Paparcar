@@ -13,6 +13,7 @@ fun UserProfileDto.toEntity() = UserProfileEntity(
     photoUrl = photoUrl,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    defaultVehicleId = defaultVehicleId,
 )
 
 fun UserProfileDto.toDomain() = UserProfile(
@@ -22,6 +23,7 @@ fun UserProfileDto.toDomain() = UserProfile(
     photoUrl = photoUrl,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    defaultVehicleId = defaultVehicleId,
 )
 
 // ── UserProfileEntity → Domain ─────────────────────────────────────────────────
@@ -33,6 +35,7 @@ fun UserProfileEntity.toDomain() = UserProfile(
     photoUrl = photoUrl,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    defaultVehicleId = defaultVehicleId,
 )
 
 // ── UserProfile → Dto ──────────────────────────────────────────────────────────
@@ -44,4 +47,5 @@ fun UserProfile.toDto() = UserProfileDto(
     photoUrl = photoUrl,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    defaultVehicleId = defaultVehicleId,
 )

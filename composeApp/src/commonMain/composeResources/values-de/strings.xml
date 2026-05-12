@@ -279,6 +279,15 @@
     <string name="perm_rationale_cta">Verstanden, Berechtigungen aktivieren</string>
     <string name="perm_rationale_skip">Jetzt nicht</string>
 
+    <!-- Vehicle Size Explainer screen -->
+    <string name="vehicle_size_explainer_title">Erzähl uns von deinem Auto</string>
+    <string name="vehicle_size_explainer_subtitle">Wir brauchen nur ein wichtiges Detail, damit die App funktioniert: die Größe.</string>
+    <string name="vehicle_size_explainer_card1_title">Größe: so finden wir passende Plätze</string>
+    <string name="vehicle_size_explainer_card1_desc">Andere Fahrer suchen Parkplätze, die zu ihrem Auto passen. Ohne diese Info können wir euch nicht zusammenbringen.</string>
+    <string name="vehicle_size_explainer_card2_title">Marke und Modell sind optional</string>
+    <string name="vehicle_size_explainer_card2_desc">Du kannst sie hinzufügen, wenn du willst. Wenn nicht, sieht sie niemand.</string>
+    <string name="vehicle_size_explainer_cta">Loslegen</string>
+
     <string name="bt_config_title">Auto-Bluetooth-Schlüssel</string>
     <string name="bt_config_subtitle">Wähle das bereits mit deinem Auto gekoppelte Bluetooth-Gerät aus. Die App erkennt damit, wann du parkst oder abfährst.</string>
     <string name="bt_config_bt_off">Bluetooth ist deaktiviert. Aktiviere es, um deine gekoppelten Geräte zu sehen.</string>
@@ -292,6 +301,7 @@
     <string name="my_car_bt_configure">Bluetooth konfigurieren</string>
     <string name="my_car_bt_device">Auto-Bluetooth</string>
     <string name="my_car_bt_not_configured">Nicht konfiguriert</string>
+    <string name="my_car_cannot_delete_last_vehicle">Du musst mindestens ein Fahrzeug registriert behalten.</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
     <string name="vehicle_card_detection_ar">Automatik</string>

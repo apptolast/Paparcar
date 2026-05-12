@@ -250,6 +250,43 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
+## 12. `feature/FLOW-001-splash-driven-first-run-flow` — ⚪ In progress
+
+**Priority:** High — current flow shows VehicleRegistration to existing users on data-clear/re-login and lets users reach Home without a vehicle via the PermissionsRationale "Skip" button.
+
+**Root cause:** `appPreferences.hasVehicleRegistered` is a local DataStore flag that diverges from the real repository state. The startRoute computed in `MainActivity` is based on this flag, not on the actual presence of vehicles in Room/Firestore.
+
+**Design (approved 2026-05-12):**
+
+- **Splash decides everything.** `SplashViewModel` waits for: (a) AuthState.Authenticated, (b) `getOrCreateUserProfile()` OK, (c) first emission of `observeVehicles()` (already does lazy sync from Firestore), (d) `permissionState.value`, (e) `isOnboardingCompleted` from DataStore. Exposes `startRoute: String?` — native splash stays up until non-null. Zero flash.
+
+- **First-run flow:** Login → Onboarding → VehicleRegistration → PermissionsRationale → Permissions → Home.
+
+- **Returning user:** Splash computes the correct start straight to Home if everything is in place.
+
+- **Eliminate `hasVehicleRegistered`** from DataStore. Truth is `vehicleRepository.observeVehicles().isNotEmpty()`.
+
+- **Gate in `MainAppNavigation` only handles permissions** (mid-session permission revocation). No mid-session guard for vehicle/onboarding because: (a) splash guarantees correct entry, (b) the only vehicle cannot be deleted (UX rule below).
+
+- **Delete-last-vehicle UX rule:** When the user has exactly 1 vehicle, the delete icon stays visible but with reduced alpha (~0.4f). Tapping it surfaces a snackbar in the user's locale explaining they must keep at least one registered vehicle. New string `my_car_cannot_delete_last_vehicle` added to all 9 supported languages.
+
+- **`origin=onboarding`** removed from `VEHICLE_REGISTRATION` route (decision post-completion moves to a central `nextRouteAfter(appState)` helper). `origin=vehicles` kept — vehicles-tab entry still pops back contextually.
+
+- **`PermissionsRationaleScreen.onSkip` removed** — it bypassed the vehicle invariant.
+
+**Where:**
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/app/SplashViewModel.kt` — extend with startRoute calc.
+- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/MainActivity.kt` — remove startRoute calc, switch `keepOnScreenCondition` to `splashViewModel.isReady`.
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/App.kt` — drop startRoute param, simplify gate, add `nextRouteAfter`.
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/preferences/AppPreferences.kt` — drop `hasVehicleRegistered` + `setVehicleRegistered`.
+- `VehicleRegistrationViewModel` and test — drop `setVehicleRegistered` call.
+- `VehiclesViewModel` + `VehiclePageContent` + `VehiclesEffect` — implement translucent-delete + snackbar UX.
+- `composeResources/values*/strings.xml` (×9 locales).
+
+**Effort:** Medium. Largest risk is the SplashViewModel test matrix (5 invariant combinations).
+
+---
+
 ## Out of scope for this list
 
 - The actual cause of the original "blue notification hangs forever" symptom is unconfirmed. Once any of the above fixes ships and the user has driven a few times in production without recurrence, mark this session as closed.

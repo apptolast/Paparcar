@@ -281,6 +281,7 @@
     <string name="my_car_delete_confirm_message">Este vehículo se eliminará permanentemente. Esta acción no se puede deshacer.</string>
     <string name="my_car_delete_confirm_action">Eliminar</string>
     <string name="my_car_delete_cancel">Cancelar</string>
+    <string name="my_car_cannot_delete_last_vehicle">Debes mantener al menos un vehículo registrado.</string>
     <string name="vehicle_detail_tab_details">Detalles</string>
     <string name="vehicle_detail_tab_history">Historial</string>
     <string name="vehicle_detail_cd_back">Volver</string>
@@ -314,6 +315,15 @@
     <string name="perm_rationale_body">Paparcar detecta cuando abandonas tu plaza y la comparte automáticamente con conductores cercanos — del mismo modo que tú te beneficiarías si otra persona hiciera lo mismo.\n\nPara funcionar necesitamos acceso a tu ubicación y sensores de movimiento. Tu ubicación exacta nunca se comparte con otros usuarios.</string>
     <string name="perm_rationale_cta">Entendido, activar permisos</string>
     <string name="perm_rationale_skip">Ahora no</string>
+
+    <!-- Vehicle Size Explainer screen -->
+    <string name="vehicle_size_explainer_title">Cuéntanos sobre tu coche</string>
+    <string name="vehicle_size_explainer_subtitle">Solo necesitamos un dato esencial para que la app funcione: el tamaño.</string>
+    <string name="vehicle_size_explainer_card1_title">Tamaño: para emparejar plazas</string>
+    <string name="vehicle_size_explainer_card1_desc">Otros conductores buscan plazas que se ajusten al tamaño de su coche. Sin esto no podemos emparejaros.</string>
+    <string name="vehicle_size_explainer_card2_title">Marca y modelo son opcionales</string>
+    <string name="vehicle_size_explainer_card2_desc">Puedes añadirlos si quieres. Si no, nadie los verá.</string>
+    <string name="vehicle_size_explainer_cta">Empezar</string>
 
     <string name="bt_config_title">Bluetooth del coche</string>
     <string name="bt_config_subtitle">Selecciona el dispositivo Bluetooth ya emparejado con tu coche. La app lo usará para detectar cuándo aparcas o sales.</string>

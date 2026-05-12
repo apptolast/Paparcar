@@ -279,6 +279,15 @@
     <string name="perm_rationale_cta">Compris, activer les autorisations</string>
     <string name="perm_rationale_skip">Pas maintenant</string>
 
+    <!-- Vehicle Size Explainer screen -->
+    <string name="vehicle_size_explainer_title">Parlez-nous de votre voiture</string>
+    <string name="vehicle_size_explainer_subtitle">Nous avons besoin d\'une seule info essentielle pour que l\'app fonctionne : la taille.</string>
+    <string name="vehicle_size_explainer_card1_title">Taille : pour associer les places</string>
+    <string name="vehicle_size_explainer_card1_desc">D\'autres conducteurs cherchent des places adaptées à leur voiture. Sans cette info, impossible de vous associer.</string>
+    <string name="vehicle_size_explainer_card2_title">Marque et modèle sont facultatifs</string>
+    <string name="vehicle_size_explainer_card2_desc">Vous pouvez les ajouter si vous voulez. Sinon, personne ne les verra.</string>
+    <string name="vehicle_size_explainer_cta">Commencer</string>
+
     <string name="bt_config_title">Clé Bluetooth de voiture</string>
     <string name="bt_config_subtitle">Sélectionnez l\'appareil Bluetooth déjà associé à votre voiture. L\'app l\'utilisera pour détecter quand vous vous garez ou partez.</string>
     <string name="bt_config_bt_off">Le Bluetooth est désactivé. Activez-le pour voir vos appareils associés.</string>
@@ -292,6 +301,7 @@
     <string name="my_car_bt_configure">Configurer le Bluetooth</string>
     <string name="my_car_bt_device">Bluetooth de la voiture</string>
     <string name="my_car_bt_not_configured">Non configuré</string>
+    <string name="my_car_cannot_delete_last_vehicle">Vous devez conserver au moins un véhicule enregistré.</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
     <string name="vehicle_card_detection_ar">Détection auto</string>

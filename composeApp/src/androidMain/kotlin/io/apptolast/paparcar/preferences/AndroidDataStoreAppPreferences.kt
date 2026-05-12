@@ -62,13 +62,6 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setNotifySpotFreed(enabled: Boolean) = set(Keys.NOTIFY_SPOT_FREED, enabled)
 
-    // ── Vehicle ──────────────────────────────────────────────────────────────
-
-    override val hasVehicleRegistered: Boolean
-        get() = get(Keys.VEHICLE_REGISTERED, false)
-
-    override fun setVehicleRegistered() = set(Keys.VEHICLE_REGISTERED, true)
-
     // ── Theme ────────────────────────────────────────────────────────────────
 
     override val themeMode: ThemeMode
@@ -108,7 +101,6 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val AUTO_DETECT_PARKING     = booleanPreferencesKey("auto_detect_parking")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")
-        val VEHICLE_REGISTERED      = booleanPreferencesKey("vehicle_registered")
         val THEME_MODE              = stringPreferencesKey("theme_mode")
         val USE_IMPERIAL_UNITS      = booleanPreferencesKey("use_imperial_units")
         val DEFAULT_MAP_TYPE        = stringPreferencesKey("default_map_type")

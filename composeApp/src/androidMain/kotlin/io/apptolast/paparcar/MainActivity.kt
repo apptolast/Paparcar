@@ -18,7 +18,6 @@ import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.permissions.PermissionManager
-import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import androidx.work.WorkManager
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
@@ -36,7 +35,6 @@ class MainActivity : ComponentActivity() {
     private val splashViewModel: SplashViewModel by viewModel()
     private val permissionManager: PermissionManager by inject()
     private val activityRecognitionManager: ActivityRecognitionManager by inject()
-    private val appPreferences: AppPreferences by inject()
     private val connectivityObserver: ConnectivityObserver by inject()
 
     // Detects GPS toggled on/off from the quick-settings panel without leaving the app.
@@ -63,19 +61,9 @@ class MainActivity : ComponentActivity() {
         connectivityObserver.start()
         permissionManager.refreshPermissions()
 
-        val permState = permissionManager.permissionState.value
-        val startRoute = when {
-            !appPreferences.hasVehicleRegistered -> Routes.VEHICLE_REGISTRATION
-            !appPreferences.isOnboardingCompleted -> Routes.ONBOARDING
-            !permState.allPermissionsGranted -> Routes.PERMISSIONS
-            !permState.isLocationServicesEnabled -> Routes.PERMISSIONS
-            else -> Routes.HOME
-        }
-
         setContent {
             App(
                 splashViewModel = splashViewModel,
-                startRoute = startRoute,
                 onOpenMapsNavigation = { lat, lon ->
                     val uri = "google.navigation:q=$lat,$lon&mode=d".toUri()
                     val intent = Intent(Intent.ACTION_VIEW, uri).apply {

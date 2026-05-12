@@ -80,6 +80,7 @@ import io.apptolast.paparcar.presentation.util.DistanceUnit
 import io.apptolast.paparcar.presentation.util.LocalDistanceUnit
 import io.apptolast.paparcar.presentation.util.applyAppLocale
 import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
+import io.apptolast.paparcar.presentation.vehicle.VehicleSizeExplainerScreen
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -93,7 +94,7 @@ import paparcar.composeapp.generated.resources.nav_tab_spots
 import paparcar.composeapp.generated.resources.nav_tab_settings
 import paparcar.composeapp.generated.resources.nav_tab_vehicles
 
-internal object Routes {
+object Routes {
     const val HOME = "home"
     const val PARKING_LOCATION = "map"
     const val HISTORY = "history"
@@ -103,6 +104,8 @@ internal object Routes {
     const val PERMISSIONS = "permissions"
     const val PERMISSIONS_RATIONALE = "permissions_rationale"
     const val VEHICLE_REGISTRATION = "vehicle_registration"
+    /** First-run rationale shown before VEHICLE_REGISTRATION. Explains why size is required. */
+    const val VEHICLE_SIZE_EXPLAINER = "vehicle_size_explainer"
     const val BT_CONFIG = "bt_config"
     const val ADD_FREE_SPOT = "add_free_spot"
 }
@@ -113,15 +116,17 @@ private val BOTTOM_NAV_ROUTES = setOf(
     Routes.SETTINGS,
 )
 
+// Screens where the runtime-permission guard should NOT redirect: either they ARE the
+// permission flow itself, or they are pre-permission setup screens (onboarding, vehicle
+// registration in first-run). The guard only fires on top of normal app screens.
 private val GATE_SCREENS = setOf(
     Routes.PERMISSIONS,
     Routes.PERMISSIONS_RATIONALE,
     Routes.ONBOARDING,
-    "${Routes.VEHICLE_REGISTRATION}?origin={origin}",
+    Routes.VEHICLE_SIZE_EXPLAINER,
+    "${Routes.VEHICLE_REGISTRATION}?origin={origin}&vehicleId={vehicleId}",
 )
 
-// Subset of gate screens that are skippable when permissions are already granted.
-// ONBOARDING and VEHICLE_REGISTRATION are intentional flows unrelated to permission state.
 private val PERMISSION_GATE_SCREENS = setOf(
     Routes.PERMISSIONS,
     Routes.PERMISSIONS_RATIONALE,
@@ -130,12 +135,12 @@ private val PERMISSION_GATE_SCREENS = setOf(
 @Composable
 fun App(
     splashViewModel: SplashViewModel = koinViewModel(),
-    startRoute: String = Routes.HOME,
     onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> },
 ) {
     val appViewModel = koinViewModel<AppViewModel>()
     val appState by appViewModel.state.collectAsStateWithLifecycle()
     val authState by splashViewModel.authState.collectAsStateWithLifecycle()
+    val splashState by splashViewModel.state.collectAsStateWithLifecycle()
 
     val darkTheme = when (appState.themeMode) {
         ThemeMode.LIGHT -> false
@@ -180,18 +185,31 @@ fun App(
                 ) { state ->
                     when (state) {
                         is AuthState.Loading -> Box(Modifier.fillMaxSize()) // splash covers this
-                        is AuthState.Authenticated -> MainAppNavigation(
-                            startRoute = startRoute,
-                            isFullyOperational = appState.isFullyOperational,
-                            onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
-                            themeMode = appState.themeMode,
-                            onSetThemeMode = { appViewModel.handleIntent(AppIntent.SetThemeMode(it)) },
-                            imperialUnits = appState.imperialUnits,
-                            onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
-                            selectedLanguage = appState.selectedLanguage,
-                            onSetLanguage = { appViewModel.handleIntent(AppIntent.SetLanguage(it)) },
-                            onOpenMapsNavigation = onOpenMapsNavigation,
-                        )
+                        is AuthState.Authenticated -> {
+                            // Splash computed startRoute as soon as profile sync + vehicle sync + perms
+                            // were resolved. Native splash stays up until non-null (see
+                            // SplashViewModel.isReady → MainActivity.setKeepOnScreenCondition).
+                            // This null guard is defensive — by the time we render here it should
+                            // already be set.
+                            val startRoute = splashState.startRoute
+                            if (startRoute == null) {
+                                Box(Modifier.fillMaxSize())
+                            } else {
+                                MainAppNavigation(
+                                    startRoute = startRoute,
+                                    isFullyOperational = appState.isFullyOperational,
+                                    hasVehicle = appState.hasVehicle,
+                                    onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
+                                    themeMode = appState.themeMode,
+                                    onSetThemeMode = { appViewModel.handleIntent(AppIntent.SetThemeMode(it)) },
+                                    imperialUnits = appState.imperialUnits,
+                                    onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
+                                    selectedLanguage = appState.selectedLanguage,
+                                    onSetLanguage = { appViewModel.handleIntent(AppIntent.SetLanguage(it)) },
+                                    onOpenMapsNavigation = onOpenMapsNavigation,
+                                )
+                            }
+                        }
                         else -> AuthNavigation()
                     }
                 }
@@ -251,6 +269,7 @@ private fun AuthNavigation() {
 private fun MainAppNavigation(
     startRoute: String,
     isFullyOperational: Boolean,
+    hasVehicle: Boolean,
     onMarkOnboardingCompleted: () -> Unit,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
@@ -347,11 +366,16 @@ private fun MainAppNavigation(
                 VehicleRegistrationScreen(
                     vehicleId = vehicleId,
                     onRegistrationComplete = {
+                        // origin=vehicles: came from the Vehicles tab → pop back to it.
+                        // first-run: this is the last screen of the linear flow before Home.
+                        //   Pop the VEHICLE_SIZE_EXPLAINER too (kept in the stack so that
+                        //   back from the form returned to it) so that back from Home
+                        //   doesn't traverse the onboarding flow again.
                         if (origin == "vehicles") {
                             navController.popBackStack()
                         } else {
-                            navController.navigate(Routes.ONBOARDING) {
-                                popUpTo(Routes.VEHICLE_REGISTRATION) { inclusive = true }
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.VEHICLE_SIZE_EXPLAINER) { inclusive = true }
                             }
                         }
                     },
@@ -362,6 +386,8 @@ private fun MainAppNavigation(
                 OnboardingScreen(
                     onComplete = {
                         onMarkOnboardingCompleted()
+                        // The onboarding's last page narrates "set up permissions",
+                        // so the next linear step is the permissions rationale.
                         navController.navigate(Routes.PERMISSIONS_RATIONALE) {
                             popUpTo(Routes.ONBOARDING) { inclusive = true }
                         }
@@ -375,19 +401,27 @@ private fun MainAppNavigation(
                             popUpTo(Routes.PERMISSIONS_RATIONALE) { inclusive = true }
                         }
                     },
-                    onSkip = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.PERMISSIONS_RATIONALE) { inclusive = true }
-                        }
-                    },
                 )
             }
             composable(Routes.PERMISSIONS) {
                 PermissionsScreen(
                     onPermissionsGranted = {
-                        navController.navigate(Routes.HOME) {
+                        // First-run: no vehicle yet → show the size explainer before the form.
+                        // Re-entry (perms were revoked mid-life): vehicle already exists → go home.
+                        val next = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
+                        navController.navigate(next) {
                             popUpTo(Routes.PERMISSIONS) { inclusive = true }
                         }
+                    },
+                )
+            }
+            composable(Routes.VEHICLE_SIZE_EXPLAINER) {
+                VehicleSizeExplainerScreen(
+                    onContinue = {
+                        // Do NOT popUpTo(inclusive=true) here — keep the explainer in the
+                        // back stack so the back button on the registration screen returns
+                        // here, letting the user re-read the rationale if they want to.
+                        navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=onboarding")
                     },
                 )
             }

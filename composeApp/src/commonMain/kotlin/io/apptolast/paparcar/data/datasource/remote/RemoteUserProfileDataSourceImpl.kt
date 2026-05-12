@@ -7,15 +7,14 @@ import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.UserProfileDto
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 
-class UserProfileDataSourceImpl(
+class RemoteUserProfileDataSourceImpl(
     private val firestore: FirebaseFirestore,
-) : UserProfileDataSource {
+) : RemoteUserProfileDataSource {
 
     private fun usersCollection() = firestore.collection(COLLECTION_USERS)
     private fun parkingHistoryCollection(userId: String) =
         usersCollection().document(userId).collection(COLLECTION_PARKING_HISTORY)
 
-//FIXME: esto podria ser un flow con snapshot que este escuchando cambios de perfil
     override suspend fun getProfile(userId: String): UserProfileDto? =
         runCatching {
             val doc = usersCollection().document(userId).get()
@@ -25,6 +24,10 @@ class UserProfileDataSourceImpl(
 
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) {
         usersCollection().document(profile.userId).set(profile)
+    }
+
+    override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) {
+        usersCollection().document(userId).update(mapOf(FIELD_DEFAULT_VEHICLE_ID to vehicleId))
     }
 
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
@@ -72,6 +75,7 @@ class UserProfileDataSourceImpl(
                 photoUrl = get<String?>(FIELD_PHOTO_URL),
                 createdAt = getLongCompat(FIELD_CREATED_AT),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
+                defaultVehicleId = runCatching { get<String?>(FIELD_DEFAULT_VEHICLE_ID) }.getOrNull(),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toUserProfileDto failed — doc=$id", e)
@@ -109,7 +113,7 @@ class UserProfileDataSourceImpl(
     // ─── Constants ────────────────────────────────────────────────────────────
 
     private companion object {
-        const val TAG = "UserProfileDataSource"
+        const val TAG = "RemoteUserProfileDataSource"
 
         const val COLLECTION_USERS = "users"
         const val COLLECTION_PARKING_HISTORY = "parkingHistory"
@@ -120,6 +124,7 @@ class UserProfileDataSourceImpl(
         const val FIELD_PHOTO_URL = "photoUrl"
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_AT = "updatedAt"
+        const val FIELD_DEFAULT_VEHICLE_ID = "defaultVehicleId"
 
         const val FIELD_LATITUDE = "latitude"
         const val FIELD_LONGITUDE = "longitude"

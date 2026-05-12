@@ -30,6 +30,15 @@ class FakeVehicleRepository(
 
     override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {}
 
+    var syncFromRemoteCallCount = 0
+        private set
+    var syncFromRemoteResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun syncFromRemote(userId: String): Result<Unit> {
+        syncFromRemoteCallCount++
+        return syncFromRemoteResult
+    }
+
     var deleteAllDataCallCount = 0
         private set
     var deleteAllDataResult: Result<Unit> = Result.success(Unit)

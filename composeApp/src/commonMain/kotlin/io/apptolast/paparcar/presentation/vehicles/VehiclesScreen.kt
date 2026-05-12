@@ -45,6 +45,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
+import paparcar.composeapp.generated.resources.my_car_cannot_delete_last_vehicle
 import paparcar.composeapp.generated.resources.my_car_delete_cancel
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
 import paparcar.composeapp.generated.resources.my_car_delete_confirm_message
@@ -64,6 +65,7 @@ fun VehiclesScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
+    val cannotDeleteLastMessage = stringResource(Res.string.my_car_cannot_delete_last_vehicle)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -71,6 +73,8 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToAddVehicle -> onAddVehicle()
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
+                is VehiclesEffect.ShowCannotDeleteLastVehicle ->
+                    snackbarHostState.showSnackbar(cannotDeleteLastMessage)
             }
         }
     }
@@ -130,6 +134,7 @@ internal fun VehiclesContent(
                     onIntent = onIntent,
                     onConfigureBluetooth = onConfigureBluetooth,
                     onNavigateToMap = onNavigateToMap,
+                    canDelete = false,
                 )
                 else -> VehiclesPager(
                     state = state,

@@ -11,4 +11,5 @@ data class UserProfileEntity(
     val photoUrl: String?,
     val createdAt: Long,
     val updatedAt: Long,
+    val defaultVehicleId: String? = null,
 )

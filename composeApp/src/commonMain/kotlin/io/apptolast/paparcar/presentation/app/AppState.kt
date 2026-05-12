@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.preferences.ThemeMode
 data class AppState(
     val permissionsGranted: Boolean = false,
     val locationServicesEnabled: Boolean = false,
+    val hasVehicle: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val imperialUnits: Boolean = false,
     val selectedLanguage: String = "auto",

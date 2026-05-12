@@ -78,6 +78,7 @@ internal fun VehiclePageContent(
     onIntent: (VehiclesIntent) -> Unit,
     onConfigureBluetooth: (vehicleId: String) -> Unit,
     onNavigateToMap: (lat: Double, lon: Double) -> Unit,
+    canDelete: Boolean = true,
 ) {
     val vehicleId = vehicleWithStats.vehicle.id
 
@@ -103,6 +104,7 @@ internal fun VehiclePageContent(
             onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
             onDelete = { onIntent(VehiclesIntent.RequestDeleteVehicle(vehicleId)) },
             onConfigureBluetooth = { onConfigureBluetooth(vehicleId) },
+            canDelete = canDelete,
         )
         HorizontalDivider()
         HistoryContent(
@@ -128,6 +130,7 @@ private fun VehicleDetailsHeader(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onConfigureBluetooth: () -> Unit,
+    canDelete: Boolean,
 ) {
     val vehicle = vehicleWithStats.vehicle
     val displayName = listOfNotNull(vehicle.brand, vehicle.model)
@@ -184,12 +187,17 @@ private fun VehicleDetailsHeader(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                // Button stays clickable even when canDelete=false so the VM can surface
+                // the "must keep at least one vehicle" snackbar — translucent alpha hints
+                // at the disabled state.
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Outlined.Delete,
                         contentDescription = stringResource(Res.string.my_car_delete_vehicle),
                         modifier = Modifier.size(ICON_ACTION_SIZE),
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = DELETE_ICON_ALPHA),
+                        tint = MaterialTheme.colorScheme.error.copy(
+                            alpha = if (canDelete) DELETE_ICON_ALPHA else DELETE_ICON_DISABLED_ALPHA,
+                        ),
                     )
                 }
             }
@@ -278,3 +286,4 @@ private val HEADER_TONAL_ELEVATION = 2.dp
 private val CHIP_CORNER_RADIUS = 8.dp
 private const val BT_LABEL_LENGTH = 5
 private const val DELETE_ICON_ALPHA = 0.75f
+private const val DELETE_ICON_DISABLED_ALPHA = 0.30f

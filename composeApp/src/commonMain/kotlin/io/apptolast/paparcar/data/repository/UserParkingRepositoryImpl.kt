@@ -2,7 +2,7 @@ package io.apptolast.paparcar.data.repository
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.local.room.UserParkingDao
-import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSource
+import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toEntity
 import io.apptolast.paparcar.domain.model.AddressInfo
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.map
 
 class UserParkingRepositoryImpl(
     private val dao: UserParkingDao,
-    private val userProfileDataSource: UserProfileDataSource,
+    private val userProfileDataSource: RemoteUserProfileDataSource,
     private val authRepository: AuthRepository,
     private val parkingSyncScheduler: ParkingSyncScheduler,
 ) : UserParkingRepository {

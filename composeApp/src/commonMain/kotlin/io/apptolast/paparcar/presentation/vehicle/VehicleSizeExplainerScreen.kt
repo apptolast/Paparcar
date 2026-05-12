@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.permissions
+package io.apptolast.paparcar.presentation.vehicle
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -31,29 +31,25 @@ import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.perm_rationale_cta
-import paparcar.composeapp.generated.resources.perm_rationale_subtitle
-import paparcar.composeapp.generated.resources.perm_rationale_title
-import paparcar.composeapp.generated.resources.permissions_perm_activity
-import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
-import paparcar.composeapp.generated.resources.permissions_perm_background
-import paparcar.composeapp.generated.resources.permissions_perm_background_desc
-import paparcar.composeapp.generated.resources.permissions_perm_location
-import paparcar.composeapp.generated.resources.permissions_perm_location_desc
-import paparcar.composeapp.generated.resources.permissions_perm_notifications
-import paparcar.composeapp.generated.resources.permissions_perm_notifications_desc
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card1_desc
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card1_title
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card2_desc
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_card2_title
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_cta
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_subtitle
+import paparcar.composeapp.generated.resources.vehicle_size_explainer_title
 
-private val StepBadgeSize              = 28.dp
-private val StepConnectorWidth         = 2.dp
-private val TOP_CONTENT_PADDING        = 56.dp
-private val BOTTOM_CONTENT_PADDING     = 140.dp
-private val TITLE_EMOJI_SIZE           = 56.sp
-private val STEP_EMOJI_SIZE            = 18.sp
-private val STEP_TEXT_SPACER           = 2.dp
+private val StepBadgeSize           = 28.dp
+private val StepConnectorWidth      = 2.dp
+private val TOP_CONTENT_PADDING     = 56.dp
+private val BOTTOM_CONTENT_PADDING  = 140.dp
+private val TITLE_EMOJI_SIZE        = 56.sp
+private val STEP_EMOJI_SIZE         = 18.sp
+private val STEP_TEXT_SPACER        = 2.dp
 
 @Composable
-fun PermissionsRationaleScreen(
-    onAccept: () -> Unit,
+fun VehicleSizeExplainerScreen(
+    onContinue: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -69,10 +65,10 @@ fun PermissionsRationaleScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = "🔐", fontSize = TITLE_EMOJI_SIZE)
+            Text(text = "🚗", fontSize = TITLE_EMOJI_SIZE)
             Spacer(Modifier.height(PaparcarSpacing.lg))
             Text(
-                text = stringResource(Res.string.perm_rationale_title),
+                text = stringResource(Res.string.vehicle_size_explainer_title),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -80,27 +76,33 @@ fun PermissionsRationaleScreen(
             )
             Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
-                text = stringResource(Res.string.perm_rationale_subtitle),
+                text = stringResource(Res.string.vehicle_size_explainer_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(PaparcarSpacing.xxl))
 
-            val steps = listOf(
-                Triple("📍", stringResource(Res.string.permissions_perm_location), stringResource(Res.string.permissions_perm_location_desc)),
-                Triple("🗺", stringResource(Res.string.permissions_perm_background), stringResource(Res.string.permissions_perm_background_desc)),
-                Triple("🚶", stringResource(Res.string.permissions_perm_activity), stringResource(Res.string.permissions_perm_activity_desc)),
-                Triple("🔔", stringResource(Res.string.permissions_perm_notifications), stringResource(Res.string.permissions_perm_notifications_desc)),
+            val items = listOf(
+                Triple(
+                    "📏",
+                    stringResource(Res.string.vehicle_size_explainer_card1_title),
+                    stringResource(Res.string.vehicle_size_explainer_card1_desc),
+                ),
+                Triple(
+                    "🔒",
+                    stringResource(Res.string.vehicle_size_explainer_card2_title),
+                    stringResource(Res.string.vehicle_size_explainer_card2_desc),
+                ),
             )
 
-            steps.forEachIndexed { index, (emoji, label, desc) ->
-                PermissionStep(
+            items.forEachIndexed { index, (emoji, label, desc) ->
+                ExplainerStep(
                     stepNumber = index + 1,
                     emoji = emoji,
                     label = label,
                     description = desc,
-                    isLast = index == steps.lastIndex,
+                    isLast = index == items.lastIndex,
                 )
             }
         }
@@ -115,8 +117,8 @@ fun PermissionsRationaleScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             PapPrimaryButton(
-                label = stringResource(Res.string.perm_rationale_cta),
-                onClick = onAccept,
+                label = stringResource(Res.string.vehicle_size_explainer_cta),
+                onClick = onContinue,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -124,7 +126,7 @@ fun PermissionsRationaleScreen(
 }
 
 @Composable
-private fun PermissionStep(
+private fun ExplainerStep(
     stepNumber: Int,
     emoji: String,
     label: String,
@@ -139,7 +141,6 @@ private fun PermissionStep(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
     ) {
-        // Left column: badge + connector line
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(StepBadgeSize),
@@ -174,7 +175,6 @@ private fun PermissionStep(
             }
         }
         Spacer(Modifier.width(PaparcarSpacing.md))
-        // Right column: emoji + label + description
         Column(
             modifier = Modifier
                 .weight(1f)

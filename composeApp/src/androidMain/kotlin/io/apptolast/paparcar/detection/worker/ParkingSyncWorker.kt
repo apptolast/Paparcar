@@ -11,7 +11,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSource
+import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -44,7 +44,7 @@ class ParkingSyncWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params), KoinComponent {
 
-    private val userProfileDataSource: UserProfileDataSource by inject()
+    private val userProfileDataSource: RemoteUserProfileDataSource by inject()
 
     override suspend fun doWork(): Result {
         val userId = inputData.getString(KEY_USER_ID) ?: return Result.failure()

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
-import io.apptolast.paparcar.data.datasource.remote.UserProfileDataSource
+import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
@@ -36,7 +36,7 @@ class ParkingSyncWorkerTest {
     fun setUp() {
         startKoin {
             modules(module {
-                single<UserProfileDataSource> { fakeDataSource }
+                single<RemoteUserProfileDataSource> { fakeDataSource }
             })
         }
     }
@@ -201,7 +201,7 @@ class ParkingSyncWorkerTest {
 
 // ─── In-package fake (test-only) ──────────────────────────────────────────────
 
-private class FakeUserProfileDataSource : UserProfileDataSource {
+private class FakeUserProfileDataSource : RemoteUserProfileDataSource {
 
     data class LocationUpdate(val sessionId: String, val address: AddressDto?, val placeInfo: PlaceInfoDto?)
 
@@ -219,6 +219,7 @@ private class FakeUserProfileDataSource : UserProfileDataSource {
 
     override suspend fun getProfile(userId: String): UserProfileDto? = null
     override suspend fun createOrUpdateProfile(profile: UserProfileDto) = Unit
+    override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit
     override suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto> = emptyList()
     override suspend fun deleteUserData(userId: String) = Unit
 

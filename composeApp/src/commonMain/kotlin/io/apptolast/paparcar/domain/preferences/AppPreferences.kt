@@ -16,9 +16,6 @@ interface AppPreferences {
     val notifySpotFreed: Boolean
     fun setNotifySpotFreed(enabled: Boolean)
 
-    val hasVehicleRegistered: Boolean
-    fun setVehicleRegistered()
-
     val themeMode: ThemeMode
     fun setThemeMode(mode: ThemeMode)
 

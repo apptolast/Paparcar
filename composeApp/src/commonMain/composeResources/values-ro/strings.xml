@@ -279,6 +279,15 @@
     <string name="perm_rationale_cta">Înțeles, activează permisiunile</string>
     <string name="perm_rationale_skip">Nu acum</string>
 
+    <!-- Vehicle Size Explainer screen -->
+    <string name="vehicle_size_explainer_title">Spune-ne despre mașina ta</string>
+    <string name="vehicle_size_explainer_subtitle">Avem nevoie doar de o informație esențială ca aplicația să funcționeze: dimensiunea.</string>
+    <string name="vehicle_size_explainer_card1_title">Dimensiune: cum potrivim locurile</string>
+    <string name="vehicle_size_explainer_card1_desc">Alți șoferi caută locuri potrivite pentru mașina lor. Fără această info nu vă putem potrivi.</string>
+    <string name="vehicle_size_explainer_card2_title">Marca și modelul sunt opționale</string>
+    <string name="vehicle_size_explainer_card2_desc">Le poți adăuga dacă vrei. Dacă nu, nu le vede nimeni.</string>
+    <string name="vehicle_size_explainer_cta">Începe</string>
+
     <string name="bt_config_title">Cheie Bluetooth auto</string>
     <string name="bt_config_subtitle">Selectează dispozitivul Bluetooth deja asociat cu mașina ta. Aplicația îl va folosi pentru a detecta când parchezi sau pleci.</string>
     <string name="bt_config_bt_off">Bluetooth-ul este dezactivat. Activează-l pentru a vedea dispozitivele asociate.</string>
@@ -292,6 +301,7 @@
     <string name="my_car_bt_configure">Configurează Bluetooth</string>
     <string name="my_car_bt_device">Bluetooth auto</string>
     <string name="my_car_bt_not_configured">Neconfigurat</string>
+    <string name="my_car_cannot_delete_last_vehicle">Trebuie să păstrezi cel puțin un vehicul înregistrat.</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
     <string name="vehicle_card_detection_ar">Detectare auto</string>

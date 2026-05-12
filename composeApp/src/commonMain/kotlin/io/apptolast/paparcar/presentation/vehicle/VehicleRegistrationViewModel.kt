@@ -4,7 +4,6 @@ import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -16,7 +15,6 @@ import kotlin.uuid.Uuid
 class VehicleRegistrationViewModel(
     private val vehicleRepository: VehicleRepository,
     private val authRepository: AuthRepository,
-    private val appPreferences: AppPreferences,
 ) : BaseViewModel<VehicleRegistrationState, VehicleRegistrationIntent, VehicleRegistrationEffect>() {
 
     override fun initState(): VehicleRegistrationState = VehicleRegistrationState()
@@ -83,7 +81,6 @@ class VehicleRegistrationViewModel(
                 vehicleRepository.saveVehicle(vehicle)
                 if (!isEditing) vehicleRepository.setDefaultVehicle(vehicle.id)
             }.onSuccess {
-                if (state.value.editingVehicleId == null) appPreferences.setVehicleRegistered()
                 updateState { copy(isSaving = false) }
                 sendEffect(VehicleRegistrationEffect.SavedSuccessfully)
             }.onFailure { e ->

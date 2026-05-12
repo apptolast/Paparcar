@@ -279,6 +279,15 @@
     <string name="perm_rationale_cta">Begrepen, machtigingen inschakelen</string>
     <string name="perm_rationale_skip">Nu niet</string>
 
+    <!-- Vehicle Size Explainer screen -->
+    <string name="vehicle_size_explainer_title">Vertel ons over je auto</string>
+    <string name="vehicle_size_explainer_subtitle">We hebben maar één essentieel detail nodig om de app te laten werken: de grootte.</string>
+    <string name="vehicle_size_explainer_card1_title">Grootte: zo matchen we parkeerplekken</string>
+    <string name="vehicle_size_explainer_card1_desc">Andere bestuurders zoeken plekken die bij hun auto passen. Zonder deze info kunnen we jullie niet matchen.</string>
+    <string name="vehicle_size_explainer_card2_title">Merk en model zijn optioneel</string>
+    <string name="vehicle_size_explainer_card2_desc">Je kunt ze toevoegen als je wilt. Zo niet, niemand ziet ze.</string>
+    <string name="vehicle_size_explainer_cta">Aan de slag</string>
+
     <string name="bt_config_title">Auto Bluetooth-sleutel</string>
     <string name="bt_config_subtitle">Selecteer het Bluetooth-apparaat dat al gekoppeld is aan je auto. De app gebruikt dit om te detecteren wanneer je parkeert of vertrekt.</string>
     <string name="bt_config_bt_off">Bluetooth is uitgeschakeld. Schakel het in om je gekoppelde apparaten te zien.</string>
@@ -292,6 +301,7 @@
     <string name="my_car_bt_configure">Bluetooth configureren</string>
     <string name="my_car_bt_device">Auto Bluetooth</string>
     <string name="my_car_bt_not_configured">Niet geconfigureerd</string>
+    <string name="my_car_cannot_delete_last_vehicle">Je moet ten minste één geregistreerd voertuig behouden.</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
     <string name="vehicle_card_detection_ar">Auto-detectie</string>

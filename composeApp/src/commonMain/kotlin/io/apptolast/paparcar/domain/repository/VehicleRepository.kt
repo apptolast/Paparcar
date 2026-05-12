@@ -10,6 +10,15 @@ interface VehicleRepository {
     /** Observe the active (default) vehicle, or null if none registered. */
     fun observeDefaultVehicle(): Flow<Vehicle?>
 
+    /**
+     * One-shot pull of the vehicle list from Firestore into Room. Idempotent.
+     *
+     * Called during splash bootstrap so the local DB reflects remote state before
+     * the app decides which screen to land on. Failures are returned, not thrown —
+     * the caller decides whether to surface or ignore them.
+     */
+    suspend fun syncFromRemote(userId: String): Result<Unit>
+
     /** Save a new vehicle or update an existing one. */
     suspend fun saveVehicle(vehicle: Vehicle)
 

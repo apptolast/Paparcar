@@ -284,6 +284,7 @@
     <string name="my_car_delete_confirm_message">This vehicle will be permanently removed. This action cannot be undone.</string>
     <string name="my_car_delete_confirm_action">Delete</string>
     <string name="my_car_delete_cancel">Cancel</string>
+    <string name="my_car_cannot_delete_last_vehicle">You must keep at least one registered vehicle.</string>
     <string name="vehicle_detail_tab_details">Details</string>
     <string name="vehicle_detail_tab_history">History</string>
     <string name="vehicle_detail_cd_back">Back</string>
@@ -317,6 +318,15 @@
     <string name="perm_rationale_body">Paparcar detects when you leave your parking spot and automatically shares it with nearby drivers — the same way you\'d benefit when someone else does it for you.\n\nFor this to work, we need access to your location and motion sensors. Your exact location is never shared with other users.</string>
     <string name="perm_rationale_cta">Got it, enable permissions</string>
     <string name="perm_rationale_skip">Not now</string>
+
+    <!-- Vehicle Size Explainer screen -->
+    <string name="vehicle_size_explainer_title">Tell us about your car</string>
+    <string name="vehicle_size_explainer_subtitle">We just need one essential detail for the app to work: the size.</string>
+    <string name="vehicle_size_explainer_card1_title">Size: how we match parking spots</string>
+    <string name="vehicle_size_explainer_card1_desc">Other drivers look for spots that fit their car. Without this we can\'t match you.</string>
+    <string name="vehicle_size_explainer_card2_title">Brand and model are optional</string>
+    <string name="vehicle_size_explainer_card2_desc">You can add them if you want. If not, nobody sees them.</string>
+    <string name="vehicle_size_explainer_cta">Get started</string>
 
     <string name="bt_config_title">Bluetooth Car Key</string>
     <string name="bt_config_subtitle">Select the Bluetooth device already paired with your car. The app will use it to detect when you park or depart.</string>

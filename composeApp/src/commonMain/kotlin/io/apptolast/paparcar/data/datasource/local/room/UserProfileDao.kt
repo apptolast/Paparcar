@@ -18,6 +18,9 @@ interface UserProfileDao {
     @Query("SELECT * FROM user_profile WHERE userId = :userId LIMIT 1")
     fun observeProfile(userId: String): Flow<UserProfileEntity?>
 
+    @Query("UPDATE user_profile SET defaultVehicleId = :vehicleId WHERE userId = :userId")
+    suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?)
+
     @Query("DELETE FROM user_profile WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
 }

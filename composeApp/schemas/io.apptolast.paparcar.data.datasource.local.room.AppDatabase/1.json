@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "a0452362efaa1f0961ae17fc367860a3",
+    "identityHash": "41927baf5f9c6f4430e1be493ad1a53e",
     "entities": [
       {
         "tableName": "parking_sessions",
@@ -110,7 +110,7 @@
       },
       {
         "tableName": "user_profile",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` TEXT NOT NULL, `email` TEXT, `displayName` TEXT, `photoUrl` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`userId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`userId` TEXT NOT NULL, `email` TEXT, `displayName` TEXT, `photoUrl` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `defaultVehicleId` TEXT, PRIMARY KEY(`userId`))",
         "fields": [
           {
             "fieldPath": "userId",
@@ -144,6 +144,11 @@
             "columnName": "updatedAt",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "defaultVehicleId",
+            "columnName": "defaultVehicleId",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -338,7 +343,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a0452362efaa1f0961ae17fc367860a3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '41927baf5f9c6f4430e1be493ad1a53e')"
     ]
   }
 }

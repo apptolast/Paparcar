@@ -10,4 +10,5 @@ data class UserProfileDto(
     val photoUrl: String? = null,
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
+    val defaultVehicleId: String? = null,
 )
