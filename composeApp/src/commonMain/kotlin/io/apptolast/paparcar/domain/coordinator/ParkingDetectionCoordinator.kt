@@ -298,8 +298,23 @@ class ParkingDetectionCoordinator(
             }
             now - (_detectionState.value.stoppedSince ?: 0L)
         } else {
+            // A high-speed fix only counts as "the vehicle drove away" when GPS accuracy is
+            // good enough to trust the speed reading. On noisy hardware (Redmi Note 11) a
+            // single fix can spike to speed≈3 m/s with accuracy≈85 m while the user is
+            // actually stationary on foot; without this gate, the bad fix would clear the
+            // parked-car bestStopLocation mid-CANDIDATE and the spot would be re-captured
+            // wherever the user eventually sits down (home, café). [LOC-002]
+            val isDriving = location.speed >= config.clearBestStopSpeedMps &&
+                    location.accuracy <= config.minGpsAccuracyForDriving
+            if (location.speed >= config.clearBestStopSpeedMps && !isDriving) {
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ⊘ ignoring driving-speed fix with poor accuracy " +
+                            "(speed=${location.speed} acc=${location.accuracy} > " +
+                            "minGpsAccuracyForDriving=${config.minGpsAccuracyForDriving})"
+                )
+            }
             _detectionState.update {
-                val isDriving = location.speed >= config.clearBestStopSpeedMps
                 it.copy(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),

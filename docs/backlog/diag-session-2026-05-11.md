@@ -362,6 +362,24 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
+## 16. `bugfix/LOC-002-trust-driving-signal-by-accuracy` — ⚪ Pending
+
+**Priority:** High — directly degrades parking precision on noisy hardware. Observed on Redmi Note 11: a parked-car spot was relocated ~100–150 m away (user's home) because a single GPS hallucination mid-CANDIDATE wiped the captured location.
+
+**Reproducible on:** Redmi Note 11 (master), 2026-05-12 21:20–21:59 session. PARKDIAG log fragments captured. OPPO CPH2371 is less affected (cleaner GPS) but the bug exists there too.
+
+**Where:**
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/coordinator/ParkingDetectionCoordinator.kt:277-315` — `updateStopTracking` moving branch.
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/model/ParkingDetectionConfig.kt` — new threshold.
+
+**What:** When `location.speed >= clearBestStopSpeedMps` the coordinator clears `bestStopLocation`, `vehicleExitConfirmed`, `activityStillDetected`, and `highConfidenceReachedAt` (treating the fix as "the vehicle is driving away"). LOC-001 added the initial-stop window so walking pace (<2.5 m/s) doesn't trip this — but a noisy hardware GPS can hallucinate apparent speed > 2.5 m/s in a single fix while reporting accuracy in the 50–200 m range. That single bad fix nukes the parked-car state. Then a new `initialStopWindow` opens wherever the user eventually sits down (home, café, office) and `bestStopLocation` is re-anchored there.
+
+**Fix:** Gate the "driving" decision by GPS accuracy. A high-speed fix only clears state when `location.accuracy ≤ minGpsAccuracyForDriving` (default 50 m). Noisy fixes are observed and logged but ignored for state-destruction purposes. Existing trusted driving signals (acc ≤ 15 m + speed ≥ 2.5 m/s, e.g. resuming from a traffic light) are unchanged.
+
+**Effort:** Trivial (one accuracy gate + a config knob + two unit tests).
+
+---
+
 ## Out of scope for this list
 
 - The actual cause of the original "blue notification hangs forever" symptom is unconfirmed. Once any of the above fixes ships and the user has driven a few times in production without recurrence, mark this session as closed.

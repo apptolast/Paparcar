@@ -123,6 +123,13 @@ data class ParkingDetectionConfig(
      *  last known position is preserved when the user exits on foot, while being cleared when
      *  the vehicle drives off. Default 2.5 m/s (~9 km/h). */
     val clearBestStopSpeedMps: Float = 2.5f,
+    /** GPS horizontal accuracy (meters) at or below which a high-speed fix is trusted as
+     *  evidence of genuine driving. On noisy hardware (Redmi Note 11) a single bad fix can
+     *  report apparent speed above [clearBestStopSpeedMps] with accuracy in the 50–200 m range;
+     *  treating that as "the vehicle drove away" wipes the parked-car location captured during
+     *  the initial-stop window. Default 50 m — generous enough that urban GPS noise (typical
+     *  10–30 m) still counts, strict enough that clearly degraded fixes do not. [LOC-002] */
+    val minGpsAccuracyForDriving: Float = 50f,
     /** Observation window (ms) before auto-confirming when an activity-exit signal was observed.
      *  Shorter because the IN_VEHICLE→EXIT transition is strong evidence. Default 2 minutes. */
     val vehicleExitObservationWindowMs: Long = 2 * 60_000L,
@@ -193,6 +200,9 @@ data class ParkingDetectionConfig(
         }
         require(clearBestStopSpeedMps > 0) {
             "clearBestStopSpeedMps must be > 0, was $clearBestStopSpeedMps"
+        }
+        require(minGpsAccuracyForDriving > 0) {
+            "minGpsAccuracyForDriving must be > 0, was $minGpsAccuracyForDriving"
         }
         require(vehicleExitObservationWindowMs > 0) {
             "vehicleExitObservationWindowMs must be > 0, was $vehicleExitObservationWindowMs"

@@ -193,6 +193,80 @@ class ParkingDetectionCoordinatorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // LOC-002: low-accuracy fix must not clear bestStopLocation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_preserve_bestStopLocation_when_high_speed_fix_has_poor_accuracy() =
+        runTest(UnconfinedTestDispatcher()) {
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Origin + cross the movement threshold so hasEverMoved=true.
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+
+            // Park: stopped fix with good accuracy at (40.005, -3.7). This becomes the
+            // bestStopLocation we expect to survive the noisy fix below.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            // Noisy GPS hallucination: apparent driving speed but bad accuracy. Pre-LOC-002
+            // this single fix wiped bestStopLocation; with the gate in place it is ignored.
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 100f, timestamp = 0L, speed = 5f))
+
+            // Trigger user-confirmed path with a stopped fix at a DIFFERENT spot (40.020).
+            // If bestStopLocation was wrongly cleared, the saved location would be 40.020
+            // (the fallback bestFix). With LOC-002 the saved location stays at 40.005.
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.020, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved, "active session should be persisted")
+            assertEquals(
+                40.005,
+                saved.location.latitude,
+                /* absoluteTolerance = */ 0.00001,
+                "bestStopLocation must survive a high-speed fix with accuracy > minGpsAccuracyForDriving",
+            )
+        }
+
+    @Test
+    fun should_clear_bestStopLocation_when_high_speed_fix_has_good_accuracy() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Regression: ensure a trusted driving signal (good accuracy + driving speed)
+            // still clears bestStopLocation, so traffic-light stops followed by genuine
+            // driving away don't anchor the eventual park to the wrong intersection.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            // Brief stop (traffic light) — sets bestStopLocation.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            // Resume driving with GOOD accuracy. This is a trusted driving signal and
+            // should clear bestStopLocation per the original LOC-001 contract.
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 0L, speed = 5f))
+            // User confirms after stopping at the eventual park spot (40.030).
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.030, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                40.030,
+                saved.location.latitude,
+                /* absoluteTolerance = */ 0.00001,
+                "trusted driving fix must clear bestStopLocation so the eventual park anchors here",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Notification reset on invoke entry
     // ─────────────────────────────────────────────────────────────────────────
 
