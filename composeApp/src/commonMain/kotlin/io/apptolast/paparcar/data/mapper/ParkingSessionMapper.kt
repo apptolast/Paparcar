@@ -85,6 +85,7 @@ fun UserParking.toSpot(): Spot = Spot(
 fun UserParking.toParkingHistoryDto() = ParkingHistoryDto(
     id = id,
     userId = userId,
+    vehicleId = vehicleId,
     latitude = location.latitude,
     longitude = location.longitude,
     accuracy = location.accuracy,
@@ -94,6 +95,7 @@ fun UserParking.toParkingHistoryDto() = ParkingHistoryDto(
     geofenceId = geofenceId,
     address = address?.toAddressDto(),
     placeInfo = placeInfo?.toPlaceInfoDto(),
+    detectionReliability = detectionReliability,
 )
 
 // ── ParkingHistoryDto → Entity (sync from Firestore on new device) ────────────
@@ -101,6 +103,7 @@ fun UserParking.toParkingHistoryDto() = ParkingHistoryDto(
 fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     id = id,
     userId = userId,
+    vehicleId = vehicleId,
     latitude = latitude,
     longitude = longitude,
     accuracy = accuracy,

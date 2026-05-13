@@ -65,6 +65,20 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
+    fun `ParkingSyncWorker propagates vehicleId through the Data payload`() = runTest {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val session = userParking("new-session").copy(vehicleId = "vehicle-99")
+        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+            .setInputData(request.workSpec.input)
+            .build()
+
+        worker.doWork()
+
+        assertEquals("vehicle-99", fakeDataSource.lastSavedSession?.vehicleId)
+    }
+
+    @Test
     fun `ParkingSyncWorker success — no previous session id skips active-flag update`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("solo-session")

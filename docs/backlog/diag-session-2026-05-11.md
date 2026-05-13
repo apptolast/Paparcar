@@ -338,6 +338,30 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
+## 15. `bugfix/MAPPER-002-vehicleid-lost-in-firestore-roundtrip` — ⚪ Pending
+
+**Priority:** High — breaks the per-vehicle history tabs introduced in HIST-001. Every cold start nulls every row's `vehicleId`, so `VehiclePageContent` shows an empty history under every tab.
+
+**Reproducible on:** Redmi Note 11 + OPPO CPH2371, every cold start since FLOW-001 wired `syncParkingHistoryFromRemote` into the splash bootstrap.
+
+**Where:**
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/datasource/remote/dto/ParkingHistoryDto.kt` — DTO has no `vehicleId` field.
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/data/mapper/ParkingSessionMapper.kt:85-118` — `UserParking.toParkingHistoryDto` and `ParkingHistoryDto.toEntity` silently drop `vehicleId`.
+- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/detection/worker/ParkingSyncWorker.kt:99-141` — `buildRequest` + `Data.toParkingHistoryDto` don't carry `vehicleId` in the work payload.
+
+**What:** Same mapper-omission pattern as `MAPPER-001` (detection reliability). `vehicleId` is written correctly to Room by `UserParking.toEntity()` on the confirm-parking path, but every Firestore round-trip drops it. On the next cold start, `GetOrCreateUserProfileUseCase` → `syncParkingHistoryFromRemote` → `dao.insert(dto.toEntity())` with `REPLACE` conflict overwrites the local row with `vehicleId = null`. After that, `observeSessionsByVehicle(vehicleId)` matches nothing and the per-vehicle history tab is empty.
+
+**Fix:**
+1. Add `val vehicleId: String? = null` to `ParkingHistoryDto`.
+2. Map `vehicleId` both ways in `ParkingSessionMapper.kt` (`UserParking.toParkingHistoryDto` and `ParkingHistoryDto.toEntity`). Also fix the latent `detectionReliability` omission in `toParkingHistoryDto` — same bug class as MAPPER-001, just on the write path.
+3. Add `KEY_NEW_SESSION_VEHICLE_ID` to `ParkingSyncWorker` so the payload survives WorkManager restart.
+4. Round-trip tests (mirror the `MAPPER-001` tests): DTO ↔ Entity preserves `vehicleId`, worker payload preserves `vehicleId`.
+5. No backfill — the user wipes any pre-fix sessions from Firestore once (pre-release state, same approach as DB-001). All post-fix writes carry `vehicleId` correctly.
+
+**Effort:** Small. Same surface area as MAPPER-001.
+
+---
+
 ## Out of scope for this list
 
 - The actual cause of the original "blue notification hangs forever" symptom is unconfirmed. Once any of the above fixes ships and the user has driven a few times in production without recurrence, mark this session as closed.

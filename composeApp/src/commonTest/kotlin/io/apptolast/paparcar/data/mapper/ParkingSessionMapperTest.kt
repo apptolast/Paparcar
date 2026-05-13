@@ -224,6 +224,52 @@ class ParkingSessionMapperTest {
         assertNull(baseParking.toEntity().vehicleId)
     }
 
+    @Test
+    fun `parking toParkingHistoryDto preserves vehicleId`() {
+        val parking = baseParking.copy(vehicleId = "vehicle-99")
+        assertEquals("vehicle-99", parking.toParkingHistoryDto().vehicleId)
+    }
+
+    @Test
+    fun `parking toParkingHistoryDto produces null vehicleId when not set`() {
+        assertNull(baseParking.toParkingHistoryDto().vehicleId)
+    }
+
+    @Test
+    fun `dto toEntity preserves vehicleId when set`() {
+        val dto = ParkingHistoryDto(id = "s1", vehicleId = "vehicle-99", latitude = 40.0, longitude = -3.0)
+        assertEquals("vehicle-99", dto.toEntity().vehicleId)
+    }
+
+    @Test
+    fun `dto toEntity produces null vehicleId when not set`() {
+        val dto = ParkingHistoryDto(id = "s1", latitude = 40.0, longitude = -3.0)
+        assertNull(dto.toEntity().vehicleId)
+    }
+
+    @Test
+    fun `parking round-trips vehicleId through dto and entity`() {
+        // Mirrors the Firestore round-trip: domain → dto (write) → entity (read after sync)
+        val original = baseParking.copy(vehicleId = "vehicle-99")
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals("vehicle-99", restored.vehicleId)
+    }
+
+    // ── detectionReliability dto round-trip ──────────────────────────────────
+
+    @Test
+    fun `parking toParkingHistoryDto preserves detectionReliability`() {
+        val parking = baseParking.copy(detectionReliability = 0.9f)
+        assertEquals(0.9f, parking.toParkingHistoryDto().detectionReliability)
+    }
+
+    @Test
+    fun `parking round-trips detectionReliability through dto and entity`() {
+        val original = baseParking.copy(detectionReliability = 0.85f)
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals(0.85f, restored.detectionReliability)
+    }
+
     // ── Shared helpers ────────────────────────────────────────────────────────
 
     @Test

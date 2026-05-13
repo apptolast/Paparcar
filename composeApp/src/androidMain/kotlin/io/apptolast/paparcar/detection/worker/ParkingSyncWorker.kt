@@ -88,6 +88,7 @@ class ParkingSyncWorker(
 
         // New-session payload — keep in lockstep with [ParkingHistoryDto].
         private const val KEY_NEW_SESSION_ID = "session_id"
+        private const val KEY_NEW_SESSION_VEHICLE_ID = "session_vehicle_id"
         private const val KEY_NEW_SESSION_LAT = "session_lat"
         private const val KEY_NEW_SESSION_LON = "session_lon"
         private const val KEY_NEW_SESSION_ACCURACY = "session_accuracy"
@@ -105,6 +106,7 @@ class ParkingSyncWorker(
                 KEY_USER_ID to userId,
                 KEY_PREVIOUS_SESSION_ID to previousSessionId,
                 KEY_NEW_SESSION_ID to session.id,
+                KEY_NEW_SESSION_VEHICLE_ID to session.vehicleId,
                 KEY_NEW_SESSION_LAT to session.location.latitude,
                 KEY_NEW_SESSION_LON to session.location.longitude,
                 KEY_NEW_SESSION_ACCURACY to session.location.accuracy.toDouble(),
@@ -130,6 +132,7 @@ class ParkingSyncWorker(
             return ParkingHistoryDto(
                 id = id,
                 userId = getString(KEY_USER_ID) ?: "",
+                vehicleId = getString(KEY_NEW_SESSION_VEHICLE_ID),
                 latitude = getDouble(KEY_NEW_SESSION_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return null,
                 longitude = getDouble(KEY_NEW_SESSION_LON, Double.NaN).takeIf { !it.isNaN() } ?: return null,
                 accuracy = getDouble(KEY_NEW_SESSION_ACCURACY, 0.0).toFloat(),

@@ -89,6 +89,7 @@ class RemoteUserProfileDataSourceImpl(
             ParkingHistoryDto(
                 id = id,
                 userId = get<String?>(FIELD_USER_ID) ?: "",
+                vehicleId = runCatching { get<String?>(FIELD_VEHICLE_ID) }.getOrNull(),
                 latitude = lat,
                 longitude = lon,
                 accuracy = get<Double?>(FIELD_ACCURACY)?.toFloat() ?: 0f,
@@ -98,6 +99,7 @@ class RemoteUserProfileDataSourceImpl(
                 geofenceId = get<String?>(FIELD_GEOFENCE_ID),
                 address = runCatching { get<AddressDto?>(FIELD_ADDRESS) }.getOrNull(),
                 placeInfo = runCatching { get<PlaceInfoDto?>(FIELD_PLACE_INFO) }.getOrNull(),
+                detectionReliability = runCatching { get<Double?>(FIELD_DETECTION_RELIABILITY)?.toFloat() }.getOrNull(),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toParkingHistoryDto failed — doc=$id", e)
@@ -126,6 +128,7 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_UPDATED_AT = "updatedAt"
         const val FIELD_DEFAULT_VEHICLE_ID = "defaultVehicleId"
 
+        const val FIELD_VEHICLE_ID = "vehicleId"
         const val FIELD_LATITUDE = "latitude"
         const val FIELD_LONGITUDE = "longitude"
         const val FIELD_ACCURACY = "accuracy"
@@ -135,5 +138,6 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_GEOFENCE_ID = "geofenceId"
         const val FIELD_ADDRESS = "address"
         const val FIELD_PLACE_INFO = "placeInfo"
+        const val FIELD_DETECTION_RELIABILITY = "detectionReliability"
     }
 }
