@@ -11,6 +11,8 @@ local.properties
 
 # Log/OS Files
 *.log
+# Diagnostic captures are archived deliberately — see diagnostics/README.md
+!diagnostics/**/*.log
 
 # Android Studio generated files and folders
 captures/
