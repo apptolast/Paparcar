@@ -250,7 +250,11 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 12. `feature/FLOW-001-splash-driven-first-run-flow` — ⚪ In progress
+## 12. `feature/FLOW-001-splash-driven-first-run-flow` — ✅ Done
+
+**Merged:** 2026-05-12, commit `ca3debf` (branch deleted post-merge). Splash now sequences auth → profile sync (remote-first) → vehicle sync → startRoute. New first-run order: Login → Onboarding → PermissionsRationale → Permissions → VehicleSizeExplainer → VehicleRegistration → Home. UserProfile.defaultVehicleId replaces the DataStore flag. observeVehicles/observeDefaultVehicle made auth-reactive at the repo level — fixes a NoSuchElementException crash on Google sign-in caused by a race between AuthState.Authenticated and BaseLogin's session cache. UserProfileDataSource renamed to RemoteUserProfileDataSource. SplashViewModel logs each bootstrap step.
+
+
 
 **Priority:** High — current flow shows VehicleRegistration to existing users on data-clear/re-login and lets users reach Home without a vehicle via the PermissionsRationale "Skip" button.
 
@@ -284,6 +288,53 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 - `composeResources/values*/strings.xml` (×9 locales).
 
 **Effort:** Medium. Largest risk is the SplashViewModel test matrix (5 invariant combinations).
+
+---
+
+## 13. `feature/UI-001-vehicle-registration-redesign` — ⚪ Pending
+
+**Priority:** Medium — the form works but feels utilitarian compared to the rest of the post-FLOW-001 first-run flow (Onboarding, PermissionsRationale, VehicleSizeExplainer all share a polished pattern; the registration form does not).
+
+**Where:** `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicle/VehicleRegistrationScreen.kt`.
+
+**Scope:** Visual + UX rework of the form. Keep the existing `VehicleRegistrationViewModel`/State/Intent/Effect contract — this is presentation-only.
+
+**Ideas worth exploring (decide during design):**
+- Hierarchy: size is the only required field (per the explainer); brand/model are optional. Make size the visually dominant input — large segmented selector or icon picker per `VehicleSize`. Brand/model relegated to a collapsed "optional details" group.
+- Iconography per size (🛵 MOTO, 🚙 SMALL, 🚗 MEDIUM, 🚐 LARGE, 🚚 VAN) instead of plain text radios.
+- Primary CTA at the bottom, navigation-bar-aware, mirroring the explainer's pattern.
+- Consider whether the BT pairing step lives here (currently in a separate screen) or stays separate. Probably stays separate — keep this ticket scoped.
+
+**Non-goals:**
+- Changing the data model.
+- Adding new vehicle attributes (color, license plate UI changes, etc.) — separate ticket if wanted.
+
+**Effort:** Small-medium. Pure UI iteration.
+
+---
+
+## 14. `feature/UI-002-my-vehicles-redesign` — ⚪ Pending
+
+**Priority:** Medium — the Vehicles tab post-HIST-001 works (HorizontalPager + inline history) but visual treatment can be tightened.
+
+**Where:**
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicles/VehiclesScreen.kt`
+- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicles/VehiclePageContent.kt`
+
+**Scope:** Visual rework of the pager page header (`VehicleDetailsHeader`), the empty state, and the per-vehicle action chips. ViewModel/State stay as-is.
+
+**Ideas worth exploring:**
+- The vehicle header card currently uses tonal elevation + brand/model + size + detection chip + edit/delete icons. Iterate towards a more "identity card" feel: large size icon, prominent brand/model, smaller secondary actions.
+- The active-vehicle badge could be promoted (e.g. coloured border on the card, not just an inline chip).
+- Empty state could include an explainer link to remind why a vehicle is needed (consistency with VehicleSizeExplainer copy).
+- ScrollableTabRow → consider PrimaryScrollableTabRow / SecondaryScrollableTabRow (current is deprecated per compiler warning).
+- Translucent delete icon when there's only 1 vehicle is already in place — keep it.
+
+**Non-goals:**
+- Changing the multi-vehicle paging model (HorizontalPager stays).
+- Touching the history list (already reworked in HIST-001).
+
+**Effort:** Small-medium. Pure UI iteration.
 
 ---
 
