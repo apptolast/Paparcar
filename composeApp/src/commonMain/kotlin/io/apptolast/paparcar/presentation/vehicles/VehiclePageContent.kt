@@ -116,7 +116,7 @@ internal fun VehiclePageContent(
             onFilterSelected = { filter ->
                 historyVm.handleIntent(HistoryIntent.SetFilter(filter))
             },
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         )
     }
 }
