@@ -79,6 +79,36 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
+    fun `ParkingSyncWorker propagates detectionReliability through the Data payload`() = runTest {
+        // Regression: previously the DTO reconstructed inside doWork() dropped this field, so every
+        // Firestore doc ended up with detectionReliability=null even when the coordinator passed 0.90. [MAPPER-003]
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val session = userParking("rel-session").copy(detectionReliability = 0.90f)
+        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+            .setInputData(request.workSpec.input)
+            .build()
+
+        worker.doWork()
+
+        assertEquals(0.90f, fakeDataSource.lastSavedSession?.detectionReliability)
+    }
+
+    @Test
+    fun `ParkingSyncWorker preserves null detectionReliability for manual reports`() = runTest {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val session = userParking("manual-session").copy(detectionReliability = null)
+        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+            .setInputData(request.workSpec.input)
+            .build()
+
+        worker.doWork()
+
+        assertEquals(null, fakeDataSource.lastSavedSession?.detectionReliability)
+    }
+
+    @Test
     fun `ParkingSyncWorker success — no previous session id skips active-flag update`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("solo-session")

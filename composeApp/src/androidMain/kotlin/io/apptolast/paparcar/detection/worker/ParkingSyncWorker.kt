@@ -96,6 +96,7 @@ class ParkingSyncWorker(
         private const val KEY_NEW_SESSION_IS_ACTIVE = "session_is_active"
         private const val KEY_NEW_SESSION_SPOT_ID = "session_spot_id"
         private const val KEY_NEW_SESSION_GEOFENCE_ID = "session_geofence_id"
+        private const val KEY_NEW_SESSION_DETECTION_RELIABILITY = "session_detection_reliability"
 
         fun buildRequest(
             userId: String,
@@ -114,6 +115,9 @@ class ParkingSyncWorker(
                 KEY_NEW_SESSION_IS_ACTIVE to session.isActive,
                 KEY_NEW_SESSION_SPOT_ID to session.spotId,
                 KEY_NEW_SESSION_GEOFENCE_ID to session.geofenceId,
+                // NaN sentinel for "absent" — workDataOf does not preserve nulls for primitives,
+                // and `detectionReliability` may legitimately be null for manually-reported spots. [MAPPER-003]
+                KEY_NEW_SESSION_DETECTION_RELIABILITY to (session.detectionReliability?.toDouble() ?: Double.NaN),
             )
             return OneTimeWorkRequestBuilder<ParkingSyncWorker>()
                 .setInputData(data)
@@ -140,6 +144,8 @@ class ParkingSyncWorker(
                 isActive = getBoolean(KEY_NEW_SESSION_IS_ACTIVE, false),
                 spotId = getString(KEY_NEW_SESSION_SPOT_ID),
                 geofenceId = getString(KEY_NEW_SESSION_GEOFENCE_ID),
+                detectionReliability = getDouble(KEY_NEW_SESSION_DETECTION_RELIABILITY, Double.NaN)
+                    .takeUnless { it.isNaN() }?.toFloat(),
             )
         }
     }
