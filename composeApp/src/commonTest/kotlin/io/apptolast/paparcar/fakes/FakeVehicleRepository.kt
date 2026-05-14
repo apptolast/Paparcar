@@ -2,6 +2,7 @@ package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -18,7 +19,20 @@ class FakeVehicleRepository(
 
     override suspend fun getDefaultVehicle(userId: String): Vehicle? = _defaultVehicle.value
 
+    var saveVehicleCallCount = 0
+        private set
+    val savedVehicleIds = mutableListOf<String>()
+    /** Set to throw on next saveVehicle call. Cleared after each invocation. */
+    var saveVehicleThrows: Throwable? = null
+    /** Test hook: if set, saveVehicle awaits this Deferred before completing. Used to simulate
+     *  an in-flight save so concurrent intents can be observed by the caller. */
+    var saveVehicleAwait: CompletableDeferred<Unit>? = null
+
     override suspend fun saveVehicle(vehicle: Vehicle) {
+        saveVehicleCallCount++
+        savedVehicleIds += vehicle.id
+        saveVehicleThrows?.let { saveVehicleThrows = null; throw it }
+        saveVehicleAwait?.await()
         _vehicles.value = _vehicles.value.filter { it.id != vehicle.id } + vehicle
         _defaultVehicle.value = vehicle
     }

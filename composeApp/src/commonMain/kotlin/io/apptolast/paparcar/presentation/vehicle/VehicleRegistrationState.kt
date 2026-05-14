@@ -9,4 +9,11 @@ data class VehicleRegistrationState(
     val showBrandModelOnSpot: Boolean = false,
     val isSaving: Boolean = false,
     val editingVehicleId: String? = null,
+    /**
+     * UUID generado en el primer intento de guardado de un vehículo nuevo (no edición).
+     * Se memoiza aquí para que un reintento tras fallo de red (mismo VM, otro tap) reuse el
+     * mismo id en lugar de generar uno nuevo — Firestore `.set()` con el mismo doc id es
+     * idempotente y no duplica. Reset implícito al destruir el VM. [VEHICLES-002]
+     */
+    val pendingNewVehicleId: String? = null,
 )

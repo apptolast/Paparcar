@@ -152,4 +152,41 @@ class VehicleRegistrationViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    // ── VEHICLES-002: no duplicate save on rapid taps or after failure ────────
+
+    @Test
+    fun `should_call_saveVehicle_only_once_when_Save_intent_arrives_twice_in_a_row`() = runTest {
+        // Hold the first save in-flight via a CompletableDeferred so the second intent
+        // arrives while state.isSaving is still true and hits the guard.
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        vehicleRepo.saveVehicleAwait = gate
+        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
+
+        vm.handleIntent(VehicleRegistrationIntent.Save)  // launches coroutine, suspends on gate
+        vm.handleIntent(VehicleRegistrationIntent.Save)  // state.isSaving=true → blocked by guard
+        gate.complete(Unit)                              // let the first save finish
+
+        assertEquals(1, vehicleRepo.saveVehicleCallCount)
+    }
+
+    @Test
+    fun `should_reuse_same_vehicle_id_when_retrying_after_save_failure`() = runTest {
+        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
+
+        // First attempt fails.
+        vehicleRepo.saveVehicleThrows = RuntimeException("network error")
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        // Second attempt succeeds. The id MUST match the first — otherwise we leak orphans
+        // in Firestore (each `.set()` creates a new doc with whatever UUID is passed).
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        assertEquals(2, vehicleRepo.saveVehicleCallCount)
+        assertEquals(
+            vehicleRepo.savedVehicleIds[0],
+            vehicleRepo.savedVehicleIds[1],
+            "Retry must reuse the memoized pendingNewVehicleId — generating a new UUID corrupts Firestore.",
+        )
+    }
 }

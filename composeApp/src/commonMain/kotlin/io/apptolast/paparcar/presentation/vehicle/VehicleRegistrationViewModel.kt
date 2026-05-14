@@ -60,17 +60,30 @@ class VehicleRegistrationViewModel(
     @OptIn(ExperimentalUuidApi::class)
     private fun saveVehicle() {
         val current = state.value
+        // Defensa en profundidad contra doble-tap: si ya hay un save en vuelo, ignorar.
+        // La UI también desactiva el botón con isSaving=true (PapPrimaryButton lo respeta),
+        // pero el guard del VM cubre el race entre intent dispatch y recomposición. [VEHICLES-002]
+        if (current.isSaving) {
+            PaparcarLogger.d(TAG, "saveVehicle ignored — already saving")
+            return
+        }
         val size = current.sizeCategory ?: run {
             sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown("size_required")))
             return
         }
-        updateState { copy(isSaving = true) }
+        val isEditing = current.editingVehicleId != null
+        // Memoizar el id en el state al primer intento. Si el save falla y el usuario
+        // reintenta, reusamos este mismo id → Firestore `.set()` sobreescribe el doc en
+        // lugar de crear otro → no duplica. [VEHICLES-002]
+        val vehicleId = current.editingVehicleId
+            ?: current.pendingNewVehicleId
+            ?: Uuid.random().toString()
+        updateState { copy(isSaving = true, pendingNewVehicleId = if (isEditing) null else vehicleId) }
         viewModelScope.launch {
             runCatching {
                 val userId = authRepository.getCurrentSession()?.userId ?: ""
-                val isEditing = current.editingVehicleId != null
                 val vehicle = Vehicle(
-                    id = current.editingVehicleId ?: Uuid.random().toString(),
+                    id = vehicleId,
                     userId = userId,
                     brand = current.brand.trim().ifBlank { null },
                     model = current.model.trim().ifBlank { null },
@@ -81,10 +94,11 @@ class VehicleRegistrationViewModel(
                 vehicleRepository.saveVehicle(vehicle)
                 if (!isEditing) vehicleRepository.setDefaultVehicle(vehicle.id)
             }.onSuccess {
-                updateState { copy(isSaving = false) }
+                updateState { copy(isSaving = false, pendingNewVehicleId = null) }
                 sendEffect(VehicleRegistrationEffect.SavedSuccessfully)
             }.onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to save vehicle", e)
+                // Mantenemos pendingNewVehicleId para que el reintento reuse el mismo id.
                 updateState { copy(isSaving = false) }
                 sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
