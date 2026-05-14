@@ -11,6 +11,15 @@ interface VehicleRepository {
     fun observeDefaultVehicle(): Flow<Vehicle?>
 
     /**
+     * One-shot fetch of the user's default vehicle. Designed for save-path callers like
+     * [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase] that already
+     * know the userId and need a synchronous answer, not a long-lived subscription. Falls
+     * back to `user_profile.defaultVehicleId` if the vehicles table somehow lost the
+     * `isDefault=1` flag but the profile still points to a valid id. [AUTH-001]
+     */
+    suspend fun getDefaultVehicle(userId: String): Vehicle?
+
+    /**
      * One-shot pull of the vehicle list from Firestore into Room. Idempotent.
      *
      * Called during splash bootstrap so the local DB reflects remote state before

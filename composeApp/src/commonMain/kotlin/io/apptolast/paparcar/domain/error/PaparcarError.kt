@@ -35,5 +35,8 @@ sealed class PaparcarError : Exception() {
     sealed class Parking : PaparcarError() {
         /** Session could not be persisted to the local database. */
         data object SaveFailed : Parking()
+        /** The user has no resolvable default vehicle. Saving a parking with vehicleId=null would
+         *  produce a row unreachable in the per-vehicle history UI; better to fail loud. [AUTH-001] */
+        data object NoDefaultVehicle : Parking()
     }
 }

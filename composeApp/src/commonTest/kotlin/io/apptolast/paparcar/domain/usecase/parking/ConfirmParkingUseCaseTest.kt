@@ -34,6 +34,11 @@ class ConfirmParkingUseCaseTest {
 
     private val session = FakeAuthRepository.authenticatedSession(userId = "user-42")
 
+    /** Default vehicle present in every fixture unless a test explicitly overrides — matches
+     *  the production invariant (FLOW-001 ensures the user always has a default before the
+     *  detection service can fire). [AUTH-001] */
+    private val defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM)
+
     // ── Happy path ────────────────────────────────────────────────────────────
 
     @Test
@@ -229,15 +234,18 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
-    fun `should save session with null sizeCategory when no default vehicle registered`() = runTest {
+    fun `should return NoDefaultVehicle failure and not save when no default vehicle registered`() = runTest {
+        // Invariant per AUTH-001 / parking_vehicleid memory: a parking belongs to a vehicle.
+        // The History UI is per-vehicle (HIST-001); saving with vehicleId=null would create
+        // an unreachable orphan. Better to fail loud than to corrupt Firestore.
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(defaultVehicle = null))
 
-        useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f)
 
-        val savedSession = repo.getActiveSession()
-        assertNotNull(savedSession)
-        assertNull(savedSession.sizeCategory)
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.NoDefaultVehicle>(result.exceptionOrNull())
+        assertEquals(0, repo.saveSessionCallCount)
     }
 
     // ── No authenticated user ─────────────────────────────────────────────────
@@ -320,7 +328,7 @@ class ConfirmParkingUseCaseTest {
 
     private fun buildUseCase(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
-        vehicles: FakeVehicleRepository = FakeVehicleRepository(),
+        vehicles: FakeVehicleRepository = FakeVehicleRepository(defaultVehicle),
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),

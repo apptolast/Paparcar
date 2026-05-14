@@ -16,6 +16,8 @@ class FakeVehicleRepository(
 
     override fun observeDefaultVehicle(): Flow<Vehicle?> = _defaultVehicle
 
+    override suspend fun getDefaultVehicle(userId: String): Vehicle? = _defaultVehicle.value
+
     override suspend fun saveVehicle(vehicle: Vehicle) {
         _vehicles.value = _vehicles.value.filter { it.id != vehicle.id } + vehicle
         _defaultVehicle.value = vehicle

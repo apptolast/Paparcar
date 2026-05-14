@@ -19,7 +19,6 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-import kotlinx.coroutines.flow.first
 
 /**
  * Persists a confirmed parking spot, registers a geofence, notifies the user,
@@ -47,22 +46,39 @@ class ConfirmParkingUseCase(
         spotType: SpotType = SpotType.AUTO_DETECTED,
         sizeCategory: VehicleSize? = null,
     ): Result<UserParking> {
-        PaparcarLogger.d(DIAG, "▶ ConfirmParking.invoke reliability=$detectionReliability spotType=$spotType")
+        PaparcarLogger.d(
+            DIAG,
+            "▶ ConfirmParking.invoke reliability=$detectionReliability spotType=$spotType"
+        )
 
         PaparcarLogger.d(DIAG, "  → authRepository.getCurrentSession() BEFORE")
+        // Obtenemos el id desde firebase (solo con internet)
         val userId = authRepository.getCurrentSession()?.userId
             ?: run {
-                PaparcarLogger.d(DIAG, "  ✗ getCurrentSession returned null — abort NotAuthenticated")
+                PaparcarLogger.d(
+                    DIAG,
+                    "  ✗ getCurrentSession returned null — abort NotAuthenticated"
+                )
                 return Result.failure(PaparcarError.Auth.NotAuthenticated)
             }
         PaparcarLogger.d(DIAG, "  ← getCurrentSession AFTER userId=$userId")
 
-        PaparcarLogger.d(DIAG, "  → observeDefaultVehicle().first() BEFORE")
-        val defaultVehicle = vehicleRepository.observeDefaultVehicle().first()
-        PaparcarLogger.d(DIAG, "  ← observeDefaultVehicle AFTER vehicleId=${defaultVehicle?.id}")
+        PaparcarLogger.d(DIAG, "  → getDefaultVehicle(userId) BEFORE")
+        // Suspending one-shot read — bypasses the auth-flow race that made the previous
+        // observeDefaultVehicle().first() return null even with a valid session. Includes
+        // a fallback through user_profile.defaultVehicleId. [AUTH-001]
+        val defaultVehicle = vehicleRepository.getDefaultVehicle(userId)
+        PaparcarLogger.d(DIAG, "  ← getDefaultVehicle AFTER vehicleId=${defaultVehicle?.id}")
+        if (defaultVehicle == null) {
+            // Invariant: every parking belongs to a vehicle. The History UI is now per-vehicle
+            // (HIST-001), so a session with vehicleId=null is unreachable and pure garbage.
+            // Better to fail loud and let the user notice than persist orphans.
+            PaparcarLogger.e(DIAG, "  ✗ no default vehicle resolvable — abort")
+            return Result.failure(PaparcarError.Parking.NoDefaultVehicle)
+        }
 
-        val resolvedSizeCategory = sizeCategory ?: defaultVehicle?.sizeCategory
-        val resolvedVehicleId = defaultVehicle?.id
+        val resolvedSizeCategory = sizeCategory ?: defaultVehicle.sizeCategory
+        val resolvedVehicleId = defaultVehicle.id
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -84,6 +100,7 @@ class ConfirmParkingUseCase(
         )
 
         PaparcarLogger.d(DIAG, "  → saveSession BEFORE sessionId=$sessionId")
+        //Esto guarda en local en Room, no necesita un worker
         val saved = userParkingRepository.saveSession(session)
         PaparcarLogger.d(DIAG, "  ← saveSession AFTER isSuccess=${saved.isSuccess}")
         if (saved.isFailure) {
@@ -92,8 +109,12 @@ class ConfirmParkingUseCase(
         }
         val previousSessionId = saved.getOrNull()
 
+        // Worker
         parkingSyncScheduler.schedule(session, previousSessionId)
-        PaparcarLogger.d(DIAG, "  ↳ parkingSyncScheduler.schedule scheduled (previousSessionId=$previousSessionId)")
+        PaparcarLogger.d(
+            DIAG,
+            "  ↳ parkingSyncScheduler.schedule scheduled (previousSessionId=$previousSessionId)"
+        )
 
         PaparcarLogger.d(DIAG, "  → enrichmentScheduler.schedule BEFORE")
         enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)
@@ -122,10 +143,10 @@ class ConfirmParkingUseCase(
 
     private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
         val base = when (sizeCategory) {
-            VehicleSize.MOTO  -> config.geofenceRadiusMotoMeters
+            VehicleSize.MOTO -> config.geofenceRadiusMotoMeters
             VehicleSize.LARGE -> config.geofenceRadiusLargeMeters
-            VehicleSize.VAN   -> config.geofenceRadiusVanMeters
-            else              -> config.geofenceRadiusMeters  // SMALL, MEDIUM, null
+            VehicleSize.VAN -> config.geofenceRadiusVanMeters
+            else -> config.geofenceRadiusMeters  // SMALL, MEDIUM, null
         }
         val padded = base + (accuracyMeters * config.geofenceAccuracyPadFactor)
         return padded.coerceAtMost(config.geofenceMaxRadiusMeters)

@@ -1,7 +1,6 @@
 package io.apptolast.paparcar.data.repository
 
 import com.apptolast.customlogin.domain.AuthRepository
-import com.apptolast.customlogin.domain.model.AuthState
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.apptolast.paparcar.data.datasource.local.room.UserProfileDao
 import io.apptolast.paparcar.data.datasource.local.room.VehicleDao
@@ -11,13 +10,11 @@ import io.apptolast.paparcar.data.mapper.toEntity
 import io.apptolast.paparcar.data.mapper.toVehicleEntity
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.repository.VehicleRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class VehicleRepositoryImpl(
     private val dao: VehicleDao,
     private val profileDao: UserProfileDao,
@@ -30,26 +27,49 @@ class VehicleRepositoryImpl(
         authRepository.getCurrentSession()?.userId
 
     /**
-     * Observes the current user's vehicles, auto-resubscribing when auth state changes.
+     * Observes the current user's vehicles.
      *
-     * Unlike the previous implementation, this never completes prematurely on a
-     * null userId — it emits an empty list instead, which keeps downstream
-     * `first()` / `firstOrNull()` calls safe during the login race window where
-     * AuthState reports Authenticated before the session cache is populated.
+     * Resolves the userId once via [AuthRepository.getCurrentSession] (cache-backed)
+     * instead of `observeAuthState()`. The previous flatMapLatest implementation was
+     * racing: BaseLogin's auth state Flow can emit a non-Authenticated value first
+     * even though the session cache is populated, causing `.first()` callers to get
+     * empty/null instantly without waiting for the next emit. [AUTH-001]
+     *
+     * Sign-out is handled at the navigation layer (the screen using this flow is
+     * destroyed when the user leaves the authenticated graph), so the userId
+     * snapshot is safe for the lifetime of any active subscriber.
      */
-    override fun observeVehicles(): Flow<List<Vehicle>> =
-        authRepository.observeAuthState().flatMapLatest { auth ->
-            val uid = (auth as? AuthState.Authenticated)?.session?.userId
-            if (uid == null) flowOf(emptyList())
-            else dao.observeByUser(uid).map { list -> list.map { it.toDomain() } }
+    override fun observeVehicles(): Flow<List<Vehicle>> = flow {
+        val uid = currentUserId()
+        if (uid == null) {
+            emit(emptyList())
+        } else {
+            emitAll(dao.observeByUser(uid).map { list -> list.map { it.toDomain() } })
         }
+    }
 
-    override fun observeDefaultVehicle(): Flow<Vehicle?> =
-        authRepository.observeAuthState().flatMapLatest { auth ->
-            val uid = (auth as? AuthState.Authenticated)?.session?.userId
-            if (uid == null) flowOf(null)
-            else dao.observeDefault(uid).map { it?.toDomain() }
+    override fun observeDefaultVehicle(): Flow<Vehicle?> = flow {
+        val uid = currentUserId()
+        if (uid == null) {
+            emit(null)
+        } else {
+            emitAll(dao.observeDefault(uid).map { it?.toDomain() })
         }
+    }
+
+    /**
+     * Suspending one-shot read of the default vehicle for [userId], with fallback
+     * via `user_profile.defaultVehicleId` if the `vehicles` table lost its
+     * `isDefault=1` flag for any reason. Returning null here means **neither**
+     * the vehicles table nor the user profile cache could resolve a default —
+     * the caller (typically [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase])
+     * should treat that as a fatal precondition and refuse to save. [AUTH-001]
+     */
+    override suspend fun getDefaultVehicle(userId: String): Vehicle? {
+        dao.getDefault(userId)?.let { return it.toDomain() }
+        val profileDefaultId = profileDao.getProfile(userId)?.defaultVehicleId ?: return null
+        return dao.getById(profileDefaultId)?.toDomain()
+    }
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = runCatching {
         val snapshot = firestoreVehiclesCol(userId).get()
