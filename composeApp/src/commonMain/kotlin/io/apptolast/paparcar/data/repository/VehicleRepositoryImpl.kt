@@ -71,16 +71,25 @@ class VehicleRepositoryImpl(
         return dao.getById(profileDefaultId)?.toDomain()
     }
 
+    /**
+     * Pulls vehicles from Firestore into Room with REPLACE-conflict semantics so changes
+     * made on other devices (e.g. `isDefault` flip) actually land here. [VEHICLES-001]
+     *
+     * Preserves `bluetoothDeviceId` per-row: that field is on-device only, never written
+     * to Firestore, so a naive REPLACE would wipe the pairing on every sync. For each
+     * remote entity we look up the existing local row and merge its BT id back in before
+     * the upsert.
+     */
     override suspend fun syncFromRemote(userId: String): Result<Unit> = runCatching {
         val snapshot = firestoreVehiclesCol(userId).get()
-        val entities = snapshot.documents.mapNotNull { it.data<Map<String, Any?>>().toVehicleEntity() }
-        // Replace local copy: remote is the source of truth for cross-device sync.
-        // Bluetooth pairing is on-device only (excluded from Firestore), so re-import
-        // does not clobber it because the field lives on the entity, not the remote doc —
-        // but `insertAll` with REPLACE conflict resolution would. Keep insertAll IGNORE
-        // semantics for now to preserve local-only fields. Edit/delete go through
-        // explicit per-vehicle methods that know to handle BT.
-        if (entities.isNotEmpty()) dao.insertAll(entities)
+        val remoteEntities = snapshot.documents
+            .mapNotNull { it.data<Map<String, Any?>>().toVehicleEntity() }
+        if (remoteEntities.isEmpty()) return@runCatching
+        val merged = remoteEntities.map { remote ->
+            val localBt = dao.getById(remote.id)?.bluetoothDeviceId
+            if (localBt != null) remote.copy(bluetoothDeviceId = localBt) else remote
+        }
+        dao.upsertAll(merged)
     }
 
     override suspend fun saveVehicle(vehicle: Vehicle) {

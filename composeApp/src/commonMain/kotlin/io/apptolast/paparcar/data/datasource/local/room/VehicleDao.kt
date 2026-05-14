@@ -42,8 +42,15 @@ interface VehicleDao {
     @Query("SELECT COUNT(*) FROM vehicles WHERE userId = :userId")
     suspend fun countByUser(userId: String): Int
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(vehicles: List<VehicleEntity>)
+    /**
+     * REPLACE-conflict bulk insert used by [VehicleRepository.syncFromRemote]. Required so a
+     * change to `isDefault` on another device actually lands in this Room when re-synced —
+     * the previous IGNORE policy left local rows frozen at their first-sync state. Callers
+     * MUST merge any local-only fields (currently [VehicleEntity.bluetoothDeviceId]) into
+     * the entities they pass here before invoking, or those values will be wiped. [VEHICLES-001]
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(vehicles: List<VehicleEntity>)
 
     @Query("DELETE FROM vehicles WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
