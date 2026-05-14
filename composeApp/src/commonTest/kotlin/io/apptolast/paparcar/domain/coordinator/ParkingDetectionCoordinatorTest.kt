@@ -267,6 +267,128 @@ class ParkingDetectionCoordinatorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // PARKING-001: reposition-burst clears bestStopLocation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_clear_bestStopLocation_after_two_consecutive_reposition_fixes() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Scenario: wait + maneuver to plaza. The car stops at the waiting position,
+            // bestStopLocation is captured there. The brief maneuver to the actual plaza
+            // produces 2 consecutive fixes at 1.7 m/s with good accuracy — below
+            // clearBestStopSpeedMps so LOC-002 alone would preserve the stale value, but
+            // PARKING-001 counts the burst and clears it. The eventual confirmed location
+            // must be the plaza, not the waiting position.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Origin + cross the movement threshold so hasEverMoved=true.
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+
+            // Waiting stop — bestStopLocation = 40.005.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            // Reposition burst: 2 fixes at 1.7 m/s with good accuracy. Below
+            // clearBestStopSpeedMps (2.5) — LOC-002 alone would preserve. With PARKING-001
+            // the second fix triggers the reset.
+            locations.emit(GpsPoint(40.006, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.7f))
+            locations.emit(GpsPoint(40.007, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.7f))
+
+            // Trigger user-confirm at the actual plaza (40.010). With the burst-reset the
+            // saved location should be 40.010, not the stale waiting 40.005.
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                40.010,
+                saved.location.latitude,
+                /* absoluteTolerance = */ 0.00001,
+                "reposition burst must clear bestStopLocation so the plaza wins over the waiting spot",
+            )
+        }
+
+    @Test
+    fun should_preserve_bestStopLocation_on_single_reposition_fix() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A single 1.7 m/s fix must NOT clear bestStopLocation — that would be the
+            // LOC-002 noise-spike scenario lowered to reposition speed. Two consecutive
+            // fixes are required.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+
+            // Park: bestStopLocation = 40.005.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            // ONE reposition-speed fix → counter=1 < repositionFixCount(2). bestStopLocation preserved.
+            locations.emit(GpsPoint(40.006, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.7f))
+
+            // User confirms at a different stop. Saved location should still be 40.005.
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.020, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                40.005,
+                saved.location.latitude,
+                /* absoluteTolerance = */ 0.00001,
+                "single reposition-speed fix must not clear bestStopLocation",
+            )
+        }
+
+    @Test
+    fun should_preserve_bestStopLocation_on_sustained_walking() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The user parks and walks toward their destination at ~1.2 m/s. Walking pace
+            // is below repositionSpeedMps (1.7), so consecutiveRepositionFixes never
+            // increments. bestStopLocation must remain at the parked-car position even
+            // across many walking fixes.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+
+            // Park: bestStopLocation = 40.005.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            // Walking sequence: speed sustained at 1.2 m/s — never crosses 1.7.
+            repeat(6) { i ->
+                locations.emit(
+                    GpsPoint(40.005 + (i + 1) * 0.0001, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f)
+                )
+            }
+
+            // User confirms at the walking destination. Saved location must still be the parked spot.
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.020, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                40.005,
+                saved.location.latitude,
+                /* absoluteTolerance = */ 0.00001,
+                "sustained walking pace must not clear bestStopLocation",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Notification reset on invoke entry
     // ─────────────────────────────────────────────────────────────────────────
 

@@ -130,6 +130,25 @@ data class ParkingDetectionConfig(
      *  the initial-stop window. Default 50 m — generous enough that urban GPS noise (typical
      *  10–30 m) still counts, strict enough that clearly degraded fixes do not. [LOC-002] */
     val minGpsAccuracyForDriving: Float = 50f,
+    /** Minimum speed (m/s) that a single GPS fix must report to count as a candidate
+     *  reposition signal. Below [clearBestStopSpeedMps] but above sustained walking pace
+     *  (~1.4 m/s) — slow-parking-maneuver territory. Used together with [repositionFixCount]
+     *  to detect the "wait + maneuver to spot" scenario: the user stops 10–15 m short of
+     *  the real plaza waiting for another car, the initial-stop window freezes
+     *  [bestStopLocation] there, then the brief maneuver to the actual plaza never crosses
+     *  [clearBestStopSpeedMps] so the stale waiting position survives. With two or more
+     *  consecutive fixes above this threshold (good accuracy required), the reposition is
+     *  treated as real vehicle motion and [bestStopLocation] is cleared so the next stop
+     *  window can capture the plaza. [PARKING-001] */
+    val repositionSpeedMps: Float = 1.7f,
+    /** Number of *consecutive* GPS fixes that must report speed ≥ [repositionSpeedMps]
+     *  with accuracy ≤ [minGpsAccuracyForDriving] before [bestStopLocation] is cleared
+     *  as a reposition burst. Two is enough to discard a single 1.7 m/s noise spike
+     *  while still detecting real maneuvers, given the HIGH_ACCURACY 5 s GPS cadence.
+     *  Higher values risk missing fast maneuvers; lower values reintroduce the noise
+     *  problem that [minGpsAccuracyForDriving] (single-fix) already mitigated for the
+     *  higher driving threshold. [PARKING-001] */
+    val repositionFixCount: Int = 2,
     /** Observation window (ms) before auto-confirming when an activity-exit signal was observed.
      *  Shorter because the IN_VEHICLE→EXIT transition is strong evidence. Default 2 minutes. */
     val vehicleExitObservationWindowMs: Long = 2 * 60_000L,
@@ -203,6 +222,12 @@ data class ParkingDetectionConfig(
         }
         require(minGpsAccuracyForDriving > 0) {
             "minGpsAccuracyForDriving must be > 0, was $minGpsAccuracyForDriving"
+        }
+        require(repositionSpeedMps > 0 && repositionSpeedMps <= clearBestStopSpeedMps) {
+            "repositionSpeedMps ($repositionSpeedMps) must be in (0, clearBestStopSpeedMps=$clearBestStopSpeedMps]"
+        }
+        require(repositionFixCount >= 1) {
+            "repositionFixCount must be >= 1, was $repositionFixCount"
         }
         require(vehicleExitObservationWindowMs > 0) {
             "vehicleExitObservationWindowMs must be > 0, was $vehicleExitObservationWindowMs"

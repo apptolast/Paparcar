@@ -93,6 +93,14 @@ class ParkingDetectionCoordinator(
         /** Snapshot of [vehicleExitConfirmed] at the moment the CANDIDATE phase was entered.
          *  Determines which observation window applies for auto-confirmation. */
         val highCandidateHadVehicleExit: Boolean = false,
+        /** Number of consecutive GPS fixes observed with speed ≥
+         *  [ParkingDetectionConfig.repositionSpeedMps] and accuracy ≤
+         *  [ParkingDetectionConfig.minGpsAccuracyForDriving] in the current moving streak.
+         *  Reset to 0 on any stopped fix or on any moving fix that falls below the
+         *  reposition threshold. Used to differentiate a brief vehicle-reposition burst
+         *  (a maneuver into the actual parking spot after waiting nearby) from sustained
+         *  walking, which never crosses the reposition speed. [PARKING-001] */
+        val consecutiveRepositionFixes: Int = 0,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -294,6 +302,9 @@ class ParkingDetectionCoordinator(
                     stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < MAX_STOPPED_FIXES)
                         s.stoppedFixes + location else s.stoppedFixes,
                     bestStopLocation = newBestStop,
+                    // Reset the reposition counter on every stopped fix so a counter built up
+                    // during one moving streak never carries across a stop into the next. [PARKING-001]
+                    consecutiveRepositionFixes = 0,
                 )
             }
             now - (_detectionState.value.stoppedSince ?: 0L)
@@ -306,6 +317,15 @@ class ParkingDetectionCoordinator(
             // wherever the user eventually sits down (home, café). [LOC-002]
             val isDriving = location.speed >= config.clearBestStopSpeedMps &&
                     location.accuracy <= config.minGpsAccuracyForDriving
+            // A fix counts as a reposition candidate when it crosses the lower
+            // [repositionSpeedMps] threshold (between sustained walking and clearBestStop)
+            // with good accuracy. Two or more consecutive candidates clear bestStopLocation
+            // — that distinguishes a brief vehicle maneuver from a single GPS spike (single
+            // fix, LOC-002 territory) and from sustained walking (never crosses 1.7 m/s).
+            // The accuracy gate is the same one LOC-002 uses so the two guards are
+            // co-extensive: a noisy fix can never trigger a reposition burst. [PARKING-001]
+            val isRepositionCandidate = location.speed >= config.repositionSpeedMps &&
+                    location.accuracy <= config.minGpsAccuracyForDriving
             if (location.speed >= config.clearBestStopSpeedMps && !isDriving) {
                 PaparcarLogger.d(
                     DIAG,
@@ -315,14 +335,26 @@ class ParkingDetectionCoordinator(
                 )
             }
             _detectionState.update {
+                val newConsecutive = if (isRepositionCandidate) it.consecutiveRepositionFixes + 1 else 0
+                val isRepositionBurst = newConsecutive >= config.repositionFixCount
+                val shouldClearBestStop = isDriving || isRepositionBurst
+                if (isRepositionBurst && !isDriving) {
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⟲ reposition-burst detected " +
+                                "(consecutive=$newConsecutive speed=${location.speed} acc=${location.accuracy}) " +
+                                "— clearing bestStopLocation [PARKING-001]"
+                    )
+                }
                 it.copy(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),
                     mediumNotificationShown = false,
-                    bestStopLocation = if (isDriving) null else it.bestStopLocation,
+                    bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
                     vehicleExitConfirmed = if (isDriving) false else it.vehicleExitConfirmed,
                     activityStillDetected = if (isDriving) false else it.activityStillDetected,
                     highConfidenceReachedAt = if (isDriving) null else it.highConfidenceReachedAt,
+                    consecutiveRepositionFixes = newConsecutive,
                 )
             }
             0L

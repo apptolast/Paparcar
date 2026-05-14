@@ -338,7 +338,11 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 15. `bugfix/MAPPER-002-vehicleid-lost-in-firestore-roundtrip` — ⚪ Pending
+## 15. `bugfix/MAPPER-002-vehicleid-lost-in-firestore-roundtrip` — ✅ Done
+
+**Merged:** 2026-05-12, commit `2d7348d`. DTO field + both mappers + worker payload (`KEY_NEW_SESSION_VEHICLE_ID`) + manual Firestore deserializer in `RemoteUserProfileDataSourceImpl` all updated. Latent `detectionReliability` write-path omission also patched. Round-trip tests added. No backfill — user wiped Firestore manually (pre-release).
+
+**Follow-up:** MAPPER-003 (2026-05-14) fixed the same omission class on the `ParkingSyncWorker` payload — `detectionReliability` was still being dropped between the use case and Firestore even after MAPPER-002. See `docs/detection/PARKING-DETECTION.md` §2.
 
 **Priority:** High — breaks the per-vehicle history tabs introduced in HIST-001. Every cold start nulls every row's `vehicleId`, so `VehiclePageContent` shows an empty history under every tab.
 
@@ -362,7 +366,11 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 16. `bugfix/LOC-002-trust-driving-signal-by-accuracy` — ⚪ Pending
+## 16. `bugfix/LOC-002-trust-driving-signal-by-accuracy` — ✅ Done
+
+**Merged:** 2026-05-12, commit `9d43f02`. `updateStopTracking` moving branch now gates the driving signal on `accuracy ≤ minGpsAccuracyForDriving = 50 m`. Noisy fixes are logged and ignored for state-destruction purposes.
+
+**Follow-up:** PARKING-001 (2026-05-14) extended the same gate to a lower-speed *consecutive* reposition burst (≥1.7 m/s × 2 fixes) to cover the "wait + maneuver to plaza" failure mode that LOC-002 alone couldn't reach. See `docs/detection/PARKING-DETECTION.md` §2.
 
 **Priority:** High — directly degrades parking precision on noisy hardware. Observed on Redmi Note 11: a parked-car spot was relocated ~100–150 m away (user's home) because a single GPS hallucination mid-CANDIDATE wiped the captured location.
 

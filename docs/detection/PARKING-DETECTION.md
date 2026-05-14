@@ -112,8 +112,9 @@ Both clauses must hold simultaneously. This kills spurious `IN_VEHICLE_ENTER` ev
 - **Moving** (`speed ≥ 1 m/s`):
   - `stoppedSince = null`, `stoppedFixes = emptyList()`.
   - If `speed ≥ clearBestStopSpeedMps = 2.5 m/s` **AND** `accuracy ≤ minGpsAccuracyForDriving = 50 m`, the coordinator treats the fix as evidence the vehicle is driving away again: `bestStopLocation`, `vehicleExitConfirmed`, `activityStillDetected`, and `highConfidenceReachedAt` are all cleared. The accuracy gate exists because hardware GPS hallucinates apparent-driving speed in noisy fixes — see LOC-002 in §2.
+  - If `speed ≥ repositionSpeedMps = 1.7 m/s` **AND** `accuracy ≤ minGpsAccuracyForDriving = 50 m` for **two consecutive fixes**, `bestStopLocation` is cleared as a reposition burst. This is between sustained walking (~1.2 m/s, never crosses 1.7) and the driving threshold; it lets the coordinator distinguish a brief vehicle maneuver (wait + park into a freed spot) from a single noisy spike or sustained walking — see PARKING-001 in §2.
 
-The 2.5 m/s ceiling is deliberately above typical walking speed (~1.4 m/s), so the captured parked-car position survives the user walking away on foot. The 50 m accuracy floor is deliberately above typical urban GPS noise (~10–30 m), so legitimate traffic-light-then-resume-driving still clears state correctly.
+The 2.5 m/s driving ceiling is deliberately above typical walking speed (~1.4 m/s), so the captured parked-car position survives the user walking away on foot. The 1.7 m/s reposition floor is deliberately above walking too, gated by two consecutive fixes so a single GPS spike at that speed (without sustained motion) does not clear state. The 50 m accuracy floor is shared by both gates, deliberately above typical urban GPS noise (~10–30 m), so legitimate traffic-light-then-resume-driving still clears state correctly.
 
 #### Confidence scoring
 
@@ -361,10 +362,48 @@ val isDriving = location.speed >= config.clearBestStopSpeedMps &&
 
 LOC-001 protects against walking destinations overwriting `bestStopLocation`; LOC-002 protects against noisy fixes wiping the entire CANDIDATE state. Both guards exist for different failure modes and should not be conflated.
 
+### PARKING-001 — Reposition-burst detection for "wait + maneuver" scenario
+
+**Commit:** pending (Option A; B and C deferred).
+
+User report (`diagnostics/2026-05-14/redmi-note-11.log`, drive of 2026-05-13): when the user stops 10–15 m short of the actual parking spot, waits for another car to leave, then maneuvers into the freed spot, the app saves the *waiting* position as the final parking location instead of the actual plaza.
+
+**Root cause.** The maneuver to the real plaza is short (~10 m) and slow (peak ~1.5–2 m/s), so it never crosses `clearBestStopSpeedMps = 2.5 m/s` with `accuracy ≤ 50 m`. LOC-002's single-fix gate correctly preserves `bestStopLocation` against noisy spikes, but as a side effect also preserves the stale waiting-position bestStopLocation through the maneuver. Then LOC-001 freezes the new initial-stop window without ever overwriting the stale value (since its accuracy was already very good — the user was idle there long enough for GPS to converge).
+
+**Fix.** Introduce a *consecutive* reposition signal between sustained walking pace (~1.4 m/s) and `clearBestStopSpeedMps`. New config:
+
+```kotlin
+val repositionSpeedMps: Float = 1.7f      // single-fix threshold
+val repositionFixCount: Int = 2           // consecutive fixes needed
+```
+
+In `updateStopTracking()` moving branch:
+
+```kotlin
+val isRepositionCandidate = location.speed >= config.repositionSpeedMps &&
+        location.accuracy <= config.minGpsAccuracyForDriving
+val newConsecutive = if (isRepositionCandidate) state.consecutiveRepositionFixes + 1 else 0
+val isRepositionBurst = newConsecutive >= config.repositionFixCount
+val shouldClearBestStop = isDriving || isRepositionBurst
+```
+
+`consecutiveRepositionFixes` is reset to 0 on any stopped fix and on any moving fix that drops below the reposition threshold (sustained walking at ~1.2 m/s).
+
+**Why the differentiation works.**
+- **Walking** sustains ~1.2 m/s and never crosses 1.7 m/s reliably — counter stays at 0.
+- **Single GPS spike** at >1.7 m/s with good accuracy is rare but possible — increments counter to 1, but the next fix returns to walking pace → counter resets, bestStopLocation preserved (LOC-002 semantics extended).
+- **Vehicle maneuver** crosses 1.7 m/s with good accuracy for ≥2 fixes (≥5 s at HIGH_ACCURACY cadence) — counter reaches 2, bestStopLocation cleared, the next stop window captures the real plaza.
+
+**Accepted trade-off.** Jogging with the phone (>1.7 m/s sustained) after parking but before HIGH is reached would now clear `bestStopLocation`. This is a niche scenario; deferred until evidence warrants a separate guard.
+
+**Companion options considered (Section 3, deferred).** Option B (1 s GPS sampling boost during CANDIDATE) and Option C (lowering `clearBestStopSpeedMps` to 2.0) were both proposed. Option A is the cheapest and most surgical; ship it first and fold in B/C only if a captured failure shows A is insufficient.
+
 ---
 
 ## 3. Open questions / future work
 
-- **Sustained driving check.** LOC-002 trusts a single good-accuracy fix to clear state. A *consecutive* driving signal (2+ fixes ≥ 5 s apart, speed sustained) would be even more robust against rapid GPS oscillation. Hold off until we see a captured failure that the single-fix gate misses.
+- **GPS sampling boost during CANDIDATE (PARKING-001 Option B).** Switch the LocationDataSource to a 1 s `minUpdateIntervalMillis` request when entering the CANDIDATE phase, returning to 2 s on exit. Increases density of fixes that refine `bestStopLocation` within the new initial-stop window after a reposition burst. Adds the complexity of swapping the location source mid-session — hold off until A is validated in the field.
+- **Lower `clearBestStopSpeedMps` to ~2.0 (PARKING-001 Option C).** Single-fix tightening of the existing LOC-002 gate. Same effect as the reposition burst for fast maneuvers, but reintroduces the noise-spike risk that LOC-002 mitigated. Bundle with Option B if needed.
 - **Per-device noise floor.** Redmi Note 11 routinely emits acc > 50 m even outdoors; OPPO CPH2371 rarely does. If the user base widens, consider a remote-config table of per-device `minGpsAccuracyForDriving` values, or compute a rolling-median accuracy and gate against a multiple of it.
+- **AUTH-002 — parking lost when `getCurrentSession()` returns null.** Observed in the same Redmi log at `05-13 19:42:20`: the CANDIDATE window expired and `ConfirmParkingUseCase` aborted because the auth cache was empty. The parking was never written to Room either, so it is fully lost. Distinct from AUTH-001 (which was the `observeAuthState()` race in `observeDefaultVehicle`). Pending: design a fallback path that either persists userId on first successful login and reads from local cache, or defers the confirm via a Worker that retries on auth failure.
 - **iOS port.** The coordinator is in `commonMain` and platform-agnostic; only the GPS / Activity / Geofence platform wrappers need iOS implementations. The PARKDIAG infrastructure is androidMain-only — when iOS arrives, decide whether to mirror `FileAntilog` or rely on OSLog.
