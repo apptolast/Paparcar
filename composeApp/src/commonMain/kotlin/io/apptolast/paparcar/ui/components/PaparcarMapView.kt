@@ -14,15 +14,12 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,20 +33,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swmansion.kmpmaps.core.AndroidMapProperties
@@ -65,14 +57,13 @@ import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.map.CameraTarget
-import io.apptolast.paparcar.ui.theme.PapAmber
+import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
+import io.apptolast.paparcar.presentation.util.toSpotReliabilityLevel
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
-import io.apptolast.paparcar.ui.theme.PapRed
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -195,25 +186,7 @@ private const val ZOOM_NEIGHBORHOOD  = 14f
 private const val ZOOM_DISTRICT      = 13f
 private const val ZOOM_WIDE          = 12f
 
-// ── Marker dimensions ─────────────────────────────────────────────────────────
-private val MY_CAR_MARKER_SIZE        = 44.dp
-private val MY_CAR_MARKER_BORDER      = 3.5.dp
-private val MY_CAR_MARKER_ICON_SIZE   = 24.dp
-private val MY_CAR_TAIL_WIDTH         = 12.dp
-private val MY_CAR_TAIL_HEIGHT        = 10.dp
-private val SPOT_MARKER_SELECTED_SIZE = 46.dp
-private val SPOT_MARKER_DEFAULT_SIZE  = 38.dp
-private val SPOT_MARKER_BORDER_WIDTH  = 2.dp
-private val SPOT_TAIL_SELECTED_WIDTH  = 12.dp
-private val SPOT_TAIL_SELECTED_HEIGHT = 10.dp
-private val SPOT_TAIL_DEFAULT_WIDTH   = 10.dp
-private val SPOT_TAIL_DEFAULT_HEIGHT  = 8.dp
-private val CLUSTER_MARKER_SIZE       = 48.dp
-private val CLUSTER_MARKER_BORDER     = 2.5.dp
-private const val CLUSTER_MAX_DISPLAY = 99
-private val SPOT_MARKER_SHADOW_ELEVATION = 4.dp
-
-// ── Size badge (corner overlay on spot marker) ────────────────────────────────
+// ── Size badge (corner overlay on spot marker, preserved from legacy) ────────
 private val   BADGE_SIZE          = 14.dp
 private val   BADGE_BORDER_WIDTH  = 1.5.dp
 private val   BADGE_OFFSET        = 2.dp   // overflow beyond marker corner
@@ -224,26 +197,15 @@ private val   BADGE_LINE_HEIGHT   = 9.sp
 /** Separator used to embed extra data in Marker.title after the spot ID. */
 private const val MARKER_DATA_SEP = "|"
 
-// ── Marker typography (cluster only — spot P is canvas-drawn) ─────────────────
-private val CLUSTER_FONT_LARGE        = 13.sp  // count > 9
-private val CLUSTER_FONT_SMALL        = 16.sp  // count <= 9
-private val CLUSTER_LINE_HEIGHT_LARGE = 15.sp
-private val CLUSTER_LINE_HEIGHT_SMALL = 18.sp
-
-// ── Confidence thresholds (mirrors domain-layer constants) ────────────────────
-private const val HIGH_CONFIDENCE_THRESHOLD   = 0.75f
-private const val MEDIUM_CONFIDENCE_THRESHOLD = 0.55f
-
 // ── Marker content IDs ──────────────────────────────────────────────────────
-private const val MARKER_MY_CAR = "my_car"
-private const val MARKER_FREE_SPOT = "free_spot"
-private const val MARKER_FREE_SPOT_SELECTED = "free_spot_selected"
-// Reliability variants — used once Spot.confidence is available in the domain model
-private const val MARKER_FREE_SPOT_MEDIUM = "free_spot_medium"
-private const val MARKER_FREE_SPOT_LOW = "free_spot_low"
-private const val MARKER_FREE_SPOT_MANUAL = "free_spot_manual"
-private const val MARKER_CLUSTER = "cluster"
-private const val CAMERA_MOVING_DEBOUNCE_MS = 280L
+private const val MARKER_MY_CAR              = "my_car"
+private const val MARKER_FREE_SPOT_HIGH      = "free_spot_high"
+private const val MARKER_FREE_SPOT_MEDIUM    = "free_spot_medium"
+private const val MARKER_FREE_SPOT_LOW       = "free_spot_low"
+private const val MARKER_FREE_SPOT_MANUAL    = "free_spot_manual"
+private const val MARKER_FREE_SPOT_SELECTED  = "free_spot_selected"
+private const val MARKER_CLUSTER             = "cluster"
+private const val CAMERA_MOVING_DEBOUNCE_MS  = 280L
 
 // ── Clustering ───────────────────────────────────────────────────────────────
 /** Zoom level at or above which spots are rendered as individual markers (no clustering). */
@@ -252,17 +214,16 @@ private const val ZOOM_CLUSTER_DISABLE = 14f
 private data class SpotCluster(val lat: Double, val lon: Double, val spots: List<Spot>)
 
 /**
- * Returns the non-selected [contentId] for a spot marker based on detection type and confidence.
- *  - MANUAL_REPORT → blue ring
- *  - HIGH (≥0.75)  → green ring (default)
- *  - MEDIUM (≥0.55) → amber ring
- *  - LOW           → red ring
+ * Returns the non-selected [contentId] for a spot marker based on its
+ * [SpotReliabilityLevel]. The bitmap cache in the kmpmaps library is keyed
+ * by contentId, so one entry per reliability tier shares the same bitmap
+ * across many markers.
  */
-private fun Spot.reliabilityContentId(): String = when {
-    type == SpotType.MANUAL_REPORT              -> MARKER_FREE_SPOT_MANUAL
-    confidence >= HIGH_CONFIDENCE_THRESHOLD     -> MARKER_FREE_SPOT
-    confidence >= MEDIUM_CONFIDENCE_THRESHOLD   -> MARKER_FREE_SPOT_MEDIUM
-    else                                        -> MARKER_FREE_SPOT_LOW
+private fun Spot.reliabilityContentId(): String = when (toSpotReliabilityLevel()) {
+    SpotReliabilityLevel.HIGH   -> MARKER_FREE_SPOT_HIGH
+    SpotReliabilityLevel.MEDIUM -> MARKER_FREE_SPOT_MEDIUM
+    SpotReliabilityLevel.LOW    -> MARKER_FREE_SPOT_LOW
+    SpotReliabilityLevel.MANUAL -> MARKER_FREE_SPOT_MANUAL
 }
 
 /** Degree threshold used to group nearby spots at a given zoom level. */
@@ -439,30 +400,40 @@ fun PaparcarMapView(
     }
 
     // ── Custom marker composables ────────────────────────────────────────────
+    // Markers come from the Design System bundle (MARKERS-001). FreeSpot variants
+    // share the new FreeSpotMarker composable parameterised by reliability tier;
+    // size/en-route badges are preserved as overlays on top so legacy product
+    // features (size letter + driving-toward-spot indicator) survive the swap.
     val customMarkerContent = remember {
         mapOf<String, @Composable (Marker) -> Unit>(
-            MARKER_MY_CAR to { _ -> MyCarMarkerContent() },
-            MARKER_FREE_SPOT to { marker ->
-                SpotMarkerContent(isSelected = false, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
+            MARKER_MY_CAR to { _ -> MyVehicleMarker() },
+            MARKER_FREE_SPOT_HIGH to { marker ->
+                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.HIGH, marker = marker)
             },
-            MARKER_FREE_SPOT_SELECTED to { marker ->
-                SpotMarkerContent(isSelected = true, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
-            },
-            // Reliability variants — ring colour tied to Spot.confidence (SPOT-004)
             MARKER_FREE_SPOT_MEDIUM to { marker ->
-                SpotMarkerContent(isSelected = false, ringColor = PapAmber, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
+                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MEDIUM, marker = marker)
             },
             MARKER_FREE_SPOT_LOW to { marker ->
-                SpotMarkerContent(isSelected = false, ringColor = PapRed, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
+                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.LOW, marker = marker)
             },
             MARKER_FREE_SPOT_MANUAL to { marker ->
-                SpotMarkerContent(isSelected = false, ringColor = PapBlue, sizeCategory = parseMarkerSize(marker.title), enRouteCount = parseMarkerEnRoute(marker.title))
+                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MANUAL, marker = marker)
+            },
+            MARKER_FREE_SPOT_SELECTED to { marker ->
+                // Selected uses HIGH colour + halo, matching the legacy behaviour where
+                // selection collapsed to the canonical green-on-dark look regardless of
+                // the underlying spot's reliability.
+                FreeSpotWithOverlays(
+                    reliability = SpotReliabilityLevel.HIGH,
+                    marker = marker,
+                    selected = true,
+                )
             },
             MARKER_CLUSTER to { marker ->
                 val count = marker.title
                     ?.removePrefix("$MARKER_CLUSTER:")
                     ?.toIntOrNull() ?: 0
-                ClusterMarkerContent(count = count)
+                FreeSpotClusterMarker(count = count)
             },
         )
     }
@@ -819,158 +790,66 @@ private fun rememberCameraAnimationState(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Custom marker composables
+// Custom marker composables — overlays on top of the Design System markers
 // ─────────────────────────────────────────────────────────────────────────────
 
-@Composable
-private fun MyCarMarkerContent() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(-SPOT_MARKER_BORDER_WIDTH),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(MY_CAR_MARKER_SIZE)
-                .background(PapForestDark, CircleShape)
-                .border(MY_CAR_MARKER_BORDER, PapGreen, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.DirectionsCar,
-                contentDescription = null,
-                tint = PapGreen,
-                modifier = Modifier.size(MY_CAR_MARKER_ICON_SIZE),
-            )
-        }
-        PinTail(color = PapGreen, width = MY_CAR_TAIL_WIDTH, height = MY_CAR_TAIL_HEIGHT)
-    }
-}
-
-@Composable
-private fun SpotMarkerContent(
-    isSelected: Boolean = false,
-    ringColor: Color = if (isSelected) PapGreen else PapForestDark,
-    sizeCategory: VehicleSize? = null,
-    enRouteCount: Int = 0,
-) {
-    val markerSize  = if (isSelected) SPOT_MARKER_SELECTED_SIZE else SPOT_MARKER_DEFAULT_SIZE
-    val bg          = if (isSelected) PapForestDark              else PapGreen
-    val iconTint    = if (isSelected) PapGreen                   else PapForestDark
-    val tailW       = if (isSelected) SPOT_TAIL_SELECTED_WIDTH   else SPOT_TAIL_DEFAULT_WIDTH
-    val tailH       = if (isSelected) SPOT_TAIL_SELECTED_HEIGHT  else SPOT_TAIL_DEFAULT_HEIGHT
-    val borderWidth = SPOT_MARKER_BORDER_WIDTH
-
-    // Note: no entry animation here — the map library captures marker composables
-    // as static bitmaps on the first composition frame. An Animatable starting at 0f
-    // would produce an empty bitmap (marker invisible). Cluster markers have no
-    // animation and render correctly; this must match that approach.
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(-borderWidth),
-    ) {
-        // Outer Box is intentionally NOT clipped — lets the size badge overflow the circle edge.
-        Box(
-            modifier = Modifier
-                .size(markerSize)
-                .shadow(SPOT_MARKER_SHADOW_ELEVATION, CircleShape, clip = false)
-                .background(bg, CircleShape)
-                .border(borderWidth, ringColor, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            ParkingPIcon(color = iconTint, modifier = Modifier.fillMaxSize())
-            val label = sizeCategory?.badgeLabel()
-            if (label != null) {
-                SpotSizeBadge(
-                    label = label,
-                    bgColor = ringColor,
-                    textColor = bg,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = BADGE_OFFSET, y = BADGE_OFFSET),
-                )
-            }
-            if (enRouteCount > 0) {
-                SpotEnRouteDot(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = -BADGE_OFFSET, y = -BADGE_OFFSET),
-                )
-            }
-        }
-        PinTail(color = ringColor, width = tailW, height = tailH)
-    }
-}
-
 /**
- * Canvas-drawn "P" (parking) icon — vector-quality at any marker size.
+ * Wraps [FreeSpotMarker] with the legacy overlays that the new Design System
+ * pin does not include by itself:
+ *  - corner [SpotSizeBadge] when the spot has a non-MEDIUM vehicle size
+ *  - top-left [SpotEnRouteDot] when other users are currently driving toward it
  *
- * Geometry (all values proportional to canvas dimensions):
- *  - pHeight  = 72 % of canvas height (tall, fills the bubble)
- *  - bowlHeight = 76 % of pHeight  (bowl covers upper ¾ of the letter)
- *  - barWidth   = 82 % of bowlRadius (thick, readable bar)
- *
- * The path is centred both horizontally and vertically.
- * No counter/cutout is drawn — at small map-marker sizes a solid P reads
- * more clearly than one with a tiny inner hole.
+ * Both overlays read their data from the title-encoded payload set by the
+ * marker builder upstream. Keeping them as overlays lets the new pin remain
+ * generic (reliability + ttl + selected only) while preserving the existing
+ * product affordances.
  */
 @Composable
-private fun ParkingPIcon(color: Color, modifier: Modifier = Modifier) {
-    val colorState = color  // capture for lambda
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-
-        val pHeight    = h * 0.72f
-        val bowlHeight = pHeight * 0.76f
-        val bowlRadius = bowlHeight / 2f
-        val barWidth   = bowlRadius * 0.82f
-
-        // Centre horizontally: total visual width = barWidth + bowlRadius
-        val startX = (w - (barWidth + bowlRadius)) / 2f
-        val startY = (h - pHeight) / 2f
-        val barRight = startX + barWidth
-
-        val path = Path().apply {
-            moveTo(startX, startY)
-            lineTo(barRight, startY)
-            // Right-hand semicircular bowl (clockwise, -90 → +90)
-            arcTo(
-                rect = Rect(
-                    left   = barRight - bowlRadius,
-                    top    = startY,
-                    right  = barRight + bowlRadius,
-                    bottom = startY + bowlHeight,
-                ),
-                startAngleDegrees = -90f,
-                sweepAngleDegrees = 180f,
-                forceMoveTo = false,
+private fun FreeSpotWithOverlays(
+    reliability: SpotReliabilityLevel,
+    marker: Marker,
+    selected: Boolean = false,
+) {
+    val sizeCategory = parseMarkerSize(marker.title)
+    val enRouteCount = parseMarkerEnRoute(marker.title)
+    Box {
+        FreeSpotMarker(reliability = reliability, selected = selected)
+        val label = sizeCategory?.badgeLabel()
+        if (label != null) {
+            SpotSizeBadge(
+                label = label,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = BADGE_OFFSET, y = BADGE_OFFSET),
             )
-            lineTo(barRight, startY + pHeight)
-            lineTo(startX, startY + pHeight)
-            close()
         }
-
-        drawPath(path, color = colorState)
+        if (enRouteCount > 0) {
+            SpotEnRouteDot(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = -BADGE_OFFSET, y = -BADGE_OFFSET),
+            )
+        }
     }
 }
 
 /**
- * Small circular badge overlaid on the bottom-end corner of [SpotMarkerContent].
- * Shows a single letter representing the [VehicleSize] that freed the spot.
- * Uses inverted marker colours so it reads clearly against both green and dark bubbles.
+ * Small circular badge overlaid on the bottom-end corner of the free-spot
+ * marker. Shows a single letter for the [VehicleSize] that freed the spot.
+ * Forest-on-green styling reads consistently across all four reliability
+ * pin colours — the previous variant-coupled colouring was lost in the swap
+ * but the badge itself remains a useful product affordance.
  */
 @Composable
 private fun SpotSizeBadge(
     label: String,
-    bgColor: Color,
-    textColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier = modifier
             .size(BADGE_SIZE)
-            .background(bgColor, CircleShape)
-            .border(BADGE_BORDER_WIDTH, textColor, CircleShape),
+            .background(PapForestDark, CircleShape)
+            .border(BADGE_BORDER_WIDTH, PapGreen, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -978,7 +857,7 @@ private fun SpotSizeBadge(
             fontSize = BADGE_FONT_SIZE,
             lineHeight = BADGE_LINE_HEIGHT,
             fontWeight = FontWeight.ExtraBold,
-            color = textColor,
+            color = PapGreen,
         )
     }
 }
@@ -987,8 +866,8 @@ private fun SpotSizeBadge(
 private val EN_ROUTE_DOT_SIZE = 8.dp
 
 /**
- * Small blue dot shown on the top-left corner of a [SpotMarkerContent] when at least
- * one user is currently navigating to the spot.
+ * Small blue dot shown on the top-left corner of a free-spot marker when at
+ * least one user is currently navigating to the spot.
  */
 @Composable
 private fun SpotEnRouteDot(modifier: Modifier = Modifier) {
@@ -997,38 +876,5 @@ private fun SpotEnRouteDot(modifier: Modifier = Modifier) {
             .size(EN_ROUTE_DOT_SIZE)
             .background(PapBlue, CircleShape),
     )
-}
-
-@Composable
-private fun ClusterMarkerContent(count: Int) {
-    val label = if (count > CLUSTER_MAX_DISPLAY) "$CLUSTER_MAX_DISPLAY+" else count.toString()
-    Box(
-        modifier = Modifier
-            .size(CLUSTER_MARKER_SIZE)
-            .background(PapGreen, CircleShape)
-            .border(CLUSTER_MARKER_BORDER, PapForestDark, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = if (count > 9) CLUSTER_FONT_LARGE else CLUSTER_FONT_SMALL,
-            lineHeight = if (count > 9) CLUSTER_LINE_HEIGHT_LARGE else CLUSTER_LINE_HEIGHT_SMALL,
-            color = PapForestDark,
-        )
-    }
-}
-
-@Composable
-private fun PinTail(color: Color, width: Dp, height: Dp) {
-    Canvas(modifier = Modifier.size(width, height)) {
-        val path = Path().apply {
-            moveTo(0f, 0f)
-            lineTo(size.width, 0f)
-            lineTo(size.width / 2f, size.height)
-            close()
-        }
-        drawPath(path, color = color, style = Fill)
-    }
 }
 
