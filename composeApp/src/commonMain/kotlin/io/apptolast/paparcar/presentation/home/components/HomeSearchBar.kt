@@ -35,6 +35,10 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_search_clear_cd
 import paparcar.composeapp.generated.resources.home_search_placeholder
 
+// Matches MapCircleFab's default shadow so the search bar reads as a peer of
+// the circular layer/GPS/parked-car FABs floating over the map. [HOME-DEPTH-001]
+private val FLOATING_SHADOW_ELEVATION = 6.dp
+
 @Composable
 internal fun HomeSearchBar(
     query: String,
@@ -53,6 +57,7 @@ internal fun HomeSearchBar(
                 bottomStart = if (results.isEmpty()) 16.dp else 0.dp,
                 bottomEnd = if (results.isEmpty()) 16.dp else 0.dp,
             ),
+            shadowElevation = FLOATING_SHADOW_ELEVATION,
             modifier = Modifier.fillMaxWidth(),
         ) {
             TextField(
@@ -93,6 +98,7 @@ internal fun HomeSearchBar(
                 colors = GlassDefaults.colors(
                     border = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 ),
+                shadowElevation = FLOATING_SHADOW_ELEVATION,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column {

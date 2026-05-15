@@ -40,6 +40,10 @@ import paparcar.composeapp.generated.resources.home_nav_my_car
 import paparcar.composeapp.generated.resources.home_nav_settings
 
 private val MenuButtonSize = 56.dp
+// Matches MapCircleFab default so the floating header reads as a peer of the
+// circular FABs (layers / GPS / parked car) on the opposite side of the map.
+// [HOME-DEPTH-001]
+private val FLOATING_SHADOW_ELEVATION = 6.dp
 
 @Composable
 internal fun HomeFloatingHeader(
@@ -58,6 +62,7 @@ internal fun HomeFloatingHeader(
         GlassSurface(
             onClick = { expanded = !expanded },
             shape = RoundedCornerShape(16.dp),
+            shadowElevation = FLOATING_SHADOW_ELEVATION,
             modifier = Modifier
                 .width(MenuButtonSize)
                 .height(MenuButtonSize),
@@ -87,6 +92,7 @@ internal fun HomeFloatingHeader(
                         onHistoryClick()
                     },
                     shape = CircleShape,
+                    shadowElevation = FLOATING_SHADOW_ELEVATION,
                 ) {
                     Box(
                         modifier = Modifier.padding(12.dp),
@@ -109,6 +115,7 @@ internal fun HomeFloatingHeader(
                         onMyCarClick()
                     },
                     shape = CircleShape,
+                    shadowElevation = FLOATING_SHADOW_ELEVATION,
                 ) {
                     Box(
                         modifier = Modifier.padding(12.dp),
@@ -131,6 +138,7 @@ internal fun HomeFloatingHeader(
                         onSettingsClick()
                     },
                     shape = CircleShape,
+                    shadowElevation = FLOATING_SHADOW_ELEVATION,
                 ) {
                     Box(
                         modifier = Modifier.padding(12.dp),
