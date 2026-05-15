@@ -357,9 +357,13 @@ private fun DrawScope.drawCarIcon(scale: Float, color: Color) {
 }
 
 // ─── Marker sizes (logical, dp) ──────────────────────────────────────────────
-
-private val MY_VEHICLE_W = 64.dp
-private val MY_VEHICLE_H = 80.dp
-private val FREE_SPOT_W  = 68.dp
-private val FREE_SPOT_H  = 84.dp
-private val CLUSTER_SIZE = 58.dp
+// ~20% smaller than the original Design System spec (64×80 / 68×84 / 58) — the
+// initial sizes read too prominent on real screens, especially at default zoom
+// where multiple markers cluster nearby. Aspect ratios are preserved so the
+// teardrop path (calibrated to 64×80 and 68×84 viewports inside the Canvas)
+// scales proportionally without clipping. [MARKERS-001 follow-up]
+private val MY_VEHICLE_W = 51.dp   // was 64.dp
+private val MY_VEHICLE_H = 64.dp   // was 80.dp
+private val FREE_SPOT_W  = 54.dp   // was 68.dp
+private val FREE_SPOT_H  = 67.dp   // was 84.dp
+private val CLUSTER_SIZE = 46.dp   // was 58.dp
