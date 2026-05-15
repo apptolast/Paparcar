@@ -168,7 +168,7 @@ class HomeViewModel(
 
             is HomeIntent.OpenHistory -> sendEffect(HomeEffect.NavigateToHistory)
             is HomeIntent.ReportTestSpot -> reportTestSpot()
-            is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon)
+            is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon, intent.publishSpot)
             is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId) }
             is HomeIntent.ManualPark -> manualPark()
             is HomeIntent.CameraPositionChanged -> geocodeCameraLocation(intent.lat, intent.lon)
@@ -187,15 +187,17 @@ class HomeViewModel(
         }
     }
 
-    private fun releaseParking(lat: Double, lon: Double) {
+    private fun releaseParking(lat: Double, lon: Double, publishSpot: Boolean) {
         viewModelScope.launch {
-            releaseSession(lat, lon, state.value.userParking)
+            releaseSession(lat, lon, state.value.userParking, publishSpot)
                 .onFailure { e ->
                     sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                     return@launch
                 }
             updateState { copy(selectedItemId = null) }
-            sendEffect(HomeEffect.SpotReported)
+            // Snackbar only when the plaza was actually published; the "just delete"
+            // path is silent — no community report happened.
+            if (publishSpot) sendEffect(HomeEffect.SpotReported)
         }
     }
 

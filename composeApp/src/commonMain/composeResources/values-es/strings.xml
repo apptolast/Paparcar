@@ -18,7 +18,7 @@
     <string name="home_parked_section">Estás aparcado</string>
     <string name="home_parking_release">Liberar plaza</string>
     <string name="home_navigate_to_spot">Cómo llegar</string>
-    <string name="home_walk_to_car">Ir andando al coche</string>
+    <string name="home_navigate_to_vehicle">Navegar al vehículo</string>
     <string name="home_nav_button">Navegar</string>
     <string name="home_nav_your_car">Tu coche</string>
     <string name="home_nav_free_spot">Spot libre</string>
@@ -34,8 +34,9 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Ubicación desconocida</string>
     <string name="home_release_dialog_title">¿Liberar plaza?</string>
-    <string name="home_release_dialog_message">Confirma que has salido. Tu plaza se compartirá con conductores cercanos.</string>
-    <string name="home_release_dialog_confirm">Liberar</string>
+    <string name="home_release_dialog_message">Comparte tu plaza con los conductores cercanos, o elimínala sin compartirla.</string>
+    <string name="home_release_dialog_publish">Publicar plaza</string>
+    <string name="home_release_dialog_delete_only">Solo eliminar</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
     <string name="home_parking_peek_label">Estás aparcado · %1$s</string>
     <string name="home_manual_park_title">Aparcar aquí</string>

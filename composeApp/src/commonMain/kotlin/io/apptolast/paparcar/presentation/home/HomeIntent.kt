@@ -9,7 +9,17 @@ sealed class HomeIntent {
     data object LoadNearbySpots : HomeIntent()
     data object OpenHistory : HomeIntent()
     data object ReportTestSpot : HomeIntent()
-    data class ReleaseParking(val lat: Double, val lon: Double) : HomeIntent()
+    /**
+     * Release the active parking session. When [publishSpot] is true the
+     * freed plaza is also published to the community; when false the
+     * session is just cleared locally and remotely with no spot report.
+     * [PEEK-ACTIONS-001]
+     */
+    data class ReleaseParking(
+        val lat: Double,
+        val lon: Double,
+        val publishSpot: Boolean = true,
+    ) : HomeIntent()
     /** null clears the selection; [HomeState.PARKING_ITEM_ID] selects the parked car; any other ID selects a spot. */
     data class SelectItem(val itemId: String?) : HomeIntent()
     data object ManualPark : HomeIntent()

@@ -16,7 +16,7 @@
     <string name="home_parked_section">Vous êtes garé</string>
     <string name="home_parking_release">Libérer la place</string>
     <string name="home_navigate_to_spot">Itinéraire</string>
-    <string name="home_walk_to_car">Aller à pied à la voiture</string>
+    <string name="home_navigate_to_vehicle">Naviguer jusqu\'au véhicule</string>
     <string name="home_nav_button">Naviguer</string>
     <string name="home_nav_your_car">Votre voiture</string>
     <string name="home_nav_free_spot">Place libre</string>
@@ -32,8 +32,9 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Emplacement inconnu</string>
     <string name="home_release_dialog_title">Libérer la place ?</string>
-    <string name="home_release_dialog_message">Confirmez que vous êtes parti. Votre place sera partagée avec les conducteurs à proximité.</string>
-    <string name="home_release_dialog_confirm">Libérer</string>
+    <string name="home_release_dialog_message">Partagez votre place avec les conducteurs à proximité, ou supprimez-la sans la partager.</string>
+    <string name="home_release_dialog_publish">Publier la place</string>
+    <string name="home_release_dialog_delete_only">Supprimer seulement</string>
     <string name="home_release_dialog_cancel">Annuler</string>
     <string name="home_parking_peek_label">Vous êtes garé · %1$s</string>
     <string name="home_manual_park_title">Se garer ici</string>

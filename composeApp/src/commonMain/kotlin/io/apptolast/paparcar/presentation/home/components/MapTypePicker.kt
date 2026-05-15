@@ -95,32 +95,27 @@ internal fun MapTypePicker(
                         verticalArrangement = Arrangement.spacedBy(FAB_GAP),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
+                        // Selections do NOT auto-close the popup so the user can A/B
+                        // between styles without having to reopen the picker each time.
+                        // The popup dismisses on any outside tap (focusable Popup +
+                        // onDismissRequest above).
                         MapTypeStackEntry(
                             icon = Icons.Outlined.Map,
                             contentDescription = stringResource(Res.string.settings_map_type_normal),
                             selected = currentType == MapType.NORMAL,
-                            onClick = {
-                                onTypeSelected(MapType.NORMAL)
-                                expanded = false
-                            },
+                            onClick = { onTypeSelected(MapType.NORMAL) },
                         )
                         MapTypeStackEntry(
                             icon = Icons.Outlined.SatelliteAlt,
                             contentDescription = stringResource(Res.string.settings_map_type_satellite),
                             selected = currentType == MapType.SATELLITE,
-                            onClick = {
-                                onTypeSelected(MapType.SATELLITE)
-                                expanded = false
-                            },
+                            onClick = { onTypeSelected(MapType.SATELLITE) },
                         )
                         MapTypeStackEntry(
                             icon = Icons.Outlined.Terrain,
                             contentDescription = stringResource(Res.string.settings_map_type_terrain),
                             selected = currentType == MapType.TERRAIN,
-                            onClick = {
-                                onTypeSelected(MapType.TERRAIN)
-                                expanded = false
-                            },
+                            onClick = { onTypeSelected(MapType.TERRAIN) },
                         )
                     }
                 }

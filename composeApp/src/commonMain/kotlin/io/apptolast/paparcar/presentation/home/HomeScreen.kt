@@ -7,8 +7,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -25,8 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import com.swmansion.kmpmaps.core.MapType
@@ -38,9 +34,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
-import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -71,7 +65,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.presentation.home.components.HomeActionFab
 import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
@@ -96,9 +89,9 @@ import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_cd_map_type
-import paparcar.composeapp.generated.resources.home_release_dialog_cancel
-import paparcar.composeapp.generated.resources.home_release_dialog_confirm
+import paparcar.composeapp.generated.resources.home_release_dialog_delete_only
 import paparcar.composeapp.generated.resources.home_release_dialog_message
+import paparcar.composeapp.generated.resources.home_release_dialog_publish
 import paparcar.composeapp.generated.resources.home_release_dialog_title
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
@@ -106,8 +99,6 @@ import paparcar.composeapp.generated.resources.home_test_spot_sent
 import paparcar.composeapp.generated.resources.settings_map_type_normal
 import paparcar.composeapp.generated.resources.settings_map_type_satellite
 import paparcar.composeapp.generated.resources.settings_map_type_terrain
-
-private data class SelectedNavTarget(val lat: Double, val lon: Double)
 
 // Initial/fallback peek size used before the handle has been measured.
 // After first layout, peekHeightPx tracks the handle's real measured height
@@ -143,6 +134,12 @@ private const val NAV_HIDE_START = 0.65f
 // collapsed instead of leaving the sheet floating near the bottom.
 private const val SOFT_DRAG_COLLAPSE_ZONE = 0.85f
 
+// The sheet only exposes its TOP edge over the map (sides + bottom hug the
+// screen edges, where shadow is clipped). To match the perceived depth of the
+// floating search bar / circular FABs — which cast shadow on all four sides —
+// the sheet needs a heavier elevation than those 6dp peers. [HOME-DEPTH-001]
+private val SHEET_SHADOW_ELEVATION = 12.dp
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Root
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,9 +148,7 @@ private const val SOFT_DRAG_COLLAPSE_ZONE = 0.85f
 fun HomeScreen(
     onNavigateToHistory: () -> Unit = {},
     onNavigateToAddFreeSpot: () -> Unit = {},
-    onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> },
     navProgressState: MutableFloatState = remember { mutableFloatStateOf(1f) },
-    onItemSelectedChange: (Boolean) -> Unit = {},
     bottomPadding: Dp = 0.dp,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -200,11 +195,9 @@ fun HomeScreen(
     HomeContent(
         state = state,
         onIntent = viewModel::handleIntent,
-        onOpenMapsNavigation = onOpenMapsNavigation,
         onNavigateToAddFreeSpot = onNavigateToAddFreeSpot,
         snackbarHostState = snackbarHostState,
         navProgressState = navProgressState,
-        onItemSelectedChange = onItemSelectedChange,
         bottomPadding = bottomPadding,
     )
 
@@ -224,11 +217,9 @@ fun HomeScreen(
 private fun HomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
-    onOpenMapsNavigation: (Double, Double) -> Unit,
     onNavigateToAddFreeSpot: () -> Unit,
     snackbarHostState: SnackbarHostState,
     navProgressState: MutableFloatState,
-    onItemSelectedChange: (Boolean) -> Unit,
     bottomPadding: Dp,
 ) {
     val uiController = rememberHomeUiController()
@@ -285,21 +276,6 @@ private fun HomeContent(
     }
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
-    val selectedSpot = selectedSpotId?.let { id -> state.nearbySpots.find { it.id == id } }
-    val selectedNavTarget = selectedSpot
-        ?.let { spot -> SelectedNavTarget(spot.location.latitude, spot.location.longitude) }
-    val navLabel: String = when {
-        isParkingSelected -> state.userParking?.let { p ->
-            locationDisplayText(p.placeInfo, p.address, p.location.latitude, p.location.longitude)
-        } ?: ""
-
-        selectedSpot != null -> locationDisplayText(
-            selectedSpot.placeInfo, selectedSpot.address,
-            selectedSpot.location.latitude, selectedSpot.location.longitude,
-        )
-
-        else -> ""
-    }
     var showReleaseDialog by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
@@ -317,11 +293,6 @@ private fun HomeContent(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0),
-        // PaparcarBottomActionBar renders as an overlay inside BoxWithConstraints below —
-        // NOT as Scaffold.bottomBar. When it was a bottomBar, its
-        // AnimatedVisibility enter/exit resized the scaffold content slot and
-        // the sheet shifted in the middle of the item-selection transition.
-        // As an overlay the nav doesn't participate in sheet-sizing layout.
         containerColor = Color.Transparent,
     ) { scaffoldPadding ->
 
@@ -337,19 +308,33 @@ private fun HomeContent(
                             state.userParking?.let { p ->
                                 onIntent(
                                     HomeIntent.ReleaseParking(
-                                        p.location.latitude,
-                                        p.location.longitude
-                                    )
+                                        lat = p.location.latitude,
+                                        lon = p.location.longitude,
+                                        publishSpot = true,
+                                    ),
                                 )
                             }
-                        }
+                        },
                     ) {
-                        Text(stringResource(Res.string.home_release_dialog_confirm))
+                        Text(stringResource(Res.string.home_release_dialog_publish))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showReleaseDialog = false }) {
-                        Text(stringResource(Res.string.home_release_dialog_cancel))
+                    TextButton(
+                        onClick = {
+                            showReleaseDialog = false
+                            state.userParking?.let { p ->
+                                onIntent(
+                                    HomeIntent.ReleaseParking(
+                                        lat = p.location.latitude,
+                                        lon = p.location.longitude,
+                                        publishSpot = false,
+                                    ),
+                                )
+                            }
+                        },
+                    ) {
+                        Text(stringResource(Res.string.home_release_dialog_delete_only))
                     }
                 },
             )
@@ -375,16 +360,7 @@ private fun HomeContent(
             //   - Full  →  fullSnapOffsetPx (0 when content overflows, content-fit otherwise).
             val rawContainerHeightPx = constraints.maxHeight.toFloat()
             val navHeightPx = with(density) { stableBottomPadding.toPx() }
-
-            // Measured height of the PaparcarBottomActionBar overlay (reported via onSizeChanged
-            // below). Declared here so containerHeightPx can adapt: when an item is selected the
-            // action bar replaces the global nav — if both have different heights the peek
-            // position would drift, showing list content below the action bar.
-            var homeNavBarHeightPx by remember { mutableFloatStateOf(0f) }
-            val effectiveNavHeightPx =
-                if (state.selectedItemId != null && homeNavBarHeightPx > 0f) homeNavBarHeightPx
-                else navHeightPx
-            val containerHeightPx = (rawContainerHeightPx - effectiveNavHeightPx).coerceAtLeast(0f)
+            val containerHeightPx = (rawContainerHeightPx - navHeightPx).coerceAtLeast(0f)
 
             // Peek height tracks the HomePeekHandle's real measured height so the
             // sheet's collapsed top edge sits flush with whichever bar is visible.
@@ -443,13 +419,6 @@ private fun HomeContent(
                     val raw = if (peekOffsetPx > 0f) sheetOffsetPx.value / peekOffsetPx else 1f
                     ((raw - NAV_HIDE_START) / (1f - NAV_HIDE_START)).coerceIn(0f, 1f)
                 }.collect { progress -> navProgressState.floatValue = progress }
-            }
-
-            // Discrete signal: when an item is selected, the per-screen
-            // PaparcarBottomActionBar takes over and the root-level AppBottomNavigation
-            // should hide entirely.
-            LaunchedEffect(state.selectedItemId) {
-                onItemSelectedChange(state.selectedItemId != null)
             }
 
             // Instagram-style nested scroll: when the list is scrolled to the very top and
@@ -511,6 +480,18 @@ private fun HomeContent(
                     state.nearbySpots.find { it.id == spotId }?.let { spot ->
                         onIntent(HomeIntent.SelectItem(spotId))
                         uiController.moveCamera(spot.location.latitude, spot.location.longitude)
+                        coroutineScope.launch {
+                            sheetOffsetPx.animateTo(
+                                halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
+                                SnapSpec,
+                            )
+                        }
+                    }
+                },
+                onMyCarClick = {
+                    state.userParking?.let { p ->
+                        onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
+                        uiController.moveCamera(p.location.latitude, p.location.longitude)
                         coroutineScope.launch {
                             sheetOffsetPx.animateTo(
                                 halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
@@ -625,8 +606,7 @@ private fun HomeContent(
             // Instagram-style: sheet height = visible area (bottomBound - top).
             // Uses rawContainerHeightPx (current constraints) so the sheet fills
             // whatever space is actually available — when an item is selected
-            // and the AppBottomNavigation hides, the sheet reclaims that area
-            // (PaparcarBottomActionBar overlays on top and LazyColumn pads around it).
+            // and the AppBottomNavigation hides, the sheet reclaims that area.
             val sheetHeightDp = with(density) {
                 (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
             }
@@ -643,6 +623,10 @@ private fun HomeContent(
                     .height(sheetHeightDp),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                 color = MaterialTheme.colorScheme.surfaceContainer,
+                // Lift the top edge above the map tiles with the same depth
+                // language as the floating search bar and circular FABs.
+                // [HOME-DEPTH-001]
+                shadowElevation = SHEET_SHADOW_ELEVATION,
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // Handle: the only area that drags the sheet
@@ -709,15 +693,9 @@ private fun HomeContent(
                             .nestedScroll(sheetNestedScroll),
                         contentPadding = PaddingValues(
                             top = 4.dp,
-                            // The sheet extends the full window height now, so its
-                            // bottom rows would sit behind either the AppBottomNavigation
-                            // (when no item is selected) or the PaparcarBottomActionBar overlay
-                            // (when an item is selected). Reserve the height of
-                            // whichever is covering the sheet so the last list row
-                            // stays visible above it.
-                            bottom = 16.dp + if (state.selectedItemId != null) {
-                                with(density) { homeNavBarHeightPx.toDp() }
-                            } else stableBottomPadding,
+                            // Reserve the AppBottomNavigation height so the last
+                            // list row stays visible above the global nav bar.
+                            bottom = 16.dp + stableBottomPadding,
                         ),
                     ) {
                         homeSheetItems(
@@ -739,34 +717,6 @@ private fun HomeContent(
                 }
             }
 
-            // ── PaparcarBottomActionBar overlay ───────────────────────────────────────────
-            // Moved out of Scaffold.bottomBar so its enter/exit animation no
-            // longer resizes the sheet's containing layout. Rendered last in
-            // BoxWithConstraints so it draws on top of the sheet.
-            AnimatedVisibility(
-                visible = state.selectedItemId != null,
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .onSizeChanged { size -> homeNavBarHeightPx = size.height.toFloat() },
-            ) {
-                PaparcarBottomActionBar(
-                    label = navLabel,
-                    onClick = {
-                        if (isParkingSelected) {
-                            state.userParking?.let { p ->
-                                onOpenMapsNavigation(
-                                    p.location.latitude,
-                                    p.location.longitude,
-                                )
-                            }
-                        } else {
-                            selectedNavTarget?.let { onOpenMapsNavigation(it.lat, it.lon) }
-                        }
-                    },
-                )
-            }
         }
     }
     } // CompositionLocalProvider

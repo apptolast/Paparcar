@@ -16,7 +16,7 @@
     <string name="home_parked_section">Está estacionado</string>
     <string name="home_parking_release">Libertar lugar</string>
     <string name="home_navigate_to_spot">Como chegar</string>
-    <string name="home_walk_to_car">Ir a pé até ao carro</string>
+    <string name="home_navigate_to_vehicle">Navegar até ao veículo</string>
     <string name="home_nav_button">Navegar</string>
     <string name="home_nav_your_car">O seu carro</string>
     <string name="home_nav_free_spot">Lugar livre</string>
@@ -32,8 +32,9 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Localização desconhecida</string>
     <string name="home_release_dialog_title">Libertar lugar?</string>
-    <string name="home_release_dialog_message">Confirme que saiu. O seu lugar será partilhado com os condutores próximos.</string>
-    <string name="home_release_dialog_confirm">Libertar</string>
+    <string name="home_release_dialog_message">Partilha o teu lugar com os condutores próximos, ou apaga-o sem partilhar.</string>
+    <string name="home_release_dialog_publish">Publicar lugar</string>
+    <string name="home_release_dialog_delete_only">Apenas apagar</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
     <string name="home_parking_peek_label">Está estacionado · %1$s</string>
     <string name="home_manual_park_title">Estacionar aqui</string>

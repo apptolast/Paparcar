@@ -75,41 +75,56 @@ fun MyVehicleMarker(
 }
 
 private fun DrawScope.drawMyVehicle(selected: Boolean) {
+    // The teardrop path's bounding box matches its viewport (0..64 wide, 0..80
+    // tall), but the 2px stroke extends ½px beyond on every side. Without
+    // padding, that ½px gets clipped on bitmap render and the rounded balloon
+    // corners read as flat. Scale to a viewport that's wider than the path so
+    // the stroke + halo fall safely inside the canvas, then translate the
+    // drawing in by the same amount on each side.
     val w = size.width
-    val scale = w / 64f
+    val pad = MY_VEHICLE_VIEWPORT_PAD
+    val scale = w / (64f + pad * 2f)
+    val padPx = pad * scale
 
-    if (selected) {
-        val haloPath = teardropPath(cx = 32f, w = 64f, h = 80f, expand = 5f, scale = scale)
-        drawPath(
-            haloPath,
-            color = MarkerColors.SelectionRing.copy(alpha = 0.7f),
-            style = Stroke(width = 2.5f * scale),
+    translate(left = padPx, top = padPx) {
+        if (selected) {
+            val haloPath = teardropPath(cx = 32f, w = 64f, h = 80f, expand = 5f, scale = scale)
+            drawPath(
+                haloPath,
+                color = MarkerColors.SelectionRing.copy(alpha = 0.7f),
+                style = Stroke(width = 2.5f * scale),
+            )
+        }
+
+        // Ground shadow ellipse under the pin tip.
+        drawOval(
+            color = Color.Black.copy(alpha = 0.35f),
+            topLeft = Offset(20f * scale, 73.5f * scale),
+            size = Size(24f * scale, 5f * scale),
         )
-    }
 
-    // Ground shadow ellipse under the pin tip.
-    drawOval(
-        color = Color.Black.copy(alpha = 0.35f),
-        topLeft = Offset(20f * scale, 73.5f * scale),
-        size = Size(24f * scale, 5f * scale),
-    )
+        val pin = teardropPath(cx = 32f, w = 64f, h = 80f, expand = 0f, scale = scale)
+        drawPath(pin, color = MarkerColors.Green)
+        drawPath(pin, color = MarkerColors.Forest.copy(alpha = 0.35f), style = Stroke(width = 2f * scale))
 
-    val pin = teardropPath(cx = 32f, w = 64f, h = 80f, expand = 0f, scale = scale)
-    drawPath(pin, color = MarkerColors.Green)
-    drawPath(pin, color = MarkerColors.Forest.copy(alpha = 0.35f), style = Stroke(width = 2f * scale))
+        // Inner dark disc to host the car glyph.
+        drawCircle(
+            color = MarkerColors.Forest,
+            radius = 20f * scale,
+            center = Offset(32f * scale, 32f * scale),
+        )
 
-    // Inner dark disc to host the car glyph.
-    drawCircle(
-        color = MarkerColors.Forest,
-        radius = 20f * scale,
-        center = Offset(32f * scale, 32f * scale),
-    )
-
-    // Car glyph (Material Filled "directions_car", simplified) centred on the disc.
-    translate(left = 20f * scale, top = 20f * scale) {
-        drawCarIcon(scale = scale, color = MarkerColors.Green)
+        // Car glyph (Material Filled "directions_car", simplified) centred on the disc.
+        translate(left = 20f * scale, top = 20f * scale) {
+            drawCarIcon(scale = scale, color = MarkerColors.Green)
+        }
     }
 }
+
+// Viewport units of breathing room added on every side of the teardrop path.
+// Picked to comfortably contain a 2px stroke + selected-state halo without
+// changing the perceived marker size.
+private const val MY_VEHICLE_VIEWPORT_PAD = 4f
 
 // ─── FreeSpot marker — community-reported plaza libre ────────────────────────
 
@@ -362,8 +377,14 @@ private fun DrawScope.drawCarIcon(scale: Float, color: Color) {
 // where multiple markers cluster nearby. Aspect ratios are preserved so the
 // teardrop path (calibrated to 64×80 and 68×84 viewports inside the Canvas)
 // scales proportionally without clipping. [MARKERS-001 follow-up]
-private val MY_VEHICLE_W = 51.dp   // was 64.dp
-private val MY_VEHICLE_H = 64.dp   // was 80.dp
+//
+// MY_VEHICLE_* includes an extra ~6 dp of breathing room over the proportional
+// fit (51×64) — the drawMyVehicle() scale formula divides by 72f so the
+// teardrop's 2px stroke + rounded corners always fall inside the canvas. With
+// padding the visible drawing stays at ~51×64 dp, but the bitmap canvas itself
+// is larger so antialiasing has room to feather the edges. [HOME-DEPTH-001]
+private val MY_VEHICLE_W = 57.dp   // was 51.dp — 3dp padding on each side
+private val MY_VEHICLE_H = 71.dp   // was 64.dp — 3.5dp padding top/bottom
 private val FREE_SPOT_W  = 54.dp   // was 68.dp
 private val FREE_SPOT_H  = 67.dp   // was 84.dp
 private val CLUSTER_SIZE = 46.dp   // was 58.dp

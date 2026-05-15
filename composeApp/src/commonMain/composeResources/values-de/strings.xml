@@ -16,7 +16,7 @@
     <string name="home_parked_section">Du bist geparkt</string>
     <string name="home_parking_release">Stellplatz freigeben</string>
     <string name="home_navigate_to_spot">Route</string>
-    <string name="home_walk_to_car">Zu Fuß zum Auto</string>
+    <string name="home_navigate_to_vehicle">Zum Fahrzeug navigieren</string>
     <string name="home_nav_button">Navigation</string>
     <string name="home_nav_your_car">Dein Auto</string>
     <string name="home_nav_free_spot">Freier Stellplatz</string>
@@ -32,8 +32,9 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Unbekannter Standort</string>
     <string name="home_release_dialog_title">Stellplatz freigeben?</string>
-    <string name="home_release_dialog_message">Bestätige, dass du weggefahren bist. Dein Stellplatz wird mit Fahrern in der Nähe geteilt.</string>
-    <string name="home_release_dialog_confirm">Freigeben</string>
+    <string name="home_release_dialog_message">Teile deinen Stellplatz mit Fahrern in der Nähe oder lösche ihn, ohne zu teilen.</string>
+    <string name="home_release_dialog_publish">Stellplatz teilen</string>
+    <string name="home_release_dialog_delete_only">Nur löschen</string>
     <string name="home_release_dialog_cancel">Abbrechen</string>
     <string name="home_parking_peek_label">Du bist geparkt · %1$s</string>
     <string name="home_manual_park_title">Hier parken</string>

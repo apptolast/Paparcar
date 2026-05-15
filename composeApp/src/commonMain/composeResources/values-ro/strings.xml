@@ -16,7 +16,7 @@
     <string name="home_parked_section">Ești parcat</string>
     <string name="home_parking_release">Eliberează locul</string>
     <string name="home_navigate_to_spot">Indicații</string>
-    <string name="home_walk_to_car">Mergi pe jos la mașină</string>
+    <string name="home_navigate_to_vehicle">Navighează către vehicul</string>
     <string name="home_nav_button">Navigare</string>
     <string name="home_nav_your_car">Mașina ta</string>
     <string name="home_nav_free_spot">Loc liber</string>
@@ -32,8 +32,9 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Locație necunoscută</string>
     <string name="home_release_dialog_title">Eliberezi locul?</string>
-    <string name="home_release_dialog_message">Confirmă că ai plecat. Locul tău va fi partajat cu șoferii din apropiere.</string>
-    <string name="home_release_dialog_confirm">Eliberează</string>
+    <string name="home_release_dialog_message">Distribuie locul către șoferii din apropiere sau șterge-l fără să-l distribui.</string>
+    <string name="home_release_dialog_publish">Publică locul</string>
+    <string name="home_release_dialog_delete_only">Doar șterge</string>
     <string name="home_release_dialog_cancel">Anulează</string>
     <string name="home_parking_peek_label">Ești parcat · %1$s</string>
     <string name="home_manual_park_title">Parchează aici</string>

@@ -18,7 +18,7 @@
     <string name="home_parked_section">You are parked</string>
     <string name="home_parking_release">Release spot</string>
     <string name="home_navigate_to_spot">Directions</string>
-    <string name="home_walk_to_car">Walk to my car</string>
+    <string name="home_navigate_to_vehicle">Navigate to vehicle</string>
     <string name="home_nav_button">Navigate</string>
     <string name="home_nav_your_car">Your car</string>
     <string name="home_nav_free_spot">Free spot</string>
@@ -34,8 +34,9 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Unknown location</string>
     <string name="home_release_dialog_title">Release spot?</string>
-    <string name="home_release_dialog_message">Confirm you\'ve left. Your spot will be shared with nearby drivers.</string>
-    <string name="home_release_dialog_confirm">Release</string>
+    <string name="home_release_dialog_message">Share your spot with nearby drivers, or delete it without sharing.</string>
+    <string name="home_release_dialog_publish">Publish spot</string>
+    <string name="home_release_dialog_delete_only">Just delete</string>
     <string name="home_release_dialog_cancel">Cancel</string>
     <string name="home_parking_peek_label">You are parked · %1$s</string>
     <string name="home_manual_park_title">Park here</string>

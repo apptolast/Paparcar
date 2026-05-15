@@ -12,7 +12,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
@@ -64,22 +63,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             App(
                 splashViewModel = splashViewModel,
-                onOpenMapsNavigation = { lat, lon ->
-                    val uri = "google.navigation:q=$lat,$lon&mode=d".toUri()
-                    val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                        setPackage("com.google.android.apps.maps")
-                    }
-                    if (intent.resolveActivity(packageManager) != null) {
-                        startActivity(intent)
-                    } else {
-                        startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                "https://maps.google.com/?daddr=$lat,$lon&directionsmode=driving".toUri(),
-                            ),
-                        )
-                    }
-                },
             )
 
             // Start detection infrastructure when all permissions are granted.

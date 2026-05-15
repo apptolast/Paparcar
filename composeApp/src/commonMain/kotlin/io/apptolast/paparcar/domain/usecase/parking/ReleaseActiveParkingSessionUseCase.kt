@@ -9,12 +9,17 @@ import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import kotlin.time.Clock
 
 /**
- * Releases the user's active parking session:
- * 1. Schedules a durable spot-released report (WorkManager) so it survives process death.
- * 2. Clears the active session from the local database and Firestore.
+ * Releases the user's active parking session.
  *
- * Returns [Result.failure] if clearing the session fails. The spot report is
- * always enqueued first so the community spot is never lost even if the clear fails.
+ * When [publishSpot] is `true` (default), the freed parking is also published
+ * to the community via a durable WorkManager job so it survives process death.
+ * When `false`, only the local + remote session is cleared and no community
+ * spot is reported — used by the "Just delete" path in the release dialog
+ * when the user doesn't want to share. [PEEK-ACTIONS-001]
+ *
+ * Returns [Result.failure] if clearing the session fails. When publishing,
+ * the spot report is enqueued first so the community spot is never lost even
+ * if the clear fails.
  */
 class ReleaseActiveParkingSessionUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
@@ -24,16 +29,19 @@ class ReleaseActiveParkingSessionUseCase(
         lat: Double,
         lon: Double,
         currentSession: UserParking?,
+        publishSpot: Boolean = true,
     ): Result<Unit> {
-        val spotId = currentSession?.id
-            ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
-        val spotType = currentSession?.spotType ?: SpotType.AUTO_DETECTED
-        val confidence = currentSession?.detectionReliability ?: 1f
-        val sizeCategory = currentSession?.sizeCategory
+        if (publishSpot) {
+            val spotId = currentSession?.id
+                ?: "manual_${Clock.System.now().toEpochMilliseconds()}"
+            val spotType = currentSession?.spotType ?: SpotType.AUTO_DETECTED
+            val confidence = currentSession?.detectionReliability ?: 1f
+            val sizeCategory = currentSession?.sizeCategory
 
-        // Schedule WorkManager job BEFORE clearing so the spot report is durably
-        // enqueued even if the app is killed immediately after.
-        reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)
+            // Schedule WorkManager job BEFORE clearing so the spot report is durably
+            // enqueued even if the app is killed immediately after.
+            reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)
+        }
 
         return userParkingRepository.clearActive()
     }

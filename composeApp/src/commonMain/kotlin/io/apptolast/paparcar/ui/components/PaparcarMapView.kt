@@ -315,8 +315,10 @@ private fun VehicleSize.badgeLabel(): String? = when (this) {
  * map tiles, markers, central indicator, loading state and camera animation.
  *
  * @param onSpotClick fires with the plain spot ID (extra title-encoded data
- *   is stripped before calling). Cluster taps and the my-car marker are
- *   silently ignored.
+ *   is stripped before calling). Cluster taps are silently ignored.
+ * @param onMyCarClick fires when the parked-car marker is tapped. Hosts wire
+ *   this to select the parking peek modal (same affordance as the parked-car
+ *   FAB on Home).
  * @param onCameraMove suppressed when [PaparcarMapConfig.interactionMode] is
  *   `READ_ONLY` — read-only callers should not need to react to camera moves
  *   they cannot trigger.
@@ -336,6 +338,7 @@ fun PaparcarMapView(
     isAnyItemSelected: Boolean = false,
     isLoading: Boolean = false,
     onSpotClick: (String) -> Unit = {},
+    onMyCarClick: () -> Unit = {},
     onCameraMove: (lat: Double, lon: Double) -> Unit = { _, _ -> },
     onMapReady: () -> Unit = {},
 ) {
@@ -359,7 +362,10 @@ fun PaparcarMapView(
                 add(
                     Marker(
                         coordinates = Coordinates(it.latitude, it.longitude),
-                        title = MARKER_MY_CAR,
+                        // title = null suppresses the Google Maps default info-window
+                        // bubble; we identify this marker by contentId in the click
+                        // handler instead.
+                        title = null,
                         contentId = MARKER_MY_CAR,
                     ),
                 )
@@ -556,9 +562,14 @@ fun PaparcarMapView(
                 }
             },
             onMarkerClick = { marker ->
+                if (marker.contentId == MARKER_MY_CAR) {
+                    onMyCarClick()
+                    return@Map
+                }
                 // Strip encoded size data to recover the plain spot ID
-                val id = (marker.title ?: return@Map).substringBefore(MARKER_DATA_SEP)
-                if (id == MARKER_MY_CAR || id.startsWith("$MARKER_CLUSTER:")) return@Map
+                val title = marker.title ?: return@Map
+                val id = title.substringBefore(MARKER_DATA_SEP)
+                if (id.startsWith("$MARKER_CLUSTER:")) return@Map
                 onSpotClick(id)
             },
             onMapLoaded = {

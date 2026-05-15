@@ -29,17 +29,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
+import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import io.apptolast.paparcar.ui.components.PapFooterButton
+import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -65,7 +66,7 @@ import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
-import paparcar.composeapp.generated.resources.home_walk_to_car
+import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
 import androidx.compose.ui.graphics.vector.ImageVector
 
 @Composable
@@ -202,11 +203,14 @@ private fun SpotPeekRow(
             PeekDismissButton(onDismiss = onDismiss)
         }
 
-        PrimaryPeekAction(
+        PapFooterButton(
             label = stringResource(Res.string.home_navigate_to_spot),
-            icon = Icons.Outlined.Navigation,
+            leadingIcon = Icons.Outlined.Navigation,
             onClick = onNavigate,
+            style = PapFooterButtonStyle.Filled,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
+        Spacer(Modifier.height(12.dp))
     }
 }
 
@@ -278,32 +282,25 @@ private fun ParkingPeekRow(
             PeekDismissButton(onDismiss = onDismiss)
         }
 
-        // ── Primary action: walk to the car (positive, prominent) ─────────────
-        PrimaryPeekAction(
-            label = stringResource(Res.string.home_walk_to_car),
-            icon = Icons.AutoMirrored.Outlined.DirectionsWalk,
+        // Two equally-weighted footer actions. Outlined "Walk to car" is the
+        // secondary affordance; filled "Release spot" is now also green (the
+        // release action is conceptually positive — sharing with the
+        // community — and the destructive choice lives behind the dialog
+        // shown on tap). [PEEK-ACTIONS-001]
+        PapFooterButton(
+            label = stringResource(Res.string.home_navigate_to_vehicle),
+            leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk,
             onClick = onWalkToCar,
+            style = PapFooterButtonStyle.Outlined,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
-
-        // ── Destructive action: release the spot (smaller, below the primary) ──
-        Button(
+        PapFooterButton(
+            label = stringResource(Res.string.home_parking_release),
+            leadingIcon = Icons.AutoMirrored.Outlined.Logout,
             onClick = onRelease,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp)
-                .height(RELEASE_BUTTON_HEIGHT),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            ),
-        ) {
-            Text(
-                stringResource(Res.string.home_parking_release),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+            style = PapFooterButtonStyle.Filled,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp),
+        )
     }
 }
 
@@ -334,46 +331,9 @@ private fun PeekDismissButton(onDismiss: () -> Unit) {
     }
 }
 
-/**
- * Primary positive action attached to a selected peek item — opens external
- * navigation. Painted with the primary container palette and rendered taller
- * than the destructive Release button so the eye lands here first. The
- * leading icon doubles as the "go" affordance.
- */
-@Composable
-private fun PrimaryPeekAction(
-    label: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp)
-            .height(PRIMARY_BUTTON_HEIGHT),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-        ),
-    ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(PRIMARY_BUTTON_ICON_SIZE))
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
 private val DISMISS_HIT_TARGET     = 40.dp   // a11y minimum hit target
 private val DISMISS_ICON_SIZE      = 18.dp
 private const val DISMISS_ICON_ALPHA = 0.45f
-private val PRIMARY_BUTTON_HEIGHT     = 54.dp  // intentionally taller than Release
-private val PRIMARY_BUTTON_ICON_SIZE  = 22.dp
-private val RELEASE_BUTTON_HEIGHT     = 44.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Default location row

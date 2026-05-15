@@ -16,7 +16,7 @@
     <string name="home_parked_section">Jesteś zaparkowany</string>
     <string name="home_parking_release">Zwolnij miejsce</string>
     <string name="home_navigate_to_spot">Trasa</string>
-    <string name="home_walk_to_car">Idź pieszo do auta</string>
+    <string name="home_navigate_to_vehicle">Nawiguj do pojazdu</string>
     <string name="home_nav_button">Nawiguj</string>
     <string name="home_nav_your_car">Twój samochód</string>
     <string name="home_nav_free_spot">Wolne miejsce</string>
@@ -32,8 +32,9 @@
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Nieznana lokalizacja</string>
     <string name="home_release_dialog_title">Zwolnić miejsce?</string>
-    <string name="home_release_dialog_message">Potwierdź, że odjechałeś. Twoje miejsce zostanie udostępnione kierowcom w pobliżu.</string>
-    <string name="home_release_dialog_confirm">Zwolnij</string>
+    <string name="home_release_dialog_message">Udostępnij miejsce kierowcom w pobliżu lub usuń je bez udostępniania.</string>
+    <string name="home_release_dialog_publish">Opublikuj miejsce</string>
+    <string name="home_release_dialog_delete_only">Tylko usuń</string>
     <string name="home_release_dialog_cancel">Anuluj</string>
     <string name="home_parking_peek_label">Jesteś zaparkowany · %1$s</string>
     <string name="home_manual_park_title">Parkuj tutaj</string>

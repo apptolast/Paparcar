@@ -25,10 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.NearMe
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -38,9 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -135,7 +133,6 @@ private val PERMISSION_GATE_SCREENS = setOf(
 @Composable
 fun App(
     splashViewModel: SplashViewModel = koinViewModel(),
-    onOpenMapsNavigation: (Double, Double) -> Unit = { _, _ -> },
 ) {
     val appViewModel = koinViewModel<AppViewModel>()
     val appState by appViewModel.state.collectAsStateWithLifecycle()
@@ -206,7 +203,6 @@ fun App(
                                     onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
                                     selectedLanguage = appState.selectedLanguage,
                                     onSetLanguage = { appViewModel.handleIntent(AppIntent.SetLanguage(it)) },
-                                    onOpenMapsNavigation = onOpenMapsNavigation,
                                 )
                             }
                         }
@@ -277,7 +273,6 @@ private fun MainAppNavigation(
     onToggleImperialUnits: (Boolean) -> Unit,
     selectedLanguage: String,
     onSetLanguage: (String) -> Unit,
-    onOpenMapsNavigation: (Double, Double) -> Unit,
 ) {
     val navController = rememberNavController()
     val currentBackStack by navController.currentBackStackEntryAsState()
@@ -307,24 +302,24 @@ private fun MainAppNavigation(
     // graphicsLayer lambda so the visual update stays in the layer phase with
     // no cross-tree recomposition. Other screens leave it at 1f (fully shown).
     val navProgress = remember { mutableFloatStateOf(1f) }
-    // Discrete visibility override driven by HomeScreen when an item is
-    // selected — at that point the per-screen PaparcarBottomActionBar takes over the
-    // bottom slot and the global bar should step aside.
-    var showBottomNav by remember { mutableStateOf(true) }
 
-    // Reset nav state when leaving HOME so other screens see a pristine bar.
+    // Reset nav progress when leaving HOME so other screens see a pristine bar.
     LaunchedEffect(currentRoute) {
         if (currentRoute != Routes.HOME) {
             navProgress.floatValue = 1f
-            showBottomNav = true
         }
     }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
+            // Visibility is route-only — the Home sheet drag fades the bar via
+            // navProgress's graphicsLayer below, but the bar stays mounted while
+            // the sheet is collapsed (peek). The previous selection-discrete
+            // hide overrode that and surprised users who expected tab navigation
+            // to stay reachable whenever the modal was at peek.
             AnimatedVisibility(
-                visible = currentRoute in BOTTOM_NAV_ROUTES && showBottomNav,
+                visible = currentRoute in BOTTOM_NAV_ROUTES,
                 enter = slideInVertically { it },
                 exit = slideOutVertically { it },
             ) {
@@ -446,9 +441,7 @@ private fun MainAppNavigation(
                 HomeScreen(
                     onNavigateToHistory = { navController.navigateToTab(Routes.HISTORY) },
                     onNavigateToAddFreeSpot = { navController.navigate(Routes.ADD_FREE_SPOT) },
-                    onOpenMapsNavigation = onOpenMapsNavigation,
                     navProgressState = navProgress,
-                    onItemSelectedChange = { selected -> showBottomNav = !selected },
                     bottomPadding = scaffoldPadding.calculateBottomPadding(),
                 )
             }
@@ -556,8 +549,8 @@ private val bottomNavItems = listOf(
     AppBottomNavItem(
         route = Routes.HOME,
         label = { stringResource(Res.string.nav_tab_spots) },
-        iconFilled = Icons.Filled.NearMe,
-        iconOutline = Icons.Outlined.NearMe,
+        iconFilled = Icons.Filled.LocationOn,
+        iconOutline = Icons.Outlined.LocationOn,
     ),
     AppBottomNavItem(
         route = Routes.VEHICLES,
