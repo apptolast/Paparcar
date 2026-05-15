@@ -1,0 +1,43 @@
+<!--
+  Marcador: Mi vehículo aparcado
+  Variante A · Verde sólido (recomendado)
+  Anchor point: bottom-center (32, 80) — el punto del pin
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="80dp"
+    android:viewportWidth="64"
+    android:viewportHeight="80">
+
+    <!-- ground shadow -->
+    <path
+        android:fillColor="#000000"
+        android:fillAlpha="0.35"
+        android:pathData="M44,76 a12,2.5 0 1,1 -24,0 a12,2.5 0 1,1 24,0 Z"/>
+
+    <!-- pin body fill -->
+    <path
+        android:fillColor="#25F48C"
+        android:pathData="M32,2 C49.67,2 64,16.33 64,34 C64,50 32,76 32,76 C32,76 0,50 0,34 C0,16.33 14.33,2 32,2 Z"/>
+
+    <!-- pin body stroke -->
+    <path
+        android:strokeColor="#0D1C14"
+        android:strokeAlpha="0.35"
+        android:strokeWidth="2"
+        android:pathData="M32,2 C49.67,2 64,16.33 64,34 C64,50 32,76 32,76 C32,76 0,50 0,34 C0,16.33 14.33,2 32,2 Z"/>
+
+    <!-- inner forest disc -->
+    <path
+        android:fillColor="#0D1C14"
+        android:pathData="M52,32 a20,20 0 1,1 -40,0 a20,20 0 1,1 40,0 Z"/>
+
+    <!-- car icon (translated to center on inner disc) -->
+    <group
+        android:translateX="20"
+        android:translateY="20">
+        <path
+            android:fillColor="#25F48C"
+            android:pathData="M18.92,6.01 C18.72,5.42 18.16,5 17.5,5 h-11 c-0.66,0 -1.21,0.42 -1.42,1.01 L3,12 v8 c0,0.55 0.45,1 1,1 h1 c0.55,0 1,-0.45 1,-1 v-1 h12 v1 c0,0.55 0.45,1 1,1 h1 c0.55,0 1,-0.45 1,-1 v-8 l-2.08,-5.99 Z M6.5,16 c-0.83,0 -1.5,-0.67 -1.5,-1.5 S5.67,13 6.5,13 s1.5,0.67 1.5,1.5 S7.33,16 6.5,16 Z m11,0 c-0.83,0 -1.5,-0.67 -1.5,-1.5 s0.67,-1.5 1.5,-1.5 s1.5,0.67 1.5,1.5 s-0.67,1.5 -1.5,1.5 Z M5,11 l1.5,-4.5 h11 L19,11 H5 Z"/>
+    </group>
+</vector>
