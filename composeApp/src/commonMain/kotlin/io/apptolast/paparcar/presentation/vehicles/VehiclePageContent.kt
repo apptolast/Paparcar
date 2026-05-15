@@ -1,12 +1,13 @@
 package io.apptolast.paparcar.presentation.vehicles
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,6 +17,9 @@ import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,10 +30,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.presentation.history.HistoryContent
@@ -37,7 +48,6 @@ import io.apptolast.paparcar.presentation.history.HistoryEffect
 import io.apptolast.paparcar.presentation.history.HistoryIntent
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.ui.components.PapSecondaryButton
-import io.apptolast.paparcar.ui.components.PapStatusBadge
 import io.apptolast.paparcar.ui.components.VehicleDetectionStatus
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapBlueMuted
@@ -52,7 +62,9 @@ import paparcar.composeapp.generated.resources.my_car_active_vehicle
 import paparcar.composeapp.generated.resources.my_car_bt_configure
 import paparcar.composeapp.generated.resources.my_car_delete_vehicle
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
+import paparcar.composeapp.generated.resources.my_car_more_actions
 import paparcar.composeapp.generated.resources.my_car_set_active
+import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
 import paparcar.composeapp.generated.resources.vehicle_card_detection_ar
 import paparcar.composeapp.generated.resources.vehicle_card_detection_bt
 import paparcar.composeapp.generated.resources.vehicle_size_large
@@ -60,13 +72,17 @@ import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
 import paparcar.composeapp.generated.resources.vehicle_size_small
 import paparcar.composeapp.generated.resources.vehicle_size_van
-import androidx.compose.foundation.layout.PaddingValues
 
 /**
  * A single page inside the vehicles HorizontalPager.
  *
  * Contains:
- * 1. A flat vehicle details header (minimal elevation, M3 tonal surface).
+ * 1. An "identity card" header with the size emoji, brand/model, status,
+ *    detection chip, and primary actions. Surface stays neutral; the active
+ *    vehicle is signalled via the "Activo" tag in [MaterialTheme.colorScheme.primary]
+ *    in the subtitle plus the dot in the tab row. A coloured Surface tint was
+ *    tried in [UI-002] but the dark-theme primaryContainer was too saturated
+ *    against the neutral surface — uniform background reads cleaner.
  * 2. The parking history for this vehicle, filling the remaining space.
  *
  * The [HistoryViewModel] is scoped to this composable via a unique key so each
@@ -98,13 +114,13 @@ internal fun VehiclePageContent(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        VehicleDetailsHeader(
+        VehicleIdentityCard(
             vehicleWithStats = vehicleWithStats,
+            canDelete = canDelete,
             onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
             onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
             onDelete = { onIntent(VehiclesIntent.RequestDeleteVehicle(vehicleId)) },
             onConfigureBluetooth = { onConfigureBluetooth(vehicleId) },
-            canDelete = canDelete,
         )
         HorizontalDivider()
         HistoryContent(
@@ -121,112 +137,163 @@ internal fun VehiclePageContent(
     }
 }
 
-// ─── Vehicle details header ────────────────────────────────────────────────────
+// ─── Identity card ────────────────────────────────────────────────────────────
 
 @Composable
-private fun VehicleDetailsHeader(
+private fun VehicleIdentityCard(
     vehicleWithStats: VehicleWithStats,
+    canDelete: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onConfigureBluetooth: () -> Unit,
-    canDelete: Boolean,
 ) {
     val vehicle = vehicleWithStats.vehicle
+    // When the user didn't provide brand or model, fall back to a dedicated
+    // placeholder string so the title doesn't echo the size label that is
+    // already shown in the subtitle. The emoji + size pair still gives visual
+    // identity. [UI-002]
     val displayName = listOfNotNull(vehicle.brand, vehicle.model)
         .joinToString(" ")
-        .ifBlank { vehicleSizeName(vehicle.sizeCategory) }
-
-    val detectionStatus = if (vehicle.bluetoothDeviceId != null)
+        .ifBlank { stringResource(Res.string.my_car_unnamed_vehicle) }
+    val sizeLabel = vehicleSizeLabel(vehicle.sizeCategory)
+    val activeLabel = stringResource(Res.string.my_car_active_vehicle)
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val subtitleText = if (vehicle.isDefault) {
+        buildAnnotatedString {
+            append("$sizeLabel · ")
+            withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Medium)) {
+                append(activeLabel)
+            }
+        }
+    } else {
+        buildAnnotatedString { append(sizeLabel) }
+    }
+    val detectionStatus = if (vehicle.bluetoothDeviceId != null) {
         VehicleDetectionStatus.Bluetooth(vehicle.bluetoothDeviceId.takeLast(BT_LABEL_LENGTH))
-    else
+    } else {
         VehicleDetectionStatus.ActivityRecognition
+    }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = HEADER_TONAL_ELEVATION,
-    ) {
+    Surface(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
+            modifier = Modifier.padding(
+                horizontal = PaparcarSpacing.lg,
+                vertical = PaparcarSpacing.md,
+            ),
+            verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
-            // Name + active badge + action icons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.DirectionsCar,
-                    contentDescription = null,
-                    modifier = Modifier.size(ICON_SIZE),
-                    tint = if (vehicle.isDefault) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onSurfaceVariant,
+            // ── Row 1: emoji + name/subtitle + kebab ─────────────────────────
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = vehicleSizeEmoji(vehicle.sizeCategory),
+                    fontSize = EMOJI_FONT_SIZE,
                 )
-                Spacer(Modifier.width(PaparcarSpacing.sm))
+                Spacer(Modifier.width(PaparcarSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = displayName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
                     )
                     Text(
-                        text = vehicleSizeName(vehicle.sizeCategory),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = subtitleText,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (vehicle.isDefault) {
-                    PapStatusBadge(label = stringResource(Res.string.my_car_active_vehicle))
-                    Spacer(Modifier.width(PaparcarSpacing.xs))
-                }
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        Icons.Outlined.Edit,
-                        contentDescription = stringResource(Res.string.my_car_edit_vehicle),
-                        modifier = Modifier.size(ICON_ACTION_SIZE),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                // Button stays clickable even when canDelete=false so the VM can surface
-                // the "must keep at least one vehicle" snackbar — translucent alpha hints
-                // at the disabled state.
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Outlined.Delete,
-                        contentDescription = stringResource(Res.string.my_car_delete_vehicle),
-                        modifier = Modifier.size(ICON_ACTION_SIZE),
-                        tint = MaterialTheme.colorScheme.error.copy(
-                            alpha = if (canDelete) DELETE_ICON_ALPHA else DELETE_ICON_DISABLED_ALPHA,
-                        ),
-                    )
-                }
-            }
-
-            // Detection badge
-            DetectionChip(status = detectionStatus)
-
-            // Action chips: set active + BT config
-            Row(horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm)) {
-                if (!vehicle.isDefault) {
-                    PapSecondaryButton(
-                        label = stringResource(Res.string.my_car_set_active),
-                        onClick = onSetActive,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                PapSecondaryButton(
-                    label = stringResource(Res.string.my_car_bt_configure),
-                    onClick = onConfigureBluetooth,
-                    modifier = Modifier.weight(1f),
+                OverflowMenu(
+                    canDelete = canDelete,
+                    onEdit = onEdit,
+                    onConfigureBluetooth = onConfigureBluetooth,
+                    onDelete = onDelete,
                 )
             }
-            Spacer(Modifier.height(PaparcarSpacing.xs))
+
+            // ── Row 2: detection chip (BT configure moved to overflow menu) ──
+            DetectionChip(status = detectionStatus)
+
+            // ── Row 3 (only when NOT active): set-active CTA ─────────────────
+            if (!vehicle.isDefault) {
+                PapSecondaryButton(
+                    label = stringResource(Res.string.my_car_set_active),
+                    onClick = onSetActive,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun DetectionChip(status: VehicleDetectionStatus) {
+private fun OverflowMenu(
+    canDelete: Boolean,
+    onEdit: () -> Unit,
+    onConfigureBluetooth: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                Icons.Outlined.MoreVert,
+                contentDescription = stringResource(Res.string.my_car_more_actions),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.my_car_edit_vehicle)) },
+                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.my_car_bt_configure)) },
+                leadingIcon = { Icon(Icons.Outlined.Bluetooth, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onConfigureBluetooth()
+                },
+            )
+            // Delete is rendered with translucent tint when canDelete=false; the click
+            // still propagates so the VM can surface the "must keep one" snackbar.
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(Res.string.my_car_delete_vehicle),
+                        color = MaterialTheme.colorScheme.error.copy(
+                            alpha = if (canDelete) DELETE_ENABLED_ALPHA else DELETE_DISABLED_ALPHA,
+                        ),
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Outlined.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error.copy(
+                            alpha = if (canDelete) DELETE_ENABLED_ALPHA else DELETE_DISABLED_ALPHA,
+                        ),
+                    )
+                },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                },
+            )
+        }
+    }
+}
+
+// ─── Detection chip ───────────────────────────────────────────────────────────
+
+@Composable
+private fun DetectionChip(
+    status: VehicleDetectionStatus,
+    modifier: Modifier = Modifier,
+) {
     val (label, bg, fg, icon) = when (status) {
         is VehicleDetectionStatus.Bluetooth -> DetectionChipData(
             label = "${stringResource(Res.string.vehicle_card_detection_bt)} · ${status.deviceLabel}",
@@ -248,18 +315,24 @@ private fun DetectionChip(status: VehicleDetectionStatus) {
         )
     }
     Surface(
+        modifier = modifier,
         shape = RoundedCornerShape(CHIP_CORNER_RADIUS),
         color = bg,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             icon?.let {
-                Icon(it, contentDescription = null, modifier = Modifier.size(12.dp), tint = fg)
+                Icon(it, contentDescription = null, modifier = Modifier.size(CHIP_ICON_SIZE), tint = fg)
             }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = fg)
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = fg,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -271,8 +344,23 @@ private data class DetectionChipData(
     val icon: androidx.compose.ui.graphics.vector.ImageVector?,
 )
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * System-emoji visual per vehicle size. Mirrors the [VehicleSizeExplainerScreen]
+ * convention (which uses 🚗 in its title), so the metaphor stays consistent
+ * between onboarding and the My-Vehicles tab. No bundled assets needed.
+ */
+internal fun vehicleSizeEmoji(size: VehicleSize): String = when (size) {
+    VehicleSize.MOTO   -> "\uD83D\uDEF5"  // 🛵
+    VehicleSize.SMALL  -> "\uD83D\uDE99"  // 🚙
+    VehicleSize.MEDIUM -> "\uD83D\uDE97"  // 🚗
+    VehicleSize.LARGE  -> "\uD83D\uDE90"  // 🚐
+    VehicleSize.VAN    -> "\uD83D\uDE9A"  // 🚚
+}
+
 @Composable
-private fun vehicleSizeName(size: VehicleSize): String = when (size) {
+private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
     VehicleSize.MOTO   -> stringResource(Res.string.vehicle_size_moto)
     VehicleSize.SMALL  -> stringResource(Res.string.vehicle_size_small)
     VehicleSize.MEDIUM -> stringResource(Res.string.vehicle_size_medium)
@@ -280,10 +368,9 @@ private fun vehicleSizeName(size: VehicleSize): String = when (size) {
     VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
 }
 
-private val ICON_SIZE = 22.dp
-private val ICON_ACTION_SIZE = 20.dp
-private val HEADER_TONAL_ELEVATION = 2.dp
-private val CHIP_CORNER_RADIUS = 8.dp
+private val EMOJI_FONT_SIZE = 44.sp
+private val CHIP_CORNER_RADIUS = 12.dp
+private val CHIP_ICON_SIZE = 14.dp
 private const val BT_LABEL_LENGTH = 5
-private const val DELETE_ICON_ALPHA = 0.75f
-private const val DELETE_ICON_DISABLED_ALPHA = 0.30f
+private const val DELETE_ENABLED_ALPHA = 1.0f
+private const val DELETE_DISABLED_ALPHA = 0.35f

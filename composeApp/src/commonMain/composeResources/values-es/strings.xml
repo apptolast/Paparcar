@@ -288,6 +288,10 @@
     <string name="vehicle_detail_history_empty">Todavía no hay sesiones de aparcamiento registradas para este vehículo.</string>
     <string name="my_car_active_vehicle">Vehículo activo</string>
     <string name="my_car_set_active">Establecer como activo</string>
+    <string name="my_car_more_actions">Más acciones</string>
+    <string name="my_car_unnamed_vehicle">Vehículo sin nombre</string>
+    <string name="my_car_empty_subtitle">Necesitamos saber qué conduces para detectar cuándo aparcas.</string>
+    <string name="my_car_empty_why_link">¿Por qué necesito un vehículo?</string>
 
     <!-- Registro de vehículo -->
     <string name="vehicle_registration_title">Registrar tu vehículo</string>

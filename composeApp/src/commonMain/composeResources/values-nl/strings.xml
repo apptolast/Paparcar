@@ -250,6 +250,10 @@
     <string name="my_car_add_vehicle">Voertuig toevoegen</string>
     <string name="my_car_active_vehicle">Actief voertuig</string>
     <string name="my_car_set_active">Instellen als actief</string>
+    <string name="my_car_more_actions">Meer acties</string>
+    <string name="my_car_unnamed_vehicle">Voertuig zonder naam</string>
+    <string name="my_car_empty_subtitle">We moeten weten wat je rijdt om te detecteren wanneer je parkeert.</string>
+    <string name="my_car_empty_why_link">Waarom heb ik een voertuig nodig?</string>
 
     <!-- Voertuigregistratie -->
     <string name="vehicle_registration_title">Voertuig registreren</string>

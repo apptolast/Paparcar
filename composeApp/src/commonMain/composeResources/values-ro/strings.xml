@@ -250,6 +250,10 @@
     <string name="my_car_add_vehicle">Adaugă vehicul</string>
     <string name="my_car_active_vehicle">Vehicul activ</string>
     <string name="my_car_set_active">Setează ca activ</string>
+    <string name="my_car_more_actions">Mai multe acțiuni</string>
+    <string name="my_car_unnamed_vehicle">Vehicul fără nume</string>
+    <string name="my_car_empty_subtitle">Trebuie să știm ce conduci pentru a detecta când parchezi.</string>
+    <string name="my_car_empty_why_link">De ce am nevoie de un vehicul?</string>
 
     <!-- Înregistrare vehicul -->
     <string name="vehicle_registration_title">Înregistrează-ți vehiculul</string>

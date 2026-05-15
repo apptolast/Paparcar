@@ -250,6 +250,10 @@
     <string name="my_car_add_vehicle">Aggiungi veicolo</string>
     <string name="my_car_active_vehicle">Veicolo attivo</string>
     <string name="my_car_set_active">Imposta come attivo</string>
+    <string name="my_car_more_actions">Altre azioni</string>
+    <string name="my_car_unnamed_vehicle">Veicolo senza nome</string>
+    <string name="my_car_empty_subtitle">Dobbiamo sapere cosa guidi per rilevare quando parcheggi.</string>
+    <string name="my_car_empty_why_link">Perché ho bisogno di un veicolo?</string>
 
     <!-- Registrazione veicolo -->
     <string name="vehicle_registration_title">Registra il tuo veicolo</string>

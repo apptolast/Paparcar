@@ -492,6 +492,9 @@ private fun MainAppNavigation(
                         onNavigateToMap = { lat, lon ->
                             navController.navigate("${Routes.PARKING_LOCATION}?lat=$lat&lon=$lon")
                         },
+                        onShowExplainer = {
+                            navController.navigate(Routes.VEHICLE_SIZE_EXPLAINER)
+                        },
                     )
                 }
             }
