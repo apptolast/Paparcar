@@ -1,25 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Launcher background — forest dark with a faint top-left highlight for depth
-  (PapForest base #0D1C14, lifted to #173024 near the upper-left corner).
+  Paparcar adaptive icon · background layer.
+  Solid neon-green from the design system token pap-green.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <path android:pathData="M0,0 H108 V108 H0 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="radial"
-                android:centerX="36"
-                android:centerY="36"
-                android:gradientRadius="120"
-                android:startColor="#173024"
-                android:endColor="#0D1C14" />
-        </aapt:attr>
-    </path>
-
+    <path
+        android:fillColor="#25F48C"
+        android:pathData="M0,0h108v108h-108z" />
 </vector>
