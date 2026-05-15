@@ -406,12 +406,7 @@ fun PaparcarMapView(
     // features (size letter + driving-toward-spot indicator) survive the swap.
     val customMarkerContent = remember {
         mapOf<String, @Composable (Marker) -> Unit>(
-            // The user's parked car only exists when there is an active session, so
-            // semantically the marker IS the current focus — render it with the
-            // selection halo always on, matching the visual treatment that
-            // spots get when selected. Tap on this marker is still suppressed
-            // in onMarkerClick because there is no associated action today.
-            MARKER_MY_CAR to { _ -> MyVehicleMarker(selected = true) },
+            MARKER_MY_CAR to { _ -> MyVehicleMarker() },
             MARKER_FREE_SPOT_HIGH to { marker ->
                 FreeSpotWithOverlays(reliability = SpotReliabilityLevel.HIGH, marker = marker)
             },
