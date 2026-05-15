@@ -26,19 +26,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.SatelliteAlt
-import androidx.compose.material.icons.outlined.Terrain
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.swmansion.kmpmaps.core.MapType
-import io.apptolast.paparcar.presentation.util.MapCircleFab
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.layout.PaddingValues
@@ -87,6 +78,7 @@ import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
+import io.apptolast.paparcar.presentation.home.components.MapTypePicker
 import io.apptolast.paparcar.presentation.home.components.homeSheetItems
 import io.apptolast.paparcar.presentation.home.components.homeSheetSpotItemIndex
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
@@ -559,52 +551,13 @@ private fun HomeContent(
                         modifier = Modifier.weight(1f),
                     )
                     Spacer(Modifier.width(8.dp))
-                    // Layers chip: same 56dp diameter as the search TextField's
-                    // height so the two sit as visual peers in the row. Tapping
-                    // opens a Google-Maps-style picker anchored to the chip; the
-                    // active type is marked with a check.
-                    Box {
-                        var mapTypeMenuExpanded by remember { mutableStateOf(false) }
-                        MapCircleFab(
-                            icon = Icons.Outlined.Layers,
-                            onClick = { mapTypeMenuExpanded = true },
-                            contentDescription = stringResource(Res.string.home_cd_map_type),
-                            size = 56.dp,
-                            iconSize = 24.dp,
-                        )
-                        DropdownMenu(
-                            expanded = mapTypeMenuExpanded,
-                            onDismissRequest = { mapTypeMenuExpanded = false },
-                        ) {
-                            MapTypeMenuItem(
-                                icon = Icons.Outlined.Map,
-                                label = stringResource(Res.string.settings_map_type_normal),
-                                selected = state.mapType == MapType.NORMAL,
-                                onClick = {
-                                    onIntent(HomeIntent.SetMapType(MapType.NORMAL))
-                                    mapTypeMenuExpanded = false
-                                },
-                            )
-                            MapTypeMenuItem(
-                                icon = Icons.Outlined.SatelliteAlt,
-                                label = stringResource(Res.string.settings_map_type_satellite),
-                                selected = state.mapType == MapType.SATELLITE,
-                                onClick = {
-                                    onIntent(HomeIntent.SetMapType(MapType.SATELLITE))
-                                    mapTypeMenuExpanded = false
-                                },
-                            )
-                            MapTypeMenuItem(
-                                icon = Icons.Outlined.Terrain,
-                                label = stringResource(Res.string.settings_map_type_terrain),
-                                selected = state.mapType == MapType.TERRAIN,
-                                onClick = {
-                                    onIntent(HomeIntent.SetMapType(MapType.TERRAIN))
-                                    mapTypeMenuExpanded = false
-                                },
-                            )
-                        }
-                    }
+                    // Layers picker: a vertical stack of circular FABs that mirrors
+                    // the trigger's shape. The active type is highlighted with a primary
+                    // selection ring. [MAP-TYPE-001]
+                    MapTypePicker(
+                        currentType = state.mapType,
+                        onTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
+                    )
                 }
                 HomeGpsAccuracyBanner(
                     accuracy = state.userGpsPoint?.accuracy,
@@ -810,28 +763,5 @@ private fun HomeContent(
         }
     }
     } // CompositionLocalProvider
-}
-
-// Map-type picker row used by the Layers chip dropdown. Mirrors Google Maps:
-// type icon on the left, label, trailing check on the active type. Selection
-// is represented visually only — DropdownMenuItem's interaction state still
-// drives ripple/hover, so we don't need RadioButton semantics here.
-@Composable
-private fun MapTypeMenuItem(
-    icon: ImageVector,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        text = { Text(label) },
-        leadingIcon = {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-        },
-        trailingIcon = if (selected) {
-            { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(20.dp)) }
-        } else null,
-        onClick = onClick,
-    )
 }
 
