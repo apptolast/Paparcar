@@ -14,21 +14,26 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -56,15 +61,19 @@ import io.apptolast.paparcar.presentation.util.walkTimeString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
+import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
+import paparcar.composeapp.generated.resources.home_walk_to_car
+import androidx.compose.ui.graphics.vector.ImageVector
 
 @Composable
 internal fun HomePeekHandle(
     state: HomeState,
     onDismiss: () -> Unit = {},
     onRelease: () -> Unit = {},
+    onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit = { _, _, _ -> },
 ) {
     val freeCount = state.nearbySpots.size
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
@@ -106,12 +115,18 @@ internal fun HomePeekHandle(
                     spot = spot,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onDismiss = onDismiss,
+                    onNavigate = {
+                        onNavigateExternal(spot.location.latitude, spot.location.longitude, false)
+                    },
                 )
                 parking != null -> ParkingPeekRow(
                     parking = parking,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onDismiss = onDismiss,
                     onRelease = onRelease,
+                    onWalkToCar = {
+                        onNavigateExternal(parking.location.latitude, parking.location.longitude, true)
+                    },
                 )
                 else -> CameraLocationRow(state = state, freeCount = freeCount)
             }
@@ -128,6 +143,7 @@ private fun SpotPeekRow(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
     onDismiss: () -> Unit,
+    onNavigate: () -> Unit,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
@@ -140,63 +156,57 @@ private fun SpotPeekRow(
         showEmoji = false,
     )
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        val placeEmoji = spot.placeInfo?.category?.emoji
-        if (placeEmoji != null) {
-            Text(
-                text = placeEmoji,
-                fontSize = 22.sp,
-            )
-        } else {
-            Icon(
-                Icons.Outlined.LocalParking,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
-            )
-        }
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = displayText,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                modifier = Modifier.basicMarquee(),
-            )
-            if (distM != null) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val placeEmoji = spot.placeInfo?.category?.emoji
+            if (placeEmoji != null) {
                 Text(
-                    text = "${distanceString(distM)}  ·  ${driveTimeString(distM)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    text = placeEmoji,
+                    fontSize = 22.sp,
+                )
+            } else {
+                Icon(
+                    Icons.Outlined.LocalParking,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(26.dp),
                 )
             }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.basicMarquee(),
+                )
+                if (distM != null) {
+                    Text(
+                        text = "${distanceString(distM)}  ·  ${driveTimeString(distM)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            PeekDismissButton(onDismiss = onDismiss)
         }
 
-        // ✕ dismiss — deselects the current spot
-        Surface(
-            onClick = onDismiss,
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-        ) {
-            Icon(
-                Icons.Outlined.Close,
-                contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(6.dp)
-                    .size(16.dp),
-            )
-        }
+        PrimaryPeekAction(
+            label = stringResource(Res.string.home_navigate_to_spot),
+            icon = Icons.Outlined.Navigation,
+            onClick = onNavigate,
+        )
     }
 }
 
@@ -210,6 +220,7 @@ private fun ParkingPeekRow(
     userLocation: Pair<Double, Double>?,
     onDismiss: () -> Unit,
     onRelease: () -> Unit,
+    onWalkToCar: () -> Unit,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
@@ -264,29 +275,23 @@ private fun ParkingPeekRow(
                 }
             }
 
-            // ✕ dismiss — deselects parking
-            Surface(
-                onClick = onDismiss,
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-            ) {
-                Icon(
-                    Icons.Outlined.Close,
-                    contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .padding(6.dp)
-                        .size(16.dp),
-                )
-            }
+            PeekDismissButton(onDismiss = onDismiss)
         }
 
-        // ── Release action — destructive, prominent in peek detail layer ──────
+        // ── Primary action: walk to the car (positive, prominent) ─────────────
+        PrimaryPeekAction(
+            label = stringResource(Res.string.home_walk_to_car),
+            icon = Icons.AutoMirrored.Outlined.DirectionsWalk,
+            onClick = onWalkToCar,
+        )
+
+        // ── Destructive action: release the spot (smaller, below the primary) ──
         Button(
             onClick = onRelease,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp)
+                .height(RELEASE_BUTTON_HEIGHT),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -301,6 +306,74 @@ private fun ParkingPeekRow(
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared peek widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Visually de-emphasised dismiss button. Kept visible (the user needs to
+ * recognise that the peek modal is a *state* they can clear to keep
+ * exploring the map) but stripped of background and ink so the primary
+ * action below it wins the visual hierarchy. [PEEK-ACTIONS-001]
+ */
+@Composable
+private fun PeekDismissButton(onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(DISMISS_HIT_TARGET)
+            .clickable(onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Outlined.Close,
+            contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISMISS_ICON_ALPHA),
+            modifier = Modifier.size(DISMISS_ICON_SIZE),
+        )
+    }
+}
+
+/**
+ * Primary positive action attached to a selected peek item — opens external
+ * navigation. Painted with the primary container palette and rendered taller
+ * than the destructive Release button so the eye lands here first. The
+ * leading icon doubles as the "go" affordance.
+ */
+@Composable
+private fun PrimaryPeekAction(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp)
+            .height(PRIMARY_BUTTON_HEIGHT),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(PRIMARY_BUTTON_ICON_SIZE))
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+private val DISMISS_HIT_TARGET     = 40.dp   // a11y minimum hit target
+private val DISMISS_ICON_SIZE      = 18.dp
+private const val DISMISS_ICON_ALPHA = 0.45f
+private val PRIMARY_BUTTON_HEIGHT     = 54.dp  // intentionally taller than Release
+private val PRIMARY_BUTTON_ICON_SIZE  = 22.dp
+private val RELEASE_BUTTON_HEIGHT     = 44.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Default location row

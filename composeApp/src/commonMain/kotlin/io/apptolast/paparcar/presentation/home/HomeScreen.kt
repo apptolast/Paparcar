@@ -79,6 +79,7 @@ import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.components.MapTypePicker
+import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.presentation.home.components.homeSheetItems
 import io.apptolast.paparcar.presentation.home.components.homeSheetSpotItemIndex
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
@@ -233,6 +234,11 @@ private fun HomeContent(
     val uiController = rememberHomeUiController()
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
+    // Platform-aware launcher for external navigation (Google Maps on Android,
+    // no-op on iOS for now). Captured inside HomeContent so the peek handle's
+    // primary action can invoke it directly without round-tripping through the
+    // VM. [PEEK-ACTIONS-001]
+    val openExternalNav = rememberOpenExternalNavigation()
 
     // Stabilized bottom padding for the sheet's inner LazyColumn. The root
     // Scaffold shrinks its content padding to 0 while the global nav slides
@@ -691,6 +697,7 @@ private fun HomeContent(
                             state = state,
                             onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                             onRelease = { showReleaseDialog = true },
+                            onNavigateExternal = openExternalNav,
                         )
                     }
 

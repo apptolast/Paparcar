@@ -15,6 +15,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Ești parcat</string>
     <string name="home_parking_release">Eliberează locul</string>
+    <string name="home_navigate_to_spot">Indicații</string>
+    <string name="home_walk_to_car">Mergi pe jos la mașină</string>
     <string name="home_nav_button">Navigare</string>
     <string name="home_nav_your_car">Mașina ta</string>
     <string name="home_nav_free_spot">Loc liber</string>

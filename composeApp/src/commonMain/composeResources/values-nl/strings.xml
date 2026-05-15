@@ -15,6 +15,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">U bent geparkeerd</string>
     <string name="home_parking_release">Parkeerplaats vrijgeven</string>
+    <string name="home_navigate_to_spot">Route</string>
+    <string name="home_walk_to_car">Lopen naar auto</string>
     <string name="home_nav_button">Navigeren</string>
     <string name="home_nav_your_car">Uw auto</string>
     <string name="home_nav_free_spot">Vrije parkeerplaats</string>

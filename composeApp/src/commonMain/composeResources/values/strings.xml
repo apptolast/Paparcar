@@ -17,6 +17,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">You are parked</string>
     <string name="home_parking_release">Release spot</string>
+    <string name="home_navigate_to_spot">Directions</string>
+    <string name="home_walk_to_car">Walk to my car</string>
     <string name="home_nav_button">Navigate</string>
     <string name="home_nav_your_car">Your car</string>
     <string name="home_nav_free_spot">Free spot</string>

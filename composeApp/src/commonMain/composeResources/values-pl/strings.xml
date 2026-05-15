@@ -15,6 +15,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Jesteś zaparkowany</string>
     <string name="home_parking_release">Zwolnij miejsce</string>
+    <string name="home_navigate_to_spot">Trasa</string>
+    <string name="home_walk_to_car">Idź pieszo do auta</string>
     <string name="home_nav_button">Nawiguj</string>
     <string name="home_nav_your_car">Twój samochód</string>
     <string name="home_nav_free_spot">Wolne miejsce</string>
