@@ -252,6 +252,10 @@
     <string name="my_car_set_active">Als aktiv festlegen</string>
     <string name="my_car_more_actions">Weitere Aktionen</string>
     <string name="my_car_unnamed_vehicle">Unbenanntes Fahrzeug</string>
+    <string name="veh_bt_recommendation_title">Verbessere die Erkennungsgenauigkeit</string>
+    <string name="veh_bt_recommendation_body">Wenn du das Bluetooth deines Autos koppelst, kann Paparcar viel zuverlässiger erkennen, wann du parkst, auch auf kurzen Strecken. Du kannst dies jederzeit später im Menü des Fahrzeugs einrichten.</string>
+    <string name="veh_bt_recommendation_configure">Bluetooth koppeln</string>
+    <string name="veh_bt_recommendation_skip">Später</string>
     <string name="my_car_empty_subtitle">Wir müssen wissen, was du fährst, um zu erkennen, wann du parkst.</string>
     <string name="my_car_empty_why_link">Warum brauche ich ein Fahrzeug?</string>
 

@@ -379,6 +379,23 @@ private fun MainAppNavigation(
                             }
                         }
                     },
+                    onConfigureBluetooth = { newVehicleId ->
+                        // Drop the registration form from the back stack so the user's
+                        // "back" from BT_CONFIG returns to the prior screen, not the form
+                        // they just submitted. For first-run we first navigate to HOME so
+                        // back from BT_CONFIG lands on Home rather than exiting the app —
+                        // BT_CONFIG sits on top of HOME in the stack. [VEH-BT-001]
+                        if (origin == "vehicles") {
+                            navController.navigate("${Routes.BT_CONFIG}/$newVehicleId") {
+                                popUpTo(Routes.VEHICLES) { inclusive = false }
+                            }
+                        } else {
+                            navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.VEHICLE_SIZE_EXPLAINER) { inclusive = true }
+                            }
+                            navController.navigate("${Routes.BT_CONFIG}/$newVehicleId")
+                        }
+                    },
                     onNavigateBack = { navController.popBackStack() },
                 )
             }

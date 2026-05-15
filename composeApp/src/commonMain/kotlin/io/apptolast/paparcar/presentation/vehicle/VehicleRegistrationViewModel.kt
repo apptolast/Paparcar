@@ -95,7 +95,12 @@ class VehicleRegistrationViewModel(
                 if (!isEditing) vehicleRepository.setDefaultVehicle(vehicle.id)
             }.onSuccess {
                 updateState { copy(isSaving = false, pendingNewVehicleId = null) }
-                sendEffect(VehicleRegistrationEffect.SavedSuccessfully)
+                sendEffect(
+                    VehicleRegistrationEffect.SavedSuccessfully(
+                        vehicleId = vehicleId,
+                        isNewVehicle = !isEditing,
+                    ),
+                )
             }.onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to save vehicle", e)
                 // Mantenemos pendingNewVehicleId para que el reintento reuse el mismo id.

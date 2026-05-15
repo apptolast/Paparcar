@@ -252,6 +252,10 @@
     <string name="my_car_set_active">Definir como ativo</string>
     <string name="my_car_more_actions">Mais ações</string>
     <string name="my_car_unnamed_vehicle">Veículo sem nome</string>
+    <string name="veh_bt_recommendation_title">Melhora a precisão da deteção</string>
+    <string name="veh_bt_recommendation_body">Emparelhar o Bluetooth do carro permite ao Paparcar detetar quando estacionas com muito mais fiabilidade, mesmo em trajetos curtos. Podes configurar isto mais tarde a partir do menu do veículo.</string>
+    <string name="veh_bt_recommendation_configure">Emparelhar Bluetooth</string>
+    <string name="veh_bt_recommendation_skip">Mais tarde</string>
     <string name="my_car_empty_subtitle">Precisamos saber o que conduzes para detetar quando estacionas.</string>
     <string name="my_car_empty_why_link">Porquê preciso de um veículo?</string>
 

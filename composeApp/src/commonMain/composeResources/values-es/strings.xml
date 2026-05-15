@@ -290,6 +290,10 @@
     <string name="my_car_set_active">Establecer como activo</string>
     <string name="my_car_more_actions">Más acciones</string>
     <string name="my_car_unnamed_vehicle">Vehículo sin nombre</string>
+    <string name="veh_bt_recommendation_title">Mejora la precisión de detección</string>
+    <string name="veh_bt_recommendation_body">Vincular el Bluetooth del coche permite a Paparcar detectar cuándo aparcas con mucha más fiabilidad, incluso en trayectos cortos. Puedes configurarlo más tarde desde el menú del vehículo.</string>
+    <string name="veh_bt_recommendation_configure">Vincular Bluetooth</string>
+    <string name="veh_bt_recommendation_skip">Más tarde</string>
     <string name="my_car_empty_subtitle">Necesitamos saber qué conduces para detectar cuándo aparcas.</string>
     <string name="my_car_empty_why_link">¿Por qué necesito un vehículo?</string>
 

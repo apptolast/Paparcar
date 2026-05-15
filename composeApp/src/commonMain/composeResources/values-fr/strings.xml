@@ -252,6 +252,10 @@
     <string name="my_car_set_active">Définir comme actif</string>
     <string name="my_car_more_actions">Plus d\'actions</string>
     <string name="my_car_unnamed_vehicle">Véhicule sans nom</string>
+    <string name="veh_bt_recommendation_title">Améliorez la précision de détection</string>
+    <string name="veh_bt_recommendation_body">Associer le Bluetooth de votre voiture permet à Paparcar de détecter quand vous vous garez de façon beaucoup plus fiable, même sur de courts trajets. Vous pourrez toujours le configurer plus tard depuis le menu du véhicule.</string>
+    <string name="veh_bt_recommendation_configure">Associer le Bluetooth</string>
+    <string name="veh_bt_recommendation_skip">Plus tard</string>
     <string name="my_car_empty_subtitle">Nous devons savoir ce que vous conduisez pour détecter quand vous vous garez.</string>
     <string name="my_car_empty_why_link">Pourquoi ai-je besoin d\'un véhicule ?</string>
 

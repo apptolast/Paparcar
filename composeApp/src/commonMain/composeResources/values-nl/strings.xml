@@ -252,6 +252,10 @@
     <string name="my_car_set_active">Instellen als actief</string>
     <string name="my_car_more_actions">Meer acties</string>
     <string name="my_car_unnamed_vehicle">Voertuig zonder naam</string>
+    <string name="veh_bt_recommendation_title">Verbeter de detectienauwkeurigheid</string>
+    <string name="veh_bt_recommendation_body">Door de Bluetooth van je auto te koppelen, kan Paparcar veel betrouwbaarder detecteren wanneer je parkeert, zelfs op korte trajecten. Je kunt dit later instellen via het menu van het voertuig.</string>
+    <string name="veh_bt_recommendation_configure">Bluetooth koppelen</string>
+    <string name="veh_bt_recommendation_skip">Later</string>
     <string name="my_car_empty_subtitle">We moeten weten wat je rijdt om te detecteren wanneer je parkeert.</string>
     <string name="my_car_empty_why_link">Waarom heb ik een voertuig nodig?</string>
 

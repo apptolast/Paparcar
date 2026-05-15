@@ -252,6 +252,10 @@
     <string name="my_car_set_active">Ustaw jako aktywny</string>
     <string name="my_car_more_actions">Więcej akcji</string>
     <string name="my_car_unnamed_vehicle">Pojazd bez nazwy</string>
+    <string name="veh_bt_recommendation_title">Popraw dokładność wykrywania</string>
+    <string name="veh_bt_recommendation_body">Sparowanie Bluetooth Twojego samochodu pozwala Paparcar znacznie pewniej wykrywać, kiedy parkujesz, nawet podczas krótkich tras. Możesz to skonfigurować później z menu pojazdu.</string>
+    <string name="veh_bt_recommendation_configure">Sparuj Bluetooth</string>
+    <string name="veh_bt_recommendation_skip">Później</string>
     <string name="my_car_empty_subtitle">Musimy wiedzieć, czym jeździsz, aby wykryć, kiedy parkujesz.</string>
     <string name="my_car_empty_why_link">Dlaczego potrzebuję pojazdu?</string>
 

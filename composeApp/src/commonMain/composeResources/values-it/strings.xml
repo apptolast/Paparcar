@@ -252,6 +252,10 @@
     <string name="my_car_set_active">Imposta come attivo</string>
     <string name="my_car_more_actions">Altre azioni</string>
     <string name="my_car_unnamed_vehicle">Veicolo senza nome</string>
+    <string name="veh_bt_recommendation_title">Migliora la precisione del rilevamento</string>
+    <string name="veh_bt_recommendation_body">Abbinando il Bluetooth dell\'auto, Paparcar rileva con molta più affidabilità quando parcheggi, anche nei tragitti brevi. Puoi configurarlo più tardi dal menu del veicolo.</string>
+    <string name="veh_bt_recommendation_configure">Abbina Bluetooth</string>
+    <string name="veh_bt_recommendation_skip">Più tardi</string>
     <string name="my_car_empty_subtitle">Dobbiamo sapere cosa guidi per rilevare quando parcheggi.</string>
     <string name="my_car_empty_why_link">Perché ho bisogno di un veicolo?</string>
 
