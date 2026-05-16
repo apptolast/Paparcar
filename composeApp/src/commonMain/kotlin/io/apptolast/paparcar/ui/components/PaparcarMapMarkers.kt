@@ -372,19 +372,18 @@ private fun DrawScope.drawCarIcon(scale: Float, color: Color) {
 }
 
 // ─── Marker sizes (logical, dp) ──────────────────────────────────────────────
-// ~20% smaller than the original Design System spec (64×80 / 68×84 / 58) — the
+// ~33% smaller than the original Design System spec (64×80 / 68×84 / 58) — the
 // initial sizes read too prominent on real screens, especially at default zoom
 // where multiple markers cluster nearby. Aspect ratios are preserved so the
 // teardrop path (calibrated to 64×80 and 68×84 viewports inside the Canvas)
-// scales proportionally without clipping. [MARKERS-001 follow-up]
+// scales proportionally without clipping.
 //
-// MY_VEHICLE_* includes an extra ~6 dp of breathing room over the proportional
-// fit (51×64) — the drawMyVehicle() scale formula divides by 72f so the
-// teardrop's 2px stroke + rounded corners always fall inside the canvas. With
-// padding the visible drawing stays at ~51×64 dp, but the bitmap canvas itself
-// is larger so antialiasing has room to feather the edges. [HOME-DEPTH-001]
-private val MY_VEHICLE_W = 57.dp   // was 51.dp — 3dp padding on each side
-private val MY_VEHICLE_H = 71.dp   // was 64.dp — 3.5dp padding top/bottom
-private val FREE_SPOT_W  = 54.dp   // was 68.dp
-private val FREE_SPOT_H  = 67.dp   // was 84.dp
-private val CLUSTER_SIZE = 46.dp   // was 58.dp
+// MY_VEHICLE_* keeps a proportional breathing-room margin over the visible
+// pin: drawMyVehicle()'s scale formula divides by 72f so the teardrop's 2px
+// stroke + rounded corners always fall inside the canvas, leaving room for
+// antialiasing to feather the edges.
+private val MY_VEHICLE_W = 48.dp
+private val MY_VEHICLE_H = 60.dp
+private val FREE_SPOT_W  = 46.dp
+private val FREE_SPOT_H  = 57.dp
+private val CLUSTER_SIZE = 39.dp
