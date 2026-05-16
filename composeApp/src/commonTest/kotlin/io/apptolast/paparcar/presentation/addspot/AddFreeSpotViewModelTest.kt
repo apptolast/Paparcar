@@ -6,12 +6,14 @@ import app.cash.turbine.test
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
+import io.apptolast.paparcar.fakes.FakeSpotRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -36,11 +38,19 @@ class AddFreeSpotViewModelTest {
     private lateinit var vm: AddFreeSpotViewModel
 
     private fun buildVm(): AddFreeSpotViewModel {
+        val getLocationInfo = GetLocationInfoUseCase(FakeGeocoderDataSource(), FakePlacesDataSource())
         val reportUseCase = ReportSpotReleasedUseCase(
             reportSpotScheduler = scheduler,
-            getLocationInfo = GetLocationInfoUseCase(FakeGeocoderDataSource(), FakePlacesDataSource()),
+            getLocationInfo = getLocationInfo,
         )
-        return AddFreeSpotViewModel(permissions, locationDataSource, reportUseCase)
+        val observeNearbySpots = ObserveNearbySpotsUseCase(FakeSpotRepository())
+        return AddFreeSpotViewModel(
+            permissionManager = permissions,
+            locationDataSource = locationDataSource,
+            reportSpotReleased = reportUseCase,
+            observeNearbySpots = observeNearbySpots,
+            getLocationInfo = getLocationInfo,
+        )
     }
 
     @BeforeTest

@@ -24,6 +24,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -113,6 +114,7 @@ private val BOTTOM_NAV_ROUTES = setOf(
     Routes.HOME,
     Routes.VEHICLES,
     Routes.SETTINGS,
+    Routes.ADD_FREE_SPOT,
 )
 
 // Screens where the runtime-permission guard should NOT redirect: either they ARE the
@@ -328,8 +330,15 @@ private fun MainAppNavigation(
                     items = bottomNavItems,
                     currentRoute = currentRoute,
                     onNavigate = { route ->
-                        if (route == ACTION_REPORT_ROUTE) {
-                            navController.navigate(Routes.ADD_FREE_SPOT)
+                        if (route == Routes.ADD_FREE_SPOT) {
+                            // Push semantics (not tab-switch with popUpTo) so the
+                            // user returns to the original tab on back. singleTop
+                            // prevents re-pushing if the user is already there.
+                            if (currentRoute != Routes.ADD_FREE_SPOT) {
+                                navController.navigate(Routes.ADD_FREE_SPOT) {
+                                    launchSingleTop = true
+                                }
+                            }
                         } else {
                             navController.navigateToTab(route)
                         }
@@ -453,8 +462,8 @@ private fun MainAppNavigation(
             }
             composable(Routes.ADD_FREE_SPOT) {
                 AddFreeSpotScreen(
-                    onNavigateBack = { navController.popBackStack() },
                     onSpotReported = { navController.popBackStack() },
+                    bottomPadding = scaffoldPadding.calculateBottomPadding(),
                 )
             }
             composable(
@@ -551,13 +560,6 @@ private fun MainAppNavigation(
 // Bottom Navigation Bar — single source of truth for the app's tab items
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Synthetic route used by the "Avisar" nav item. Not registered in the NavHost
-// — onNavigate intercepts it and pushes Routes.ADD_FREE_SPOT instead. Using a
-// non-matching route keeps the item from ever rendering as "selected" (the
-// AddFreeSpot screen hides the nav anyway, so the selected state would only
-// flash briefly during the slide-out transition).
-private const val ACTION_REPORT_ROUTE = "__action_report__"
-
 private val bottomNavItems = listOf(
     AppBottomNavItem(
         route = Routes.HOME,
@@ -566,9 +568,9 @@ private val bottomNavItems = listOf(
         iconOutline = Icons.Outlined.Home,
     ),
     AppBottomNavItem(
-        route = ACTION_REPORT_ROUTE,
+        route = Routes.ADD_FREE_SPOT,
         label = { stringResource(Res.string.nav_tab_report) },
-        iconFilled = Icons.Outlined.Campaign,
+        iconFilled = Icons.Filled.Campaign,
         iconOutline = Icons.Outlined.Campaign,
     ),
     AppBottomNavItem(

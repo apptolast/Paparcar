@@ -216,8 +216,10 @@
     <string name="home_cd_map_type">Switch map type</string>
 
     <!-- Add free spot screen -->
-    <string name="add_free_spot_title">Mark a free spot</string>
-    <string name="add_free_spot_action">Mark spot here</string>
+    <string name="add_free_spot_title">Marking a free spot</string>
+    <string name="add_free_spot_subtitle">A free spot you\'ve seen and want to share with others.</string>
+    <string name="add_free_spot_action">Notify the community</string>
+    <string name="add_free_spot_locating_address">Locating address…</string>
     <string name="add_free_spot_cd_back">Back</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->

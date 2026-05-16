@@ -248,8 +248,10 @@
     <string name="home_spot_signal_sent">&#xA1;Gracias por la actualizaci&#xF3;n!</string>
 
     <!-- Marcar plaza libre -->
-    <string name="add_free_spot_title">Marcar plaza libre</string>
-    <string name="add_free_spot_action">Marcar plaza aqu&#xED;</string>
+    <string name="add_free_spot_title">Marcando una plaza libre</string>
+    <string name="add_free_spot_subtitle">Una plaza libre que has visto y quieres compartir.</string>
+    <string name="add_free_spot_action">Avisar a la comunidad</string>
+    <string name="add_free_spot_locating_address">Localizando direcci&#xF3;n…</string>
     <string name="add_free_spot_cd_back">Atr&#xE1;s</string>
 
     <!-- Banner de precisión GPS -->
