@@ -59,6 +59,7 @@ import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.walkTimeString
+import io.apptolast.paparcar.ui.icons.icon
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
@@ -165,20 +166,13 @@ private fun SpotPeekRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            val placeEmoji = spot.placeInfo?.category?.emoji
-            if (placeEmoji != null) {
-                Text(
-                    text = placeEmoji,
-                    fontSize = 22.sp,
-                )
-            } else {
-                Icon(
-                    Icons.Outlined.LocalParking,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(26.dp),
-                )
-            }
+            val placeIcon = spot.placeInfo?.category?.icon
+            Icon(
+                imageVector = placeIcon ?: Icons.Outlined.LocalParking,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -353,20 +347,13 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        val cameraPlaceEmoji = info.placeInfo?.category?.emoji
-        if (cameraPlaceEmoji != null) {
-            Text(
-                text = cameraPlaceEmoji,
-                fontSize = 22.sp,
-            )
-        } else {
-            Icon(
-                Icons.Outlined.LocationOn,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
-            )
-        }
+        val cameraPlaceIcon = info.placeInfo?.category?.icon
+        Icon(
+            imageVector = cameraPlaceIcon ?: Icons.Outlined.LocationOn,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(26.dp),
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = if (info.placeInfo != null) info.placeInfo.name

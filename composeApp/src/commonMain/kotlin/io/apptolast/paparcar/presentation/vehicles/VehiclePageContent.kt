@@ -40,7 +40,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.presentation.history.HistoryContent
@@ -49,6 +48,7 @@ import io.apptolast.paparcar.presentation.history.HistoryIntent
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.ui.components.PapSecondaryButton
 import io.apptolast.paparcar.ui.components.VehicleDetectionStatus
+import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapBlueMuted
 import io.apptolast.paparcar.ui.theme.PapGreen
@@ -183,11 +183,13 @@ private fun VehicleIdentityCard(
             ),
             verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
         ) {
-            // ── Row 1: emoji + name/subtitle + kebab ─────────────────────────
+            // ── Row 1: vehicle size icon + name/subtitle + kebab ─────────────
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = vehicleSizeEmoji(vehicle.sizeCategory),
-                    fontSize = EMOJI_FONT_SIZE,
+                Icon(
+                    imageVector = vehicle.sizeCategory.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(VEHICLE_ICON_SIZE),
                 )
                 Spacer(Modifier.width(PaparcarSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
@@ -346,19 +348,6 @@ private data class DetectionChipData(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * System-emoji visual per vehicle size. Mirrors the [VehicleSizeExplainerScreen]
- * convention (which uses 🚗 in its title), so the metaphor stays consistent
- * between onboarding and the My-Vehicles tab. No bundled assets needed.
- */
-internal fun vehicleSizeEmoji(size: VehicleSize): String = when (size) {
-    VehicleSize.MOTO   -> "\uD83D\uDEF5"  // 🛵
-    VehicleSize.SMALL  -> "\uD83D\uDE99"  // 🚙
-    VehicleSize.MEDIUM -> "\uD83D\uDE97"  // 🚗
-    VehicleSize.LARGE  -> "\uD83D\uDE90"  // 🚐
-    VehicleSize.VAN    -> "\uD83D\uDE9A"  // 🚚
-}
-
 @Composable
 private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
     VehicleSize.MOTO   -> stringResource(Res.string.vehicle_size_moto)
@@ -368,7 +357,7 @@ private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
     VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
 }
 
-private val EMOJI_FONT_SIZE = 44.sp
+private val VEHICLE_ICON_SIZE = 44.dp
 private val CHIP_CORNER_RADIUS = 12.dp
 private val CHIP_ICON_SIZE = 14.dp
 private const val BT_LABEL_LENGTH = 5

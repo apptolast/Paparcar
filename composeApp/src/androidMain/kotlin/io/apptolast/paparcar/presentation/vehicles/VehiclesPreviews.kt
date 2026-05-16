@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +35,7 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.preview.FakeData
 import io.apptolast.paparcar.ui.components.PapSecondaryButton
+import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
@@ -201,7 +203,12 @@ private fun HeaderBody(vehicle: Vehicle, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = vehicleSizeEmoji(vehicle.sizeCategory), fontSize = 44.sp)
+            Icon(
+                imageVector = vehicle.sizeCategory.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(44.dp),
+            )
             Spacer(Modifier.width(PaparcarSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

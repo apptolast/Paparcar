@@ -25,6 +25,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.PlaceCategory
+import io.apptolast.paparcar.domain.model.VehicleSize
 
 /**
  * Custom icon set for Paparcar.
@@ -346,3 +348,45 @@ private fun vehicleLargeVector(): ImageVector = buildVehicleVector("PapVehicleLa
     curveTo(19.22f, 20.2f, 20.2f, 19.22f, 20.2f, 18f)
     close()
 }
+
+// ─── Domain → icon mappers ────────────────────────────────────────────────────
+// Live in the UI layer (not on the enum itself) so the domain models stay
+// Compose-free. Importing PaparcarIcons gives you the .icon extension on both
+// VehicleSize and PlaceCategory for drop-in use at any Icon(...) call site.
+
+/**
+ * Replaces the legacy `vehicleSizeEmoji(...)` helper. Returns the Paparcar
+ * icon matching a given [VehicleSize] so call sites render
+ * `Icon(size.icon, ...)` instead of a Text+emoji pair.
+ */
+val VehicleSize.icon: ImageVector
+    get() = when (this) {
+        VehicleSize.MOTO   -> PaparcarIcons.VehicleMoto
+        VehicleSize.SMALL  -> PaparcarIcons.VehicleSmall
+        VehicleSize.MEDIUM -> PaparcarIcons.VehicleMedium
+        VehicleSize.LARGE  -> PaparcarIcons.VehicleLarge
+        VehicleSize.VAN    -> PaparcarIcons.VehicleVan
+    }
+
+/**
+ * Icon counterpart to the legacy `PlaceCategory.emoji` string field. The
+ * emoji field stays for now (some string-formatted display lines still embed
+ * it inline); UI sites that render a dedicated icon slot can switch to this
+ * extension and drop the inline emoji from their Text body.
+ */
+val PlaceCategory.icon: ImageVector
+    get() = when (this) {
+        PlaceCategory.FUEL        -> PaparcarIcons.Fuel
+        PlaceCategory.SUPERMARKET -> PaparcarIcons.Supermarket
+        PlaceCategory.MALL        -> PaparcarIcons.Mall
+        PlaceCategory.RESTAURANT  -> PaparcarIcons.Restaurant
+        PlaceCategory.CAFE        -> PaparcarIcons.Cafe
+        PlaceCategory.PHARMACY    -> PaparcarIcons.Pharmacy
+        PlaceCategory.HOSPITAL    -> PaparcarIcons.Hospital
+        PlaceCategory.PARKING     -> PaparcarIcons.ParkingPlace
+        PlaceCategory.BANK        -> PaparcarIcons.Bank
+        PlaceCategory.HOTEL       -> PaparcarIcons.Hotel
+        PlaceCategory.SCHOOL      -> PaparcarIcons.School
+        PlaceCategory.GYM         -> PaparcarIcons.Gym
+        PlaceCategory.OTHER       -> PaparcarIcons.PlaceGeneric
+    }

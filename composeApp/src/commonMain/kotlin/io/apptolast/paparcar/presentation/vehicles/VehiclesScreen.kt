@@ -43,9 +43,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -219,7 +220,11 @@ private fun VehicleTabLabel(vehicle: Vehicle) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(text = vehicleSizeEmoji(vehicle.sizeCategory), fontSize = TAB_EMOJI_SIZE)
+        Icon(
+            imageVector = vehicle.sizeCategory.icon,
+            contentDescription = null,
+            modifier = Modifier.size(TAB_ICON_SIZE),
+        )
         Text(text = tabName, maxLines = 1)
         if (vehicle.isDefault) {
             Box(
@@ -272,7 +277,12 @@ private fun EmptyVehicleState(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(text = "🚗", fontSize = EMPTY_STATE_EMOJI_SIZE)
+        Icon(
+            imageVector = PaparcarIcons.VehicleMedium,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(EMPTY_STATE_ICON_SIZE),
+        )
         Spacer(modifier = Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.my_car_no_vehicle),
@@ -307,7 +317,7 @@ private fun EmptyVehicleState(
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-private val EMPTY_STATE_EMOJI_SIZE = 72.sp
-private val TAB_EMOJI_SIZE = 16.sp
+private val EMPTY_STATE_ICON_SIZE = 72.dp
+private val TAB_ICON_SIZE = 18.dp
 private val ACTIVE_DOT_SIZE = 6.dp
 private const val TAB_LABEL_MAX_LENGTH = 8

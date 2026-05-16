@@ -15,9 +15,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,12 +31,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.ui.components.PapCard
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -52,9 +59,9 @@ import paparcar.composeapp.generated.resources.onboarding_step3_title
 private const val PAGE_COUNT                 = 3
 private const val DOT_ANIM_MS                = 300
 private val       PAGE_CONTENT_BOTTOM_CLEARANCE = 140.dp
-private val       HERO_EMOJI_SIZE            = 72.sp
-private val       HERO_EMOJI_SIZE_SMALL      = 64.sp
-private val       STEP_EMOJI_SIZE            = 32.sp
+private val       HERO_ICON_SIZE             = 80.dp
+private val       HERO_ICON_SIZE_SMALL       = 72.dp
+private val       STEP_ICON_SIZE             = 36.dp
 private val       DOT_ACTIVE_WIDTH           = 24.dp
 private val       DOT_INACTIVE_SIZE          = 8.dp
 
@@ -123,7 +130,12 @@ private fun OnboardingPage1() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "🚗", fontSize = HERO_EMOJI_SIZE)
+        Icon(
+            imageVector = PaparcarIcons.VehicleMedium,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(HERO_ICON_SIZE),
+        )
         Spacer(Modifier.height(PaparcarSpacing.xxxl))
         Text(
             text = stringResource(Res.string.onboarding_page1_title),
@@ -162,19 +174,19 @@ private fun OnboardingPage2() {
         )
         Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
         OnboardingStep(
-            emoji = "🚘",
+            icon = Icons.Outlined.DirectionsCar,
             title = stringResource(Res.string.onboarding_step1_title),
             desc = stringResource(Res.string.onboarding_step1_desc),
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
-            emoji = "🅿️",
+            icon = PaparcarIcons.ParkingPlace,
             title = stringResource(Res.string.onboarding_step2_title),
             desc = stringResource(Res.string.onboarding_step2_desc),
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
-            emoji = "📍",
+            icon = Icons.Outlined.LocationOn,
             title = stringResource(Res.string.onboarding_step3_title),
             desc = stringResource(Res.string.onboarding_step3_desc),
         )
@@ -192,7 +204,12 @@ private fun OnboardingPage3() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "🔒", fontSize = HERO_EMOJI_SIZE_SMALL)
+        Icon(
+            imageVector = Icons.Outlined.Lock,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(HERO_ICON_SIZE_SMALL),
+        )
         Spacer(Modifier.height(PaparcarSpacing.xxl))
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
@@ -212,13 +229,18 @@ private fun OnboardingPage3() {
 }
 
 @Composable
-private fun OnboardingStep(emoji: String, title: String, desc: String) {
+private fun OnboardingStep(icon: ImageVector, title: String, desc: String) {
     PapCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = emoji, fontSize = STEP_EMOJI_SIZE)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(STEP_ICON_SIZE),
+            )
             Spacer(Modifier.width(PaparcarSpacing.lg))
             Column {
                 Text(

@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,11 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -43,8 +48,8 @@ private val StepBadgeSize           = 28.dp
 private val StepConnectorWidth      = 2.dp
 private val TOP_CONTENT_PADDING     = 56.dp
 private val BOTTOM_CONTENT_PADDING  = 140.dp
-private val TITLE_EMOJI_SIZE        = 56.sp
-private val STEP_EMOJI_SIZE         = 18.sp
+private val TITLE_ICON_SIZE         = 64.dp
+private val STEP_ICON_SIZE          = 20.dp
 private val STEP_TEXT_SPACER        = 2.dp
 
 @Composable
@@ -65,7 +70,12 @@ fun VehicleSizeExplainerScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = "🚗", fontSize = TITLE_EMOJI_SIZE)
+            Icon(
+                imageVector = PaparcarIcons.VehicleMedium,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(TITLE_ICON_SIZE),
+            )
             Spacer(Modifier.height(PaparcarSpacing.lg))
             Text(
                 text = stringResource(Res.string.vehicle_size_explainer_title),
@@ -85,21 +95,21 @@ fun VehicleSizeExplainerScreen(
 
             val items = listOf(
                 Triple(
-                    "📏",
+                    Icons.Outlined.Straighten,
                     stringResource(Res.string.vehicle_size_explainer_card1_title),
                     stringResource(Res.string.vehicle_size_explainer_card1_desc),
                 ),
                 Triple(
-                    "🔒",
+                    Icons.Outlined.Lock,
                     stringResource(Res.string.vehicle_size_explainer_card2_title),
                     stringResource(Res.string.vehicle_size_explainer_card2_desc),
                 ),
             )
 
-            items.forEachIndexed { index, (emoji, label, desc) ->
+            items.forEachIndexed { index, (icon, label, desc) ->
                 ExplainerStep(
                     stepNumber = index + 1,
-                    emoji = emoji,
+                    icon = icon,
                     label = label,
                     description = desc,
                     isLast = index == items.lastIndex,
@@ -128,7 +138,7 @@ fun VehicleSizeExplainerScreen(
 @Composable
 private fun ExplainerStep(
     stepNumber: Int,
-    emoji: String,
+    icon: ImageVector,
     label: String,
     description: String,
     isLast: Boolean,
@@ -181,7 +191,12 @@ private fun ExplainerStep(
                 .padding(bottom = if (isLast) 0.dp else PaparcarSpacing.lg),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = emoji, fontSize = STEP_EMOJI_SIZE)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(STEP_ICON_SIZE),
+                )
                 Spacer(Modifier.width(PaparcarSpacing.sm))
                 Text(
                     text = label,
