@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.home.components
+package io.apptolast.paparcar.presentation.home.sections.header.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn

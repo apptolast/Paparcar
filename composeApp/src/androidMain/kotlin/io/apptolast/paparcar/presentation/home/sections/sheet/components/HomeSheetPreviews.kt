@@ -1,6 +1,6 @@
 @file:OptIn(kotlin.time.ExperimentalTime::class)
 
-package io.apptolast.paparcar.presentation.home.components
+package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column

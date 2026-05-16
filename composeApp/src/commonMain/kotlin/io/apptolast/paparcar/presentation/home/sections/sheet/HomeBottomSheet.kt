@@ -1,0 +1,175 @@
+package io.apptolast.paparcar.presentation.home.sections.sheet
+
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.presentation.home.HomeIntent
+import io.apptolast.paparcar.presentation.home.HomeState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
+
+/**
+ * The bottom Surface that hosts the peek handle (drag affordance) and the
+ * scrollable list of sheet items. Owns the drag gesture, the fling snap
+ * logic, and the LazyColumn — but does NOT own the [sheetOffsetPx]
+ * Animatable itself. That lives in the parent so the map can compute its
+ * height from the same source of truth.
+ *
+ * @param dragSnap controls fling/soft-drag snapping; pass [HomeSheetSnap] from the parent.
+ */
+@Composable
+internal fun HomeBottomSheet(
+    state: HomeState,
+    sheetHeightDp: Dp,
+    sheetOffsetPx: Animatable<Float, AnimationVector1D>,
+    dragSnap: HomeSheetSnap,
+    lazyListState: LazyListState,
+    sheetNestedScroll: NestedScrollConnection,
+    bottomContentPadding: Dp,
+    coroutineScope: CoroutineScope,
+    onPeekHeightChanged: (Float) -> Unit,
+    onIntent: (HomeIntent) -> Unit,
+    onParkingClick: () -> Unit,
+    onManualPark: () -> Unit,
+    onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
+    onCameraMove: (lat: Double, lon: Double) -> Unit,
+    onRelease: () -> Unit,
+    onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(sheetHeightDp),
+        shape = RoundedCornerShape(topStart = SHEET_TOP_CORNER_DP.dp, topEnd = SHEET_TOP_CORNER_DP.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        // Lift the top edge above the map tiles with the same depth
+        // language as the floating search bar and circular FABs.
+        // [HOME-DEPTH-001]
+        shadowElevation = SHEET_SHADOW_ELEVATION_DP.dp,
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .onSizeChanged { size ->
+                        // Guard 0-height transients during the first compose
+                        // pass so peekHeightPx never collapses the offset math.
+                        if (size.height > 0) onPeekHeightChanged(size.height.toFloat())
+                    }
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta ->
+                            coroutineScope.launch {
+                                sheetOffsetPx.snapTo(
+                                    (sheetOffsetPx.value + delta)
+                                        .coerceIn(dragSnap.fullSnapOffsetPx, dragSnap.peekOffsetPx),
+                                )
+                            }
+                        },
+                        onDragStopped = { velocity ->
+                            coroutineScope.launch {
+                                val target = dragSnap.snapTarget(sheetOffsetPx.value, velocity)
+                                sheetOffsetPx.animateTo(target, dragSnap.snapSpec)
+                            }
+                        },
+                    ),
+            ) {
+                HomePeekHandle(
+                    state = state,
+                    onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
+                    onRelease = onRelease,
+                    onNavigateExternal = onNavigateExternal,
+                )
+            }
+
+            LazyColumn(
+                state = lazyListState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .nestedScroll(sheetNestedScroll),
+                contentPadding = PaddingValues(
+                    top = 4.dp,
+                    // Reserve the AppBottomNavigation height so the last
+                    // list row stays visible above the global nav bar.
+                    bottom = 16.dp + bottomContentPadding,
+                ),
+            ) {
+                homeSheetItems(
+                    state = state,
+                    onIntent = onIntent,
+                    onCameraMove = onCameraMove,
+                    onParkingClick = onParkingClick,
+                    onManualPark = onManualPark,
+                    onSpotSelect = onSpotSelect,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Snap-point bundle for the sheet drag. Centralises the three offsets and
+ * the fling/soft-drag selection so [HomeBottomSheet] can be called with a
+ * single value instead of four loose floats.
+ */
+internal data class HomeSheetSnap(
+    val peekOffsetPx: Float,
+    val halfOffsetPx: Float,
+    val fullSnapOffsetPx: Float,
+    val snapSpec: androidx.compose.animation.core.AnimationSpec<Float>,
+) {
+    /** Returns the snap target the sheet should animate to after the user releases the drag. */
+    fun snapTarget(current: Float, velocityYPxPerSec: Float): Float = when {
+        velocityYPxPerSec < -FLING_SNAP_VELOCITY -> {
+            // Fling up: collapsed → half, half → full.
+            if (current > halfOffsetPx) halfOffsetPx else fullSnapOffsetPx
+        }
+        velocityYPxPerSec > FLING_SNAP_VELOCITY -> {
+            // Fling down: full → half, half → collapsed.
+            if (current < halfOffsetPx) halfOffsetPx else peekOffsetPx
+        }
+        else -> {
+            // Soft drag: snap to the nearest of full / half / peek.
+            val distFull = (current - fullSnapOffsetPx).absoluteValue
+            val distHalf = (current - halfOffsetPx).absoluteValue
+            val distPeek = (current - peekOffsetPx).absoluteValue
+            when {
+                distPeek <= distHalf && distPeek <= distFull -> peekOffsetPx
+                distHalf <= distFull -> halfOffsetPx
+                else -> fullSnapOffsetPx
+            }
+        }
+    }.coerceIn(fullSnapOffsetPx, peekOffsetPx)
+}
+
+// Velocity (px/s) required to snap the sheet on fling; below this the sheet
+// stays in place at its closest snap point.
+private const val FLING_SNAP_VELOCITY = 1200f
+
+private const val SHEET_TOP_CORNER_DP = 20
+private const val SHEET_SHADOW_ELEVATION_DP = 12
