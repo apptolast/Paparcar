@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -204,6 +205,20 @@ private const val MARKER_FREE_SPOT_MEDIUM    = "free_spot_medium"
 private const val MARKER_FREE_SPOT_LOW       = "free_spot_low"
 private const val MARKER_FREE_SPOT_MANUAL    = "free_spot_manual"
 private const val MARKER_FREE_SPOT_SELECTED  = "free_spot_selected"
+// Dimmed variants used when the host is in a "positioning a new spot" flow:
+// same composables, wrapped in Modifier.alpha so existing markers stay
+// visible but subordinated to the centre pin. Distinct contentId so the
+// kmpmaps bitmap cache rasterises them separately from the full-opacity
+// variants instead of reusing a cached bitmap.
+private const val MARKER_FREE_SPOT_HIGH_DIM   = "free_spot_high_dim"
+private const val MARKER_FREE_SPOT_MEDIUM_DIM = "free_spot_medium_dim"
+private const val MARKER_FREE_SPOT_LOW_DIM    = "free_spot_low_dim"
+private const val MARKER_FREE_SPOT_MANUAL_DIM = "free_spot_manual_dim"
+private const val MARKER_MY_CAR_DIM           = "my_car_dim"
+
+// Alpha applied to dimmed FreeSpot markers — visible enough to deter
+// duplicate reports, subordinate enough that the centre pin dominates.
+private const val DIM_MARKER_ALPHA = 0.35f
 private const val MARKER_CLUSTER             = "cluster"
 private const val CAMERA_MOVING_DEBOUNCE_MS  = 280L
 
@@ -224,6 +239,14 @@ private fun Spot.reliabilityContentId(): String = when (toSpotReliabilityLevel()
     SpotReliabilityLevel.MEDIUM -> MARKER_FREE_SPOT_MEDIUM
     SpotReliabilityLevel.LOW    -> MARKER_FREE_SPOT_LOW
     SpotReliabilityLevel.MANUAL -> MARKER_FREE_SPOT_MANUAL
+}
+
+/** Dimmed counterpart of [reliabilityContentId] used while [PaparcarMapView.dimSpots] is on. */
+private fun Spot.reliabilityDimmedContentId(): String = when (toSpotReliabilityLevel()) {
+    SpotReliabilityLevel.HIGH   -> MARKER_FREE_SPOT_HIGH_DIM
+    SpotReliabilityLevel.MEDIUM -> MARKER_FREE_SPOT_MEDIUM_DIM
+    SpotReliabilityLevel.LOW    -> MARKER_FREE_SPOT_LOW_DIM
+    SpotReliabilityLevel.MANUAL -> MARKER_FREE_SPOT_MANUAL_DIM
 }
 
 /** Degree threshold used to group nearby spots at a given zoom level. */
@@ -334,9 +357,24 @@ fun PaparcarMapView(
     modifier: Modifier = Modifier,
     cameraTarget: CameraTarget? = null,
     selectedSpotId: String? = null,
+    /** When true, the parked-car marker bypasses the [dimSpots] pass and renders at full opacity. */
+    isMyCarSelected: Boolean = false,
     reportMode: Boolean = false,
     isAnyItemSelected: Boolean = false,
     isLoading: Boolean = false,
+    /**
+     * When true, every marker EXCEPT the currently-focused one (the
+     * selected spot via [selectedSpotId] or the parked car via
+     * [isMyCarSelected]) renders with [DIM_MARKER_ALPHA] opacity via a
+     * distinct "_dim" contentId. The kmpmaps bitmap cache keys on
+     * contentId, so flipping this flag re-rasterises the affected
+     * markers — flipping a Modifier.alpha inside the existing lambda
+     * would reuse the cached bitmap and the dim would never appear.
+     * Used by the host to subordinate non-focus markers while the user
+     * has a selection or is positioning a new spot (Home's Reporting
+     * mode + selection states).
+     */
+    dimSpots: Boolean = false,
     onSpotClick: (String) -> Unit = {},
     onMyCarClick: () -> Unit = {},
     onCameraMove: (lat: Double, lon: Double) -> Unit = { _, _ -> },
@@ -356,7 +394,12 @@ fun PaparcarMapView(
     }
 
     // ── Build markers list ───────────────────────────────────────────────────
-    val markers = remember(clusters, parkingLocation, selectedSpotId) {
+    // dimSpots + isMyCarSelected are part of the cache key because both
+    // flip per-marker contentIds (full-opacity ↔ "_dim" variants, plus the
+    // parking-selected exception). Without them, the remembered list would
+    // hold the original Markers and kmpmaps would keep showing the cached
+    // full-opacity bitmaps after the host enters a focus state.
+    val markers = remember(clusters, parkingLocation, selectedSpotId, dimSpots, isMyCarSelected) {
         buildList {
             parkingLocation?.let {
                 add(
@@ -366,7 +409,13 @@ fun PaparcarMapView(
                         // bubble; we identify this marker by contentId in the click
                         // handler instead.
                         title = null,
-                        contentId = MARKER_MY_CAR,
+                        contentId = when {
+                            // Parking-selected: the my-car marker is the focus,
+                            // bypasses the dim pass even if other markers dim.
+                            isMyCarSelected -> MARKER_MY_CAR
+                            dimSpots -> MARKER_MY_CAR_DIM
+                            else -> MARKER_MY_CAR
+                        },
                     ),
                 )
             }
@@ -387,8 +436,11 @@ fun PaparcarMapView(
                         Marker(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
                             title = title,
-                            contentId = if (spot.id == selectedSpotId) MARKER_FREE_SPOT_SELECTED
-                            else spot.reliabilityContentId(),
+                            contentId = when {
+                                spot.id == selectedSpotId -> MARKER_FREE_SPOT_SELECTED
+                                dimSpots -> spot.reliabilityDimmedContentId()
+                                else -> spot.reliabilityContentId()
+                            },
                         ),
                     )
                 } else {
@@ -413,6 +465,11 @@ fun PaparcarMapView(
     val customMarkerContent = remember {
         mapOf<String, @Composable (Marker) -> Unit>(
             MARKER_MY_CAR to { _ -> MyVehicleMarker() },
+            MARKER_MY_CAR_DIM to { _ ->
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
+                    MyVehicleMarker()
+                }
+            },
             MARKER_FREE_SPOT_HIGH to { marker ->
                 FreeSpotWithOverlays(reliability = SpotReliabilityLevel.HIGH, marker = marker)
             },
@@ -425,10 +482,36 @@ fun PaparcarMapView(
             MARKER_FREE_SPOT_MANUAL to { marker ->
                 FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MANUAL, marker = marker)
             },
+            // Dimmed variants — same composable wrapped in Modifier.alpha. Distinct
+            // contentId so kmpmaps rasterises them as separate bitmaps; switching a
+            // marker's contentId in the dim ON/OFF transition triggers re-rasterisation
+            // (whereas mutating alpha inside the existing lambda would reuse the cached
+            // full-opacity bitmap and the dim would never appear on screen).
+            MARKER_FREE_SPOT_HIGH_DIM to { marker ->
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
+                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.HIGH, marker = marker)
+                }
+            },
+            MARKER_FREE_SPOT_MEDIUM_DIM to { marker ->
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
+                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MEDIUM, marker = marker)
+                }
+            },
+            MARKER_FREE_SPOT_LOW_DIM to { marker ->
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
+                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.LOW, marker = marker)
+                }
+            },
+            MARKER_FREE_SPOT_MANUAL_DIM to { marker ->
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
+                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MANUAL, marker = marker)
+                }
+            },
             MARKER_FREE_SPOT_SELECTED to { marker ->
                 // Selected uses HIGH colour + halo, matching the legacy behaviour where
                 // selection collapsed to the canonical green-on-dark look regardless of
-                // the underlying spot's reliability.
+                // the underlying spot's reliability. Selection always renders at full
+                // opacity — never participates in the Reporting-mode dim pass.
                 FreeSpotWithOverlays(
                     reliability = SpotReliabilityLevel.HIGH,
                     marker = marker,
@@ -562,7 +645,7 @@ fun PaparcarMapView(
                 }
             },
             onMarkerClick = { marker ->
-                if (marker.contentId == MARKER_MY_CAR) {
+                if (marker.contentId == MARKER_MY_CAR || marker.contentId == MARKER_MY_CAR_DIM) {
                     onMyCarClick()
                     return@Map
                 }
@@ -595,7 +678,7 @@ fun PaparcarMapView(
 
         // ── Center indicator: animated pin (pin-drop) OR crosshair ───────────
         if (config.showAnimatedCenterPin) {
-            AnimatedCenterPin(
+            ReportCenterPin(
                 cameraMoving = cameraMoving,
                 modifier = Modifier.align(Alignment.Center),
             )
@@ -696,42 +779,6 @@ fun PaparcarMapView(
  * settles, it drops back (offset Y 0dp, scale 1.0×). Both transitions ride
  * a `Spring(MediumBouncy)` for the characteristic bounce-on-land feel.
  */
-@Composable
-private fun AnimatedCenterPin(
-    cameraMoving: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val offsetY = remember { Animatable(CENTER_PIN_DROP_REST_DP) }
-    val scale = remember { Animatable(CENTER_PIN_DROP_SCALE_TO) }
-    LaunchedEffect(cameraMoving) {
-        val (yTarget, scaleTarget) = if (cameraMoving) {
-            CENTER_PIN_DROP_OFFSET_DP to CENTER_PIN_DROP_SCALE_FROM
-        } else {
-            CENTER_PIN_DROP_REST_DP to CENTER_PIN_DROP_SCALE_TO
-        }
-        launch {
-            offsetY.animateTo(
-                yTarget,
-                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-            )
-        }
-        launch {
-            scale.animateTo(
-                scaleTarget,
-                spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-            )
-        }
-    }
-    Icon(
-        imageVector = Icons.Filled.Place,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary,
-        modifier = modifier
-            .offset(y = offsetY.value.dp)
-            .scale(scale.value)
-            .size(48.dp),
-    )
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Camera animation

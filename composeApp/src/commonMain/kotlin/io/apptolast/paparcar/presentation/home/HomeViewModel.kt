@@ -171,7 +171,12 @@ class HomeViewModel(
             is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon, intent.publishSpot)
             is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId) }
             is HomeIntent.ManualPark -> manualPark()
-            is HomeIntent.CameraPositionChanged -> geocodeCameraLocation(intent.lat, intent.lon)
+            is HomeIntent.CameraPositionChanged -> {
+                if (state.value.mode is HomeMode.Reporting) {
+                    updateState { copy(reportCameraLat = intent.lat, reportCameraLon = intent.lon) }
+                }
+                geocodeCameraLocation(intent.lat, intent.lon)
+            }
             is HomeIntent.SearchQueryChanged -> handleSearchQueryChanged(intent.query)
             is HomeIntent.SelectSearchResult -> {
                 updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
@@ -184,6 +189,38 @@ class HomeViewModel(
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.SendSpotSignal -> handleSpotSignal(intent.spotId, intent.accepted)
+            is HomeIntent.EnterReportMode -> updateState {
+                copy(mode = HomeMode.Reporting, selectedItemId = null)
+            }
+            is HomeIntent.ExitReportMode -> updateState {
+                copy(mode = HomeMode.Browse, reportCameraLat = null, reportCameraLon = null)
+            }
+            is HomeIntent.ConfirmReportSpot -> confirmReportSpot()
+        }
+    }
+
+    private fun confirmReportSpot() {
+        val current = state.value
+        if (current.mode !is HomeMode.Reporting || current.isReporting) return
+        val lat = current.reportCameraLat ?: current.userGpsPoint?.latitude
+        val lon = current.reportCameraLon ?: current.userGpsPoint?.longitude
+        if (lat == null || lon == null) {
+            sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
+            return
+        }
+        updateState { copy(isReporting = true) }
+        viewModelScope.launch {
+            val spotId = "manual_${Clock.System.now().toEpochMilliseconds()}"
+            reportSpotReleased(lat, lon, spotId, SpotType.MANUAL_REPORT, confidence = 1f)
+            updateState {
+                copy(
+                    isReporting = false,
+                    mode = HomeMode.Browse,
+                    reportCameraLat = null,
+                    reportCameraLon = null,
+                )
+            }
+            sendEffect(HomeEffect.SpotReported)
         }
     }
 

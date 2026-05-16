@@ -1,8 +1,5 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet
 
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
-
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.gestures.Orientation
@@ -27,7 +24,10 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.HomeIntent
+import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -103,30 +103,37 @@ internal fun HomeBottomSheet(
                     onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                     onRelease = onRelease,
                     onNavigateExternal = onNavigateExternal,
+                    onCancelReport = { onIntent(HomeIntent.ExitReportMode) },
+                    onConfirmReport = { onIntent(HomeIntent.ConfirmReportSpot) },
                 )
             }
 
-            LazyColumn(
-                state = lazyListState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .nestedScroll(sheetNestedScroll),
-                contentPadding = PaddingValues(
-                    top = 4.dp,
-                    // Reserve the AppBottomNavigation height so the last
-                    // list row stays visible above the global nav bar.
-                    bottom = 16.dp + bottomContentPadding,
-                ),
-            ) {
-                homeSheetItems(
-                    state = state,
-                    onIntent = onIntent,
-                    onCameraMove = onCameraMove,
-                    onParkingClick = onParkingClick,
-                    onManualPark = onManualPark,
-                    onSpotSelect = onSpotSelect,
-                )
+            // In Reporting mode the peek handle contains the entire report
+            // surface (state row + primary CTA). Skip rendering the browse
+            // list below so the sheet collapses to handle height naturally.
+            if (state.mode is HomeMode.Browse) {
+                LazyColumn(
+                    state = lazyListState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .nestedScroll(sheetNestedScroll),
+                    contentPadding = PaddingValues(
+                        top = 4.dp,
+                        // Reserve the AppBottomNavigation height so the last
+                        // list row stays visible above the global nav bar.
+                        bottom = 16.dp + bottomContentPadding,
+                    ),
+                ) {
+                    homeSheetItems(
+                        state = state,
+                        onIntent = onIntent,
+                        onCameraMove = onCameraMove,
+                        onParkingClick = onParkingClick,
+                        onManualPark = onManualPark,
+                        onSpotSelect = onSpotSelect,
+                    )
+                }
             }
         }
     }

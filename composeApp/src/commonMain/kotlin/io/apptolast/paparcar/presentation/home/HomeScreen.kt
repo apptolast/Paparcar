@@ -38,6 +38,7 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
+import io.apptolast.paparcar.presentation.home.sections.map.components.HomeReportFab
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
@@ -95,6 +96,7 @@ private val MAP_BOTTOM_BLEED = 20.dp
 
 // FAB inset above the sheet top edge.
 private val FAB_ABOVE_SHEET_GAP = 12.dp
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root
@@ -338,8 +340,12 @@ private fun HomeContent(
                 val halfOffsetPx = (fullSnapOffsetPx + peekOffsetPx) / 2f
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
-                LaunchedEffect(peekOffsetPx, state.selectedItemId) {
-                    if (state.selectedItemId == null) {
+                LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
+                    // Reporting and Browse-with-no-selection both want the sheet
+                    // resting at peek snap. In Reporting the peek handle itself
+                    // grows to host the entire report surface (state row + CTA),
+                    // so animating to half would only add empty space below.
+                    if (state.selectedItemId == null || state.mode is HomeMode.Reporting) {
                         sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
                     } else if (sheetOffsetPx.value >= peekOffsetPx) {
                         sheetOffsetPx.snapTo(peekOffsetPx)
@@ -434,13 +440,26 @@ private fun HomeContent(
                     }
                 }
 
+                val isReporting = state.mode is HomeMode.Reporting
+
                 // ── Map ──────────────────────────────────────────────────────
                 HomeMapSection(
                     state = state,
                     selectedSpotId = selectedSpotId,
-                    reportMode = !sheetExpanded,
+                    isMyCarSelected = isParkingSelected,
+                    // Only switch the marker stroke style to "report" while in
+                    // Reporting mode — keeps Browse cleanly off the report visual.
+                    reportMode = isReporting,
                     cameraTarget = uiController.cameraTarget,
                     mapHeightDp = mapHeightDp,
+                    // Center pin only exists in Reporting mode — that's the
+                    // affordance for positioning the new spot.
+                    showAnimatedCenterPin = isReporting,
+                    // Dim non-focus markers across all focus states (Reporting,
+                    // spot selected, parking selected). Selected items bypass
+                    // the dim pass — selected spot via the SELECTED contentId,
+                    // parking via the isMyCarSelected flag.
+                    dimSpots = isReporting || state.selectedItemId != null,
                     onSpotClick = onSpotMarkerClick,
                     onMyCarClick = onMyCarMarkerClick,
                     onCameraMove = { lat, lon ->
@@ -464,10 +483,12 @@ private fun HomeContent(
                     modifier = Modifier.align(Alignment.TopStart),
                 )
 
-                // ── Right FAB column ─────────────────────────────────────────
+                // ── Right FAB column (utilities) ─────────────────────────────
                 HomeMapFabsLayer(
                     state = state,
-                    visible = sheetOffsetPx.value >= halfOffsetPx,
+                    // Hidden in Reporting mode so the user focuses on the centre
+                    // pin without competing controls.
+                    visible = !isReporting && sheetOffsetPx.value >= halfOffsetPx,
                     bottomInset = fabBottomDp,
                     onMyLocation = {
                         state.userGpsPoint?.let {
@@ -489,6 +510,20 @@ private fun HomeContent(
                     },
                     modifier = Modifier.align(Alignment.BottomEnd),
                 )
+
+                // ── Left FAB (report a free spot — entry to Reporting mode) ──
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !isReporting && sheetOffsetPx.value >= halfOffsetPx,
+                    enter = androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.fadeOut(),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 14.dp, bottom = fabBottomDp),
+                ) {
+                    HomeReportFab(
+                        onClick = { onIntent(HomeIntent.EnterReportMode) },
+                    )
+                }
 
                 // ── Bottom sheet ─────────────────────────────────────────────
                 HomeBottomSheet(

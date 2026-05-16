@@ -38,4 +38,13 @@ sealed class HomeIntent {
     data class SetSizeFilter(val size: VehicleSize?) : HomeIntent()
     /** Community signal: accepted = "Still there"; !accepted = "Gone". */
     data class SendSpotSignal(val spotId: String, val accepted: Boolean) : HomeIntent()
+
+    /** Enter the manual-spot reporting mode — pin appears on the map, sheet shows the report form. */
+    data object EnterReportMode : HomeIntent()
+
+    /** Exit reporting mode without submitting; sheet and map return to Browse. */
+    data object ExitReportMode : HomeIntent()
+
+    /** Confirm the report at the current camera centre (fallback to user GPS when camera is unknown). */
+    data object ConfirmReportSpot : HomeIntent()
 }

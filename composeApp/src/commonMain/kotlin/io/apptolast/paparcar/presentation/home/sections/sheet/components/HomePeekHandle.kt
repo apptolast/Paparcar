@@ -31,10 +31,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.PinDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.driveTimeString
@@ -62,6 +65,8 @@ import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.ui.icons.icon
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.add_free_spot_action
+import paparcar.composeapp.generated.resources.add_free_spot_subtitle
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_parking_release
@@ -76,6 +81,8 @@ internal fun HomePeekHandle(
     onDismiss: () -> Unit = {},
     onRelease: () -> Unit = {},
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit = { _, _, _ -> },
+    onCancelReport: () -> Unit = {},
+    onConfirmReport: () -> Unit = {},
 ) {
     val freeCount = state.nearbySpots.size
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
@@ -83,6 +90,17 @@ internal fun HomePeekHandle(
         ?.takeIf { !isParkingSelected }
         ?.let { id -> state.nearbySpots.find { it.id == id } }
     val parkingToShow = if (isParkingSelected) state.userParking else null
+    val isReporting = state.mode is HomeMode.Reporting
+
+    // Encode the four mutually exclusive peek states as a typed target so the
+    // AnimatedContent transitions between them cleanly without piling triples
+    // of nullable fields.
+    val peekState: PeekState = when {
+        isReporting -> PeekState.Reporting
+        selectedSpot != null -> PeekState.SelectedSpot(selectedSpot)
+        parkingToShow != null -> PeekState.SelectedParking(parkingToShow)
+        else -> PeekState.Browse
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
@@ -98,11 +116,16 @@ internal fun HomePeekHandle(
                 .align(Alignment.CenterHorizontally),
         )
 
-        // 3-state animated switch: selected spot ↔ selected parking ↔ camera location
+        // 4-state animated switch: spot ↔ parking ↔ reporting ↔ browse.
         AnimatedContent(
-            targetState = Pair(selectedSpot, parkingToShow),
+            targetState = peekState,
             transitionSpec = {
-                if (targetState.first != null) {
+                // "Engaged" states (any state row with a primary action) slide
+                // up; the default browse row slides down. Reporting is treated
+                // as engaged because it has the same dismiss + action affordances
+                // as a selected item.
+                val incomingEngaged = targetState !is PeekState.Browse
+                if (incomingEngaged) {
                     (slideInVertically { it / 2 } + fadeIn()) togetherWith
                         (slideOutVertically { -it / 2 } + fadeOut())
                 } else {
@@ -111,29 +134,53 @@ internal fun HomePeekHandle(
                 }
             },
             label = "peek_content",
-        ) { (spot, parking) ->
-            when {
-                spot != null -> SpotPeekRow(
-                    spot = spot,
+        ) { target ->
+            when (target) {
+                is PeekState.SelectedSpot -> SpotPeekRow(
+                    spot = target.spot,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onDismiss = onDismiss,
                     onNavigate = {
-                        onNavigateExternal(spot.location.latitude, spot.location.longitude, false)
+                        onNavigateExternal(
+                            target.spot.location.latitude,
+                            target.spot.location.longitude,
+                            false,
+                        )
                     },
                 )
-                parking != null -> ParkingPeekRow(
-                    parking = parking,
+                is PeekState.SelectedParking -> ParkingPeekRow(
+                    parking = target.parking,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onDismiss = onDismiss,
                     onRelease = onRelease,
                     onWalkToCar = {
-                        onNavigateExternal(parking.location.latitude, parking.location.longitude, true)
+                        onNavigateExternal(
+                            target.parking.location.latitude,
+                            target.parking.location.longitude,
+                            true,
+                        )
                     },
                 )
-                else -> CameraLocationRow(state = state, freeCount = freeCount)
+                PeekState.Reporting -> ReportPeekRow(
+                    state = state,
+                    onCancel = onCancelReport,
+                    onConfirm = onConfirmReport,
+                )
+                PeekState.Browse -> CameraLocationRow(state = state, freeCount = freeCount)
             }
         }
     }
+}
+
+/**
+ * Typed state for the peek's [AnimatedContent]. Mutually exclusive — the
+ * peek can only ever be in one of these at a time.
+ */
+private sealed class PeekState {
+    data class SelectedSpot(val spot: Spot) : PeekState()
+    data class SelectedParking(val parking: UserParking) : PeekState()
+    data object Reporting : PeekState()
+    data object Browse : PeekState()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -295,6 +342,76 @@ private fun ParkingPeekRow(
             style = PapFooterButtonStyle.Filled,
             modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp),
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reporting row — manual "Avisar plaza" flow
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ReportPeekRow(
+    state: HomeState,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val info = state.cameraLocationInfo
+    val primaryText = when {
+        info?.placeInfo != null -> info.placeInfo.name
+        info?.address?.displayLine != null -> info.address.displayLine!!
+        else -> stringResource(Res.string.home_address_unknown)
+    }
+    val placeIcon = info?.placeInfo?.category?.icon
+
+    Column {
+        // Info row — mirrors SpotPeekRow / ParkingPeekRow: place icon + content
+        // column + dismiss button on the right.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = placeIcon ?: Icons.Outlined.PinDrop,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = primaryText,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.basicMarquee(),
+                )
+                Text(
+                    text = stringResource(Res.string.add_free_spot_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            PeekDismissButton(onDismiss = onCancel)
+        }
+
+        // Primary action — same `PapFooterButton` style as the navigate /
+        // release CTAs in the other peek rows, so the affordance reads as
+        // "the action for this state" across all four state variants.
+        PapFooterButton(
+            label = stringResource(Res.string.add_free_spot_action),
+            leadingIcon = Icons.Outlined.Campaign,
+            onClick = onConfirm,
+            style = PapFooterButtonStyle.Filled,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+        )
+        Spacer(Modifier.height(12.dp))
     }
 }
 

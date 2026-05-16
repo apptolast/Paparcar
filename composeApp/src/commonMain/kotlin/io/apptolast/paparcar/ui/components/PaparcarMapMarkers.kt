@@ -1,10 +1,19 @@
 package io.apptolast.paparcar.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -24,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
+import kotlinx.coroutines.launch
 
 /**
  * Paparcar map markers — Composable implementation from the Design System bundle.
@@ -254,6 +264,131 @@ private fun DrawScope.drawFreeSpot(
         )
     }
 }
+
+// ─── Report centre pin — outlined twin of FreeSpotMarker ─────────────────────
+
+/**
+ * Centre indicator shown while Home is in Reporting mode. Same teardrop
+ * silhouette as [FreeSpotMarker] but stroke-only and using the theme's
+ * onSurface ink, so it reads as "a marker you are about to drop" and stays
+ * visible on both light and dark map themes (contrasts with the surface
+ * background by definition).
+ *
+ * Layout: an outer Box twice as tall as the pin so the pin's tip can sit
+ * at the Box's geometric centre. That centre is where the map composable
+ * anchors this indicator, i.e. the geographic camera target — making the
+ * shadow ellipse (drawn at the Box centre) the visual "where the pin will
+ * land" marker. The pin bounces above the shadow while the camera is
+ * moving and settles back onto it when the user releases the gesture.
+ */
+@Composable
+fun ReportCenterPin(
+    cameraMoving: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val offsetY = remember { Animatable(0f) }
+    val pinScale = remember { Animatable(1f) }
+    LaunchedEffect(cameraMoving) {
+        val (target, scaleTarget) = if (cameraMoving) {
+            REPORT_PIN_LIFT_DP to REPORT_PIN_LIFT_SCALE
+        } else {
+            REPORT_PIN_REST_DP to REPORT_PIN_REST_SCALE
+        }
+        launch {
+            offsetY.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+        }
+        launch {
+            pinScale.animateTo(scaleTarget, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+        }
+    }
+
+    val ink = MaterialTheme.colorScheme.onSurface
+    val shadowColor = ink.copy(alpha = REPORT_SHADOW_ALPHA)
+    val outfit = rememberOutfitFontFamily()
+    val measurer = rememberTextMeasurer()
+    val pStyle = remember(outfit, ink) {
+        TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 26.sp,
+            textAlign = TextAlign.Center,
+            color = ink,
+        )
+    }
+
+    // Outer Box is 2× the pin height so the pin's TIP coincides with the Box's
+    // geometric centre — that's the map anchor. Empty space below the centre
+    // is intentional and stays transparent.
+    Box(
+        modifier = modifier.size(
+            width = REPORT_PIN_W,
+            height = REPORT_PIN_H * 2,
+        ),
+    ) {
+        // Ground shadow — anchored at Box centre so it stays fixed at the
+        // geographic camera target while the pin lifts above it.
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(width = REPORT_SHADOW_W, height = REPORT_SHADOW_H),
+        ) {
+            drawOval(color = shadowColor)
+        }
+
+        // The pin itself — drawn in the upper half so its tip aligns with the
+        // Box centre. offset/scale apply the bounce only to the pin, leaving
+        // the shadow steady.
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = offsetY.value.dp)
+                .scale(pinScale.value)
+                .size(width = REPORT_PIN_W, height = REPORT_PIN_H),
+        ) {
+            drawReportPin(ink = ink, measurer = measurer, pStyle = pStyle)
+        }
+    }
+}
+
+private fun DrawScope.drawReportPin(
+    ink: Color,
+    measurer: TextMeasurer,
+    pStyle: TextStyle,
+) {
+    val w = size.width
+    val scale = w / 68f
+    val strokeWidth = REPORT_STROKE_WIDTH * scale
+
+    // Outlined teardrop — same path math as FreeSpotMarker so the silhouette
+    // matches and users intuitively recognise the centre pin as "the report
+    // counterpart of the FreeSpot markers" they see across the map.
+    val pin = teardropPath(
+        cx = 34f, w = 68f, h = 84f, expand = 0f, scale = scale,
+        top = 4f, bottom = 78f,
+    )
+    drawPath(pin, color = ink, style = Stroke(width = strokeWidth))
+
+    // "P" centred on the pin disc — same letter and font as FreeSpotMarker.
+    val result = measurer.measure(text = AnnotatedString("P"), style = pStyle)
+    val tx = 34f * scale - result.size.width / 2f
+    val ty = 32f * scale - result.size.height / 2f
+    translate(left = tx, top = ty) {
+        drawText(result, color = ink)
+    }
+}
+
+// Same dp footprint as FreeSpotMarker so the report pin reads as the
+// outlined twin of the spot markers seen around it on the map.
+private val REPORT_PIN_W = 46.dp
+private val REPORT_PIN_H = 57.dp
+private val REPORT_SHADOW_W = 22.dp
+private val REPORT_SHADOW_H = 5.dp
+private const val REPORT_PIN_REST_DP = 0f
+private const val REPORT_PIN_LIFT_DP = -10f
+private const val REPORT_PIN_REST_SCALE = 1.0f
+private const val REPORT_PIN_LIFT_SCALE = 1.04f
+private const val REPORT_STROKE_WIDTH = 3.5f
+private const val REPORT_SHADOW_ALPHA = 0.32f
 
 // ─── Cluster marker — several spots grouped at low zoom ──────────────────────
 

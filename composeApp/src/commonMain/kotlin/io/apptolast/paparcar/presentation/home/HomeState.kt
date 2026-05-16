@@ -9,6 +9,22 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 
 /**
+ * Active interaction mode of the Home surface.
+ *
+ *  - [Browse] (default): user explores spots and their parked car. Sheet
+ *    shows the regular item list, selection state applies, map markers
+ *    render at full opacity.
+ *  - [Reporting]: user is positioning a manual spot report. Sheet shows
+ *    the report form (title / subtitle / address / CTA), nearby markers
+ *    dim into the background, and a static centre pin indicates where
+ *    the new spot will land.
+ */
+sealed class HomeMode {
+    data object Browse : HomeMode()
+    data object Reporting : HomeMode()
+}
+
+/**
  * Estado de la pantalla Home.
  * Representa todos los datos necesarios para renderizar la UI.
  */
@@ -35,6 +51,13 @@ data class HomeState(
     val pendingParkingGps: GpsPoint? = null,
     /** Active size filter — null shows all spots; non-null filters to matching sizeCategory (or null). */
     val sizeFilter: VehicleSize? = null,
+    /** Active interaction mode — see [HomeMode]. */
+    val mode: HomeMode = HomeMode.Browse,
+    /** True while a manual spot report is being submitted (CTA spinner). */
+    val isReporting: Boolean = false,
+    /** Last camera centre captured for the report flow — used when [mode] is [HomeMode.Reporting]. */
+    val reportCameraLat: Double? = null,
+    val reportCameraLon: Double? = null,
 ) {
     companion object {
         /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */

@@ -215,12 +215,14 @@
     <string name="home_fab_actions_collapse">Close actions</string>
     <string name="home_cd_map_type">Switch map type</string>
 
-    <!-- Add free spot screen -->
+    <!-- Add free spot — Home Reporting mode -->
     <string name="add_free_spot_title">Marking a free spot</string>
     <string name="add_free_spot_subtitle">A free spot you\'ve seen and want to share with others.</string>
     <string name="add_free_spot_action">Notify the community</string>
     <string name="add_free_spot_locating_address">Locating address…</string>
     <string name="add_free_spot_cd_back">Back</string>
+    <string name="home_report_fab_cd">Report a free spot</string>
+    <string name="home_report_cancel_cd">Cancel report</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
