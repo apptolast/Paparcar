@@ -313,28 +313,9 @@ That delay was on a stationary, well-fed emulator. On a real device with cold Ro
 
 ---
 
-## 14. `feature/UI-002-my-vehicles-redesign` — ⚪ Pending
+## 14. `feature/UI-002-my-vehicles-redesign` — ✅ Done
 
-**Priority:** Medium — the Vehicles tab post-HIST-001 works (HorizontalPager + inline history) but visual treatment can be tightened.
-
-**Where:**
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicles/VehiclesScreen.kt`
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/presentation/vehicles/VehiclePageContent.kt`
-
-**Scope:** Visual rework of the pager page header (`VehicleDetailsHeader`), the empty state, and the per-vehicle action chips. ViewModel/State stay as-is.
-
-**Ideas worth exploring:**
-- The vehicle header card currently uses tonal elevation + brand/model + size + detection chip + edit/delete icons. Iterate towards a more "identity card" feel: large size icon, prominent brand/model, smaller secondary actions.
-- The active-vehicle badge could be promoted (e.g. coloured border on the card, not just an inline chip).
-- Empty state could include an explainer link to remind why a vehicle is needed (consistency with VehicleSizeExplainer copy).
-- ScrollableTabRow → consider PrimaryScrollableTabRow / SecondaryScrollableTabRow (current is deprecated per compiler warning).
-- Translucent delete icon when there's only 1 vehicle is already in place — keep it.
-
-**Non-goals:**
-- Changing the multi-vehicle paging model (HorizontalPager stays).
-- Touching the history list (already reworked in HIST-001).
-
-**Effort:** Small-medium. Pure UI iteration.
+**Merged:** 2026-05-14, commit `2e86f6c` (`feat(vehicles): UI-002 — identity-card header, kebab actions, TopAppBar add action`). Identity-card header replaces the elevated card; per-vehicle actions moved to a kebab menu; TopAppBar gains the add-vehicle action. ViewModel/State unchanged. ScrollableTabRow migration and empty-state explainer were not part of this slice — pick them up in a follow-up if still desired.
 
 ---
 
