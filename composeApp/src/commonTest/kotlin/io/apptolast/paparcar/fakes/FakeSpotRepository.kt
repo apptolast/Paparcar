@@ -22,9 +22,6 @@ class FakeSpotRepository : SpotRepository {
         private set
     var reportResult: Result<Unit> = Result.success(Unit)
 
-    override suspend fun getNearbySpots(location: GpsPoint, radiusMeters: Double): Result<List<Spot>> =
-        Result.success(_spots.value)
-
     override fun observeNearbySpots(location: GpsPoint, radiusMeters: Double): Flow<List<Spot>> {
         val error = observeError
         return if (error != null) flow { throw error } else _spots

@@ -27,8 +27,6 @@ import kotlin.math.cos
  * - [observeNearbySpots] emits from the local Room cache first (instant, no network wait),
  *   then opens a Firestore listener in parallel. Every Firestore update is written to Room,
  *   which triggers a new emission from the Room Flow.
- * - [getNearbySpots] tries Firestore first and writes the result to Room; if the network
- *   call fails it falls back to the Room cache for the same bounding box.
  *
  * **Write strategy:**
  * - [reportSpotReleased] calls Firestore and removes the spot from the local cache.
@@ -37,21 +35,6 @@ class SpotRepositoryImpl(
     private val firebaseDataSource: FirebaseDataSource,
     private val spotDao: SpotDao,
 ) : SpotRepository {
-
-    //FIXME: Esto tiene unica fuente de la verdad?
-    override suspend fun getNearbySpots(
-        location: GpsPoint,
-        radiusMeters: Double,
-    ): Result<List<Spot>> = runCatching {
-        firebaseDataSource.getNearbySpots(location.latitude, location.longitude, radiusMeters)
-            .also { dtoMap -> spotDao.upsertAll(dtoMap.values.map { it.toEntity() }) }
-            .map { (_, dto) -> dto.toDomain() }
-    }.recoverCatching {
-        // Network failed — serve stale cache so the UI stays populated.
-        val bbox = boundingBox(location.latitude, location.longitude, radiusMeters)
-        spotDao.getNearby(bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon)
-            .map { it.toDomain() }
-    }
 
     override fun observeNearbySpots(
         location: GpsPoint,
@@ -86,7 +69,6 @@ class SpotRepositoryImpl(
         }
     }
 
-    //FIXME: Alomejor el usuario esta reportando un spot que ha visto sin necesidad que sea el suyo
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> = runCatching {
         firebaseDataSource.reportSpotReleased(spot.toDto())
         spotDao.delete(spot.id)

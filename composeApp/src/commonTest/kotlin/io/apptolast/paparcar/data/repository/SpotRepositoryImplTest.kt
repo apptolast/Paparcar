@@ -23,7 +23,6 @@ import kotlin.test.assertTrue
  *  - Local Room cache is the primary read surface — emissions start before Firestore.
  *  - Firestore writes flow into Room and re-emit via the cache Flow.
  *  - Firestore errors are isolated — they never tear down the Room observation.
- *  - Network failures in [getNearbySpots] fall back to the bounding-box Room slice.
  *  - [reportSpotReleased] hits Firestore AND removes the spot from local cache.
  */
 class SpotRepositoryImplTest {
@@ -105,48 +104,6 @@ class SpotRepositoryImplTest {
             assertEquals(setOf("cached-1", "cached-2"), next.map(Spot::id).toSet())
             cancelAndIgnoreRemainingEvents()
         }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // getNearbySpots — network fallback
-    // ─────────────────────────────────────────────────────────────────────────
-
-    @Test
-    fun getNearbySpots_falls_back_to_cached_bounding_box_when_firestore_throws() = runTest {
-        val dao = FakeSpotDao().apply {
-            seed(
-                listOf(
-                    spotEntity("inside", lat = 40.0, lon = -3.7),
-                    // Far outside the bounding box; must not appear in the fallback.
-                    spotEntity("outside", lat = 50.0, lon = -3.7),
-                ),
-            )
-        }
-        val firebase = FakeFirebaseDataSource().apply {
-            getNearbyThrows = IllegalStateException("no network")
-        }
-        val repo = SpotRepositoryImpl(firebase, dao)
-
-        val result = repo.getNearbySpots(origin, radiusMeters)
-
-        assertTrue(result.isSuccess, "fallback path should map exception to success with cache")
-        assertEquals(listOf("inside"), result.getOrNull()!!.map(Spot::id))
-    }
-
-    @Test
-    fun getNearbySpots_persists_firestore_response_into_room() = runTest {
-        val dao = FakeSpotDao()
-        val firebase = FakeFirebaseDataSource().apply {
-            getNearbyResponse = mapOf("remote-1" to spotDto("remote-1"))
-        }
-        val repo = SpotRepositoryImpl(firebase, dao)
-
-        val result = repo.getNearbySpots(origin, radiusMeters)
-
-        assertTrue(result.isSuccess)
-        assertEquals(listOf("remote-1"), result.getOrNull()!!.map(Spot::id))
-        // The response was written to Room so subsequent offline reads work.
-        assertEquals(listOf("remote-1"), dao.snapshot().map(SpotEntity::id))
     }
 
     // ─────────────────────────────────────────────────────────────────────────

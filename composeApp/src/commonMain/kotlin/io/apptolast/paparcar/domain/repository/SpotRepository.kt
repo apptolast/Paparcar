@@ -6,8 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface SpotRepository {
 
-    suspend fun getNearbySpots(location: GpsPoint, radiusMeters: Double): Result<List<Spot>>
-
     fun observeNearbySpots(location: GpsPoint, radiusMeters: Double): Flow<List<Spot>>
 
     suspend fun reportSpotReleased(spot: Spot): Result<Unit>

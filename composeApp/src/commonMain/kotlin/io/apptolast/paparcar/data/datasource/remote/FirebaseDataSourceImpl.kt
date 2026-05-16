@@ -13,17 +13,6 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
 
     private val spotsCollection = firestore.collection("spots")
 
-    override suspend fun getNearbySpots(
-        latitude: Double,
-        longitude: Double,
-        radiusMeters: Double,
-    ): Map<String, SpotDto> =
-        spotsCollection
-            .get()
-            .documents
-            .mapNotNull { doc -> doc.toSpotDto()?.let { doc.id to it } }
-            .toMap()
-
     override fun observeNearbySpots(
         latitude: Double,
         longitude: Double,
