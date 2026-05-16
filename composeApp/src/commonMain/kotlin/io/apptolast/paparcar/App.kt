@@ -25,10 +25,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -87,8 +88,8 @@ import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
 import paparcar.composeapp.generated.resources.gps_disclaimer_body
 import paparcar.composeapp.generated.resources.gps_disclaimer_confirm
 import paparcar.composeapp.generated.resources.gps_disclaimer_title
-import paparcar.composeapp.generated.resources.nav_tab_history
-import paparcar.composeapp.generated.resources.nav_tab_spots
+import paparcar.composeapp.generated.resources.nav_tab_home
+import paparcar.composeapp.generated.resources.nav_tab_report
 import paparcar.composeapp.generated.resources.nav_tab_settings
 import paparcar.composeapp.generated.resources.nav_tab_vehicles
 
@@ -326,7 +327,13 @@ private fun MainAppNavigation(
                 AppBottomNavigation(
                     items = bottomNavItems,
                     currentRoute = currentRoute,
-                    onNavigate = { route -> navController.navigateToTab(route) },
+                    onNavigate = { route ->
+                        if (route == ACTION_REPORT_ROUTE) {
+                            navController.navigate(Routes.ADD_FREE_SPOT)
+                        } else {
+                            navController.navigateToTab(route)
+                        }
+                    },
                     modifier = Modifier.graphicsLayer {
                         alpha = navProgress.floatValue
                         translationY = (1f - navProgress.floatValue) * size.height
@@ -440,7 +447,6 @@ private fun MainAppNavigation(
             composable(Routes.HOME) {
                 HomeScreen(
                     onNavigateToHistory = { navController.navigateToTab(Routes.HISTORY) },
-                    onNavigateToAddFreeSpot = { navController.navigate(Routes.ADD_FREE_SPOT) },
                     navProgressState = navProgress,
                     bottomPadding = scaffoldPadding.calculateBottomPadding(),
                 )
@@ -545,12 +551,25 @@ private fun MainAppNavigation(
 // Bottom Navigation Bar — single source of truth for the app's tab items
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Synthetic route used by the "Avisar" nav item. Not registered in the NavHost
+// — onNavigate intercepts it and pushes Routes.ADD_FREE_SPOT instead. Using a
+// non-matching route keeps the item from ever rendering as "selected" (the
+// AddFreeSpot screen hides the nav anyway, so the selected state would only
+// flash briefly during the slide-out transition).
+private const val ACTION_REPORT_ROUTE = "__action_report__"
+
 private val bottomNavItems = listOf(
     AppBottomNavItem(
         route = Routes.HOME,
-        label = { stringResource(Res.string.nav_tab_spots) },
-        iconFilled = Icons.Filled.LocationOn,
-        iconOutline = Icons.Outlined.LocationOn,
+        label = { stringResource(Res.string.nav_tab_home) },
+        iconFilled = Icons.Filled.Home,
+        iconOutline = Icons.Outlined.Home,
+    ),
+    AppBottomNavItem(
+        route = ACTION_REPORT_ROUTE,
+        label = { stringResource(Res.string.nav_tab_report) },
+        iconFilled = Icons.Outlined.Campaign,
+        iconOutline = Icons.Outlined.Campaign,
     ),
     AppBottomNavItem(
         route = Routes.VEHICLES,

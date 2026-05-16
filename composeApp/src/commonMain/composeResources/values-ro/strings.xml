@@ -3,11 +3,7 @@
     <!-- HomeScreen -->
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Șofer eco</string>
-    <string name="home_nav_history">Istoric</string>
-    <string name="home_nav_my_car">Mașina mea</string>
-    <string name="home_nav_settings">Setări</string>
     <string name="home_parking_row_label">Vehiculul tău</string>
-    <string name="home_fab_report_spot">Raportează loc</string>
     <string name="home_cd_profile">Profil</string>
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_stats_free_spots_badge">%1$d libere</string>
@@ -240,9 +236,9 @@
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
     <!-- Filele de navigare de jos -->
-    <string name="nav_tab_spots">Locuri</string>
-    <string name="nav_tab_history">Istoric</string>
-    <string name="nav_tab_my_car">Mașina Mea</string>
+    <string name="nav_tab_home">Acasă</string>
+    <string name="nav_tab_report">Raportează</string>
+    <string name="nav_tab_vehicles">Vehicule</string>
     <string name="nav_tab_settings">Setări</string>
 
     <!-- Ecranul Mașina Mea -->

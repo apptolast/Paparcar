@@ -3,11 +3,7 @@
     <!-- HomeScreen -->
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Eco-rijder</string>
-    <string name="home_nav_history">Geschiedenis</string>
-    <string name="home_nav_my_car">Mijn auto</string>
-    <string name="home_nav_settings">Instellingen</string>
     <string name="home_parking_row_label">Uw voertuig</string>
-    <string name="home_fab_report_spot">Parkeerplaats melden</string>
     <string name="home_cd_profile">Profiel</string>
     <string name="home_search_placeholder">Zoek een gebied, straat…</string>
     <string name="home_stats_free_spots_badge">%1$d vrij</string>
@@ -240,9 +236,9 @@
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
     <!-- Onderste navigatietabbladen -->
-    <string name="nav_tab_spots">Plekken</string>
-    <string name="nav_tab_history">Geschiedenis</string>
-    <string name="nav_tab_my_car">Mijn Auto</string>
+    <string name="nav_tab_home">Start</string>
+    <string name="nav_tab_report">Melden</string>
+    <string name="nav_tab_vehicles">Voertuigen</string>
     <string name="nav_tab_settings">Instellingen</string>
 
     <!-- Mijn Auto scherm -->

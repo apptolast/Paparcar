@@ -66,7 +66,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
-import io.apptolast.paparcar.presentation.home.components.HomeActionFab
 import io.apptolast.paparcar.presentation.home.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.components.HomeMapFabColumn
 import io.apptolast.paparcar.presentation.home.components.HomePeekHandle
@@ -147,7 +146,6 @@ private val SHEET_SHADOW_ELEVATION = 12.dp
 @Composable
 fun HomeScreen(
     onNavigateToHistory: () -> Unit = {},
-    onNavigateToAddFreeSpot: () -> Unit = {},
     navProgressState: MutableFloatState = remember { mutableFloatStateOf(1f) },
     bottomPadding: Dp = 0.dp,
     viewModel: HomeViewModel = koinViewModel(),
@@ -195,7 +193,6 @@ fun HomeScreen(
     HomeContent(
         state = state,
         onIntent = viewModel::handleIntent,
-        onNavigateToAddFreeSpot = onNavigateToAddFreeSpot,
         snackbarHostState = snackbarHostState,
         navProgressState = navProgressState,
         bottomPadding = bottomPadding,
@@ -217,7 +214,6 @@ fun HomeScreen(
 private fun HomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
-    onNavigateToAddFreeSpot: () -> Unit,
     snackbarHostState: SnackbarHostState,
     navProgressState: MutableFloatState,
     bottomPadding: Dp,
@@ -594,10 +590,6 @@ private fun HomeContent(
                                 )
                             }
                         },
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    HomeActionFab(
-                        onReportFreeSpot = onNavigateToAddFreeSpot,
                     )
                 }
             }

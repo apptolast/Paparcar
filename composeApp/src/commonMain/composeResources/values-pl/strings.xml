@@ -3,11 +3,7 @@
     <!-- HomeScreen -->
     <string name="home_brand_name">PAPARCAR</string>
     <string name="home_eco_driver_label">Eko-kierowca</string>
-    <string name="home_nav_history">Historia</string>
-    <string name="home_nav_my_car">Mój samochód</string>
-    <string name="home_nav_settings">Ustawienia</string>
     <string name="home_parking_row_label">Twój pojazd</string>
-    <string name="home_fab_report_spot">Zgłoś miejsce</string>
     <string name="home_cd_profile">Profil</string>
     <string name="home_search_placeholder">Szukaj strefy, ulicy…</string>
     <string name="home_stats_free_spots_badge">%1$d wolnych</string>
@@ -240,9 +236,9 @@
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
     <!-- Dolna nawigacja -->
-    <string name="nav_tab_spots">Miejsca</string>
-    <string name="nav_tab_history">Historia</string>
-    <string name="nav_tab_my_car">Mój Samochód</string>
+    <string name="nav_tab_home">Główna</string>
+    <string name="nav_tab_report">Zgłoś</string>
+    <string name="nav_tab_vehicles">Pojazdy</string>
     <string name="nav_tab_settings">Ustawienia</string>
 
     <!-- Ekran Mój Samochód -->

@@ -70,31 +70,8 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 //  Componentes: HomeSheetContent · HomeSpotRow · HomeSpotRowGlass ·
 //               HomeParkingRow · HomePeekHandle · HomeParkingEmptyCard ·
 //               HomeSectionHeader · HomeEmptySpots · HomePermissionsCard ·
-//               PaparcarBottomActionBar · HomeReportSpotFab · HomeFloatingHeader
+//               PaparcarBottomActionBar
 // ═══════════════════════════════════════════════════════════════════════════════
-
-// ─── A — HomeFloatingHeader ───────────────────────────────────────────────────
-
-@Preview(name = "A — HomeFloatingHeader (oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun HomeFloatingHeaderDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onMyCarClick = {}, onSettingsClick = {})
-        }
-    }
-}
-
-@Preview(name = "A — HomeFloatingHeader (claro)", showBackground = true)
-@Composable
-private fun HomeFloatingHeaderLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        Column(Modifier.padding(16.dp)) {
-            HomeFloatingHeader(onHistoryClick = {}, onMyCarClick = {}, onSettingsClick = {})
-        }
-    }
-}
 
 // ─── A — HomePeekHandle ───────────────────────────────────────────────────────
 
@@ -456,21 +433,6 @@ private fun PaparcarBottomActionBarParkingLightPreview() {
     PaparcarTheme(darkTheme = false) {
         PaparcarBottomActionBar(label = "Tu coche  ·  Calle Gran Vía 32", onClick = {})
     }
-}
-
-// ─── A — HomeReportSpotFab ────────────────────────────────────────────────────
-
-@Preview(name = "A — HomeReportSpotFab (oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun HomeReportSpotFabDarkPreview() {
-    PaparcarTheme(darkTheme = true) { Column(Modifier.padding(16.dp)) { HomeReportSpotFab(onClick = {}) } }
-}
-
-@Preview(name = "A — HomeReportSpotFab (claro)", showBackground = true)
-@Composable
-private fun HomeReportSpotFabLightPreview() {
-    PaparcarTheme(darkTheme = false) { Column(Modifier.padding(16.dp)) { HomeReportSpotFab(onClick = {}) } }
 }
 
 // ─── A — HomeSheetContent: pantallas completas ────────────────────────────────
