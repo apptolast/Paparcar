@@ -74,9 +74,12 @@ internal fun LazyListScope.homeSheetItems(
     } else {
         state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
     }
-    val showParkingFirst = state.userParking != null
+    // The parking section anchors to the top of the sheet whenever permissions are
+    // granted — showing the active session if any, or the manual-park CTA when the
+    // user is not currently parked. Below the permission gate there's nothing
+    // location-related to anchor, so the spots section is the sheet's only content.
+    val showParkingFirst = state.allPermissionsGranted
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
-    val showParkingCta = !showParkingFirst && state.allPermissionsGranted
 
     item("top_divider") {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
@@ -90,25 +93,11 @@ internal fun LazyListScope.homeSheetItems(
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
             )
         }
-        spotsSection(
-            state, onIntent, onCameraMove, onSpotSelect,
-            selectedSpotId, filteredSpots, showFilterBar,
-        )
-    } else {
-        spotsSection(
-            state, onIntent, onCameraMove, onSpotSelect,
-            selectedSpotId, filteredSpots, showFilterBar,
-        )
-        if (showParkingCta) {
-            item("mid_divider") {
-                HorizontalDivider(
-                    modifier = Modifier.padding(top = 8.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-                )
-            }
-            parkingSection(state, onParkingClick, onManualPark)
-        }
     }
+    spotsSection(
+        state, onIntent, onCameraMove, onSpotSelect,
+        selectedSpotId, filteredSpots, showFilterBar,
+    )
 }
 
 /**
@@ -124,13 +113,13 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     val spotIdx = filteredSpots.indexOfFirst { it.id == spotId }
     if (spotIdx < 0) return -1
 
-    val showParkingFirst = state.userParking != null
+    val showParkingFirst = state.allPermissionsGranted
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
     var base = 1 // top_divider
     if (showParkingFirst) {
         base += 1 // parking_header
-        base += 1 // parking_row
+        base += 1 // parking_row OR parking_empty
         base += 1 // mid_divider
     }
     base += 1 // spots_header
