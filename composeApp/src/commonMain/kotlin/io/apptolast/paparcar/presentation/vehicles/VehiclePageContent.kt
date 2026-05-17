@@ -47,7 +47,6 @@ import io.apptolast.paparcar.presentation.history.HistoryEffect
 import io.apptolast.paparcar.presentation.history.HistoryIntent
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.ui.components.PapSecondaryButton
-import io.apptolast.paparcar.ui.components.VehicleDetectionStatus
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapBlueMuted

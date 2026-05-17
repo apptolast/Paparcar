@@ -67,16 +67,16 @@ private const val FRESHNESS_TICK_MS = 60_000L
  * - No inline action buttons. Navigation is handled by the bottom nav bar shown
  *   when an item is selected; community signals are out of scope for the list.
  * - The entire row is clickable via [onClick].
- * - [SpotCardData] is reused as the input model for compatibility with existing
- *   mapping code in ViewModels.
+ * - [SpotUiState] is the precomputed presentation model produced by the host
+ *   ViewModel; no domain mapping happens inside the composable.
  *
- * @param data       Pre-computed presentation model (same as [SpotCard]).
+ * @param data       Pre-computed presentation model.
  * @param onClick    Called when the user taps anywhere on the row.
  * @param isSelected Shows a subtle primary tint to match the selected marker on map.
  */
 @Composable
 fun ParkingSpotItem(
-    data: SpotCardData,
+    data: SpotUiState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,

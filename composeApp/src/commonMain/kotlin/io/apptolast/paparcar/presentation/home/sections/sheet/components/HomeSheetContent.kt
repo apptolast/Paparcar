@@ -42,7 +42,7 @@ import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.ui.components.ParkingSpotItem
-import io.apptolast.paparcar.ui.components.SpotCardData
+import io.apptolast.paparcar.ui.components.SpotUiState
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
@@ -273,7 +273,7 @@ private fun LazyListScope.spotsSection(
         else -> itemsIndexed(filteredSpots, key = { _, spot -> spot.id }) { index, spot ->
             Column {
                 ParkingSpotItem(
-                    data = SpotCardData(
+                    data = SpotUiState(
                         id = spot.id,
                         displayLocation = locationDisplayText(
                             spot.placeInfo, spot.address,

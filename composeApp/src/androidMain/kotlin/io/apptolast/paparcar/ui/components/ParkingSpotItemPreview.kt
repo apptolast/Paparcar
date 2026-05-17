@@ -24,7 +24,7 @@ private fun sampleSpotData(
     reliability: SpotReliabilityUiState = SpotReliabilityUiState.HIGH,
     enRouteCount: Int = 0,
     expiresAt: Long = 0L,
-) = SpotCardData(
+) = SpotUiState(
     id = id,
     displayLocation = location,
     distanceMeters = distanceM,
