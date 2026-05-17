@@ -9,7 +9,8 @@ import io.apptolast.paparcar.core.crash.CrashReporter
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
-import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.session.LocalSessionCache
+import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,9 +19,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -45,9 +43,10 @@ data class SplashState(
 class SplashViewModel(
     private val authRepository: AuthRepository,
     private val getOrCreateUserProfile: GetOrCreateUserProfileUseCase,
-    private val vehicleRepository: VehicleRepository,
+    private val bootstrapUserData: BootstrapUserDataUseCase,
     private val appPreferences: AppPreferences,
     private val permissionManager: PermissionManager,
+    private val localSessionCache: LocalSessionCache,
 ) : ViewModel() {
 
     val authState: StateFlow<AuthState> = authRepository.observeAuthState()
@@ -80,50 +79,86 @@ class SplashViewModel(
     init {
         PaparcarLogger.i(TAG, "init — subscribing to authState")
         viewModelScope.launch {
-            authState
-                .filter { it is AuthState.Authenticated }
-                .distinctUntilChanged()
-                .catch { e -> PaparcarLogger.e(TAG, "authState stream error", e) }
-                .collect { state ->
-                    val session = (state as? AuthState.Authenticated)?.session ?: return@collect
-                    PaparcarLogger.i(TAG, "[step 1/3] auth Authenticated — userId=${session.userId}")
-                    CrashReporter.setUserId(session.userId)
-                    // Sequential bootstrap. Order matters:
-                    //   1. profile sync   — pulls / creates the UserProfile doc.
-                    //   2. vehicle sync   — populates Room from the user's vehicles subcollection.
-                    //   3. resolveRoute   — reads local state to decide the entry screen.
-                    // try/catch is the safety net so any uncaught exception in the chain
-                    // (network glitch, deserialization bug, etc.) cannot crash the app.
-                    try {
-                        PaparcarLogger.i(TAG, "[step 2/3] starting profile sync")
-                        val profile = getOrCreateUserProfile()
-                            .onSuccess { p ->
-                                PaparcarLogger.i(
-                                    TAG,
-                                    "profile sync OK — defaultVehicleId=${p.defaultVehicleId}, " +
-                                        "displayName=${p.displayName}",
-                                )
-                            }
-                            .onFailure { e ->
-                                PaparcarLogger.e(TAG, "profile sync FAILED — signing out", e)
-                                authRepository.signOut()
-                                _effect.emit(SplashEffect.ShowError(PaparcarError.Auth.ProfileSyncFailed))
-                            }
-                            .getOrNull() ?: return@collect
-
-                        PaparcarLogger.i(TAG, "[step 3a/3] starting vehicle sync")
-                        vehicleRepository.syncFromRemote(session.userId)
-                            .onSuccess { PaparcarLogger.i(TAG, "vehicle sync OK") }
-                            .onFailure { e -> PaparcarLogger.w(TAG, "vehicle sync FAILED (continuing with cached state)", e) }
-
-                        PaparcarLogger.i(TAG, "[step 3b/3] resolving start route")
-                        resolveStartRoute(hasVehicle = profile.defaultVehicleId != null)
-                    } catch (e: Throwable) {
-                        PaparcarLogger.e(TAG, "bootstrap chain failed with uncaught exception", e)
-                        _effect.emit(SplashEffect.ShowError(PaparcarError.Auth.ProfileSyncFailed))
-                    }
+            // Single collector serializes Unauthenticated → Authenticated transitions so
+            // the Room wipe always completes before the next user's bootstrap writes new
+            // rows. Without this ordering, a fast sign-in after sign-out could race with
+            // the wipe and clear the freshly-synced data of the new user. authState is a
+            // StateFlow, which already deduplicates equal emissions on its own.
+            authState.collect { state ->
+                when (state) {
+                    is AuthState.Unauthenticated -> wipeLocalUserData()
+                    is AuthState.Authenticated -> bootstrap(state)
+                    else -> Unit  // Loading / Error — no side-effects.
                 }
+            }
         }
+    }
+
+    /**
+     * Drops every Room table when the auth state transitions to Unauthenticated. Paparcar
+     * treats local storage as the active user's cache only: the next sign-in repopulates
+     * vehicles, zones and parking history from Firestore via [bootstrap]. Wiping here is
+     * the single hook that guarantees no previous user's rows leak into the new session,
+     * regardless of which path triggered the sign-out (Settings logout, DeleteAccount,
+     * token expiry, splash-time profile sync failure). [SESSION-ISOLATION-001]
+     */
+    private suspend fun wipeLocalUserData() {
+        PaparcarLogger.i(TAG, "auth Unauthenticated — wiping local Room cache")
+        runCatching { localSessionCache.wipe() }
+            .onFailure { e -> PaparcarLogger.e(TAG, "Room wipe failed", e) }
+        // Reset splash state so the next Authenticated transition re-runs the bootstrap
+        // (otherwise isReady would still see the stale startRoute from the previous user).
+        _state.value = SplashState()
+    }
+
+    private suspend fun bootstrap(state: AuthState.Authenticated) {
+        val session = state.session
+        PaparcarLogger.i(TAG, "[step 1/3] auth Authenticated — userId=${session.userId}")
+        CrashReporter.setUserId(session.userId)
+        // Sequential bootstrap. Order matters:
+        //   1. profile           — pulls / creates the UserProfile doc.
+        //   2. bootstrapUserData — parallel sync of vehicles + parking history + zones.
+        //   3. resolveRoute      — reads local state to decide the entry screen.
+        // Any failure in (1) or (2) is fatal: we sign the user out and the
+        // Unauthenticated transition takes them back to login. Paparcar requires
+        // connectivity at login — partial data is never preferable to a clean retry.
+        try {
+            PaparcarLogger.i(TAG, "[step 2/3] starting profile sync")
+            val profile = getOrCreateUserProfile()
+                .onSuccess { p ->
+                    PaparcarLogger.i(
+                        TAG,
+                        "profile sync OK — defaultVehicleId=${p.defaultVehicleId}, " +
+                            "displayName=${p.displayName}",
+                    )
+                }
+                .onFailure { e -> PaparcarLogger.e(TAG, "profile sync FAILED — signing out", e) }
+                .getOrElse {
+                    abortBootstrap()
+                    return
+                }
+
+            PaparcarLogger.i(TAG, "[step 3a/3] starting user-data bootstrap (parallel)")
+            bootstrapUserData(session.userId)
+                .onSuccess { PaparcarLogger.i(TAG, "user-data bootstrap OK") }
+                .onFailure { e -> PaparcarLogger.e(TAG, "user-data bootstrap FAILED — signing out", e) }
+                .getOrElse {
+                    abortBootstrap()
+                    return
+                }
+
+            PaparcarLogger.i(TAG, "[step 3b/3] resolving start route")
+            resolveStartRoute(hasVehicle = profile.defaultVehicleId != null)
+        } catch (e: Throwable) {
+            PaparcarLogger.e(TAG, "bootstrap chain failed with uncaught exception", e)
+            abortBootstrap()
+        }
+    }
+
+    /** Single exit point for any fatal bootstrap failure: sign out and notify UI. */
+    private suspend fun abortBootstrap() {
+        authRepository.signOut()
+        _effect.emit(SplashEffect.ShowError(PaparcarError.Auth.ProfileSyncFailed))
     }
 
     private fun resolveStartRoute(hasVehicle: Boolean) {

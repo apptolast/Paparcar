@@ -68,7 +68,7 @@ class VehicleRepositoryImpl(
     override suspend fun getDefaultVehicle(userId: String): Vehicle? {
         dao.getDefault(userId)?.let { return it.toDomain() }
         val profileDefaultId = profileDao.getProfile(userId)?.defaultVehicleId ?: return null
-        return dao.getById(profileDefaultId)?.toDomain()
+        return dao.getById(profileDefaultId, userId)?.toDomain()
     }
 
     /**
@@ -82,11 +82,10 @@ class VehicleRepositoryImpl(
      */
     override suspend fun syncFromRemote(userId: String): Result<Unit> = runCatching {
         val snapshot = firestoreVehiclesCol(userId).get()
-        val remoteEntities = snapshot.documents
-            .mapNotNull { it.data<Map<String, Any?>>().toVehicleEntity() }
+        val remoteEntities = snapshot.documents.mapNotNull { it.toVehicleEntity() }
         if (remoteEntities.isEmpty()) return@runCatching
         val merged = remoteEntities.map { remote ->
-            val localBt = dao.getById(remote.id)?.bluetoothDeviceId
+            val localBt = dao.getById(remote.id, userId)?.bluetoothDeviceId
             if (localBt != null) remote.copy(bluetoothDeviceId = localBt) else remote
         }
         dao.upsertAll(merged)

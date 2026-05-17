@@ -54,11 +54,9 @@ class ZoneRepositoryImpl(
     }
 
     override suspend fun deleteZone(id: String) {
-        val uid = currentUserId()
-        dao.deleteById(id)
-        if (uid != null) {
-            firestoreZonesCol(uid).document(id).delete()
-        }
+        val uid = currentUserId() ?: return
+        dao.deleteById(id, uid)
+        firestoreZonesCol(uid).document(id).delete()
     }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {

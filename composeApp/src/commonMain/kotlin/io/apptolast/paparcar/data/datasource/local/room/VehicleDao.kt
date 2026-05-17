@@ -21,8 +21,8 @@ interface VehicleDao {
     @Query("SELECT * FROM vehicles WHERE userId = :userId AND isDefault = 1 LIMIT 1")
     suspend fun getDefault(userId: String): VehicleEntity?
 
-    @Query("SELECT * FROM vehicles WHERE id = :id LIMIT 1")
-    suspend fun getById(id: String): VehicleEntity?
+    @Query("SELECT * FROM vehicles WHERE id = :id AND userId = :userId LIMIT 1")
+    suspend fun getById(id: String, userId: String): VehicleEntity?
 
     @Query("SELECT * FROM vehicles WHERE userId = :userId ORDER BY isDefault DESC")
     suspend fun getByUser(userId: String): List<VehicleEntity>

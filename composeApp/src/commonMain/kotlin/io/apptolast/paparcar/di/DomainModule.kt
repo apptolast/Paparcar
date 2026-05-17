@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.di
 
+import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
@@ -25,7 +26,8 @@ import org.koin.dsl.module
 val domainModule = module {
 
     // User UseCases
-    factory { GetOrCreateUserProfileUseCase(get(), get(), get()) }
+    factory { GetOrCreateUserProfileUseCase(get(), get()) }
+    factory { BootstrapUserDataUseCase(get(), get(), get()) }
     factory { DeleteAccountUseCase(get(), get(), get(), get(), get()) }
 
     // Spot UseCases

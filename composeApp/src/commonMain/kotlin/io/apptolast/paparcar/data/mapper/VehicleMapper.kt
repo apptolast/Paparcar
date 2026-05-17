@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.data.mapper
 
+import dev.gitlive.firebase.firestore.DocumentSnapshot
 import io.apptolast.paparcar.data.datasource.local.room.VehicleEntity
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -26,19 +27,27 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     isDefault = isDefault,
 )
 
-/** Maps a raw Firestore document map to [VehicleEntity]. Returns null if required fields are missing. */
-fun Map<String, Any?>.toVehicleEntity(): VehicleEntity? {
-    val id = this["id"] as? String ?: return null
-    val userId = this["userId"] as? String ?: return null
-    val sizeCategory = this["sizeCategory"] as? String ?: VehicleSize.MEDIUM.name
-    return VehicleEntity(
-        id = id,
-        userId = userId,
-        brand = this["brand"] as? String,
-        model = this["model"] as? String,
-        sizeCategory = sizeCategory,
-        bluetoothDeviceId = null, // on-device only — never in Firestore
-        showBrandModelOnSpot = this["showBrandModelOnSpot"] as? Boolean ?: false,
-        isDefault = this["isDefault"] as? Boolean ?: false,
+/**
+ * Reads a Firestore vehicle document into [VehicleEntity] field-by-field, matching the
+ * pattern used by [RemoteUserProfileDataSourceImpl.toParkingHistoryDto]. The previous
+ * implementation called `.data<Map<String, Any?>>()` which throws at runtime because
+ * kotlinx-serialization has no compiled serializer for `Any` — that path silently
+ * killed every `VehicleRepository.syncFromRemote` since it was added. [VEHICLE-SYNC-DESERIAL-001]
+ *
+ * Returns null when required fields (id, userId) are missing or the document fails to
+ * deserialize. `bluetoothDeviceId` is intentionally not read: it lives on-device only.
+ */
+fun DocumentSnapshot.toVehicleEntity(): VehicleEntity? = runCatching {
+    val docId = runCatching { get<String?>("id") }.getOrNull() ?: id
+    val docUserId = runCatching { get<String?>("userId") }.getOrNull() ?: return@runCatching null
+    VehicleEntity(
+        id = docId,
+        userId = docUserId,
+        brand = runCatching { get<String?>("brand") }.getOrNull(),
+        model = runCatching { get<String?>("model") }.getOrNull(),
+        sizeCategory = runCatching { get<String?>("sizeCategory") }.getOrNull() ?: VehicleSize.MEDIUM.name,
+        bluetoothDeviceId = null,  // on-device only — never read from Firestore
+        showBrandModelOnSpot = runCatching { get<Boolean?>("showBrandModelOnSpot") }.getOrNull() ?: false,
+        isDefault = runCatching { get<Boolean?>("isDefault") }.getOrNull() ?: false,
     )
-}
+}.getOrNull()

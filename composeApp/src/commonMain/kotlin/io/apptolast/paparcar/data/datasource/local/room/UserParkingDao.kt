@@ -18,9 +18,6 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParkingEntity>
 
-    @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT 1")
-    suspend fun getAll(): List<UserParkingEntity>
-
     @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC")
     fun observeAll(): Flow<List<UserParkingEntity>>
 

@@ -15,11 +15,11 @@ interface ZoneDao {
     @Query("SELECT * FROM zones WHERE userId = :userId ORDER BY createdAt ASC")
     fun observeByUser(userId: String): Flow<List<ZoneEntity>>
 
-    @Query("SELECT * FROM zones WHERE id = :id LIMIT 1")
-    suspend fun getById(id: String): ZoneEntity?
+    @Query("SELECT * FROM zones WHERE id = :id AND userId = :userId LIMIT 1")
+    suspend fun getById(id: String, userId: String): ZoneEntity?
 
-    @Query("DELETE FROM zones WHERE id = :id")
-    suspend fun deleteById(id: String)
+    @Query("DELETE FROM zones WHERE id = :id AND userId = :userId")
+    suspend fun deleteById(id: String, userId: String)
 
     /** REPLACE-conflict bulk insert used by [ZoneRepository.syncFromRemote]. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -7,10 +7,13 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
+import io.apptolast.paparcar.fakes.FakeLocalSessionCache
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeUserProfileRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
+import io.apptolast.paparcar.fakes.FakeZoneRepository
+import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,8 +39,10 @@ class SplashViewModelTest {
     private lateinit var fakeProfileRepo: FakeUserProfileRepository
     private lateinit var fakeParkingRepo: FakeUserParkingRepository
     private lateinit var fakeVehicleRepo: FakeVehicleRepository
+    private lateinit var fakeZoneRepo: FakeZoneRepository
     private lateinit var fakePrefs: FakeAppPreferences
     private lateinit var fakePerms: FakePermissionManager
+    private lateinit var fakeSessionCache: FakeLocalSessionCache
 
     @BeforeTest
     fun setUp() {
@@ -46,8 +51,10 @@ class SplashViewModelTest {
         fakeProfileRepo = FakeUserProfileRepository()
         fakeParkingRepo = FakeUserParkingRepository()
         fakeVehicleRepo = FakeVehicleRepository()
+        fakeZoneRepo = FakeZoneRepository()
         fakePrefs = FakeAppPreferences()
         fakePerms = FakePermissionManager()
+        fakeSessionCache = FakeLocalSessionCache()
     }
 
     @AfterTest
@@ -59,12 +66,16 @@ class SplashViewModelTest {
         authRepository = fakeAuth,
         getOrCreateUserProfile = GetOrCreateUserProfileUseCase(
             userProfileRepository = fakeProfileRepo,
-            userParkingRepository = fakeParkingRepo,
             authRepository = fakeAuth,
         ),
-        vehicleRepository = fakeVehicleRepo,
+        bootstrapUserData = BootstrapUserDataUseCase(
+            vehicleRepository = fakeVehicleRepo,
+            userParkingRepository = fakeParkingRepo,
+            zoneRepository = fakeZoneRepo,
+        ),
         appPreferences = fakePrefs,
         permissionManager = fakePerms,
+        localSessionCache = fakeSessionCache,
     )
 
     private fun vehicle() = Vehicle(
@@ -117,6 +128,33 @@ class SplashViewModelTest {
         assertEquals(1, fakeProfileRepo.getOrCreateCallCount)
     }
 
+    // ── Session isolation: wipe on sign-out ───────────────────────────────────
+
+    @Test
+    fun `local session cache is wiped when auth transitions to Unauthenticated`() = runTest {
+        buildViewModel()
+        fakeAuth.emitState(AuthState.Authenticated(session))
+        fakeAuth.emitState(AuthState.Unauthenticated)
+
+        assertEquals(1, fakeSessionCache.wipeCount)
+    }
+
+    @Test
+    fun `local session cache is wiped before next sign-in bootstraps`() = runTest {
+        // Simulates user A signing out and user B signing in: the wipe between
+        // them must run before the bootstrap for B, so the previous user's data
+        // cannot leak into the new session.
+        buildViewModel()
+        fakeAuth.emitState(AuthState.Authenticated(session))
+        val callsAfterA = fakeProfileRepo.getOrCreateCallCount
+
+        fakeAuth.emitState(AuthState.Unauthenticated)
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        assertEquals(1, fakeSessionCache.wipeCount)
+        assertEquals(callsAfterA + 1, fakeProfileRepo.getOrCreateCallCount)
+    }
+
     @Test
     fun `getOrCreateProfile is not called when user is unauthenticated`() = runTest {
         buildViewModel()
@@ -152,6 +190,54 @@ class SplashViewModelTest {
             expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `emits ShowError and signs out when vehicle sync fails inside bootstrapUserData`() = runTest {
+        fakeVehicleRepo.syncFromRemoteResult = Result.failure(RuntimeException("vehicles down"))
+
+        val vm = buildViewModel()
+        vm.effect.test {
+            fakeAuth.emitState(AuthState.Authenticated(session))
+
+            val effect = awaitItem()
+            assertTrue(effect is SplashEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, fakeAuth.signOutCount)
+        assertNull(vm.state.value.startRoute)
+    }
+
+    @Test
+    fun `emits ShowError and signs out when parking history sync fails inside bootstrapUserData`() = runTest {
+        fakeParkingRepo.syncResult = Result.failure(RuntimeException("parking down"))
+
+        val vm = buildViewModel()
+        vm.effect.test {
+            fakeAuth.emitState(AuthState.Authenticated(session))
+
+            val effect = awaitItem()
+            assertTrue(effect is SplashEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, fakeAuth.signOutCount)
+        assertNull(vm.state.value.startRoute)
+    }
+
+    @Test
+    fun `emits ShowError and signs out when zone sync fails inside bootstrapUserData`() = runTest {
+        fakeZoneRepo.syncFromRemoteResult = Result.failure(RuntimeException("zones down"))
+
+        val vm = buildViewModel()
+        vm.effect.test {
+            fakeAuth.emitState(AuthState.Authenticated(session))
+
+            val effect = awaitItem()
+            assertTrue(effect is SplashEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(1, fakeAuth.signOutCount)
+        assertNull(vm.state.value.startRoute)
     }
 
     // ── startRoute resolution ────────────────────────────────────────────────

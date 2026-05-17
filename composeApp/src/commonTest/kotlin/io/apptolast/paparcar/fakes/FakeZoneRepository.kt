@@ -20,9 +20,16 @@ class FakeZoneRepository : ZoneRepository {
     var deleteAllUserId: String? = null
         private set
 
+    var syncFromRemoteCallCount = 0
+        private set
+    var syncFromRemoteResult: Result<Unit> = Result.success(Unit)
+
     override fun observeZones(): Flow<List<Zone>> = _zones
 
-    override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun syncFromRemote(userId: String): Result<Unit> {
+        syncFromRemoteCallCount++
+        return syncFromRemoteResult
+    }
 
     override suspend fun saveZone(zone: Zone) {
         savedZone = zone

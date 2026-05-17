@@ -13,11 +13,13 @@ import io.apptolast.paparcar.data.repository.UserParkingRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserProfileRepositoryImpl
 import io.apptolast.paparcar.data.repository.VehicleRepositoryImpl
 import io.apptolast.paparcar.data.repository.ZoneRepositoryImpl
+import io.apptolast.paparcar.data.session.RoomLocalSessionCache
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.session.LocalSessionCache
 import org.koin.dsl.module
 
 val dataModule = module {
@@ -35,6 +37,9 @@ val dataModule = module {
     single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
     single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get(), get(), get()) }
     single<ZoneRepository> { ZoneRepositoryImpl(get(), get(), get()) }
+
+    // Session
+    single<LocalSessionCache> { RoomLocalSessionCache(get()) }
 
     // DAOs (from AppDatabase)
     single { get<AppDatabase>().parkingSessionDao() }
