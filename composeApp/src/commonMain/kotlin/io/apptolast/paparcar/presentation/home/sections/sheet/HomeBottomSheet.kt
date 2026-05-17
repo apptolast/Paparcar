@@ -105,6 +105,10 @@ internal fun HomeBottomSheet(
                     onNavigateExternal = onNavigateExternal,
                     onCancelReport = { onIntent(HomeIntent.ExitReportMode) },
                     onConfirmReport = { onIntent(HomeIntent.ConfirmReportSpot) },
+                    onCancelAddZone = { onIntent(HomeIntent.ExitAddZoneMode) },
+                    onConfirmAddZone = { onIntent(HomeIntent.ConfirmAddZone) },
+                    onUpdateZoneName = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
+                    onUpdateZoneIcon = { onIntent(HomeIntent.UpdateAddingZoneIcon(it)) },
                 )
             }
 

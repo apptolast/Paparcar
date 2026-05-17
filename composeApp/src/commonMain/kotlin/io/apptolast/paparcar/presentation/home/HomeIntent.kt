@@ -47,4 +47,25 @@ sealed class HomeIntent {
 
     /** Confirm the report at the current camera centre (fallback to user GPS when camera is unknown). */
     data object ConfirmReportSpot : HomeIntent()
+
+    /** Enter the add-zone mode — same pin + dim affordance as Reporting; peek hosts the name/icon form. */
+    data object EnterAddZoneMode : HomeIntent()
+
+    /** Exit add-zone mode without saving; sheet and map return to Browse. */
+    data object ExitAddZoneMode : HomeIntent()
+
+    /** Confirm the new zone at the current camera centre, with the in-progress name + icon draft. */
+    data object ConfirmAddZone : HomeIntent()
+
+    /** Update the in-progress name draft for the AddingZone form. */
+    data class UpdateAddingZoneName(val name: String) : HomeIntent()
+
+    /** Update the in-progress icon draft for the AddingZone form. */
+    data class UpdateAddingZoneIcon(val iconKey: String) : HomeIntent()
+
+    /** User tapped a zone chip — moves the camera to the zone. */
+    data class SelectZone(val zoneId: String) : HomeIntent()
+
+    /** User long-pressed a zone chip → delete. */
+    data class DeleteZone(val zoneId: String) : HomeIntent()
 }

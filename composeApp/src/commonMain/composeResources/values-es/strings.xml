@@ -253,6 +253,13 @@
     <string name="home_report_fab_cd">Avisar plaza libre</string>
     <string name="home_report_cancel_cd">Cancelar reporte</string>
 
+    <!-- Zonas en Home — lugares habituales -->
+    <string name="home_zone_name_placeholder">Nombre (ej. Casa, Trabajo)</string>
+    <string name="home_zone_save_action">Guardar zona</string>
+    <string name="home_zone_cancel_cd">Cancelar nueva zona</string>
+    <string name="home_zone_add_chip_cd">A&#xF1;adir una nueva zona</string>
+    <string name="home_zone_icon_picker_cd">Elegir un icono</string>
+
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 

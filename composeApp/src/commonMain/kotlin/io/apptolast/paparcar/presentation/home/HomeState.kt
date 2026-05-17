@@ -7,6 +7,8 @@ import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.Zone
+import io.apptolast.paparcar.domain.model.ZoneIcon
 
 /**
  * Active interaction mode of the Home surface.
@@ -14,14 +16,16 @@ import io.apptolast.paparcar.domain.model.VehicleSize
  *  - [Browse] (default): user explores spots and their parked car. Sheet
  *    shows the regular item list, selection state applies, map markers
  *    render at full opacity.
- *  - [Reporting]: user is positioning a manual spot report. Sheet shows
- *    the report form (title / subtitle / address / CTA), nearby markers
- *    dim into the background, and a static centre pin indicates where
- *    the new spot will land.
+ *  - [Reporting]: user is positioning a manual spot report. Centre pin
+ *    + dimmed markers + report peek row.
+ *  - [AddingZone]: user is positioning a new habitual zone (Casa,
+ *    Trabajo…). Same pin + dim affordance as Reporting; only the peek
+ *    content and the terminal use case differ.
  */
 sealed class HomeMode {
     data object Browse : HomeMode()
     data object Reporting : HomeMode()
+    data object AddingZone : HomeMode()
 }
 
 /**
@@ -55,9 +59,20 @@ data class HomeState(
     val mode: HomeMode = HomeMode.Browse,
     /** True while a manual spot report is being submitted (CTA spinner). */
     val isReporting: Boolean = false,
-    /** Last camera centre captured for the report flow — used when [mode] is [HomeMode.Reporting]. */
-    val reportCameraLat: Double? = null,
-    val reportCameraLon: Double? = null,
+    /** True while an Add-Zone confirm is in flight (CTA spinner). */
+    val isSavingZone: Boolean = false,
+    /**
+     * Last camera centre captured while the user is in a pin-positioning mode
+     * ([HomeMode.Reporting] or [HomeMode.AddingZone]). Used at confirm time as
+     * the lat/lon for the new spot or zone. Cleared on Browse re-entry.
+     */
+    val pinCameraLat: Double? = null,
+    val pinCameraLon: Double? = null,
+    /** User's habitual zones (Casa, Trabajo…) shown as chips on the sheet. */
+    val zones: List<Zone> = emptyList(),
+    /** In-progress AddingZone form fields. Reset on Browse re-entry. */
+    val addingZoneName: String = "",
+    val addingZoneIconKey: String = ZoneIcon.DEFAULT,
 ) {
     companion object {
         /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */

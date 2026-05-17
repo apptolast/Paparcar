@@ -221,6 +221,13 @@
     <string name="home_report_fab_cd">Report a free spot</string>
     <string name="home_report_cancel_cd">Cancel report</string>
 
+    <!-- Home Zones — habitual places -->
+    <string name="home_zone_name_placeholder">Name (e.g. Home, Work)</string>
+    <string name="home_zone_save_action">Save zone</string>
+    <string name="home_zone_cancel_cd">Cancel new zone</string>
+    <string name="home_zone_add_chip_cd">Add a new zone</string>
+    <string name="home_zone_icon_picker_cd">Choose an icon</string>
+
     <!-- GPS accuracy banner — shown when signal is weak -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 

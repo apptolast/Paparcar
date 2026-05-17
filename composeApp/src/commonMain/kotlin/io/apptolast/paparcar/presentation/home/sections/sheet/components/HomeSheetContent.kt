@@ -85,6 +85,22 @@ internal fun LazyListScope.homeSheetItems(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
     }
 
+    // Zones chips — only shown when the user is signed in (the underlying
+    // zone observe Flow emits emptyList otherwise) and permissions are
+    // granted (no point shouting "Casa" while we can't even centre the
+    // camera on it). The trailing "+" chip is always present, so even an
+    // empty zones list renders a single-item LazyRow.
+    if (state.allPermissionsGranted) {
+        item("zones_chips") {
+            HomeZoneChips(
+                zones = state.zones,
+                onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
+                onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+
     if (showParkingFirst) {
         parkingSection(state, onParkingClick, onManualPark)
         item("mid_divider") {
@@ -117,6 +133,7 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
     var base = 1 // top_divider
+    if (state.allPermissionsGranted) base += 1 // zones_chips (LazyRow item)
     if (showParkingFirst) {
         base += 1 // parking_header
         base += 1 // parking_row OR parking_empty

@@ -145,6 +145,9 @@ fun HomeScreen(
                 HomeEffect.OfflineActionBlocked -> snackbarHostState.showSnackbar(msgOfflineBlocked)
                 is HomeEffect.NavigateToHistory -> onNavigateToHistory()
                 HomeEffect.RequestLocationPermission -> {}
+                // MoveCameraTo needs the HomeUiController which lives inside
+                // HomeContent; a dedicated collector down there handles it.
+                is HomeEffect.MoveCameraTo -> Unit
             }
         }
     }
@@ -152,6 +155,7 @@ fun HomeScreen(
     HomeContent(
         state = state,
         onIntent = viewModel::handleIntent,
+        effects = viewModel.effect,
         snackbarHostState = snackbarHostState,
         navProgressState = navProgressState,
         bottomPadding = bottomPadding,
@@ -173,6 +177,7 @@ fun HomeScreen(
 private fun HomeContent(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
+    effects: kotlinx.coroutines.flow.SharedFlow<HomeEffect>,
     snackbarHostState: SnackbarHostState,
     navProgressState: MutableFloatState,
     bottomPadding: Dp,
@@ -241,6 +246,16 @@ private fun HomeContent(
         val spotId = selectedSpotId ?: return@LaunchedEffect
         val idx = homeSheetSpotItemIndex(state, spotId)
         if (idx >= 0) lazyListState.animateScrollToItem(idx)
+    }
+
+    // Dedicated collector for camera-move effects (e.g. zone chip tap).
+    // Lives here because uiController is local to this composable.
+    LaunchedEffect(Unit) {
+        effects.collect { effect ->
+            if (effect is HomeEffect.MoveCameraTo) {
+                uiController.moveCamera(effect.lat, effect.lon, zoom = 15f)
+            }
+        }
     }
 
     CompositionLocalProvider(LocalMapInteracting provides isMapInteracting) {
@@ -341,11 +356,14 @@ private fun HomeContent(
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
-                    // Reporting and Browse-with-no-selection both want the sheet
-                    // resting at peek snap. In Reporting the peek handle itself
-                    // grows to host the entire report surface (state row + CTA),
-                    // so animating to half would only add empty space below.
-                    if (state.selectedItemId == null || state.mode is HomeMode.Reporting) {
+                    // Any pin-positioning mode and Browse-with-no-selection both
+                    // want the sheet resting at peek snap. In Reporting /
+                    // AddingZone the peek handle itself grows to host the entire
+                    // state surface (info row + CTA), so animating to half would
+                    // only add empty space below.
+                    val isPinning = state.mode is HomeMode.Reporting ||
+                        state.mode is HomeMode.AddingZone
+                    if (state.selectedItemId == null || isPinning) {
                         sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
                     } else if (sheetOffsetPx.value >= peekOffsetPx) {
                         sheetOffsetPx.snapTo(peekOffsetPx)
@@ -440,26 +458,26 @@ private fun HomeContent(
                     }
                 }
 
-                val isReporting = state.mode is HomeMode.Reporting
+                val isPinningMode = state.mode is HomeMode.Reporting || state.mode is HomeMode.AddingZone
 
                 // ── Map ──────────────────────────────────────────────────────
                 HomeMapSection(
                     state = state,
                     selectedSpotId = selectedSpotId,
                     isMyCarSelected = isParkingSelected,
-                    // Only switch the marker stroke style to "report" while in
-                    // Reporting mode — keeps Browse cleanly off the report visual.
-                    reportMode = isReporting,
+                    // Switch the marker stroke style to "report" while in any
+                    // pin-positioning mode (Reporting / AddingZone). Keeps
+                    // Browse cleanly off the report visual.
+                    reportMode = isPinningMode,
                     cameraTarget = uiController.cameraTarget,
                     mapHeightDp = mapHeightDp,
-                    // Center pin only exists in Reporting mode — that's the
-                    // affordance for positioning the new spot.
-                    showAnimatedCenterPin = isReporting,
-                    // Dim non-focus markers across all focus states (Reporting,
-                    // spot selected, parking selected). Selected items bypass
-                    // the dim pass — selected spot via the SELECTED contentId,
-                    // parking via the isMyCarSelected flag.
-                    dimSpots = isReporting || state.selectedItemId != null,
+                    // Centre pin exists in any pin-positioning mode — affordance
+                    // for placing the new spot or zone.
+                    showAnimatedCenterPin = isPinningMode,
+                    // Dim non-focus markers across all focus states. Selected
+                    // items bypass the dim pass (selected spot via SELECTED
+                    // contentId, parking via isMyCarSelected).
+                    dimSpots = isPinningMode || state.selectedItemId != null,
                     onSpotClick = onSpotMarkerClick,
                     onMyCarClick = onMyCarMarkerClick,
                     onCameraMove = { lat, lon ->
@@ -486,9 +504,9 @@ private fun HomeContent(
                 // ── Right FAB column (utilities) ─────────────────────────────
                 HomeMapFabsLayer(
                     state = state,
-                    // Hidden in Reporting mode so the user focuses on the centre
-                    // pin without competing controls.
-                    visible = !isReporting && sheetOffsetPx.value >= halfOffsetPx,
+                    // Hidden in any pin-positioning mode so the user focuses
+                    // on the centre pin without competing controls.
+                    visible = !isPinningMode && sheetOffsetPx.value >= halfOffsetPx,
                     bottomInset = fabBottomDp,
                     onMyLocation = {
                         state.userGpsPoint?.let {
@@ -513,7 +531,7 @@ private fun HomeContent(
 
                 // ── Left FAB (report a free spot — entry to Reporting mode) ──
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = !isReporting && sheetOffsetPx.value >= halfOffsetPx,
+                    visible = !isPinningMode && sheetOffsetPx.value >= halfOffsetPx,
                     enter = androidx.compose.animation.fadeIn(),
                     exit = androidx.compose.animation.fadeOut(),
                     modifier = Modifier

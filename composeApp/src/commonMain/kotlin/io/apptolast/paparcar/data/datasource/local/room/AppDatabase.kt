@@ -6,8 +6,14 @@ import androidx.room.RoomDatabase
 import androidx.room.RoomDatabaseConstructor
 
 @Database(
-    entities = [UserParkingEntity::class, UserProfileEntity::class, VehicleEntity::class, SpotEntity::class],
-    version = 1,
+    entities = [
+        UserParkingEntity::class,
+        UserProfileEntity::class,
+        VehicleEntity::class,
+        SpotEntity::class,
+        ZoneEntity::class,
+    ],
+    version = 2,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -15,6 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun vehicleDao(): VehicleDao
     abstract fun spotDao(): SpotDao
+    abstract fun zoneDao(): ZoneDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

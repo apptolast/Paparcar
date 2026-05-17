@@ -16,6 +16,9 @@ import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionU
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
+import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
+import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
+import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAppPreferences
@@ -32,6 +35,7 @@ import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
+import io.apptolast.paparcar.fakes.FakeZoneRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -83,6 +87,7 @@ class HomeViewModelTest {
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
         )
+        val zoneRepo = FakeZoneRepository()
         return HomeViewModel(
             permissionManager = permissions,
             locationDataSource = locationDataSource,
@@ -97,6 +102,9 @@ class HomeViewModelTest {
             appPreferences = prefs,
             sendSpotSignal = sendSpotSignal,
             connectivityObserver = connectivity,
+            observeZones = ObserveZonesUseCase(zoneRepo),
+            saveZone = SaveZoneUseCase(zoneRepo, authRepo),
+            deleteZone = DeleteZoneUseCase(zoneRepo),
         )
     }
 

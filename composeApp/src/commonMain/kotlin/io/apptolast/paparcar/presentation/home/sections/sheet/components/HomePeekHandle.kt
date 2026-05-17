@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,12 +26,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.LocalParking
@@ -54,8 +58,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.distanceString
@@ -73,6 +79,10 @@ import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
+import paparcar.composeapp.generated.resources.home_zone_cancel_cd
+import paparcar.composeapp.generated.resources.home_zone_icon_picker_cd
+import paparcar.composeapp.generated.resources.home_zone_name_placeholder
+import paparcar.composeapp.generated.resources.home_zone_save_action
 import androidx.compose.ui.graphics.vector.ImageVector
 
 @Composable
@@ -83,6 +93,10 @@ internal fun HomePeekHandle(
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit = { _, _, _ -> },
     onCancelReport: () -> Unit = {},
     onConfirmReport: () -> Unit = {},
+    onCancelAddZone: () -> Unit = {},
+    onConfirmAddZone: () -> Unit = {},
+    onUpdateZoneName: (String) -> Unit = {},
+    onUpdateZoneIcon: (String) -> Unit = {},
 ) {
     val freeCount = state.nearbySpots.size
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
@@ -90,13 +104,13 @@ internal fun HomePeekHandle(
         ?.takeIf { !isParkingSelected }
         ?.let { id -> state.nearbySpots.find { it.id == id } }
     val parkingToShow = if (isParkingSelected) state.userParking else null
-    val isReporting = state.mode is HomeMode.Reporting
 
-    // Encode the four mutually exclusive peek states as a typed target so the
+    // Encode the five mutually exclusive peek states as a typed target so the
     // AnimatedContent transitions between them cleanly without piling triples
     // of nullable fields.
     val peekState: PeekState = when {
-        isReporting -> PeekState.Reporting
+        state.mode is HomeMode.Reporting -> PeekState.Reporting
+        state.mode is HomeMode.AddingZone -> PeekState.AddingZone
         selectedSpot != null -> PeekState.SelectedSpot(selectedSpot)
         parkingToShow != null -> PeekState.SelectedParking(parkingToShow)
         else -> PeekState.Browse
@@ -166,6 +180,13 @@ internal fun HomePeekHandle(
                     onCancel = onCancelReport,
                     onConfirm = onConfirmReport,
                 )
+                PeekState.AddingZone -> AddingZonePeekRow(
+                    state = state,
+                    onCancel = onCancelAddZone,
+                    onConfirm = onConfirmAddZone,
+                    onNameChange = onUpdateZoneName,
+                    onIconChange = onUpdateZoneIcon,
+                )
                 PeekState.Browse -> CameraLocationRow(state = state, freeCount = freeCount)
             }
         }
@@ -180,6 +201,7 @@ private sealed class PeekState {
     data class SelectedSpot(val spot: Spot) : PeekState()
     data class SelectedParking(val parking: UserParking) : PeekState()
     data object Reporting : PeekState()
+    data object AddingZone : PeekState()
     data object Browse : PeekState()
 }
 
@@ -412,6 +434,124 @@ private fun ReportPeekRow(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
         Spacer(Modifier.height(12.dp))
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Adding-zone row — manual "Guardar zona" flow
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun AddingZonePeekRow(
+    state: HomeState,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+    onNameChange: (String) -> Unit,
+    onIconChange: (String) -> Unit,
+) {
+    val info = state.cameraLocationInfo
+    val primaryText = when {
+        info?.placeInfo != null -> info.placeInfo.name
+        info?.address?.displayLine != null -> info.address.displayLine!!
+        else -> stringResource(Res.string.home_address_unknown)
+    }
+    val placeIcon = info?.placeInfo?.category?.icon
+
+    Column {
+        // Info row — same molde as Report/Spot/Parking: place icon + content
+        // column + dismiss button on the right.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = placeIcon ?: zoneIconFor(state.addingZoneIconKey),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
+            androidx.compose.material3.OutlinedTextField(
+                value = state.addingZoneName,
+                onValueChange = onNameChange,
+                placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            PeekDismissButton(onDismiss = onCancel)
+        }
+
+        // Address line so the user can verify what they're saving — same
+        // address surfaced by Browse's CameraLocationRow, intentionally
+        // duplicated here because the input field already occupies the slot
+        // that normally hosts it.
+        Text(
+            text = primaryText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .basicMarquee()
+                .padding(horizontal = 20.dp),
+        )
+
+        // Icon picker — horizontal scrollable row of preset chips, one
+        // tap-able per ZoneIcon entry. Selected chip is highlighted with
+        // primaryContainer so the choice is visible at a glance.
+        ZoneIconPickerRow(
+            selectedKey = state.addingZoneIconKey,
+            onSelect = onIconChange,
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+        )
+
+        PapFooterButton(
+            label = stringResource(Res.string.home_zone_save_action),
+            leadingIcon = Icons.Outlined.Bookmark,
+            onClick = onConfirm,
+            style = PapFooterButtonStyle.Filled,
+            enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+        )
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun ZoneIconPickerRow(
+    selectedKey: String,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp),
+    ) {
+        items(items = ZoneIcon.PRESETS, key = { it }) { key ->
+            val isSelected = key == selectedKey
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    )
+                    .clickable { onSelect(key) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = zoneIconFor(key),
+                    contentDescription = null,
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
     }
 }
 

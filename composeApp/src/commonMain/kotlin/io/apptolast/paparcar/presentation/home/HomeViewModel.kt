@@ -20,6 +20,10 @@ import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
+import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
+import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
+import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
+import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -55,6 +59,9 @@ class HomeViewModel(
     private val appPreferences: AppPreferences,
     private val sendSpotSignal: SendSpotSignalUseCase,
     private val connectivityObserver: ConnectivityObserver,
+    private val observeZones: ObserveZonesUseCase,
+    private val saveZone: SaveZoneUseCase,
+    private val deleteZone: DeleteZoneUseCase,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     private val searchQueryFlow = MutableStateFlow("")
@@ -96,6 +103,11 @@ class HomeViewModel(
             .catch { e ->
                 sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
+            .launchIn(viewModelScope)
+
+        observeZones()
+            .onEach { zones -> updateState { copy(zones = zones) } }
+            .catch { /* best-effort overlay; no auth means empty list */ }
             .launchIn(viewModelScope)
 
         combine(permissionManager.permissionState, reconnectTick) { perm, _ -> perm }
@@ -172,8 +184,11 @@ class HomeViewModel(
             is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId) }
             is HomeIntent.ManualPark -> manualPark()
             is HomeIntent.CameraPositionChanged -> {
-                if (state.value.mode is HomeMode.Reporting) {
-                    updateState { copy(reportCameraLat = intent.lat, reportCameraLon = intent.lon) }
+                // Snapshot the camera for any pin-positioning mode (Reporting or
+                // AddingZone). Browse doesn't need it — the lat/lon used by Confirm
+                // would be stale by the time the user re-enters pin mode anyway.
+                if (state.value.mode !is HomeMode.Browse) {
+                    updateState { copy(pinCameraLat = intent.lat, pinCameraLon = intent.lon) }
                 }
                 geocodeCameraLocation(intent.lat, intent.lon)
             }
@@ -190,20 +205,49 @@ class HomeViewModel(
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.SendSpotSignal -> handleSpotSignal(intent.spotId, intent.accepted)
             is HomeIntent.EnterReportMode -> updateState {
-                copy(mode = HomeMode.Reporting, selectedItemId = null)
+                copy(
+                    mode = HomeMode.Reporting,
+                    selectedItemId = null,
+                    pinCameraLat = null,
+                    pinCameraLon = null,
+                )
             }
             is HomeIntent.ExitReportMode -> updateState {
-                copy(mode = HomeMode.Browse, reportCameraLat = null, reportCameraLon = null)
+                copy(mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null)
             }
             is HomeIntent.ConfirmReportSpot -> confirmReportSpot()
+            is HomeIntent.EnterAddZoneMode -> updateState {
+                copy(
+                    mode = HomeMode.AddingZone,
+                    selectedItemId = null,
+                    pinCameraLat = null,
+                    pinCameraLon = null,
+                    addingZoneName = "",
+                    addingZoneIconKey = ZoneIcon.DEFAULT,
+                )
+            }
+            is HomeIntent.ExitAddZoneMode -> updateState {
+                copy(
+                    mode = HomeMode.Browse,
+                    pinCameraLat = null,
+                    pinCameraLon = null,
+                    addingZoneName = "",
+                    addingZoneIconKey = ZoneIcon.DEFAULT,
+                )
+            }
+            is HomeIntent.ConfirmAddZone -> confirmAddZone()
+            is HomeIntent.UpdateAddingZoneName -> updateState { copy(addingZoneName = intent.name) }
+            is HomeIntent.UpdateAddingZoneIcon -> updateState { copy(addingZoneIconKey = intent.iconKey) }
+            is HomeIntent.SelectZone -> selectZone(intent.zoneId)
+            is HomeIntent.DeleteZone -> viewModelScope.launch { deleteZone(intent.zoneId) }
         }
     }
 
     private fun confirmReportSpot() {
         val current = state.value
         if (current.mode !is HomeMode.Reporting || current.isReporting) return
-        val lat = current.reportCameraLat ?: current.userGpsPoint?.latitude
-        val lon = current.reportCameraLon ?: current.userGpsPoint?.longitude
+        val lat = current.pinCameraLat ?: current.userGpsPoint?.latitude
+        val lon = current.pinCameraLon ?: current.userGpsPoint?.longitude
         if (lat == null || lon == null) {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
             return
@@ -216,12 +260,51 @@ class HomeViewModel(
                 copy(
                     isReporting = false,
                     mode = HomeMode.Browse,
-                    reportCameraLat = null,
-                    reportCameraLon = null,
+                    pinCameraLat = null,
+                    pinCameraLon = null,
                 )
             }
             sendEffect(HomeEffect.SpotReported)
         }
+    }
+
+    private fun confirmAddZone() {
+        val current = state.value
+        if (current.mode !is HomeMode.AddingZone || current.isSavingZone) return
+        val lat = current.pinCameraLat ?: current.userGpsPoint?.latitude
+        val lon = current.pinCameraLon ?: current.userGpsPoint?.longitude
+        if (lat == null || lon == null) {
+            sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
+            return
+        }
+        val name = current.addingZoneName.trim()
+        if (name.isEmpty()) return  // UI keeps the CTA disabled in this case
+        updateState { copy(isSavingZone = true) }
+        viewModelScope.launch {
+            saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
+                .onFailure { e ->
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
+                }
+            updateState {
+                copy(
+                    isSavingZone = false,
+                    mode = HomeMode.Browse,
+                    pinCameraLat = null,
+                    pinCameraLon = null,
+                    addingZoneName = "",
+                    addingZoneIconKey = ZoneIcon.DEFAULT,
+                )
+            }
+        }
+    }
+
+    private fun selectZone(zoneId: String) {
+        val zone = state.value.zones.find { it.id == zoneId } ?: return
+        // The peek/sheet doesn't change selection state for zones — tapping a
+        // chip just moves the camera. The host VM exposes the move via an
+        // effect so HomeScreen can drive its HomeUiController without having to
+        // mirror zone data inside the controller.
+        sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
     }
 
     private fun releaseParking(lat: Double, lon: Double, publishSpot: Boolean) {
