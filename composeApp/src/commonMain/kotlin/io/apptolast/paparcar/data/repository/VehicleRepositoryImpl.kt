@@ -1,13 +1,12 @@
 package io.apptolast.paparcar.data.repository
 
 import com.apptolast.customlogin.domain.AuthRepository
-import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.apptolast.paparcar.data.datasource.local.room.UserProfileDao
 import io.apptolast.paparcar.data.datasource.local.room.VehicleDao
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.mapper.toDomain
+import io.apptolast.paparcar.data.mapper.toDto
 import io.apptolast.paparcar.data.mapper.toEntity
-import io.apptolast.paparcar.data.mapper.toVehicleEntity
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +18,6 @@ class VehicleRepositoryImpl(
     private val dao: VehicleDao,
     private val profileDao: UserProfileDao,
     private val userProfileDataSource: RemoteUserProfileDataSource,
-    private val firestore: FirebaseFirestore,
     private val authRepository: AuthRepository,
 ) : VehicleRepository {
 
@@ -72,29 +70,21 @@ class VehicleRepositoryImpl(
     }
 
     /**
-     * Pulls vehicles from Firestore into Room with REPLACE-conflict semantics so changes
-     * made on other devices (e.g. `isDefault` flip) actually land here. [VEHICLES-001]
-     *
-     * Preserves `bluetoothDeviceId` per-row: that field is on-device only, never written
-     * to Firestore, so a naive REPLACE would wipe the pairing on every sync. For each
-     * remote entity we look up the existing local row and merge its BT id back in before
-     * the upsert.
+     * Pulls vehicles from Firestore into Room.
+     * Following the "pure remote sync" agreement: local state is overwritten by remote
+     * during bootstrap to ensure cross-device consistency. [VEHICLES-001]
      */
     override suspend fun syncFromRemote(userId: String): Result<Unit> = runCatching {
-        val snapshot = firestoreVehiclesCol(userId).get()
-        val remoteEntities = snapshot.documents.mapNotNull { it.toVehicleEntity() }
+        val remoteEntities = userProfileDataSource.getVehicles(userId)
+            .map { it.toEntity() }
         if (remoteEntities.isEmpty()) return@runCatching
-        val merged = remoteEntities.map { remote ->
-            val localBt = dao.getById(remote.id, userId)?.bluetoothDeviceId
-            if (localBt != null) remote.copy(bluetoothDeviceId = localBt) else remote
-        }
-        dao.upsertAll(merged)
+        dao.upsertAll(remoteEntities)
     }
 
     override suspend fun saveVehicle(vehicle: Vehicle) {
         dao.insert(vehicle.toEntity())
         currentUserId()?.let { uid ->
-            firestoreVehiclesCol(uid).document(vehicle.id).set(vehicle.toFirestoreMap())
+            userProfileDataSource.saveVehicle(uid, vehicle.toDto())
             // If this is being saved as the default, mirror it on the user profile
             // so the splash can decide hasVehicle without a list query.
             if (vehicle.isDefault) {
@@ -108,7 +98,7 @@ class VehicleRepositoryImpl(
         val uid = currentUserId()
         dao.deleteById(id)
         if (uid != null) {
-            firestoreVehiclesCol(uid).document(id).delete()
+            userProfileDataSource.deleteVehicle(uid, id)
             // If we just deleted the default vehicle, promote another (if any) to
             // keep the UserProfile.defaultVehicleId pointer valid — or clear it.
             // (The Vehicles screen blocks deleting the last vehicle, so in practice
@@ -132,9 +122,7 @@ class VehicleRepositoryImpl(
         // Mirror isDefault flag in Firestore for all user's vehicles
         val vehicles = dao.getByUser(uid)
         vehicles.forEach { entity ->
-            @Suppress("DEPRECATION")
-            firestoreVehiclesCol(uid).document(entity.id)
-                .update("isDefault" to (entity.id == id))
+            userProfileDataSource.updateVehicleDefaultFlag(uid, entity.id, entity.id == id)
         }
 
         // And on the user profile cache (local + remote).
@@ -148,23 +136,7 @@ class VehicleRepositoryImpl(
     }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
-        firestoreVehiclesCol(userId).get().documents.forEach { it.reference.delete() }
+        userProfileDataSource.deleteUserData(userId) // This handles both profile and sub-collections
         dao.deleteByUser(userId)
-    }
-
-    private fun firestoreVehiclesCol(userId: String) =
-        firestore.collection("users").document(userId).collection("vehicles")
-
-    private companion object {
-        private fun Vehicle.toFirestoreMap(): Map<String, Any?> = mapOf(
-            "id" to id,
-            "userId" to userId,
-            "brand" to brand,
-            "model" to model,
-            "sizeCategory" to sizeCategory.name,
-            "showBrandModelOnSpot" to showBrandModelOnSpot,
-            "isDefault" to isDefault,
-            // bluetoothDeviceId intentionally excluded — on-device only
-        )
     }
 }

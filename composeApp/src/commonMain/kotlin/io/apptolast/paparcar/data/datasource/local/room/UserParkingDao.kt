@@ -12,6 +12,10 @@ interface UserParkingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(session: UserParkingEntity)
 
+    /** REPLACE-conflict bulk insert used by [UserParkingRepository.syncParkingHistoryFromRemote]. */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(sessions: List<UserParkingEntity>)
+
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
     suspend fun getActive(): UserParkingEntity?
 

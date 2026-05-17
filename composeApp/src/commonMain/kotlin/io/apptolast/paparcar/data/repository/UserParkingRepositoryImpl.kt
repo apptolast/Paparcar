@@ -62,9 +62,10 @@ class UserParkingRepositoryImpl(
 
     override suspend fun syncParkingHistoryFromRemote(userId: String): Result<Unit> =
         runCatching {
-            userProfileDataSource.getParkingHistory(userId).forEach { dto ->
-                dao.insert(dto.toEntity())
-            }
+            val remoteEntities = userProfileDataSource.getParkingHistory(userId)
+                .map { it.toEntity() }
+            if (remoteEntities.isEmpty()) return@runCatching
+            dao.upsertAll(remoteEntities)
         }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> =

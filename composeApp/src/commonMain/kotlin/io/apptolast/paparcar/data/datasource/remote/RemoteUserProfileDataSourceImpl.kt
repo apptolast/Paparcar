@@ -5,6 +5,7 @@ import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.UserProfileDto
+import io.apptolast.paparcar.data.datasource.remote.dto.VehicleDto
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 
 class RemoteUserProfileDataSourceImpl(
@@ -14,6 +15,9 @@ class RemoteUserProfileDataSourceImpl(
     private fun usersCollection() = firestore.collection(COLLECTION_USERS)
     private fun parkingHistoryCollection(userId: String) =
         usersCollection().document(userId).collection(COLLECTION_PARKING_HISTORY)
+
+    private fun vehiclesCollection(userId: String) =
+        usersCollection().document(userId).collection(COLLECTION_VEHICLES)
 
     override suspend fun getProfile(userId: String): UserProfileDto? =
         runCatching {
@@ -59,8 +63,29 @@ class RemoteUserProfileDataSourceImpl(
                 .mapNotNull { it.toParkingHistoryDto() }
         }.getOrElse { emptyList() }
 
+    override suspend fun getVehicles(userId: String): List<VehicleDto> =
+        runCatching {
+            vehiclesCollection(userId).get().documents.map { it.data<VehicleDto>() }
+        }.getOrElse { e ->
+            PaparcarLogger.e(TAG, "getVehicles failed — userId=$userId", e)
+            emptyList()
+        }
+
+    override suspend fun saveVehicle(userId: String, vehicle: VehicleDto) {
+        vehiclesCollection(userId).document(vehicle.id).set(vehicle)
+    }
+
+    override suspend fun deleteVehicle(userId: String, vehicleId: String) {
+        vehiclesCollection(userId).document(vehicleId).delete()
+    }
+
+    override suspend fun updateVehicleDefaultFlag(userId: String, vehicleId: String, isDefault: Boolean) {
+        vehiclesCollection(userId).document(vehicleId).update(mapOf(FIELD_IS_DEFAULT to isDefault))
+    }
+
     override suspend fun deleteUserData(userId: String) {
         parkingHistoryCollection(userId).get().documents.forEach { it.reference.delete() }
+        vehiclesCollection(userId).get().documents.forEach { it.reference.delete() }
         usersCollection().document(userId).delete()
     }
 
@@ -119,6 +144,7 @@ class RemoteUserProfileDataSourceImpl(
 
         const val COLLECTION_USERS = "users"
         const val COLLECTION_PARKING_HISTORY = "parkingHistory"
+        const val COLLECTION_VEHICLES = "vehicles"
 
         const val FIELD_USER_ID = "userId"
         const val FIELD_EMAIL = "email"
@@ -139,5 +165,7 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ADDRESS = "address"
         const val FIELD_PLACE_INFO = "placeInfo"
         const val FIELD_DETECTION_RELIABILITY = "detectionReliability"
+
+        const val FIELD_IS_DEFAULT = "isDefault"
     }
 }

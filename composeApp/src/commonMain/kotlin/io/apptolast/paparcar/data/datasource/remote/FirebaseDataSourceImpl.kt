@@ -5,11 +5,12 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
+import io.apptolast.paparcar.data.datasource.remote.dto.ZoneDto
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource {
+class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : FirebaseDataSource {
 
     private val spotsCollection = firestore.collection("spots")
 
@@ -34,6 +35,33 @@ class FirebaseDataSourceImpl(firestore: FirebaseFirestore) : FirebaseDataSource 
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {
         val field = if (accepted) FIELD_ACCEPT_COUNT else FIELD_REJECT_COUNT
         spotsCollection.document(spotId).update(field to FieldValue.increment(1))
+    }
+
+    // ─── Zones ────────────────────────────────────────────────────────────────
+
+    private fun zonesCollection(userId: String) =
+        firestore.collection("users").document(userId).collection("zones")
+
+    override suspend fun getZones(userId: String): List<ZoneDto> =
+        runCatching {
+            zonesCollection(userId).get().documents.map { doc -> doc.data<ZoneDto>() }
+        }.getOrElse { e ->
+            PaparcarLogger.e(TAG, "getZones failed for userId=$userId", e)
+            emptyList()
+        }
+
+    override suspend fun saveZone(userId: String, zone: ZoneDto) {
+        zonesCollection(userId).document(zone.id).set(zone)
+    }
+
+    override suspend fun deleteZone(userId: String, zoneId: String) {
+        zonesCollection(userId).document(zoneId).delete()
+    }
+
+    override suspend fun deleteAllZones(userId: String) {
+        runCatching {
+            zonesCollection(userId).get().documents.forEach { it.reference.delete() }
+        }
     }
 
     // ─── Typed deserialization using GitLive SDK 2.x get<T?>() API ────────────

@@ -2,6 +2,7 @@ package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
+import io.apptolast.paparcar.data.datasource.remote.dto.ZoneDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
@@ -41,5 +42,23 @@ class FakeFirebaseDataSource : FirebaseDataSource {
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {
         sendSpotSignalCallCount++
         lastSignal = spotId to accepted
+    }
+
+    // ─── Zones ────────────────────────────────────────────────────────────────
+
+    var zonesToReturn: List<ZoneDto> = emptyList()
+
+    override suspend fun getZones(userId: String): List<ZoneDto> = zonesToReturn
+
+    override suspend fun saveZone(userId: String, zone: ZoneDto) {
+        // No-op for now
+    }
+
+    override suspend fun deleteZone(userId: String, zoneId: String) {
+        // No-op for now
+    }
+
+    override suspend fun deleteAllZones(userId: String) {
+        // No-op for now
     }
 }

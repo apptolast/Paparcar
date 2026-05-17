@@ -35,7 +35,7 @@ val dataModule = module {
     single<SpotRepository> { SpotRepositoryImpl(get(), get()) }
     single<UserParkingRepository> { UserParkingRepositoryImpl(get(), get(), get(), get()) }
     single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
-    single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get(), get(), get()) }
+    single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get(), get()) }
     single<ZoneRepository> { ZoneRepositoryImpl(get(), get(), get()) }
 
     // Session
