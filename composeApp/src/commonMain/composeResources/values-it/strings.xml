@@ -237,7 +237,6 @@
 
     <!-- Schede di navigazione inferiore -->
     <string name="nav_tab_home">Inizio</string>
-    <string name="nav_tab_report">Segnala</string>
     <string name="nav_tab_vehicles">Veicoli</string>
     <string name="nav_tab_settings">Impostazioni</string>
 

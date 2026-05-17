@@ -237,7 +237,6 @@
 
     <!-- Separadores de navegação inferior -->
     <string name="nav_tab_home">Início</string>
-    <string name="nav_tab_report">Reportar</string>
     <string name="nav_tab_vehicles">Veículos</string>
     <string name="nav_tab_settings">Configurações</string>
 

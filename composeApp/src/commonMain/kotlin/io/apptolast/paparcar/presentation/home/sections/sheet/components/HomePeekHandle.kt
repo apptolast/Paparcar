@@ -65,9 +65,9 @@ import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.ui.icons.icon
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.add_free_spot_action
-import paparcar.composeapp.generated.resources.add_free_spot_subtitle
 import paparcar.composeapp.generated.resources.home_address_unknown
+import paparcar.composeapp.generated.resources.home_report_action
+import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
@@ -390,7 +390,7 @@ private fun ReportPeekRow(
                     modifier = Modifier.basicMarquee(),
                 )
                 Text(
-                    text = stringResource(Res.string.add_free_spot_subtitle),
+                    text = stringResource(Res.string.home_report_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                     maxLines = 2,
@@ -405,7 +405,7 @@ private fun ReportPeekRow(
         // release CTAs in the other peek rows, so the affordance reads as
         // "the action for this state" across all four state variants.
         PapFooterButton(
-            label = stringResource(Res.string.add_free_spot_action),
+            label = stringResource(Res.string.home_report_action),
             leadingIcon = Icons.Outlined.Campaign,
             onClick = onConfirm,
             style = PapFooterButtonStyle.Filled,

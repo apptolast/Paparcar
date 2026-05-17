@@ -237,7 +237,6 @@
 
     <!-- Filele de navigare de jos -->
     <string name="nav_tab_home">Acasă</string>
-    <string name="nav_tab_report">Raportează</string>
     <string name="nav_tab_vehicles">Vehicule</string>
     <string name="nav_tab_settings">Setări</string>
 

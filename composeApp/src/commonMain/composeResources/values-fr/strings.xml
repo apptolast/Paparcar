@@ -237,7 +237,6 @@
 
     <!-- Onglets de navigation inférieure -->
     <string name="nav_tab_home">Accueil</string>
-    <string name="nav_tab_report">Signaler</string>
     <string name="nav_tab_vehicles">Véhicules</string>
     <string name="nav_tab_settings">Paramètres</string>
 

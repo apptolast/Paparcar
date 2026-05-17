@@ -237,7 +237,6 @@
 
     <!-- Dolna nawigacja -->
     <string name="nav_tab_home">Główna</string>
-    <string name="nav_tab_report">Zgłoś</string>
     <string name="nav_tab_vehicles">Pojazdy</string>
     <string name="nav_tab_settings">Ustawienia</string>
 

@@ -24,11 +24,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
@@ -66,7 +64,6 @@ import io.apptolast.paparcar.presentation.app.AppEffect
 import io.apptolast.paparcar.presentation.app.AppIntent
 import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.app.SplashViewModel
-import io.apptolast.paparcar.presentation.addspot.AddFreeSpotScreen
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
@@ -90,7 +87,6 @@ import paparcar.composeapp.generated.resources.gps_disclaimer_body
 import paparcar.composeapp.generated.resources.gps_disclaimer_confirm
 import paparcar.composeapp.generated.resources.gps_disclaimer_title
 import paparcar.composeapp.generated.resources.nav_tab_home
-import paparcar.composeapp.generated.resources.nav_tab_report
 import paparcar.composeapp.generated.resources.nav_tab_settings
 import paparcar.composeapp.generated.resources.nav_tab_vehicles
 
@@ -107,14 +103,12 @@ object Routes {
     /** First-run rationale shown before VEHICLE_REGISTRATION. Explains why size is required. */
     const val VEHICLE_SIZE_EXPLAINER = "vehicle_size_explainer"
     const val BT_CONFIG = "bt_config"
-    const val ADD_FREE_SPOT = "add_free_spot"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
     Routes.HOME,
     Routes.VEHICLES,
     Routes.SETTINGS,
-    Routes.ADD_FREE_SPOT,
 )
 
 // Screens where the runtime-permission guard should NOT redirect: either they ARE the
@@ -329,20 +323,7 @@ private fun MainAppNavigation(
                 AppBottomNavigation(
                     items = bottomNavItems,
                     currentRoute = currentRoute,
-                    onNavigate = { route ->
-                        if (route == Routes.ADD_FREE_SPOT) {
-                            // Push semantics (not tab-switch with popUpTo) so the
-                            // user returns to the original tab on back. singleTop
-                            // prevents re-pushing if the user is already there.
-                            if (currentRoute != Routes.ADD_FREE_SPOT) {
-                                navController.navigate(Routes.ADD_FREE_SPOT) {
-                                    launchSingleTop = true
-                                }
-                            }
-                        } else {
-                            navController.navigateToTab(route)
-                        }
-                    },
+                    onNavigate = { route -> navController.navigateToTab(route) },
                     modifier = Modifier.graphicsLayer {
                         alpha = navProgress.floatValue
                         translationY = (1f - navProgress.floatValue) * size.height
@@ -460,12 +441,6 @@ private fun MainAppNavigation(
                     bottomPadding = scaffoldPadding.calculateBottomPadding(),
                 )
             }
-            composable(Routes.ADD_FREE_SPOT) {
-                AddFreeSpotScreen(
-                    onSpotReported = { navController.popBackStack() },
-                    bottomPadding = scaffoldPadding.calculateBottomPadding(),
-                )
-            }
             composable(
                 route = "${Routes.PARKING_LOCATION}?lat={lat}&lon={lon}",
                 arguments = listOf(
@@ -566,12 +541,6 @@ private val bottomNavItems = listOf(
         label = { stringResource(Res.string.nav_tab_home) },
         iconFilled = Icons.Filled.Home,
         iconOutline = Icons.Outlined.Home,
-    ),
-    AppBottomNavItem(
-        route = Routes.ADD_FREE_SPOT,
-        label = { stringResource(Res.string.nav_tab_report) },
-        iconFilled = Icons.Filled.Campaign,
-        iconOutline = Icons.Outlined.Campaign,
     ),
     AppBottomNavItem(
         route = Routes.VEHICLES,

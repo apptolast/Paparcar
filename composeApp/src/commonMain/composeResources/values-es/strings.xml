@@ -247,12 +247,9 @@
     <string name="home_test_spot_sent">Plaza de prueba enviada</string>
     <string name="home_spot_signal_sent">&#xA1;Gracias por la actualizaci&#xF3;n!</string>
 
-    <!-- Marcar plaza libre — modo Reporting en Home -->
-    <string name="add_free_spot_title">Marcando una plaza libre</string>
-    <string name="add_free_spot_subtitle">Una plaza libre que has visto y quieres compartir.</string>
-    <string name="add_free_spot_action">Avisar a la comunidad</string>
-    <string name="add_free_spot_locating_address">Localizando direcci&#xF3;n…</string>
-    <string name="add_free_spot_cd_back">Atr&#xE1;s</string>
+    <!-- Modo Reporting en Home -->
+    <string name="home_report_subtitle">Una plaza libre que has visto y quieres compartir.</string>
+    <string name="home_report_action">Avisar a la comunidad</string>
     <string name="home_report_fab_cd">Avisar plaza libre</string>
     <string name="home_report_cancel_cd">Cancelar reporte</string>
 
@@ -261,7 +258,6 @@
 
     <!-- Pestañas de navegación inferior -->
     <string name="nav_tab_home">Inicio</string>
-    <string name="nav_tab_report">Avisar</string>
     <string name="nav_tab_vehicles">Vehículos</string>
     <string name="nav_tab_settings">Ajustes</string>
 

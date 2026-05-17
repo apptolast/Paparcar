@@ -237,7 +237,6 @@
 
     <!-- Untere Navigationsleiste -->
     <string name="nav_tab_home">Start</string>
-    <string name="nav_tab_report">Melden</string>
     <string name="nav_tab_vehicles">Fahrzeuge</string>
     <string name="nav_tab_settings">Einstellungen</string>
 
