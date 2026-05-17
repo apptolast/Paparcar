@@ -4,9 +4,13 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -56,16 +61,34 @@ import kotlinx.coroutines.launch
 // ─── Palette ─────────────────────────────────────────────────────────────────
 // Matches the design tokens in the Design System (colors_and_type.css).
 private object MarkerColors {
-    val Green         = Color(0xFF25F48C)
-    val Amber         = Color(0xFFF4A825)
-    val Red           = Color(0xFFFF5252)
-    val Blue          = Color(0xFF5B9EFF)
-    val Forest        = Color(0xFF0D1C14)
-    val OnAmber       = Color(0xFF3D2A10)
-    val OnRed         = Color(0xFF3D1010)
-    val OnBlue        = Color(0xFF061021)
-    val SelectionRing = Color(0xFFE8F5EC)
+    val Green           = Color(0xFF25F48C)
+    val Amber           = Color(0xFFF4A825)
+    val Red             = Color(0xFFFF5252)
+    val Blue            = Color(0xFF5B9EFF)
+    val Forest          = Color(0xFF0D1C14)
+    val OnAmber         = Color(0xFF3D2A10)
+    val OnRed           = Color(0xFF3D1010)
+    val OnBlue          = Color(0xFF061021)
+    // Selection halo is drawn in two passes so it reads on any map tile
+    // background: the dark outer stroke contrasts light tiles, the bright
+    // inner stroke contrasts dark tiles. Both are theme-agnostic — a single
+    // bitmap cache entry serves light and dark themes alike.
+    val SelectionRing   = Color(0xFFE8F5EC)
+    val SelectionShadow = Color(0xFF000000)
 }
+
+// Two-pass halo geometry — shared by every selected-state marker so they
+// read with the same visual weight regardless of pin family.
+private const val HALO_OUTER_EXPAND = 6f
+private const val HALO_INNER_EXPAND = 4f
+private const val HALO_OUTER_STROKE = 4.5f
+private const val HALO_INNER_STROKE = 2.5f
+private const val HALO_OUTER_ALPHA  = 0.55f
+private const val HALO_INNER_ALPHA  = 0.95f
+
+// Ground shadow alpha — applied to `onSurface`, so the resulting shadow
+// flips between black-ish (light theme) and white-ish (dark theme).
+private const val GROUND_SHADOW_ALPHA = 0.35f
 
 // ─── MyVehicle marker — active parking session ───────────────────────────────
 
@@ -79,12 +102,17 @@ fun MyVehicleMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
 ) {
+    // onSurface is dark in light themes / light in dark themes, so the ground
+    // shadow flips polarity automatically: black-with-alpha on light map tiles,
+    // white-with-alpha on dark map tiles. kmpmaps re-rasterises the marker when
+    // the captured color changes, so the cache stays correct across theme flips.
+    val shadowColor = MaterialTheme.colorScheme.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
     Canvas(modifier = modifier.size(MY_VEHICLE_W, MY_VEHICLE_H)) {
-        drawMyVehicle(selected = selected)
+        drawMyVehicle(selected = selected, shadowColor = shadowColor)
     }
 }
 
-private fun DrawScope.drawMyVehicle(selected: Boolean) {
+private fun DrawScope.drawMyVehicle(selected: Boolean, shadowColor: Color) {
     // The teardrop path's bounding box matches its viewport (0..64 wide, 0..80
     // tall), but the 2px stroke extends ½px beyond on every side. Without
     // padding, that ½px gets clipped on bitmap render and the rounded balloon
@@ -98,17 +126,28 @@ private fun DrawScope.drawMyVehicle(selected: Boolean) {
 
     translate(left = padPx, top = padPx) {
         if (selected) {
-            val haloPath = teardropPath(cx = 32f, w = 64f, h = 80f, expand = 5f, scale = scale)
+            // Two-pass halo so the selection ring reads against both light
+            // and dark map tiles: outer dark stroke creates a thin shadow
+            // (visible on light backgrounds), inner bright stroke pops
+            // against dark backgrounds. Same "text on photo" trick used in
+            // map labels.
+            val haloOuter = teardropPath(cx = 32f, w = 64f, h = 80f, expand = HALO_OUTER_EXPAND, scale = scale)
             drawPath(
-                haloPath,
-                color = MarkerColors.SelectionRing.copy(alpha = 0.7f),
-                style = Stroke(width = 2.5f * scale),
+                haloOuter,
+                color = MarkerColors.SelectionShadow.copy(alpha = HALO_OUTER_ALPHA),
+                style = Stroke(width = HALO_OUTER_STROKE * scale),
+            )
+            val haloInner = teardropPath(cx = 32f, w = 64f, h = 80f, expand = HALO_INNER_EXPAND, scale = scale)
+            drawPath(
+                haloInner,
+                color = MarkerColors.SelectionRing.copy(alpha = HALO_INNER_ALPHA),
+                style = Stroke(width = HALO_INNER_STROKE * scale),
             )
         }
 
-        // Ground shadow ellipse under the pin tip.
+        // Ground shadow ellipse under the pin tip. Theme-aware (see composable).
         drawOval(
-            color = Color.Black.copy(alpha = 0.35f),
+            color = shadowColor,
             topLeft = Offset(20f * scale, 73.5f * scale),
             size = Size(24f * scale, 5f * scale),
         )
@@ -132,9 +171,10 @@ private fun DrawScope.drawMyVehicle(selected: Boolean) {
 }
 
 // Viewport units of breathing room added on every side of the teardrop path.
-// Picked to comfortably contain a 2px stroke + selected-state halo without
-// changing the perceived marker size.
-private const val MY_VEHICLE_VIEWPORT_PAD = 4f
+// Sized to fit the two-pass selection halo (outer dark stroke at expand=6 +
+// stroke width) without clipping. The canvas dp sizes are inflated by the
+// same ratio so the perceived pin remains identical to the previous design.
+private const val MY_VEHICLE_VIEWPORT_PAD = 7f
 
 // ─── FreeSpot marker — community-reported plaza libre ────────────────────────
 
@@ -166,11 +206,14 @@ fun FreeSpotMarker(
             textAlign = TextAlign.Center,
         )
     }
+    // Theme-aware ground shadow (see MyVehicleMarker for the rationale).
+    val shadowColor = MaterialTheme.colorScheme.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
     Canvas(modifier = modifier.size(FREE_SPOT_W, FREE_SPOT_H)) {
         drawFreeSpot(
             reliability = reliability,
             ttlProgress = ttlProgress,
             selected = selected,
+            shadowColor = shadowColor,
             measurer = measurer,
             pStyle = pStyle,
         )
@@ -181,11 +224,21 @@ private fun DrawScope.drawFreeSpot(
     reliability: SpotReliabilityLevel,
     ttlProgress: Float?,
     selected: Boolean,
+    shadowColor: Color,
     measurer: TextMeasurer,
     pStyle: TextStyle,
 ) {
+    // Same viewport-pad trick as drawMyVehicle: scale to a viewport wider
+    // than the path so the selection halo + outer dark stroke fall inside
+    // the canvas instead of clipping at the edges. Without this, the
+    // expand=6 outer halo at the right edge (x=74) was being cut off at
+    // canvas width 46dp (scale 0.676 → x_px=50 vs canvas 46) — the user
+    // saw the selected ring "as if it didn't fit".
     val w = size.width
-    val scale = w / 68f
+    val pad = FREE_SPOT_VIEWPORT_PAD
+    val scale = w / (68f + pad * 2f)
+    val padPx = pad * scale
+
     val (fill, onFill) = when (reliability) {
         SpotReliabilityLevel.HIGH   -> MarkerColors.Green to MarkerColors.Forest
         SpotReliabilityLevel.MEDIUM -> MarkerColors.Amber to MarkerColors.OnAmber
@@ -193,75 +246,89 @@ private fun DrawScope.drawFreeSpot(
         SpotReliabilityLevel.MANUAL -> MarkerColors.Blue  to MarkerColors.OnBlue
     }
 
-    if (selected) {
-        val haloPath = teardropPath(cx = 34f, w = 68f, h = 84f, expand = 5f, scale = scale)
-        drawPath(
-            haloPath,
-            color = MarkerColors.SelectionRing.copy(alpha = 0.7f),
-            style = Stroke(width = 2.5f * scale),
-        )
-    }
+    translate(left = padPx, top = padPx) {
+        if (selected) {
+            // Two-pass halo so the selection ring reads against both light
+            // and dark map tiles: outer dark stroke creates a thin shadow
+            // (visible on light backgrounds), inner bright stroke pops
+            // against dark backgrounds.
+            val haloOuter = teardropPath(
+                cx = 34f, w = 68f, h = 84f, expand = HALO_OUTER_EXPAND,
+                scale = scale, top = 4f, bottom = 78f,
+            )
+            drawPath(
+                haloOuter,
+                color = MarkerColors.SelectionShadow.copy(alpha = HALO_OUTER_ALPHA),
+                style = Stroke(width = HALO_OUTER_STROKE * scale),
+            )
+            val haloInner = teardropPath(
+                cx = 34f, w = 68f, h = 84f, expand = HALO_INNER_EXPAND,
+                scale = scale, top = 4f, bottom = 78f,
+            )
+            drawPath(
+                haloInner,
+                color = MarkerColors.SelectionRing.copy(alpha = HALO_INNER_ALPHA),
+                style = Stroke(width = HALO_INNER_STROKE * scale),
+            )
+        }
 
-    drawOval(
-        color = Color.Black.copy(alpha = 0.35f),
-        topLeft = Offset(21f * scale, 77.2f * scale),
-        size = Size(26f * scale, 5.6f * scale),
-    )
+        drawOval(
+            color = shadowColor,
+            topLeft = Offset(21f * scale, 77.2f * scale),
+            size = Size(26f * scale, 5.6f * scale),
+        )
 
-    val pin = teardropPath(cx = 34f, w = 68f, h = 84f, expand = 0f, scale = scale, top = 4f, bottom = 78f)
-    drawPath(pin, color = fill)
-    drawPath(pin, color = onFill.copy(alpha = 0.35f), style = Stroke(width = 2f * scale))
+        val pin = teardropPath(cx = 34f, w = 68f, h = 84f, expand = 0f, scale = scale, top = 4f, bottom = 78f)
+        drawPath(pin, color = fill)
+        drawPath(pin, color = onFill.copy(alpha = 0.35f), style = Stroke(width = 2f * scale))
 
-    if (ttlProgress != null) {
-        val ringRadius = 22f * scale
-        val center = Offset(34f * scale, 34f * scale)
-        // Background ring (always full circle, low alpha)
-        drawCircle(
-            color = onFill.copy(alpha = 0.25f),
-            radius = ringRadius,
-            center = center,
-            style = Stroke(width = 3f * scale),
-        )
-        // Active arc: 360° when freshly published, shrinks as TTL drains.
-        val sweep = 360f * ttlProgress.coerceIn(0f, 1f)
-        drawArc(
-            color = onFill,
-            startAngle = -90f,
-            sweepAngle = sweep,
-            useCenter = false,
-            topLeft = Offset(center.x - ringRadius, center.y - ringRadius),
-            size = Size(ringRadius * 2, ringRadius * 2),
-            style = Stroke(width = 3f * scale, cap = StrokeCap.Round),
-        )
-    }
+        if (ttlProgress != null) {
+            val ringRadius = 22f * scale
+            val center = Offset(34f * scale, 34f * scale)
+            drawCircle(
+                color = onFill.copy(alpha = 0.25f),
+                radius = ringRadius,
+                center = center,
+                style = Stroke(width = 3f * scale),
+            )
+            val sweep = 360f * ttlProgress.coerceIn(0f, 1f)
+            drawArc(
+                color = onFill,
+                startAngle = -90f,
+                sweepAngle = sweep,
+                useCenter = false,
+                topLeft = Offset(center.x - ringRadius, center.y - ringRadius),
+                size = Size(ringRadius * 2, ringRadius * 2),
+                style = Stroke(width = 3f * scale, cap = StrokeCap.Round),
+            )
+        }
 
-    // The "P" centred on the pin disc — Outfit Bold via TextMeasurer.
-    val result = measurer.measure(text = AnnotatedString("P"), style = pStyle)
-    val tx = 34f * scale - result.size.width / 2f
-    val ty = 34f * scale - result.size.height / 2f
-    translate(left = tx, top = ty) {
-        drawText(result, color = onFill)
-    }
+        val result = measurer.measure(text = AnnotatedString("P"), style = pStyle)
+        val tx = 34f * scale - result.size.width / 2f
+        val ty = 34f * scale - result.size.height / 2f
+        translate(left = tx, top = ty) {
+            drawText(result, color = onFill)
+        }
 
-    // Manual reports get a distinct "!" badge in the top-right corner.
-    if (reliability == SpotReliabilityLevel.MANUAL) {
-        drawCircle(MarkerColors.Forest, radius = 9f * scale, center = Offset(52f * scale, 14f * scale))
-        drawCircle(
-            MarkerColors.Blue,
-            radius = 9f * scale,
-            center = Offset(52f * scale, 14f * scale),
-            style = Stroke(width = 2f * scale),
-        )
-        drawRect(
-            MarkerColors.Blue,
-            topLeft = Offset(50.8f * scale, 10f * scale),
-            size = Size(2.4f * scale, 6f * scale),
-        )
-        drawRect(
-            MarkerColors.Blue,
-            topLeft = Offset(50.8f * scale, 17f * scale),
-            size = Size(2.4f * scale, 2f * scale),
-        )
+        if (reliability == SpotReliabilityLevel.MANUAL) {
+            drawCircle(MarkerColors.Forest, radius = 9f * scale, center = Offset(52f * scale, 14f * scale))
+            drawCircle(
+                MarkerColors.Blue,
+                radius = 9f * scale,
+                center = Offset(52f * scale, 14f * scale),
+                style = Stroke(width = 2f * scale),
+            )
+            drawRect(
+                MarkerColors.Blue,
+                topLeft = Offset(50.8f * scale, 10f * scale),
+                size = Size(2.4f * scale, 6f * scale),
+            )
+            drawRect(
+                MarkerColors.Blue,
+                topLeft = Offset(50.8f * scale, 17f * scale),
+                size = Size(2.4f * scale, 2f * scale),
+            )
+        }
     }
 }
 
@@ -390,6 +457,158 @@ private const val REPORT_PIN_LIFT_SCALE = 1.04f
 private const val REPORT_STROKE_WIDTH = 3.5f
 private const val REPORT_SHADOW_ALPHA = 0.32f
 
+/**
+ * Centre indicator shown while Home is in AddingZone mode. Circular surface
+ * with an onSurface ink border and the user's currently-selected zone icon
+ * inside, so the picker selection is echoed at three places at once (text
+ * field leading icon, chip row, this pin). Same bounce-on-camera-settle and
+ * shadow molde as [ReportCenterPin] but a distinct silhouette (circle vs
+ * teardrop) so it reads as "saving a place" rather than "reporting a spot".
+ *
+ * Layout uses the same 2× tall outer Box as ReportCenterPin: the circle is
+ * positioned in the upper half so its bottom edge rests at the Box centre
+ * (= geographic anchor = ground); the shadow ellipse stays anchored at the
+ * Box centre while the circle lifts during drag.
+ */
+@Composable
+fun ZoneCenterPin(
+    icon: ImageVector,
+    cameraMoving: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val offsetY = remember { Animatable(0f) }
+    val pinScale = remember { Animatable(1f) }
+    LaunchedEffect(cameraMoving) {
+        val (target, scaleTarget) = if (cameraMoving) {
+            ZONE_PIN_LIFT_DP to ZONE_PIN_LIFT_SCALE
+        } else {
+            ZONE_PIN_REST_DP to ZONE_PIN_REST_SCALE
+        }
+        launch {
+            offsetY.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+        }
+        launch {
+            pinScale.animateTo(scaleTarget, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+        }
+    }
+
+    val ink = MaterialTheme.colorScheme.onSurface
+    val fill = MaterialTheme.colorScheme.surfaceContainer
+    val accent = MaterialTheme.colorScheme.primary
+    val shadowColor = ink.copy(alpha = REPORT_SHADOW_ALPHA)
+
+    Box(
+        modifier = modifier.size(
+            width = ZONE_PIN_DIAM,
+            height = ZONE_PIN_DIAM * 2,
+        ),
+    ) {
+        // Ground shadow — anchored at Box centre so it stays fixed at the
+        // geographic camera target while the circle lifts above it.
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(width = ZONE_SHADOW_W, height = ZONE_SHADOW_H),
+        ) {
+            drawOval(color = shadowColor)
+        }
+
+        // The pin itself — a filled circle with an onSurface ink border and
+        // the selected zone icon centred inside. Placed at TopCenter so its
+        // bottom edge sits exactly at the Box centre (ground line); the
+        // bounce only translates the circle, leaving the shadow steady.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = offsetY.value.dp)
+                .scale(pinScale.value)
+                .size(ZONE_PIN_DIAM)
+                .background(color = fill, shape = CircleShape)
+                .border(width = ZONE_STROKE_WIDTH, color = ink, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(ZONE_ICON_SIZE),
+            )
+        }
+    }
+}
+
+private val ZONE_PIN_DIAM = 46.dp
+private val ZONE_ICON_SIZE = 22.dp
+private val ZONE_STROKE_WIDTH = 3.dp
+private val ZONE_SHADOW_W = 22.dp
+private val ZONE_SHADOW_H = 5.dp
+private const val ZONE_PIN_REST_DP = 0f
+private const val ZONE_PIN_LIFT_DP = -10f
+private const val ZONE_PIN_REST_SCALE = 1.0f
+private const val ZONE_PIN_LIFT_SCALE = 1.04f
+
+// ─── Zone marker — saved habitual place (Casa, Trabajo…) ─────────────────────
+
+/**
+ * On-map marker for a saved [io.apptolast.paparcar.domain.model.Zone]. Same
+ * visual language as [ZoneCenterPin] (circle + chosen icon) so the user
+ * recognises the placed marker as the locked-in counterpart of the pin they
+ * dragged in AddingZone mode. Lighter weight (smaller diameter, no bounce,
+ * static shadow) so multiple zones on the map don't compete with spot markers.
+ *
+ * @param icon resolved [ImageVector] for the zone's `iconKey`.
+ */
+@Composable
+fun ZoneMarker(
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    val fill = MaterialTheme.colorScheme.surfaceContainer
+    val accent = MaterialTheme.colorScheme.primary
+    val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
+
+    Box(
+        modifier = modifier.size(width = ZONE_MARKER_DIAM, height = ZONE_MARKER_DIAM + ZONE_MARKER_GROUND_GAP),
+    ) {
+        // Ground shadow ellipse at the bottom — sits at the marker's anchor
+        // line (bitmap bottom corresponds to the geographic point).
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .size(width = ZONE_MARKER_SHADOW_W, height = ZONE_MARKER_SHADOW_H),
+        ) {
+            drawOval(color = shadowColor)
+        }
+
+        // The circle pin itself — surfaceContainer fill so the icon stays
+        // readable over any map tile, onSurface stroke for depth, primary
+        // tint on the icon to mirror the chip picker's selected colouring.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .size(ZONE_MARKER_DIAM)
+                .background(color = fill, shape = CircleShape)
+                .border(width = ZONE_MARKER_STROKE, color = ink, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(ZONE_MARKER_ICON),
+            )
+        }
+    }
+}
+
+private val ZONE_MARKER_DIAM       = 42.dp
+private val ZONE_MARKER_ICON       = 22.dp
+private val ZONE_MARKER_STROKE     = 2.dp
+private val ZONE_MARKER_SHADOW_W   = 20.dp
+private val ZONE_MARKER_SHADOW_H   = 5.dp
+private val ZONE_MARKER_GROUND_GAP = 4.dp
+
 // ─── Cluster marker — several spots grouped at low zoom ──────────────────────
 
 @Composable
@@ -513,12 +732,24 @@ private fun DrawScope.drawCarIcon(scale: Float, color: Color) {
 // teardrop path (calibrated to 64×80 and 68×84 viewports inside the Canvas)
 // scales proportionally without clipping.
 //
-// MY_VEHICLE_* keeps a proportional breathing-room margin over the visible
-// pin: drawMyVehicle()'s scale formula divides by 72f so the teardrop's 2px
-// stroke + rounded corners always fall inside the canvas, leaving room for
-// antialiasing to feather the edges.
-private val MY_VEHICLE_W = 48.dp
-private val MY_VEHICLE_H = 60.dp
-private val FREE_SPOT_W  = 46.dp
+// Canvas sizes are deliberately INFLATED beyond the pin's bounding box: each
+// marker's draw fn divides width by `(viewport + pad*2)`, so the perceived
+// pin renders at the original size but a margin of transparent space sits
+// around it. That margin is what hosts the selection halo (expand=6 outer
+// stroke) without clipping. The map anchor (0.5f, 1f) still aligns the pin
+// TIP with the geographic coordinate because the bottom margin is part of
+// the symmetric pad — the bitmap grows around the pin, not below it.
+// MyVehicle: viewport 64+14=78 wide × 80+14=94 tall. Canvas 46dp wide →
+// scale = 46/78 = 0.590; height = 94*0.590 ≈ 55dp so path bottom aligns with
+// canvas bottom (tip touches the bitmap anchor). Reduced from 53×64 to give
+// less prominence next to FreeSpot markers and the (now-larger) ZoneMarker.
+private val MY_VEHICLE_W = 46.dp
+private val MY_VEHICLE_H = 55.dp
+// FreeSpot: viewport 68+14=82 wide × 84+14=98 tall. Canvas 48dp wide →
+// scale = 48/82 = 0.585; height = 98*0.585 ≈ 57dp so the same anchor math
+// holds. Reduced from 55×66 for the same visual-balance reason.
+private val FREE_SPOT_W  = 48.dp
 private val FREE_SPOT_H  = 57.dp
 private val CLUSTER_SIZE = 39.dp
+
+private const val FREE_SPOT_VIEWPORT_PAD = 7f

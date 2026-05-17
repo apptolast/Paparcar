@@ -232,6 +232,22 @@
     <string name="home_test_spot_sent">Posto di test inviato</string>
     <string name="home_spot_signal_sent">Grazie per l&apos;aggiornamento!</string>
 
+    <!-- Home Reporting mode -->
+    <string name="home_report_subtitle">Un posto libero che hai visto e vuoi condividere con altri.</string>
+    <string name="home_report_action">Avvisa la comunità</string>
+    <string name="home_report_fab_cd">Segnala un posto libero</string>
+    <string name="home_report_cancel_cd">Annulla segnalazione</string>
+
+    <!-- Home Zones — luoghi abituali -->
+    <string name="home_zone_name_placeholder">Nome (es. Casa, Lavoro)</string>
+    <string name="home_zone_save_action">Salva zona</string>
+    <string name="home_zone_cancel_cd">Annulla nuova zona</string>
+    <string name="home_zone_add_chip_cd">Aggiungi una nuova zona</string>
+    <string name="home_zone_icon_picker_cd">Scegli un&apos;icona</string>
+    <string name="home_zones_section">Luoghi abituali</string>
+    <string name="home_zones_empty_title">Salva un luogo abituale</string>
+    <string name="home_zones_empty_subtitle">Casa, lavoro, famiglia\u2026 navigazione con un tocco</string>
+
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 

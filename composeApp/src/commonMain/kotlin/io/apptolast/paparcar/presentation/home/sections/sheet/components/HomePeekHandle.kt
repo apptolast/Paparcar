@@ -458,8 +458,9 @@ private fun AddingZonePeekRow(
     val placeIcon = info?.placeInfo?.category?.icon
 
     Column {
-        // Info row — same molde as Report/Spot/Parking: place icon + content
-        // column + dismiss button on the right.
+        // Header row — same molde as Report/Spot/Parking: place icon from
+        // the map context + address + dismiss × on the right. Says "where
+        // are we saving this", not "what icon did you pick".
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -468,33 +469,44 @@ private fun AddingZonePeekRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                imageVector = placeIcon ?: zoneIconFor(state.addingZoneIconKey),
+                imageVector = placeIcon ?: Icons.Outlined.PinDrop,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(26.dp),
             )
-            androidx.compose.material3.OutlinedTextField(
-                value = state.addingZoneName,
-                onValueChange = onNameChange,
-                placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
+
+            Text(
+                text = primaryText,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f)
+                    .basicMarquee(),
             )
+
             PeekDismissButton(onDismiss = onCancel)
         }
 
-        // Address line so the user can verify what they're saving — same
-        // address surfaced by Browse's CameraLocationRow, intentionally
-        // duplicated here because the input field already occupies the slot
-        // that normally hosts it.
-        Text(
-            text = primaryText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        // Name input — full width, leading icon mirrors the user's icon
+        // choice so the picker selection has a visible echo here. Updates
+        // live as the user taps a different chip below.
+        androidx.compose.material3.OutlinedTextField(
+            value = state.addingZoneName,
+            onValueChange = onNameChange,
+            placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
+            singleLine = true,
+            leadingIcon = {
+                Icon(
+                    imageVector = zoneIconFor(state.addingZoneIconKey),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            },
             modifier = Modifier
-                .basicMarquee()
+                .fillMaxWidth()
                 .padding(horizontal = 20.dp),
         )
 
@@ -504,7 +516,7 @@ private fun AddingZonePeekRow(
         ZoneIconPickerRow(
             selectedKey = state.addingZoneIconKey,
             onSelect = onIconChange,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
         )
 
         PapFooterButton(

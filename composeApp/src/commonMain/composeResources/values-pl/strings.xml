@@ -232,6 +232,22 @@
     <string name="home_test_spot_sent">Testowe miejsce wysłane</string>
     <string name="home_spot_signal_sent">Dzi&#x0119;kujemy za aktualizacj&#x0119;!</string>
 
+    <!-- Home Reporting mode -->
+    <string name="home_report_subtitle">Wolne miejsce, kt&#xF3;re widzia&#x0142;e&#x015B; i chcesz udost&#x0119;pni&#x0107; innym.</string>
+    <string name="home_report_action">Powiadom spo&#x0142;eczno&#x015B;&#x0107;</string>
+    <string name="home_report_fab_cd">Zg&#x0142;o&#x015B; wolne miejsce</string>
+    <string name="home_report_cancel_cd">Anuluj zg&#x0142;oszenie</string>
+
+    <!-- Home Zones — sta&#x0142;e miejsca -->
+    <string name="home_zone_name_placeholder">Nazwa (np. Dom, Praca)</string>
+    <string name="home_zone_save_action">Zapisz stref&#x0119;</string>
+    <string name="home_zone_cancel_cd">Anuluj now&#x0105; stref&#x0119;</string>
+    <string name="home_zone_add_chip_cd">Dodaj now&#x0105; stref&#x0119;</string>
+    <string name="home_zone_icon_picker_cd">Wybierz ikon&#x0119;</string>
+    <string name="home_zones_section">Sta&#x0142;e miejsca</string>
+    <string name="home_zones_empty_title">Zapisz sta&#x0142;e miejsce</string>
+    <string name="home_zones_empty_subtitle">Dom, praca, rodzina\u2026 nawigacja jednym dotkni&#x0119;ciem</string>
+
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 

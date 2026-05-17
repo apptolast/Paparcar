@@ -227,6 +227,9 @@
     <string name="home_zone_cancel_cd">Cancel new zone</string>
     <string name="home_zone_add_chip_cd">Add a new zone</string>
     <string name="home_zone_icon_picker_cd">Choose an icon</string>
+    <string name="home_zones_section">Habitual places</string>
+    <string name="home_zones_empty_title">Save a habitual place</string>
+    <string name="home_zones_empty_subtitle">Home, work, family\u2026 one-tap navigation</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

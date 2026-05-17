@@ -49,6 +49,7 @@ import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_parked_section
 import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
 import paparcar.composeapp.generated.resources.home_size_filter_all
+import paparcar.composeapp.generated.resources.home_zones_section
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
@@ -59,6 +60,28 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
  * Emits the sheet content items into a [LazyListScope]. The LazyColumn
  * itself lives in HomeScreen so its Modifier.weight(1f) is applied directly
  * on the Column layout (no indirection across composable boundaries).
+ *
+ * ## Section ordering rationale
+ *
+ * The sheet is the user's primary surface — the order has to lead with what
+ * they came to do, in this priority:
+ *
+ *  1. **Zones chips** (only when `zones.isNotEmpty()`) — compact navigation
+ *     shortcuts. No header; the row is small and self-evidently actionable.
+ *     When zones are empty there's nothing to navigate to, so the chips row
+ *     hides and the configure prompt drops to its proper section position
+ *     below (see #3).
+ *  2. **Parking** — the most time-sensitive personal info ("where did I park").
+ *     Always immediately below the chips/top divider when permissions are
+ *     granted, regardless of active session: full row if parked, empty card
+ *     CTA otherwise.
+ *  3. **Zones configuration** (only when `zones.isEmpty()`) — twin empty-state
+ *     card paired with [HomeParkingEmptyCard]'s molde. Appears under the
+ *     parking section so the two configuration prompts cluster together when
+ *     both happen to be empty (clean first-run feel). Hidden once the user
+ *     has any zone — the chips row above takes over.
+ *  4. **Nearby spots** — the longest section, always anchored last. Holds the
+ *     filter bar + permissions / skeleton / empty / list states internally.
  */
 internal fun LazyListScope.homeSheetItems(
     state: HomeState,
@@ -74,23 +97,16 @@ internal fun LazyListScope.homeSheetItems(
     } else {
         state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
     }
-    // The parking section anchors to the top of the sheet whenever permissions are
-    // granted — showing the active session if any, or the manual-park CTA when the
-    // user is not currently parked. Below the permission gate there's nothing
-    // location-related to anchor, so the spots section is the sheet's only content.
     val showParkingFirst = state.allPermissionsGranted
+    val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
+    val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
     item("top_divider") {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
     }
 
-    // Zones chips — only shown when the user is signed in (the underlying
-    // zone observe Flow emits emptyList otherwise) and permissions are
-    // granted (no point shouting "Casa" while we can't even centre the
-    // camera on it). The trailing "+" chip is always present, so even an
-    // empty zones list renders a single-item LazyRow.
-    if (state.allPermissionsGranted) {
+    if (showZoneChips) {
         item("zones_chips") {
             HomeZoneChips(
                 zones = state.zones,
@@ -103,6 +119,13 @@ internal fun LazyListScope.homeSheetItems(
 
     if (showParkingFirst) {
         parkingSection(state, onParkingClick, onManualPark)
+    }
+
+    if (showZonesEmpty) {
+        zonesEmptySection(onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) })
+    }
+
+    if (showParkingFirst || showZonesEmpty) {
         item("mid_divider") {
             HorizontalDivider(
                 modifier = Modifier.padding(top = 8.dp),
@@ -130,15 +153,21 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     if (spotIdx < 0) return -1
 
     val showParkingFirst = state.allPermissionsGranted
+    val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
+    val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
     var base = 1 // top_divider
-    if (state.allPermissionsGranted) base += 1 // zones_chips (LazyRow item)
+    if (showZoneChips) base += 1 // zones_chips
     if (showParkingFirst) {
         base += 1 // parking_header
         base += 1 // parking_row OR parking_empty
-        base += 1 // mid_divider
     }
+    if (showZonesEmpty) {
+        base += 1 // zones_header
+        base += 1 // zones_empty_card
+    }
+    if (showParkingFirst || showZonesEmpty) base += 1 // mid_divider
     base += 1 // spots_header
     if (showFilterBar) base += 1
     return base + spotIdx
@@ -175,6 +204,21 @@ private fun LazyListScope.parkingSection(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
+    }
+}
+
+private fun LazyListScope.zonesEmptySection(onAddZone: () -> Unit) {
+    item("zones_header") {
+        HomeSectionHeader(
+            title = stringResource(Res.string.home_zones_section),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        )
+    }
+    item("zones_empty_card") {
+        HomeZonesEmptyCard(
+            onAddZone = onAddZone,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
     }
 }
 

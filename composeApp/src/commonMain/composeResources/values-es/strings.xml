@@ -259,6 +259,9 @@
     <string name="home_zone_cancel_cd">Cancelar nueva zona</string>
     <string name="home_zone_add_chip_cd">A&#xF1;adir una nueva zona</string>
     <string name="home_zone_icon_picker_cd">Elegir un icono</string>
+    <string name="home_zones_section">Lugares habituales</string>
+    <string name="home_zones_empty_title">Guarda un lugar habitual</string>
+    <string name="home_zones_empty_subtitle">Casa, trabajo, familia\u2026 navegaci&#xF3;n con un toque</string>
 
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

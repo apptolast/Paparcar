@@ -59,9 +59,12 @@ import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.Zone
+import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
 import io.apptolast.paparcar.presentation.util.toSpotReliabilityLevel
+import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
@@ -88,9 +91,11 @@ import kotlin.math.abs
  * @property showFreeSpotOverlays When `false`, spot and cluster markers are
  *   skipped. The parking ("my-car") marker is independent — it renders whenever
  *   `parkingLocation` is non-null, regardless of this flag.
- * @property showAnimatedCenterPin Replaces the default crosshair indicator with
- *   a drop-in pin animation. Used by AddFreeSpotScreen to communicate "this is
- *   the spot you are pinning".
+ * @property centerPin When non-null, replaces the default crosshair indicator
+ *   with a drop-in pin animation. Variant determines silhouette: [CenterPinKind.Report]
+ *   = outlined teardrop with "P" (same molde as FreeSpotMarker); [CenterPinKind.Zone]
+ *   = filled circle with the chosen zone icon inside. Both share the same
+ *   ground-shadow + bounce-on-camera-settle behaviour.
  * @property initialCamera Seed camera position used on first composition when
  *   no live `userLocation` and no dynamic `cameraTarget` are available.
  * @property mapType Underlying tile style (NORMAL / SATELLITE / TERRAIN).
@@ -100,20 +105,32 @@ import kotlin.math.abs
 data class PaparcarMapConfig(
     val interactionMode: MapInteractionMode = MapInteractionMode.FULL,
     val showFreeSpotOverlays: Boolean = true,
-    val showAnimatedCenterPin: Boolean = false,
+    val centerPin: CenterPinKind? = null,
     val initialCamera: CameraTarget? = null,
     val mapType: MapType = MapType.NORMAL,
     val styleMode: MapStyleMode = MapStyleMode.AUTO,
 )
 
 /**
+ * Variant of the animated centre pin. Null in [PaparcarMapConfig.centerPin]
+ * means "show the default crosshair indicator". Each subtype maps 1:1 to a
+ * composable in [PaparcarMapMarkers.kt].
+ */
+sealed class CenterPinKind {
+    /** Outlined teardrop matching FreeSpotMarker silhouette. Used by Reporting flow. */
+    data object Report : CenterPinKind()
+    /** Filled circle with the user's chosen zone icon inside. Used by AddingZone flow. */
+    data class Zone(val icon: androidx.compose.ui.graphics.vector.ImageVector) : CenterPinKind()
+}
+
+/**
  * Controls which user gestures are allowed on the map.
  *
  *  - `FULL`: pan / zoom / rotate / tilt all enabled. Default for HomeScreen.
  *  - `POSITION_ONLY`: same gestures as FULL, but typically paired with
- *    `showFreeSpotOverlays = false` and `showAnimatedCenterPin = true` so the
+ *    `showFreeSpotOverlays = false` and a non-null `centerPin` so the
  *    user picks a location by moving the map underneath a fixed pin
- *    (AddFreeSpotScreen).
+ *    (Home Reporting / AddingZone flows).
  *  - `READ_ONLY`: every gesture disabled and `onCameraMove` is suppressed.
  *    Used for purely informational map renders (ParkingLocationScreen detail).
  */
@@ -138,7 +155,7 @@ private const val PULSE_ANIM_MS           = 500
 private const val LOADING_ARC_ANIM_MS     = 1100
 private const val LOADING_FADE_MS         = 300
 
-// ── Center pin drop (showAnimatedCenterPin = true) ───────────────────────────
+// ── Center pin drop (config.centerPin != null) ───────────────────────────────
 private const val CENTER_PIN_DROP_OFFSET_DP = -8f
 private const val CENTER_PIN_DROP_REST_DP   = 0f
 private const val CENTER_PIN_DROP_SCALE_FROM = 1.1f
@@ -194,12 +211,20 @@ private val   BADGE_OFFSET        = 2.dp   // overflow beyond marker corner
 private val   BADGE_FONT_SIZE     = 7.sp
 private val   BADGE_LINE_HEIGHT   = 9.sp
 
-// ── Marker data encoding ──────────────────────────────────────────────────────
-/** Separator used to embed extra data in Marker.title after the spot ID. */
-private const val MARKER_DATA_SEP = "|"
+// Per-marker metadata that travelled in Marker.title before — we now hold it
+// off-marker so we can set Marker.title = null on every marker and suppress
+// Google Maps' default info window (the "title + snippet" balloon shown on
+// tap). Coordinates is a stable, value-equal key since we pass spot/zone lats
+// and lons through unchanged.
+private data class SpotMeta(
+    val spotId: String,
+    val sizeCategory: VehicleSize?,
+    val enRouteCount: Int,
+)
 
 // ── Marker content IDs ──────────────────────────────────────────────────────
 private const val MARKER_MY_CAR              = "my_car"
+private const val MARKER_MY_CAR_SELECTED     = "my_car_selected"
 private const val MARKER_FREE_SPOT_HIGH      = "free_spot_high"
 private const val MARKER_FREE_SPOT_MEDIUM    = "free_spot_medium"
 private const val MARKER_FREE_SPOT_LOW       = "free_spot_low"
@@ -220,6 +245,9 @@ private const val MARKER_MY_CAR_DIM           = "my_car_dim"
 // duplicate reports, subordinate enough that the centre pin dominates.
 private const val DIM_MARKER_ALPHA = 0.35f
 private const val MARKER_CLUSTER             = "cluster"
+// One contentId per [ZoneIcon] preset so each icon variant gets its own
+// cached bitmap. Built dynamically from ZoneIcon.PRESETS in customMarkerContent.
+private const val MARKER_ZONE_PREFIX         = "zone_"
 private const val CAMERA_MOVING_DEBOUNCE_MS  = 280L
 
 // ── Clustering ───────────────────────────────────────────────────────────────
@@ -293,21 +321,7 @@ private fun clusterSpots(spots: List<Spot>, thresholdDeg: Double): List<SpotClus
     return clusters
 }
 
-// ── Marker data helpers ───────────────────────────────────────────────────────
-
-/** Extracts the [VehicleSize] from field[1] of the encoded marker title, or null. */
-private fun parseMarkerSize(title: String?): VehicleSize? {
-    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return null
-    val raw = after.substringBefore(MARKER_DATA_SEP)
-    return if (raw.isEmpty()) null else runCatching { VehicleSize.valueOf(raw) }.getOrNull()
-}
-
-/** Extracts the enRoute count from field[2] of the encoded marker title, or 0. */
-private fun parseMarkerEnRoute(title: String?): Int {
-    val after = title?.substringAfter(MARKER_DATA_SEP, "") ?: return 0
-    val second = after.substringAfter(MARKER_DATA_SEP, "")
-    return second.toIntOrNull() ?: 0
-}
+// ── Marker badge helpers ──────────────────────────────────────────────────────
 
 /**
  * Single-character label shown on the size badge.
@@ -356,6 +370,8 @@ fun PaparcarMapView(
     parkingLocation: GpsPoint?,
     modifier: Modifier = Modifier,
     cameraTarget: CameraTarget? = null,
+    /** User's saved habitual places. Rendered as circular markers with the chosen icon. */
+    zones: List<Zone> = emptyList(),
     selectedSpotId: String? = null,
     /** When true, the parked-car marker bypasses the [dimSpots] pass and renders at full opacity. */
     isMyCarSelected: Boolean = false,
@@ -377,6 +393,7 @@ fun PaparcarMapView(
     dimSpots: Boolean = false,
     onSpotClick: (String) -> Unit = {},
     onMyCarClick: () -> Unit = {},
+    onZoneClick: (zoneId: String) -> Unit = {},
     onCameraMove: (lat: Double, lon: Double) -> Unit = { _, _ -> },
     onMapReady: () -> Unit = {},
 ) {
@@ -399,20 +416,59 @@ fun PaparcarMapView(
     // parking-selected exception). Without them, the remembered list would
     // hold the original Markers and kmpmaps would keep showing the cached
     // full-opacity bitmaps after the host enters a focus state.
-    val markers = remember(clusters, parkingLocation, selectedSpotId, dimSpots, isMyCarSelected) {
+    // Coords-keyed side maps replace the per-marker title encoding. Each is
+    // remembered against the same keys as the markers list so a stale entry
+    // can't leak: any marker still in `markers` is guaranteed to have a meta
+    // entry, and removed markers' meta is also dropped.
+    val spotMetaByCoords: Map<Coordinates, SpotMeta> = remember(clusters) {
+        buildMap {
+            clusters.forEach { cluster ->
+                if (cluster.spots.size == 1) {
+                    val spot = cluster.spots.first()
+                    put(
+                        Coordinates(spot.location.latitude, spot.location.longitude),
+                        SpotMeta(spot.id, spot.sizeCategory, spot.enRouteCount),
+                    )
+                }
+            }
+        }
+    }
+    val clusterCountByCoords: Map<Coordinates, Int> = remember(clusters) {
+        clusters.filter { it.spots.size > 1 }
+            .associate { Coordinates(it.lat, it.lon) to it.spots.size }
+    }
+    val zoneIdByCoords: Map<Coordinates, String> = remember(zones) {
+        zones.associate { Coordinates(it.lat, it.lon) to it.id }
+    }
+
+    val markers = remember(clusters, parkingLocation, selectedSpotId, dimSpots, isMyCarSelected, zones) {
         buildList {
+            // Zone markers — added FIRST so spot/parking markers render on top
+            // (kmpmaps draws in list order; later entries z-index above earlier).
+            // Zones are background context, not actionable like spots.
+            zones.forEach { zone ->
+                val safeKey = if (zone.iconKey in ZoneIcon.PRESETS) zone.iconKey else ZoneIcon.DEFAULT
+                add(
+                    Marker(
+                        coordinates = Coordinates(zone.lat, zone.lon),
+                        // title = null suppresses the Google Maps default info-window
+                        // balloon. Zone ID is recovered via zoneIdByCoords in the
+                        // click handler instead.
+                        title = null,
+                        contentId = "$MARKER_ZONE_PREFIX$safeKey",
+                    ),
+                )
+            }
             parkingLocation?.let {
                 add(
                     Marker(
                         coordinates = Coordinates(it.latitude, it.longitude),
-                        // title = null suppresses the Google Maps default info-window
-                        // bubble; we identify this marker by contentId in the click
-                        // handler instead.
                         title = null,
                         contentId = when {
-                            // Parking-selected: the my-car marker is the focus,
-                            // bypasses the dim pass even if other markers dim.
-                            isMyCarSelected -> MARKER_MY_CAR
+                            // Parking-selected: switch to the haloed variant so
+                            // the focus is visually unmistakable. Always full
+                            // opacity — never participates in the dim pass.
+                            isMyCarSelected -> MARKER_MY_CAR_SELECTED
                             dimSpots -> MARKER_MY_CAR_DIM
                             else -> MARKER_MY_CAR
                         },
@@ -422,20 +478,10 @@ fun PaparcarMapView(
             clusters.forEach { cluster ->
                 if (cluster.spots.size == 1) {
                     val spot = cluster.spots.first()
-                    // Encode sizeCategory and enRouteCount after the separator.
-                    // Format: "<spotId>" | "<spotId>|SIZE" | "<spotId>|SIZE|N" | "<spotId>||N"
-                    val sizeStr = spot.sizeCategory?.name ?: ""
-                    val title = when {
-                        spot.enRouteCount > 0 ->
-                            "${spot.id}$MARKER_DATA_SEP$sizeStr$MARKER_DATA_SEP${spot.enRouteCount}"
-                        spot.sizeCategory != null ->
-                            "${spot.id}$MARKER_DATA_SEP$sizeStr"
-                        else -> spot.id
-                    }
                     add(
                         Marker(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
-                            title = title,
+                            title = null,
                             contentId = when {
                                 spot.id == selectedSpotId -> MARKER_FREE_SPOT_SELECTED
                                 dimSpots -> spot.reliabilityDimmedContentId()
@@ -447,8 +493,7 @@ fun PaparcarMapView(
                     add(
                         Marker(
                             coordinates = Coordinates(cluster.lat, cluster.lon),
-                            // Encode count in title so ClusterMarkerContent can read it
-                            title = "$MARKER_CLUSTER:${cluster.spots.size}",
+                            title = null,
                             contentId = MARKER_CLUSTER,
                         ),
                     )
@@ -462,25 +507,26 @@ fun PaparcarMapView(
     // share the new FreeSpotMarker composable parameterised by reliability tier;
     // size/en-route badges are preserved as overlays on top so legacy product
     // features (size letter + driving-toward-spot indicator) survive the swap.
-    val customMarkerContent = remember {
+    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords) {
         mapOf<String, @Composable (Marker) -> Unit>(
             MARKER_MY_CAR to { _ -> MyVehicleMarker() },
+            MARKER_MY_CAR_SELECTED to { _ -> MyVehicleMarker(selected = true) },
             MARKER_MY_CAR_DIM to { _ ->
                 Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
                     MyVehicleMarker()
                 }
             },
             MARKER_FREE_SPOT_HIGH to { marker ->
-                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.HIGH, marker = marker)
+                FreeSpotWithOverlays(SpotReliabilityLevel.HIGH, spotMetaByCoords[marker.coordinates])
             },
             MARKER_FREE_SPOT_MEDIUM to { marker ->
-                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MEDIUM, marker = marker)
+                FreeSpotWithOverlays(SpotReliabilityLevel.MEDIUM, spotMetaByCoords[marker.coordinates])
             },
             MARKER_FREE_SPOT_LOW to { marker ->
-                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.LOW, marker = marker)
+                FreeSpotWithOverlays(SpotReliabilityLevel.LOW, spotMetaByCoords[marker.coordinates])
             },
             MARKER_FREE_SPOT_MANUAL to { marker ->
-                FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MANUAL, marker = marker)
+                FreeSpotWithOverlays(SpotReliabilityLevel.MANUAL, spotMetaByCoords[marker.coordinates])
             },
             // Dimmed variants — same composable wrapped in Modifier.alpha. Distinct
             // contentId so kmpmaps rasterises them as separate bitmaps; switching a
@@ -489,42 +535,46 @@ fun PaparcarMapView(
             // full-opacity bitmap and the dim would never appear on screen).
             MARKER_FREE_SPOT_HIGH_DIM to { marker ->
                 Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.HIGH, marker = marker)
+                    FreeSpotWithOverlays(SpotReliabilityLevel.HIGH, spotMetaByCoords[marker.coordinates])
                 }
             },
             MARKER_FREE_SPOT_MEDIUM_DIM to { marker ->
                 Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MEDIUM, marker = marker)
+                    FreeSpotWithOverlays(SpotReliabilityLevel.MEDIUM, spotMetaByCoords[marker.coordinates])
                 }
             },
             MARKER_FREE_SPOT_LOW_DIM to { marker ->
                 Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.LOW, marker = marker)
+                    FreeSpotWithOverlays(SpotReliabilityLevel.LOW, spotMetaByCoords[marker.coordinates])
                 }
             },
             MARKER_FREE_SPOT_MANUAL_DIM to { marker ->
                 Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(reliability = SpotReliabilityLevel.MANUAL, marker = marker)
+                    FreeSpotWithOverlays(SpotReliabilityLevel.MANUAL, spotMetaByCoords[marker.coordinates])
                 }
             },
             MARKER_FREE_SPOT_SELECTED to { marker ->
-                // Selected uses HIGH colour + halo, matching the legacy behaviour where
-                // selection collapsed to the canonical green-on-dark look regardless of
-                // the underlying spot's reliability. Selection always renders at full
-                // opacity — never participates in the Reporting-mode dim pass.
+                // Selected uses HIGH colour + halo regardless of the underlying spot's
+                // reliability. Selection always renders at full opacity — never
+                // participates in the Reporting-mode dim pass.
                 FreeSpotWithOverlays(
                     reliability = SpotReliabilityLevel.HIGH,
-                    marker = marker,
+                    meta = spotMetaByCoords[marker.coordinates],
                     selected = true,
                 )
             },
             MARKER_CLUSTER to { marker ->
-                val count = marker.title
-                    ?.removePrefix("$MARKER_CLUSTER:")
-                    ?.toIntOrNull() ?: 0
-                FreeSpotClusterMarker(count = count)
+                FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
             },
-        )
+        ) + ZoneIcon.PRESETS.associate { key ->
+            // One bitmap cache entry per preset icon — the contentId carries
+            // the icon variant; the zone ID is recovered via zoneIdByCoords
+            // in the click handler. Unknown iconKey values fall back to
+            // DEFAULT in the marker-build pass above.
+            "$MARKER_ZONE_PREFIX$key" to { _: Marker ->
+                ZoneMarker(icon = zoneIconFor(key))
+            }
+        }
     }
 
     // ── Track real camera center (set by the map, not by us) ──────────────
@@ -552,7 +602,7 @@ fun PaparcarMapView(
     var mapLoaded by remember { mutableStateOf(false) }
     val showLoading = !mapLoaded || isLoading
 
-    // ── Crosshair animations (used when showAnimatedCenterPin = false) ───
+    // ── Crosshair animations (used when config.centerPin == null) ────────
     val crosshairScale by animateFloatAsState(
         targetValue = when {
             isAnyItemSelected -> CROSSHAIR_SCALE_HIDDEN   // hide when any item is focused
@@ -645,15 +695,20 @@ fun PaparcarMapView(
                 }
             },
             onMarkerClick = { marker ->
-                if (marker.contentId == MARKER_MY_CAR || marker.contentId == MARKER_MY_CAR_DIM) {
-                    onMyCarClick()
-                    return@Map
+                // Marker.title is null for every marker we render (so Google
+                // Maps suppresses the default info-window balloon), so we
+                // route clicks purely off contentId + a coords-keyed lookup.
+                val cid = marker.contentId
+                when {
+                    cid == MARKER_MY_CAR ||
+                        cid == MARKER_MY_CAR_SELECTED ||
+                        cid == MARKER_MY_CAR_DIM -> onMyCarClick()
+                    cid?.startsWith(MARKER_ZONE_PREFIX) == true ->
+                        zoneIdByCoords[marker.coordinates]?.let(onZoneClick)
+                    cid == MARKER_CLUSTER -> Unit // cluster taps are inert
+                    else ->
+                        spotMetaByCoords[marker.coordinates]?.let { onSpotClick(it.spotId) }
                 }
-                // Strip encoded size data to recover the plain spot ID
-                val title = marker.title ?: return@Map
-                val id = title.substringBefore(MARKER_DATA_SEP)
-                if (id.startsWith("$MARKER_CLUSTER:")) return@Map
-                onSpotClick(id)
             },
             onMapLoaded = {
                 if (!mapLoaded) {
@@ -677,11 +732,19 @@ fun PaparcarMapView(
         }
 
         // ── Center indicator: animated pin (pin-drop) OR crosshair ───────────
-        if (config.showAnimatedCenterPin) {
-            ReportCenterPin(
-                cameraMoving = cameraMoving,
-                modifier = Modifier.align(Alignment.Center),
-            )
+        val pinKind = config.centerPin
+        if (pinKind != null) {
+            when (pinKind) {
+                CenterPinKind.Report -> ReportCenterPin(
+                    cameraMoving = cameraMoving,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+                is CenterPinKind.Zone -> ZoneCenterPin(
+                    icon = pinKind.icon,
+                    cameraMoving = cameraMoving,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
         } else {
             val indicatorColor = if (reportMode) PapGreen else Color.White
             val shadowAlpha = if (reportMode) REPORT_MODE_SHADOW_ALPHA else NORMAL_MODE_SHADOW_ALPHA
@@ -703,7 +766,7 @@ fun PaparcarMapView(
                         style = Stroke(width = PULSE_STROKE_DP.dp.toPx()),
                     )
                 }
-                // Ring + center dot (+ loading arc when fetching content)
+                // Ring + center dot (+ loading arc when fetching content; only the default crosshair branch)
                 Canvas(modifier = Modifier.size(RING_CANVAS_SIZE)) {
                     val cx = size.width / 2f
                     val cy = size.height / 2f
@@ -769,16 +832,6 @@ fun PaparcarMapView(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Animated center pin (showAnimatedCenterPin = true)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Pin-drop indicator used by AddFreeSpotScreen. While the camera is being
- * dragged, the pin "lifts" (offset Y -8dp, scale 1.1×); when the camera
- * settles, it drops back (offset Y 0dp, scale 1.0×). Both transitions ride
- * a `Spring(MediumBouncy)` for the characteristic bounce-on-land feel.
- */
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Camera animation
@@ -857,19 +910,19 @@ private fun rememberCameraAnimationState(
  *  - corner [SpotSizeBadge] when the spot has a non-MEDIUM vehicle size
  *  - top-left [SpotEnRouteDot] when other users are currently driving toward it
  *
- * Both overlays read their data from the title-encoded payload set by the
- * marker builder upstream. Keeping them as overlays lets the new pin remain
- * generic (reliability + ttl + selected only) while preserving the existing
- * product affordances.
+ * Metadata (size + en-route count) arrives via [meta], looked up by the caller
+ * from the coords-keyed side map (spotMetaByCoords). Keeping the overlays here
+ * lets [FreeSpotMarker] stay generic (reliability + ttl + selected only) while
+ * preserving the existing product affordances.
  */
 @Composable
 private fun FreeSpotWithOverlays(
     reliability: SpotReliabilityLevel,
-    marker: Marker,
+    meta: SpotMeta?,
     selected: Boolean = false,
 ) {
-    val sizeCategory = parseMarkerSize(marker.title)
-    val enRouteCount = parseMarkerEnRoute(marker.title)
+    val sizeCategory = meta?.sizeCategory
+    val enRouteCount = meta?.enRouteCount ?: 0
     Box {
         FreeSpotMarker(reliability = reliability, selected = selected)
         val label = sizeCategory?.badgeLabel()

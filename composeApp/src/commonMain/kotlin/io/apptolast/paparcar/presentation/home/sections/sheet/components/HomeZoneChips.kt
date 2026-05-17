@@ -4,10 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,8 +19,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.presentation.util.zoneIconFor
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_zones_empty_subtitle
+import paparcar.composeapp.generated.resources.home_zones_empty_title
 
 /**
  * Horizontal row of habitual-place chips shown at the top of the peek
@@ -119,3 +128,65 @@ private fun AddZoneChip(
 
 private const val CHIP_CORNER_DP = 18
 private const val CHIP_ICON_DP = 18
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty zones card — surfaced when the user has no zones saved yet, so the
+// "save habitual place" affordance gets a proper section instead of being
+// hidden behind the single "+" chip. Same visual molde as
+// [HomeParkingEmptyCard] so the two configuration prompts read as a coherent
+// pair when both happen to be empty at the same time.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+internal fun HomeZonesEmptyCard(
+    onAddZone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onAddZone,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Bookmark,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(Res.string.home_zones_empty_title),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stringResource(Res.string.home_zones_empty_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                )
+            }
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}

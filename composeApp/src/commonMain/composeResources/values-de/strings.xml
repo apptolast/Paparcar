@@ -232,6 +232,22 @@
     <string name="home_test_spot_sent">Teststellplatz gesendet</string>
     <string name="home_spot_signal_sent">Danke f&#xFC;r die R&#xFC;ckmeldung!</string>
 
+    <!-- Home Reporting mode -->
+    <string name="home_report_subtitle">Ein freier Stellplatz, den du gesehen hast und teilen m&#xF6;chtest.</string>
+    <string name="home_report_action">Community benachrichtigen</string>
+    <string name="home_report_fab_cd">Freien Stellplatz melden</string>
+    <string name="home_report_cancel_cd">Meldung abbrechen</string>
+
+    <!-- Home Zones — gewohnte Orte -->
+    <string name="home_zone_name_placeholder">Name (z. B. Zuhause, Arbeit)</string>
+    <string name="home_zone_save_action">Zone speichern</string>
+    <string name="home_zone_cancel_cd">Neue Zone abbrechen</string>
+    <string name="home_zone_add_chip_cd">Neue Zone hinzuf&#xFC;gen</string>
+    <string name="home_zone_icon_picker_cd">Symbol w&#xE4;hlen</string>
+    <string name="home_zones_section">Gewohnte Orte</string>
+    <string name="home_zones_empty_title">Gewohnten Ort speichern</string>
+    <string name="home_zones_empty_subtitle">Zuhause, Arbeit, Familie\u2026 Navigation mit einem Tipp</string>
+
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 

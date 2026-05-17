@@ -232,6 +232,22 @@
     <string name="home_test_spot_sent">Loc de test trimis</string>
     <string name="home_spot_signal_sent">Mul&#x21B;umim pentru actualizare!</string>
 
+    <!-- Home Reporting mode -->
+    <string name="home_report_subtitle">Un loc liber pe care l-ai v&#xE3;zut &#x219;i vrei s&#x103;-l &#xEE;mp&#x103;rt&#x103;&#x219;e&#x219;ti.</string>
+    <string name="home_report_action">Anun&#x21B;&#x103; comunitatea</string>
+    <string name="home_report_fab_cd">Raporteaz&#x103; un loc liber</string>
+    <string name="home_report_cancel_cd">Anuleaz&#x103; raportarea</string>
+
+    <!-- Home Zones — locuri obi&#x219;nuite -->
+    <string name="home_zone_name_placeholder">Nume (ex. Acas&#x103;, Munc&#x103;)</string>
+    <string name="home_zone_save_action">Salveaz&#x103; zona</string>
+    <string name="home_zone_cancel_cd">Anuleaz&#x103; zona nou&#x103;</string>
+    <string name="home_zone_add_chip_cd">Adaug&#x103; o zon&#x103; nou&#x103;</string>
+    <string name="home_zone_icon_picker_cd">Alege o pictogram&#x103;</string>
+    <string name="home_zones_section">Locuri obi&#x219;nuite</string>
+    <string name="home_zones_empty_title">Salveaz&#x103; un loc obi&#x219;nuit</string>
+    <string name="home_zones_empty_subtitle">Acas&#x103;, munc&#x103;, familie\u2026 naviga&#x21B;ie cu un singur clic</string>
+
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.map.CameraTarget
+import io.apptolast.paparcar.ui.components.CenterPinKind
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
 import io.apptolast.paparcar.ui.components.PaparcarMapView
 
@@ -32,21 +33,23 @@ internal fun HomeMapSection(
     reportMode: Boolean,
     cameraTarget: CameraTarget?,
     mapHeightDp: Dp,
-    showAnimatedCenterPin: Boolean = false,
+    centerPin: CenterPinKind? = null,
     dimSpots: Boolean = false,
     onSpotClick: (String) -> Unit,
     onMyCarClick: () -> Unit,
+    onZoneClick: (String) -> Unit,
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     PaparcarMapView(
         config = PaparcarMapConfig(
             mapType = state.mapType,
-            showAnimatedCenterPin = showAnimatedCenterPin,
+            centerPin = centerPin,
         ),
         spots = state.nearbySpots,
         userLocation = state.userGpsPoint,
         parkingLocation = state.userParking?.location,
+        zones = state.zones,
         selectedSpotId = selectedSpotId,
         isMyCarSelected = isMyCarSelected,
         reportMode = reportMode,
@@ -55,6 +58,7 @@ internal fun HomeMapSection(
         dimSpots = dimSpots,
         onSpotClick = onSpotClick,
         onMyCarClick = onMyCarClick,
+        onZoneClick = onZoneClick,
         onCameraMove = onCameraMove,
         cameraTarget = cameraTarget,
         modifier = modifier

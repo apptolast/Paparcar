@@ -44,6 +44,8 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetSpotItemIndex
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
+import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.ui.components.CenterPinKind
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
 import kotlinx.coroutines.Job
@@ -345,10 +347,19 @@ private fun HomeContent(
                         }
                     }
                 }
-                val fullSnapOffsetPx =
-                    if (allItemsFit && peekHeightPx > 0f)
+                val fullSnapOffsetPx = when {
+                    // Pin-positioning modes (Reporting / AddingZone) own the
+                    // entire sheet through the peek handle — there's no list
+                    // below it. Clamp expansion to peek so the user can't drag
+                    // up and expose an empty surface below the report row.
+                    state.mode !is HomeMode.Browse -> peekOffsetPx
+                    // Browse with all items already visible: stop at content
+                    // height so the sheet doesn't expose empty space above
+                    // the last row when the list is short.
+                    allItemsFit && peekHeightPx > 0f ->
                         (containerHeightPx - peekHeightPx - listNaturalHeightPx).coerceAtLeast(0f)
-                    else FULL_SNAP_OFFSET_PX
+                    else -> FULL_SNAP_OFFSET_PX
+                }
 
                 // True midpoint between the two expansion extremes — more accurate than
                 // containerHeight/2 when content-aware full snap is in play.
@@ -460,6 +471,16 @@ private fun HomeContent(
 
                 val isPinningMode = state.mode is HomeMode.Reporting || state.mode is HomeMode.AddingZone
 
+                // Pin variant per mode: Report = outlined teardrop with "P"
+                // (twin of FreeSpotMarker); Zone = filled circle with the
+                // user's chosen icon (live-mirrors the chip picker). Null in
+                // Browse → default crosshair indicator.
+                val centerPinKind: CenterPinKind? = when (state.mode) {
+                    is HomeMode.Reporting -> CenterPinKind.Report
+                    is HomeMode.AddingZone -> CenterPinKind.Zone(zoneIconFor(state.addingZoneIconKey))
+                    else -> null
+                }
+
                 // ── Map ──────────────────────────────────────────────────────
                 HomeMapSection(
                     state = state,
@@ -471,15 +492,14 @@ private fun HomeContent(
                     reportMode = isPinningMode,
                     cameraTarget = uiController.cameraTarget,
                     mapHeightDp = mapHeightDp,
-                    // Centre pin exists in any pin-positioning mode — affordance
-                    // for placing the new spot or zone.
-                    showAnimatedCenterPin = isPinningMode,
+                    centerPin = centerPinKind,
                     // Dim non-focus markers across all focus states. Selected
                     // items bypass the dim pass (selected spot via SELECTED
                     // contentId, parking via isMyCarSelected).
                     dimSpots = isPinningMode || state.selectedItemId != null,
                     onSpotClick = onSpotMarkerClick,
                     onMyCarClick = onMyCarMarkerClick,
+                    onZoneClick = { zoneId -> onIntent(HomeIntent.SelectZone(zoneId)) },
                     onCameraMove = { lat, lon ->
                         uiController.onCameraMoved(lat, lon)
                         onIntent(HomeIntent.CameraPositionChanged(lat, lon))

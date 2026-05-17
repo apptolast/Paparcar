@@ -232,6 +232,22 @@
     <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
     <string name="home_spot_signal_sent">Bedankt voor de update!</string>
 
+    <!-- Home Reporting mode -->
+    <string name="home_report_subtitle">Een vrije plek die je hebt gezien en wilt delen.</string>
+    <string name="home_report_action">Community waarschuwen</string>
+    <string name="home_report_fab_cd">Vrije plek melden</string>
+    <string name="home_report_cancel_cd">Melding annuleren</string>
+
+    <!-- Home Zones — vaste plekken -->
+    <string name="home_zone_name_placeholder">Naam (bv. Thuis, Werk)</string>
+    <string name="home_zone_save_action">Zone opslaan</string>
+    <string name="home_zone_cancel_cd">Nieuwe zone annuleren</string>
+    <string name="home_zone_add_chip_cd">Nieuwe zone toevoegen</string>
+    <string name="home_zone_icon_picker_cd">Kies een pictogram</string>
+    <string name="home_zones_section">Vaste plekken</string>
+    <string name="home_zones_empty_title">Vaste plek opslaan</string>
+    <string name="home_zones_empty_subtitle">Thuis, werk, familie\u2026 navigatie met &#xE9;&#xE9;n tik</string>
+
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
 
