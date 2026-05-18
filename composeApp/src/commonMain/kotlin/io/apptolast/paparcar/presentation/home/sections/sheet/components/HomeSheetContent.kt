@@ -75,11 +75,7 @@ internal fun LazyListScope.homeSheetItems(
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
 ) {
     val selectedSpotId = state.selectedItemId?.takeIf { it != HomeState.PARKING_ITEM_ID }
-    val filteredSpots = if (state.sizeFilter == null) {
-        state.nearbySpots
-    } else {
-        state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
-    }
+    val filteredSpots = state.filteredNearbySpots
     val showPersonalBlocks = state.allPermissionsGranted
     val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
     val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
@@ -132,11 +128,7 @@ internal fun LazyListScope.homeSheetItems(
  * by [homeSheetItems], or -1 if the spot is not part of the current list.
  */
 internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
-    val filteredSpots = if (state.sizeFilter == null) {
-        state.nearbySpots
-    } else {
-        state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
-    }
+    val filteredSpots = state.filteredNearbySpots
     val spotIdx = filteredSpots.indexOfFirst { it.id == spotId }
     if (spotIdx < 0) return -1
 

@@ -74,6 +74,19 @@ data class HomeState(
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
 ) {
+    /**
+     * Subset of [nearbySpots] visible after applying [sizeFilter]. Computed
+     * property so the filter rule lives in one place (both the sheet list
+     * builder and the spot-index lookup used by `scrollToSelectedSpot` read
+     * the same list and stay in sync if the rule ever changes).
+     *
+     * Spots with a null [Spot.sizeCategory] are always included — that
+     * matches the "size unknown" fallback so legacy data isn't hidden.
+     */
+    val filteredNearbySpots: List<Spot>
+        get() = if (sizeFilter == null) nearbySpots
+                else nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == sizeFilter }
+
     companion object {
         /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */
         const val PARKING_ITEM_ID = "__parking__"
