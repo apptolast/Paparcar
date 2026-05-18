@@ -14,6 +14,10 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
+/**
+ * Repository managing habitual user zones.
+ * Refactored to use [FirebaseDataSource] for architectural consistency. [SYNC-001]
+ */
 class ZoneRepositoryImpl(
     private val dao: ZoneDao,
     private val firebaseDataSource: FirebaseDataSource,
@@ -23,12 +27,6 @@ class ZoneRepositoryImpl(
     private suspend fun currentUserId(): String? =
         authRepository.getCurrentSession()?.userId
 
-    /**
-     * Auth-reactive zone stream. Resolves the userId once via
-     * [AuthRepository.getCurrentSession] (cache-backed since AUTH-002) —
-     * sign-out tears down the screen using this Flow so we don't need
-     * to re-subscribe on auth state changes.
-     */
     override fun observeZones(): Flow<List<Zone>> = flow {
         val uid = currentUserId()
         if (uid == null) {
@@ -39,6 +37,7 @@ class ZoneRepositoryImpl(
     }
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = runCatching {
+        // [FIX] Using explicit DTO mapping via DataSource to avoid SerializationException with 'Any'
         val remoteEntities = firebaseDataSource.getZones(userId)
             .map { it.toEntity() }
         if (remoteEntities.isEmpty()) return@runCatching

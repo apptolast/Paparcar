@@ -65,7 +65,9 @@ class RemoteUserProfileDataSourceImpl(
 
     override suspend fun getVehicles(userId: String): List<VehicleDto> =
         runCatching {
-            vehiclesCollection(userId).get().documents.map { it.data<VehicleDto>() }
+            vehiclesCollection(userId).get().documents.mapNotNull { doc ->
+                doc.toVehicleDto()
+            }
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "getVehicles failed — userId=$userId", e)
             emptyList()
@@ -90,6 +92,7 @@ class RemoteUserProfileDataSourceImpl(
     }
 
     // ─── Deserialization ──────────────────────────────────────────────────────
+    // [IMPORTANT] Use field-by-field get<T?>() to avoid 'Any' serialiser errors.
 
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toUserProfileDto(): UserProfileDto? =
         runCatching {
@@ -104,6 +107,23 @@ class RemoteUserProfileDataSourceImpl(
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toUserProfileDto failed — doc=$id", e)
+            null
+        }
+
+    private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toVehicleDto(): VehicleDto? =
+        runCatching {
+            VehicleDto(
+                id = id,
+                userId = get<String?>("userId") ?: return@runCatching null,
+                brand = get<String?>("brand"),
+                model = get<String?>("model"),
+                sizeCategory = get<String?>("sizeCategory") ?: "",
+                bluetoothDeviceId = get<String?>("bluetoothDeviceId"),
+                showBrandModelOnSpot = get<Boolean?>("showBrandModelOnSpot") ?: false,
+                isDefault = get<Boolean?>(FIELD_IS_DEFAULT) ?: false,
+            )
+        }.getOrElse { e ->
+            PaparcarLogger.e(TAG, "toVehicleDto failed — doc=$id", e)
             null
         }
 

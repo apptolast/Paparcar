@@ -44,7 +44,9 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
 
     override suspend fun getZones(userId: String): List<ZoneDto> =
         runCatching {
-            zonesCollection(userId).get().documents.map { doc -> doc.data<ZoneDto>() }
+            zonesCollection(userId).get().documents.mapNotNull { doc ->
+                doc.toZoneDto()
+            }
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "getZones failed for userId=$userId", e)
             emptyList()
@@ -65,10 +67,26 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
     }
 
     // ─── Typed deserialization using GitLive SDK 2.x get<T?>() API ────────────
-    // get<T?>(field) uses the KSerialization serializer for T — Any has none, so
-    // each field must use its concrete type. Nested objects (AddressDto, PlaceInfoDto)
-    // are decoded with their own @Serializable serializers via a nested runCatching so
-    // that a format change in those sub-objects doesn't drop the whole spot.
+    // [IMPORTANT] get<T?>(field) uses the KSerialization serializer for T — Any
+    // has none, so each field must use its concrete type. Avoid .data<T>() as it
+    // may trip on unknown fields or generic mapping. [SYNC-001]
+
+    private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toZoneDto(): ZoneDto? =
+        runCatching {
+            ZoneDto(
+                id = id,
+                userId = get<String?>("userId") ?: return@runCatching null,
+                name = get<String?>("name") ?: "",
+                lat = get<Double?>("lat") ?: 0.0,
+                lon = get<Double?>("lon") ?: 0.0,
+                iconKey = get<String?>("iconKey") ?: "",
+                createdAt = getLongCompat("createdAt")
+            )
+        }.getOrElse { e ->
+            PaparcarLogger.e(TAG, "toZoneDto failed for doc=$id", e)
+            null
+        }
+
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toSpotDto(): SpotDto? =
         runCatching {
             val lat = get<Double?>("latitude") ?: return@runCatching null
@@ -78,10 +96,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
                 latitude = lat,
                 longitude = lon,
                 accuracy = get<Double?>("accuracy")?.toFloat() ?: 0f,
-                // reportedAt may arrive as Long or Double depending on client — handle both
-                reportedAt = runCatching { get<Long?>("reportedAt") }.getOrNull()
-                    ?: runCatching { get<Double?>("reportedAt")?.toLong() }.getOrNull()
-                    ?: 0L,
+                reportedAt = getLongCompat("reportedAt"),
                 reportedBy = get<String?>("reportedBy") ?: "",
                 speed = get<Double?>("speed")?.toFloat() ?: 0f,
                 address = runCatching { get<AddressDto?>("address") }.getOrNull(),
@@ -93,6 +108,12 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
             PaparcarLogger.e(TAG, "toSpotDto failed for doc=$id", e)
             null
         }
+
+    /** Reads a Long field tolerating Firestore's Double representation of integers. */
+    private fun dev.gitlive.firebase.firestore.DocumentSnapshot.getLongCompat(field: String): Long =
+        runCatching { get<Long?>(field) }.getOrNull()
+            ?: runCatching { get<Double?>(field)?.toLong() }.getOrNull()
+            ?: 0L
 
     private companion object {
         const val TAG = "FirebaseDataSourceImpl"
