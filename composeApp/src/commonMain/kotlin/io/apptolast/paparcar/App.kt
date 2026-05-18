@@ -103,6 +103,7 @@ object Routes {
     /** First-run rationale shown before VEHICLE_REGISTRATION. Explains why size is required. */
     const val VEHICLE_SIZE_EXPLAINER = "vehicle_size_explainer"
     const val BT_CONFIG = "bt_config"
+    const val GPS_DISCLAIMER = "gps_disclaimer"
 }
 
 private val BOTTOM_NAV_ROUTES = setOf(
@@ -119,12 +120,14 @@ private val GATE_SCREENS = setOf(
     Routes.PERMISSIONS_RATIONALE,
     Routes.ONBOARDING,
     Routes.VEHICLE_SIZE_EXPLAINER,
+    Routes.GPS_DISCLAIMER,
     "${Routes.VEHICLE_REGISTRATION}?origin={origin}&vehicleId={vehicleId}",
 )
 
 private val PERMISSION_GATE_SCREENS = setOf(
     Routes.PERMISSIONS,
     Routes.PERMISSIONS_RATIONALE,
+    Routes.GPS_DISCLAIMER,
 )
 
 @Composable
@@ -192,6 +195,7 @@ fun App(
                                 MainAppNavigation(
                                     startRoute = startRoute,
                                     isFullyOperational = appState.isFullyOperational,
+                                    hasSeenGpsAccuracyDisclaimer = appState.hasSeenGpsAccuracyDisclaimer,
                                     hasVehicle = appState.hasVehicle,
                                     onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
                                     themeMode = appState.themeMode,
@@ -200,6 +204,7 @@ fun App(
                                     onToggleImperialUnits = { appViewModel.handleIntent(AppIntent.SetDistanceUnit(it)) },
                                     selectedLanguage = appState.selectedLanguage,
                                     onSetLanguage = { appViewModel.handleIntent(AppIntent.SetLanguage(it)) },
+                                    onDismissGpsDisclaimer = { appViewModel.handleIntent(AppIntent.DismissGpsAccuracyDisclaimer) },
                                 )
                             }
                         }
@@ -219,19 +224,6 @@ fun App(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 80.dp),
-                )
-            }
-
-            if (appState.showGpsAccuracyDisclaimer) {
-                AlertDialog(
-                    onDismissRequest = { appViewModel.handleIntent(AppIntent.DismissGpsAccuracyDisclaimer) },
-                    title = { Text(stringResource(Res.string.gps_disclaimer_title)) },
-                    text = { Text(stringResource(Res.string.gps_disclaimer_body)) },
-                    confirmButton = {
-                        TextButton(onClick = { appViewModel.handleIntent(AppIntent.DismissGpsAccuracyDisclaimer) }) {
-                            Text(stringResource(Res.string.gps_disclaimer_confirm))
-                        }
-                    },
                 )
             }
         }
@@ -262,6 +254,7 @@ private fun AuthNavigation() {
 private fun MainAppNavigation(
     startRoute: String,
     isFullyOperational: Boolean,
+    hasSeenGpsAccuracyDisclaimer: Boolean,
     hasVehicle: Boolean,
     onMarkOnboardingCompleted: () -> Unit,
     themeMode: ThemeMode,
@@ -270,13 +263,14 @@ private fun MainAppNavigation(
     onToggleImperialUnits: (Boolean) -> Unit,
     selectedLanguage: String,
     onSetLanguage: (String) -> Unit,
+    onDismissGpsDisclaimer: () -> Unit,
 ) {
     val navController = rememberNavController()
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
 
     // Bidirectional permission gate guard — derived from state so it never misses an update.
-    LaunchedEffect(isFullyOperational, currentRoute) {
+    LaunchedEffect(isFullyOperational, hasSeenGpsAccuracyDisclaimer, currentRoute) {
         when {
             // Permissions lost mid-session → push to PERMISSIONS, clear HOME from back-stack.
             !isFullyOperational && currentRoute != null && currentRoute !in GATE_SCREENS -> {
@@ -284,9 +278,18 @@ private fun MainAppNavigation(
                     popUpTo(Routes.HOME) { inclusive = true }
                 }
             }
-            // Permissions already granted but stuck on a permission screen (e.g. deep-link or
-            // back-navigation landed here) → skip straight to HOME.
-            isFullyOperational && currentRoute in PERMISSION_GATE_SCREENS -> {
+            // Permissions granted but hasn't seen mandatory GPS disclaimer yet.
+            isFullyOperational && !hasSeenGpsAccuracyDisclaimer && currentRoute != Routes.GPS_DISCLAIMER && currentRoute !in GATE_SCREENS -> {
+                navController.navigate(Routes.GPS_DISCLAIMER) {
+                    // If we were on permissions, replace it.
+                    if (currentRoute == Routes.PERMISSIONS) {
+                        popUpTo(Routes.PERMISSIONS) { inclusive = true }
+                    }
+                }
+            }
+            // All ready: permissions granted AND disclaimer seen.
+            // If stuck on a gate screen (except legitimate setup flows like vehicle reg), go HOME.
+            isFullyOperational && hasSeenGpsAccuracyDisclaimer && currentRoute in PERMISSION_GATE_SCREENS -> {
                 navController.navigate(Routes.HOME) {
                     popUpTo(currentRoute!!) { inclusive = true }
                 }
@@ -415,13 +418,26 @@ private fun MainAppNavigation(
             composable(Routes.PERMISSIONS) {
                 PermissionsScreen(
                     onPermissionsGranted = {
-                        // First-run: no vehicle yet → show the size explainer before the form.
-                        // Re-entry (perms were revoked mid-life): vehicle already exists → go home.
-                        val next = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
-                        navController.navigate(next) {
+                        // Once permissions are granted, show the mandatory GPS disclaimer
+                        // before allowing the user to proceed to the app or vehicle setup.
+                        navController.navigate(Routes.GPS_DISCLAIMER) {
                             popUpTo(Routes.PERMISSIONS) { inclusive = true }
                         }
                     },
+                )
+            }
+            composable(Routes.GPS_DISCLAIMER) {
+                io.apptolast.paparcar.presentation.permissions.GpsDisclaimerScreen(
+                    onAccepted = {
+                        // Mark as seen in global state/preferences
+                        onDismissGpsDisclaimer()
+                        
+                        // Finalize the flow: go Home or to Vehicle Setup
+                        val next = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
+                        navController.navigate(next) {
+                            popUpTo(Routes.GPS_DISCLAIMER) { inclusive = true }
+                        }
+                    }
                 )
             }
             composable(Routes.VEHICLE_SIZE_EXPLAINER) {
