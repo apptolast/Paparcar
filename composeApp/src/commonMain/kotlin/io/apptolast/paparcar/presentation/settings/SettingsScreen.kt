@@ -55,9 +55,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -334,7 +336,12 @@ internal fun SettingsContent(
                 // Master is derived: ON when at least one sub is ON. Toggling
                 // master via the single ToggleMasterNotifications intent flips
                 // both subs at once and persists via prefs.
-                val masterOn = state.notifyParkingDetected || state.notifySpotFreed
+                // Master = ON when either sub is ON. derivedStateOf so the
+                // NotificationsGroupCard only recomposes when the boolean
+                // actually flips (not on every other state field change).
+                val masterOn by remember(state.notifyParkingDetected, state.notifySpotFreed) {
+                    derivedStateOf { state.notifyParkingDetected || state.notifySpotFreed }
+                }
                 NotificationsGroupCard(
                     masterOn = masterOn,
                     onMasterChange = { onIntent(SettingsIntent.ToggleMasterNotifications(it)) },
@@ -1023,7 +1030,7 @@ private fun SettingsDropdownItem(
     onSelect: (String) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(CARD_CORNER_DP.dp),
