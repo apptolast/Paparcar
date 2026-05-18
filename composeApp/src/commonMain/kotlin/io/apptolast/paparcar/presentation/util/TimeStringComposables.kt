@@ -12,6 +12,10 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.drive_time_minutes
+import paparcar.composeapp.generated.resources.relative_time_compact_day
+import paparcar.composeapp.generated.resources.relative_time_compact_hour
+import paparcar.composeapp.generated.resources.relative_time_compact_min
+import paparcar.composeapp.generated.resources.relative_time_compact_now
 import paparcar.composeapp.generated.resources.relative_time_day
 import paparcar.composeapp.generated.resources.relative_time_days
 import paparcar.composeapp.generated.resources.relative_time_hours
@@ -55,6 +59,34 @@ fun relativeTimeText(timestampMs: Long): String {
         diffHours < 24L -> stringResource(Res.string.relative_time_hours, diffHours.toInt())
         diffDays == 1L -> stringResource(Res.string.relative_time_day, diffDays.toInt())
         else -> stringResource(Res.string.relative_time_days, diffDays.toInt())
+    }
+}
+
+/**
+ * Compact form of [relativeTimeText] for narrow chips: "<1m", "5m", "2h", "3d".
+ * Same tick-recompute logic, locale-aware strings, but far shorter output.
+ */
+@Composable
+fun compactRelativeTimeText(timestampMs: Long): String {
+    var tick by remember(timestampMs) { mutableStateOf(0) }
+    LaunchedEffect(timestampMs) {
+        while (true) {
+            delay(TIME_RECOMPUTE_INTERVAL_MS)
+            tick++
+        }
+    }
+    @Suppress("UNUSED_EXPRESSION") tick
+
+    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
+    val diffMin = (nowMs - timestampMs) / MS_PER_MINUTE
+    val diffHours = diffMin / MINUTES_PER_HOUR
+    val diffDays = diffHours / HOURS_PER_DAY
+
+    return when {
+        diffMin < 1L    -> stringResource(Res.string.relative_time_compact_now)
+        diffMin < 60L   -> stringResource(Res.string.relative_time_compact_min, diffMin.toInt())
+        diffHours < 24L -> stringResource(Res.string.relative_time_compact_hour, diffHours.toInt())
+        else            -> stringResource(Res.string.relative_time_compact_day, diffDays.toInt())
     }
 }
 

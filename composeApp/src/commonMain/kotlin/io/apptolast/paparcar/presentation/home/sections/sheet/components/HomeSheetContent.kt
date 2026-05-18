@@ -276,6 +276,7 @@ private fun LazyListScope.spotsSection(
                         displayLocation = locationDisplayText(
                             spot.placeInfo, spot.address,
                             spot.location.latitude, spot.location.longitude,
+                            showEmoji = false,
                         ),
                         distanceMeters = state.userGpsPoint?.let { gps ->
                             distanceMeters(

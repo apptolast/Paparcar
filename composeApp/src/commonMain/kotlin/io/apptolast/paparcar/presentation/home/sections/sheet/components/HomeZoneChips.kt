@@ -79,6 +79,11 @@ private fun ZoneChip(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(CHIP_CORNER_DP.dp))
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
+            )
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),

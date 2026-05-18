@@ -36,16 +36,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
-import io.apptolast.paparcar.presentation.util.relativeTimeText
+import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_manual_park_subtitle
 import paparcar.composeapp.generated.resources.home_manual_park_title
+import paparcar.composeapp.generated.resources.home_parked_section
 import paparcar.composeapp.generated.resources.home_parking_view_on_map
 
 /**
@@ -107,8 +109,15 @@ internal fun HomeParkingBanner(
                     )
                 }
 
-                // Address (L1) + distance / walk time (L2, always visible)
+                // Label (L0) + address (L1) + distance / walk time (L2, always visible)
                 Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(Res.string.home_parked_section).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.6f),
+                        letterSpacing = 0.6.sp,
+                    )
                     Text(
                         text = displayText,
                         style = MaterialTheme.typography.bodyMedium,
@@ -196,7 +205,7 @@ private fun ParkingTimeChip(timestampMs: Long) {
         color = Color.White.copy(alpha = 0.18f),
     ) {
         Text(
-            relativeTimeText(timestampMs),
+            compactRelativeTimeText(timestampMs),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = Color.White,

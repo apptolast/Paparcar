@@ -130,6 +130,11 @@
     <string name="relative_time_hours">%1$d h ago</string>
     <string name="relative_time_day">%1$d day ago</string>
     <string name="relative_time_days">%1$d days ago</string>
+    <!-- Compact relative time — used in narrow chips (parking banner) -->
+    <string name="relative_time_compact_now">&lt;1m</string>
+    <string name="relative_time_compact_min">%1$dm</string>
+    <string name="relative_time_compact_hour">%1$dh</string>
+    <string name="relative_time_compact_day">%1$dd</string>
     <!-- Walk / drive time -->
     <string name="walk_time_minutes">%1$d min walk</string>
     <string name="drive_time_minutes">%1$d min drive</string>
