@@ -9,6 +9,7 @@ import io.apptolast.paparcar.data.mapper.toDto
 import io.apptolast.paparcar.data.mapper.toEntity
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -75,10 +76,19 @@ class VehicleRepositoryImpl(
      * during bootstrap to ensure cross-device consistency. [VEHICLES-001]
      */
     override suspend fun syncFromRemote(userId: String): Result<Unit> = runCatching {
+        PaparcarLogger.d(DIAG, "▶ syncFromRemote userId=$userId")
         val remoteEntities = userProfileDataSource.getVehicles(userId)
             .map { it.toEntity() }
-        if (remoteEntities.isEmpty()) return@runCatching
+        PaparcarLogger.d(DIAG, "  ← Firestore returned ${remoteEntities.size} vehicle(s)")
+        remoteEntities.forEach { v ->
+            PaparcarLogger.d(DIAG, "    vehicle id=${v.id} isDefault=${v.isDefault} name=${v.brand} ${v.model}")
+        }
+        if (remoteEntities.isEmpty()) {
+            PaparcarLogger.e(DIAG, "  ✗ no vehicles from Firestore — upsert skipped")
+            return@runCatching
+        }
         dao.upsertAll(remoteEntities)
+        PaparcarLogger.d(DIAG, "■ syncFromRemote upserted ${remoteEntities.size} vehicle(s) into Room")
     }
 
     override suspend fun saveVehicle(vehicle: Vehicle) {
@@ -142,4 +152,8 @@ class VehicleRepositoryImpl(
 
     override suspend fun hasVehicles(userId: String): Boolean =
         dao.countByUser(userId) > 0
+
+    private companion object {
+        const val DIAG = "PARKDIAG/VehicleSync"
+    }
 }

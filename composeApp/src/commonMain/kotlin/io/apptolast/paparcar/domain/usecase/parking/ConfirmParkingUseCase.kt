@@ -67,13 +67,14 @@ class ConfirmParkingUseCase(
         // Suspending one-shot read — bypasses the auth-flow race that made the previous
         // observeDefaultVehicle().first() return null even with a valid session. Includes
         // a fallback through user_profile.defaultVehicleId. [AUTH-001]
+        // Room is the only source of truth here — bootstrap (splash) syncs all user data
+        // from Firestore before the app reaches Home. If Room is empty here it means either
+        // the user is logged out (cache cleared on logout) or bootstrap sync failed.
+        // Either way, a network call from the detection path is wrong — abort. [VEHICLE-SYNC-001]
         val defaultVehicle = vehicleRepository.getDefaultVehicle(userId)
         PaparcarLogger.d(DIAG, "  ← getDefaultVehicle AFTER vehicleId=${defaultVehicle?.id}")
         if (defaultVehicle == null) {
-            // Invariant: every parking belongs to a vehicle. The History UI is now per-vehicle
-            // (HIST-001), so a session with vehicleId=null is unreachable and pure garbage.
-            // Better to fail loud and let the user notice than persist orphans.
-            PaparcarLogger.e(DIAG, "  ✗ no default vehicle resolvable — abort")
+            PaparcarLogger.e(DIAG, "  ✗ no default vehicle in Room — bootstrap sync missing or user logged out — abort")
             return Result.failure(PaparcarError.Parking.NoDefaultVehicle)
         }
 

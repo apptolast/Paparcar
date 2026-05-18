@@ -3,6 +3,7 @@ package io.apptolast.paparcar.domain.usecase.user
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -29,13 +30,38 @@ class BootstrapUserDataUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val zoneRepository: ZoneRepository,
 ) {
-    suspend operator fun invoke(userId: String): Result<Unit> = runCatching {
-        coroutineScope {
-            awaitAll(
-                async { vehicleRepository.syncFromRemote(userId).getOrThrow() },
-                async { userParkingRepository.syncParkingHistoryFromRemote(userId).getOrThrow() },
-                async { zoneRepository.syncFromRemote(userId).getOrThrow() },
-            )
+    suspend operator fun invoke(userId: String): Result<Unit> {
+        PaparcarLogger.d(DIAG, "▶ Bootstrap.invoke userId=$userId")
+        return runCatching {
+            coroutineScope {
+                val vehiclesJob = async {
+                    PaparcarLogger.d(DIAG, "  → syncVehicles START")
+                    vehicleRepository.syncFromRemote(userId)
+                        .also { r -> PaparcarLogger.d(DIAG, "  ← syncVehicles END isSuccess=${r.isSuccess}") }
+                        .getOrThrow()
+                }
+                val parkingJob = async {
+                    PaparcarLogger.d(DIAG, "  → syncParkingHistory START")
+                    userParkingRepository.syncParkingHistoryFromRemote(userId)
+                        .also { r -> PaparcarLogger.d(DIAG, "  ← syncParkingHistory END isSuccess=${r.isSuccess}") }
+                        .getOrThrow()
+                }
+                val zonesJob = async {
+                    PaparcarLogger.d(DIAG, "  → syncZones START")
+                    zoneRepository.syncFromRemote(userId)
+                        .also { r -> PaparcarLogger.d(DIAG, "  ← syncZones END isSuccess=${r.isSuccess}") }
+                        .getOrThrow()
+                }
+                awaitAll(vehiclesJob, parkingJob, zonesJob)
+                Unit
+            }
+        }.also { r ->
+            if (r.isSuccess) PaparcarLogger.d(DIAG, "■ Bootstrap.invoke SUCCESS")
+            else PaparcarLogger.e(DIAG, "■ Bootstrap.invoke FAILED", r.exceptionOrNull())
         }
+    }
+
+    private companion object {
+        const val DIAG = "PARKDIAG/Bootstrap"
     }
 }
