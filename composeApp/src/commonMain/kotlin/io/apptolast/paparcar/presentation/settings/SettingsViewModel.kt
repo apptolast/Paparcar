@@ -56,6 +56,16 @@ class SettingsViewModel(
                 prefs.setNotifySpotFreed(intent.enabled)
                 updateState { copy(notifySpotFreed = intent.enabled) }
             }
+            is SettingsIntent.ToggleMasterNotifications -> {
+                prefs.setNotifyParkingDetected(intent.enabled)
+                prefs.setNotifySpotFreed(intent.enabled)
+                updateState {
+                    copy(
+                        notifyParkingDetected = intent.enabled,
+                        notifySpotFreed = intent.enabled,
+                    )
+                }
+            }
             is SettingsIntent.SetMapType -> {
                 prefs.setDefaultMapType(intent.type.toPreferenceString())
                 updateState { copy(mapType = intent.type) }
