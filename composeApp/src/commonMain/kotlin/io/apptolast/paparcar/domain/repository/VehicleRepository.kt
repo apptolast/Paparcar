@@ -49,4 +49,7 @@ interface VehicleRepository {
 
     /** Deletes all local and remote vehicles for [userId]. Called during account deletion. */
     suspend fun deleteAllData(userId: String): Result<Unit>
+
+    /** Returns true if the user has at least one vehicle cached in Room. */
+    suspend fun hasVehicles(userId: String): Boolean
 }

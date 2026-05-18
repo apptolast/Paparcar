@@ -9,6 +9,7 @@ import io.apptolast.paparcar.core.crash.CrashReporter
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.session.LocalSessionCache
 import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
@@ -44,6 +45,7 @@ class SplashViewModel(
     private val authRepository: AuthRepository,
     private val getOrCreateUserProfile: GetOrCreateUserProfileUseCase,
     private val bootstrapUserData: BootstrapUserDataUseCase,
+    private val vehicleRepository: VehicleRepository,
     private val appPreferences: AppPreferences,
     private val permissionManager: PermissionManager,
     private val localSessionCache: LocalSessionCache,
@@ -148,7 +150,11 @@ class SplashViewModel(
                 }
 
             PaparcarLogger.i(TAG, "[step 3b/3] resolving start route")
-            resolveStartRoute(hasVehicle = profile.defaultVehicleId != null)
+            // Read the vehicle count from Room (already populated by bootstrapUserData above)
+            // rather than relying on profile.defaultVehicleId, which can be null on accounts
+            // where the profile field was never set or was cleared across devices.
+            val hasVehicle = vehicleRepository.hasVehicles(session.userId)
+            resolveStartRoute(hasVehicle = hasVehicle)
         } catch (e: Throwable) {
             PaparcarLogger.e(TAG, "bootstrap chain failed with uncaught exception", e)
             abortBootstrap()

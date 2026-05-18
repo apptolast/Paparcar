@@ -139,4 +139,7 @@ class VehicleRepositoryImpl(
         userProfileDataSource.deleteUserData(userId) // This handles both profile and sub-collections
         dao.deleteByUser(userId)
     }
+
+    override suspend fun hasVehicles(userId: String): Boolean =
+        dao.countByUser(userId) > 0
 }
