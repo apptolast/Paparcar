@@ -69,6 +69,7 @@ import paparcar.composeapp.generated.resources.my_car_empty_subtitle
 import paparcar.composeapp.generated.resources.my_car_empty_why_link
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_title
+import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
 
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
@@ -291,9 +292,12 @@ private fun AddVehiclePill(onClick: () -> Unit) {
 @Composable
 private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
+    // Fall back to localized "unnamed vehicle" copy when the user didn't
+    // provide brand/model — the previous fallback showed the first 8 chars
+    // of the UUID, which read as garbage to the user.
     val tabName = listOfNotNull(vehicle.brand, vehicle.model)
         .joinToString(" ")
-        .ifBlank { vehicle.id.take(TAB_LABEL_MAX_LENGTH) }
+        .ifBlank { stringResource(Res.string.my_car_unnamed_vehicle) }
     val bg = if (selected) cs.primaryContainer else Color.Transparent
     val borderColor = if (selected) cs.primary else cs.outline.copy(alpha = TAB_INACTIVE_BORDER_ALPHA)
     val fg = if (selected) cs.onPrimaryContainer else cs.onSurface.copy(alpha = TAB_INACTIVE_FG_ALPHA)
@@ -450,7 +454,6 @@ private const val ADD_PILL_BORDER_ALPHA = 0.6f
 private const val TAB_INACTIVE_BORDER_ALPHA = 0.5f
 private const val TAB_INACTIVE_FG_ALPHA = 0.7f
 private const val ACTIVE_DOT_DP = 6
-private const val TAB_LABEL_MAX_LENGTH = 8
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private const val EMPTY_BODY_ALPHA = 0.65f
 private const val EMPTY_CTA_HEIGHT_DP = 50
