@@ -10,6 +10,8 @@
     <string name="home_banner_since">%1$s</string>
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Está estacionado</string>
+    <string name="home_where_to_park_title">Onde quer estacionar?</string>
+    <string name="home_active_vehicle_title">O seu veículo ativo</string>
     <string name="home_parking_release">Libertar lugar</string>
     <string name="home_navigate_to_spot">Como chegar</string>
     <string name="home_navigate_to_vehicle">Navegar até ao veículo</string>
@@ -35,6 +37,9 @@
     <string name="home_parking_peek_label">Está estacionado · %1$s</string>
     <string name="home_manual_park_title">Estacionar aqui</string>
     <string name="home_manual_park_subtitle">Guardar manualmente a posição de estacionamento</string>
+    <string name="home_action_report">Avisar</string>
+    <string name="home_action_park">Estacionar</string>
+    <string name="home_parking_view_on_map">Ver no mapa</string>
     <string name="home_reliability_confirmed">Confirmado</string>
     <string name="home_reliability_high">Detetado automaticamente</string>
     <string name="home_reliability_auto">Aprox.</string>

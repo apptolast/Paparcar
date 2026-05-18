@@ -10,6 +10,8 @@
     <string name="home_banner_since">%1$s</string>
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Ești parcat</string>
+    <string name="home_where_to_park_title">Unde doriți să parcați?</string>
+    <string name="home_active_vehicle_title">Vehiculul dumneavoastră activ</string>
     <string name="home_parking_release">Eliberează locul</string>
     <string name="home_navigate_to_spot">Indicații</string>
     <string name="home_navigate_to_vehicle">Navighează către vehicul</string>
@@ -35,6 +37,9 @@
     <string name="home_parking_peek_label">Ești parcat · %1$s</string>
     <string name="home_manual_park_title">Parchează aici</string>
     <string name="home_manual_park_subtitle">Salvează manual locația de parcare</string>
+    <string name="home_action_report">Raportează</string>
+    <string name="home_action_park">Parchează</string>
+    <string name="home_parking_view_on_map">Afișează pe hartă</string>
     <string name="home_reliability_confirmed">Confirmat</string>
     <string name="home_reliability_high">Detectat automat</string>
     <string name="home_reliability_auto">Aproximativ</string>

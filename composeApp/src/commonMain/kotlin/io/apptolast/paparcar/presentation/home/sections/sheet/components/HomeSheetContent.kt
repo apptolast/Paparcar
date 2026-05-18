@@ -46,10 +46,9 @@ import io.apptolast.paparcar.ui.components.SpotUiState
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
-import paparcar.composeapp.generated.resources.home_parked_section
 import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
 import paparcar.composeapp.generated.resources.home_size_filter_all
-import paparcar.composeapp.generated.resources.home_zones_section
+import paparcar.composeapp.generated.resources.home_where_to_park_title
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
@@ -57,31 +56,20 @@ import paparcar.composeapp.generated.resources.vehicle_size_small
 import paparcar.composeapp.generated.resources.vehicle_size_van
 
 /**
- * Emits the sheet content items into a [LazyListScope]. The LazyColumn
- * itself lives in HomeScreen so its Modifier.weight(1f) is applied directly
- * on the Column layout (no indirection across composable boundaries).
+ * Emits the sheet content items into a [LazyListScope].
  *
- * ## Section ordering rationale
+ * ## Section order
  *
- * The sheet is the user's primary surface — the order has to lead with what
- * they came to do, in this priority:
- *
- *  1. **Zones chips** (only when `zones.isNotEmpty()`) — compact navigation
- *     shortcuts. No header; the row is small and self-evidently actionable.
- *     When zones are empty there's nothing to navigate to, so the chips row
- *     hides and the configure prompt drops to its proper section position
- *     below (see #3).
- *  2. **Parking** — the most time-sensitive personal info ("where did I park").
- *     Always immediately below the chips/top divider when permissions are
- *     granted, regardless of active session: full row if parked, empty card
- *     CTA otherwise.
- *  3. **Zones configuration** (only when `zones.isEmpty()`) — twin empty-state
- *     card paired with [HomeParkingEmptyCard]'s molde. Appears under the
- *     parking section so the two configuration prompts cluster together when
- *     both happen to be empty (clean first-run feel). Hidden once the user
- *     has any zone — the chips row above takes over.
- *  4. **Nearby spots** — the longest section, always anchored last. Holds the
- *     filter bar + permissions / skeleton / empty / list states internally.
+ *  1. **Parking** (personal block) — my car status. Banner when parked;
+ *     header + empty CTA when not parked. Visible once permissions are granted.
+ *  2. **Thin divider** — separates personal data from community discovery.
+ *  3. **Zone chips** (discovery block, when zones exist) — horizontal row that
+ *     moves the camera to a saved habitual area. Sits immediately above the
+ *     spots list so the zona → búsqueda de spots flow is visually obvious.
+ *  4. **Spots** — zone empty CTA (when no zones) followed by the spots header,
+ *     size filter, report CTA, and the spot list. The zone empty card lives
+ *     inside the discovery block so both states (chips / empty) occupy the
+ *     same visual position relative to spots.
  */
 internal fun LazyListScope.homeSheetItems(
     state: HomeState,
@@ -102,10 +90,22 @@ internal fun LazyListScope.homeSheetItems(
     val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
-    item("top_divider") {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f))
+    // ── 1. Personal block: parking ──────────────────────────────────────────
+    if (showParkingFirst) {
+        parkingSection(state, onParkingClick, onManualPark)
     }
 
+    // ── 2. Divider: personal → discovery ───────────────────────────────────
+    if (showParkingFirst) {
+        item("mid_divider") {
+            HorizontalDivider(
+                modifier = Modifier.padding(top = 8.dp),
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
+            )
+        }
+    }
+
+    // ── 3. Zone chips (discovery navigation, above spots) ──────────────────
     if (showZoneChips) {
         item("zones_chips") {
             HomeZoneChips(
@@ -117,25 +117,17 @@ internal fun LazyListScope.homeSheetItems(
         }
     }
 
-    if (showParkingFirst) {
-        parkingSection(state, onParkingClick, onManualPark)
-    }
-
-    if (showZonesEmpty) {
-        zonesEmptySection(onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) })
-    }
-
-    if (showParkingFirst || showZonesEmpty) {
-        item("mid_divider") {
-            HorizontalDivider(
-                modifier = Modifier.padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-            )
-        }
-    }
+    // ── 4. Spots (with zone empty CTA at top when no zones) ────────────────
     spotsSection(
-        state, onIntent, onCameraMove, onSpotSelect,
-        selectedSpotId, filteredSpots, showFilterBar,
+        state = state,
+        onIntent = onIntent,
+        onCameraMove = onCameraMove,
+        onSpotSelect = onSpotSelect,
+        selectedSpotId = selectedSpotId,
+        filteredSpots = filteredSpots,
+        showFilterBar = showFilterBar,
+        showZonesEmpty = showZonesEmpty,
+        onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
     )
 }
 
@@ -157,19 +149,16 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
-    var base = 1 // top_divider
-    if (showZoneChips) base += 1 // zones_chips
+    var base = 1 // handle / top item in LazyColumn
     if (showParkingFirst) {
-        base += 1 // parking_header
-        base += 1 // parking_row OR parking_empty
+        base += if (state.userParking != null) 1 else 2 // banner OR (header + empty)
+        base += 1 // mid_divider
     }
-    if (showZonesEmpty) {
-        base += 1 // zones_header
-        base += 1 // zones_empty_card
-    }
-    if (showParkingFirst || showZonesEmpty) base += 1 // mid_divider
+    if (showZoneChips) base += 1 // zones_chips
+    if (showZonesEmpty) base += 1 // zones_empty_card (inside spotsSection)
     base += 1 // spots_header
-    if (showFilterBar) base += 1
+    if (showFilterBar) base += 1 // filter_bar
+    if (state.allPermissionsGranted) base += 1 // report_spot_cta
     return base + spotIdx
 }
 
@@ -182,43 +171,29 @@ private fun LazyListScope.parkingSection(
     onParkingClick: () -> Unit,
     onManualPark: () -> Unit,
 ) {
-    item("parking_header") {
-        HomeSectionHeader(
-            title = stringResource(Res.string.home_parked_section),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
-    }
     if (state.userParking != null) {
-        item("parking_row") {
+        item("parking_banner") {
             HomeParkingRow(
                 parking = state.userParking,
                 userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                 isSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID,
                 onSelect = onParkingClick,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
     } else if (state.allPermissionsGranted) {
+        item("parking_header") {
+            HomeSectionHeader(
+                title = stringResource(Res.string.home_where_to_park_title),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            )
+        }
         item("parking_empty") {
             HomeParkingEmptyCard(
                 onManualPark = onManualPark,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
-    }
-}
-
-private fun LazyListScope.zonesEmptySection(onAddZone: () -> Unit) {
-    item("zones_header") {
-        HomeSectionHeader(
-            title = stringResource(Res.string.home_zones_section),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
-    }
-    item("zones_empty_card") {
-        HomeZonesEmptyCard(
-            onAddZone = onAddZone,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
     }
 }
 
@@ -230,7 +205,20 @@ private fun LazyListScope.spotsSection(
     selectedSpotId: String?,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
+    showZonesEmpty: Boolean,
+    onAddZone: () -> Unit,
 ) {
+    // Zone empty card — onboarding prompt when no zones, at the top of the
+    // discovery block so it reads "here's where your zones will appear above spots"
+    if (showZonesEmpty) {
+        item("zones_empty_card") {
+            HomeZonesEmptyCard(
+                onAddZone = onAddZone,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+            )
+        }
+    }
+
     item("spots_header") {
         HomeSectionHeader(
             title = if (filteredSpots.isNotEmpty())
@@ -240,12 +228,22 @@ private fun LazyListScope.spotsSection(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
         )
     }
+
     if (showFilterBar) {
         item("filter_bar") {
             HomeSizeFilterBar(
                 selectedSize = state.sizeFilter,
                 onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            )
+        }
+    }
+
+    if (state.allPermissionsGranted) {
+        item("report_spot_cta") {
+            HomeReportSpotCard(
+                onReport = { onIntent(HomeIntent.EnterReportMode) },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
     }
@@ -387,16 +385,15 @@ private fun HomeSizeFilterBar(
     onFilterSelect: (VehicleSize?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val allLabel   = stringResource(Res.string.home_size_filter_all)
-    val motoLabel  = stringResource(Res.string.vehicle_size_moto)
-    val smallLabel = stringResource(Res.string.vehicle_size_small)
-    val mediumLabel= stringResource(Res.string.vehicle_size_medium)
-    val largeLabel = stringResource(Res.string.vehicle_size_large)
-    val vanLabel   = stringResource(Res.string.vehicle_size_van)
+    val allLabel    = stringResource(Res.string.home_size_filter_all)
+    val motoLabel   = stringResource(Res.string.vehicle_size_moto)
+    val smallLabel  = stringResource(Res.string.vehicle_size_small)
+    val mediumLabel = stringResource(Res.string.vehicle_size_medium)
+    val largeLabel  = stringResource(Res.string.vehicle_size_large)
+    val vanLabel    = stringResource(Res.string.vehicle_size_van)
 
     Row(
-        modifier = modifier
-            .horizontalScroll(rememberScrollState()),
+        modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         FilterChip(

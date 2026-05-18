@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.FilterAltOff
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.Icon
@@ -46,6 +48,8 @@ import paparcar.composeapp.generated.resources.home_empty_title
 import paparcar.composeapp.generated.resources.home_filter_empty_clear
 import paparcar.composeapp.generated.resources.home_filter_empty_subtitle
 import paparcar.composeapp.generated.resources.home_filter_empty_title
+import paparcar.composeapp.generated.resources.home_report_fab_cd
+import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_spot_freshness_hours
 import paparcar.composeapp.generated.resources.home_spot_freshness_minutes
 import paparcar.composeapp.generated.resources.home_spot_freshness_under_min
@@ -384,5 +388,63 @@ internal fun HomeEmptyFilteredSpots(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable(onClick = onClearFilter),
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Report spot card — CTA to manually report a free spot
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+internal fun HomeReportSpotCard(
+    onReport: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onReport,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Campaign,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(Res.string.home_report_fab_cd),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stringResource(Res.string.home_report_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                )
+            }
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
