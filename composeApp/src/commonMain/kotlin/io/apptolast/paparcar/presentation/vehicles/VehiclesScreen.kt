@@ -1,35 +1,39 @@
 package io.apptolast.paparcar.presentation.vehicles
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Tab
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,15 +43,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Vehicle
-import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
-import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -64,6 +70,14 @@ import paparcar.composeapp.generated.resources.my_car_empty_why_link
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_title
 
+/**
+ * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
+ *
+ *  - TopAppBar con tipografía Outfit ExtraBold (headlineSmall + (-0.5)sp).
+ *  - Tabs rediseñadas: pills custom con icono + nombre + dot si activo.
+ *  - "+" trailing chip para añadir vehículo además del icon action en top bar.
+ *  - Empty state con icono circular 120dp + display title + CTA grande.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehiclesScreen(
@@ -111,34 +125,28 @@ internal fun VehiclesContent(
     onNavigateToMap: (lat: Double, lon: Double) -> Unit = { _, _ -> },
     onShowExplainer: () -> Unit = {},
 ) {
-    if (state.pendingDeleteVehicleId != null) {
+    state.pendingDeleteVehicleId?.let { pendingId ->
         DeleteVehicleConfirmDialog(
-            onConfirm = {
-                onIntent(VehiclesIntent.ConfirmDeleteVehicle(state.pendingDeleteVehicleId!!))
-            },
+            onConfirm = { onIntent(VehiclesIntent.ConfirmDeleteVehicle(pendingId)) },
             onDismiss = { onIntent(VehiclesIntent.DismissDeleteConfirmation) },
         )
     }
 
     Scaffold(
         topBar = {
-            // The "add vehicle" action lives in the TopAppBar (not as a FAB) because
-            // the page below has its own pager + sticky vehicle header + history list;
-            // a floating FAB would overlap the active vehicle's CTAs. The empty state
-            // already has a prominent "Add vehicle" button — when there are no
-            // vehicles yet, the TopAppBar action is hidden as redundant. [UI-002]
             TopAppBar(
-                title = { Text(stringResource(Res.string.my_car_title)) },
-                actions = {
-                    if (!state.isLoading && state.vehicles.isNotEmpty()) {
-                        IconButton(onClick = { onIntent(VehiclesIntent.AddVehicle) }) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = stringResource(Res.string.my_car_add_vehicle),
-                            )
-                        }
-                    }
+                title = {
+                    Text(
+                        text = stringResource(Res.string.my_car_title),
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = TITLE_LETTER_SPACING_SP.sp,
+                        ),
+                    )
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -148,14 +156,14 @@ internal fun VehiclesContent(
                 state.isLoading -> Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
+                ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+
                 state.vehicles.isEmpty() -> EmptyVehicleState(
                     modifier = Modifier.fillMaxSize(),
                     onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
                     onShowExplainer = onShowExplainer,
                 )
+
                 state.vehicles.size == 1 -> VehiclePageContent(
                     vehicleWithStats = state.vehicles.first(),
                     onIntent = onIntent,
@@ -163,6 +171,7 @@ internal fun VehiclesContent(
                     onNavigateToMap = onNavigateToMap,
                     canDelete = false,
                 )
+
                 else -> VehiclesPager(
                     state = state,
                     onIntent = onIntent,
@@ -173,6 +182,10 @@ internal fun VehiclesContent(
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Multi-vehicle pager with custom pill tab row
+// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -187,20 +200,15 @@ private fun VehiclesPager(
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        PrimaryScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
-            vehicles.forEachIndexed { index, vehicleWithStats ->
-                val vehicle = vehicleWithStats.vehicle
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                    text = { VehicleTabLabel(vehicle = vehicle) },
-                )
-            }
-        }
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f),
-        ) { page ->
+        VehicleTabRow(
+            vehicles = vehicles.map { it.vehicle },
+            selectedIndex = pagerState.currentPage,
+            onTabClick = { index ->
+                scope.launch { pagerState.animateScrollToPage(index) }
+            },
+            onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
+        )
+        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
             VehiclePageContent(
                 vehicleWithStats = vehicles[page],
                 onIntent = onIntent,
@@ -212,59 +220,131 @@ private fun VehiclesPager(
 }
 
 @Composable
-private fun VehicleTabLabel(vehicle: Vehicle) {
-    val tabName = listOfNotNull(vehicle.brand, vehicle.model)
-        .joinToString(" ")
-        .ifBlank { vehicle.id.take(TAB_LABEL_MAX_LENGTH) }
+private fun VehicleTabRow(
+    vehicles: List<Vehicle>,
+    selectedIndex: Int,
+    onTabClick: (Int) -> Unit,
+    onAddVehicle: () -> Unit,
+) {
+    val scrollState = rememberScrollState()
     Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(
-            imageVector = vehicle.sizeCategory.icon,
-            contentDescription = null,
-            modifier = Modifier.size(TAB_ICON_SIZE),
-        )
-        Text(text = tabName, maxLines = 1)
-        if (vehicle.isDefault) {
-            Box(
-                modifier = Modifier
-                    .size(ACTIVE_DOT_SIZE)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
+        vehicles.forEachIndexed { index, vehicle ->
+            VehicleTabPill(
+                vehicle = vehicle,
+                selected = index == selectedIndex,
+                onClick = { onTabClick(index) },
+            )
+        }
+        AddVehiclePill(onClick = onAddVehicle)
+    }
+}
+
+/**
+ * "+" trailing chip — circular outlined button, fixed [TAB_HEIGHT_DP] so it
+ * matches the height of the surrounding [VehicleTabPill]s in the row.
+ */
+@Composable
+private fun AddVehiclePill(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(TAB_HEIGHT_DP.dp),
+        shape = CircleShape,
+        color = Color.Transparent,
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = ADD_PILL_BORDER_ALPHA),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = stringResource(Res.string.my_car_add_vehicle),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp),
             )
         }
     }
 }
 
-// ─── Delete confirmation dialog ───────────────────────────────────────────────
+@Composable
+private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val tabName = listOfNotNull(vehicle.brand, vehicle.model)
+        .joinToString(" ")
+        .ifBlank { vehicle.id.take(TAB_LABEL_MAX_LENGTH) }
+    val bg = if (selected) cs.primaryContainer else Color.Transparent
+    val borderColor = if (selected) cs.primary else cs.outline.copy(alpha = TAB_INACTIVE_BORDER_ALPHA)
+    val fg = if (selected) cs.onPrimaryContainer else cs.onSurface.copy(alpha = TAB_INACTIVE_FG_ALPHA)
+
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.height(TAB_HEIGHT_DP.dp),
+        shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
+        color = bg,
+        border = BorderStroke(1.dp, borderColor),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = vehicle.sizeCategory.icon,
+                contentDescription = null,
+                tint = fg,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                text = tabName,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = fg,
+                maxLines = 1,
+            )
+            if (vehicle.isDefault) {
+                Box(
+                    modifier = Modifier
+                        .size(ACTIVE_DOT_DP.dp)
+                        .clip(CircleShape)
+                        .background(cs.primary),
+                )
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delete confirmation dialog
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun DeleteVehicleConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.my_car_delete_confirm_title)) },
-        text = { Text(stringResource(Res.string.my_car_delete_confirm_message)) },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            ) {
-                Text(stringResource(Res.string.my_car_delete_confirm_action))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.my_car_delete_cancel))
-            }
-        },
+    PapAlertDialog(
+        onDismiss = onDismiss,
+        icon = Icons.Outlined.Delete,
+        title = stringResource(Res.string.my_car_delete_confirm_title),
+        body = stringResource(Res.string.my_car_delete_confirm_message),
+        primaryLabel = stringResource(Res.string.my_car_delete_confirm_action),
+        primaryLeadingIcon = Icons.Outlined.Delete,
+        onPrimary = onConfirm,
+        cancelLabel = stringResource(Res.string.my_car_delete_cancel),
+        accent = PapDialogAccent.Destructive,
     )
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty state — big circular icon + display title + prominent CTA
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun EmptyVehicleState(
@@ -273,41 +353,74 @@ private fun EmptyVehicleState(
     onShowExplainer: () -> Unit,
 ) {
     Column(
-        modifier = modifier.padding(horizontal = PaparcarSpacing.xxxl),
+        modifier = modifier.padding(horizontal = 32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = PaparcarIcons.VehicleMedium,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(EMPTY_STATE_ICON_SIZE),
-        )
-        Spacer(modifier = Modifier.height(PaparcarSpacing.lg))
+        Box(
+            modifier = Modifier
+                .size(EMPTY_ICON_CIRCLE_DP.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = PaparcarIcons.VehicleMedium,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(60.dp),
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         Text(
             text = stringResource(Res.string.my_car_no_vehicle),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
-        Spacer(modifier = Modifier.height(PaparcarSpacing.sm))
+        Spacer(Modifier.height(10.dp))
         Text(
             text = stringResource(Res.string.my_car_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_BODY_ALPHA),
             textAlign = TextAlign.Center,
         )
-        Spacer(modifier = Modifier.height(PaparcarSpacing.xxl))
-        PapPrimaryButton(
-            label = stringResource(Res.string.my_car_add_vehicle),
+        Spacer(Modifier.height(28.dp))
+        Surface(
             onClick = onAddVehicle,
-        )
-        Spacer(modifier = Modifier.height(PaparcarSpacing.lg))
+            shape = RoundedCornerShape(EMPTY_CTA_CORNER_DP.dp),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(EMPTY_CTA_HEIGHT_DP.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(Res.string.my_car_add_vehicle),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
         TextButton(onClick = onShowExplainer) {
             Text(
                 text = stringResource(Res.string.my_car_empty_why_link),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
                 textDecoration = TextDecoration.Underline,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -315,9 +428,15 @@ private fun EmptyVehicleState(
     }
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-private val EMPTY_STATE_ICON_SIZE = 72.dp
-private val TAB_ICON_SIZE = 18.dp
-private val ACTIVE_DOT_SIZE = 6.dp
+private const val TITLE_LETTER_SPACING_SP = -0.5
+private const val PILL_RADIUS_DP = 999
+private const val TAB_HEIGHT_DP = 32
+private const val ADD_PILL_BORDER_ALPHA = 0.6f
+private const val TAB_INACTIVE_BORDER_ALPHA = 0.5f
+private const val TAB_INACTIVE_FG_ALPHA = 0.7f
+private const val ACTIVE_DOT_DP = 6
 private const val TAB_LABEL_MAX_LENGTH = 8
+private const val EMPTY_ICON_CIRCLE_DP = 120
+private const val EMPTY_BODY_ALPHA = 0.65f
+private const val EMPTY_CTA_HEIGHT_DP = 50
+private const val EMPTY_CTA_CORNER_DP = 14

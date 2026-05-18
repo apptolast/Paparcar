@@ -3,10 +3,9 @@ package io.apptolast.paparcar.presentation.history.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,12 +14,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -28,17 +25,18 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.presentation.history.BodyFont
 import io.apptolast.paparcar.presentation.history.BodySmall
-import io.apptolast.paparcar.presentation.history.LabelBold
-import io.apptolast.paparcar.presentation.history.TitleBody
 import io.apptolast.paparcar.presentation.history.WeekDayStats
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -47,6 +45,13 @@ import paparcar.composeapp.generated.resources.history_weekly_title
 
 private const val CHART_ENTER_DURATION = 800
 
+/**
+ * Weekly activity bar chart (v1 redesign).
+ *  - 20dp card, 1px subtle outline.
+ *  - Subtitle: "<count> sessions · last 7 days" with count in primary bold.
+ *  - Today's bar = primary; other bars = primary @ 50% alpha.
+ *  - 3 grid lines @ 7% alpha and per-bar count callout on fade-in.
+ */
 @Composable
 internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
     val progress = remember { Animatable(0f) }
@@ -59,43 +64,47 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
 
     val anim = progress.value
     val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(1)
+    val total = data.sumOf { it.sessions }
     val textMeasurer = rememberTextMeasurer()
 
-    // Capture theme colors before entering Canvas
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = BORDER_ALPHA),
+        ),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(
-                        stringResource(Res.string.history_weekly_title),
-                        style = TitleBody,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        "${data.sumOf { it.sessions }} ${stringResource(Res.string.history_weekly_subtitle)}",
-                        style = BodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    )
-                }
-            }
+            Text(
+                stringResource(Res.string.history_weekly_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
+                        append("$total ")
+                    }
+                    append(stringResource(Res.string.history_weekly_subtitle))
+                },
+                style = BodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
+            )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(18.dp))
 
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .height(CHART_HEIGHT_DP.dp),
             ) {
                 drawBarChart(
                     data = data,
@@ -123,13 +132,13 @@ private fun DrawScope.drawBarChart(
     val labelHeight = 22.dp.toPx()
     val chartHeight = size.height - labelHeight
     val barAreaWidth = size.width / data.size
-    val barWidth = barAreaWidth * 0.45f
-    val cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
+    val barWidth = barAreaWidth * BAR_WIDTH_FRACTION
+    val corner = CornerRadius(barWidth / 2f, barWidth / 2f)
 
-    repeat(3) { i ->
-        val y = chartHeight * (1f - (i + 1).toFloat() / 3)
+    repeat(GRID_LINE_COUNT) { i ->
+        val y = chartHeight * (1f - (i + 1).toFloat() / GRID_LINE_COUNT)
         drawLine(
-            color = onSurfaceColor.copy(alpha = 0.07f),
+            color = onSurfaceColor.copy(alpha = GRID_LINE_ALPHA),
             start = Offset(0f, y),
             end = Offset(size.width, y),
             strokeWidth = 1.dp.toPx(),
@@ -141,12 +150,12 @@ private fun DrawScope.drawBarChart(
         fontFamily = BodyFont,
         fontSize = 10.sp,
         fontWeight = FontWeight.Normal,
-        color = onSurfaceColor.copy(alpha = 0.4f),
+        color = onSurfaceColor.copy(alpha = LABEL_ALPHA_MUTED),
     )
     val countStyle = TextStyle(
         fontFamily = BodyFont,
         fontSize = 9.sp,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         color = primaryColor,
     )
 
@@ -155,25 +164,32 @@ private fun DrawScope.drawBarChart(
         val barLeft = centerX - barWidth / 2f
         val fillRatio = if (maxValue > 0) item.sessions.toFloat() / maxValue else 0f
         val barHeight = chartHeight * fillRatio * progress
+        val isToday = index == data.size - 1
 
         drawRoundRect(
-            color = onSurfaceColor.copy(alpha = 0.06f),
+            color = onSurfaceColor.copy(alpha = PLACEHOLDER_BAR_ALPHA),
             topLeft = Offset(barLeft, 0f),
             size = Size(barWidth, chartHeight),
-            cornerRadius = cornerRadius,
+            cornerRadius = corner,
         )
 
         if (barHeight > 0f) {
-            val isToday = index == data.size - 1
             drawRoundRect(
-                color = if (isToday) primaryColor else primaryColor.copy(alpha = 0.55f),
+                color = if (isToday) primaryColor else primaryColor.copy(alpha = INACTIVE_BAR_ALPHA),
                 topLeft = Offset(barLeft, chartHeight - barHeight),
                 size = Size(barWidth, barHeight),
-                cornerRadius = cornerRadius,
+                cornerRadius = corner,
             )
         }
 
-        val labelResult = textMeasurer.measure(item.label, labelStyle)
+        val labelResult = textMeasurer.measure(
+            item.label,
+            labelStyle.copy(
+                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                color = if (isToday) onSurfaceColor.copy(alpha = LABEL_ALPHA_TODAY)
+                        else onSurfaceColor.copy(alpha = LABEL_ALPHA_MUTED),
+            ),
+        )
         drawText(
             textLayoutResult = labelResult,
             topLeft = Offset(
@@ -182,11 +198,11 @@ private fun DrawScope.drawBarChart(
             ),
         )
 
-        if (item.sessions > 0 && progress > 0.8f) {
-            val fadeAlpha = ((progress - 0.8f) / 0.2f).coerceIn(0f, 1f)
+        if (item.sessions > 0 && progress > COUNT_FADE_START) {
+            val fade = ((progress - COUNT_FADE_START) / (1f - COUNT_FADE_START)).coerceIn(0f, 1f)
             val countResult = textMeasurer.measure(
                 item.sessions.toString(),
-                countStyle.copy(color = primaryColor.copy(alpha = fadeAlpha * 0.9f)),
+                countStyle.copy(color = primaryColor.copy(alpha = fade)),
             )
             drawText(
                 textLayoutResult = countResult,
@@ -198,3 +214,16 @@ private fun DrawScope.drawBarChart(
         }
     }
 }
+
+private const val CARD_CORNER_DP = 20
+private const val CHART_HEIGHT_DP = 120
+private const val BORDER_ALPHA = 0.5f
+private const val SUBTITLE_ALPHA = 0.55f
+private const val BAR_WIDTH_FRACTION = 0.45f
+private const val GRID_LINE_COUNT = 3
+private const val GRID_LINE_ALPHA = 0.07f
+private const val PLACEHOLDER_BAR_ALPHA = 0.06f
+private const val INACTIVE_BAR_ALPHA = 0.5f
+private const val LABEL_ALPHA_MUTED = 0.45f
+private const val LABEL_ALPHA_TODAY = 0.8f
+private const val COUNT_FADE_START = 0.8f

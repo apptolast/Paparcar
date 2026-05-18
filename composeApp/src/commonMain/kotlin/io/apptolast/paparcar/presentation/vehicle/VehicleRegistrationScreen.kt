@@ -13,7 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -24,7 +23,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.components.VehicleSizeSelector
 import org.jetbrains.compose.resources.stringResource
@@ -117,34 +116,25 @@ fun VehicleRegistrationScreen(
     }
 }
 
+/**
+ * Bluetooth pairing recommendation shown right after registering a new
+ * vehicle. Skipping via back/scrim equals "later" — same as the explicit
+ * cancel — so the registration flow always completes one way or the other.
+ */
 @Composable
 private fun BluetoothRecommendationDialog(
     onConfigure: () -> Unit,
     onSkip: () -> Unit,
 ) {
-    AlertDialog(
-        // Skipping via back/scrim equals "later" — same as the explicit dismiss button,
-        // so the registration flow always completes one way or the other.
-        onDismissRequest = onSkip,
-        icon = {
-            Icon(
-                Icons.Outlined.Bluetooth,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        },
-        title = { Text(stringResource(Res.string.veh_bt_recommendation_title)) },
-        text = { Text(stringResource(Res.string.veh_bt_recommendation_body)) },
-        confirmButton = {
-            TextButton(onClick = onConfigure) {
-                Text(stringResource(Res.string.veh_bt_recommendation_configure))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onSkip) {
-                Text(stringResource(Res.string.veh_bt_recommendation_skip))
-            }
-        },
+    PapAlertDialog(
+        onDismiss = onSkip,
+        icon = Icons.Outlined.Bluetooth,
+        title = stringResource(Res.string.veh_bt_recommendation_title),
+        body = stringResource(Res.string.veh_bt_recommendation_body),
+        primaryLabel = stringResource(Res.string.veh_bt_recommendation_configure),
+        primaryLeadingIcon = Icons.Outlined.Bluetooth,
+        onPrimary = onConfigure,
+        cancelLabel = stringResource(Res.string.veh_bt_recommendation_skip),
     )
 }
 

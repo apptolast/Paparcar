@@ -1,5 +1,9 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.presentation.vehicles
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bluetooth
@@ -20,7 +25,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,24 +39,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.presentation.history.HistoryContent
 import io.apptolast.paparcar.presentation.history.HistoryEffect
 import io.apptolast.paparcar.presentation.history.HistoryIntent
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
-import io.apptolast.paparcar.ui.components.PapSecondaryButton
+import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
-import io.apptolast.paparcar.ui.theme.PapBlue
-import io.apptolast.paparcar.ui.theme.PapBlueMuted
-import io.apptolast.paparcar.ui.theme.PapGreen
-import io.apptolast.paparcar.ui.theme.PapGreenMuted
-import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -71,21 +72,20 @@ import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
 import paparcar.composeapp.generated.resources.vehicle_size_small
 import paparcar.composeapp.generated.resources.vehicle_size_van
+import paparcar.composeapp.generated.resources.vehicle_stats_last_session
+import paparcar.composeapp.generated.resources.vehicle_stats_reliability
+import paparcar.composeapp.generated.resources.vehicle_stats_sessions
 
 /**
- * A single page inside the vehicles HorizontalPager.
+ * VehiclePageContent (v1 redesign) — Vehicles + History fusionado.
  *
- * Contains:
- * 1. An "identity card" header with the size emoji, brand/model, status,
- *    detection chip, and primary actions. Surface stays neutral; the active
- *    vehicle is signalled via the "Activo" tag in [MaterialTheme.colorScheme.primary]
- *    in the subtitle plus the dot in the tab row. A coloured Surface tint was
- *    tried in [UI-002] but the dark-theme primaryContainer was too saturated
- *    against the neutral surface — uniform background reads cleaner.
- * 2. The parking history for this vehicle, filling the remaining space.
- *
- * The [HistoryViewModel] is scoped to this composable via a unique key so each
- * vehicle tab has its own independent observer. [HIST-001]
+ * Layout:
+ *  1. VehicleHeroCard       — bg coloreado si es activo
+ *  2. VehicleStatsCompact   — 3 inline mini cards: sesiones · última · fiabilidad
+ *                              (sólo cuando hay sesiones)
+ *  3. HistoryContent        — chart + filter + timeline (HOY/AYER…) — embebido
+ *                              con `showInternalStats = false` para no duplicar
+ *                              el StatsRow / InsightsCard del modo standalone.
  */
 @Composable
 internal fun VehiclePageContent(
@@ -113,7 +113,7 @@ internal fun VehiclePageContent(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        VehicleIdentityCard(
+        VehicleHeroCard(
             vehicleWithStats = vehicleWithStats,
             canDelete = canDelete,
             onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
@@ -121,7 +121,13 @@ internal fun VehiclePageContent(
             onDelete = { onIntent(VehiclesIntent.RequestDeleteVehicle(vehicleId)) },
             onConfigureBluetooth = { onConfigureBluetooth(vehicleId) },
         )
-        HorizontalDivider()
+        if (vehicleWithStats.sessionCount > 0) {
+            VehicleStatsCompact(
+                sessionCount = vehicleWithStats.sessionCount,
+                lastSessionMs = vehicleWithStats.lastSession?.location?.timestamp,
+                reliabilityPct = historyState.statsData?.avgReliabilityPct,
+            )
+        }
         HistoryContent(
             state = historyState,
             contentPadding = PaddingValues(0.dp),
@@ -132,14 +138,17 @@ internal fun VehiclePageContent(
                 historyVm.handleIntent(HistoryIntent.SetFilter(filter))
             },
             modifier = Modifier.weight(1f).fillMaxWidth(),
+            showInternalStats = false,
         )
     }
 }
 
-// ─── Identity card ────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero card — identity + active badge + detection chip + (set active CTA)
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun VehicleIdentityCard(
+private fun VehicleHeroCard(
     vehicleWithStats: VehicleWithStats,
     canDelete: Boolean,
     onSetActive: () -> Unit,
@@ -148,61 +157,63 @@ private fun VehicleIdentityCard(
     onConfigureBluetooth: () -> Unit,
 ) {
     val vehicle = vehicleWithStats.vehicle
-    // When the user didn't provide brand or model, fall back to a dedicated
-    // placeholder string so the title doesn't echo the size label that is
-    // already shown in the subtitle. The emoji + size pair still gives visual
-    // identity. [UI-002]
     val displayName = listOfNotNull(vehicle.brand, vehicle.model)
         .joinToString(" ")
         .ifBlank { stringResource(Res.string.my_car_unnamed_vehicle) }
     val sizeLabel = vehicleSizeLabel(vehicle.sizeCategory)
-    val activeLabel = stringResource(Res.string.my_car_active_vehicle)
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val subtitleText = if (vehicle.isDefault) {
-        buildAnnotatedString {
-            append("$sizeLabel · ")
-            withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Medium)) {
-                append(activeLabel)
-            }
-        }
-    } else {
-        buildAnnotatedString { append(sizeLabel) }
-    }
-    val detectionStatus = if (vehicle.bluetoothDeviceId != null) {
-        VehicleDetectionStatus.Bluetooth(vehicle.bluetoothDeviceId.takeLast(BT_LABEL_LENGTH))
-    } else {
-        VehicleDetectionStatus.ActivityRecognition
-    }
+    val isActive = vehicle.isDefault
 
-    Surface(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = PaparcarSpacing.lg,
-                vertical = PaparcarSpacing.md,
-            ),
-            verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
-        ) {
-            // ── Row 1: vehicle size icon + name/subtitle + kebab ─────────────
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = vehicle.sizeCategory.icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(VEHICLE_ICON_SIZE),
-                )
-                Spacer(Modifier.width(PaparcarSpacing.md))
+    val cs = MaterialTheme.colorScheme
+    val cardBg = if (isActive) cs.primaryContainer.copy(alpha = ACTIVE_CARD_BG_ALPHA) else cs.surface
+    val borderColor = if (isActive) cs.primary else cs.outline.copy(alpha = INACTIVE_BORDER_ALPHA)
+    val iconBg = if (isActive) cs.primary else cs.surfaceVariant
+    val iconTint = if (isActive) cs.onPrimary else cs.primary
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = RoundedCornerShape(HERO_CARD_CORNER_DP.dp),
+        color = cardBg,
+        border = BorderStroke(1.dp, borderColor),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier
+                        .size(HERO_ICON_BOX_DP.dp)
+                        .clip(RoundedCornerShape(HERO_ICON_CORNER_DP.dp))
+                        .background(iconBg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = vehicle.sizeCategory.icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = displayName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = cs.onSurface,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = subtitleText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = sizeLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                     )
+                    Spacer(Modifier.size(8.dp))
+                    if (isActive) {
+                        ActiveBadge()
+                    } else {
+                        SetActiveButton(onClick = onSetActive)
+                    }
                 }
                 OverflowMenu(
                     canDelete = canDelete,
@@ -211,21 +222,179 @@ private fun VehicleIdentityCard(
                     onDelete = onDelete,
                 )
             }
-
-            // ── Row 2: detection chip (BT configure moved to overflow menu) ──
-            DetectionChip(status = detectionStatus)
-
-            // ── Row 3 (only when NOT active): set-active CTA ─────────────────
-            if (!vehicle.isDefault) {
-                PapSecondaryButton(
-                    label = stringResource(Res.string.my_car_set_active),
-                    onClick = onSetActive,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            Spacer(Modifier.size(12.dp))
+            DetectionChip(bluetoothDeviceId = vehicle.bluetoothDeviceId)
         }
     }
 }
+
+@Composable
+private fun ActiveBadge() {
+    Surface(
+        shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
+        color = MaterialTheme.colorScheme.primary,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(5.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onPrimary),
+            )
+            Text(
+                text = stringResource(Res.string.my_car_active_vehicle).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SetActiveButton(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+    ) {
+        Text(
+            text = stringResource(Res.string.my_car_set_active),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VehicleStatsCompact — 3 inline mini stat cards (sessions · last · reliability)
+// Matches the design's compact stats strip below the hero card. Replaces the
+// previous 2-card big-number layout.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun VehicleStatsCompact(
+    sessionCount: Int,
+    lastSessionMs: Long?,
+    reliabilityPct: Int?,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        StatCard(
+            value = sessionCount.toString(),
+            label = stringResource(Res.string.vehicle_stats_sessions),
+            modifier = Modifier.weight(1f),
+        )
+        StatCard(
+            value = lastSessionMs?.let { compactRelativeTimeText(it) } ?: "—",
+            label = stringResource(Res.string.vehicle_stats_last_session),
+            modifier = Modifier.weight(1f),
+        )
+        StatCard(
+            value = reliabilityPct?.let { "$it%" } ?: "—",
+            label = stringResource(Res.string.vehicle_stats_reliability),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun StatCard(value: String, label: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(STAT_CARD_CORNER_DP.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = STAT_CARD_BORDER_ALPHA),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+            )
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = STAT_LABEL_TRACKING_SP.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = STAT_CARD_LABEL_ALPHA),
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Detection chip — BT (tertiary) vs AR (secondary)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DetectionChip(bluetoothDeviceId: String?) {
+    val cs = MaterialTheme.colorScheme
+    val data: DetectionChipData = if (bluetoothDeviceId != null) {
+        DetectionChipData(
+            label = "${stringResource(Res.string.vehicle_card_detection_bt)} · ${bluetoothDeviceId.takeLast(BT_LABEL_LENGTH)}",
+            bg = cs.tertiaryContainer.copy(alpha = CHIP_BG_ALPHA),
+            fg = cs.tertiary,
+            icon = Icons.Outlined.Bluetooth,
+        )
+    } else {
+        DetectionChipData(
+            label = stringResource(Res.string.vehicle_card_detection_ar),
+            bg = cs.secondaryContainer.copy(alpha = CHIP_BG_ALPHA),
+            fg = cs.secondary,
+            icon = Icons.Outlined.DirectionsCar,
+        )
+    }
+    Surface(
+        shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
+        color = data.bg,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(data.icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = data.fg)
+            Text(
+                text = data.label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = data.fg,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+private data class DetectionChipData(
+    val label: String,
+    val bg: Color,
+    val fg: Color,
+    val icon: ImageVector,
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Overflow menu
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun OverflowMenu(
@@ -240,27 +409,20 @@ private fun OverflowMenu(
             Icon(
                 Icons.Outlined.MoreVert,
                 contentDescription = stringResource(Res.string.my_car_more_actions),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = OVERFLOW_ICON_ALPHA),
             )
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.my_car_edit_vehicle)) },
                 leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                onClick = {
-                    expanded = false
-                    onEdit()
-                },
+                onClick = { expanded = false; onEdit() },
             )
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.my_car_bt_configure)) },
                 leadingIcon = { Icon(Icons.Outlined.Bluetooth, contentDescription = null) },
-                onClick = {
-                    expanded = false
-                    onConfigureBluetooth()
-                },
+                onClick = { expanded = false; onConfigureBluetooth() },
             )
-            // Delete is rendered with translucent tint when canDelete=false; the click
-            // still propagates so the VM can surface the "must keep one" snackbar.
             DropdownMenuItem(
                 text = {
                     Text(
@@ -279,73 +441,11 @@ private fun OverflowMenu(
                         ),
                     )
                 },
-                onClick = {
-                    expanded = false
-                    onDelete()
-                },
+                onClick = { expanded = false; onDelete() },
             )
         }
     }
 }
-
-// ─── Detection chip ───────────────────────────────────────────────────────────
-
-@Composable
-private fun DetectionChip(
-    status: VehicleDetectionStatus,
-    modifier: Modifier = Modifier,
-) {
-    val (label, bg, fg, icon) = when (status) {
-        is VehicleDetectionStatus.Bluetooth -> DetectionChipData(
-            label = "${stringResource(Res.string.vehicle_card_detection_bt)} · ${status.deviceLabel}",
-            bg = PapBlueMuted,
-            fg = PapBlue,
-            icon = Icons.Outlined.Bluetooth,
-        )
-        VehicleDetectionStatus.ActivityRecognition -> DetectionChipData(
-            label = stringResource(Res.string.vehicle_card_detection_ar),
-            bg = PapGreenMuted,
-            fg = PapGreen,
-            icon = Icons.Outlined.DirectionsCar,
-        )
-        VehicleDetectionStatus.Disabled -> DetectionChipData(
-            label = "Off",
-            bg = MaterialTheme.colorScheme.surfaceVariant,
-            fg = MaterialTheme.colorScheme.onSurface,
-            icon = null,
-        )
-    }
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(CHIP_CORNER_RADIUS),
-        color = bg,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            icon?.let {
-                Icon(it, contentDescription = null, modifier = Modifier.size(CHIP_ICON_SIZE), tint = fg)
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = fg,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-private data class DetectionChipData(
-    val label: String,
-    val bg: androidx.compose.ui.graphics.Color,
-    val fg: androidx.compose.ui.graphics.Color,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector?,
-)
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 @Composable
 private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
@@ -356,9 +456,21 @@ private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
     VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
 }
 
-private val VEHICLE_ICON_SIZE = 44.dp
-private val CHIP_CORNER_RADIUS = 12.dp
-private val CHIP_ICON_SIZE = 14.dp
-private const val BT_LABEL_LENGTH = 5
+private const val HERO_CARD_CORNER_DP = 18
+private const val HERO_ICON_BOX_DP = 44
+private const val HERO_ICON_CORNER_DP = 12
+private const val STAT_CARD_CORNER_DP = 12
+private const val CHIP_CORNER_DP = 12
+private const val PILL_RADIUS_DP = 999
+
+private const val ACTIVE_CARD_BG_ALPHA = 0.5f
+private const val INACTIVE_BORDER_ALPHA = 0.4f
+private const val SUBTITLE_ALPHA = 0.55f
+private const val STAT_CARD_BORDER_ALPHA = 0.35f
+private const val STAT_CARD_LABEL_ALPHA = 0.55f
+private const val STAT_LABEL_TRACKING_SP = 0.6
+private const val CHIP_BG_ALPHA = 0.6f
+private const val OVERFLOW_ICON_ALPHA = 0.7f
 private const val DELETE_ENABLED_ALPHA = 1.0f
 private const val DELETE_DISABLED_ALPHA = 0.35f
+private const val BT_LABEL_LENGTH = 5

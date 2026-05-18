@@ -298,6 +298,13 @@ internal fun HistoryContent(
     onViewOnMap: (Double, Double) -> Unit,
     onFilterSelected: (HistoryFilter) -> Unit = {},
     modifier: Modifier = Modifier.fillMaxSize(),
+    /**
+     * When `false`, the internal [StatsRow] (Total/Week/Month) and
+     * [HistoryInsightsCard] (TU PATRÓN) blocks are hidden — used when this
+     * content is embedded inside [VehiclePageContent], which already shows
+     * a compact stats row in the hero area.
+     */
+    showInternalStats: Boolean = true,
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
@@ -339,15 +346,17 @@ internal fun HistoryContent(
                         WeeklyActivityCard(data = weeklyStats)
                     }
 
-                    item(key = "stats") {
-                        Spacer(Modifier.height(8.dp))
-                        StatsRow(sessions = state.sessions)
-                    }
-
-                    if (state.statsData != null) {
-                        item(key = "insights") {
+                    if (showInternalStats) {
+                        item(key = "stats") {
                             Spacer(Modifier.height(8.dp))
-                            HistoryInsightsCard(stats = state.statsData)
+                            StatsRow(sessions = state.sessions)
+                        }
+
+                        if (state.statsData != null) {
+                            item(key = "insights") {
+                                Spacer(Modifier.height(8.dp))
+                                HistoryInsightsCard(stats = state.statsData)
+                            }
                         }
                     }
 

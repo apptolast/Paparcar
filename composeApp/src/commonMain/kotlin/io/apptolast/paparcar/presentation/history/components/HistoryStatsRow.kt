@@ -2,6 +2,7 @@
 
 package io.apptolast.paparcar.presentation.history.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,10 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.history.BodySmall
-import io.apptolast.paparcar.presentation.history.TitleBody
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -30,6 +32,11 @@ import paparcar.composeapp.generated.resources.history_stat_this_week
 import paparcar.composeapp.generated.resources.history_stat_total
 import kotlin.time.Instant
 
+/**
+ * Stats row (v1 redesign) — three side-by-side cards with prominent numbers.
+ * 14dp corner radius, 1px outline; value in 22sp Bold primary, label in
+ * BodySmall muted.
+ */
 @Composable
 internal fun StatsRow(sessions: List<UserParking>) {
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
@@ -50,9 +57,21 @@ internal fun StatsRow(sessions: List<UserParking>) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        StatChip(label = stringResource(Res.string.history_stat_total), value = sessions.size.toString(), modifier = Modifier.weight(1f))
-        StatChip(label = stringResource(Res.string.history_stat_this_week), value = thisWeek.toString(), modifier = Modifier.weight(1f))
-        StatChip(label = stringResource(Res.string.history_stat_this_month), value = thisMonth.toString(), modifier = Modifier.weight(1f))
+        StatChip(
+            label = stringResource(Res.string.history_stat_total),
+            value = sessions.size.toString(),
+            modifier = Modifier.weight(1f),
+        )
+        StatChip(
+            label = stringResource(Res.string.history_stat_this_week),
+            value = thisWeek.toString(),
+            modifier = Modifier.weight(1f),
+        )
+        StatChip(
+            label = stringResource(Res.string.history_stat_this_month),
+            value = thisMonth.toString(),
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -60,16 +79,35 @@ internal fun StatsRow(sessions: List<UserParking>) {
 private fun StatChip(label: String, value: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = BORDER_ALPHA),
+        ),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(value, style = TitleBody, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(2.dp))
-            Text(label, style = BodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f))
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontSize = VALUE_FONT_SP.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                label,
+                style = BodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = LABEL_ALPHA),
+            )
         }
     }
 }
+
+private const val CARD_CORNER_DP = 14
+private const val VALUE_FONT_SP = 22
+private const val BORDER_ALPHA = 0.5f
+private const val LABEL_ALPHA = 0.55f
