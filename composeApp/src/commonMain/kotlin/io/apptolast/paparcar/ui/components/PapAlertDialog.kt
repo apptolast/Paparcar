@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import io.apptolast.paparcar.ui.theme.PapShapes
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -96,7 +97,7 @@ fun PapAlertDialog(
 
     BasicAlertDialog(onDismissRequest = onDismiss, modifier = modifier) {
         Surface(
-            shape = RoundedCornerShape(DIALOG_CORNER_DP.dp),
+            shape = PapShapes.dialog,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp,
         ) {
@@ -265,7 +266,6 @@ private fun PapDialogAccent.onAccent(): Color = when (this) {
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.onError
 }
 
-private const val DIALOG_CORNER_DP = 22
 private const val ICON_CIRCLE_DP = 56
 private const val BUTTON_HEIGHT_DP = 48
 private const val BUTTON_CORNER_DP = 12

@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Zone
+import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -160,7 +161,7 @@ internal fun HomeZonesEmptyCard(
     Surface(
         onClick = onAddZone,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(EMPTY_CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_CARD_BG_ALPHA),
         border = BorderStroke(
             width = 1.5.dp,
@@ -227,7 +228,6 @@ internal fun HomeZonesEmptyCard(
     }
 }
 
-private const val EMPTY_CARD_CORNER_DP = 16
 private const val ICON_BOX_DP = 44
 private const val ICON_BOX_CORNER_DP = 14
 private const val PILL_RADIUS_DP = 999

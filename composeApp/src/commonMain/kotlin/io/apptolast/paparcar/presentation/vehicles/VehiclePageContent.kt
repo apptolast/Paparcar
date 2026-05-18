@@ -54,6 +54,7 @@ import io.apptolast.paparcar.presentation.history.HistoryIntent
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -173,7 +174,7 @@ private fun VehicleHeroCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(HERO_CARD_CORNER_DP.dp),
+        shape = PapShapes.cardLarge,
         color = cardBg,
         border = BorderStroke(1.dp, borderColor),
     ) {
@@ -463,7 +464,6 @@ private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
     VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
 }
 
-private const val HERO_CARD_CORNER_DP = 18
 private const val HERO_ICON_BOX_DP = 44
 private const val HERO_ICON_CORNER_DP = 12
 private const val STAT_CARD_CORNER_DP = 12

@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_permissions_button
@@ -40,7 +41,7 @@ internal fun HomePermissionsCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.cardLarge,
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = CARD_BG_ALPHA),
     ) {
         Column(
@@ -103,7 +104,6 @@ internal fun HomePermissionsCard(
     }
 }
 
-private const val CARD_CORNER_DP = 18
 private const val ICON_BOX_DP = 44
 private const val ICON_BOX_CORNER_DP = 12
 private const val BUTTON_HEIGHT_DP = 44

@@ -76,6 +76,7 @@ import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
+import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.history.MONTH_SHORT_RES
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -439,7 +440,7 @@ private fun ProfileCardV2(
     val cs = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -541,7 +542,7 @@ private fun ThemePickerCard(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) 
     val cs = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -660,7 +661,7 @@ private fun MapTypePickerCard(selected: MapType, onSelect: (MapType) -> Unit) {
     val cs = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -782,7 +783,7 @@ private fun NotificationsGroupCard(
     val cs = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -871,7 +872,7 @@ private fun DangerZoneCard(
     val cs = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.errorContainer.copy(alpha = DANGER_BG_ALPHA),
         border = BorderStroke(1.5.dp, cs.error.copy(alpha = DANGER_BORDER_ALPHA)),
     ) {
@@ -923,7 +924,7 @@ private fun SettingsSwitchItem(
     val cs = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -947,7 +948,7 @@ private fun SettingsInfoItem(icon: ImageVector, label: String, value: String) {
     val cs = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -974,7 +975,7 @@ private fun SettingsNavItem(
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -1033,7 +1034,7 @@ private fun SettingsDropdownItem(
     var expanded by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = cs.surface,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
@@ -1083,7 +1084,6 @@ private fun SettingsDropdownItem(
 
 private const val TITLE_LETTER_SPACING_SP = -0.5
 private const val SECTION_LABEL_TRACKING_SP = 1.2
-private const val CARD_CORNER_DP = 16
 private const val AVATAR_DP = 56
 
 private const val THEME_PREVIEW_RATIO = 0.85f

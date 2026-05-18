@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -28,6 +27,7 @@ import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
+import io.apptolast.paparcar.ui.theme.PapShapes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -65,7 +65,7 @@ internal fun HomeBottomSheet(
         modifier = modifier
             .fillMaxWidth()
             .height(sheetHeightDp),
-        shape = RoundedCornerShape(topStart = SHEET_TOP_CORNER_DP.dp, topEnd = SHEET_TOP_CORNER_DP.dp),
+        shape = PapShapes.sheet,
         color = MaterialTheme.colorScheme.surfaceContainer,
         // Lift the top edge above the map tiles with the same depth
         // language as the floating search bar and circular FABs.
@@ -187,5 +187,4 @@ internal data class HomeSheetSnap(
 // stays in place at its closest snap point.
 private const val FLING_SNAP_VELOCITY = 1200f
 
-private const val SHEET_TOP_CORNER_DP = 20
 private const val SHEET_SHADOW_ELEVATION_DP = 12

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
@@ -230,7 +231,7 @@ private fun SpotReliabilityUiState.palette(): ReliabilityPalette {
 internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(EMPTY_CORNER_DP.dp),
+        shape = PapShapes.cardSmall,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_BG_ALPHA),
     ) {
         Column(
@@ -269,7 +270,7 @@ internal fun HomeEmptyFilteredSpots(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(EMPTY_CORNER_DP.dp),
+        shape = PapShapes.cardSmall,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_BG_ALPHA),
     ) {
         Column(
@@ -353,7 +354,6 @@ internal fun HomeReportSpotCard(
 private const val SELECTION_INDICATOR_W_DP = 3
 private const val SELECTION_INDICATOR_H_DP = 56
 private const val BADGE_DP = 42
-private const val EMPTY_CORNER_DP = 14
 private const val REPORT_BUTTON_HEIGHT_DP = 44
 private const val REPORT_BUTTON_CORNER_DP = 12
 

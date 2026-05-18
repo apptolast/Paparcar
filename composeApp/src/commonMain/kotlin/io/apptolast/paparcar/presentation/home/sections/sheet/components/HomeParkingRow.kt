@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
@@ -84,7 +85,7 @@ internal fun HomeParkingRow(
     Surface(
         onClick = onSelect,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        shape = PapShapes.cardSmall,
         color = cardBg,
         border = BorderStroke(1.dp, borderColor),
     ) {
@@ -163,7 +164,7 @@ internal fun HomeParkingEmptyCard(
     Surface(
         onClick = onManualPark,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(EMPTY_CARD_CORNER_DP.dp),
+        shape = PapShapes.card,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_CARD_BG_ALPHA),
         border = BorderStroke(
             width = 1.5.dp,
@@ -230,8 +231,6 @@ internal fun HomeParkingEmptyCard(
     }
 }
 
-private const val CARD_CORNER_DP = 14
-private const val EMPTY_CARD_CORNER_DP = 16
 private const val ICON_BOX_DP = 44
 private const val ICON_BOX_CORNER_DP = 14
 private const val PILL_RADIUS_DP = 999
