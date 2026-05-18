@@ -94,6 +94,7 @@ import paparcar.composeapp.generated.resources.settings_delete_account_cancel
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_action
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_message
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_title
+import paparcar.composeapp.generated.resources.history_stat_this_month
 import paparcar.composeapp.generated.resources.settings_distance_unit
 import paparcar.composeapp.generated.resources.settings_distance_unit_desc
 import paparcar.composeapp.generated.resources.settings_language
@@ -129,6 +130,8 @@ import paparcar.composeapp.generated.resources.settings_theme_mode_light
 import paparcar.composeapp.generated.resources.settings_theme_mode_system
 import paparcar.composeapp.generated.resources.settings_title
 import paparcar.composeapp.generated.resources.settings_version
+import paparcar.composeapp.generated.resources.vehicle_stats_reliability
+import paparcar.composeapp.generated.resources.vehicle_stats_sessions
 
 /**
  * Settings v2 — visual refresh (Phase A).
@@ -266,6 +269,7 @@ internal fun SettingsContent(
                         ?: stringResource(Res.string.settings_profile_name_placeholder),
                     email = state.userProfile?.email,
                     createdAtMs = state.userProfile?.createdAt,
+                    stats = state.profileStats,
                     onLogout = { onIntent(SettingsIntent.Logout) },
                 )
             }
@@ -435,6 +439,7 @@ private fun ProfileCardV2(
     displayName: String,
     email: String?,
     createdAtMs: Long?,
+    stats: ProfileStats?,
     onLogout: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -489,6 +494,13 @@ private fun ProfileCardV2(
                 }
             }
 
+            // Aggregated stats row. Only rendered when there's at least one
+            // session across every vehicle — hides cleanly on first launch.
+            if (stats != null) {
+                Spacer(Modifier.size(14.dp))
+                ProfileStatsRow(stats)
+            }
+
             // Logout outlined
             Spacer(Modifier.size(16.dp))
             OutlinedButton(
@@ -506,6 +518,54 @@ private fun ProfileCardV2(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ProfileStatsRow(stats: ProfileStats) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ProfileStatTile(
+            value = stats.totalSessions.toString(),
+            label = stringResource(Res.string.vehicle_stats_sessions),
+            modifier = Modifier.weight(1f),
+        )
+        ProfileStatTile(
+            value = stats.thisMonthSessions.toString(),
+            label = stringResource(Res.string.history_stat_this_month),
+            modifier = Modifier.weight(1f),
+        )
+        ProfileStatTile(
+            value = stats.avgReliabilityPct?.let { "$it%" } ?: "—",
+            label = stringResource(Res.string.vehicle_stats_reliability),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ProfileStatTile(value: String, label: String, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(PROFILE_STAT_CORNER_DP.dp),
+        color = cs.primaryContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = cs.onPrimaryContainer,
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = cs.onPrimaryContainer.copy(alpha = PROFILE_STAT_LABEL_ALPHA),
+            )
         }
     }
 }
@@ -1085,6 +1145,8 @@ private fun SettingsDropdownItem(
 private const val TITLE_LETTER_SPACING_SP = -0.5
 private const val SECTION_LABEL_TRACKING_SP = 1.2
 private const val AVATAR_DP = 56
+private const val PROFILE_STAT_CORNER_DP = 10
+private const val PROFILE_STAT_LABEL_ALPHA = 0.7f
 
 private const val THEME_PREVIEW_RATIO = 0.85f
 
