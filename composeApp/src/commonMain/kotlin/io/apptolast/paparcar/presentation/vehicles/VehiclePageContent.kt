@@ -423,7 +423,14 @@ private fun OverflowMenu(
                 leadingIcon = { Icon(Icons.Outlined.Bluetooth, contentDescription = null) },
                 onClick = { expanded = false; onConfigureBluetooth() },
             )
+            // Delete: disabled (no click, no visual response) when this is
+            // the user's only vehicle. The "must keep at least one"
+            // explanation lives in the EmptyVehicleState copy / the
+            // CannotDeleteLastVehicle snackbar (triggered from the VM via
+            // a different code path); here we just refuse the action so
+            // the menu item doesn't look broken.
             DropdownMenuItem(
+                enabled = canDelete,
                 text = {
                     Text(
                         text = stringResource(Res.string.my_car_delete_vehicle),

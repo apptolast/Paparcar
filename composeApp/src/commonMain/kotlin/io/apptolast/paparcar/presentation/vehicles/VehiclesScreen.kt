@@ -199,6 +199,16 @@ private fun VehiclesPager(
     val pagerState = rememberPagerState(pageCount = { vehicles.size })
     val scope = rememberCoroutineScope()
 
+    // Keep the pager's currentPage inside the valid range when the list
+    // shrinks (e.g. the user deletes the vehicle currently being shown).
+    // Without this clamp `pagerState.currentPage` can point past the end
+    // and HorizontalPager renders an empty page below the tab row.
+    LaunchedEffect(vehicles.size) {
+        if (vehicles.isNotEmpty() && pagerState.currentPage > vehicles.lastIndex) {
+            pagerState.scrollToPage(vehicles.lastIndex)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         VehicleTabRow(
             vehicles = vehicles.map { it.vehicle },
@@ -209,8 +219,13 @@ private fun VehiclesPager(
             onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
         )
         HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+            // Defensive guard: during the recomposition where vehicles
+            // shrinks and the clamp above hasn't run yet, `page` may
+            // briefly point at an out-of-bounds index. Use the clamped
+            // page to read the slot so we never crash with IOOBE.
+            val safePage = page.coerceAtMost(vehicles.lastIndex)
             VehiclePageContent(
-                vehicleWithStats = vehicles[page],
+                vehicleWithStats = vehicles[safePage],
                 onIntent = onIntent,
                 onConfigureBluetooth = onConfigureBluetooth,
                 onNavigateToMap = onNavigateToMap,
