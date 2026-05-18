@@ -570,12 +570,7 @@ private fun ReportPeekRow(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    val info = state.cameraLocationInfo
-    val primaryText = when {
-        info?.placeInfo != null -> info.placeInfo.name
-        info?.address?.displayLine != null -> info.address.displayLine!!
-        else -> stringResource(Res.string.home_address_unknown)
-    }
+    val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
 
     PeekStateCard(
         headerLabel = stringResource(Res.string.home_report_header_label),
@@ -615,12 +610,7 @@ private fun AddingZonePeekRow(
     onNameChange: (String) -> Unit,
     onIconChange: (String) -> Unit,
 ) {
-    val info = state.cameraLocationInfo
-    val primaryText = when {
-        info?.placeInfo != null -> info.placeInfo.name
-        info?.address?.displayLine != null -> info.address.displayLine!!
-        else -> stringResource(Res.string.home_address_unknown)
-    }
+    val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
 
     PeekStateCard(
         headerLabel = stringResource(Res.string.home_zone_header_label),
@@ -768,6 +758,24 @@ internal fun peekTitle(
 ): String = placeName?.takeIf { it.isNotBlank() }
     ?: addressLine?.takeIf { it.isNotBlank() }
     ?: io.apptolast.paparcar.presentation.util.formatCoords(lat, lon)
+
+/**
+ * Camera-anchored title resolver for the Reporting / AddingZone peek cards.
+ * Returns the POI name when the camera sits on a place, the geocoded address
+ * line otherwise, and a localized fallback when the camera has no usable
+ * location info yet. Avoids the `address?.displayLine!!` smart-cast hack and
+ * deduplicates the same `when` block previously copied in both peeks.
+ */
+@Composable
+internal fun cameraTitleOrFallback(
+    info: io.apptolast.paparcar.domain.model.LocationInfo?,
+): String {
+    val placeName = info?.placeInfo?.name?.takeIf { it.isNotBlank() }
+    if (placeName != null) return placeName
+    val addressLine = info?.address?.displayLine?.takeIf { it.isNotBlank() }
+    if (addressLine != null) return addressLine
+    return stringResource(Res.string.home_address_unknown)
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Default browse row — location header with libres badge
