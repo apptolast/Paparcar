@@ -87,6 +87,19 @@ data class HomeState(
         get() = if (sizeFilter == null) nearbySpots
                 else nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == sizeFilter }
 
+    /** True when [selectedItemId] points at the user's parked car (vs a community spot). */
+    val isParkingSelected: Boolean
+        get() = selectedItemId == PARKING_ITEM_ID
+
+    /**
+     * The selected community spot, or null if nothing is selected or the
+     * selection is the user's own parking. Replaces an O(n) `nearbySpots.find { }`
+     * scan that fired on every recomposition of HomeContent.
+     */
+    val selectedSpot: Spot?
+        get() = selectedItemId?.takeIf { it != PARKING_ITEM_ID }
+            ?.let { id -> nearbySpots.firstOrNull { it.id == id } }
+
     companion object {
         /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */
         const val PARKING_ITEM_ID = "__parking__"

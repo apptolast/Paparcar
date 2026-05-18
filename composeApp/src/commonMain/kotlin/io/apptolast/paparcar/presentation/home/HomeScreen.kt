@@ -237,7 +237,7 @@ private fun HomeContent(
         }
     }
 
-    val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
+    val isParkingSelected = state.isParkingSelected
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
     var showReleaseDialog by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
@@ -457,8 +457,17 @@ private fun HomeContent(
                     }
                 }
 
+                // O(1) spot lookup keyed by nearbySpots reference equality.
+                // Saves the O(n) `nearbySpots.find { }` scan that fired on
+                // every map-marker tap. The lambda itself isn't memoized
+                // because it captures `animateSheetToHalf` (a freshly
+                // created lambda each compose) — wrapping it in remember
+                // would freeze a stale snap-target.
+                val spotsById = remember(state.nearbySpots) {
+                    state.nearbySpots.associateBy { it.id }
+                }
                 val onSpotMarkerClick: (String) -> Unit = { spotId ->
-                    state.nearbySpots.find { it.id == spotId }?.let { spot ->
+                    spotsById[spotId]?.let { spot ->
                         onIntent(HomeIntent.SelectItem(spotId))
                         uiController.moveCamera(spot.location.latitude, spot.location.longitude)
                         animateSheetToHalf()
