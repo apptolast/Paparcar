@@ -1,21 +1,25 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.runtime.Composable
+import io.apptolast.paparcar.ui.components.PapAlertDialog
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_release_dialog_cancel
 import paparcar.composeapp.generated.resources.home_release_dialog_delete_only
 import paparcar.composeapp.generated.resources.home_release_dialog_message
 import paparcar.composeapp.generated.resources.home_release_dialog_publish
 import paparcar.composeapp.generated.resources.home_release_dialog_title
 
 /**
- * Confirmation prompt shown when the user taps the "release parking" action.
- * Offers two terminal choices — share the freed spot with the community, or
- * just clear the session privately. Both implicitly dismiss the dialog
- * because the caller drives the visibility flag via [onDismiss]. [PEEK-ACTIONS-001]
+ * Release-parking confirmation. Uses the shared [PapAlertDialog] molde so it
+ * reads consistently with every other dialog in the app.
+ *
+ * Positive accent — releasing the spot is conceptually positive (sharing with
+ * the community); the destructive choice ("Just release") is the outlined
+ * secondary instead of the primary. [PEEK-ACTIONS-001]
  */
 @Composable
 internal fun HomeReleaseDialog(
@@ -23,19 +27,17 @@ internal fun HomeReleaseDialog(
     onPublishSpot: () -> Unit,
     onDeleteOnly: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.home_release_dialog_title)) },
-        text = { Text(stringResource(Res.string.home_release_dialog_message)) },
-        confirmButton = {
-            TextButton(onClick = onPublishSpot) {
-                Text(stringResource(Res.string.home_release_dialog_publish))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDeleteOnly) {
-                Text(stringResource(Res.string.home_release_dialog_delete_only))
-            }
-        },
+    PapAlertDialog(
+        onDismiss = onDismiss,
+        icon = Icons.Outlined.Campaign,
+        title = stringResource(Res.string.home_release_dialog_title),
+        body = stringResource(Res.string.home_release_dialog_message),
+        primaryLabel = stringResource(Res.string.home_release_dialog_publish),
+        primaryLeadingIcon = Icons.Outlined.Campaign,
+        onPrimary = onPublishSpot,
+        secondaryLabel = stringResource(Res.string.home_release_dialog_delete_only),
+        secondaryLeadingIcon = Icons.AutoMirrored.Outlined.Logout,
+        onSecondary = onDeleteOnly,
+        cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
     )
 }

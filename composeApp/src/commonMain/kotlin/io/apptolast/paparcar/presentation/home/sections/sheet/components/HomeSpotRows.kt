@@ -3,7 +3,7 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,19 +13,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.FilterAltOff
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,13 +36,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
-import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.distanceString
+import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.ui.components.EnRouteIndicator
 import io.apptolast.paparcar.ui.components.TTLIndicator
-import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
@@ -49,22 +52,19 @@ import paparcar.composeapp.generated.resources.home_filter_empty_clear
 import paparcar.composeapp.generated.resources.home_filter_empty_subtitle
 import paparcar.composeapp.generated.resources.home_filter_empty_title
 import paparcar.composeapp.generated.resources.home_report_fab_cd
-import paparcar.composeapp.generated.resources.home_report_subtitle
-import paparcar.composeapp.generated.resources.home_spot_freshness_hours
-import paparcar.composeapp.generated.resources.home_spot_freshness_minutes
-import paparcar.composeapp.generated.resources.home_spot_freshness_under_min
+import paparcar.composeapp.generated.resources.home_spot_reliability_high
+import paparcar.composeapp.generated.resources.home_spot_reliability_low
+import paparcar.composeapp.generated.resources.home_spot_reliability_manual
+import paparcar.composeapp.generated.resources.home_spot_reliability_medium
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Freshness thresholds
-// ─────────────────────────────────────────────────────────────────────────────
-
-private const val FRESH_MINUTES = 5L
-private const val RECENT_MINUTES = 15L
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Spot row
-// ─────────────────────────────────────────────────────────────────────────────
-
+/**
+ * Spot row (v1 redesign).
+ *
+ *  - 3dp left selection indicator (primary) so the row keeps its neutral fill.
+ *  - Circular "P" badge whose colour mirrors the map marker tier
+ *    (HIGH=primary, MEDIUM=secondary, LOW=error, MANUAL=tertiary).
+ *  - Meta row: UPPERCASE reliability label + distance + drive time.
+ */
 @Composable
 internal fun HomeSpotRow(
     spot: Spot,
@@ -73,80 +73,49 @@ internal fun HomeSpotRow(
     isSelected: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        onClick = { onSelect() },
-        modifier = modifier,
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
-                else Color.Transparent,
-    ) {
-        SpotRowContent(
-            spot = spot,
-            userLocation = userLocation,
-            isSelected = isSelected,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-        )
-    }
-}
+    val reliability = spot.toReliabilityUiState()
+    val palette = reliability.palette()
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Spot row — glass variant
-//
-// Same data as HomeSpotRow but rendered as a frosted-glass card:
-//  • Semi-transparent rounded surface with a subtle border
-//  • Items separated by vertical spacing instead of HorizontalDivider
-//  • Intended to be used inside a Column with Arrangement.spacedBy(8.dp)
-//    and horizontal padding of 12.dp instead of the default 0.dp
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-internal fun HomeSpotRowGlass(
-    spot: Spot,
-    userLocation: Pair<Double, Double>?,
-    onSelect: () -> Unit,
-    isSelected: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    val borderColor = if (isSelected)
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    val rowBg = if (isSelected)
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = SELECTED_ROW_BG_ALPHA)
     else
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)
-
-    val cardBackground = if (isSelected)
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.28f)
-    else
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f)
+        Color.Transparent
 
     Surface(
         onClick = onSelect,
-        modifier = modifier
-            .fillMaxWidth()
-            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        color = cardBackground,
+        modifier = modifier.fillMaxWidth(),
+        color = rowBg,
     ) {
-        SpotRowContent(
-            spot = spot,
-            userLocation = userLocation,
-            isSelected = isSelected,
-            iconStyle = if (isSelected) SpotIconStyle.Selected else SpotIconStyle.Glass,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(SELECTION_INDICATOR_W_DP.dp)
+                    .height(SELECTION_INDICATOR_H_DP.dp)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    ),
+            )
+            SpotRowContent(
+                spot = spot,
+                userLocation = userLocation,
+                palette = palette,
+                modifier = Modifier
+                    .padding(start = 13.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+                    .weight(1f),
+            )
+        }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared row content
-// ─────────────────────────────────────────────────────────────────────────────
-
-private enum class SpotIconStyle { Default, Selected, Glass }
 
 @Composable
 private fun SpotRowContent(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
-    isSelected: Boolean,
+    palette: ReliabilityPalette,
     modifier: Modifier = Modifier,
-    iconStyle: SpotIconStyle = if (isSelected) SpotIconStyle.Selected else SpotIconStyle.Default,
 ) {
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
@@ -157,197 +126,139 @@ private fun SpotRowContent(
         lat = spot.location.latitude,
         lon = spot.location.longitude,
     )
-    val ageMinutes = remember(spot.location.timestamp) {
-        (Clock.System.now().toEpochMilliseconds() - spot.location.timestamp) / 60_000L
-    }
-
-    val iconBackground = when (iconStyle) {
-        SpotIconStyle.Default  -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-        SpotIconStyle.Selected -> MaterialTheme.colorScheme.primary
-        SpotIconStyle.Glass    -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-    }
-    val iconTextColor = when (iconStyle) {
-        SpotIconStyle.Default  -> MaterialTheme.colorScheme.primary
-        SpotIconStyle.Selected -> MaterialTheme.colorScheme.onPrimary
-        SpotIconStyle.Glass    -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-    }
-    val subtitleAlpha = if (iconStyle == SpotIconStyle.Glass) 0.5f else 0.55f
 
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // "P" badge — consistent with the spot marker on the map
         Box(
             modifier = Modifier
-                .size(42.dp)
-                .clip(RoundedCornerShape(13.dp))
-                .background(iconBackground),
+                .size(BADGE_DP.dp)
+                .clip(CircleShape)
+                .background(palette.badgeBg),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 "P",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
-                color = iconTextColor,
+                color = palette.badgeFg,
             )
         }
 
-        // Text column — location (WHERE) on L1, distance + drive time on L2.
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = displayText,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (distanceM != null) {
-                Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${distanceString(distanceM)}  ·  ${driveTimeString(distanceM)}",
+                    palette.label.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = subtitleAlpha),
+                    fontWeight = FontWeight.ExtraBold,
+                    color = palette.badgeBg,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
+                Text(
+                    "  ·  ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
+                )
+                if (distanceM != null) {
+                    Text(
+                        distanceString(distanceM),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+                    )
+                    Text(
+                        "  ·  ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
+                    )
+                    Text(
+                        driveTimeString(distanceM),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
 
         EnRouteIndicator(count = spot.enRouteCount)
 
-        // TTL badge if set, otherwise freshness chip
         if (spot.expiresAt > 0L) {
             TTLIndicator(expiresAtMs = spot.expiresAt)
-        } else {
-            SpotFreshnessChip(ageMinutes = ageMinutes)
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Freshness chip
+// Reliability palette — aligns spot rows with map markers.
 // ─────────────────────────────────────────────────────────────────────────────
 
+private data class ReliabilityPalette(
+    val badgeBg: Color,
+    val badgeFg: Color,
+    val label: String,
+)
+
 @Composable
-internal fun SpotFreshnessChip(ageMinutes: Long) {
-    val containerColor = when {
-        ageMinutes < FRESH_MINUTES  -> MaterialTheme.colorScheme.primaryContainer
-        ageMinutes < RECENT_MINUTES -> MaterialTheme.colorScheme.secondaryContainer
-        else                        -> MaterialTheme.colorScheme.surfaceVariant
-    }
-    val contentColor = when {
-        ageMinutes < FRESH_MINUTES  -> MaterialTheme.colorScheme.primary
-        ageMinutes < RECENT_MINUTES -> MaterialTheme.colorScheme.secondary
-        else                        -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
-    }
-    val label = when {
-        ageMinutes < 1L  -> stringResource(Res.string.home_spot_freshness_under_min)
-        ageMinutes < 60L -> stringResource(Res.string.home_spot_freshness_minutes, ageMinutes.toInt())
-        else             -> stringResource(Res.string.home_spot_freshness_hours, (ageMinutes / 60L).toInt())
-    }
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = containerColor,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = contentColor,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        )
+private fun SpotReliabilityUiState.palette(): ReliabilityPalette {
+    val cs = MaterialTheme.colorScheme
+    return when (this) {
+        SpotReliabilityUiState.HIGH   -> ReliabilityPalette(cs.primary,   cs.onPrimary,   stringResource(Res.string.home_spot_reliability_high))
+        SpotReliabilityUiState.MEDIUM -> ReliabilityPalette(cs.secondary, cs.onSecondary, stringResource(Res.string.home_spot_reliability_medium))
+        SpotReliabilityUiState.LOW    -> ReliabilityPalette(cs.error,     cs.onError,     stringResource(Res.string.home_spot_reliability_low))
+        SpotReliabilityUiState.MANUAL -> ReliabilityPalette(cs.tertiary,  cs.onTertiary,  stringResource(Res.string.home_spot_reliability_manual))
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Activity row
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-internal fun HomeActivityRow(
-    spot: Spot,
-    onClick: () -> Unit,
-) {
-    val displayText = locationDisplayText(
-        placeInfo = spot.placeInfo,
-        address = spot.address,
-        lat = spot.location.latitude,
-        lon = spot.location.longitude,
-    )
-
-    Surface(
-        onClick = onClick,
-        color = Color.Transparent,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(13.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                // LocalParking icon removed — "P" badge consistent with spot markers
-                Text(
-                    "P",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Empty state
+// Empty states — surface card with centred icon/title/subtitle.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(EMPTY_CORNER_DP.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_BG_ALPHA),
     ) {
-        Icon(
-            Icons.Outlined.LocationOn,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            modifier = Modifier.size(32.dp),
-        )
-        Text(
-            stringResource(Res.string.home_empty_title),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-        )
-        Text(
-            stringResource(Res.string.home_empty_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                Icons.Outlined.LocationOn,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_ICON_ALPHA),
+                modifier = Modifier.size(36.dp),
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(Res.string.home_empty_title),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                stringResource(Res.string.home_empty_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
+            )
+        }
     }
 }
 
@@ -356,43 +267,51 @@ internal fun HomeEmptyFilteredSpots(
     onClearFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(EMPTY_CORNER_DP.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_BG_ALPHA),
     ) {
-        Icon(
-            Icons.Outlined.FilterAltOff,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-            modifier = Modifier.size(32.dp),
-        )
-        Text(
-            stringResource(Res.string.home_filter_empty_title),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-        )
-        Text(
-            stringResource(Res.string.home_filter_empty_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            stringResource(Res.string.home_filter_empty_clear),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.clickable(onClick = onClearFilter),
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                Icons.Outlined.FilterAltOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_ICON_ALPHA),
+                modifier = Modifier.size(36.dp),
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(Res.string.home_filter_empty_title),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                stringResource(Res.string.home_filter_empty_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                stringResource(Res.string.home_filter_empty_clear),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = onClearFilter),
+            )
+        }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Report spot card — CTA to manually report a free spot
+// Report spot CTA — primary full-width button placed at the end of the spot
+// list. Mirrors the v1 button style (44dp / 12dp radius / primary fill).
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -400,36 +319,48 @@ internal fun HomeReportSpotCard(
     onReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    Button(
         onClick = onReport,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(REPORT_BUTTON_HEIGHT_DP.dp),
+        shape = RoundedCornerShape(REPORT_BUTTON_CORNER_DP.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Icon(
-                Icons.Outlined.Campaign,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                stringResource(Res.string.home_report_fab_cd),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                Icons.Outlined.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
-            )
-        }
+        Icon(
+            Icons.Outlined.Campaign,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            stringResource(Res.string.home_report_fab_cd),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.width(6.dp))
+        Icon(
+            Icons.Outlined.Add,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
+
+private const val SELECTION_INDICATOR_W_DP = 3
+private const val SELECTION_INDICATOR_H_DP = 56
+private const val BADGE_DP = 42
+private const val EMPTY_CORNER_DP = 14
+private const val REPORT_BUTTON_HEIGHT_DP = 44
+private const val REPORT_BUTTON_CORNER_DP = 12
+
+private const val SELECTED_ROW_BG_ALPHA = 0.18f
+private const val META_SEPARATOR_ALPHA = 0.3f
+private const val META_VALUE_ALPHA = 0.6f
+private const val META_MUTED_ALPHA = 0.55f
+private const val EMPTY_BG_ALPHA = 0.4f
+private const val EMPTY_ICON_ALPHA = 0.25f
+private const val EMPTY_SUBTITLE_ALPHA = 0.5f

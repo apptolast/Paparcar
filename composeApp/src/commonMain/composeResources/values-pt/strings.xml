@@ -44,8 +44,6 @@
     <string name="home_reliability_high">Detetado automaticamente</string>
     <string name="home_reliability_auto">Aprox.</string>
     <string name="home_search_clear_cd">Limpar pesquisa</string>
-    <string name="home_menu_close_cd">Fechar menu</string>
-    <string name="home_menu_open_cd">Abrir menu</string>
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">%1$dm atrás</string>
     <string name="home_spot_freshness_hours">%1$dh atrás</string>
@@ -369,4 +367,105 @@
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Fechar</string>
     <string name="bt_config_cd_back">Voltar</string>
+
+    <!-- ───────────────────────────────────────────────────────────────── -->
+    <!-- v1 redesign — peek cards, modal states, vehicle stats, etc.       -->
+    <!-- ───────────────────────────────────────────────────────────────── -->
+
+    <!-- ConfirmationBottomSheet (deteção de estacionamento) -->
+    <string name="confirmation_sheet_question">Estacionou aqui?</string>
+    <string name="confirmation_sheet_method_bt">Detetado por Bluetooth · há %1$s</string>
+    <string name="confirmation_sheet_method_ar">Detetado automaticamente · há %1$s</string>
+
+    <!-- Connectivity banner / snackbar -->
+    <string name="connectivity_offline_banner">Estás offline</string>
+    <string name="connectivity_restored_snackbar">De volta online</string>
+    <string name="connectivity_action_blocked_offline">Liga-te à internet para fazer isso</string>
+
+    <!-- Home cd_spot accessibility label -->
+    <string name="home_cd_spot">Lugar livre em %1$s</string>
+
+    <!-- Pills CTA das cards de Home -->
+    <string name="home_manual_park_pill">Marcar</string>
+    <string name="home_zones_empty_pill">Adicionar</string>
+
+    <!-- Sheet section headers + permissões -->
+    <string name="home_my_car_section_header">O teu carro</string>
+    <string name="home_permissions_title">Ativar localização</string>
+
+    <!-- ParkingPeekRow (hero card do veículo selecionado) -->
+    <string name="home_peek_active_session">Sessão ativa</string>
+    <string name="home_peek_parked_label">Estacionado</string>
+    <string name="home_peek_walk_label">A pé</string>
+
+    <!-- SpotPeekRow (hero card do lugar selecionado) -->
+    <string name="home_peek_reliability_label">Fiabilidade</string>
+    <string name="home_peek_spot_expires">Expira em %1$d min</string>
+    <string name="home_peek_spot_still_free_hint">Ainda livre? Toca para confirmar ao chegar</string>
+    <string name="home_peek_spot_high">Lugar fiável</string>
+    <string name="home_peek_spot_medium">Lugar médio</string>
+    <string name="home_peek_spot_low">Lugar baixo</string>
+    <string name="home_peek_spot_manual">Lugar manual</string>
+
+    <!-- ReportPeekRow (avisar lugar livre) -->
+    <string name="home_report_header_label">Avisar lugar livre</string>
+    <string name="home_report_helper_primary">Centra o pin onde deixas o lugar</string>
+    <string name="home_report_helper_secondary">Outros condutores recebem a notificação ao instante</string>
+    <string name="home_report_confirm_here">Confirmar lugar aqui</string>
+
+    <!-- HomeSpotRow reliability tier label -->
+    <string name="home_spot_reliability_high">Fiável</string>
+    <string name="home_spot_reliability_medium">Média</string>
+    <string name="home_spot_reliability_low">Baixa</string>
+    <string name="home_spot_reliability_manual">Manual</string>
+
+    <!-- AddingZonePeekRow (nova zona habitual) -->
+    <string name="home_zone_header_label">Nova zona habitual</string>
+    <string name="home_zone_icon_section">Ícone</string>
+
+    <!-- My Car — delete confirmation + edit -->
+    <string name="my_car_delete_vehicle">Eliminar</string>
+    <string name="my_car_edit_vehicle">Editar</string>
+    <string name="my_car_delete_confirm_title">Eliminar veículo?</string>
+    <string name="my_car_delete_confirm_message">Este veículo será removido permanentemente. Esta ação não pode ser anulada.</string>
+    <string name="my_car_delete_confirm_action">Eliminar</string>
+    <string name="my_car_delete_cancel">Cancelar</string>
+
+    <!-- Compact relative time — narrow chips -->
+    <string name="relative_time_compact_now">&lt;1m</string>
+    <string name="relative_time_compact_min">%1$dm</string>
+    <string name="relative_time_compact_hour">%1$dh</string>
+    <string name="relative_time_compact_day">%1$dd</string>
+
+    <!-- Settings — language + delete account + contact -->
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_desc">Idioma da app</string>
+    <string name="settings_language_auto">Predefinição do sistema</string>
+    <string name="settings_contact">Contacto</string>
+    <!-- Settings v2 — refactor de UI -->
+    <string name="settings_active_vehicle_label">Veículo ativo</string>
+    <string name="settings_active_vehicle_subtitle">Toca para gerir</string>
+    <string name="settings_notifications_title">Notificações</string>
+    <string name="settings_notifications_subtitle">Receber alertas da app</string>
+    <string name="settings_danger_zone">Zona de perigo</string>
+    <string name="settings_danger_zone_subtitle">Ações irreversíveis</string>
+    <string name="settings_profile_member_since">Membro desde %1$s %2$d</string>
+    <string name="settings_profile_delete_account">Eliminar conta</string>
+    <string name="settings_delete_account_confirm_title">Eliminar conta?</string>
+    <string name="settings_delete_account_confirm_message">Todos os teus dados serão eliminados permanentemente. Esta ação não pode ser anulada.</string>
+    <string name="settings_delete_account_confirm_action">Eliminar conta</string>
+    <string name="settings_delete_account_cancel">Cancelar</string>
+
+    <!-- Vehicle detail + vehicles history -->
+    <string name="vehicle_detail_tab_details">Detalhes</string>
+    <string name="vehicle_detail_tab_history">Histórico</string>
+    <string name="vehicle_detail_cd_back">Voltar</string>
+    <string name="vehicle_detail_history_empty">Nenhuma sessão de estacionamento registada ainda para este veículo.</string>
+    <string name="vehicle_registration_edit_title">Editar veículo</string>
+    <string name="vehicles_view_history">Ver histórico de estacionamentos</string>
+
+    <!-- VehicleStatsRow inline cards -->
+    <string name="vehicle_stats_sessions">sessões</string>
+    <string name="vehicle_stats_last_session">última</string>
+    <string name="vehicle_stats_reliability">fiabilidade</string>
 </resources>

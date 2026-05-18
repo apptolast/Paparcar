@@ -12,6 +12,20 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Estás aparcado</string>
     <string name="home_where_to_park_title">¿Dónde quieres aparcar?</string>
+    <!-- Header de la sección del coche en el sheet -->
+    <string name="home_my_car_section_header">Tu coche</string>
+    <!-- ParkingPeekRow (hero card del coche seleccionado) -->
+    <string name="home_peek_active_session">Sesión activa</string>
+    <string name="home_peek_parked_label">Aparcado</string>
+    <string name="home_peek_walk_label">A pie</string>
+    <!-- SpotPeekRow (hero card de plaza seleccionada) -->
+    <string name="home_peek_reliability_label">Fiabilidad</string>
+    <string name="home_peek_spot_expires">Caduca en %1$d min</string>
+    <string name="home_peek_spot_still_free_hint">¿Sigue libre? Toca para confirmar al llegar</string>
+    <string name="home_peek_spot_high">Plaza fiable</string>
+    <string name="home_peek_spot_medium">Plaza media</string>
+    <string name="home_peek_spot_low">Plaza baja</string>
+    <string name="home_peek_spot_manual">Plaza manual</string>
     <string name="home_active_vehicle_title">Tu vehículo activo</string>
     <string name="home_parking_release">Liberar plaza</string>
     <string name="home_navigate_to_spot">Cómo llegar</string>
@@ -22,6 +36,7 @@
     <string name="home_feed_nearby">Cerca de ti</string>
     <string name="home_feed_nearby_with_count">%1$d plazas libres cerca de ti</string>
     <string name="home_feed_activity">Actividad reciente</string>
+    <string name="home_permissions_title">Activa la ubicación</string>
     <string name="home_permissions_message">Activa la ubicación para ver spots cerca de ti</string>
     <string name="home_permissions_button">Activar permisos</string>
     <string name="home_empty_title">No hay spots cerca ahora</string>
@@ -30,14 +45,15 @@
     <string name="home_spot_status_free">Libre</string>
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Ubicación desconocida</string>
-    <string name="home_release_dialog_title">¿Liberar plaza?</string>
-    <string name="home_release_dialog_message">Comparte tu plaza con los conductores cercanos, o elimínala sin compartirla.</string>
-    <string name="home_release_dialog_publish">Publicar plaza</string>
-    <string name="home_release_dialog_delete_only">Solo eliminar</string>
+    <string name="home_release_dialog_title">Liberas la plaza, ¿la compartes?</string>
+    <string name="home_release_dialog_message">Cuando avisas, otros conductores reciben la notificación y pueden llegar antes.</string>
+    <string name="home_release_dialog_publish">Liberar y avisar</string>
+    <string name="home_release_dialog_delete_only">Solo liberar</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
     <string name="home_parking_peek_label">Estás aparcado · %1$s</string>
     <string name="home_manual_park_title">Aparcar aquí</string>
     <string name="home_manual_park_subtitle">Guarda manualmente tu plaza de aparcamiento</string>
+    <string name="home_manual_park_pill">Marcar</string>
     <string name="home_action_report">Avisar</string>
     <string name="home_action_park">Aparcar</string>
     <string name="home_parking_view_on_map">Ver en mapa</string>
@@ -52,6 +68,11 @@
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">hace %1$dm</string>
     <string name="home_spot_freshness_hours">hace %1$dh</string>
+    <!-- HomeSpotRow etiqueta de fiabilidad (badge en mayúsculas) -->
+    <string name="home_spot_reliability_high">Fiable</string>
+    <string name="home_spot_reliability_medium">Media</string>
+    <string name="home_spot_reliability_low">Baja</string>
+    <string name="home_spot_reliability_manual">Manual</string>
     <!-- SpotCard — %1$d = number of users currently en route -->
     <string name="spot_card_en_route">%1$d en camino</string>
     <string name="spot_card_reliability_high">Auto</string>
@@ -232,6 +253,15 @@
     <string name="settings_privacy">Política de privacidad</string>
     <string name="settings_licenses">Licencias de código abierto</string>
     <string name="settings_contact">Contacto</string>
+    <!-- Settings v2 — UI refactorizada -->
+    <string name="settings_active_vehicle_label">Vehículo activo</string>
+    <string name="settings_active_vehicle_subtitle">Toca para gestionar</string>
+    <string name="settings_notifications_title">Notificaciones</string>
+    <string name="settings_notifications_subtitle">Recibir avisos de la app</string>
+    <string name="settings_danger_zone">Zona de peligro</string>
+    <string name="settings_danger_zone_subtitle">Acciones irreversibles</string>
+    <!-- Profile card: "Miembro desde MAY 2025" — %1$s = mes corto mayúscula, %2$d = año -->
+    <string name="settings_profile_member_since">Miembro desde %1$s %2$d</string>
 
     <!-- Mensajes de error genéricos -->
     <string name="error_unknown">Algo fue mal</string>
@@ -262,6 +292,11 @@
     <string name="home_report_action">Avisar a la comunidad</string>
     <string name="home_report_fab_cd">Avisar plaza libre</string>
     <string name="home_report_cancel_cd">Cancelar reporte</string>
+    <!-- Copy refrescada para la card del modo Avisar (diseño v1) -->
+    <string name="home_report_header_label">Avisar plaza libre</string>
+    <string name="home_report_helper_primary">Centra el pin donde dejas la plaza</string>
+    <string name="home_report_helper_secondary">Otros conductores recibirán la notificación al instante</string>
+    <string name="home_report_confirm_here">Confirmar plaza aquí</string>
 
     <!-- Zonas en Home — lugares habituales -->
     <string name="home_zone_name_placeholder">Nombre (ej. Casa, Trabajo)</string>
@@ -269,9 +304,13 @@
     <string name="home_zone_cancel_cd">Cancelar nueva zona</string>
     <string name="home_zone_add_chip_cd">A&#xF1;adir una nueva zona</string>
     <string name="home_zone_icon_picker_cd">Elegir un icono</string>
+    <!-- Copy refrescada para la card de Nueva zona (diseño v1) -->
+    <string name="home_zone_header_label">Nueva zona habitual</string>
+    <string name="home_zone_icon_section">Icono</string>
     <string name="home_zones_section">Lugares habituales</string>
     <string name="home_zones_empty_title">Guarda un lugar habitual</string>
     <string name="home_zones_empty_subtitle">Casa, trabajo, familia\u2026 navegaci&#xF3;n con un toque</string>
+    <string name="home_zones_empty_pill">Añadir</string>
 
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -365,6 +404,10 @@
     <string name="vehicle_card_detection_bt">Bluetooth</string>
     <string name="vehicle_card_detection_ar">Detección auto</string>
     <string name="vehicle_card_detection_off">Sin detección</string>
+    <!-- VehicleStatsRow cards inline bajo la hero card -->
+    <string name="vehicle_stats_sessions">sesiones</string>
+    <string name="vehicle_stats_last_session">última</string>
+    <string name="vehicle_stats_reliability">fiabilidad</string>
     <!-- DetectionStatusBanner -->
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Detección automática activa</string>
@@ -376,11 +419,15 @@
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">Todos</string>
 
-    <!-- ConfirmationBottomSheet -->
-    <string name="confirmation_sheet_title">Aparcamiento detectado</string>
+    <!-- ConfirmationBottomSheet (detección automática) -->
+    <string name="confirmation_sheet_title">Detectamos un aparcamiento</string>
     <string name="confirmation_sheet_subtitle">¿Acabas de aparcar? Se publicará en %1$s.</string>
-    <string name="confirmation_sheet_confirm">Publicar plaza</string>
-    <string name="confirmation_sheet_withdraw">Ahora no</string>
+    <string name="confirmation_sheet_confirm">Sí, confirmar</string>
+    <string name="confirmation_sheet_withdraw">No, ignorar</string>
+    <!-- Copy refrescada para el sheet de detección (diseño v1) -->
+    <string name="confirmation_sheet_question">¿Has aparcado aquí?</string>
+    <string name="confirmation_sheet_method_bt">Detección por Bluetooth · hace %1$s</string>
+    <string name="confirmation_sheet_method_ar">Detección automática · hace %1$s</string>
     <string name="settings_section_map">Mapa</string>
     <string name="settings_distance_unit">Unidades imperiales</string>
     <string name="settings_distance_unit_desc">Mostrar distancias en millas y pies</string>

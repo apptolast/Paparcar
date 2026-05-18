@@ -112,10 +112,15 @@ internal fun HomeBottomSheet(
                 )
             }
 
-            // In Reporting mode the peek handle contains the entire report
-            // surface (state row + primary CTA). Skip rendering the browse
-            // list below so the sheet collapses to handle height naturally.
-            if (state.mode is HomeMode.Browse) {
+            // The peek handle owns the whole sheet in any "engaged" state
+            // (Reporting / AddingZone / selected vehicle): the user shouldn't
+            // be able to drag past the state card to expose the browse list
+            // below. Only Browse + nothing-selected OR Browse + spot-selected
+            // renders the list (selected spot is the exception — the user may
+            // want to compare with nearby alternatives).
+            val showList = state.mode is HomeMode.Browse &&
+                state.selectedItemId != HomeState.PARKING_ITEM_ID
+            if (showList) {
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier

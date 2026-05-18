@@ -44,8 +44,6 @@
     <string name="home_reliability_high">Detectat automat</string>
     <string name="home_reliability_auto">Aproximativ</string>
     <string name="home_search_clear_cd">Șterge căutarea</string>
-    <string name="home_menu_close_cd">Închide meniul</string>
-    <string name="home_menu_open_cd">Deschide meniul</string>
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">acum %1$d min</string>
     <string name="home_spot_freshness_hours">acum %1$d ore</string>
@@ -369,4 +367,105 @@
     <string name="gps_disclaimer_confirm">Am înțeles</string>
     <string name="home_peek_dismiss_cd">Închide</string>
     <string name="bt_config_cd_back">Înapoi</string>
+
+    <!-- ───────────────────────────────────────────────────────────────── -->
+    <!-- v1 redesign — peek cards, modal states, vehicle stats, etc.       -->
+    <!-- ───────────────────────────────────────────────────────────────── -->
+
+    <!-- ConfirmationBottomSheet (detectare parcare) -->
+    <string name="confirmation_sheet_question">Ai parcat aici?</string>
+    <string name="confirmation_sheet_method_bt">Detectat prin Bluetooth · acum %1$s</string>
+    <string name="confirmation_sheet_method_ar">Detectat automat · acum %1$s</string>
+
+    <!-- Connectivity banner / snackbar -->
+    <string name="connectivity_offline_banner">Ești offline</string>
+    <string name="connectivity_restored_snackbar">Înapoi online</string>
+    <string name="connectivity_action_blocked_offline">Conectează-te la internet pentru a face asta</string>
+
+    <!-- Home cd_spot accessibility label -->
+    <string name="home_cd_spot">Loc liber la %1$s</string>
+
+    <!-- CTA pills în cardurile Home -->
+    <string name="home_manual_park_pill">Marchează</string>
+    <string name="home_zones_empty_pill">Adaugă</string>
+
+    <!-- Sheet section headers + permisiuni -->
+    <string name="home_my_car_section_header">Mașina ta</string>
+    <string name="home_permissions_title">Activează locația</string>
+
+    <!-- ParkingPeekRow (card vehicul selectat) -->
+    <string name="home_peek_active_session">Sesiune activă</string>
+    <string name="home_peek_parked_label">Parcat</string>
+    <string name="home_peek_walk_label">Pe jos</string>
+
+    <!-- SpotPeekRow (card loc selectat) -->
+    <string name="home_peek_reliability_label">Fiabilitate</string>
+    <string name="home_peek_spot_expires">Expiră în %1$d min</string>
+    <string name="home_peek_spot_still_free_hint">Încă liber? Atinge pentru a confirma la sosire</string>
+    <string name="home_peek_spot_high">Loc de încredere</string>
+    <string name="home_peek_spot_medium">Loc cu fiabilitate medie</string>
+    <string name="home_peek_spot_low">Loc cu fiabilitate scăzută</string>
+    <string name="home_peek_spot_manual">Loc manual</string>
+
+    <!-- ReportPeekRow (raportare loc liber) -->
+    <string name="home_report_header_label">Raportează loc liber</string>
+    <string name="home_report_helper_primary">Centrează pinul unde lași locul</string>
+    <string name="home_report_helper_secondary">Șoferii din apropiere primesc notificarea instant</string>
+    <string name="home_report_confirm_here">Confirmă locul aici</string>
+
+    <!-- HomeSpotRow reliability tier label -->
+    <string name="home_spot_reliability_high">De încredere</string>
+    <string name="home_spot_reliability_medium">Medie</string>
+    <string name="home_spot_reliability_low">Scăzută</string>
+    <string name="home_spot_reliability_manual">Manual</string>
+
+    <!-- AddingZonePeekRow (zonă obișnuită nouă) -->
+    <string name="home_zone_header_label">Zonă obișnuită nouă</string>
+    <string name="home_zone_icon_section">Pictogramă</string>
+
+    <!-- My Car — delete confirmation + edit -->
+    <string name="my_car_delete_vehicle">Șterge</string>
+    <string name="my_car_edit_vehicle">Editează</string>
+    <string name="my_car_delete_confirm_title">Ștergi vehiculul?</string>
+    <string name="my_car_delete_confirm_message">Acest vehicul va fi eliminat permanent. Această acțiune nu poate fi anulată.</string>
+    <string name="my_car_delete_confirm_action">Șterge</string>
+    <string name="my_car_delete_cancel">Anulează</string>
+
+    <!-- Compact relative time — narrow chips -->
+    <string name="relative_time_compact_now">&lt;1m</string>
+    <string name="relative_time_compact_min">%1$dm</string>
+    <string name="relative_time_compact_hour">%1$dh</string>
+    <string name="relative_time_compact_day">%1$dz</string>
+
+    <!-- Settings — language + delete account + contact -->
+    <string name="settings_language">Limbă</string>
+    <string name="settings_language_desc">Limba aplicației</string>
+    <string name="settings_language_auto">Implicit din sistem</string>
+    <string name="settings_contact">Contact</string>
+    <!-- Settings v2 — refactor UI -->
+    <string name="settings_active_vehicle_label">Vehicul activ</string>
+    <string name="settings_active_vehicle_subtitle">Atinge pentru a gestiona</string>
+    <string name="settings_notifications_title">Notificări</string>
+    <string name="settings_notifications_subtitle">Primește alerte ale aplicației</string>
+    <string name="settings_danger_zone">Zonă de pericol</string>
+    <string name="settings_danger_zone_subtitle">Acțiuni ireversibile</string>
+    <string name="settings_profile_member_since">Membru din %1$s %2$d</string>
+    <string name="settings_profile_delete_account">Șterge contul</string>
+    <string name="settings_delete_account_confirm_title">Ștergi contul?</string>
+    <string name="settings_delete_account_confirm_message">Toate datele tale vor fi șterse permanent. Această acțiune nu poate fi anulată.</string>
+    <string name="settings_delete_account_confirm_action">Șterge contul</string>
+    <string name="settings_delete_account_cancel">Anulează</string>
+
+    <!-- Vehicle detail + vehicles history -->
+    <string name="vehicle_detail_tab_details">Detalii</string>
+    <string name="vehicle_detail_tab_history">Istoric</string>
+    <string name="vehicle_detail_cd_back">Înapoi</string>
+    <string name="vehicle_detail_history_empty">Nicio sesiune de parcare înregistrată încă pentru acest vehicul.</string>
+    <string name="vehicle_registration_edit_title">Editează vehiculul</string>
+    <string name="vehicles_view_history">Vezi istoricul parcărilor</string>
+
+    <!-- VehicleStatsRow inline cards -->
+    <string name="vehicle_stats_sessions">sesiuni</string>
+    <string name="vehicle_stats_last_session">ultima</string>
+    <string name="vehicle_stats_reliability">fiabilitate</string>
 </resources>

@@ -163,10 +163,12 @@ fun HomeScreen(
         bottomPadding = bottomPadding,
     )
 
-    if (state.pendingParkingGps != null) {
+    state.pendingParkingGps?.let { pending ->
         ConfirmationBottomSheet(
             onConfirm = { viewModel.handleIntent(HomeIntent.ConfirmDetectedParking) },
             onDismiss = { viewModel.handleIntent(HomeIntent.DismissConfirmation) },
+            addressLine = state.cameraLocationInfo?.displayLine,
+            detectionTimestampMs = pending.timestamp,
         )
     }
 }
@@ -348,11 +350,13 @@ private fun HomeContent(
                     }
                 }
                 val fullSnapOffsetPx = when {
-                    // Pin-positioning modes (Reporting / AddingZone) own the
-                    // entire sheet through the peek handle — there's no list
-                    // below it. Clamp expansion to peek so the user can't drag
-                    // up and expose an empty surface below the report row.
+                    // Pin-positioning modes (Reporting / AddingZone) AND
+                    // vehicle-selected lock the sheet to peek height because
+                    // the peek handle owns the whole surface — no list to
+                    // expose below. Spot-selected is intentionally NOT
+                    // locked: the user may want to compare with the list.
                     state.mode !is HomeMode.Browse -> peekOffsetPx
+                    isParkingSelected -> peekOffsetPx
                     // Browse with all items already visible: stop at content
                     // height so the sheet doesn't expose empty space above
                     // the last row when the list is short.
@@ -367,14 +371,14 @@ private fun HomeContent(
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
-                    // Any pin-positioning mode and Browse-with-no-selection both
-                    // want the sheet resting at peek snap. In Reporting /
-                    // AddingZone the peek handle itself grows to host the entire
-                    // state surface (info row + CTA), so animating to half would
-                    // only add empty space below.
+                    // Pin-positioning modes (Reporting / AddingZone) and the
+                    // selected-vehicle state both lock the sheet to peek height
+                    // because the peek handle hosts the entire state surface.
+                    // Browse-with-no-selection also rests at peek.
                     val isPinning = state.mode is HomeMode.Reporting ||
                         state.mode is HomeMode.AddingZone
-                    if (state.selectedItemId == null || isPinning) {
+                    val lockToPeek = isPinning || isParkingSelected
+                    if (state.selectedItemId == null || lockToPeek) {
                         sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
                     } else if (sheetOffsetPx.value >= peekOffsetPx) {
                         sheetOffsetPx.snapTo(peekOffsetPx)

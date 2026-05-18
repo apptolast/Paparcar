@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.animation.AnimatedContent
@@ -18,7 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,22 +38,20 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.LocalParking
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.PinDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import io.apptolast.paparcar.ui.components.PapFooterButton
-import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,29 +61,44 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
-import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.distanceString
+import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
+import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.walkTimeString
+import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.ui.components.PapFooterButton
+import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.icon
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
-import paparcar.composeapp.generated.resources.home_report_action
-import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_navigate_to_spot
-import paparcar.composeapp.generated.resources.home_parking_release
-import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
-import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
-import paparcar.composeapp.generated.resources.home_zone_cancel_cd
-import paparcar.composeapp.generated.resources.home_zone_icon_picker_cd
+import paparcar.composeapp.generated.resources.home_parking_release
+import paparcar.composeapp.generated.resources.home_peek_active_session
+import paparcar.composeapp.generated.resources.home_peek_parked_label
+import paparcar.composeapp.generated.resources.home_peek_reliability_label
+import paparcar.composeapp.generated.resources.home_peek_spot_expires
+import paparcar.composeapp.generated.resources.home_peek_spot_high
+import paparcar.composeapp.generated.resources.home_peek_spot_low
+import paparcar.composeapp.generated.resources.home_peek_spot_manual
+import paparcar.composeapp.generated.resources.home_peek_spot_medium
+import paparcar.composeapp.generated.resources.home_peek_spot_still_free_hint
+import paparcar.composeapp.generated.resources.home_peek_walk_label
+import paparcar.composeapp.generated.resources.home_report_confirm_here
+import paparcar.composeapp.generated.resources.home_report_header_label
+import paparcar.composeapp.generated.resources.home_report_helper_primary
+import paparcar.composeapp.generated.resources.home_report_helper_secondary
+import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
+import paparcar.composeapp.generated.resources.spot_indicator_en_route
+import paparcar.composeapp.generated.resources.home_zone_header_label
+import paparcar.composeapp.generated.resources.home_zone_icon_section
 import paparcar.composeapp.generated.resources.home_zone_name_placeholder
 import paparcar.composeapp.generated.resources.home_zone_save_action
-import androidx.compose.ui.graphics.vector.ImageVector
 
 @Composable
 internal fun HomePeekHandle(
@@ -105,9 +120,6 @@ internal fun HomePeekHandle(
         ?.let { id -> state.nearbySpots.find { it.id == id } }
     val parkingToShow = if (isParkingSelected) state.userParking else null
 
-    // Encode the five mutually exclusive peek states as a typed target so the
-    // AnimatedContent transitions between them cleanly without piling triples
-    // of nullable fields.
     val peekState: PeekState = when {
         state.mode is HomeMode.Reporting -> PeekState.Reporting
         state.mode is HomeMode.AddingZone -> PeekState.AddingZone
@@ -130,14 +142,9 @@ internal fun HomePeekHandle(
                 .align(Alignment.CenterHorizontally),
         )
 
-        // 4-state animated switch: spot ↔ parking ↔ reporting ↔ browse.
         AnimatedContent(
             targetState = peekState,
             transitionSpec = {
-                // "Engaged" states (any state row with a primary action) slide
-                // up; the default browse row slides down. Reporting is treated
-                // as engaged because it has the same dismiss + action affordances
-                // as a selected item.
                 val incomingEngaged = targetState !is PeekState.Browse
                 if (incomingEngaged) {
                     (slideInVertically { it / 2 } + fadeIn()) togetherWith
@@ -155,11 +162,7 @@ internal fun HomePeekHandle(
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onDismiss = onDismiss,
                     onNavigate = {
-                        onNavigateExternal(
-                            target.spot.location.latitude,
-                            target.spot.location.longitude,
-                            false,
-                        )
+                        onNavigateExternal(target.spot.location.latitude, target.spot.location.longitude, false)
                     },
                 )
                 is PeekState.SelectedParking -> ParkingPeekRow(
@@ -168,11 +171,7 @@ internal fun HomePeekHandle(
                     onDismiss = onDismiss,
                     onRelease = onRelease,
                     onWalkToCar = {
-                        onNavigateExternal(
-                            target.parking.location.latitude,
-                            target.parking.location.longitude,
-                            true,
-                        )
+                        onNavigateExternal(target.parking.location.latitude, target.parking.location.longitude, true)
                     },
                 )
                 PeekState.Reporting -> ReportPeekRow(
@@ -193,10 +192,6 @@ internal fun HomePeekHandle(
     }
 }
 
-/**
- * Typed state for the peek's [AnimatedContent]. Mutually exclusive — the
- * peek can only ever be in one of these at a time.
- */
 private sealed class PeekState {
     data class SelectedSpot(val spot: Spot) : PeekState()
     data class SelectedParking(val parking: UserParking) : PeekState()
@@ -205,9 +200,9 @@ private sealed class PeekState {
     data object Browse : PeekState()
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Spot selected row
-// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// SpotPeekRow — plaza seleccionada (v1)
+// ═════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun SpotPeekRow(
@@ -216,70 +211,270 @@ private fun SpotPeekRow(
     onDismiss: () -> Unit,
     onNavigate: () -> Unit,
 ) {
+    val palette = spot.toReliabilityUiState().peekPalette()
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
-    val displayText = locationDisplayText(
-        placeInfo = spot.placeInfo,
-        address = spot.address,
+    // Peek title: place name OR address, NEVER concatenated — the card has
+    // limited horizontal space and the address already shows on the map below.
+    val title = peekTitle(
+        placeName = spot.placeInfo?.name,
+        addressLine = spot.address?.displayLine,
         lat = spot.location.latitude,
         lon = spot.location.longitude,
-        showEmoji = false,
     )
+    val ttlMinutes = remainingMinutes(spot.expiresAt)
 
-    Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            val placeIcon = spot.placeInfo?.category?.icon
-            Icon(
-                imageVector = placeIcon ?: Icons.Outlined.LocalParking,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
+    PeekStateCard(
+        headerLabel = palette.label,
+        title = title,
+        accentColor = palette.badgeBg,
+        onDismiss = onDismiss,
+        leading = { SpotReliabilityBadge(palette) },
+        content = {
+            PeekMetaRow(
+                distanceMeters = distM,
+                iconTint = palette.badgeBg,
+                trailingBadge = if (spot.enRouteCount > 0) {
+                    {
+                        PeekInfoPill(
+                            text = stringResource(Res.string.spot_indicator_en_route, spot.enRouteCount),
+                        )
+                    }
+                } else null,
             )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.basicMarquee(),
+            Spacer(Modifier.height(12.dp))
+            ReliabilitySection(palette = palette, ttlMinutes = ttlMinutes)
+            Spacer(Modifier.height(14.dp))
+        },
+        actions = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PapFooterButton(
+                    label = stringResource(Res.string.home_navigate_to_spot),
+                    leadingIcon = Icons.Outlined.Navigation,
+                    onClick = onNavigate,
+                    style = PapFooterButtonStyle.Filled,
+                    modifier = Modifier.weight(1f),
                 )
-                if (distM != null) {
-                    Text(
-                        text = "${distanceString(distM)}  ·  ${driveTimeString(distM)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                Box(
+                    modifier = Modifier
+                        .size(BOOKMARK_BOX_DP.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = BOOKMARK_BG_ALPHA)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.Bookmark,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = BOOKMARK_ALPHA),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(Res.string.home_peek_spot_still_free_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = HINT_ALPHA),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
+}
 
-            PeekDismissButton(onDismiss = onDismiss)
-        }
-
-        PapFooterButton(
-            label = stringResource(Res.string.home_navigate_to_spot),
-            leadingIcon = Icons.Outlined.Navigation,
-            onClick = onNavigate,
-            style = PapFooterButtonStyle.Filled,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+/**
+ * Spot leading chip — same 44dp rounded-square molde as
+ * [PeekHeaderIconChip], but with a "P" letter inside (in [palette.badgeFg])
+ * and the chip background tinted by reliability palette.
+ */
+@Composable
+private fun SpotReliabilityBadge(palette: SpotPeekPalette) {
+    Box(
+        modifier = Modifier
+            .size(SPOT_BADGE_DP.dp)
+            .clip(RoundedCornerShape(SPOT_BADGE_CORNER_DP.dp))
+            .background(palette.badgeBg),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "P",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = palette.badgeFg,
         )
-        Spacer(Modifier.height(12.dp))
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Active parking row
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Standard meta row across peek states: navigation arrow + distance · time +
+ * optional accent-coloured badge on the right. Reused by every peek that
+ * needs to show "how far / how long / extra context".
+ *
+ * @param iconTint the navigation arrow tint — typically the state's accent
+ *                 colour so the icon reads in the same palette as the chip.
+ * @param trailingBadge optional Composable to render at the end of the row
+ *                      (e.g. "1 en camino" pill, "Hace 12s" chip, etc.).
+ */
+@Composable
+private fun PeekMetaRow(
+    distanceMeters: Float?,
+    iconTint: Color,
+    trailingBadge: @Composable (() -> Unit)? = null,
+) {
+    if (distanceMeters == null && trailingBadge == null) return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Outlined.Navigation,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(META_ICON_DP.dp),
+        )
+        if (distanceMeters != null) {
+            Text(
+                text = "${distanceString(distanceMeters)}  ·  ${driveTimeString(distanceMeters)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+        if (trailingBadge != null) {
+            trailingBadge()
+        }
+    }
+}
+
+/**
+ * Highlighted info pill — coloured card-style chip used for accent metadata
+ * like "X en camino". Uses [accentContainer] / [accentColor] so the chip
+ * visually pops over the neutral peek surface.
+ */
+@Composable
+private fun PeekInfoPill(
+    text: String,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    accentContainer: Color = MaterialTheme.colorScheme.primaryContainer,
+) {
+    Surface(
+        shape = RoundedCornerShape(INFO_PILL_RADIUS_DP.dp),
+        color = accentContainer,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = accentColor,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+        )
+    }
+}
+
+/**
+ * "FIABILIDAD" label + optional "Caduca en X min" on the right, followed by
+ * a horizontal gradient bar whose width and color encode the reliability
+ * level (HIGH=100% solid green, MEDIUM≈65% green→amber, LOW≈35% green→red,
+ * MANUAL≈80% green→blue).
+ */
+@Composable
+private fun ReliabilitySection(palette: SpotPeekPalette, ttlMinutes: Int?) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(Res.string.home_peek_reliability_label).uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = SECTION_TRACKING_SP.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
+            modifier = Modifier.weight(1f),
+        )
+        if (ttlMinutes != null) {
+            Text(
+                text = stringResource(Res.string.home_peek_spot_expires, ttlMinutes),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = TTL_ALPHA),
+                maxLines = 1,
+            )
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+    ReliabilityBar(palette = palette)
+}
+
+@Composable
+private fun ReliabilityBar(palette: SpotPeekPalette) {
+    val primary = MaterialTheme.colorScheme.primary
+    val brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+        listOf(primary, palette.badgeBg),
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(RELIABILITY_BAR_HEIGHT_DP.dp)
+            .clip(RoundedCornerShape(RELIABILITY_BAR_HEIGHT_DP.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = RELIABILITY_BAR_BG_ALPHA)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(palette.fillRatio)
+                .height(RELIABILITY_BAR_HEIGHT_DP.dp)
+                .clip(RoundedCornerShape(RELIABILITY_BAR_HEIGHT_DP.dp))
+                .background(brush),
+        )
+    }
+}
+
+private data class SpotPeekPalette(
+    val badgeBg: Color,
+    val badgeFg: Color,
+    val label: String,
+    /** 0..1 — how much of the reliability bar to fill (encodes the level visually). */
+    val fillRatio: Float,
+)
+
+@Composable
+private fun SpotReliabilityUiState.peekPalette(): SpotPeekPalette {
+    val cs = MaterialTheme.colorScheme
+    return when (this) {
+        SpotReliabilityUiState.HIGH ->
+            SpotPeekPalette(cs.primary, cs.onPrimary, stringResource(Res.string.home_peek_spot_high), FILL_HIGH)
+        SpotReliabilityUiState.MEDIUM ->
+            SpotPeekPalette(cs.secondary, cs.onSecondary, stringResource(Res.string.home_peek_spot_medium), FILL_MEDIUM)
+        SpotReliabilityUiState.LOW ->
+            SpotPeekPalette(cs.error, cs.onError, stringResource(Res.string.home_peek_spot_low), FILL_LOW)
+        SpotReliabilityUiState.MANUAL ->
+            SpotPeekPalette(cs.tertiary, cs.onTertiary, stringResource(Res.string.home_peek_spot_manual), FILL_MANUAL)
+    }
+}
+
+private const val FILL_HIGH = 1.0f
+private const val FILL_MEDIUM = 0.65f
+private const val FILL_LOW = 0.35f
+private const val FILL_MANUAL = 0.80f
+
+private fun remainingMinutes(expiresAtMs: Long): Int? {
+    if (expiresAtMs <= 0L) return null
+    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
+    val remaining = ((expiresAtMs - nowMs) / 60_000L).toInt()
+    return if (remaining > 0) remaining else null
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ParkingPeekRow — sesión activa (v1)
+// ═════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun ParkingPeekRow(
@@ -292,84 +487,82 @@ private fun ParkingPeekRow(
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
     }
-    val displayText = locationDisplayText(
-        placeInfo = parking.placeInfo,
-        address = parking.address,
+    val timeAgo = relativeTimeText(parking.location.timestamp)
+    val title = peekTitle(
+        placeName = parking.placeInfo?.name,
+        addressLine = parking.address?.displayLine,
         lat = parking.location.latitude,
         lon = parking.location.longitude,
     )
-    val timeAgo = relativeTimeText(parking.location.timestamp)
 
-    Column {
-        // ── Info row ──────────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                Icons.Filled.DirectionsCar,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.basicMarquee(),
+    PeekStateCard(
+        headerLabel = stringResource(Res.string.home_peek_active_session),
+        title = title,
+        onDismiss = onDismiss,
+        leading = { PeekHeaderIconChip(icon = Icons.Filled.DirectionsCar) },
+        content = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                StatColumn(
+                    label = stringResource(Res.string.home_peek_parked_label),
+                    value = timeAgo,
+                    modifier = Modifier.weight(1f),
                 )
-                if (distM != null) {
-                    Text(
-                        text = "${distanceString(distM)}  ·  ${walkTimeString(distM)}  ·  $timeAgo",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                } else {
-                    Text(
-                        text = timeAgo,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
-                    )
-                }
+                StatColumn(
+                    label = stringResource(Res.string.home_peek_walk_label),
+                    value = if (distM != null) "${distanceString(distM)} · ${walkTimeString(distM)}" else "—",
+                    modifier = Modifier.weight(1f),
+                )
             }
+            Spacer(Modifier.height(12.dp))
+        },
+        actions = {
+            PapFooterButton(
+                label = stringResource(Res.string.home_navigate_to_vehicle),
+                leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk,
+                onClick = onWalkToCar,
+                style = PapFooterButtonStyle.Filled,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            PapFooterButton(
+                label = stringResource(Res.string.home_parking_release),
+                leadingIcon = Icons.AutoMirrored.Outlined.Logout,
+                onClick = onRelease,
+                style = PapFooterButtonStyle.Outlined,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
+}
 
-            PeekDismissButton(onDismiss = onDismiss)
-        }
-
-        // Two equally-weighted footer actions. Outlined "Walk to car" is the
-        // secondary affordance; filled "Release spot" is now also green (the
-        // release action is conceptually positive — sharing with the
-        // community — and the destructive choice lives behind the dialog
-        // shown on tap). [PEEK-ACTIONS-001]
-        PapFooterButton(
-            label = stringResource(Res.string.home_navigate_to_vehicle),
-            leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk,
-            onClick = onWalkToCar,
-            style = PapFooterButtonStyle.Outlined,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+@Composable
+private fun StatColumn(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = SECTION_TRACKING_SP.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
         )
-        PapFooterButton(
-            label = stringResource(Res.string.home_parking_release),
-            leadingIcon = Icons.AutoMirrored.Outlined.Logout,
-            onClick = onRelease,
-            style = PapFooterButtonStyle.Filled,
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp),
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Reporting row — manual "Avisar plaza" flow
-// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// ReportPeekRow — modo "Avisar plaza libre" (v1)
+// ═════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun ReportPeekRow(
@@ -383,63 +576,36 @@ private fun ReportPeekRow(
         info?.address?.displayLine != null -> info.address.displayLine!!
         else -> stringResource(Res.string.home_address_unknown)
     }
-    val placeIcon = info?.placeInfo?.category?.icon
 
-    Column {
-        // Info row — mirrors SpotPeekRow / ParkingPeekRow: place icon + content
-        // column + dismiss button on the right.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = placeIcon ?: Icons.Outlined.PinDrop,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
+    PeekStateCard(
+        headerLabel = stringResource(Res.string.home_report_header_label),
+        title = primaryText,
+        onDismiss = onCancel,
+        leading = { PeekHeaderIconChip(icon = Icons.Outlined.Campaign) },
+        content = {
+            HelperRow(
+                icon = Icons.Outlined.Info,
+                iconTint = MaterialTheme.colorScheme.secondary,
+                primary = stringResource(Res.string.home_report_helper_primary),
+                secondary = stringResource(Res.string.home_report_helper_secondary),
             )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = primaryText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.basicMarquee(),
-                )
-                Text(
-                    text = stringResource(Res.string.home_report_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            PeekDismissButton(onDismiss = onCancel)
-        }
-
-        // Primary action — same `PapFooterButton` style as the navigate /
-        // release CTAs in the other peek rows, so the affordance reads as
-        // "the action for this state" across all four state variants.
-        PapFooterButton(
-            label = stringResource(Res.string.home_report_action),
-            leadingIcon = Icons.Outlined.Campaign,
-            onClick = onConfirm,
-            style = PapFooterButtonStyle.Filled,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-        )
-        Spacer(Modifier.height(12.dp))
-    }
+            Spacer(Modifier.height(14.dp))
+        },
+        actions = {
+            PapFooterButton(
+                label = stringResource(Res.string.home_report_confirm_here),
+                leadingIcon = Icons.Outlined.Campaign,
+                onClick = onConfirm,
+                style = PapFooterButtonStyle.Filled,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Adding-zone row — manual "Guardar zona" flow
-// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// AddingZonePeekRow — modo "Nueva zona habitual" (v1)
+// ═════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun AddingZonePeekRow(
@@ -455,80 +621,53 @@ private fun AddingZonePeekRow(
         info?.address?.displayLine != null -> info.address.displayLine!!
         else -> stringResource(Res.string.home_address_unknown)
     }
-    val placeIcon = info?.placeInfo?.category?.icon
 
-    Column {
-        // Header row — same molde as Report/Spot/Parking: place icon from
-        // the map context + address + dismiss × on the right. Says "where
-        // are we saving this", not "what icon did you pick".
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(
-                imageVector = placeIcon ?: Icons.Outlined.PinDrop,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
+    PeekStateCard(
+        headerLabel = stringResource(Res.string.home_zone_header_label),
+        title = primaryText,
+        onDismiss = onCancel,
+        leading = { PeekHeaderIconChip(icon = Icons.Outlined.Bookmark) },
+        content = {
+            androidx.compose.material3.OutlinedTextField(
+                value = state.addingZoneName,
+                onValueChange = onNameChange,
+                placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
+                singleLine = true,
+                leadingIcon = {
+                    Icon(
+                        imageVector = zoneIconFor(state.addingZoneIconKey),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
             )
-
+            Spacer(Modifier.height(12.dp))
             Text(
-                text = primaryText,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .basicMarquee(),
+                text = stringResource(Res.string.home_zone_icon_section).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = SECTION_TRACKING_SP.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
             )
-
-            PeekDismissButton(onDismiss = onCancel)
-        }
-
-        // Name input — full width, leading icon mirrors the user's icon
-        // choice so the picker selection has a visible echo here. Updates
-        // live as the user taps a different chip below.
-        androidx.compose.material3.OutlinedTextField(
-            value = state.addingZoneName,
-            onValueChange = onNameChange,
-            placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
-            singleLine = true,
-            leadingIcon = {
-                Icon(
-                    imageVector = zoneIconFor(state.addingZoneIconKey),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-        )
-
-        // Icon picker — horizontal scrollable row of preset chips, one
-        // tap-able per ZoneIcon entry. Selected chip is highlighted with
-        // primaryContainer so the choice is visible at a glance.
-        ZoneIconPickerRow(
-            selectedKey = state.addingZoneIconKey,
-            onSelect = onIconChange,
-            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-        )
-
-        PapFooterButton(
-            label = stringResource(Res.string.home_zone_save_action),
-            leadingIcon = Icons.Outlined.Bookmark,
-            onClick = onConfirm,
-            style = PapFooterButtonStyle.Filled,
-            enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-        )
-        Spacer(Modifier.height(12.dp))
-    }
+            Spacer(Modifier.height(6.dp))
+            ZoneIconPickerRow(
+                selectedKey = state.addingZoneIconKey,
+                onSelect = onIconChange,
+            )
+            Spacer(Modifier.height(14.dp))
+        },
+        actions = {
+            PapFooterButton(
+                label = stringResource(Res.string.home_zone_save_action),
+                leadingIcon = Icons.Outlined.Bookmark,
+                onClick = onConfirm,
+                style = PapFooterButtonStyle.Filled,
+                enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
 }
 
 @Composable
@@ -540,13 +679,12 @@ private fun ZoneIconPickerRow(
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 20.dp),
     ) {
         items(items = ZoneIcon.PRESETS, key = { it }) { key ->
             val isSelected = key == selectedKey
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(ZONE_ICON_CHIP_DP.dp)
                     .clip(CircleShape)
                     .background(
                         if (isSelected) MaterialTheme.colorScheme.primaryContainer
@@ -567,40 +705,73 @@ private fun ZoneIconPickerRow(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared peek widgets
-// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// Helper row — icon + primary line + secondary line (used by Report mode)
+// ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Visually de-emphasised dismiss button. Kept visible (the user needs to
- * recognise that the peek modal is a *state* they can clear to keep
- * exploring the map) but stripped of background and ink so the primary
- * action below it wins the visual hierarchy. [PEEK-ACTIONS-001]
- */
 @Composable
-private fun PeekDismissButton(onDismiss: () -> Unit) {
-    Box(
+internal fun HelperRow(
+    icon: ImageVector,
+    primary: String,
+    secondary: String? = null,
+    iconTint: Color = MaterialTheme.colorScheme.primary,
+) {
+    Row(
         modifier = Modifier
-            .size(DISMISS_HIT_TARGET)
-            .clickable(onClick = onDismiss),
-        contentAlignment = Alignment.Center,
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(HELPER_CORNER_DP.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = HELPER_BG_ALPHA))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(
-            Icons.Outlined.Close,
-            contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISMISS_ICON_ALPHA),
-            modifier = Modifier.size(DISMISS_ICON_SIZE),
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(18.dp),
         )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = primary,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!secondary.isNullOrBlank()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = secondary,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = HELPER_SECONDARY_ALPHA),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
-private val DISMISS_HIT_TARGET     = 40.dp   // a11y minimum hit target
-private val DISMISS_ICON_SIZE      = 18.dp
-private const val DISMISS_ICON_ALPHA = 0.45f
+/**
+ * Peek-friendly title resolver. Returns place name OR address line, **never**
+ * concatenated — the peek/state cards have tight horizontal space and a long
+ * "name · address" line truncates ugly mid-word.
+ */
+@Composable
+internal fun peekTitle(
+    placeName: String?,
+    addressLine: String?,
+    lat: Double,
+    lon: Double,
+): String = placeName?.takeIf { it.isNotBlank() }
+    ?: addressLine?.takeIf { it.isNotBlank() }
+    ?: io.apptolast.paparcar.presentation.util.formatCoords(lat, lon)
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Default location row
-// ─────────────────────────────────────────────────────────────────────────────
+// ═════════════════════════════════════════════════════════════════════════════
+// Default browse row — location header with libres badge
+// ═════════════════════════════════════════════════════════════════════════════
 
 @Composable
 private fun CameraLocationRow(state: HomeState, freeCount: Int) {
@@ -649,7 +820,6 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
                 )
             }
         }
-        // Free spots badge
         Surface(
             color = if (freeCount > 0) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceVariant,
@@ -681,10 +851,6 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Loading skeleton for the peek handle (shown while cameraLocationInfo == null)
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 private fun PeekLocationSkeleton() {
     val transition = rememberInfiniteTransition(label = "peek_skeleton")
@@ -706,14 +872,12 @@ private fun PeekLocationSkeleton() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Icon placeholder
         Box(
             modifier = Modifier
                 .size(26.dp)
                 .clip(CircleShape)
                 .background(skeletonColor.copy(alpha = pulseAlpha)),
         )
-        // Text lines placeholder
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -733,7 +897,6 @@ private fun PeekLocationSkeleton() {
                     .background(skeletonColor.copy(alpha = pulseAlpha * 0.7f)),
             )
         }
-        // Badge placeholder
         Box(
             modifier = Modifier
                 .size(width = 56.dp, height = 26.dp)
@@ -742,3 +905,27 @@ private fun PeekLocationSkeleton() {
         )
     }
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Tokens shared across peek states
+// ═════════════════════════════════════════════════════════════════════════════
+
+private const val SPOT_BADGE_DP = 44
+private const val SPOT_BADGE_CORNER_DP = 12
+private const val BOOKMARK_BOX_DP = 50
+private const val ZONE_ICON_CHIP_DP = 40
+private const val HELPER_CORNER_DP = 10
+private const val INFO_PILL_RADIUS_DP = 999
+private const val META_ICON_DP = 18
+private const val RELIABILITY_BAR_HEIGHT_DP = 6
+
+private const val SECTION_TRACKING_SP = 0.8
+private const val SECTION_LABEL_ALPHA = 0.55f
+private const val META_VALUE_ALPHA = 0.7f
+private const val TTL_ALPHA = 0.55f
+private const val BOOKMARK_BG_ALPHA = 0.6f
+private const val BOOKMARK_ALPHA = 0.85f
+private const val HINT_ALPHA = 0.5f
+private const val HELPER_BG_ALPHA = 0.5f
+private const val HELPER_SECONDARY_ALPHA = 0.6f
+private const val RELIABILITY_BAR_BG_ALPHA = 0.3f

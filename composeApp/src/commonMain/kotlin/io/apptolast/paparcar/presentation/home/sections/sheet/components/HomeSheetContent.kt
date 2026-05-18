@@ -40,15 +40,12 @@ import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.locationDisplayText
-import io.apptolast.paparcar.presentation.util.toReliabilityUiState
-import io.apptolast.paparcar.ui.components.ParkingSpotItem
-import io.apptolast.paparcar.ui.components.SpotUiState
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
+import paparcar.composeapp.generated.resources.home_my_car_section_header
 import paparcar.composeapp.generated.resources.home_size_filter_all
-import paparcar.composeapp.generated.resources.home_where_to_park_title
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
@@ -58,18 +55,16 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
 /**
  * Emits the sheet content items into a [LazyListScope].
  *
- * ## Section order
- *
- *  1. **Parking** (personal block) — my car status. Banner when parked;
- *     header + empty CTA when not parked. Visible once permissions are granted.
- *  2. **Thin divider** — separates personal data from community discovery.
- *  3. **Zone chips** (discovery block, when zones exist) — horizontal row that
- *     moves the camera to a saved habitual area. Sits immediately above the
- *     spots list so the zona → búsqueda de spots flow is visually obvious.
- *  4. **Spots** — zone empty CTA (when no zones) followed by the spots header,
- *     size filter, report CTA, and the spot list. The zone empty card lives
- *     inside the discovery block so both states (chips / empty) occupy the
- *     same visual position relative to spots.
+ * Section order (Home v1 design):
+ *  1. **Zone chips** — habitual-place shortcuts at the top of the sheet so the
+ *     discovery flow (zone → spots) reads top-down. Falls through to a
+ *     zones empty CTA card when none saved.
+ *  2. **"TU COCHE" header + parking row** — personal block: header always
+ *     visible, then either the populated parking row or the manual-park
+ *     empty card.
+ *  3. **"PLAZAS LIBRES CERCA · N" header + filter bar + spots list** — the
+ *     community discovery feed, capped by a "Report a free spot" CTA after
+ *     the list.
  */
 internal fun LazyListScope.homeSheetItems(
     state: HomeState,
@@ -85,39 +80,42 @@ internal fun LazyListScope.homeSheetItems(
     } else {
         state.nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == state.sizeFilter }
     }
-    val showParkingFirst = state.allPermissionsGranted
+    val showPersonalBlocks = state.allPermissionsGranted
     val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
     val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
-    // ── 1. Personal block: parking ──────────────────────────────────────────
-    if (showParkingFirst) {
-        parkingSection(state, onParkingClick, onManualPark)
-    }
-
-    // ── 2. Divider: personal → discovery ───────────────────────────────────
-    if (showParkingFirst) {
-        item("mid_divider") {
-            HorizontalDivider(
-                modifier = Modifier.padding(top = 8.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.07f),
-            )
-        }
-    }
-
-    // ── 3. Zone chips (discovery navigation, above spots) ──────────────────
+    // ── 1. Zone chips (discovery navigation, top of sheet) ─────────────────
     if (showZoneChips) {
         item("zones_chips") {
             HomeZoneChips(
                 zones = state.zones,
                 onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
                 onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+    } else if (showZonesEmpty) {
+        item("zones_empty_card") {
+            HomeZonesEmptyCard(
+                onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
             )
         }
     }
 
-    // ── 4. Spots (with zone empty CTA at top when no zones) ────────────────
+    // ── 2. "TU COCHE" header + parking row (personal block) ────────────────
+    if (showPersonalBlocks) {
+        item("my_car_header") {
+            HomeSectionHeader(
+                title = stringResource(Res.string.home_my_car_section_header).uppercase(),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            )
+        }
+        parkingSection(state, onParkingClick, onManualPark)
+    }
+
+    // ── 3. Spots (header + filter bar + list + report CTA) ─────────────────
     spotsSection(
         state = state,
         onIntent = onIntent,
@@ -126,8 +124,6 @@ internal fun LazyListScope.homeSheetItems(
         selectedSpotId = selectedSpotId,
         filteredSpots = filteredSpots,
         showFilterBar = showFilterBar,
-        showZonesEmpty = showZonesEmpty,
-        onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
     )
 }
 
@@ -144,21 +140,21 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     val spotIdx = filteredSpots.indexOfFirst { it.id == spotId }
     if (spotIdx < 0) return -1
 
-    val showParkingFirst = state.allPermissionsGranted
+    val showPersonalBlocks = state.allPermissionsGranted
     val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
     val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
     var base = 1 // handle / top item in LazyColumn
-    if (showParkingFirst) {
-        base += if (state.userParking != null) 1 else 2 // banner OR (header + empty)
-        base += 1 // mid_divider
+    if (showZoneChips) base += 1        // zones_chips
+    else if (showZonesEmpty) base += 1  // zones_empty_card
+    if (showPersonalBlocks) {
+        base += 1                       // my_car_header
+        base += if (state.userParking != null) 1 else 1 // parking_banner OR parking_empty (no separate header now)
     }
-    if (showZoneChips) base += 1 // zones_chips
-    if (showZonesEmpty) base += 1 // zones_empty_card (inside spotsSection)
-    base += 1 // spots_header
-    if (showFilterBar) base += 1 // filter_bar
-    if (state.allPermissionsGranted) base += 1 // report_spot_cta
+    base += 1                           // spots_header
+    if (showFilterBar) base += 1        // filter_bar
+    // report_spot_cta sits AFTER the spot list, so it does not shift indices.
     return base + spotIdx
 }
 
@@ -181,13 +177,7 @@ private fun LazyListScope.parkingSection(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
-    } else if (state.allPermissionsGranted) {
-        item("parking_header") {
-            HomeSectionHeader(
-                title = stringResource(Res.string.home_where_to_park_title),
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-            )
-        }
+    } else {
         item("parking_empty") {
             HomeParkingEmptyCard(
                 onManualPark = onManualPark,
@@ -205,27 +195,14 @@ private fun LazyListScope.spotsSection(
     selectedSpotId: String?,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
-    showZonesEmpty: Boolean,
-    onAddZone: () -> Unit,
 ) {
-    // Zone empty card — onboarding prompt when no zones, at the top of the
-    // discovery block so it reads "here's where your zones will appear above spots"
-    if (showZonesEmpty) {
-        item("zones_empty_card") {
-            HomeZonesEmptyCard(
-                onAddZone = onAddZone,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
-            )
-        }
-    }
-
     item("spots_header") {
         HomeSectionHeader(
             title = if (filteredSpots.isNotEmpty())
                 stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
             else
                 stringResource(Res.string.home_feed_nearby),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
         )
     }
 
@@ -235,15 +212,6 @@ private fun LazyListScope.spotsSection(
                 selectedSize = state.sizeFilter,
                 onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            )
-        }
-    }
-
-    if (state.allPermissionsGranted) {
-        item("report_spot_cta") {
-            HomeReportSpotCard(
-                onReport = { onIntent(HomeIntent.EnterReportMode) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
     }
@@ -270,27 +238,11 @@ private fun LazyListScope.spotsSection(
         }
         else -> itemsIndexed(filteredSpots, key = { _, spot -> spot.id }) { index, spot ->
             Column {
-                ParkingSpotItem(
-                    data = SpotUiState(
-                        id = spot.id,
-                        displayLocation = locationDisplayText(
-                            spot.placeInfo, spot.address,
-                            spot.location.latitude, spot.location.longitude,
-                            showEmoji = false,
-                        ),
-                        distanceMeters = state.userGpsPoint?.let { gps ->
-                            distanceMeters(
-                                gps.latitude, gps.longitude,
-                                spot.location.latitude, spot.location.longitude,
-                            )
-                        },
-                        reportedAtMs = spot.location.timestamp,
-                        reliability = spot.toReliabilityUiState(),
-                        enRouteCount = spot.enRouteCount,
-                        expiresAt = spot.expiresAt,
-                    ),
+                HomeSpotRow(
+                    spot = spot,
+                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     isSelected = spot.id == selectedSpotId,
-                    onClick = {
+                    onSelect = {
                         onCameraMove(spot.location.latitude, spot.location.longitude)
                         onSpotSelect(spot.location.latitude, spot.location.longitude, spot.id)
                     },
@@ -302,6 +254,15 @@ private fun LazyListScope.spotsSection(
                     )
                 }
             }
+        }
+    }
+
+    if (state.allPermissionsGranted) {
+        item("report_spot_cta") {
+            HomeReportSpotCard(
+                onReport = { onIntent(HomeIntent.EnterReportMode) },
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+            )
         }
     }
 }

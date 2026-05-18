@@ -67,10 +67,9 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 //  SECCIÓN A — DISEÑO ACTUAL
 //  Bottom sheet con lista vertical de HomeSpotRow. El peek muestra contexto de
 //  cámara + badge de spots libres. Diseño implementado en producción.
-//  Componentes: HomeSheetContent · HomeSpotRow · HomeSpotRowGlass ·
-//               HomeParkingRow · HomePeekHandle · HomeParkingEmptyCard ·
-//               HomeSectionHeader · HomeEmptySpots · HomePermissionsCard ·
-//               PaparcarBottomActionBar
+//  Componentes: HomeSheetContent · HomeSpotRow · HomeParkingRow ·
+//               HomePeekHandle · HomeParkingEmptyCard · HomeSectionHeader ·
+//               HomeEmptySpots · HomePermissionsCard · PaparcarBottomActionBar
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─── A — HomePeekHandle ───────────────────────────────────────────────────────
@@ -316,65 +315,6 @@ private fun HomeSpotRowSelectedNoDistanceLightPreview() {
             HomeSpotRow(
                 spot = fakeSpotWithPoi("p4", 7L),
                 userLocation = null,
-                isSelected = true,
-                onSelect = {},
-            )
-        }
-    }
-}
-
-// ─── A — HomeSpotRowGlass ─────────────────────────────────────────────────────
-
-@Preview(name = "A — HomeSpotRowGlass: 3 frescuras (oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES, heightDp = 340)
-@Composable
-private fun HomeSpotRowGlassListDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
-        Column(
-            modifier = Modifier.padding(vertical = 12.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-        ) {
-            fakeSpotsVariedFreshness().forEach { spot ->
-                HomeSpotRowGlass(
-                    spot = spot,
-                    userLocation = Pair(40.4165, -3.7030),
-                    onSelect = {},
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-            }
-        }
-    }
-}
-
-@Preview(name = "A — HomeSpotRowGlass: 3 frescuras (claro)", showBackground = true, heightDp = 340)
-@Composable
-private fun HomeSpotRowGlassListLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        Column(
-            modifier = Modifier.padding(vertical = 12.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-        ) {
-            fakeSpotsVariedFreshness().forEach { spot ->
-                HomeSpotRowGlass(
-                    spot = spot,
-                    userLocation = Pair(40.4165, -3.7030),
-                    onSelect = {},
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                )
-            }
-        }
-    }
-}
-
-@Preview(name = "A — HomeSpotRowGlass: seleccionado (oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun HomeSpotRowGlassSelectedDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(12.dp)) {
-            HomeSpotRowGlass(
-                spot = fakeSpotWithPoi("g_sel", 4L),
-                userLocation = Pair(40.4165, -3.7030),
                 isSelected = true,
                 onSelect = {},
             )

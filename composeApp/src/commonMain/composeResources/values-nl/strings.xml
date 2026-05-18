@@ -44,8 +44,6 @@
     <string name="home_reliability_high">Automatisch gedetecteerd</string>
     <string name="home_reliability_auto">Ongeveer</string>
     <string name="home_search_clear_cd">Zoekopdracht wissen</string>
-    <string name="home_menu_close_cd">Menu sluiten</string>
-    <string name="home_menu_open_cd">Menu openen</string>
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">%1$d min geleden</string>
     <string name="home_spot_freshness_hours">%1$d u geleden</string>
@@ -369,4 +367,105 @@
     <string name="gps_disclaimer_confirm">Begrepen</string>
     <string name="home_peek_dismiss_cd">Sluiten</string>
     <string name="bt_config_cd_back">Terug</string>
+
+    <!-- ───────────────────────────────────────────────────────────────── -->
+    <!-- v1 redesign — peek cards, modal states, vehicle stats, etc.       -->
+    <!-- ───────────────────────────────────────────────────────────────── -->
+
+    <!-- ConfirmationBottomSheet (parkeerdetectie) -->
+    <string name="confirmation_sheet_question">Heb je hier geparkeerd?</string>
+    <string name="confirmation_sheet_method_bt">Gedetecteerd via Bluetooth · %1$s geleden</string>
+    <string name="confirmation_sheet_method_ar">Automatisch gedetecteerd · %1$s geleden</string>
+
+    <!-- Connectivity banner / snackbar -->
+    <string name="connectivity_offline_banner">Je bent offline</string>
+    <string name="connectivity_restored_snackbar">Weer online</string>
+    <string name="connectivity_action_blocked_offline">Maak verbinding met internet om dat te doen</string>
+
+    <!-- Home cd_spot accessibility label -->
+    <string name="home_cd_spot">Vrije parkeerplek bij %1$s</string>
+
+    <!-- CTA pills in Home cards -->
+    <string name="home_manual_park_pill">Markeren</string>
+    <string name="home_zones_empty_pill">Toevoegen</string>
+
+    <!-- Sheet section headers + permissies -->
+    <string name="home_my_car_section_header">Jouw auto</string>
+    <string name="home_permissions_title">Locatie inschakelen</string>
+
+    <!-- ParkingPeekRow (hero card van geselecteerd voertuig) -->
+    <string name="home_peek_active_session">Actieve sessie</string>
+    <string name="home_peek_parked_label">Geparkeerd</string>
+    <string name="home_peek_walk_label">Te voet</string>
+
+    <!-- SpotPeekRow (hero card van geselecteerde plek) -->
+    <string name="home_peek_reliability_label">Betrouwbaarheid</string>
+    <string name="home_peek_spot_expires">Verloopt over %1$d min</string>
+    <string name="home_peek_spot_still_free_hint">Nog vrij? Tik om te bevestigen bij aankomst</string>
+    <string name="home_peek_spot_high">Betrouwbare plek</string>
+    <string name="home_peek_spot_medium">Gemiddelde plek</string>
+    <string name="home_peek_spot_low">Lage plek</string>
+    <string name="home_peek_spot_manual">Handmatige plek</string>
+
+    <!-- ReportPeekRow (vrije plek melden) -->
+    <string name="home_report_header_label">Vrije plek melden</string>
+    <string name="home_report_helper_primary">Centreer de pin waar je de plek verlaat</string>
+    <string name="home_report_helper_secondary">Bestuurders in de buurt krijgen direct een melding</string>
+    <string name="home_report_confirm_here">Plek hier bevestigen</string>
+
+    <!-- HomeSpotRow reliability tier label -->
+    <string name="home_spot_reliability_high">Betrouwbaar</string>
+    <string name="home_spot_reliability_medium">Gemiddeld</string>
+    <string name="home_spot_reliability_low">Laag</string>
+    <string name="home_spot_reliability_manual">Handmatig</string>
+
+    <!-- AddingZonePeekRow (nieuwe vaste zone) -->
+    <string name="home_zone_header_label">Nieuwe vaste zone</string>
+    <string name="home_zone_icon_section">Icoon</string>
+
+    <!-- My Car — delete confirmation + edit -->
+    <string name="my_car_delete_vehicle">Verwijderen</string>
+    <string name="my_car_edit_vehicle">Bewerken</string>
+    <string name="my_car_delete_confirm_title">Voertuig verwijderen?</string>
+    <string name="my_car_delete_confirm_message">Dit voertuig wordt permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.</string>
+    <string name="my_car_delete_confirm_action">Verwijderen</string>
+    <string name="my_car_delete_cancel">Annuleren</string>
+
+    <!-- Compact relative time — narrow chips -->
+    <string name="relative_time_compact_now">&lt;1m</string>
+    <string name="relative_time_compact_min">%1$dm</string>
+    <string name="relative_time_compact_hour">%1$du</string>
+    <string name="relative_time_compact_day">%1$dd</string>
+
+    <!-- Settings — language + delete account + contact -->
+    <string name="settings_language">Taal</string>
+    <string name="settings_language_desc">Weergavetaal van de app</string>
+    <string name="settings_language_auto">Systeemstandaard</string>
+    <string name="settings_contact">Contact</string>
+    <!-- Settings v2 — UI refactor -->
+    <string name="settings_active_vehicle_label">Actief voertuig</string>
+    <string name="settings_active_vehicle_subtitle">Tik om te beheren</string>
+    <string name="settings_notifications_title">Meldingen</string>
+    <string name="settings_notifications_subtitle">App-meldingen ontvangen</string>
+    <string name="settings_danger_zone">Gevarenzone</string>
+    <string name="settings_danger_zone_subtitle">Onomkeerbare acties</string>
+    <string name="settings_profile_member_since">Lid sinds %1$s %2$d</string>
+    <string name="settings_profile_delete_account">Account verwijderen</string>
+    <string name="settings_delete_account_confirm_title">Account verwijderen?</string>
+    <string name="settings_delete_account_confirm_message">Al je gegevens worden permanent verwijderd. Deze actie kan niet ongedaan worden gemaakt.</string>
+    <string name="settings_delete_account_confirm_action">Account verwijderen</string>
+    <string name="settings_delete_account_cancel">Annuleren</string>
+
+    <!-- Vehicle detail + vehicles history -->
+    <string name="vehicle_detail_tab_details">Details</string>
+    <string name="vehicle_detail_tab_history">Geschiedenis</string>
+    <string name="vehicle_detail_cd_back">Terug</string>
+    <string name="vehicle_detail_history_empty">Nog geen parkeersessies geregistreerd voor dit voertuig.</string>
+    <string name="vehicle_registration_edit_title">Voertuig bewerken</string>
+    <string name="vehicles_view_history">Parkeergeschiedenis bekijken</string>
+
+    <!-- VehicleStatsRow inline cards -->
+    <string name="vehicle_stats_sessions">sessies</string>
+    <string name="vehicle_stats_last_session">laatste</string>
+    <string name="vehicle_stats_reliability">betrouwbaarheid</string>
 </resources>

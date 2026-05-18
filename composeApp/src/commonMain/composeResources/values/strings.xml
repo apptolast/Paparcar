@@ -12,6 +12,20 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">You are parked</string>
     <string name="home_where_to_park_title">Where do you want to park?</string>
+    <!-- Sheet section header above the parking row (always shown, even when empty) -->
+    <string name="home_my_car_section_header">Your car</string>
+    <!-- ParkingPeekRow (selected vehicle hero card) -->
+    <string name="home_peek_active_session">Active session</string>
+    <string name="home_peek_parked_label">Parked</string>
+    <string name="home_peek_walk_label">On foot</string>
+    <!-- SpotPeekRow (selected spot hero card) -->
+    <string name="home_peek_reliability_label">Reliability</string>
+    <string name="home_peek_spot_expires">Expires in %1$d min</string>
+    <string name="home_peek_spot_still_free_hint">Still free? Tap to confirm when you arrive</string>
+    <string name="home_peek_spot_high">Reliable spot</string>
+    <string name="home_peek_spot_medium">Medium spot</string>
+    <string name="home_peek_spot_low">Low spot</string>
+    <string name="home_peek_spot_manual">Manual spot</string>
     <string name="home_active_vehicle_title">Active vehicle</string>
     <string name="home_parking_release">Release spot</string>
     <string name="home_navigate_to_spot">Directions</string>
@@ -22,6 +36,7 @@
     <string name="home_feed_nearby">Near you</string>
     <string name="home_feed_nearby_with_count">%1$d free spots near you</string>
     <string name="home_feed_activity">Recent activity</string>
+    <string name="home_permissions_title">Enable location</string>
     <string name="home_permissions_message">Enable location to see nearby spots</string>
     <string name="home_permissions_button">Enable permissions</string>
     <string name="home_empty_title">No spots nearby</string>
@@ -30,14 +45,15 @@
     <string name="home_spot_status_free">Free</string>
     <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Unknown location</string>
-    <string name="home_release_dialog_title">Release spot?</string>
-    <string name="home_release_dialog_message">Share your spot with nearby drivers, or delete it without sharing.</string>
-    <string name="home_release_dialog_publish">Publish spot</string>
-    <string name="home_release_dialog_delete_only">Just delete</string>
+    <string name="home_release_dialog_title">Releasing the spot — share it?</string>
+    <string name="home_release_dialog_message">When you notify, other drivers get an alert and can arrive sooner.</string>
+    <string name="home_release_dialog_publish">Release and notify</string>
+    <string name="home_release_dialog_delete_only">Just release</string>
     <string name="home_release_dialog_cancel">Cancel</string>
     <string name="home_parking_peek_label">You are parked · %1$s</string>
     <string name="home_manual_park_title">Park here</string>
     <string name="home_manual_park_subtitle">Manually save your parking location</string>
+    <string name="home_manual_park_pill">Mark</string>
     <string name="home_action_report">Report</string>
     <string name="home_action_park">Park here</string>
     <string name="home_parking_view_on_map">View on map</string>
@@ -52,6 +68,11 @@
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">%1$dm ago</string>
     <string name="home_spot_freshness_hours">%1$dh ago</string>
+    <!-- HomeSpotRow reliability tier label (uppercase badge in meta row) -->
+    <string name="home_spot_reliability_high">Reliable</string>
+    <string name="home_spot_reliability_medium">Medium</string>
+    <string name="home_spot_reliability_low">Low</string>
+    <string name="home_spot_reliability_manual">Manual</string>
     <!-- SpotCard — %1$d = number of users currently en route -->
     <string name="spot_card_en_route">%1$d en route</string>
     <string name="spot_card_reliability_high">Auto</string>
@@ -230,6 +251,11 @@
     <string name="home_report_action">Notify the community</string>
     <string name="home_report_fab_cd">Report a free spot</string>
     <string name="home_report_cancel_cd">Cancel report</string>
+    <!-- Refreshed copy for the reporting peek card (v1 design) -->
+    <string name="home_report_header_label">Report free spot</string>
+    <string name="home_report_helper_primary">Center the pin where you\'re leaving the spot</string>
+    <string name="home_report_helper_secondary">Nearby drivers get notified instantly</string>
+    <string name="home_report_confirm_here">Confirm spot here</string>
 
     <!-- Home Zones — habitual places -->
     <string name="home_zone_name_placeholder">Name (e.g. Home, Work)</string>
@@ -237,9 +263,13 @@
     <string name="home_zone_cancel_cd">Cancel new zone</string>
     <string name="home_zone_add_chip_cd">Add a new zone</string>
     <string name="home_zone_icon_picker_cd">Choose an icon</string>
+    <!-- Refreshed copy for the new-zone peek card (v1 design) -->
+    <string name="home_zone_header_label">New habitual zone</string>
+    <string name="home_zone_icon_section">Icon</string>
     <string name="home_zones_section">Habitual places</string>
     <string name="home_zones_empty_title">Save a habitual place</string>
     <string name="home_zones_empty_subtitle">Home, work, family\u2026 one-tap navigation</string>
+    <string name="home_zones_empty_pill">Add</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -279,6 +309,15 @@
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_licenses">Open source licenses</string>
     <string name="settings_contact">Contact</string>
+    <!-- Settings v2 — refactored UI -->
+    <string name="settings_active_vehicle_label">Active vehicle</string>
+    <string name="settings_active_vehicle_subtitle">Tap to manage</string>
+    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_notifications_subtitle">Receive app alerts</string>
+    <string name="settings_danger_zone">Danger zone</string>
+    <string name="settings_danger_zone_subtitle">Irreversible actions</string>
+    <!-- Profile card: "Member since MAY 2025" — %1$s = month short name uppercase, %2$d = year -->
+    <string name="settings_profile_member_since">Member since %1$s %2$d</string>
 
     <!-- Bottom navigation tabs -->
     <string name="nav_tab_home">Home</string>
@@ -368,6 +407,10 @@
     <string name="vehicle_card_detection_bt">Bluetooth</string>
     <string name="vehicle_card_detection_ar">Auto-detect</string>
     <string name="vehicle_card_detection_off">No detection</string>
+    <!-- VehicleStatsRow inline cards under the hero card -->
+    <string name="vehicle_stats_sessions">sessions</string>
+    <string name="vehicle_stats_last_session">last</string>
+    <string name="vehicle_stats_reliability">reliability</string>
     <!-- DetectionStatusBanner -->
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Auto-detection active</string>
@@ -379,11 +422,15 @@
     <!-- HomeScreen size filter chips -->
     <string name="home_size_filter_all">All</string>
 
-    <!-- ConfirmationBottomSheet -->
+    <!-- ConfirmationBottomSheet (auto-parking detection) -->
     <string name="confirmation_sheet_title">Parking detected</string>
     <string name="confirmation_sheet_subtitle">Did you just park? Auto-publishing in %1$s.</string>
-    <string name="confirmation_sheet_confirm">Publish spot</string>
-    <string name="confirmation_sheet_withdraw">Not now</string>
+    <string name="confirmation_sheet_confirm">Yes, confirm</string>
+    <string name="confirmation_sheet_withdraw">No, ignore</string>
+    <!-- Refreshed copy for the detection sheet (v1 design) -->
+    <string name="confirmation_sheet_question">Did you park here?</string>
+    <string name="confirmation_sheet_method_bt">Detected by Bluetooth · %1$s ago</string>
+    <string name="confirmation_sheet_method_ar">Auto-detected · %1$s ago</string>
     <string name="settings_section_map">Map</string>
     <string name="settings_distance_unit">Imperial units</string>
     <string name="settings_distance_unit_desc">Show distances in miles and feet</string>

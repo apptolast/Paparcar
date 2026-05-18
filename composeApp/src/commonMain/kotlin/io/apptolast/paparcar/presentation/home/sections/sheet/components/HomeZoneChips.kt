@@ -1,8 +1,7 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,15 +33,17 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_zones_empty_pill
 import paparcar.composeapp.generated.resources.home_zones_empty_subtitle
 import paparcar.composeapp.generated.resources.home_zones_empty_title
 
 /**
- * Horizontal row of habitual-place chips shown at the top of the peek
- * sheet (above the parking section). Each chip = icon + name and moves
- * the camera to the zone on tap. The trailing "+" chip enters
- * [HomeMode.AddingZone] so the user can save the current map centre as
- * a new zone. [HOME-ZONES-001]
+ * Habitual-zone chips — navigation shortcuts saved by the user.
+ *
+ * v1 redesign:
+ *  - Pill chips with subtle outlineVariant border for cleaner dark-mode contrast.
+ *  - Trailing "+" chip uses dashed-style primary border (vs solid) so it reads as
+ *    an "add" affordance instead of just another zone. [HOME-ZONES-001]
  */
 @Composable
 internal fun HomeZoneChips(
@@ -54,6 +55,7 @@ internal fun HomeZoneChips(
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
     ) {
         items(zones, key = { it.id }) { zone ->
@@ -76,70 +78,78 @@ private fun ZoneChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(CHIP_CORNER_DP.dp))
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
-            )
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = CHIP_BORDER_ALPHA),
+        ),
+        modifier = modifier,
     ) {
-        Icon(
-            imageVector = zoneIconFor(iconKey),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(CHIP_ICON_DP.dp),
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = zoneIconFor(iconKey),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(CHIP_ICON_DP.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
     }
 }
 
+/**
+ * "+" trailing chip — mirrors [ZoneChip]'s Surface molde exactly so both rows
+ * align to the same height in the LazyRow. Icon-only content with the same
+ * 12/8 padding as the zone chips.
+ */
 @Composable
 private fun AddZoneChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(CHIP_CORNER_DP.dp))
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = ADD_CHIP_BORDER_ALPHA),
+        ),
+        modifier = modifier,
     ) {
-        Icon(
-            imageVector = Icons.Outlined.Add,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(CHIP_ICON_DP.dp),
-        )
+        Box(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(CHIP_ICON_DP.dp),
+            )
+        }
     }
 }
 
 private const val CHIP_CORNER_DP = 18
 private const val CHIP_ICON_DP = 18
+private const val CHIP_BORDER_ALPHA = 0.6f
+private const val ADD_CHIP_BORDER_ALPHA = 0.5f
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Empty zones card — surfaced when the user has no zones saved yet, so the
-// "save habitual place" affordance gets a proper section instead of being
-// hidden behind the single "+" chip. Same visual molde as
-// [HomeParkingEmptyCard] so the two configuration prompts read as a coherent
-// pair when both happen to be empty at the same time.
+// Empty zones card — same molde as HomeParkingEmptyCard for visual coherence.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -150,25 +160,29 @@ internal fun HomeZonesEmptyCard(
     Surface(
         onClick = onAddZone,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(EMPTY_CARD_CORNER_DP.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_CARD_BG_ALPHA),
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = EMPTY_CARD_BORDER_ALPHA),
+        ),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(13.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .size(ICON_BOX_DP.dp)
+                    .clip(RoundedCornerShape(ICON_BOX_CORNER_DP.dp))
+                    .background(MaterialTheme.colorScheme.surface),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Outlined.Bookmark,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -177,21 +191,46 @@ internal fun HomeZonesEmptyCard(
                     stringResource(Res.string.home_zones_empty_title),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     stringResource(Res.string.home_zones_empty_subtitle),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_CARD_SUBTITLE_ALPHA),
                 )
             }
-            Icon(
-                Icons.Outlined.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-            )
+            Surface(
+                shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
+                color = MaterialTheme.colorScheme.primary,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        stringResource(Res.string.home_zones_empty_pill),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
         }
     }
 }
+
+private const val EMPTY_CARD_CORNER_DP = 16
+private const val ICON_BOX_DP = 44
+private const val ICON_BOX_CORNER_DP = 14
+private const val PILL_RADIUS_DP = 999
+private const val EMPTY_CARD_BG_ALPHA = 0.4f
+private const val EMPTY_CARD_BORDER_ALPHA = 0.4f
+private const val EMPTY_CARD_SUBTITLE_ALPHA = 0.55f
