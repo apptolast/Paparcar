@@ -23,14 +23,7 @@ class SettingsViewModel(
     override fun initState(): SettingsState = SettingsState()
 
     init {
-        updateState {
-            copy(
-                autoDetectParking = prefs.autoDetectParking,
-                notifyParkingDetected = prefs.notifyParkingDetected,
-                notifySpotFreed = prefs.notifySpotFreed,
-                mapType = prefs.defaultMapType.toMapType(),
-            )
-        }
+        loadFromPreferences()
         viewModelScope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId != null) {
@@ -40,6 +33,30 @@ class SettingsViewModel(
                     .launchIn(viewModelScope)
             }
         }
+    }
+
+    /**
+     * Snapshot-reads every pref-backed field into state. Called from [init]
+     * and again from the screen via [refreshFromPreferences] every time the
+     * user navigates back to Settings — covers the case where another screen
+     * (e.g. Vehicles, Bluetooth config) mutates a pref while Settings was
+     * off-screen. AppPreferences doesn't expose Flow accessors yet, so a
+     * pull-on-resume strategy is the cheapest way to keep state fresh.
+     */
+    private fun loadFromPreferences() {
+        updateState {
+            copy(
+                autoDetectParking = prefs.autoDetectParking,
+                notifyParkingDetected = prefs.notifyParkingDetected,
+                notifySpotFreed = prefs.notifySpotFreed,
+                mapType = prefs.defaultMapType.toMapType(),
+            )
+        }
+    }
+
+    /** Public hook used by [SettingsScreen] from a `LaunchedEffect(Unit)`. */
+    fun refreshFromPreferences() {
+        loadFromPreferences()
     }
 
     override fun handleIntent(intent: SettingsIntent) {

@@ -159,6 +159,13 @@ fun SettingsScreen(
     val state by viewModel.state.collectAsState()
     val uriHandler = LocalUriHandler.current
 
+    // Refresh pref-backed fields every time the screen re-enters composition,
+    // so preferences mutated elsewhere (e.g. auto-detect toggled from the
+    // BT-config flow) show up as soon as the user comes back to Settings.
+    // AppPreferences doesn't expose Flow accessors yet — this is the
+    // cheapest workaround until we add them.
+    LaunchedEffect(Unit) { viewModel.refreshFromPreferences() }
+
     LaunchedEffect(viewModel.effect) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -460,7 +467,7 @@ private fun ProfileCardV2(
                             color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                         )
                     }
-                    val memberSinceLine = createdAtMs?.let { memberSinceText(it) }
+                    val memberSinceLine = memberSinceText(createdAtMs)
                     if (memberSinceLine != null) {
                         Spacer(Modifier.size(2.dp))
                         Text(
@@ -495,14 +502,28 @@ private fun ProfileCardV2(
     }
 }
 
+/**
+ * Returns the "Member since MAR 2026" line for the profile card.
+ * Returns null when [createdAtMs] is missing or pre-app-launch sentinel
+ * (epoch / legacy migrated accounts without the timestamp populated).
+ *
+ * Month/year extraction is memoized so it doesn't repeat on every recompose
+ * (e.g. when the user scrolls Settings or toggles a switch nearby).
+ */
 @Composable
-private fun memberSinceText(createdAtMs: Long): String {
-    val tz = TimeZone.currentSystemDefault()
-    val dt = Instant.fromEpochMilliseconds(createdAtMs).toLocalDateTime(tz)
-    val monthIdx = (dt.month.ordinal).coerceIn(0, MONTH_SHORT_RES.lastIndex)
+private fun memberSinceText(createdAtMs: Long?): String? {
+    if (createdAtMs == null || createdAtMs < MIN_VALID_CREATED_AT_MS) return null
+    val (monthIdx, year) = remember(createdAtMs) {
+        val tz = TimeZone.currentSystemDefault()
+        val dt = Instant.fromEpochMilliseconds(createdAtMs).toLocalDateTime(tz)
+        dt.month.ordinal.coerceIn(0, MONTH_SHORT_RES.lastIndex) to dt.year
+    }
     val monthShort = stringResource(MONTH_SHORT_RES[monthIdx])
-    return stringResource(Res.string.settings_profile_member_since, monthShort, dt.year)
+    return stringResource(Res.string.settings_profile_member_since, monthShort, year)
 }
+
+/** App launch is 2025; anything before this is a corrupt/legacy timestamp. */
+private const val MIN_VALID_CREATED_AT_MS = 1_700_000_000_000L  // 2023-11-14
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Theme picker — mini previews
