@@ -5,7 +5,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
@@ -44,13 +43,13 @@ import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
 import kotlinx.coroutines.launch
 
 /**
- * Paparcar map markers — three-marker family sharing a coherent circle visual language.
+ * Paparcar map markers — three-marker family sharing a teardrop visual language.
  *
- * | Marker             | Shape  | Colour          | Content            |
- * |--------------------|--------|-----------------|--------------------|
- * | Parked vehicle     | Circle | Amber           | DirectionsCar icon |
- * | Free spot          | Circle | Green           | LocalParking icon  |
- * | Zone (saved place) | Circle | surfaceContainer| Zone preset icon   |
+ * | Marker             | Shape    | Colour          | Content            |
+ * |--------------------|----------|-----------------|--------------------|
+ * | Parked vehicle     | Teardrop | Amber           | DirectionsCar icon |
+ * | Free spot          | Teardrop | Green           | LocalParking icon  |
+ * | Zone (saved place) | Teardrop | surfaceContainer| Zone preset icon   |
  *
  * Rendered as bitmaps by the kmpmaps library via `customMarkerContent` in [PaparcarMapView].
  * Marker anchor = (0.5f, 1f): the bottom-centre of each bitmap pins the geographic coordinate.
@@ -89,63 +88,32 @@ private const val GROUND_SHADOW_ALPHA = 0.35f
 // ─── Marker 1 — Parked vehicle (VehicleBadgeMarker) ─────────────────────────
 
 /**
- * Amber circle badge for the user's parked vehicle.
+ * Amber teardrop badge for the user's parked vehicle.
  *
- * Same circle pattern as [FreeSpotMarker] and [ZoneMarker] — one coherent family
- * on the map. Amber + car icon reads immediately as "mine, active". Slightly
- * larger than [FreeSpotMarker] (46 dp vs 42 dp) so the user's car dominates.
- *
- * @param selected when true the border turns white to indicate selection.
+ * Teardrop shape with amber fill, dark disc, and car icon inside the disc.
+ * Amber reads immediately as "mine, active". Selection state adds a two-pass
+ * halo so the marker is visible on any map tile colour.
  */
 @Composable
 fun VehicleBadgeMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
 ) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
-
-    Box(
-        modifier = modifier.size(
-            width  = BADGE_DIAM,
-            height = BADGE_DIAM + BADGE_GROUND_GAP,
-        ),
+    StaticTeardropMarker(
+        fillColor   = MarkerColors.PlateAmber,
+        strokeColor = MarkerColors.PlateAmberDk,
+        discColor   = MarkerColors.PlateOnAmber,
+        selected    = selected,
+        modifier    = modifier,
     ) {
-        Canvas(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .size(width = BADGE_SHADOW_W, height = BADGE_SHADOW_H),
-        ) { drawOval(color = shadowColor) }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(BADGE_DIAM)
-                .background(color = MarkerColors.PlateAmber, shape = CircleShape)
-                .border(
-                    width = if (selected) BADGE_SEL_STROKE else BADGE_STROKE,
-                    color = if (selected) Color.White else MarkerColors.PlateAmberDk,
-                    shape = CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.DirectionsCar,
-                contentDescription = null,
-                tint = MarkerColors.PlateOnAmber,
-                modifier = Modifier.size(BADGE_ICON_SIZE),
-            )
-        }
+        Icon(
+            imageVector    = Icons.Filled.DirectionsCar,
+            contentDescription = null,
+            tint           = MarkerColors.PlateAmber,
+            modifier       = Modifier.size(TEARDROP_ICON_SIZE),
+        )
     }
 }
-
-private val BADGE_DIAM       = 46.dp
-private val BADGE_ICON_SIZE  = 26.dp
-private val BADGE_STROKE     = 2.dp
-private val BADGE_SEL_STROKE = 3.dp
-private val BADGE_SHADOW_W   = 22.dp
-private val BADGE_SHADOW_H   = 5.dp
-private val BADGE_GROUND_GAP = 4.dp
 
 // ─── MyVehicle marker — legacy fallback (ParkingLocationScreen) ──────────────
 
@@ -216,119 +184,131 @@ private val MY_VEHICLE_H = 55.dp
 // ─── Marker 2 — Free spot (FreeSpotMarker) ───────────────────────────────────
 
 /**
- * Free-spot marker. Green circle with a parking "P" icon — same circle pattern
- * as [ZoneMarker] and [VehicleBadgeMarker] for a coherent three-marker family.
- * Green universally signals availability in parking contexts.
- *
- * @param selected when true the border turns white to indicate selection.
+ * Free-spot teardrop marker. Green fill with a parking "P" icon in the disc —
+ * same teardrop pattern as [VehicleBadgeMarker] and [ZoneMarker]. Green
+ * universally signals availability in parking contexts.
  */
 @Composable
 fun FreeSpotMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
 ) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
-
-    Box(
-        modifier = modifier.size(
-            width  = FREE_SPOT_MARKER_DIAM,
-            height = FREE_SPOT_MARKER_DIAM + FREE_SPOT_MARKER_GROUND_GAP,
-        ),
+    StaticTeardropMarker(
+        fillColor   = MarkerColors.SpotGreen,
+        strokeColor = MarkerColors.SpotOnGreen,
+        discColor   = MarkerColors.SpotOnGreen,
+        selected    = selected,
+        modifier    = modifier,
     ) {
-        Canvas(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .size(width = FREE_SPOT_MARKER_SHADOW_W, height = FREE_SPOT_MARKER_SHADOW_H),
-        ) { drawOval(color = shadowColor) }
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(FREE_SPOT_MARKER_DIAM)
-                .background(color = MarkerColors.SpotGreen, shape = CircleShape)
-                .border(
-                    width = if (selected) FREE_SPOT_SEL_STROKE else FREE_SPOT_MARKER_STROKE,
-                    color = if (selected) Color.White else MarkerColors.SpotOnGreen,
-                    shape = CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.LocalParking,
-                contentDescription = null,
-                tint = MarkerColors.SpotOnGreen,
-                modifier = Modifier.size(FREE_SPOT_MARKER_ICON),
-            )
-        }
+        Icon(
+            imageVector    = Icons.Outlined.LocalParking,
+            contentDescription = null,
+            tint           = MarkerColors.SpotGreen,
+            modifier       = Modifier.size(TEARDROP_ICON_SIZE),
+        )
     }
 }
-
-private val FREE_SPOT_MARKER_DIAM       = 42.dp
-private val FREE_SPOT_MARKER_ICON       = 24.dp
-private val FREE_SPOT_MARKER_STROKE     = 2.dp
-private val FREE_SPOT_SEL_STROKE        = 3.dp
-private val FREE_SPOT_MARKER_SHADOW_W   = 20.dp
-private val FREE_SPOT_MARKER_SHADOW_H   = 5.dp
-private val FREE_SPOT_MARKER_GROUND_GAP = 4.dp
 
 // ─── Marker 3 — Zone (ZoneMarker) ────────────────────────────────────────────
 
 /**
  * On-map marker for a saved [io.apptolast.paparcar.domain.model.Zone]. Same
- * visual language as [ZoneCenterPin] (circle + chosen icon) so the user
- * recognises the placed marker as the locked-in counterpart of the pin they
- * dragged in AddingZone mode. Lighter weight (smaller diameter, no bounce,
- * static shadow) so multiple zones on the map don't compete with spot markers.
- *
- * @param icon resolved [ImageVector] for the zone's `iconKey`.
+ * teardrop + disc + icon pattern as [ZoneCenterPin] so the user recognises the
+ * placed marker as the locked-in counterpart of the pin they dragged in
+ * AddingZone mode. Uses surfaceContainer/primary so it adapts to light/dark.
  */
 @Composable
 fun ZoneMarker(
     icon: ImageVector,
     modifier: Modifier = Modifier,
 ) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val fill = MaterialTheme.colorScheme.surfaceContainer
+    val fill   = MaterialTheme.colorScheme.surfaceContainer
+    val ink    = MaterialTheme.colorScheme.onSurface
     val accent = MaterialTheme.colorScheme.primary
-    val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
-
-    Box(
-        modifier = modifier.size(
-            width  = ZONE_MARKER_DIAM,
-            height = ZONE_MARKER_DIAM + ZONE_MARKER_GROUND_GAP,
-        ),
+    StaticTeardropMarker(
+        fillColor   = fill,
+        strokeColor = ink,
+        discColor   = ink,
+        modifier    = modifier,
     ) {
-        Canvas(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .size(width = ZONE_MARKER_SHADOW_W, height = ZONE_MARKER_SHADOW_H),
-        ) { drawOval(color = shadowColor) }
-
         Box(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(ZONE_MARKER_DIAM)
-                .background(color = fill, shape = CircleShape)
-                .border(width = ZONE_MARKER_STROKE, color = ink, shape = CircleShape),
+                .size(TEARDROP_ICON_HALO_DIAM)
+                .background(fill.copy(alpha = ZONE_ICON_HALO_ALPHA), shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector    = icon,
                 contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(ZONE_MARKER_ICON),
+                tint           = accent,
+                modifier       = Modifier.size(TEARDROP_ICON_SIZE),
             )
         }
     }
 }
 
-private val ZONE_MARKER_DIAM       = 42.dp
-private val ZONE_MARKER_ICON       = 22.dp
-private val ZONE_MARKER_STROKE     = 2.dp
-private val ZONE_MARKER_SHADOW_W   = 20.dp
-private val ZONE_MARKER_SHADOW_H   = 5.dp
-private val ZONE_MARKER_GROUND_GAP = 4.dp
+// ─── Static teardrop scaffold (shared by map markers) ────────────────────────
+
+@Composable
+private fun StaticTeardropMarker(
+    fillColor: Color,
+    strokeColor: Color,
+    discColor: Color,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    content: @Composable BoxScope.() -> Unit = {},
+) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
+
+    Box(
+        modifier = modifier.size(
+            width  = TEARDROP_PIN_W,
+            height = TEARDROP_PIN_H + TEARDROP_MARKER_GROUND_GAP,
+        ),
+    ) {
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .size(width = TEARDROP_SHADOW_W, height = TEARDROP_SHADOW_H),
+        ) { drawOval(color = shadowColor) }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .size(width = TEARDROP_PIN_W, height = TEARDROP_PIN_H),
+        ) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val scale = size.width / 68f
+                if (selected) {
+                    val haloOuter = teardropPath(cx = 34f, w = 68f, h = 84f, expand = HALO_OUTER_EXPAND, scale = scale)
+                    drawPath(haloOuter, color = MarkerColors.SelectionShadow.copy(alpha = HALO_OUTER_ALPHA), style = Stroke(width = HALO_OUTER_STROKE * scale))
+                    val haloInner = teardropPath(cx = 34f, w = 68f, h = 84f, expand = HALO_INNER_EXPAND, scale = scale)
+                    drawPath(haloInner, color = MarkerColors.SelectionRing.copy(alpha = HALO_INNER_ALPHA), style = Stroke(width = HALO_INNER_STROKE * scale))
+                }
+                val pin = teardropPath(cx = 34f, w = 68f, h = 84f, expand = 0f, scale = scale, top = 4f, bottom = 78f)
+                drawPath(pin, color = fillColor)
+                drawPath(pin, color = strokeColor, style = Stroke(width = TEARDROP_STROKE_WIDTH * scale))
+                drawCircle(
+                    color  = discColor,
+                    radius = TEARDROP_INNER_DISC_RADIUS * scale,
+                    center = Offset(34f * scale, 32f * scale),
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = TEARDROP_DISC_TOP_PADDING)
+                    .size(TEARDROP_DISC_DIAM),
+                contentAlignment = Alignment.Center,
+                content = content,
+            )
+        }
+    }
+}
+
+private val TEARDROP_MARKER_GROUND_GAP = 6.dp
 
 // ─── Centre-pin family ───────────────────────────────────────────────────────
 
