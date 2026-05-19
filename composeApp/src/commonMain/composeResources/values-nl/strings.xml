@@ -413,6 +413,18 @@
     <string name="home_report_helper_secondary">Bestuurders in de buurt krijgen direct een melding</string>
     <string name="home_report_confirm_here">Plek hier bevestigen</string>
 
+    <!-- AddingParking mode -->
+    <string name="home_add_parking_header_label_create">Markeer je parkeerplek</string>
+    <string name="home_add_parking_header_label_edit">Verplaats je parkeerplek</string>
+    <string name="home_add_parking_helper_primary_create">Centreer de pin waar je de auto hebt geparkeerd</string>
+    <string name="home_add_parking_helper_primary_edit">Sleep de kaart naar de juiste plek</string>
+    <string name="home_add_parking_helper_secondary">Een geofence waarschuwt je wanneer je wegrijdt</string>
+    <string name="home_add_parking_confirm_create">Hier parkeren</string>
+    <string name="home_add_parking_confirm_edit">Nieuwe locatie opslaan</string>
+    <string name="home_add_parking_cancel_cd">Parkeerbewerking annuleren</string>
+    <string name="home_parking_action_move_location">Locatie verplaatsen</string>
+    <string name="home_parking_action_move_location_cd">Geparkeerde auto naar een andere positie verplaatsen</string>
+
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">Betrouwbaar</string>
     <string name="home_spot_reliability_medium">Gemiddeld</string>

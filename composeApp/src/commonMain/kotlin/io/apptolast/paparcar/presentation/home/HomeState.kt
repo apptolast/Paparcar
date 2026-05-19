@@ -21,11 +21,15 @@ import io.apptolast.paparcar.domain.model.ZoneIcon
  *  - [AddingZone]: user is positioning a new habitual zone (Casa,
  *    Trabajo…). Same pin + dim affordance as Reporting; only the peek
  *    content and the terminal use case differ.
+ *  - [AddingParking]: user is positioning the parked-car pin. Two flavours
+ *    distinguished by [HomeState.editingParkingId] — null = create new
+ *    session, non-null = move an existing one.
  */
 sealed class HomeMode {
     data object Browse : HomeMode()
     data object Reporting : HomeMode()
     data object AddingZone : HomeMode()
+    data object AddingParking : HomeMode()
 }
 
 /**
@@ -61,10 +65,18 @@ data class HomeState(
     val isReporting: Boolean = false,
     /** True while an Add-Zone confirm is in flight (CTA spinner). */
     val isSavingZone: Boolean = false,
+    /** True while an AddingParking confirm (create or edit) is in flight. */
+    val isSavingParking: Boolean = false,
+    /**
+     * When non-null, [HomeMode.AddingParking] is moving the existing session
+     * with this id instead of creating a new one. Reset on Browse re-entry.
+     */
+    val editingParkingId: String? = null,
     /**
      * Last camera centre captured while the user is in a pin-positioning mode
-     * ([HomeMode.Reporting] or [HomeMode.AddingZone]). Used at confirm time as
-     * the lat/lon for the new spot or zone. Cleared on Browse re-entry.
+     * ([HomeMode.Reporting], [HomeMode.AddingZone] or [HomeMode.AddingParking]).
+     * Used at confirm time as the lat/lon for the new spot, zone, or parking
+     * location. Cleared on Browse re-entry.
      */
     val pinCameraLat: Double? = null,
     val pinCameraLon: Double? = null,

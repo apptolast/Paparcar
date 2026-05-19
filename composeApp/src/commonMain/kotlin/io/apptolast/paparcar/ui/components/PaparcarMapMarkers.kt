@@ -7,7 +7,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -332,34 +334,39 @@ private fun DrawScope.drawFreeSpot(
     }
 }
 
-// ─── Report centre pin — outlined twin of FreeSpotMarker ─────────────────────
+// ─── Centre-pin family ───────────────────────────────────────────────────────
+// Shared scaffold for the three "drop a pin to confirm" modes (Reporting,
+// AddingParking, AddingZone). All three share the white outlined teardrop +
+// bounce-on-camera-settle + ground-shadow molde — only the inner silhouette
+// (P letter / parked-car disc + glyph / zone disc + icon) varies.
 
 /**
- * Centre indicator shown while Home is in Reporting mode. Same teardrop
- * silhouette as [FreeSpotMarker] but stroke-only and using the theme's
- * onSurface ink, so it reads as "a marker you are about to drop" and stays
- * visible on both light and dark map themes (contrasts with the surface
- * background by definition).
+ * Shared layout + animation for every centre-pin variant. Owns:
+ *  - the 2×-tall outer Box so the pin's TIP sits at the geographic anchor
+ *    (Box centre = where kmpmaps places the indicator),
+ *  - the bounce + scale animation driven by [cameraMoving],
+ *  - the ground shadow ellipse planted at the anchor (steady while the pin
+ *    lifts above it),
+ *  - the outlined white teardrop body itself.
  *
- * Layout: an outer Box twice as tall as the pin so the pin's tip can sit
- * at the Box's geometric centre. That centre is where the map composable
- * anchors this indicator, i.e. the geographic camera target — making the
- * shadow ellipse (drawn at the Box centre) the visual "where the pin will
- * land" marker. The pin bounces above the shadow while the camera is
- * moving and settles back onto it when the user releases the gesture.
+ * Variants provide either [pinDraw] (Canvas-based: P letter, car glyph) or
+ * [discOverlay] (Composable-based: Material `Icon`) to fill the inner disc
+ * area. Both default to no-op so callers fill only the slot they need.
  */
 @Composable
-fun ReportCenterPin(
+private fun TeardropPinScaffold(
     cameraMoving: Boolean,
     modifier: Modifier = Modifier,
+    pinDraw: DrawScope.(scale: Float, ink: Color) -> Unit = { _, _ -> },
+    discOverlay: @Composable BoxScope.() -> Unit = {},
 ) {
     val offsetY = remember { Animatable(0f) }
     val pinScale = remember { Animatable(1f) }
     LaunchedEffect(cameraMoving) {
         val (target, scaleTarget) = if (cameraMoving) {
-            REPORT_PIN_LIFT_DP to REPORT_PIN_LIFT_SCALE
+            TEARDROP_PIN_LIFT_DP to TEARDROP_PIN_LIFT_SCALE
         } else {
-            REPORT_PIN_REST_DP to REPORT_PIN_REST_SCALE
+            TEARDROP_PIN_REST_DP to TEARDROP_PIN_REST_SCALE
         }
         launch {
             offsetY.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
@@ -370,7 +377,71 @@ fun ReportCenterPin(
     }
 
     val ink = MaterialTheme.colorScheme.onSurface
-    val shadowColor = ink.copy(alpha = REPORT_SHADOW_ALPHA)
+    val shadowColor = ink.copy(alpha = TEARDROP_SHADOW_ALPHA)
+
+    Box(
+        modifier = modifier.size(
+            width = TEARDROP_PIN_W,
+            height = TEARDROP_PIN_H * 2,
+        ),
+    ) {
+        // Ground shadow planted at Box centre = geographic anchor.
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(width = TEARDROP_SHADOW_W, height = TEARDROP_SHADOW_H),
+        ) {
+            drawOval(color = shadowColor)
+        }
+
+        // Pin region — bounces & scales above the steady shadow.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = offsetY.value.dp)
+                .scale(pinScale.value)
+                .size(width = TEARDROP_PIN_W, height = TEARDROP_PIN_H),
+        ) {
+            // Teardrop body + any Canvas-based inner content (Report's "P",
+            // Parking's inner disc + car glyph). Same path math as
+            // FreeSpotMarker so the silhouettes match.
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val scale = size.width / 68f
+                val pin = teardropPath(
+                    cx = 34f, w = 68f, h = 84f, expand = 0f, scale = scale,
+                    top = 4f, bottom = 78f,
+                )
+                drawPath(pin, color = ink, style = Stroke(width = TEARDROP_STROKE_WIDTH * scale))
+                pinDraw(scale, ink)
+            }
+
+            // Composable overlay slot — positioned on the teardrop's disc
+            // area (upper third) for variants that need a Material `Icon`
+            // (the restyled ZoneCenterPin). Path-based variants leave this
+            // empty and draw inside [pinDraw] instead.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = TEARDROP_DISC_TOP_PADDING)
+                    .size(TEARDROP_DISC_DIAM),
+                contentAlignment = Alignment.Center,
+                content = discOverlay,
+            )
+        }
+    }
+}
+
+/**
+ * Centre indicator shown while Home is in Reporting mode. Outlined white
+ * teardrop with "P" inside — the stroke-only twin of [FreeSpotMarker] so the
+ * user reads it as "a free-spot marker about to be dropped".
+ */
+@Composable
+fun ReportCenterPin(
+    cameraMoving: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val ink = MaterialTheme.colorScheme.onSurface
     val outfit = rememberOutfitFontFamily()
     val measurer = rememberTextMeasurer()
     val pStyle = remember(outfit, ink) {
@@ -382,93 +453,60 @@ fun ReportCenterPin(
             color = ink,
         )
     }
-
-    // Outer Box is 2× the pin height so the pin's TIP coincides with the Box's
-    // geometric centre — that's the map anchor. Empty space below the centre
-    // is intentional and stays transparent.
-    Box(
-        modifier = modifier.size(
-            width = REPORT_PIN_W,
-            height = REPORT_PIN_H * 2,
-        ),
-    ) {
-        // Ground shadow — anchored at Box centre so it stays fixed at the
-        // geographic camera target while the pin lifts above it.
-        Canvas(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(width = REPORT_SHADOW_W, height = REPORT_SHADOW_H),
-        ) {
-            drawOval(color = shadowColor)
-        }
-
-        // The pin itself — drawn in the upper half so its tip aligns with the
-        // Box centre. offset/scale apply the bounce only to the pin, leaving
-        // the shadow steady.
-        Canvas(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = offsetY.value.dp)
-                .scale(pinScale.value)
-                .size(width = REPORT_PIN_W, height = REPORT_PIN_H),
-        ) {
-            drawReportPin(ink = ink, measurer = measurer, pStyle = pStyle)
-        }
-    }
-}
-
-private fun DrawScope.drawReportPin(
-    ink: Color,
-    measurer: TextMeasurer,
-    pStyle: TextStyle,
-) {
-    val w = size.width
-    val scale = w / 68f
-    val strokeWidth = REPORT_STROKE_WIDTH * scale
-
-    // Outlined teardrop — same path math as FreeSpotMarker so the silhouette
-    // matches and users intuitively recognise the centre pin as "the report
-    // counterpart of the FreeSpot markers" they see across the map.
-    val pin = teardropPath(
-        cx = 34f, w = 68f, h = 84f, expand = 0f, scale = scale,
-        top = 4f, bottom = 78f,
+    TeardropPinScaffold(
+        cameraMoving = cameraMoving,
+        modifier = modifier,
+        pinDraw = { scale, _ ->
+            // "P" centred on the teardrop's disc area (viewport y=32).
+            val result = measurer.measure(text = AnnotatedString("P"), style = pStyle)
+            val tx = 34f * scale - result.size.width / 2f
+            val ty = 32f * scale - result.size.height / 2f
+            translate(left = tx, top = ty) {
+                drawText(result, color = ink)
+            }
+        },
     )
-    drawPath(pin, color = ink, style = Stroke(width = strokeWidth))
-
-    // "P" centred on the pin disc — same letter and font as FreeSpotMarker.
-    val result = measurer.measure(text = AnnotatedString("P"), style = pStyle)
-    val tx = 34f * scale - result.size.width / 2f
-    val ty = 32f * scale - result.size.height / 2f
-    translate(left = tx, top = ty) {
-        drawText(result, color = ink)
-    }
 }
-
-// Same dp footprint as FreeSpotMarker so the report pin reads as the
-// outlined twin of the spot markers seen around it on the map.
-private val REPORT_PIN_W = 46.dp
-private val REPORT_PIN_H = 57.dp
-private val REPORT_SHADOW_W = 22.dp
-private val REPORT_SHADOW_H = 5.dp
-private const val REPORT_PIN_REST_DP = 0f
-private const val REPORT_PIN_LIFT_DP = -10f
-private const val REPORT_PIN_REST_SCALE = 1.0f
-private const val REPORT_PIN_LIFT_SCALE = 1.04f
-private const val REPORT_STROKE_WIDTH = 3.5f
-private const val REPORT_SHADOW_ALPHA = 0.32f
 
 /**
- * Centre indicator shown while Home is in AddingZone mode. Circular surface
- * with an onSurface ink border and the user's currently-selected zone icon
- * inside, so the picker selection is echoed at three places at once (text
- * field leading icon, chip row, this pin). Same bounce-on-camera-settle and
- * shadow molde as [ReportCenterPin] but a distinct silhouette (circle vs
- * teardrop) so it reads as "saving a place" rather than "reporting a spot".
- *
- * Layout uses the same 2× tall outer Box as ReportCenterPin: the circle is
- * positioned in the upper half so its bottom edge rests at the Box centre
- * (= geographic anchor = ground); the shadow ellipse stays anchored at the
- * Box centre while the circle lifts during drag.
+ * Centre indicator shown while Home is in AddingParking mode. Same outlined
+ * white teardrop as [ReportCenterPin], but the inner silhouette echoes
+ * [MyVehicleMarker] — a filled ink disc with the car glyph inside — so the
+ * user reads it as "a parked-car marker about to be dropped".
+ */
+@Composable
+fun ParkingCenterPin(
+    cameraMoving: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    val carBody = MaterialTheme.colorScheme.surface
+    TeardropPinScaffold(
+        cameraMoving = cameraMoving,
+        modifier = modifier,
+        pinDraw = { scale, _ ->
+            // Inner filled disc + car glyph centred on the teardrop's
+            // disc area (viewport y=32). Mirrors the dark disc + car
+            // glyph used by [MyVehicleMarker]'s on-map rendering, so the
+            // pin reads as "this is what will land on the map".
+            drawCircle(
+                color = ink,
+                radius = TEARDROP_INNER_DISC_RADIUS * scale,
+                center = Offset(34f * scale, 32f * scale),
+            )
+            // Car glyph (24×24 viewport) centred on the disc.
+            translate(left = 22f * scale, top = 20f * scale) {
+                drawCarIcon(scale = scale, color = carBody, windshieldColor = ink)
+            }
+        },
+    )
+}
+
+/**
+ * Centre indicator shown while Home is in AddingZone mode. Outlined white
+ * teardrop with a filled inner disc + the user's selected zone icon — the
+ * "white pin, shape inside" pattern shared with [ParkingCenterPin] so all
+ * three add-modes (Report, Parking, Zone) read as one family.
  */
 @Composable
 fun ZoneCenterPin(
@@ -476,76 +514,63 @@ fun ZoneCenterPin(
     cameraMoving: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val offsetY = remember { Animatable(0f) }
-    val pinScale = remember { Animatable(1f) }
-    LaunchedEffect(cameraMoving) {
-        val (target, scaleTarget) = if (cameraMoving) {
-            ZONE_PIN_LIFT_DP to ZONE_PIN_LIFT_SCALE
-        } else {
-            ZONE_PIN_REST_DP to ZONE_PIN_REST_SCALE
-        }
-        launch {
-            offsetY.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-        }
-        launch {
-            pinScale.animateTo(scaleTarget, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-        }
-    }
-
     val ink = MaterialTheme.colorScheme.onSurface
-    val fill = MaterialTheme.colorScheme.surfaceContainer
     val accent = MaterialTheme.colorScheme.primary
-    val shadowColor = ink.copy(alpha = REPORT_SHADOW_ALPHA)
-
-    Box(
-        modifier = modifier.size(
-            width = ZONE_PIN_DIAM,
-            height = ZONE_PIN_DIAM * 2,
-        ),
-    ) {
-        // Ground shadow — anchored at Box centre so it stays fixed at the
-        // geographic camera target while the circle lifts above it.
-        Canvas(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(width = ZONE_SHADOW_W, height = ZONE_SHADOW_H),
-        ) {
-            drawOval(color = shadowColor)
-        }
-
-        // The pin itself — a filled circle with an onSurface ink border and
-        // the selected zone icon centred inside. Placed at TopCenter so its
-        // bottom edge sits exactly at the Box centre (ground line); the
-        // bounce only translates the circle, leaving the shadow steady.
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = offsetY.value.dp)
-                .scale(pinScale.value)
-                .size(ZONE_PIN_DIAM)
-                .background(color = fill, shape = CircleShape)
-                .border(width = ZONE_STROKE_WIDTH, color = ink, shape = CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(ZONE_ICON_SIZE),
+    val iconOnInk = MaterialTheme.colorScheme.surface
+    TeardropPinScaffold(
+        cameraMoving = cameraMoving,
+        modifier = modifier,
+        pinDraw = { scale, _ ->
+            // Inner filled disc — hosts the zone icon overlay (composable).
+            drawCircle(
+                color = ink,
+                radius = TEARDROP_INNER_DISC_RADIUS * scale,
+                center = Offset(34f * scale, 32f * scale),
             )
-        }
-    }
+        },
+        discOverlay = {
+            // Slightly tinted "primary on a surface dot" reading so the icon
+            // stays the zone-picker accent colour from the chip row + the
+            // text field's leading icon. Surface tone gives a soft halo
+            // around the icon when contrast against pure ink would be harsh.
+            Box(
+                modifier = Modifier
+                    .size(TEARDROP_ICON_HALO_DIAM)
+                    .background(iconOnInk.copy(alpha = ZONE_ICON_HALO_ALPHA), shape = CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(TEARDROP_ICON_SIZE),
+                )
+            }
+        },
+    )
 }
 
-private val ZONE_PIN_DIAM = 46.dp
-private val ZONE_ICON_SIZE = 22.dp
-private val ZONE_STROKE_WIDTH = 3.dp
-private val ZONE_SHADOW_W = 22.dp
-private val ZONE_SHADOW_H = 5.dp
-private const val ZONE_PIN_REST_DP = 0f
-private const val ZONE_PIN_LIFT_DP = -10f
-private const val ZONE_PIN_REST_SCALE = 1.0f
-private const val ZONE_PIN_LIFT_SCALE = 1.04f
+// Same dp footprint as FreeSpotMarker so the teardrop pin family reads as
+// the outlined twin of the spot markers seen around it on the map.
+private val TEARDROP_PIN_W = 46.dp
+private val TEARDROP_PIN_H = 57.dp
+private val TEARDROP_SHADOW_W = 22.dp
+private val TEARDROP_SHADOW_H = 5.dp
+// Disc overlay box — sized to comfortably host a 22dp Material Icon. Top
+// padding lands its centre at the teardrop's disc center (viewport y=32 →
+// dp ≈ 22 at scale 57/84). 8dp top + 28dp slot/2 = centre at y=22dp.
+private val TEARDROP_DISC_DIAM = 28.dp
+private val TEARDROP_DISC_TOP_PADDING = 8.dp
+private val TEARDROP_ICON_HALO_DIAM = 26.dp
+private val TEARDROP_ICON_SIZE = 18.dp
+private const val TEARDROP_INNER_DISC_RADIUS = 16f
+private const val TEARDROP_PIN_REST_DP = 0f
+private const val TEARDROP_PIN_LIFT_DP = -10f
+private const val TEARDROP_PIN_REST_SCALE = 1.0f
+private const val TEARDROP_PIN_LIFT_SCALE = 1.04f
+private const val TEARDROP_STROKE_WIDTH = 3.5f
+private const val TEARDROP_SHADOW_ALPHA = 0.32f
+private const val ZONE_ICON_HALO_ALPHA = 0.95f
 
 // ─── Zone marker — saved habitual place (Casa, Trabajo…) ─────────────────────
 
@@ -687,8 +712,19 @@ private fun teardropPath(
     }
 }
 
-/** Car glyph (24×24 viewport) — simplified Material `directions_car` path. */
-private fun DrawScope.drawCarIcon(scale: Float, color: Color) {
+/**
+ * Car glyph (24×24 viewport) — simplified Material `directions_car` path.
+ *
+ * @param windshieldColor inner windshield cutout. Defaults to [MarkerColors.Forest]
+ *   for the on-map [MyVehicleMarker] (dark glass on the green car body); the
+ *   [ParkingCenterPin] passes the theme's ink so the windshield stays readable
+ *   on the white teardrop centre pin in both light and dark themes.
+ */
+private fun DrawScope.drawCarIcon(
+    scale: Float,
+    color: Color,
+    windshieldColor: Color = MarkerColors.Forest,
+) {
     val s = scale
     val car = Path().apply {
         moveTo(18.92f * s, 6.01f * s)
@@ -722,7 +758,7 @@ private fun DrawScope.drawCarIcon(scale: Float, color: Color) {
         lineTo(19f * s, 11f * s)
         close()
     }
-    drawPath(ws, color = MarkerColors.Forest)
+    drawPath(ws, color = windshieldColor)
 }
 
 // ─── Marker sizes (logical, dp) ──────────────────────────────────────────────

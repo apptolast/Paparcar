@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.repository
 
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,17 @@ interface UserParkingRepository {
         address: AddressInfo?,
         placeInfo: PlaceInfo?,
     ): Result<Unit>
+
+    /**
+     * In-place update of lat/lon for an existing session. Used by the manual
+     * "Move location" flow when the user re-positions an already-parked
+     * vehicle. Clears the cached address+POI fields so the next enrichment
+     * pass overwrites them with the new location's geocode.
+     */
+    suspend fun updateLocation(
+        id: String,
+        location: GpsPoint,
+    ): Result<UserParking>
 
     /** Deletes all local parking sessions for [userId]. Called during account deletion. */
     suspend fun deleteAllData(userId: String): Result<Unit>

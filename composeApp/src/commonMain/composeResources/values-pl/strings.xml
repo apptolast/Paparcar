@@ -413,6 +413,18 @@
     <string name="home_report_helper_secondary">Pobliscy kierowcy otrzymają powiadomienie natychmiast</string>
     <string name="home_report_confirm_here">Potwierdź miejsce tutaj</string>
 
+    <!-- AddingParking mode -->
+    <string name="home_add_parking_header_label_create">Oznacz parking</string>
+    <string name="home_add_parking_header_label_edit">Przesuń parking</string>
+    <string name="home_add_parking_helper_primary_create">Wycentruj pinezkę tam, gdzie zostawiłeś auto</string>
+    <string name="home_add_parking_helper_primary_edit">Przeciągnij mapę w odpowiednie miejsce</string>
+    <string name="home_add_parking_helper_secondary">Geofence powiadomi Cię, gdy odjedziesz</string>
+    <string name="home_add_parking_confirm_create">Zaparkuj tutaj</string>
+    <string name="home_add_parking_confirm_edit">Zapisz nową lokalizację</string>
+    <string name="home_add_parking_cancel_cd">Anuluj edycję parkingu</string>
+    <string name="home_parking_action_move_location">Przenieś lokalizację</string>
+    <string name="home_parking_action_move_location_cd">Przenieś zaparkowany samochód w inne miejsce</string>
+
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">Wiarygodne</string>
     <string name="home_spot_reliability_medium">Średnie</string>

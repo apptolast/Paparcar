@@ -413,6 +413,18 @@
     <string name="home_report_helper_secondary">Șoferii din apropiere primesc notificarea instant</string>
     <string name="home_report_confirm_here">Confirmă locul aici</string>
 
+    <!-- AddingParking mode -->
+    <string name="home_add_parking_header_label_create">Marchează parcarea</string>
+    <string name="home_add_parking_header_label_edit">Mută parcarea</string>
+    <string name="home_add_parking_helper_primary_create">Centrează pinul unde ai lăsat mașina</string>
+    <string name="home_add_parking_helper_primary_edit">Trage harta la locul corect</string>
+    <string name="home_add_parking_helper_secondary">Un geofence te avertizează când pleci</string>
+    <string name="home_add_parking_confirm_create">Parchează aici</string>
+    <string name="home_add_parking_confirm_edit">Salvează noua locație</string>
+    <string name="home_add_parking_cancel_cd">Anulează editarea parcării</string>
+    <string name="home_parking_action_move_location">Mută locația</string>
+    <string name="home_parking_action_move_location_cd">Mută mașina parcată într-o altă poziție</string>
+
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">De încredere</string>
     <string name="home_spot_reliability_medium">Medie</string>

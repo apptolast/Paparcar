@@ -6,6 +6,7 @@ import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toEntity
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -89,5 +90,29 @@ class UserParkingRepositoryImpl(
             placeInfoCategory = placeInfo?.category?.name,
         )
         parkingSyncScheduler.scheduleLocationUpdate(id, address, placeInfo)
+    }
+
+    /**
+     * Manual-edit path for the parked-car pin. Overwrites lat/lon in Room +
+     * clears the cached address/POI so the re-scheduled enrichment fills them
+     * with the new spot's geocode. Firestore reconciliation rides on top via
+     * [ParkingSyncScheduler.schedule] with `previousSessionId = null` (we're
+     * not transitioning between sessions, just mutating the active one).
+     */
+    override suspend fun updateLocation(
+        id: String,
+        location: GpsPoint,
+    ): Result<UserParking> = runCatching {
+        dao.updateLocation(
+            id = id,
+            lat = location.latitude,
+            lon = location.longitude,
+            accuracy = location.accuracy,
+            timestamp = location.timestamp,
+        )
+        val updated = dao.getById(id)?.toDomain()
+            ?: error("No parking session with id=$id")
+        parkingSyncScheduler.schedule(updated, previousSessionId = null)
+        updated
     }
 }

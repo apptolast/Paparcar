@@ -413,6 +413,18 @@
     <string name="home_report_helper_secondary">Outros condutores recebem a notificação ao instante</string>
     <string name="home_report_confirm_here">Confirmar lugar aqui</string>
 
+    <!-- AddingParking mode -->
+    <string name="home_add_parking_header_label_create">Marca o teu estacionamento</string>
+    <string name="home_add_parking_header_label_edit">Move o teu estacionamento</string>
+    <string name="home_add_parking_helper_primary_create">Centra o pin onde deixaste o carro</string>
+    <string name="home_add_parking_helper_primary_edit">Arrasta o mapa para o local correto</string>
+    <string name="home_add_parking_helper_secondary">Uma geocerca avisa-te quando saíres</string>
+    <string name="home_add_parking_confirm_create">Estacionar aqui</string>
+    <string name="home_add_parking_confirm_edit">Guardar nova localização</string>
+    <string name="home_add_parking_cancel_cd">Cancelar edição de estacionamento</string>
+    <string name="home_parking_action_move_location">Mover localização</string>
+    <string name="home_parking_action_move_location_cd">Mover o carro estacionado para outra posição</string>
+
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">Fiável</string>
     <string name="home_spot_reliability_medium">Média</string>

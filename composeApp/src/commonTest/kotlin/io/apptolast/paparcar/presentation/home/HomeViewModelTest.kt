@@ -13,6 +13,7 @@ import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
@@ -87,6 +88,12 @@ class HomeViewModelTest {
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
         )
+        val updateParkingLocation = UpdateParkingLocationUseCase(
+            userParkingRepository = parkingRepo,
+            geofenceService = FakeGeofenceManager(),
+            enrichmentScheduler = FakeParkingEnrichmentScheduler(),
+            config = ParkingDetectionConfig(),
+        )
         val zoneRepo = FakeZoneRepository()
         return HomeViewModel(
             permissionManager = permissions,
@@ -98,6 +105,7 @@ class HomeViewModelTest {
             releaseSession = releaseSession,
             getLocationInfo = getLocationInfo,
             confirmParking = confirmParking,
+            updateParkingLocation = updateParkingLocation,
             searchAddress = searchAddress,
             appPreferences = prefs,
             sendSpotSignal = sendSpotSignal,
@@ -269,25 +277,31 @@ class HomeViewModelTest {
         assertNull(vm.state.value.pendingParkingGps)
     }
 
-    // ── ManualPark ────────────────────────────────────────────────────────────
+    // ── AddingParking ─────────────────────────────────────────────────────────
+    // `ManualPark` was retired — the empty-state CTA now opens AddingParking
+    // (`EnterAddParkingMode` → user positions the pin → `ConfirmAddParking`).
+    // The validation rules that used to live in the snap-to-GPS `manualPark()`
+    // method now live in `confirmAddParking()` and are exercised on Confirm.
 
     @Test
-    fun `should_emit_ShowError_on_ManualPark_when_no_GPS`() = runTest {
+    fun `should_emit_ShowError_on_ConfirmAddParking_when_no_GPS`() = runTest {
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = null))
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ManualPark)
+            vm.handleIntent(HomeIntent.ConfirmAddParking)
             assertIs<HomeEffect.ShowError>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `should_emit_OfflineActionBlocked_on_ManualPark_when_offline`() = runTest {
+    fun `should_emit_OfflineActionBlocked_on_ConfirmAddParking_when_offline`() = runTest {
         connectivity.emit(ConnectivityStatus.Offline)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitBalanced(location)
 
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ManualPark)
+            vm.handleIntent(HomeIntent.ConfirmAddParking)
             assertIs<HomeEffect.OfflineActionBlocked>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }

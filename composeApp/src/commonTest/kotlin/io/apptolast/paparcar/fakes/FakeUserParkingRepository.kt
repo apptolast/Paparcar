@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -89,5 +90,24 @@ class FakeUserParkingRepository(
             _sessionsFlow.value = sessions.toList()
         }
         return Result.success(Unit)
+    }
+
+    var updateLocationCallCount = 0
+        private set
+    var updateLocationResult: Result<UserParking>? = null
+
+    override suspend fun updateLocation(id: String, location: GpsPoint): Result<UserParking> {
+        updateLocationCallCount++
+        updateLocationResult?.let { return it }
+        val idx = sessions.indexOfFirst { it.id == id }
+        if (idx < 0) return Result.failure(IllegalStateException("No session $id"))
+        val updated = sessions[idx].copy(
+            location = location,
+            address = null,
+            placeInfo = null,
+        )
+        sessions[idx] = updated
+        _sessionsFlow.value = sessions.toList()
+        return Result.success(updated)
     }
 }

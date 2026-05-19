@@ -13,9 +13,11 @@ import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.location.LocationDataSource
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.preferences.AppPreferences
@@ -55,6 +57,7 @@ class HomeViewModel(
     private val releaseSession: ReleaseActiveParkingSessionUseCase,
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
+    private val updateParkingLocation: UpdateParkingLocationUseCase,
     private val searchAddress: SearchAddressUseCase,
     private val appPreferences: AppPreferences,
     private val sendSpotSignal: SendSpotSignalUseCase,
@@ -182,11 +185,11 @@ class HomeViewModel(
             is HomeIntent.ReportTestSpot -> reportTestSpot()
             is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon, intent.publishSpot)
             is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId) }
-            is HomeIntent.ManualPark -> manualPark()
             is HomeIntent.CameraPositionChanged -> {
-                // Snapshot the camera for any pin-positioning mode (Reporting or
-                // AddingZone). Browse doesn't need it — the lat/lon used by Confirm
-                // would be stale by the time the user re-enters pin mode anyway.
+                // Snapshot the camera for any pin-positioning mode
+                // (Reporting, AddingZone or AddingParking). Browse doesn't
+                // need it — the lat/lon used by Confirm would be stale by
+                // the time the user re-enters pin mode anyway.
                 if (state.value.mode !is HomeMode.Browse) {
                     updateState { copy(pinCameraLat = intent.lat, pinCameraLon = intent.lon) }
                 }
@@ -240,6 +243,68 @@ class HomeViewModel(
             is HomeIntent.UpdateAddingZoneIcon -> updateState { copy(addingZoneIconKey = intent.iconKey) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DeleteZone -> viewModelScope.launch { deleteZone(intent.zoneId) }
+            is HomeIntent.EnterAddParkingMode -> updateState {
+                copy(
+                    mode = HomeMode.AddingParking,
+                    selectedItemId = null,
+                    pinCameraLat = intent.initialGps?.latitude,
+                    pinCameraLon = intent.initialGps?.longitude,
+                    editingParkingId = intent.editingParkingId,
+                )
+            }
+            is HomeIntent.ExitAddParkingMode -> updateState {
+                copy(
+                    mode = HomeMode.Browse,
+                    pinCameraLat = null,
+                    pinCameraLon = null,
+                    editingParkingId = null,
+                )
+            }
+            is HomeIntent.ConfirmAddParking -> confirmAddParking()
+        }
+    }
+
+    private fun confirmAddParking() {
+        val current = state.value
+        if (current.mode !is HomeMode.AddingParking || current.isSavingParking) return
+        val lat = current.pinCameraLat ?: current.userGpsPoint?.latitude
+        val lon = current.pinCameraLon ?: current.userGpsPoint?.longitude
+        if (lat == null || lon == null) {
+            sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
+            return
+        }
+        if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
+            sendEffect(HomeEffect.OfflineActionBlocked)
+            return
+        }
+        val baseGps = current.userGpsPoint
+        val newGps = GpsPoint(
+            latitude = lat,
+            longitude = lon,
+            accuracy = baseGps?.accuracy ?: 0f,
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            speed = 0f,
+        )
+        updateState { copy(isSavingParking = true) }
+        viewModelScope.launch {
+            val editingId = current.editingParkingId
+            val result = if (editingId != null) {
+                updateParkingLocation(editingId, newGps).map { Unit }
+            } else {
+                confirmParking(newGps, 1.0f, SpotType.MANUAL_REPORT).map { Unit }
+            }
+            result.onFailure {
+                sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed))
+            }
+            updateState {
+                copy(
+                    isSavingParking = false,
+                    mode = HomeMode.Browse,
+                    pinCameraLat = null,
+                    pinCameraLon = null,
+                    editingParkingId = null,
+                )
+            }
         }
     }
 
@@ -333,22 +398,6 @@ class HomeViewModel(
             val spotId = "${DEBUG_USER_ID}_${Clock.System.now().toEpochMilliseconds()}"
             reportSpotReleased(DEBUG_LATITUDE, DEBUG_LONGITUDE, spotId)
             sendEffect(HomeEffect.TestSpotSent)
-        }
-    }
-
-    private fun manualPark() {
-        val gps = state.value.userGpsPoint
-        if (gps == null) {
-            sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled))
-            return
-        }
-        if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
-            sendEffect(HomeEffect.OfflineActionBlocked)
-            return
-        }
-        viewModelScope.launch {
-            confirmParking(gps, 1.0f, SpotType.MANUAL_REPORT)
-                .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
     }
 

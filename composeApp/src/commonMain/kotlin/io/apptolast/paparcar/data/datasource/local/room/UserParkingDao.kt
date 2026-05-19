@@ -56,4 +56,36 @@ interface UserParkingDao {
         placeInfoName: String?,
         placeInfoCategory: String?,
     )
+
+    /**
+     * Manual-edit path — overwrites lat/lon/accuracy/timestamp and **clears
+     * address + POI fields** so the re-scheduled enrichment worker fills them
+     * with the new location's geocode. Used by `UpdateParkingLocationUseCase`
+     * when the user drags the parked-car pin to a new spot via the
+     * `HomeMode.AddingParking` edit flow.
+     */
+    @Query("""
+        UPDATE parking_sessions SET
+            latitude            = :lat,
+            longitude           = :lon,
+            accuracy            = :accuracy,
+            timestamp           = :timestamp,
+            addressStreet       = NULL,
+            addressCity         = NULL,
+            addressRegion       = NULL,
+            addressCountry      = NULL,
+            placeInfoName       = NULL,
+            placeInfoCategory   = NULL
+        WHERE id = :id
+    """)
+    suspend fun updateLocation(
+        id: String,
+        lat: Double,
+        lon: Double,
+        accuracy: Float,
+        timestamp: Long,
+    )
+
+    @Query("SELECT * FROM parking_sessions WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): UserParkingEntity?
 }

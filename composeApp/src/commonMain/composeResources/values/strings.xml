@@ -257,6 +257,18 @@
     <string name="home_report_helper_secondary">Nearby drivers get notified instantly</string>
     <string name="home_report_confirm_here">Confirm spot here</string>
 
+    <!-- AddingParking mode — drop a pin to mark / move where the car is parked -->
+    <string name="home_add_parking_header_label_create">Mark your parking</string>
+    <string name="home_add_parking_header_label_edit">Move your parking</string>
+    <string name="home_add_parking_helper_primary_create">Center the pin where you left the car</string>
+    <string name="home_add_parking_helper_primary_edit">Drag the map to the correct spot</string>
+    <string name="home_add_parking_helper_secondary">A geofence will alert you when you drive away</string>
+    <string name="home_add_parking_confirm_create">Park here</string>
+    <string name="home_add_parking_confirm_edit">Save new location</string>
+    <string name="home_add_parking_cancel_cd">Cancel parking edit</string>
+    <string name="home_parking_action_move_location">Move location</string>
+    <string name="home_parking_action_move_location_cd">Move parked car to a different position</string>
+
     <!-- Home Zones — habitual places -->
     <string name="home_zone_name_placeholder">Name (e.g. Home, Work)</string>
     <string name="home_zone_save_action">Save zone</string>

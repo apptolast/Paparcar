@@ -298,6 +298,18 @@
     <string name="home_report_helper_secondary">Otros conductores recibirán la notificación al instante</string>
     <string name="home_report_confirm_here">Confirmar plaza aquí</string>
 
+    <!-- Modo AddingParking — colocar / mover el pin del coche aparcado -->
+    <string name="home_add_parking_header_label_create">Marca tu aparcamiento</string>
+    <string name="home_add_parking_header_label_edit">Mueve tu aparcamiento</string>
+    <string name="home_add_parking_helper_primary_create">Centra el pin donde dejaste el coche</string>
+    <string name="home_add_parking_helper_primary_edit">Arrastra el mapa al punto correcto</string>
+    <string name="home_add_parking_helper_secondary">Una geocerca te avisará cuando te vayas</string>
+    <string name="home_add_parking_confirm_create">Aparcar aquí</string>
+    <string name="home_add_parking_confirm_edit">Guardar nueva ubicación</string>
+    <string name="home_add_parking_cancel_cd">Cancelar edición de aparcamiento</string>
+    <string name="home_parking_action_move_location">Mover ubicación</string>
+    <string name="home_parking_action_move_location_cd">Mover el coche aparcado a otra posición</string>
+
     <!-- Zonas en Home — lugares habituales -->
     <string name="home_zone_name_placeholder">Nombre (ej. Casa, Trabajo)</string>
     <string name="home_zone_save_action">Guardar zona</string>

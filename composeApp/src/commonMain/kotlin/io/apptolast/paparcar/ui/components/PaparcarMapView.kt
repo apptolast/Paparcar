@@ -92,10 +92,11 @@ import kotlin.math.abs
  *   skipped. The parking ("my-car") marker is independent — it renders whenever
  *   `parkingLocation` is non-null, regardless of this flag.
  * @property centerPin When non-null, replaces the default crosshair indicator
- *   with a drop-in pin animation. Variant determines silhouette: [CenterPinKind.Report]
- *   = outlined teardrop with "P" (same molde as FreeSpotMarker); [CenterPinKind.Zone]
- *   = filled circle with the chosen zone icon inside. Both share the same
- *   ground-shadow + bounce-on-camera-settle behaviour.
+ *   with a drop-in pin animation. Every variant shares the same white-teardrop
+ *   molde + ground-shadow + bounce-on-camera-settle behaviour; only the inner
+ *   silhouette varies: [CenterPinKind.Report] = "P" letter; [CenterPinKind.Parking]
+ *   = inner disc + car glyph (MyVehicleMarker family); [CenterPinKind.Zone] =
+ *   inner disc + chosen zone icon (ZoneMarker family).
  * @property initialCamera Seed camera position used on first composition when
  *   no live `userLocation` and no dynamic `cameraTarget` are available.
  * @property mapType Underlying tile style (NORMAL / SATELLITE / TERRAIN).
@@ -117,9 +118,11 @@ data class PaparcarMapConfig(
  * composable in [PaparcarMapMarkers.kt].
  */
 sealed class CenterPinKind {
-    /** Outlined teardrop matching FreeSpotMarker silhouette. Used by Reporting flow. */
+    /** Outlined teardrop with a "P" inside — molde for the Reporting flow. */
     data object Report : CenterPinKind()
-    /** Filled circle with the user's chosen zone icon inside. Used by AddingZone flow. */
+    /** Outlined teardrop with the parked-car silhouette inside — molde for the AddingParking flow. */
+    data object Parking : CenterPinKind()
+    /** Outlined teardrop with the user's chosen zone icon inside — molde for the AddingZone flow. */
     data class Zone(val icon: androidx.compose.ui.graphics.vector.ImageVector) : CenterPinKind()
 }
 
@@ -736,6 +739,10 @@ fun PaparcarMapView(
         if (pinKind != null) {
             when (pinKind) {
                 CenterPinKind.Report -> ReportCenterPin(
+                    cameraMoving = cameraMoving,
+                    modifier = Modifier.align(Alignment.Center),
+                )
+                CenterPinKind.Parking -> ParkingCenterPin(
                     cameraMoving = cameraMoving,
                     modifier = Modifier.align(Alignment.Center),
                 )

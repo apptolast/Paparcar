@@ -22,7 +22,6 @@ sealed class HomeIntent {
     ) : HomeIntent()
     /** null clears the selection; [HomeState.PARKING_ITEM_ID] selects the parked car; any other ID selects a spot. */
     data class SelectItem(val itemId: String?) : HomeIntent()
-    data object ManualPark : HomeIntent()
     data class CameraPositionChanged(val lat: Double, val lon: Double) : HomeIntent()
     data class SearchQueryChanged(val query: String) : HomeIntent()
     data class SelectSearchResult(val result: SearchResult) : HomeIntent()
@@ -68,4 +67,28 @@ sealed class HomeIntent {
 
     /** User long-pressed a zone chip → delete. */
     data class DeleteZone(val zoneId: String) : HomeIntent()
+
+    /**
+     * Enter the manual parked-car positioning mode — pin appears at the
+     * camera centre. Two flavours:
+     *  - **create** (`editingParkingId == null`): `initialGps` defaults to the
+     *    user's current GPS; on confirm a new active session is written.
+     *  - **edit** (`editingParkingId != null`): `initialGps` is the existing
+     *    session's location; on confirm the row is updated in-place.
+     */
+    data class EnterAddParkingMode(
+        val initialGps: GpsPoint?,
+        val editingParkingId: String? = null,
+    ) : HomeIntent()
+
+    /** Exit AddingParking mode without saving; sheet and map return to Browse. */
+    data object ExitAddParkingMode : HomeIntent()
+
+    /**
+     * Confirm the parked-car position at the current camera centre (fallback
+     * to user GPS when camera is unknown). The VM dispatches to
+     * `ConfirmParkingUseCase` (create) or `UpdateParkingLocationUseCase`
+     * (edit) based on `editingParkingId`.
+     */
+    data object ConfirmAddParking : HomeIntent()
 }

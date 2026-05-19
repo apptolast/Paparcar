@@ -38,6 +38,7 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Navigation
@@ -75,9 +76,18 @@ import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.icon
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_add_parking_cancel_cd
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_create
+import paparcar.composeapp.generated.resources.home_add_parking_confirm_edit
+import paparcar.composeapp.generated.resources.home_add_parking_header_label_create
+import paparcar.composeapp.generated.resources.home_add_parking_header_label_edit
+import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_create
+import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_edit
+import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary
 import paparcar.composeapp.generated.resources.home_address_unknown
 import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
+import paparcar.composeapp.generated.resources.home_parking_action_move_location
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_active_session
 import paparcar.composeapp.generated.resources.home_peek_parked_label
@@ -112,6 +122,9 @@ internal fun HomePeekHandle(
     onConfirmAddZone: () -> Unit = {},
     onUpdateZoneName: (String) -> Unit = {},
     onUpdateZoneIcon: (String) -> Unit = {},
+    onCancelAddParking: () -> Unit = {},
+    onConfirmAddParking: () -> Unit = {},
+    onMoveParkingLocation: () -> Unit = {},
 ) {
     val freeCount = state.nearbySpots.size
     val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
@@ -121,6 +134,8 @@ internal fun HomePeekHandle(
     val parkingToShow = if (isParkingSelected) state.userParking else null
 
     val peekState: PeekState = when {
+        state.mode is HomeMode.AddingParking ->
+            PeekState.AddingParking(isEditing = state.editingParkingId != null)
         state.mode is HomeMode.Reporting -> PeekState.Reporting
         state.mode is HomeMode.AddingZone -> PeekState.AddingZone
         selectedSpot != null -> PeekState.SelectedSpot(selectedSpot)
@@ -173,6 +188,7 @@ internal fun HomePeekHandle(
                     onWalkToCar = {
                         onNavigateExternal(target.parking.location.latitude, target.parking.location.longitude, true)
                     },
+                    onMoveLocation = onMoveParkingLocation,
                 )
                 PeekState.Reporting -> ReportPeekRow(
                     state = state,
@@ -186,6 +202,12 @@ internal fun HomePeekHandle(
                     onNameChange = onUpdateZoneName,
                     onIconChange = onUpdateZoneIcon,
                 )
+                is PeekState.AddingParking -> AddingParkingPeekRow(
+                    state = state,
+                    isEditing = target.isEditing,
+                    onCancel = onCancelAddParking,
+                    onConfirm = onConfirmAddParking,
+                )
                 PeekState.Browse -> CameraLocationRow(state = state, freeCount = freeCount)
             }
         }
@@ -197,6 +219,7 @@ private sealed class PeekState {
     data class SelectedParking(val parking: UserParking) : PeekState()
     data object Reporting : PeekState()
     data object AddingZone : PeekState()
+    data class AddingParking(val isEditing: Boolean) : PeekState()
     data object Browse : PeekState()
 }
 
@@ -483,6 +506,7 @@ private fun ParkingPeekRow(
     onDismiss: () -> Unit,
     onRelease: () -> Unit,
     onWalkToCar: () -> Unit,
+    onMoveLocation: () -> Unit,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
@@ -527,11 +551,83 @@ private fun ParkingPeekRow(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
+            // "Mover ubicación" — enters AddingParking with editingParkingId
+            // so the user can re-position the parked car if auto-detection
+            // landed it wrong (or if they moved the car a tiny bit).
+            PapFooterButton(
+                label = stringResource(Res.string.home_parking_action_move_location),
+                leadingIcon = Icons.Outlined.EditLocationAlt,
+                onClick = onMoveLocation,
+                style = PapFooterButtonStyle.Outlined,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_release),
                 leadingIcon = Icons.AutoMirrored.Outlined.Logout,
                 onClick = onRelease,
                 style = PapFooterButtonStyle.Outlined,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+    )
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AddingParkingPeekRow — modo "Posicionar aparcamiento" (create + edit)
+// ═════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun AddingParkingPeekRow(
+    state: HomeState,
+    isEditing: Boolean,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
+
+    val headerLabel = if (isEditing) {
+        stringResource(Res.string.home_add_parking_header_label_edit)
+    } else {
+        stringResource(Res.string.home_add_parking_header_label_create)
+    }
+    val helperPrimary = if (isEditing) {
+        stringResource(Res.string.home_add_parking_helper_primary_edit)
+    } else {
+        stringResource(Res.string.home_add_parking_helper_primary_create)
+    }
+    val ctaLabel = if (isEditing) {
+        stringResource(Res.string.home_add_parking_confirm_edit)
+    } else {
+        stringResource(Res.string.home_add_parking_confirm_create)
+    }
+    // Pre-load the cancel content-description so the IDE catches an
+    // unreferenced-string regression early. PeekStateCard.onDismiss is the
+    // close affordance — the CD is read by accessibility for that button.
+    @Suppress("UnusedExpression") stringResource(Res.string.home_add_parking_cancel_cd)
+
+    PeekStateCard(
+        headerLabel = headerLabel,
+        title = primaryText,
+        onDismiss = onCancel,
+        leading = { PeekHeaderIconChip(icon = Icons.Filled.DirectionsCar) },
+        content = {
+            HelperRow(
+                icon = Icons.Outlined.Info,
+                iconTint = MaterialTheme.colorScheme.secondary,
+                primary = helperPrimary,
+                secondary = stringResource(Res.string.home_add_parking_helper_secondary),
+            )
+            Spacer(Modifier.height(14.dp))
+        },
+        actions = {
+            PapFooterButton(
+                label = ctaLabel,
+                leadingIcon = if (isEditing) Icons.Outlined.EditLocationAlt
+                              else Icons.Filled.DirectionsCar,
+                onClick = onConfirm,
+                style = PapFooterButtonStyle.Filled,
+                enabled = !state.isSavingParking,
                 modifier = Modifier.fillMaxWidth(),
             )
         },

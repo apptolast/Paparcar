@@ -131,6 +131,15 @@ private fun MarkersShowcase() {
             CenterPinSlot { ReportCenterPin(cameraMoving = true) }
         }
 
+        SectionLabel("Centre pin · Parking (rest · lifted while camera moves)")
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            CenterPinSlot { ParkingCenterPin(cameraMoving = false) }
+            CenterPinSlot { ParkingCenterPin(cameraMoving = true) }
+        }
+
         SectionLabel("Centre pin · Zone — 8 presets (rest)")
         Row(
             verticalAlignment = Alignment.Bottom,

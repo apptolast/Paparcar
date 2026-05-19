@@ -14,6 +14,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -83,6 +84,14 @@ val domainModule = module {
 
     // Parking session lifecycle use cases
     factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get()) }
+    factory {
+        UpdateParkingLocationUseCase(
+            userParkingRepository = get(),
+            geofenceService = get(),
+            enrichmentScheduler = get(),
+            config = get(),
+        )
+    }
 
     // Strategy Resolution
     factory { ParkingStrategyResolver(get(), get()) }

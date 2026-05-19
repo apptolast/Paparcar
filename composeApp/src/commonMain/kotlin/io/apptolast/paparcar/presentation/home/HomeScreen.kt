@@ -482,15 +482,17 @@ private fun HomeContent(
                     }
                 }
 
-                val isPinningMode = state.mode is HomeMode.Reporting || state.mode is HomeMode.AddingZone
+                val isPinningMode = state.mode is HomeMode.Reporting ||
+                    state.mode is HomeMode.AddingZone ||
+                    state.mode is HomeMode.AddingParking
 
-                // Pin variant per mode: Report = outlined teardrop with "P"
-                // (twin of FreeSpotMarker); Zone = filled circle with the
-                // user's chosen icon (live-mirrors the chip picker). Null in
-                // Browse → default crosshair indicator.
+                // Pin variant per mode. All three share the same white-teardrop
+                // molde — only the inner silhouette varies (P letter / car
+                // glyph / zone icon). Null in Browse → default crosshair.
                 val centerPinKind: CenterPinKind? = when (state.mode) {
                     is HomeMode.Reporting -> CenterPinKind.Report
                     is HomeMode.AddingZone -> CenterPinKind.Zone(zoneIconFor(state.addingZoneIconKey))
+                    is HomeMode.AddingParking -> CenterPinKind.Parking
                     else -> null
                 }
 
@@ -594,7 +596,28 @@ private fun HomeContent(
                             uiController.moveCamera(loc.latitude, loc.longitude)
                         }
                     },
-                    onManualPark = { onIntent(HomeIntent.ManualPark) },
+                    onManualPark = {
+                        // Empty-state CTA — enter AddingParking pre-centred on
+                        // the user's current GPS. Confirming with no drag is
+                        // equivalent to the old snap-to-GPS behaviour, but the
+                        // user can reposition the pin first.
+                        onIntent(HomeIntent.EnterAddParkingMode(initialGps = state.userGpsPoint))
+                    },
+                    onMoveParkingLocation = {
+                        // "Mover ubicación" button on the parking peek — enter
+                        // AddingParking pre-centred on the existing parking
+                        // and tagged with its id so the confirm updates the
+                        // row in place (UpdateParkingLocationUseCase) instead
+                        // of creating a new session.
+                        state.userParking?.let { parking ->
+                            onIntent(
+                                HomeIntent.EnterAddParkingMode(
+                                    initialGps = parking.location,
+                                    editingParkingId = parking.id,
+                                ),
+                            )
+                        }
+                    },
                     onSpotSelect = { _, _, spotId -> onIntent(HomeIntent.SelectItem(spotId)) },
                     onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
                     onRelease = { showReleaseDialog = true },

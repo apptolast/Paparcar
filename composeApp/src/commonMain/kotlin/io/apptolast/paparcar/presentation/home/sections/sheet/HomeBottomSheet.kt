@@ -55,6 +55,8 @@ internal fun HomeBottomSheet(
     onIntent: (HomeIntent) -> Unit,
     onParkingClick: () -> Unit,
     onManualPark: () -> Unit,
+    /** Tap on the "Mover ubicación" button on the active-parking peek — opens the AddingParking edit flow. */
+    onMoveParkingLocation: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     onRelease: () -> Unit,
@@ -109,6 +111,9 @@ internal fun HomeBottomSheet(
                     onConfirmAddZone = { onIntent(HomeIntent.ConfirmAddZone) },
                     onUpdateZoneName = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
                     onUpdateZoneIcon = { onIntent(HomeIntent.UpdateAddingZoneIcon(it)) },
+                    onCancelAddParking = { onIntent(HomeIntent.ExitAddParkingMode) },
+                    onConfirmAddParking = { onIntent(HomeIntent.ConfirmAddParking) },
+                    onMoveParkingLocation = onMoveParkingLocation,
                 )
             }
 

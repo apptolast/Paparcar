@@ -413,6 +413,18 @@
     <string name="home_report_helper_secondary">Fahrer in der Nähe werden sofort benachrichtigt</string>
     <string name="home_report_confirm_here">Stellplatz hier bestätigen</string>
 
+    <!-- AddingParking mode -->
+    <string name="home_add_parking_header_label_create">Parkplatz markieren</string>
+    <string name="home_add_parking_header_label_edit">Parkplatz verschieben</string>
+    <string name="home_add_parking_helper_primary_create">Zentriere die Markierung, wo du das Auto gelassen hast</string>
+    <string name="home_add_parking_helper_primary_edit">Ziehe die Karte an die richtige Stelle</string>
+    <string name="home_add_parking_helper_secondary">Ein Geofence warnt dich, wenn du wegfährst</string>
+    <string name="home_add_parking_confirm_create">Hier parken</string>
+    <string name="home_add_parking_confirm_edit">Neuen Standort speichern</string>
+    <string name="home_add_parking_cancel_cd">Parkbearbeitung abbrechen</string>
+    <string name="home_parking_action_move_location">Standort ändern</string>
+    <string name="home_parking_action_move_location_cd">Geparktes Auto an eine andere Position verschieben</string>
+
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">Zuverlässig</string>
     <string name="home_spot_reliability_medium">Mittel</string>
