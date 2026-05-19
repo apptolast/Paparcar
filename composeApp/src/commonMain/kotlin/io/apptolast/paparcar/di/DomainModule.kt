@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -92,6 +93,8 @@ val domainModule = module {
             config = get(),
         )
     }
+
+    factory { ObserveParkedVehiclesUseCase(userParkingRepository = get(), vehicleRepository = get()) }
 
     // Strategy Resolution
     factory { ParkingStrategyResolver(get(), get()) }

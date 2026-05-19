@@ -3,8 +3,19 @@ package io.apptolast.paparcar.presentation.vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 
 sealed class VehicleRegistrationIntent {
-    data class SetBrand(val value: String) : VehicleRegistrationIntent()
-    data class SetModel(val value: String) : VehicleRegistrationIntent()
+    data class SetName(val value: String) : VehicleRegistrationIntent()
+    /** Select a brand from the catalog dropdown (empty string = none selected). */
+    data class SelectBrand(val brand: String) : VehicleRegistrationIntent()
+    /** Select "Other" for brand — reveals free-text field, clears the catalog selection. */
+    data object SelectBrandOther : VehicleRegistrationIntent()
+    /** Update the free-text brand value when [SelectBrandOther] is active. */
+    data class SetCustomBrand(val value: String) : VehicleRegistrationIntent()
+    /** Select a model from the catalog dropdown (empty string = none selected). */
+    data class SelectModel(val model: String) : VehicleRegistrationIntent()
+    /** Select "Other" for model — reveals free-text field, clears the catalog selection. */
+    data object SelectModelOther : VehicleRegistrationIntent()
+    /** Update the free-text model value when [SelectModelOther] is active. */
+    data class SetCustomModel(val value: String) : VehicleRegistrationIntent()
     data class SetSize(val size: VehicleSize) : VehicleRegistrationIntent()
     data class SetShowOnSpot(val enabled: Boolean) : VehicleRegistrationIntent()
     data class LoadVehicle(val vehicleId: String) : VehicleRegistrationIntent()

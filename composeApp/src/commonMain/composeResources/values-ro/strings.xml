@@ -279,6 +279,10 @@
     <!-- Înregistrare vehicul -->
     <string name="vehicle_registration_title">Înregistrează-ți vehiculul</string>
     <string name="vehicle_registration_save">Salvează</string>
+    <string name="vehicle_registration_name_label">Nume</string>
+    <string name="vehicle_registration_name_placeholder">Mașină %1$d</string>
+    <string name="vehicle_default_name_format">Mașină %1$d</string>
+    <string name="vehicle_registration_other_option">Altul…</string>
     <string name="vehicle_registration_brand_hint">Marcă (opțional)</string>
     <string name="vehicle_registration_model_hint">Model (opțional)</string>
     <string name="vehicle_show_on_spot">Afișează marca și modelul pe locurile libere</string>

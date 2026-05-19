@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.home
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.LocationInfo
+import io.apptolast.paparcar.domain.model.ParkedVehicleView
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
@@ -44,6 +45,8 @@ data class HomeState(
     /** LocationInfo for the user's current GPS position (geocoded on-demand, not stored). */
     val userLocationInfo: LocationInfo? = null,
     val userParking: UserParking? = null,
+    /** Enriched view of all active parking sessions, one per vehicle (v1 = 0 or 1 element). */
+    val parkedVehicles: List<ParkedVehicleView> = emptyList(),
     /** ID of the currently selected item: a spot ID, [PARKING_ITEM_ID], or null for none. */
     val selectedItemId: String? = null,
     /** Geocoded address of the map camera centre (updated as the user pans). */

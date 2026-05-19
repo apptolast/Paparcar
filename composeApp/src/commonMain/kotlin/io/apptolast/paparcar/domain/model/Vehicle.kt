@@ -13,6 +13,12 @@ package io.apptolast.paparcar.domain.model
 data class Vehicle(
     val id: String,
     val userId: String,
+    /**
+     * Optional friendly name chosen by the user (e.g. "My Golf", "Work Van").
+     * Private always — never sent to Firestore or shared on Spot.
+     * Conditionally required: if both [brand] and [model] are blank, [name] must be set.
+     */
+    val name: String? = null,
     /** Optional brand shown on freed spot (e.g. "Toyota"). */
     val brand: String? = null,
     /** Optional model shown on freed spot (e.g. "Corolla"). */

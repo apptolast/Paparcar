@@ -49,6 +49,7 @@ internal fun HomeMapSection(
         spots = state.nearbySpots,
         userLocation = state.userGpsPoint,
         parkingLocation = state.userParking?.location,
+        parkedVehicles = state.parkedVehicles,
         zones = state.zones,
         selectedSpotId = selectedSpotId,
         isMyCarSelected = isMyCarSelected,

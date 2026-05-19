@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class VehicleEntity(
     @PrimaryKey val id: String,
     val userId: String,
+    val name: String? = null,
     val brand: String? = null,
     val model: String? = null,
     /** VehicleSize enum name (e.g. "MEDIUM"). */

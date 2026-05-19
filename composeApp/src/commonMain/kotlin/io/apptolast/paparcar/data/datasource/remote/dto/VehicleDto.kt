@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 data class VehicleDto(
     val id: String = "",
     val userId: String = "",
+    /** Private — never read from Firestore on-device-only, but deserialized gracefully if present. */
+    val name: String? = null,
     val brand: String? = null,
     val model: String? = null,
     val sizeCategory: String = "",

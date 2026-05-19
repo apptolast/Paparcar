@@ -13,10 +13,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Bluetooth
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -34,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.presentation.vehicle.data.VehicleCatalog
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.components.VehicleSizeSelector
@@ -48,6 +53,9 @@ import paparcar.composeapp.generated.resources.veh_bt_recommendation_title
 import paparcar.composeapp.generated.resources.vehicle_registration_brand_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_edit_title
 import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
+import paparcar.composeapp.generated.resources.vehicle_registration_name_label
+import paparcar.composeapp.generated.resources.vehicle_registration_name_placeholder
+import paparcar.composeapp.generated.resources.vehicle_registration_other_option
 import paparcar.composeapp.generated.resources.vehicle_registration_save
 import paparcar.composeapp.generated.resources.vehicle_registration_title
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot
@@ -66,8 +74,6 @@ fun VehicleRegistrationScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
 
-    // Holds the id of a just-registered new vehicle while the user decides whether
-    // to pair Bluetooth. Non-null → modal visible. Cleared on dismiss/confirm. [VEH-BT-001]
     var pendingBtRecommendation: String? by remember { mutableStateOf(null) }
 
     LaunchedEffect(vehicleId) {
@@ -81,9 +87,6 @@ fun VehicleRegistrationScreen(
             when (effect) {
                 is VehicleRegistrationEffect.SavedSuccessfully -> {
                     if (effect.isNewVehicle) {
-                        // Defer onRegistrationComplete until the user resolves the modal —
-                        // either by going to BT_CONFIG (which navigates away itself) or by
-                        // explicitly skipping.
                         pendingBtRecommendation = effect.vehicleId
                     } else {
                         onRegistrationComplete()
@@ -116,11 +119,6 @@ fun VehicleRegistrationScreen(
     }
 }
 
-/**
- * Bluetooth pairing recommendation shown right after registering a new
- * vehicle. Skipping via back/scrim equals "later" — same as the explicit
- * cancel — so the registration flow always completes one way or the other.
- */
 @Composable
 private fun BluetoothRecommendationDialog(
     onConfigure: () -> Unit,
@@ -146,6 +144,19 @@ internal fun VehicleRegistrationContent(
     onIntent: (VehicleRegistrationIntent) -> Unit = {},
 ) {
     val isEditing = state.editingVehicleId != null
+    val brands = remember { VehicleCatalog.brands() }
+    val otherLabel = stringResource(Res.string.vehicle_registration_other_option)
+
+    var brandExpanded by remember { mutableStateOf(false) }
+    var modelExpanded by remember { mutableStateOf(false) }
+
+    val models = remember(state.brand, state.isBrandOther) {
+        if (!state.isBrandOther && state.brand.isNotBlank()) VehicleCatalog.modelsFor(state.brand) else emptyList()
+    }
+
+    val nameError = state.hasInteractedWithForm &&
+            state.name.isBlank() && state.brand.isBlank() && state.model.isBlank()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -176,21 +187,110 @@ internal fun VehicleRegistrationContent(
         ) {
             Spacer(Modifier.height(4.dp))
 
+            // ── Name (conditionally required) ────────────────────────────────
             OutlinedTextField(
-                value = state.brand,
-                onValueChange = { onIntent(VehicleRegistrationIntent.SetBrand(it)) },
-                label = { Text(stringResource(Res.string.vehicle_registration_brand_hint)) },
+                value = state.name,
+                onValueChange = { onIntent(VehicleRegistrationIntent.SetName(it)) },
+                label = { Text(stringResource(Res.string.vehicle_registration_name_label)) },
+                placeholder = {
+                    Text(stringResource(Res.string.vehicle_registration_name_placeholder, state.defaultNamePlaceholderIndex))
+                },
+                isError = nameError,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
 
-            OutlinedTextField(
-                value = state.model,
-                onValueChange = { onIntent(VehicleRegistrationIntent.SetModel(it)) },
-                label = { Text(stringResource(Res.string.vehicle_registration_model_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
+            // ── Brand dropdown ───────────────────────────────────────────────
+            ExposedDropdownMenuBox(
+                expanded = brandExpanded,
+                onExpandedChange = { brandExpanded = it },
+            ) {
+                OutlinedTextField(
+                    value = if (state.isBrandOther) state.brand
+                            else state.brand,
+                    onValueChange = {
+                        if (state.isBrandOther) onIntent(VehicleRegistrationIntent.SetCustomBrand(it))
+                    },
+                    readOnly = !state.isBrandOther,
+                    label = { Text(stringResource(Res.string.vehicle_registration_brand_hint)) },
+                    trailingIcon = { if (!state.isBrandOther) ExposedDropdownMenuDefaults.TrailingIcon(expanded = brandExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    singleLine = true,
+                )
+                if (!state.isBrandOther) {
+                    ExposedDropdownMenu(
+                        expanded = brandExpanded,
+                        onDismissRequest = { brandExpanded = false },
+                    ) {
+                        brands.forEach { brand ->
+                            DropdownMenuItem(
+                                text = { Text(brand) },
+                                onClick = {
+                                    onIntent(VehicleRegistrationIntent.SelectBrand(brand))
+                                    brandExpanded = false
+                                },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(otherLabel) },
+                            onClick = {
+                                onIntent(VehicleRegistrationIntent.SelectBrandOther)
+                                brandExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+
+            // ── Model dropdown (enabled only when brand is selected from catalog) ──
+            ExposedDropdownMenuBox(
+                expanded = modelExpanded && models.isNotEmpty(),
+                onExpandedChange = { if (models.isNotEmpty() || state.isBrandOther) modelExpanded = it },
+            ) {
+                OutlinedTextField(
+                    value = state.model,
+                    onValueChange = {
+                        if (state.isModelOther || state.isBrandOther)
+                            onIntent(VehicleRegistrationIntent.SetCustomModel(it))
+                    },
+                    readOnly = models.isNotEmpty() && !state.isModelOther,
+                    label = { Text(stringResource(Res.string.vehicle_registration_model_hint)) },
+                    trailingIcon = {
+                        if (models.isNotEmpty() && !state.isModelOther)
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelExpanded)
+                    },
+                    enabled = state.brand.isNotBlank() || state.isBrandOther,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    singleLine = true,
+                )
+                if (models.isNotEmpty() && !state.isModelOther) {
+                    ExposedDropdownMenu(
+                        expanded = modelExpanded,
+                        onDismissRequest = { modelExpanded = false },
+                    ) {
+                        models.forEach { model ->
+                            DropdownMenuItem(
+                                text = { Text(model) },
+                                onClick = {
+                                    onIntent(VehicleRegistrationIntent.SelectModel(model))
+                                    modelExpanded = false
+                                },
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(otherLabel) },
+                            onClick = {
+                                onIntent(VehicleRegistrationIntent.SelectModelOther)
+                                modelExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
 
             Spacer(Modifier.height(4.dp))
 
@@ -233,7 +333,7 @@ internal fun VehicleRegistrationContent(
             PapPrimaryButton(
                 label = stringResource(Res.string.vehicle_registration_save),
                 onClick = { onIntent(VehicleRegistrationIntent.Save) },
-                enabled = state.sizeCategory != null,
+                enabled = state.canSubmit,
                 isLoading = state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
             )

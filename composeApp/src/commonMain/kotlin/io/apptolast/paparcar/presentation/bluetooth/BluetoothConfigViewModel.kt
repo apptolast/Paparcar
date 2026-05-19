@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.bluetooth
 
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -29,9 +30,7 @@ class BluetoothConfigViewModel(
                 val vehicle = vehicles.find { it.id == vehicleId }
                 updateState {
                     copy(
-                        vehicleName = listOfNotNull(vehicle?.brand, vehicle?.model)
-                            .joinToString(" ")
-                            .ifBlank { vehicleId },
+                        vehicleName = vehicle?.displayName(fallback = vehicleId) ?: vehicleId,
                         currentDeviceAddress = vehicle?.bluetoothDeviceId,
                         selectedAddress = vehicle?.bluetoothDeviceId,
                         bondedDevices = bluetoothScanner.getBondedDevices(),

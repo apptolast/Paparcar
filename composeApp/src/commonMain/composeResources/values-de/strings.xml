@@ -279,6 +279,10 @@
     <!-- Fahrzeugregistrierung -->
     <string name="vehicle_registration_title">Fahrzeug registrieren</string>
     <string name="vehicle_registration_save">Speichern</string>
+    <string name="vehicle_registration_name_label">Name</string>
+    <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
+    <string name="vehicle_default_name_format">Auto %1$d</string>
+    <string name="vehicle_registration_other_option">Andere…</string>
     <string name="vehicle_registration_brand_hint">Marke (optional)</string>
     <string name="vehicle_registration_model_hint">Modell (optional)</string>
     <string name="vehicle_show_on_spot">Marke und Modell auf freien Parkplätzen anzeigen</string>

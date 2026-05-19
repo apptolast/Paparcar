@@ -17,6 +17,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -57,6 +58,7 @@ class HomeViewModel(
     private val releaseSession: ReleaseActiveParkingSessionUseCase,
     private val getLocationInfo: GetLocationInfoUseCase,
     private val confirmParking: ConfirmParkingUseCase,
+    private val observeParkedVehicles: ObserveParkedVehiclesUseCase,
     private val updateParkingLocation: UpdateParkingLocationUseCase,
     private val searchAddress: SearchAddressUseCase,
     private val appPreferences: AppPreferences,
@@ -106,6 +108,11 @@ class HomeViewModel(
             .catch { e ->
                 sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
+            .launchIn(viewModelScope)
+
+        observeParkedVehicles()
+            .onEach { views -> updateState { copy(parkedVehicles = views) } }
+            .catch { /* best-effort; UserParking is authoritative, this is display-only */ }
             .launchIn(viewModelScope)
 
         observeZones()

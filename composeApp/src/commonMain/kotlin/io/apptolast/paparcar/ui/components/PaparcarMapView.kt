@@ -57,13 +57,14 @@ import com.swmansion.kmpmaps.core.MapType
 import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.ParkedVehicleView
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
+
 import io.apptolast.paparcar.presentation.map.CameraTarget
-import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
-import io.apptolast.paparcar.presentation.util.toSpotReliabilityLevel
+
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
@@ -226,30 +227,34 @@ private data class SpotMeta(
 )
 
 // ── Marker content IDs ──────────────────────────────────────────────────────
-private const val MARKER_MY_CAR              = "my_car"
-private const val MARKER_MY_CAR_SELECTED     = "my_car_selected"
-private const val MARKER_FREE_SPOT_HIGH      = "free_spot_high"
-private const val MARKER_FREE_SPOT_MEDIUM    = "free_spot_medium"
-private const val MARKER_FREE_SPOT_LOW       = "free_spot_low"
-private const val MARKER_FREE_SPOT_MANUAL    = "free_spot_manual"
-private const val MARKER_FREE_SPOT_SELECTED  = "free_spot_selected"
-// Dimmed variants used when the host is in a "positioning a new spot" flow:
-// same composables, wrapped in Modifier.alpha so existing markers stay
-// visible but subordinated to the centre pin. Distinct contentId so the
-// kmpmaps bitmap cache rasterises them separately from the full-opacity
-// variants instead of reusing a cached bitmap.
-private const val MARKER_FREE_SPOT_HIGH_DIM   = "free_spot_high_dim"
-private const val MARKER_FREE_SPOT_MEDIUM_DIM = "free_spot_medium_dim"
-private const val MARKER_FREE_SPOT_LOW_DIM    = "free_spot_low_dim"
-private const val MARKER_FREE_SPOT_MANUAL_DIM = "free_spot_manual_dim"
-private const val MARKER_MY_CAR_DIM           = "my_car_dim"
+// Badge markers: contentId encodes vehicleId + state suffix so the bitmap
+// cache stores one entry per vehicle×state.
+private fun vehicleBadgeContentId(v: ParkedVehicleView, selected: Boolean, dim: Boolean): String {
+    val suffix = when {
+        selected -> "sel"
+        dim      -> "dim"
+        else     -> "nrm"
+    }
+    return "vehicle_badge_${v.vehicleId.take(8)}_$suffix"
+}
 
-// Alpha applied to dimmed FreeSpot markers — visible enough to deter
-// duplicate reports, subordinate enough that the centre pin dominates.
+private const val MARKER_MY_CAR          = "my_car"
+private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
+private const val MARKER_MY_CAR_DIM      = "my_car_dim"
+
+// Free-spot markers — three variants (normal / selected / dimmed).
+// Reliability tiers are preserved in business logic but no longer encoded
+// visually; shape + colour carry the semantics instead.
+private const val MARKER_FREE_SPOT     = "free_spot"
+private const val MARKER_FREE_SPOT_SEL = "free_spot_selected"
+private const val MARKER_FREE_SPOT_DIM = "free_spot_dim"
+
+// Alpha applied to dimmed markers — visible enough to deter duplicate
+// reports, subordinate enough that the centre pin dominates.
 private const val DIM_MARKER_ALPHA = 0.35f
-private const val MARKER_CLUSTER             = "cluster"
-// One contentId per [ZoneIcon] preset so each icon variant gets its own
-// cached bitmap. Built dynamically from ZoneIcon.PRESETS in customMarkerContent.
+private const val MARKER_CLUSTER   = "cluster"
+// Zone markers are keyed by iconKey: zones sharing the same icon reuse the
+// same cached bitmap, which is correct since the visual is identical.
 private const val MARKER_ZONE_PREFIX         = "zone_"
 private const val CAMERA_MOVING_DEBOUNCE_MS  = 280L
 
@@ -258,27 +263,6 @@ private const val CAMERA_MOVING_DEBOUNCE_MS  = 280L
 private const val ZOOM_CLUSTER_DISABLE = 14f
 
 private data class SpotCluster(val lat: Double, val lon: Double, val spots: List<Spot>)
-
-/**
- * Returns the non-selected [contentId] for a spot marker based on its
- * [SpotReliabilityLevel]. The bitmap cache in the kmpmaps library is keyed
- * by contentId, so one entry per reliability tier shares the same bitmap
- * across many markers.
- */
-private fun Spot.reliabilityContentId(): String = when (toSpotReliabilityLevel()) {
-    SpotReliabilityLevel.HIGH   -> MARKER_FREE_SPOT_HIGH
-    SpotReliabilityLevel.MEDIUM -> MARKER_FREE_SPOT_MEDIUM
-    SpotReliabilityLevel.LOW    -> MARKER_FREE_SPOT_LOW
-    SpotReliabilityLevel.MANUAL -> MARKER_FREE_SPOT_MANUAL
-}
-
-/** Dimmed counterpart of [reliabilityContentId] used while [PaparcarMapView.dimSpots] is on. */
-private fun Spot.reliabilityDimmedContentId(): String = when (toSpotReliabilityLevel()) {
-    SpotReliabilityLevel.HIGH   -> MARKER_FREE_SPOT_HIGH_DIM
-    SpotReliabilityLevel.MEDIUM -> MARKER_FREE_SPOT_MEDIUM_DIM
-    SpotReliabilityLevel.LOW    -> MARKER_FREE_SPOT_LOW_DIM
-    SpotReliabilityLevel.MANUAL -> MARKER_FREE_SPOT_MANUAL_DIM
-}
 
 /** Degree threshold used to group nearby spots at a given zoom level. */
 private fun clusterThresholdDeg(zoom: Float): Double = when {
@@ -372,6 +356,13 @@ fun PaparcarMapView(
     userLocation: GpsPoint?,
     parkingLocation: GpsPoint?,
     modifier: Modifier = Modifier,
+    /**
+     * Enriched parking sessions from [ObserveParkedVehiclesUseCase].
+     * When non-empty, badge markers are rendered instead of the legacy
+     * teardrop for the home screen. [parkingLocation] still drives
+     * ParkingLocationScreen which does not have vehicle context.
+     */
+    parkedVehicles: List<ParkedVehicleView> = emptyList(),
     cameraTarget: CameraTarget? = null,
     /** User's saved habitual places. Rendered as circular markers with the chosen icon. */
     zones: List<Zone> = emptyList(),
@@ -444,13 +435,12 @@ fun PaparcarMapView(
         zones.associate { Coordinates(it.lat, it.lon) to it.id }
     }
 
-    val markers = remember(clusters, parkingLocation, selectedSpotId, dimSpots, isMyCarSelected, zones) {
+    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, dimSpots, isMyCarSelected, zones) {
         buildList {
             // Zone markers — added FIRST so spot/parking markers render on top
             // (kmpmaps draws in list order; later entries z-index above earlier).
             // Zones are background context, not actionable like spots.
             zones.forEach { zone ->
-                val safeKey = if (zone.iconKey in ZoneIcon.PRESETS) zone.iconKey else ZoneIcon.DEFAULT
                 add(
                     Marker(
                         coordinates = Coordinates(zone.lat, zone.lon),
@@ -458,25 +448,38 @@ fun PaparcarMapView(
                         // balloon. Zone ID is recovered via zoneIdByCoords in the
                         // click handler instead.
                         title = null,
-                        contentId = "$MARKER_ZONE_PREFIX$safeKey",
+                        // Per-iconKey contentId: zones with the same icon share a bitmap.
+                        contentId = "$MARKER_ZONE_PREFIX${zone.iconKey}",
                     ),
                 )
             }
-            parkingLocation?.let {
-                add(
-                    Marker(
-                        coordinates = Coordinates(it.latitude, it.longitude),
-                        title = null,
-                        contentId = when {
-                            // Parking-selected: switch to the haloed variant so
-                            // the focus is visually unmistakable. Always full
-                            // opacity — never participates in the dim pass.
-                            isMyCarSelected -> MARKER_MY_CAR_SELECTED
-                            dimSpots -> MARKER_MY_CAR_DIM
-                            else -> MARKER_MY_CAR
-                        },
-                    ),
-                )
+            if (parkedVehicles.isNotEmpty()) {
+                // Name-tag markers: amber plate per active parking session.
+                parkedVehicles.forEach { v ->
+                    add(
+                        Marker(
+                            coordinates = Coordinates(v.location.latitude, v.location.longitude),
+                            title = null,
+                            contentId = vehicleBadgeContentId(v, selected = isMyCarSelected, dim = dimSpots && !isMyCarSelected),
+                        ),
+                    )
+                }
+            } else {
+                // Fallback: legacy teardrop (used by ParkingLocationScreen which
+                // does not supply parkedVehicles).
+                parkingLocation?.let {
+                    add(
+                        Marker(
+                            coordinates = Coordinates(it.latitude, it.longitude),
+                            title = null,
+                            contentId = when {
+                                isMyCarSelected -> MARKER_MY_CAR_SELECTED
+                                dimSpots -> MARKER_MY_CAR_DIM
+                                else -> MARKER_MY_CAR
+                            },
+                        ),
+                    )
+                }
             }
             clusters.forEach { cluster ->
                 if (cluster.spots.size == 1) {
@@ -486,9 +489,9 @@ fun PaparcarMapView(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
                             title = null,
                             contentId = when {
-                                spot.id == selectedSpotId -> MARKER_FREE_SPOT_SELECTED
-                                dimSpots -> spot.reliabilityDimmedContentId()
-                                else -> spot.reliabilityContentId()
+                                spot.id == selectedSpotId -> MARKER_FREE_SPOT_SEL
+                                dimSpots -> MARKER_FREE_SPOT_DIM
+                                else -> MARKER_FREE_SPOT
                             },
                         ),
                     )
@@ -506,76 +509,55 @@ fun PaparcarMapView(
     }
 
     // ── Custom marker composables ────────────────────────────────────────────
-    // Markers come from the Design System bundle (MARKERS-001). FreeSpot variants
-    // share the new FreeSpotMarker composable parameterised by reliability tier;
-    // size/en-route badges are preserved as overlays on top so legacy product
-    // features (size letter + driving-toward-spot indicator) survive the swap.
-    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords) {
+    // Three-marker system (MAP-MARKERS-REDESIGN-001):
+    //   - VehicleBadgeMarker: amber round badge + car icon (larger than spot)
+    //   - FreeSpotMarker: green teardrop + "P" (unified, no reliability tiers)
+    //   - ZoneMarker: blue teardrop + darker-blue disc + zone icon
+    // FreeSpot size/en-route overlays are preserved via FreeSpotWithOverlays.
+    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots) {
         mapOf<String, @Composable (Marker) -> Unit>(
+            // ── Legacy fallback teardrop (ParkingLocationScreen) ──
             MARKER_MY_CAR to { _ -> MyVehicleMarker() },
             MARKER_MY_CAR_SELECTED to { _ -> MyVehicleMarker(selected = true) },
             MARKER_MY_CAR_DIM to { _ ->
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { MyVehicleMarker() }
+            },
+            // ── Free spot (3 variants: normal / selected / dimmed) ──
+            MARKER_FREE_SPOT to { marker ->
+                FreeSpotWithOverlays(spotMetaByCoords[marker.coordinates])
+            },
+            MARKER_FREE_SPOT_SEL to { marker ->
+                FreeSpotWithOverlays(spotMetaByCoords[marker.coordinates], selected = true)
+            },
+            MARKER_FREE_SPOT_DIM to { marker ->
+                // Distinct contentId so kmpmaps rasterises a separate bitmap; switching
+                // contentId on dim ON/OFF triggers re-rasterisation instead of reusing
+                // the full-opacity cached bitmap.
                 Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    MyVehicleMarker()
+                    FreeSpotWithOverlays(spotMetaByCoords[marker.coordinates])
                 }
-            },
-            MARKER_FREE_SPOT_HIGH to { marker ->
-                FreeSpotWithOverlays(SpotReliabilityLevel.HIGH, spotMetaByCoords[marker.coordinates])
-            },
-            MARKER_FREE_SPOT_MEDIUM to { marker ->
-                FreeSpotWithOverlays(SpotReliabilityLevel.MEDIUM, spotMetaByCoords[marker.coordinates])
-            },
-            MARKER_FREE_SPOT_LOW to { marker ->
-                FreeSpotWithOverlays(SpotReliabilityLevel.LOW, spotMetaByCoords[marker.coordinates])
-            },
-            MARKER_FREE_SPOT_MANUAL to { marker ->
-                FreeSpotWithOverlays(SpotReliabilityLevel.MANUAL, spotMetaByCoords[marker.coordinates])
-            },
-            // Dimmed variants — same composable wrapped in Modifier.alpha. Distinct
-            // contentId so kmpmaps rasterises them as separate bitmaps; switching a
-            // marker's contentId in the dim ON/OFF transition triggers re-rasterisation
-            // (whereas mutating alpha inside the existing lambda would reuse the cached
-            // full-opacity bitmap and the dim would never appear on screen).
-            MARKER_FREE_SPOT_HIGH_DIM to { marker ->
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(SpotReliabilityLevel.HIGH, spotMetaByCoords[marker.coordinates])
-                }
-            },
-            MARKER_FREE_SPOT_MEDIUM_DIM to { marker ->
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(SpotReliabilityLevel.MEDIUM, spotMetaByCoords[marker.coordinates])
-                }
-            },
-            MARKER_FREE_SPOT_LOW_DIM to { marker ->
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(SpotReliabilityLevel.LOW, spotMetaByCoords[marker.coordinates])
-                }
-            },
-            MARKER_FREE_SPOT_MANUAL_DIM to { marker ->
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(SpotReliabilityLevel.MANUAL, spotMetaByCoords[marker.coordinates])
-                }
-            },
-            MARKER_FREE_SPOT_SELECTED to { marker ->
-                // Selected uses HIGH colour + halo regardless of the underlying spot's
-                // reliability. Selection always renders at full opacity — never
-                // participates in the Reporting-mode dim pass.
-                FreeSpotWithOverlays(
-                    reliability = SpotReliabilityLevel.HIGH,
-                    meta = spotMetaByCoords[marker.coordinates],
-                    selected = true,
-                )
             },
             MARKER_CLUSTER to { marker ->
                 FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
             },
-        ) + ZoneIcon.PRESETS.associate { key ->
-            // One bitmap cache entry per preset icon — the contentId carries
-            // the icon variant; the zone ID is recovered via zoneIdByCoords
-            // in the click handler. Unknown iconKey values fall back to
-            // DEFAULT in the marker-build pass above.
-            "$MARKER_ZONE_PREFIX$key" to { _: Marker ->
-                ZoneMarker(icon = zoneIconFor(key))
+        ) + parkedVehicles.flatMap { v ->
+            // Explicit type annotation preserves @Composable on each lambda through flatMap.
+            val entries: List<Pair<String, @Composable (Marker) -> Unit>> = listOf(
+                vehicleBadgeContentId(v, selected = false, dim = false) to { _: Marker ->
+                    VehicleBadgeMarker()
+                },
+                vehicleBadgeContentId(v, selected = true, dim = false) to { _: Marker ->
+                    VehicleBadgeMarker(selected = true)
+                },
+                vehicleBadgeContentId(v, selected = false, dim = true) to { _: Marker ->
+                    Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { VehicleBadgeMarker() }
+                },
+            )
+            entries
+        }.toMap() + zones.associate { zone ->
+            // Zones with the same iconKey share a cached bitmap (identical visual).
+            "$MARKER_ZONE_PREFIX${zone.iconKey}" to { _: Marker ->
+                ZoneMarker(icon = zoneIconFor(zone.iconKey))
             }
         }
     }
@@ -705,7 +687,8 @@ fun PaparcarMapView(
                 when {
                     cid == MARKER_MY_CAR ||
                         cid == MARKER_MY_CAR_SELECTED ||
-                        cid == MARKER_MY_CAR_DIM -> onMyCarClick()
+                        cid == MARKER_MY_CAR_DIM ||
+                        cid?.startsWith("vehicle_badge_") == true -> onMyCarClick()
                     cid?.startsWith(MARKER_ZONE_PREFIX) == true ->
                         zoneIdByCoords[marker.coordinates]?.let(onZoneClick)
                     cid == MARKER_CLUSTER -> Unit // cluster taps are inert
@@ -924,14 +907,13 @@ private fun rememberCameraAnimationState(
  */
 @Composable
 private fun FreeSpotWithOverlays(
-    reliability: SpotReliabilityLevel,
     meta: SpotMeta?,
     selected: Boolean = false,
 ) {
     val sizeCategory = meta?.sizeCategory
     val enRouteCount = meta?.enRouteCount ?: 0
     Box {
-        FreeSpotMarker(reliability = reliability, selected = selected)
+        FreeSpotMarker(selected = selected)
         val label = sizeCategory?.badgeLabel()
         if (label != null) {
             SpotSizeBadge(

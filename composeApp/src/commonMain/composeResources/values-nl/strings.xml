@@ -279,6 +279,10 @@
     <!-- Voertuigregistratie -->
     <string name="vehicle_registration_title">Voertuig registreren</string>
     <string name="vehicle_registration_save">Opslaan</string>
+    <string name="vehicle_registration_name_label">Naam</string>
+    <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
+    <string name="vehicle_default_name_format">Auto %1$d</string>
+    <string name="vehicle_registration_other_option">Andere…</string>
     <string name="vehicle_registration_brand_hint">Merk (optioneel)</string>
     <string name="vehicle_registration_model_hint">Model (optioneel)</string>
     <string name="vehicle_show_on_spot">Merk en model tonen op vrije parkeerplaatsen</string>

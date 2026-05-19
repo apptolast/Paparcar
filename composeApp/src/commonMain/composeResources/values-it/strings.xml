@@ -279,6 +279,10 @@
     <!-- Registrazione veicolo -->
     <string name="vehicle_registration_title">Registra il tuo veicolo</string>
     <string name="vehicle_registration_save">Salva</string>
+    <string name="vehicle_registration_name_label">Nome</string>
+    <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
+    <string name="vehicle_default_name_format">Auto %1$d</string>
+    <string name="vehicle_registration_other_option">Altro…</string>
     <string name="vehicle_registration_brand_hint">Marca (opzionale)</string>
     <string name="vehicle_registration_model_hint">Modello (opzionale)</string>
     <string name="vehicle_show_on_spot">Mostra marca e modello sui posti liberi</string>

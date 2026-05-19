@@ -370,6 +370,11 @@
     <string name="vehicle_registration_title">Register your vehicle</string>
     <string name="vehicle_registration_edit_title">Edit vehicle</string>
     <string name="vehicle_registration_save">Save</string>
+    <string name="vehicle_registration_name_label">Name</string>
+    <!-- %1$d = sequential car number (Car 1, Car 2…) -->
+    <string name="vehicle_registration_name_placeholder">Car %1$d</string>
+    <string name="vehicle_default_name_format">Car %1$d</string>
+    <string name="vehicle_registration_other_option">Other…</string>
     <string name="vehicle_registration_brand_hint">Brand (optional)</string>
     <string name="vehicle_registration_model_hint">Model (optional)</string>
     <string name="vehicle_show_on_spot">Show brand and model on free spots</string>

@@ -21,7 +21,7 @@ The set splits into three themes that can ship independently:
 
 ---
 
-## 1. `feature/VEH-PARK-STATE-001-active-session-non-bt-only` — ⚪ Pending
+## 1. `feature/VEH-PARK-STATE-001-active-session-non-bt-only` — ✅ Done (v1 scope)
 
 **Priority:** High — prerequisite for VEH-MARKERS-001. Without this rule, "multi-marker" can't model the BT case correctly.
 **Effort:** Medium — touches detection strategies, ConfirmParkingUseCase, mapper, and the marker data flow.
@@ -56,7 +56,7 @@ The set splits into three themes that can ship independently:
 
 ---
 
-## 2. `feature/VEH-MARKERS-001-multi-parking-markers` — ⚪ Pending
+## 2. `feature/VEH-MARKERS-001-multi-parking-markers` — ✅ Done
 
 **Priority:** High — without this, vehicles 2..N are invisible on the map.
 **Effort:** Small (after VEH-PARK-STATE-001 ships).
@@ -80,7 +80,7 @@ The set splits into three themes that can ship independently:
 
 ---
 
-## 3. `feature/VEH-MARKERS-002-parked-badge-shape` — ⚪ Pending
+## 3. `feature/VEH-MARKERS-002-parked-badge-shape` — ✅ Done
 
 **Priority:** High — visual clarity. Without it, mis coches look like HIGH-reliability spots.
 **Effort:** Small.
@@ -99,7 +99,7 @@ The set splits into three themes that can ship independently:
 
 ---
 
-## 4. `feature/VEH-MARKERS-003-per-vehicle-accent-color` — ⚪ Pending
+## 4. `feature/VEH-MARKERS-003-per-vehicle-accent-color` — ✅ Done
 
 **Priority:** Medium — needed to differentiate vehicle 1 from vehicle 2 visually. Useless without VEH-MARKERS-001.
 **Effort:** Trivial (palette utility + lookup at render time).
@@ -124,7 +124,7 @@ Use `.sortedBy { it.id }` (or createdAt if we ever add it) so the assignment is 
 
 ---
 
-## 5. `feature/VEH-NAME-001-optional-vehicle-name` — ⚪ Pending
+## 5. `feature/VEH-NAME-001-optional-vehicle-name` — ✅ Done
 
 **Priority:** High — unlocks the "Coche 1 / Coche 2" default the user asked for and removes the ugly "Vehículo sin nombre" empty state.
 **Effort:** Medium — touches model + Room migration + Firestore mapper + form + display sites.
@@ -167,7 +167,7 @@ Use `.sortedBy { it.id }` (or createdAt if we ever add it) so the assignment is 
 
 ---
 
-## 6. `feature/VEH-REG-001-brand-model-dropdowns` — ⚪ Pending
+## 6. `feature/VEH-REG-001-brand-model-dropdowns` — ✅ Done
 
 **Priority:** Medium — usability win, not blocking.
 **Effort:** Medium — needs a brand/model catalog file and dependent-dropdown logic.
@@ -182,7 +182,7 @@ Use `.sortedBy { it.id }` (or createdAt if we ever add it) so the assignment is 
 
 ---
 
-## 7. `feature/VEH-MODAL-001-show-vehicle-name-in-modals` — ⚪ Pending
+## 7. `feature/VEH-MODAL-001-show-vehicle-name-in-modals` — ✅ Done (partial: tab pill + BT config modal)
 
 **Priority:** Medium — completes the naming UX. Cheap follow-up to VEH-NAME-001.
 **Effort:** Small.

@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
@@ -165,14 +166,6 @@ internal fun VehiclesContent(
                     onShowExplainer = onShowExplainer,
                 )
 
-                state.vehicles.size == 1 -> VehiclePageContent(
-                    vehicleWithStats = state.vehicles.first(),
-                    onIntent = onIntent,
-                    onConfigureBluetooth = onConfigureBluetooth,
-                    onNavigateToMap = onNavigateToMap,
-                    canDelete = false,
-                )
-
                 else -> VehiclesPager(
                     state = state,
                     onIntent = onIntent,
@@ -230,6 +223,7 @@ private fun VehiclesPager(
                 onIntent = onIntent,
                 onConfigureBluetooth = onConfigureBluetooth,
                 onNavigateToMap = onNavigateToMap,
+                canDelete = vehicles.size > 1,
             )
         }
     }
@@ -292,12 +286,9 @@ private fun AddVehiclePill(onClick: () -> Unit) {
 @Composable
 private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    // Fall back to localized "unnamed vehicle" copy when the user didn't
-    // provide brand/model — the previous fallback showed the first 8 chars
-    // of the UUID, which read as garbage to the user.
-    val tabName = listOfNotNull(vehicle.brand, vehicle.model)
-        .joinToString(" ")
-        .ifBlank { stringResource(Res.string.my_car_unnamed_vehicle) }
+    val tabName = vehicle.displayName(
+        fallback = stringResource(Res.string.my_car_unnamed_vehicle),
+    )
     val bg = if (selected) cs.primaryContainer else Color.Transparent
     val borderColor = if (selected) cs.primary else cs.outline.copy(alpha = TAB_INACTIVE_BORDER_ALPHA)
     val fg = if (selected) cs.onPrimaryContainer else cs.onSurface.copy(alpha = TAB_INACTIVE_FG_ALPHA)

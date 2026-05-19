@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.presentation.vehicle.data.VehicleCatalog
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -19,14 +20,47 @@ class VehicleRegistrationViewModel(
 
     override fun initState(): VehicleRegistrationState = VehicleRegistrationState()
 
+    init {
+        viewModelScope.launch {
+            runCatching {
+                val count = vehicleRepository.observeVehicles().first().size
+                updateState { copy(existingVehicleCount = count) }
+            }
+        }
+    }
+
     override fun handleIntent(intent: VehicleRegistrationIntent) {
         when (intent) {
-            is VehicleRegistrationIntent.SetBrand ->
-                updateState { copy(brand = intent.value) }
-            is VehicleRegistrationIntent.SetModel ->
-                updateState { copy(model = intent.value) }
+            is VehicleRegistrationIntent.SetName ->
+                updateState { copy(name = intent.value, hasInteractedWithForm = true) }
+
+            is VehicleRegistrationIntent.SelectBrand -> updateState {
+                copy(
+                    brand = intent.brand,
+                    isBrandOther = false,
+                    // Reset model when brand changes
+                    model = "",
+                    isModelOther = false,
+                    hasInteractedWithForm = true,
+                )
+            }
+            is VehicleRegistrationIntent.SelectBrandOther -> updateState {
+                copy(brand = "", isBrandOther = true, model = "", isModelOther = false, hasInteractedWithForm = true)
+            }
+            is VehicleRegistrationIntent.SetCustomBrand ->
+                updateState { copy(brand = intent.value, hasInteractedWithForm = true) }
+
+            is VehicleRegistrationIntent.SelectModel -> updateState {
+                copy(model = intent.model, isModelOther = false, hasInteractedWithForm = true)
+            }
+            is VehicleRegistrationIntent.SelectModelOther -> updateState {
+                copy(model = "", isModelOther = true, hasInteractedWithForm = true)
+            }
+            is VehicleRegistrationIntent.SetCustomModel ->
+                updateState { copy(model = intent.value, hasInteractedWithForm = true) }
+
             is VehicleRegistrationIntent.SetSize ->
-                updateState { copy(sizeCategory = intent.size) }
+                updateState { copy(sizeCategory = intent.size, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetShowOnSpot ->
                 updateState { copy(showBrandModelOnSpot = intent.enabled) }
             is VehicleRegistrationIntent.LoadVehicle -> loadVehicle(intent.vehicleId)
@@ -42,11 +76,19 @@ class VehicleRegistrationViewModel(
                 val vehicle = vehicleRepository.observeVehicles()
                     .first { list -> list.any { it.id == vehicleId } }
                     .first { it.id == vehicleId }
+                val catalogBrands = VehicleCatalog.brands()
+                val brandInCatalog = vehicle.brand != null && vehicle.brand in catalogBrands
+                val modelsForBrand = if (brandInCatalog)
+                    VehicleCatalog.modelsFor(vehicle.brand) else emptyList()
+                val modelInCatalog = vehicle.model != null && vehicle.model in modelsForBrand
                 updateState {
                     copy(
                         editingVehicleId = vehicle.id,
+                        name = vehicle.name ?: "",
                         brand = vehicle.brand ?: "",
+                        isBrandOther = vehicle.brand != null && !brandInCatalog,
                         model = vehicle.model ?: "",
+                        isModelOther = vehicle.model != null && !modelInCatalog,
                         sizeCategory = vehicle.sizeCategory,
                         showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
                     )
@@ -60,9 +102,6 @@ class VehicleRegistrationViewModel(
     @OptIn(ExperimentalUuidApi::class)
     private fun saveVehicle() {
         val current = state.value
-        // Defensa en profundidad contra doble-tap: si ya hay un save en vuelo, ignorar.
-        // La UI también desactiva el botón con isSaving=true (PapPrimaryButton lo respeta),
-        // pero el guard del VM cubre el race entre intent dispatch y recomposición. [VEHICLES-002]
         if (current.isSaving) {
             PaparcarLogger.d(TAG, "saveVehicle ignored — already saving")
             return
@@ -71,10 +110,11 @@ class VehicleRegistrationViewModel(
             sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown("size_required")))
             return
         }
+        // name is required when both brand and model are blank — persist placeholder if that slips through
+        val resolvedName = current.name.trim().ifBlank {
+            if (current.brand.isBlank() && current.model.isBlank()) "Car ${current.defaultNamePlaceholderIndex}" else null
+        }
         val isEditing = current.editingVehicleId != null
-        // Memoizar el id en el state al primer intento. Si el save falla y el usuario
-        // reintenta, reusamos este mismo id → Firestore `.set()` sobreescribe el doc en
-        // lugar de crear otro → no duplica. [VEHICLES-002]
         val vehicleId = current.editingVehicleId
             ?: current.pendingNewVehicleId
             ?: Uuid.random().toString()
@@ -85,6 +125,7 @@ class VehicleRegistrationViewModel(
                 val vehicle = Vehicle(
                     id = vehicleId,
                     userId = userId,
+                    name = resolvedName,
                     brand = current.brand.trim().ifBlank { null },
                     model = current.model.trim().ifBlank { null },
                     sizeCategory = size,
@@ -103,7 +144,6 @@ class VehicleRegistrationViewModel(
                 )
             }.onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to save vehicle", e)
-                // Mantenemos pendingNewVehicleId para que el reintento reuse el mismo id.
                 updateState { copy(isSaving = false) }
                 sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
