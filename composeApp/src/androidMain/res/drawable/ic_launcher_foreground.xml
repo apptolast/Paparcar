@@ -1,19 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Paparcar adaptive icon · foreground wrapper.
+  Paparcar adaptive icon · foreground layer.
 
-  The raster foreground (mipmap/ic_launcher_foreground.png) was rendered
-  filling the full 108dp adaptive canvas, which makes the car glyph read
-  noticeably larger than the artwork of peer apps in the launcher grid.
-  Inset 16dp on every side so the car sits inside the inner ~76dp band —
-  closer to Android's 72dp adaptive-icon safe zone and visually balanced
-  with the wallpaper neighbours.
+  Pure VectorDrawable (no PNG raster) built from the 2022 source artwork
+  (paparcar_icon_fore.svg). The car body is a single filled path, the two
+  wheels are stroked elliptical paths. PapGreen (#25F48C) on the dark grey
+  background reproduces the brand colour pairing of the dark theme primary.
+
+  The full glyph (body + wheels) is wrapped in an outer <group> with
+  scaleX/Y = 0.8 around pivot (54,54) so the car sits comfortably inside
+  Android's 72dp adaptive safe zone instead of pushing against it — matches
+  the breathing-room proportion seen in the original presentation artwork.
+
+  Transform mapping (SVG → VectorDrawable):
+    SVG transform="translate(X Y) rotate(Z)"  ≡
+    <group translateX=X translateY=Y rotation=Z pivotX=0 pivotY=0>
 -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:left="16dp"
-        android:top="16dp"
-        android:right="16dp"
-        android:bottom="16dp"
-        android:drawable="@mipmap/ic_launcher_foreground" />
-</layer-list>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer wrapper: shrink the whole glyph to ~60% around canvas centre. -->
+    <group
+        android:scaleX="0.60"
+        android:scaleY="0.60"
+        android:pivotX="54"
+        android:pivotY="54">
+
+        <!-- Car body: translate(-6,-6) shifts the path into final position. -->
+        <group
+            android:translateX="-6"
+            android:translateY="-6">
+            <path
+                android:fillColor="#25F48C"
+                android:pathData="M92.28,57.77q-4.78,0.15 -14.83,0.24l-9.33,0.07h0c1.82,-2.13 6.79,-8.57 8,-10.44q3.66,-5.72 4.06,-10.31A7.26,7.26 0 0 0 77,30.25Q73.36,27.78 66.88,28a34.45,34.45 0 0 0 -8.79,1.49A35.71,35.71 0 0 0 43.66,38a51.59,51.59 0 0 0 -6.36,8.38q-1.77,2.74 -4.63,7.43c-1.9,3.12 -3.42,5.56 -4.54,7.31S25.6,65 23.91,67.59A1.34,1.34 0 0 0 25,69.67l64,0a1.36,1.36 0 0 0 1.14,-0.63l3.46,-5.54 2.49,-3.77a1.34,1.34 0 0 0 -1.18,-2.08Zm-49.74,0.3a1.34,1.34 0 0 1 -1.12,-2l1.3,-2.14c0.93,-1.55 1.88,-3.09 2.87,-4.63a31.51,31.51 0 0 1 3,-4 16.45,16.45 0 0 1 3.09,-2.63A16.21,16.21 0 0 1 59.88,40a8.71,8.71 0 0 1 5.47,1.26 3.75,3.75 0 0 1 1.54,3.84 15.56,15.56 0 0 1 -2.53,5.87c-0.93,1.44 -3.59,5.13 -5.27,7.21h-0.54Q50.81,58.2 42.54,58.07Z" />
+        </group>
+
+        <!-- Right wheel: translate(-41.78,61.43) rotate(-40) on an ellipse at (74.74,82.86) rx=8.73 ry=6.15. -->
+        <group
+            android:translateX="-41.78"
+            android:translateY="61.43"
+            android:rotation="-40"
+            android:pivotX="0"
+            android:pivotY="0">
+            <path
+                android:fillColor="#00000000"
+                android:strokeColor="#25F48C"
+                android:strokeWidth="6"
+                android:pathData="M66.01,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
+        </group>
+
+        <!-- Left wheel: translate(-50.1,38.57) rotate(-40) on an ellipse at (39.18,82.86) rx=8.73 ry=6.15. -->
+        <group
+            android:translateX="-50.1"
+            android:translateY="38.57"
+            android:rotation="-40"
+            android:pivotX="0"
+            android:pivotY="0">
+            <path
+                android:fillColor="#00000000"
+                android:strokeColor="#25F48C"
+                android:strokeWidth="6"
+                android:pathData="M30.45,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
+        </group>
+    </group>
+</vector>
