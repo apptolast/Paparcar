@@ -484,4 +484,11 @@
     <string name="vehicle_stats_sessions">sessões</string>
     <string name="vehicle_stats_last_session">última</string>
     <string name="vehicle_stats_reliability">fiabilidade</string>
+    <!-- Auth screens -->
+    <string name="auth_header_tagline">Encontre a sua vaga, partilhe o espaço</string>
+    <string name="auth_field_email">E-mail</string>
+    <string name="auth_field_password">Senha</string>
+    <string name="auth_field_name">Nome</string>
+    <string name="auth_field_confirm_password">Confirmar senha</string>
+    <string name="auth_forgot_password">Esqueceu a senha?</string>
 </resources>

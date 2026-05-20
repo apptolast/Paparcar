@@ -22,7 +22,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
+import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -350,10 +350,10 @@ private fun HomeSizeFilterBar(
         modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        FilterChip(
+        PaparcarFilterChip(
+            label = allLabel,
             selected = selectedSize == null,
             onClick = { onFilterSelect(null) },
-            label = { Text(allLabel, style = MaterialTheme.typography.labelSmall) },
         )
         listOf(
             VehicleSize.MOTO   to motoLabel,
@@ -362,10 +362,10 @@ private fun HomeSizeFilterBar(
             VehicleSize.LARGE  to largeLabel,
             VehicleSize.VAN    to vanLabel,
         ).forEach { (size, label) ->
-            FilterChip(
+            PaparcarFilterChip(
+                label = label,
                 selected = selectedSize == size,
                 onClick = { onFilterSelect(if (selectedSize == size) null else size) },
-                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
             )
         }
     }

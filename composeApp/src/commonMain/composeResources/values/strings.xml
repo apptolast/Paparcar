@@ -474,4 +474,11 @@
     <!-- Accessibility content descriptions (QA-006) -->
     <string name="home_peek_dismiss_cd">Dismiss</string>
     <string name="bt_config_cd_back">Back</string>
+    <!-- Auth screens -->
+    <string name="auth_header_tagline">Find your spot, share your space</string>
+    <string name="auth_field_email">Email</string>
+    <string name="auth_field_password">Password</string>
+    <string name="auth_field_name">Name</string>
+    <string name="auth_field_confirm_password">Confirm password</string>
+    <string name="auth_forgot_password">Forgot password?</string>
 </resources>

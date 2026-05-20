@@ -468,4 +468,11 @@
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Descartar</string>
     <string name="bt_config_cd_back">Atrás</string>
+    <!-- Auth screens -->
+    <string name="auth_header_tagline">Encuentra tu plaza, comparte tu espacio</string>
+    <string name="auth_field_email">Correo electrónico</string>
+    <string name="auth_field_password">Contraseña</string>
+    <string name="auth_field_name">Nombre</string>
+    <string name="auth_field_confirm_password">Confirmar contraseña</string>
+    <string name="auth_forgot_password">¿Olvidaste tu contraseña?</string>
 </resources>

@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +68,12 @@ internal fun HomeZoneChips(
             )
         }
         item("add_zone") {
-            AddZoneChip(onClick = onAddZone)
+            PaparcarAddChip(
+                onClick = onAddZone,
+                shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
+                iconSize = CHIP_ICON_DP.dp,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            )
         }
     }
 }
@@ -110,44 +116,9 @@ private fun ZoneChip(
     }
 }
 
-/**
- * "+" trailing chip — mirrors [ZoneChip]'s Surface molde exactly so both rows
- * align to the same height in the LazyRow. Icon-only content with the same
- * 12/8 padding as the zone chips.
- */
-@Composable
-private fun AddZoneChip(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(
-            width = 1.5.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = ADD_CHIP_BORDER_ALPHA),
-        ),
-        modifier = modifier,
-    ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(CHIP_ICON_DP.dp),
-            )
-        }
-    }
-}
-
 private const val CHIP_CORNER_DP = 18
 private const val CHIP_ICON_DP = 18
 private const val CHIP_BORDER_ALPHA = 0.6f
-private const val ADD_CHIP_BORDER_ALPHA = 0.5f
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Empty zones card — same molde as HomeParkingEmptyCard for visual coherence.

@@ -35,7 +35,11 @@ class VehiclesViewModel(
             }
         }
             .onEach { vehiclesWithStats ->
-                updateState { copy(vehicles = vehiclesWithStats, isLoading = false) }
+                updateState {
+                    val clampedIndex = selectedVehicleIndex
+                        .coerceIn(0, (vehiclesWithStats.size - 1).coerceAtLeast(0))
+                    copy(vehicles = vehiclesWithStats, isLoading = false, selectedVehicleIndex = clampedIndex)
+                }
             }
             .catch { e ->
                 PaparcarLogger.e(TAG, "Failed to observe vehicles", e)
@@ -63,6 +67,10 @@ class VehiclesViewModel(
             is VehiclesIntent.ConfirmDeleteVehicle -> {
                 updateState { copy(pendingDeleteVehicleId = null) }
                 deleteVehicle(intent.vehicleId)
+            }
+            is VehiclesIntent.SelectVehicle -> updateState {
+                val clamped = intent.index.coerceIn(0, (vehicles.size - 1).coerceAtLeast(0))
+                copy(selectedVehicleIndex = clamped)
             }
             is VehiclesIntent.EditVehicle ->
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
