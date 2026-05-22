@@ -81,7 +81,7 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 **Ticket:** `VEH-CARD-LAYOUT-001`
 **Rama sugerida:** `feature/VEH-CARD-LAYOUT-001-compact-vehicle-card`
 **Prioridad:** Baja | **Esfuerzo:** Trivial
-**Estado:** ⚪ Pending
+**Estado:** ✅ Done 2026-05-20
 
 **Qué hacer:**
 - Auditar `VehicleHeroCard` / `VehiclePageContent` — identificar qué elementos están desalineados o sobredimensionados.
@@ -96,7 +96,7 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 **Ticket:** `HOME-ZONES-EDIT-001`
 **Rama sugerida:** `feature/HOME-ZONES-EDIT-001-delete-edit-zones`
 **Prioridad:** Alta | **Esfuerzo:** Medio
-**Estado:** ⚪ Pending
+**Estado:** 🔵 Parcial 2026-05-20 — delete ✅ (× en chip → HomeIntent.DeleteZone); edit ⚪ bloqueado: SaveZoneUseCase solo crea, no actualiza — requiere UpdateZoneUseCase en dominio primero
 
 **Contexto:** en la modal de Home ya existe la fila de chips de zonas con "añadir zona" funcional. La lógica de eliminar y editar existe en repositorio/ViewModel pero no está expuesta en la UI.
 
@@ -113,13 +113,13 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 **Ticket:** `SETTINGS-AUDIT-001`
 **Rama sugerida:** `feature/SETTINGS-AUDIT-001-fix-and-test`
 **Prioridad:** Alta | **Esfuerzo:** Grande
-**Estado:** ⚪ Pending
+**Estado:** ✅ Done 2026-05-20
 
-**Qué hacer:**
-- Auditar cada opción de `SettingsScreen` e identificar cuáles no están operativas.
-- Arreglar el cambio de idioma: la lista debe mostrar el nombre del idioma en su idioma nativo (ej. "Deutsch", "Français", "Italiano") no en el idioma de la UI.
-- Verificar y corregir el resto de opciones (notificaciones, tema, perfil, logout, etc.).
-- Tests: unitarios para `SettingsViewModel` y/o instrumentados para flujos críticos. Seguir el mismo patrón de tests del proyecto (fakes sobre mocks, naming `should_X_when_Y`).
+**Auditoría:**
+- Idioma nativo en lista: ✅ ya correcto ("English", "Español", "Italiano"…)
+- Tema / unidades / idioma: ✅ correctamente persistidos en DataStore; fluyen por AppViewModel → AppState → SettingsScreen como props (arquitectura correcta, no un bug)
+- `appVersion` hardcoded "1.0.0": ✅ corregido — añadido `expect/actual appVersion` en Platform.kt (Android: BuildConfig.VERSION_NAME, iOS: NSBundle CFBundleShortVersionString); cargado en SettingsViewModel.loadFromPreferences()
+- Tests: ✅ corregido constructor roto en buildVm (faltaba userParkingRepository); añadidos tests para MapType, MasterNotifications, refreshFromPreferences
 
 ---
 
@@ -167,7 +167,7 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 **Ticket:** `HOME-UX-FIXES-001`
 **Rama sugerida:** `feature/HOME-UX-FIXES-001-flow-corrections`
 **Prioridad:** Alta | **Esfuerzo:** Medio
-**Estado:** ⚪ Pending
+**Estado:** ✅ Done 2026-05-20
 
 **Cuatro fixes:**
 
@@ -202,3 +202,177 @@ Cuando haya un estado activo en la modal, reducir la jerarquía visual del botó
 8. **Tarea 09** — Login/Register screens
 9. **Tarea 08** — Release + App Distribution
 10. **Tarea 01** — ✅ ya hecho (pendiente solo 003 Play Store + 004 smoke test)
+
+---
+
+# Sesión 2026-05-21 — Bug crítico + DS pass
+
+Continuación de la sesión del 2026-05-20. El usuario reportó un bug funcional (idioma) y pidió consolidar bases de diseño antes de seguir saltando entre composables.
+
+## Tarea 11 · BUG-LANG-001 · Cambio de idioma no surte efecto
+
+**Ticket:** `BUG-LANG-001`
+**Rama:** `feature/ICON-LOGO-PALETTE-001-dark-theme-repaint` (in-progress; mover si se quiere ticket aparte)
+**Prioridad:** Crítica | **Esfuerzo:** Trivial
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Root cause:** `MainActivity` extiende `ComponentActivity`, no `AppCompatActivity`. `AppCompatDelegate.setApplicationLocales()` persiste el locale pero solo auto-recrea Activities que usan `AppCompatDelegate`. Como Compose Multiplatform Resources lee strings desde la `Configuration` del Context en cada composición, sin recreate la UI sigue mostrando los strings del locale anterior.
+
+**Fix:** `LocaleApplier.android.kt` ahora llama `ActivityHolder.getCurrentActivity()?.recreate()` tras `setApplicationLocales`. Guard `current == locales` evita recreate redundante si el usuario re-selecciona el idioma actual. iOS sigue siendo no-op (per-app language en iOS requiere flujo separado con `AppleLanguages` en `NSUserDefaults` + restart, fuera de scope).
+
+## Tarea 12 · DS-BORDERS-001 · Tokens de borde + reducir "neon radioactive"
+
+**Ticket:** `DS-BORDERS-001`
+**Prioridad:** Media | **Esfuerzo:** Pequeño
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `ui/theme/Borders.kt` nuevo: `PapBorders.thin (1dp)`, `medium (1.5dp)`, `strong (2dp)` + `DEFAULT_OUTLINE_ALPHA = 0.4f` + helper `outlineSubtle` `BorderStroke`.
+- `VehicleHeroCard` ya no usa `cs.primary` neon en el border de la card activa: ahora siempre `outline @ 0.4f`. La señal de "activo" vive en el fondo verde tintado + `ActiveBadge`. Grosor `BorderStroke(PapBorders.thin, …)`.
+- Constante muerta `INACTIVE_BORDER_ALPHA` eliminada.
+
+## Tarea 13 · DS-CHIPS-CONSOLIDATE-001 · Una sola base de chip
+
+**Ticket:** `DS-CHIPS-CONSOLIDATE-001`
+**Prioridad:** Media | **Esfuerzo:** Pequeño
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `PaparcarFilterChip` reescrito como base única: añadido slot opcional `trailingIcon` + `onTrailingClick` (para el `×` de eliminar zona). Borde unselected `outline @ 0.4f`, selected `+0.2f` — sin `cs.primary` neon.
+- `ZoneChip` (HomeZoneChips.kt) ahora es wrapper finísimo sobre `PaparcarFilterChip(trailingIcon = Icons.Outlined.Close, onTrailingClick = onDelete)`. Quitado `BorderStroke(1.dp)` propio + constantes muertas (`CHIP_DELETE_DP`, `CHIP_BORDER_ALPHA`, `DELETE_ICON_ALPHA`, etc.).
+- `PaparcarAddChip` permanece como variante con contrato distinto (sin label, solo "+").
+
+## Tarea 14 · DS-TYPO-001 · Jerarquía tipográfica
+
+**Ticket:** `DS-TYPO-001`
+**Prioridad:** Media | **Esfuerzo:** Pequeño
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `VehicleHeroCard` (VehiclePageContent.kt:207): nombre de vehículo `titleSmall` (14sp) → `titleMedium` (18sp) Bold. Ahora domina sobre el badge "Vehículo activo" (labelSmall 11sp).
+- `WeeklyActivityCard` (HistoryWeeklyChart.kt:86): título "Actividad semanal" `titleSmall` → `titleMedium`. Subido un escalón.
+- `WeeklyActivityCard` card surface: `surface` → `surfaceContainerHigh` (consistencia con el nuevo modelo de superficies).
+- Pattern uppercase de `ActiveSectionHeader` ("APARCADO ACTUALMENTE") se mantiene como referencia documentada — no se eleva todavía a token global (deferred, ver si lo pide en próxima sesión).
+
+## Tarea 16 · DS-CHIPS-ICON-COLOR-001 · Iconos de chip siempre en primary
+
+**Ticket:** `DS-CHIPS-ICON-COLOR-001`
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `PaparcarFilterChip` tinta `leadingIcon` siempre en `cs.primary` (verde) salvo si `!enabled`. Antes era `contentColor` blanco en unselected → los iconos de zona se perdieron al migrar a la base unificada. Ahora se recupera el verde original como convención para todos los chips con icono.
+
+## Tarea 17 · DS-CHIPS-CONSOLIDATE-002 · Add chip + Vehicle tab pill alineados
+
+**Ticket:** `DS-CHIPS-CONSOLIDATE-002`
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `PaparcarAddChip`: border width `1.5.dp` → `PapBorders.thin`. Mantiene `cs.primary` (afirmativa de "acción") con alpha 0.6f. Documentado por qué difiere de la base neutral.
+- `VehicleTabPill` (VehiclesScreen.kt): migrado a tokens DS — quitado `cs.primary` neon en selected; ahora usa `outline @ 0.4/0.6f` igual que `PaparcarFilterChip`. Icono tintado `cs.primary` (verde) para alinear con convención. Unselected bg pasa a `surfaceContainerHigh` (antes Transparent). Constantes muertas (`ADD_PILL_BORDER_ALPHA`, `TAB_INACTIVE_BORDER_ALPHA`, `TAB_INACTIVE_FG_ALPHA`) eliminadas.
+
+## Tarea 18 · VEH-HERO-LAYOUT-001 · Refactor card de vehículo (título sin clipping)
+
+**Ticket:** `VEH-HERO-LAYOUT-001`
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Problema:** La pill "VEHÍCULO ACTIVO" se renderizaba inline en la fila del título y robaba ~40% del ancho — los nombres de marca/modelo largos se cortaban con ellipsis.
+
+**Hecho:** Refactor de `VehicleHeroCard`:
+- Fila 1 ahora es `icon | título (weight 1f) | overflow menu` — el título posee toda la fila menos el icono e ícono de menú.
+- Fila 2 nueva: `sizeLabel (weight 1f) | ActiveStatusInline / SetActiveButton`. La señal "activo" baja a metadata, donde compite solo con el size label.
+- Sustituida la antigua `ActiveBadge` (pill rellena en `cs.primary` con texto onPrimary) por `ActiveStatusInline` — dot verde + texto "VEHÍCULO ACTIVO" en `cs.primary`, mucho más sobrio. La señal "activo" sigue presente vía: bg de la card tintado, icono primary, y este tag.
+
+## Tarea 15 · DS-SURFACES-001 · Background más claro en Vehicle/Settings
+
+**Ticket:** `DS-SURFACES-001`
+**Prioridad:** Media | **Esfuerzo:** Trivial
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `VehiclesScreen`: Scaffold `containerColor = surfaceContainer` (alineado con sheet de Home).
+- `SettingsScreen`: Scaffold `containerColor = surfaceContainer` + TopAppBar `scrolledContainerColor = surfaceContainer`. Cards internas bumped a `surfaceContainerHigh` (8 surfaces) para preservar la jerarquía de elevación tras subir el fondo.
+- `StatCard` y `VehicleHeroCard` inactivo: `surface` → `surfaceContainerHigh` por la misma razón.
+
+---
+
+# Sesión 2026-05-21 (Phase A) — DS unification across Home
+
+Continuación del pase de DS. El usuario pidió: (a) unificar Home al patrón opaco que ya viven V/S, (b) `PaparcarAddChip` siempre círculo perfecto, (c) rediseñar el CTA "Avisar plaza libre", (d) unificar el estilo de section headers (TU COCHE vs "Plazas libres" estaban descoordinados), (e) anclar la tipografía en la de Vehicle screen, (f) groundwork para multi-parking en Home (deferred a Phase B). Toda esta sesión es Phase A — solo capa UI, sin tocar dominio.
+
+## Tarea 19 · DS-SURFACES-002 · Home opaque surfaces
+
+**Ticket:** `DS-SURFACES-002`
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `HomeParkingEmptyCard`: `surfaceVariant @ 0.4f` → `surfaceContainerHigh`. Borde a `PapBorders.thin / DEFAULT_OUTLINE_ALPHA`. Inner icon box `surface` → `surfaceContainer`. Constante muerta `EMPTY_CARD_BG_ALPHA` retirada.
+- `HomeZonesEmptyCard`: misma migración (`surfaceVariant @ 0.4f` → `surfaceContainerHigh`, inner `surface` → `surfaceContainer`). Retiradas `EMPTY_CARD_BG_ALPHA`, `EMPTY_CARD_BORDER_ALPHA` y constante muerta `CHIP_CORNER_DP` (residuo del ZoneChip que ahora delega a `PaparcarFilterChip`).
+- `HomeEmptySpots` y `HomeEmptyFilteredSpots`: idénticamente migrados — `surfaceContainerHigh` + thin outline. Constante muerta `EMPTY_BG_ALPHA` retirada.
+- Tras este pase, todo Home comparte el modelo de superficies opaco con V/S: page `surfaceContainer`, cards `surfaceContainerHigh`, inner boxes `surfaceContainer`.
+
+## Tarea 20 · DS-CHIPS-CONSOLIDATE-003 · `PaparcarAddChip` siempre circular
+
+**Ticket:** `DS-CHIPS-CONSOLIDATE-003`
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `PaparcarAddChip` reescrito: API simplificada a `(onClick, modifier, contentDescription, iconSize, contentPad)`. Eliminados `shape`/`contentPadding` (siempre `CircleShape`, sin alternativa). El diámetro se deriva de `iconSize + 2·contentPad`, manteniendo el círculo perfecto para cualquier tamaño.
+- Callsites actualizados: `HomeZoneChips` (16+8+8=32dp para igualar la fila de zone chips); `VehiclesScreen` tab strip mantiene 16+8+8=32dp para alinear con el alto del pill.
+- KDoc revisado: explica el sizing model (caller controla peso visual via `iconSize`) y el contrato de igualar el alto de otras chips sumando ambos parámetros.
+
+## Tarea 21 · DS-CTA-REPORT-001 · Rediseño "Avisar plaza libre"
+
+**Ticket:** `DS-CTA-REPORT-001`
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Hecho:**
+- `HomeReportSpotCard` antes: `primaryContainer @ 0.55f` bg + `cs.primary @ 0.5f` border (chillón, rompía el sistema de superficies) y pill "Notify the community" al final.
+- Ahora: mismo molde que `HomeParkingRow` — `surfaceContainerHigh` + thin neutral outline + icon box `surfaceContainer` con icono `cs.primary` (Campaign) + título `titleSmall / Bold` + subtítulo `labelSmall` + **trailing `+` icon primary** en lugar del chevron del parking row. Sin pill — el "+" solo basta como señal de acción, "Notify the community" era redundante.
+- Constantes muertas retiradas: `PRIMARY_CARD_BG_ALPHA`, `PRIMARY_CARD_BORDER_ALPHA`, `EMPTY_BG_ALPHA`, `PRIMARY_CARD_PILL_RADIUS_DP`.
+- String `home_report_action` ("Notify the community") eliminada de las 9 locales (`values/` + 8 traducidas).
+
+## Tarea 22 · DS-SECTION-HEADER-001 · `PapSectionHeader` canónico
+
+**Ticket:** `DS-SECTION-HEADER-001`
+**Estado:** 🔵 Branch ready 2026-05-21
+
+**Problema:** "TU COCHE" salía en uppercase pero "Plazas libres cerca de ti" no, aun usando ambos el mismo composable local `HomeSectionHeader` — el uppercase venía del callsite. Además, History/Vehicles/Settings cada uno tenía su propia receta de header (mezclando `labelLarge`/`labelMedium`/`labelSmall`, alphas distintos y trackings distintos).
+
+**Hecho:**
+- Nuevo `ui/components/PapSectionHeader.kt`: receta canónica `uppercase + labelMedium + ExtraBold + 1sp tracking + onSurfaceVariant`. La transformación uppercase vive dentro del componente — no se delega al caller. Color override opcional para variantes (danger, primary).
+- Variante `PapSectionHeaderRow` con slots `leading`/`trailing` para casos como el dot pulsante del header activo en History o un badge de count.
+- Migrados:
+  - `HomeSheetContent`: ambos headers ("TU COCHE" + "Plazas libres cerca") ahora consistentes. Composable local `HomeSectionHeader` eliminado. Previews android actualizados.
+  - `HistoryComponents`: `ActiveSectionHeader` ahora delega a `PapSectionHeaderRow` con `leading = PulsingDot` + `color = cs.primary`. `HistorySectionHeader` (no usado en ningún sitio) eliminado.
+  - `SettingsScreen`: `SectionHeaderMuted` y `SectionHeaderDanger` ahora son thin wrappers sobre `PapSectionHeader` con su padding original. Constantes locales (`SECTION_LABEL_ALPHA`, `SECTION_LABEL_TRACKING_SP`) conservadas porque se usan también en el `memberSinceLine` del profile card.
+
+## Tarea 23 · DS-TYPO-002 · Tipografía baseline (auditoría)
+
+**Ticket:** `DS-TYPO-002`
+**Estado:** ⚪ Pending (documentación)
+
+**Recomendación de baseline (anclada en Vehicle screen):**
+- **TopBar title:** `headlineSmall (24sp) + ExtraBold + tracking -0.5sp` — la firma "Vehicle screen". Aplicar en Settings/History si quieren la misma fuerza.
+- **Section headers:** receta canónica de `PapSectionHeader` (labelMedium uppercase + ExtraBold + 1sp + onSurfaceVariant). Color override para variantes.
+- **Card titles:** `titleMedium (18sp) + Bold`. Para densas, `bodyMedium (14sp) + SemiBold`.
+- **Card metadata:** `bodySmall (12sp) + onSurface @ 0.55f`.
+- **Active tags:** `labelSmall (11sp) + ExtraBold uppercase + cs.primary`.
+
+Documentar como código vivo no escala — se ha codificado en `PapSectionHeader` (headers) y `ActiveStatusInline` (active tag). El resto queda como guía mental hasta que aparezca el segundo callsite divergente.
+
+## Tarea 24 · MULTI-PARKING-HOME-001 · Multi-parking en Home (Phase B — deferred)
+
+**Ticket:** `MULTI-PARKING-HOME-001`
+**Estado:** ⚪ Pending — explícitamente diferido fuera de Phase A
+
+**Contexto:** el usuario apuntó que un usuario puede tener varios vehículos, cada uno con su sesión de parking activa. Home debería mostrar todos los vehicles parqueados — el activo + cualquier otro con sesión activa. El groundwork de UI ya existe (`HomeState.parkedVehicles: List<ParkedVehicleView>`, `ObserveParkedVehiclesUseCase` devolviendo `Flow<List<ParkedVehicleView>>`) pero el use case está hardcoded para 0..1 elementos.
+
+**Pendiente (Phase B):**
+1. Cambiar `UserParkingRepository.observeActiveSession(): Flow<UserParking?>` → `Flow<List<UserParking>>`.
+2. Auditar todos los consumidores (Confirm/Release/Geofence/Notification flows) para asegurar que no asumen una única sesión activa.
+3. Revisar schema Room — el campo `isActive` admite múltiples filas TRUE, pero el flow actual filtra por una sola.
+4. Actualizar Firestore queries (collection `userParkings/{userId}/active`).
+5. UI: `HomeSheetContent.parkingSection` ya itera potencialmente sobre múltiples filas — solo hay que cambiar el `state.userParking != null` por `state.parkedVehicles.isNotEmpty()` y `itemsIndexed(state.parkedVehicles)`.
+
+Phase B es un cambio de contrato del dominio + posible migración Room — no mezclarlo en este branch de DS pass.
