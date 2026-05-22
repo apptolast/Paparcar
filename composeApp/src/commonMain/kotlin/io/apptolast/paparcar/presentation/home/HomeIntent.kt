@@ -20,7 +20,8 @@ sealed class HomeIntent {
         val lon: Double,
         val publishSpot: Boolean = true,
     ) : HomeIntent()
-    /** null clears the selection; [HomeState.PARKING_ITEM_ID] selects the parked car; any other ID selects a spot. */
+    /** null clears the selection; otherwise the id resolves against active sessions first,
+     *  then nearby spots. Spot and session ids share a UUID space, so no sentinel is needed. */
     data class SelectItem(val itemId: String?) : HomeIntent()
     data class CameraPositionChanged(val lat: Double, val lon: Double) : HomeIntent()
     data class SearchQueryChanged(val query: String) : HomeIntent()
@@ -72,13 +73,19 @@ sealed class HomeIntent {
      * Enter the manual parked-car positioning mode — pin appears at the
      * camera centre. Two flavours:
      *  - **create** (`editingParkingId == null`): `initialGps` defaults to the
-     *    user's current GPS; on confirm a new active session is written.
+     *    user's current GPS; on confirm a new active session is written for
+     *    [targetVehicleId] (or the default vehicle when null).
      *  - **edit** (`editingParkingId != null`): `initialGps` is the existing
-     *    session's location; on confirm the row is updated in-place.
+     *    session's location; on confirm the row is updated in-place — the
+     *    `targetVehicleId` is ignored because the session's owner can't change.
+     *
+     * [targetVehicleId] is the vehicle the user picked when tapping a per-vehicle
+     * park CTA in the "TUS VEHÍCULOS" section. [MULTI-PARKING-001]
      */
     data class EnterAddParkingMode(
         val initialGps: GpsPoint?,
         val editingParkingId: String? = null,
+        val targetVehicleId: String? = null,
     ) : HomeIntent()
 
     /** Exit AddingParking mode without saving; sheet and map return to Browse. */

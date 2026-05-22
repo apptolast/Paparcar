@@ -56,14 +56,14 @@ class VehicleRegistrationViewModelTest {
     // ── Field intents ─────────────────────────────────────────────────────────
 
     @Test
-    fun `should_updateBrand_on_SetBrand`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetBrand("Ford"))
+    fun `should_updateBrand_on_SelectBrand`() = runTest {
+        vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Ford"))
         assertEquals("Ford", vm.state.value.brand)
     }
 
     @Test
-    fun `should_updateModel_on_SetModel`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetModel("Focus"))
+    fun `should_updateModel_on_SelectModel`() = runTest {
+        vm.handleIntent(VehicleRegistrationIntent.SelectModel("Focus"))
         assertEquals("Focus", vm.state.value.model)
     }
 
@@ -83,8 +83,8 @@ class VehicleRegistrationViewModelTest {
 
     @Test
     fun `should_emit_SavedSuccessfully_on_valid_save`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetBrand("Seat"))
-        vm.handleIntent(VehicleRegistrationIntent.SetModel("Ibiza"))
+        vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Seat"))
+        vm.handleIntent(VehicleRegistrationIntent.SelectModel("Ibiza"))
         vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
 
         vm.effect.test {
@@ -96,8 +96,8 @@ class VehicleRegistrationViewModelTest {
 
     @Test
     fun `should_persist_vehicle_to_repo_on_save`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetBrand("Seat"))
-        vm.handleIntent(VehicleRegistrationIntent.SetModel("Ibiza"))
+        vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Seat"))
+        vm.handleIntent(VehicleRegistrationIntent.SelectModel("Ibiza"))
         vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
         vm.handleIntent(VehicleRegistrationIntent.Save)
 
@@ -107,7 +107,7 @@ class VehicleRegistrationViewModelTest {
 
     @Test
     fun `should_trim_blank_brand_to_null_on_save`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetBrand("   "))
+        vm.handleIntent(VehicleRegistrationIntent.SelectBrand("   "))
         vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.MEDIUM))
         vm.handleIntent(VehicleRegistrationIntent.Save)
 
@@ -118,7 +118,7 @@ class VehicleRegistrationViewModelTest {
 
     @Test
     fun `should_emit_ShowError_when_size_is_null_on_save`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetBrand("Ford"))
+        vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Ford"))
 
         vm.effect.test {
             vm.handleIntent(VehicleRegistrationIntent.Save)

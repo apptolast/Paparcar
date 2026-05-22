@@ -20,6 +20,23 @@ interface VehicleRepository {
     suspend fun getDefaultVehicle(userId: String): Vehicle?
 
     /**
+     * One-shot fetch of a specific vehicle by id. Used when the caller already knows which
+     * vehicle owns the operation (e.g. BT detection resolves the vehicle from the device
+     * address before reaching [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase]).
+     * Returns null if no vehicle with that id exists for the given user.
+     */
+    suspend fun getVehicleById(userId: String, vehicleId: String): Vehicle?
+
+    /**
+     * One-shot fetch of the vehicle paired with [deviceAddress] for the current user.
+     * Resolves the userId internally via [com.apptolast.customlogin.domain.AuthRepository].
+     * Used by the BT detection receiver to identify *which* vehicle is being driven
+     * (under multi-vehicle BT, the default is no longer a reliable proxy). Returns null
+     * if no vehicle has this MAC paired, or if there is no authenticated session.
+     */
+    suspend fun getVehicleByBluetoothDeviceId(deviceAddress: String): Vehicle?
+
+    /**
      * One-shot pull of the vehicle list from Firestore into Room. Idempotent.
      *
      * Called during splash bootstrap so the local DB reflects remote state before

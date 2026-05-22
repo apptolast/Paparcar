@@ -70,6 +70,14 @@ class VehicleRepositoryImpl(
         return dao.getById(profileDefaultId, userId)?.toDomain()
     }
 
+    override suspend fun getVehicleById(userId: String, vehicleId: String): Vehicle? =
+        dao.getById(vehicleId, userId)?.toDomain()
+
+    override suspend fun getVehicleByBluetoothDeviceId(deviceAddress: String): Vehicle? {
+        val uid = currentUserId() ?: return null
+        return dao.getByBluetoothDevice(uid, deviceAddress)?.toDomain()
+    }
+
     /**
      * Pulls vehicles from Firestore into Room.
      * Following the "pure remote sync" agreement: local state is overwritten by remote

@@ -45,10 +45,11 @@ class ConfirmParkingUseCase(
         detectionReliability: Float,
         spotType: SpotType = SpotType.AUTO_DETECTED,
         sizeCategory: VehicleSize? = null,
+        vehicleId: String? = null,
     ): Result<UserParking> {
         PaparcarLogger.d(
             DIAG,
-            "▶ ConfirmParking.invoke reliability=$detectionReliability spotType=$spotType"
+            "▶ ConfirmParking.invoke reliability=$detectionReliability spotType=$spotType vehicleId=$vehicleId"
         )
 
         PaparcarLogger.d(DIAG, "  → authRepository.getCurrentSession() BEFORE")
@@ -63,23 +64,30 @@ class ConfirmParkingUseCase(
             }
         PaparcarLogger.d(DIAG, "  ← getCurrentSession AFTER userId=$userId")
 
-        PaparcarLogger.d(DIAG, "  → getDefaultVehicle(userId) BEFORE")
-        // Suspending one-shot read — bypasses the auth-flow race that made the previous
-        // observeDefaultVehicle().first() return null even with a valid session. Includes
-        // a fallback through user_profile.defaultVehicleId. [AUTH-001]
-        // Room is the only source of truth here — bootstrap (splash) syncs all user data
-        // from Firestore before the app reaches Home. If Room is empty here it means either
-        // the user is logged out (cache cleared on logout) or bootstrap sync failed.
-        // Either way, a network call from the detection path is wrong — abort. [VEHICLE-SYNC-001]
-        val defaultVehicle = vehicleRepository.getDefaultVehicle(userId)
-        PaparcarLogger.d(DIAG, "  ← getDefaultVehicle AFTER vehicleId=${defaultVehicle?.id}")
-        if (defaultVehicle == null) {
-            PaparcarLogger.e(DIAG, "  ✗ no default vehicle in Room — bootstrap sync missing or user logged out — abort")
+        // Vehicle resolution:
+        //   - explicit [vehicleId] → caller already knows which vehicle owns the session
+        //     (BT strategy resolves it from the disconnected device address). Lookup must
+        //     succeed; failing-to-resolve is a precondition violation, not a fallback case.
+        //   - null → Coordinator-strategy or manual path: fall back to the user's default
+        //     vehicle (legacy single-vehicle behaviour). [AUTH-001] [VEHICLE-SYNC-001]
+        val vehicle = if (vehicleId != null) {
+            PaparcarLogger.d(DIAG, "  → getVehicleById(userId, $vehicleId) BEFORE")
+            vehicleRepository.getVehicleById(userId, vehicleId).also {
+                PaparcarLogger.d(DIAG, "  ← getVehicleById AFTER vehicleId=${it?.id}")
+            }
+        } else {
+            PaparcarLogger.d(DIAG, "  → getDefaultVehicle(userId) BEFORE")
+            vehicleRepository.getDefaultVehicle(userId).also {
+                PaparcarLogger.d(DIAG, "  ← getDefaultVehicle AFTER vehicleId=${it?.id}")
+            }
+        }
+        if (vehicle == null) {
+            PaparcarLogger.e(DIAG, "  ✗ vehicle not resolvable (explicit=$vehicleId) — abort")
             return Result.failure(PaparcarError.Parking.NoDefaultVehicle)
         }
 
-        val resolvedSizeCategory = sizeCategory ?: defaultVehicle.sizeCategory
-        val resolvedVehicleId = defaultVehicle.id
+        val resolvedSizeCategory = sizeCategory ?: vehicle.sizeCategory
+        val resolvedVehicleId = vehicle.id
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,

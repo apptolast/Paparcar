@@ -32,17 +32,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
-import io.apptolast.paparcar.presentation.util.distanceMeters
-import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
 import paparcar.composeapp.generated.resources.home_feed_nearby_with_count
-import paparcar.composeapp.generated.resources.home_my_car_section_header
+import paparcar.composeapp.generated.resources.home_vehicles_section_header
 import paparcar.composeapp.generated.resources.home_size_filter_all
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
@@ -57,9 +57,12 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
  *  1. **Zone chips** — habitual-place shortcuts at the top of the sheet so the
  *     discovery flow (zone → spots) reads top-down. Falls through to a
  *     zones empty CTA card when none saved.
- *  2. **"TU COCHE" header + parking row** — personal block: header always
- *     visible, then either the populated parking row or the manual-park
- *     empty card.
+ *  2. **"TUS VEHÍCULOS" header + per-vehicle rows** — one row per registered
+ *     vehicle. Vehicles with an active session show their park status; others
+ *     show a "Park" pill that enters AddingParking for that specific vehicle.
+ *     The section is hidden entirely when the user has no vehicles registered
+ *     yet (onboarding edge — should not happen in steady state).
+ *     [MULTI-PARKING-001]
  *  3. **"PLAZAS LIBRES CERCA · N" header + filter bar + spots list** — the
  *     community discovery feed, capped by a "Report a free spot" CTA after
  *     the list.
@@ -68,13 +71,14 @@ internal fun LazyListScope.homeSheetItems(
     state: HomeState,
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
-    onParkingClick: () -> Unit,
-    onManualPark: () -> Unit,
+    onParkingClick: (UserParking) -> Unit,
+    onParkVehicle: (vehicleId: String) -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
 ) {
-    val selectedSpotId = state.selectedItemId?.takeIf { it != HomeState.PARKING_ITEM_ID }
+    val selectedSpotId = state.selectedSpot?.id
     val filteredSpots = state.filteredNearbySpots
-    val showPersonalBlocks = state.allPermissionsGranted
+    val vehicleCards = state.vehicleCards
+    val showPersonalBlocks = state.allPermissionsGranted && vehicleCards.isNotEmpty()
     val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
     val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
@@ -99,15 +103,15 @@ internal fun LazyListScope.homeSheetItems(
         }
     }
 
-    // ── 2. "TU COCHE" header + parking row (personal block) ────────────────
+    // ── 2. "TUS VEHÍCULOS" header + per-vehicle rows ───────────────────────
     if (showPersonalBlocks) {
-        item("my_car_header") {
+        item("vehicles_header") {
             PapSectionHeader(
-                title = stringResource(Res.string.home_my_car_section_header),
+                title = stringResource(Res.string.home_vehicles_section_header),
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
-        parkingSection(state, onParkingClick, onManualPark)
+        vehiclesSection(state, vehicleCards, onParkingClick, onParkVehicle)
     }
 
     // ── 3. Spots (header + filter bar + list + report CTA) ─────────────────
@@ -131,7 +135,8 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     val spotIdx = filteredSpots.indexOfFirst { it.id == spotId }
     if (spotIdx < 0) return -1
 
-    val showPersonalBlocks = state.allPermissionsGranted
+    val vehicleCards = state.vehicleCards
+    val showPersonalBlocks = state.allPermissionsGranted && vehicleCards.isNotEmpty()
     val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
     val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
@@ -140,8 +145,8 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     if (showZoneChips) base += 1        // zones_chips
     else if (showZonesEmpty) base += 1  // zones_empty_card
     if (showPersonalBlocks) {
-        base += 1                       // my_car_header
-        base += if (state.userParking != null) 1 else 1 // parking_banner OR parking_empty (no separate header now)
+        base += 1                       // vehicles_header
+        base += vehicleCards.size       // one vehicle_card item per registered vehicle
     }
     base += 1                           // spots_header
     if (showFilterBar) base += 1        // filter_bar
@@ -153,26 +158,24 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
 // Sections
 // ─────────────────────────────────────────────────────────────────────────────
 
-private fun LazyListScope.parkingSection(
+private fun LazyListScope.vehiclesSection(
     state: HomeState,
-    onParkingClick: () -> Unit,
-    onManualPark: () -> Unit,
+    vehicleCards: List<VehicleCard>,
+    onParkingClick: (UserParking) -> Unit,
+    onParkVehicle: (vehicleId: String) -> Unit,
 ) {
-    val parking = state.userParking
-    if (parking != null) {
-        item("parking_banner") {
-            HomeParkingRow(
-                parking = parking,
-                userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                isSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID,
-                onSelect = onParkingClick,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
-    } else {
-        item("parking_empty") {
-            HomeParkingEmptyCard(
-                onManualPark = onManualPark,
+    val userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
+    vehicleCards.forEach { card ->
+        item("vehicle_${card.vehicle.id}") {
+            HomeVehicleCard(
+                card = card,
+                userLocation = userLocation,
+                isSelected = card.session != null && state.selectedItemId == card.session.id,
+                onClick = {
+                    val session = card.session
+                    if (session != null) onParkingClick(session)
+                    else onParkVehicle(card.vehicle.id)
+                },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }

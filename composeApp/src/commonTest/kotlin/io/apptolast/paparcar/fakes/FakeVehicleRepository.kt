@@ -8,9 +8,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 class FakeVehicleRepository(
     defaultVehicle: Vehicle? = null,
+    extraVehicles: List<Vehicle> = emptyList(),
 ) : VehicleRepository {
 
-    private val _vehicles = MutableStateFlow<List<Vehicle>>(listOfNotNull(defaultVehicle))
+    private val _vehicles = MutableStateFlow<List<Vehicle>>(
+        listOfNotNull(defaultVehicle) + extraVehicles,
+    )
     private val _defaultVehicle = MutableStateFlow(defaultVehicle)
 
     override fun observeVehicles(): Flow<List<Vehicle>> = _vehicles
@@ -18,6 +21,15 @@ class FakeVehicleRepository(
     override fun observeDefaultVehicle(): Flow<Vehicle?> = _defaultVehicle
 
     override suspend fun getDefaultVehicle(userId: String): Vehicle? = _defaultVehicle.value
+
+    override suspend fun getVehicleById(userId: String, vehicleId: String): Vehicle? =
+        _vehicles.value.firstOrNull { it.id == vehicleId && it.userId == userId }
+
+    override suspend fun getVehicleByBluetoothDeviceId(deviceAddress: String): Vehicle? =
+        _vehicles.value.firstOrNull { it.bluetoothDeviceId.equals(deviceAddress, ignoreCase = true) }
+
+    override suspend fun hasVehicles(userId: String): Boolean =
+        _vehicles.value.any { it.userId == userId }
 
     var saveVehicleCallCount = 0
         private set

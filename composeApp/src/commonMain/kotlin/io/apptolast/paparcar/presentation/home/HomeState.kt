@@ -7,9 +7,21 @@ import io.apptolast.paparcar.domain.model.ParkedVehicleView
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
+
+/**
+ * Per-vehicle row used by the "TUS VEHÍCULOS" section of the Home sheet.
+ * Each registered vehicle gets one entry; [session] is non-null when that
+ * vehicle currently has an active parking, null otherwise (→ shows the park
+ * CTA in the row). [MULTI-PARKING-001]
+ */
+data class VehicleCard(
+    val vehicle: Vehicle,
+    val session: UserParking?,
+)
 
 /**
  * Active interaction mode of the Home surface.
@@ -52,7 +64,9 @@ data class HomeState(
     val activeSessions: List<UserParking> = emptyList(),
     /** Enriched view of all active parking sessions, one per vehicle. */
     val parkedVehicles: List<ParkedVehicleView> = emptyList(),
-    /** ID of the currently selected item: a spot ID, [PARKING_ITEM_ID], or null for none. */
+    /** ID of the currently selected item: either a spot ID, an active parking session ID,
+     *  or null for none. Spot IDs and session IDs share the same UUID space so direct equality
+     *  resolves which kind without a sentinel. [MULTI-PARKING-001] */
     val selectedItemId: String? = null,
     /** Geocoded address of the map camera centre (updated as the user pans). */
     val cameraLocationInfo: LocationInfo? = null,
@@ -81,6 +95,13 @@ data class HomeState(
      */
     val editingParkingId: String? = null,
     /**
+     * Vehicle the user is creating a parking session FOR while in
+     * [HomeMode.AddingParking]. Null = default vehicle (legacy / single-car
+     * flow). Ignored when [editingParkingId] is set — moving a session never
+     * changes its owning vehicle. [MULTI-PARKING-001]
+     */
+    val addingParkingVehicleId: String? = null,
+    /**
      * Last camera centre captured while the user is in a pin-positioning mode
      * ([HomeMode.Reporting], [HomeMode.AddingZone] or [HomeMode.AddingParking]).
      * Used at confirm time as the lat/lon for the new spot, zone, or parking
@@ -90,6 +111,8 @@ data class HomeState(
     val pinCameraLon: Double? = null,
     /** User's habitual zones (Casa, Trabajo…) shown as chips on the sheet. */
     val zones: List<Zone> = emptyList(),
+    /** All registered vehicles for the current user — drives the "TUS VEHÍCULOS" section. [MULTI-PARKING-001] */
+    val vehicles: List<Vehicle> = emptyList(),
     /** In-progress AddingZone form fields. Reset on Browse re-entry. */
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
@@ -116,25 +139,43 @@ data class HomeState(
     val userParking: UserParking?
         get() = activeSessions.firstOrNull()
 
-    /** True when [selectedItemId] points at the user's parked car (vs a community spot). */
+    /** True when [selectedItemId] matches one of the active parking sessions (vs a community spot). */
     val isParkingSelected: Boolean
-        get() = selectedItemId == PARKING_ITEM_ID
+        get() = selectedItemId != null && activeSessions.any { it.id == selectedItemId }
 
     /** True when any item (parking session or community spot) holds the active selection. */
     val hasActiveContent: Boolean
         get() = activeSessions.isNotEmpty() || selectedItemId != null
 
     /**
+     * The currently selected parking session, or null if no parking is selected.
+     * Under multi-parking, this is the specific session whose id equals [selectedItemId]
+     * — not just the first active session.
+     */
+    val selectedSession: UserParking?
+        get() = selectedItemId?.let { id -> activeSessions.firstOrNull { it.id == id } }
+
+    /**
      * The selected community spot, or null if nothing is selected or the
-     * selection is the user's own parking. Replaces an O(n) `nearbySpots.find { }`
-     * scan that fired on every recomposition of HomeContent.
+     * selection is one of the user's own parking sessions. Replaces an O(n)
+     * `nearbySpots.find { }` scan that fired on every recomposition of HomeContent.
      */
     val selectedSpot: Spot?
-        get() = selectedItemId?.takeIf { it != PARKING_ITEM_ID }
+        get() = selectedItemId
+            ?.takeIf { id -> activeSessions.none { it.id == id } }
             ?.let { id -> nearbySpots.firstOrNull { it.id == id } }
 
-    companion object {
-        /** Sentinel value used as [selectedItemId] when the user's parked car is selected. */
-        const val PARKING_ITEM_ID = "__parking__"
-    }
+    /**
+     * Per-vehicle projection used by the "TUS VEHÍCULOS" section. One entry per
+     * registered vehicle, joined with its active session (if any) by vehicleId.
+     * Drives the multi-parking row UI: present → show release/peek affordances,
+     * absent → show park CTA. [MULTI-PARKING-001]
+     */
+    val vehicleCards: List<VehicleCard>
+        get() = vehicles.map { v ->
+            VehicleCard(
+                vehicle = v,
+                session = activeSessions.firstOrNull { it.vehicleId == v.id },
+            )
+        }
 }

@@ -12,9 +12,15 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Estás aparcado</string>
     <string name="home_where_to_park_title">¿Dónde quieres aparcar?</string>
-    <!-- Header de la sección del coche en el sheet -->
-    <string name="home_my_car_section_header">Tu coche</string>
-    <!-- ParkingPeekRow (hero card del coche seleccionado) -->
+    <!-- Header de la sección "Tus vehículos" en el sheet. [MULTI-PARKING-001] -->
+    <string name="home_vehicles_section_header">Tus vehículos</string>
+    <!-- Píldora CTA en la fila por vehículo cuando no hay sesión activa. -->
+    <string name="home_vehicle_card_park_cta">Aparcar</string>
+    <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
+    <string name="home_vehicle_card_status_empty">Sin aparcar</string>
+    <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
+    <string name="home_vehicle_fallback_name">Vehículo</string>
+    <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_active_session">Sesión activa</string>
     <string name="home_peek_parked_label">Aparcado</string>
     <string name="home_peek_walk_label">A pie</string>

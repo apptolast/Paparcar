@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.preview.FakeData
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import io.apptolast.paparcar.ui.components.PapSectionHeader
@@ -68,8 +69,8 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 //  SECCIÓN A — DISEÑO ACTUAL
 //  Bottom sheet con lista vertical de HomeSpotRow. El peek muestra contexto de
 //  cámara + badge de spots libres. Diseño implementado en producción.
-//  Componentes: HomeSheetContent · HomeSpotRow · HomeParkingRow ·
-//               HomePeekHandle · HomeParkingEmptyCard · PapSectionHeader ·
+//  Componentes: HomeSheetContent · HomeSpotRow · HomeVehicleCard ·
+//               HomePeekHandle · PapSectionHeader ·
 //               HomeEmptySpots · HomePermissionsCard · PaparcarBottomActionBar
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -162,7 +163,7 @@ private fun HomePeekHandleParkingSelectedDarkPreview() {
                 activeSessions = listOf(FakeData.activeSession),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
-                selectedItemId = HomeState.PARKING_ITEM_ID,
+                selectedItemId = FakeData.activeSession.id,
             ),
         )
     }
@@ -177,71 +178,92 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
                 activeSessions = listOf(FakeData.activeSessionSupermarket),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
-                selectedItemId = HomeState.PARKING_ITEM_ID,
+                selectedItemId = FakeData.activeSessionSupermarket.id,
             ),
         )
     }
 }
 
-// ─── A — HomeParkingRow ───────────────────────────────────────────────────────
+// ─── A — HomeVehicleCard ──────────────────────────────────────────────────────
 
-@Preview(name = "A — HomeParkingRow: con POI (oscuro)", showBackground = true,
+@Preview(name = "A — HomeVehicleCard: parked w/ POI (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun HomeParkingRowPoiDarkPreview() {
+private fun HomeVehicleCardParkedPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeParkingRow(parking = FakeData.activeSession, userLocation = Pair(40.4165, -3.7030), onSelect = {})
-        }
-    }
-}
-
-@Preview(name = "A — HomeParkingRow: sin dirección (claro)", showBackground = true)
-@Composable
-private fun HomeParkingRowNoAddressLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        Column(Modifier.padding(16.dp)) {
-            HomeParkingRow(
-                parking = FakeData.activeSession.copy(address = null, placeInfo = null),
-                userLocation = null,
-                onSelect = {},
+            HomeVehicleCard(
+                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSession),
+                userLocation = Pair(40.4165, -3.7030),
+                isSelected = false,
+                onClick = {},
             )
         }
     }
 }
 
-@Preview(name = "A — HomeParkingRow: seleccionado (oscuro)", showBackground = true,
+@Preview(name = "A — HomeVehicleCard: parked sin dirección (claro)", showBackground = true)
+@Composable
+private fun HomeVehicleCardParkedNoAddressLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        Column(Modifier.padding(16.dp)) {
+            HomeVehicleCard(
+                card = VehicleCard(
+                    vehicle = FakeData.vehicleVan,
+                    session = FakeData.activeSession.copy(address = null, placeInfo = null),
+                ),
+                userLocation = null,
+                isSelected = false,
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "A — HomeVehicleCard: parked seleccionado (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun HomeParkingRowSelectedDarkPreview() {
+private fun HomeVehicleCardSelectedDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeParkingRow(
-                parking = FakeData.activeSessionSupermarket,
+            HomeVehicleCard(
+                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSessionSupermarket),
                 userLocation = Pair(40.4165, -3.7030),
                 isSelected = true,
-                onSelect = {},
+                onClick = {},
             )
         }
     }
 }
 
-// ─── A — HomeParkingEmptyCard ─────────────────────────────────────────────────
-
-@Preview(name = "A — HomeParkingEmptyCard (oscuro)", showBackground = true,
+@Preview(name = "A — HomeVehicleCard: empty (Park CTA) oscuro", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun HomeParkingEmptyCardDarkPreview() {
+private fun HomeVehicleCardEmptyDarkPreview() {
     PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) { HomeParkingEmptyCard(onManualPark = {}) }
+        Column(Modifier.padding(16.dp)) {
+            HomeVehicleCard(
+                card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
+                userLocation = null,
+                isSelected = false,
+                onClick = {},
+            )
+        }
     }
 }
 
-@Preview(name = "A — HomeParkingEmptyCard (claro)", showBackground = true)
+@Preview(name = "A — HomeVehicleCard: empty (Park CTA) claro", showBackground = true)
 @Composable
-private fun HomeParkingEmptyCardLightPreview() {
+private fun HomeVehicleCardEmptyLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        Column(Modifier.padding(16.dp)) { HomeParkingEmptyCard(onManualPark = {}) }
+        Column(Modifier.padding(16.dp)) {
+            HomeVehicleCard(
+                card = VehicleCard(vehicle = FakeData.vehicleNoName, session = null),
+                userLocation = null,
+                isSelected = false,
+                onClick = {},
+            )
+        }
     }
 }
 
@@ -387,7 +409,7 @@ private fun PreviewSheet(state: HomeState) {
             onIntent = {},
             onCameraMove = { _, _ -> },
             onParkingClick = {},
-            onManualPark = {},
+            onParkVehicle = {},
             onSpotSelect = { _, _, _ -> },
         )
     }

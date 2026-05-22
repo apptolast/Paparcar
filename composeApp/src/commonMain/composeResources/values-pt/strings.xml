@@ -393,7 +393,10 @@
     <string name="home_zones_empty_pill">Adicionar</string>
 
     <!-- Sheet section headers + permissões -->
-    <string name="home_my_car_section_header">O teu carro</string>
+    <string name="home_vehicles_section_header">Os teus veículos</string>
+    <string name="home_vehicle_card_park_cta">Estacionar</string>
+    <string name="home_vehicle_card_status_empty">Não estacionado</string>
+    <string name="home_vehicle_fallback_name">Veículo</string>
     <string name="home_permissions_title">Ativar localização</string>
 
     <!-- ParkingPeekRow (hero card do veículo selecionado) -->

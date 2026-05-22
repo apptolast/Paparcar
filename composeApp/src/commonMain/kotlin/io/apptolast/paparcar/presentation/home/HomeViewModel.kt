@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
@@ -67,6 +68,7 @@ class HomeViewModel(
     private val observeZones: ObserveZonesUseCase,
     private val saveZone: SaveZoneUseCase,
     private val deleteZone: DeleteZoneUseCase,
+    private val vehicleRepository: VehicleRepository,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     private val searchQueryFlow = MutableStateFlow("")
@@ -120,6 +122,11 @@ class HomeViewModel(
             .catch { /* best-effort overlay; no auth means empty list */ }
             .launchIn(viewModelScope)
 
+        vehicleRepository.observeVehicles()
+            .onEach { vehicles -> updateState { copy(vehicles = vehicles) } }
+            .catch { /* best-effort; empty list is a safe fallback */ }
+            .launchIn(viewModelScope)
+
         combine(permissionManager.permissionState, reconnectTick) { perm, _ -> perm }
             .flatMapLatest { permissionState ->
                 updateState { copy(allPermissionsGranted = permissionState.allPermissionsGranted) }
@@ -166,8 +173,11 @@ class HomeViewModel(
                     val cur = selectedItemId
                     copy(
                         nearbySpots = spots,
-                        // Keep parking selection or a spot that still exists; clear otherwise.
-                        selectedItemId = if (cur != HomeState.PARKING_ITEM_ID && spots.none { it.id == cur }) null else cur,
+                        // Keep a session selection or a still-existing spot; clear otherwise.
+                        selectedItemId = if (cur == null ||
+                            activeSessions.any { it.id == cur } ||
+                            spots.any { it.id == cur }
+                        ) cur else null,
                     )
                 }
             }
@@ -257,6 +267,7 @@ class HomeViewModel(
                     pinCameraLat = intent.initialGps?.latitude,
                     pinCameraLon = intent.initialGps?.longitude,
                     editingParkingId = intent.editingParkingId,
+                    addingParkingVehicleId = intent.targetVehicleId,
                 )
             }
             is HomeIntent.ExitAddParkingMode -> updateState {
@@ -265,6 +276,7 @@ class HomeViewModel(
                     pinCameraLat = null,
                     pinCameraLon = null,
                     editingParkingId = null,
+                    addingParkingVehicleId = null,
                 )
             }
             is HomeIntent.ConfirmAddParking -> confirmAddParking()
@@ -298,7 +310,12 @@ class HomeViewModel(
             val result = if (editingId != null) {
                 updateParkingLocation(editingId, newGps).map { Unit }
             } else {
-                confirmParking(newGps, 1.0f, SpotType.MANUAL_REPORT).map { Unit }
+                confirmParking(
+                    newGps,
+                    1.0f,
+                    SpotType.MANUAL_REPORT,
+                    vehicleId = current.addingParkingVehicleId,
+                ).map { Unit }
             }
             result.onFailure {
                 sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed))
@@ -310,6 +327,7 @@ class HomeViewModel(
                     pinCameraLat = null,
                     pinCameraLon = null,
                     editingParkingId = null,
+                    addingParkingVehicleId = null,
                 )
             }
         }
@@ -380,8 +398,13 @@ class HomeViewModel(
     }
 
     private fun releaseParking(lat: Double, lon: Double, publishSpot: Boolean) {
+        // Under multi-parking, release the *selected* session (the one the user
+        // tapped in the per-vehicle row). Falls back to the first active session
+        // for the legacy single-vehicle flow where nothing is explicitly selected.
+        // [MULTI-PARKING-001]
+        val target = state.value.selectedSession ?: state.value.userParking
         viewModelScope.launch {
-            releaseSession(lat, lon, state.value.userParking, publishSpot)
+            releaseSession(lat, lon, target, publishSpot)
                 .onFailure { e ->
                     sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                     return@launch

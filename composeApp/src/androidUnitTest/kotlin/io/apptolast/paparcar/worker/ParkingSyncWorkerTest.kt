@@ -9,6 +9,7 @@ import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.UserProfileDto
+import io.apptolast.paparcar.data.datasource.remote.dto.VehicleDto
 import io.apptolast.paparcar.detection.worker.ClearActiveSyncWorker
 import io.apptolast.paparcar.detection.worker.LocationUpdateSyncWorker
 import io.apptolast.paparcar.detection.worker.ParkingSyncWorker
@@ -266,6 +267,10 @@ private class FakeUserProfileDataSource : RemoteUserProfileDataSource {
     override suspend fun updateDefaultVehicleId(userId: String, vehicleId: String?) = Unit
     override suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto> = emptyList()
     override suspend fun deleteUserData(userId: String) = Unit
+    override suspend fun getVehicles(userId: String): List<VehicleDto> = emptyList()
+    override suspend fun saveVehicle(userId: String, vehicle: VehicleDto) = Unit
+    override suspend fun deleteVehicle(userId: String, vehicleId: String) = Unit
+    override suspend fun updateVehicleDefaultFlag(userId: String, vehicleId: String, isDefault: Boolean) = Unit
 
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
         saveParkingSessionThrows?.let { throw it }
