@@ -237,7 +237,6 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Wolne miejsce, kt&#xF3;re widzia&#x0142;e&#x015B; i chcesz udost&#x0119;pni&#x0107; innym.</string>
-    <string name="home_report_action">Powiadom spo&#x0142;eczno&#x015B;&#x0107;</string>
     <string name="home_report_fab_cd">Zg&#x0142;o&#x015B; wolne miejsce</string>
     <string name="home_report_cancel_cd">Anuluj zg&#x0142;oszenie</string>
 

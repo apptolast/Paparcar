@@ -237,7 +237,6 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un posto libero che hai visto e vuoi condividere con altri.</string>
-    <string name="home_report_action">Avvisa la comunità</string>
     <string name="home_report_fab_cd">Segnala un posto libero</string>
     <string name="home_report_cancel_cd">Annulla segnalazione</string>
 

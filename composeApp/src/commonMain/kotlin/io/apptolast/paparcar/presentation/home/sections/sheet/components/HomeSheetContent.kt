@@ -25,21 +25,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
@@ -88,6 +86,7 @@ internal fun LazyListScope.homeSheetItems(
                 zones = state.zones,
                 onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
                 onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
+                onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
@@ -103,8 +102,8 @@ internal fun LazyListScope.homeSheetItems(
     // ── 2. "TU COCHE" header + parking row (personal block) ────────────────
     if (showPersonalBlocks) {
         item("my_car_header") {
-            HomeSectionHeader(
-                title = stringResource(Res.string.home_my_car_section_header).uppercase(),
+            PapSectionHeader(
+                title = stringResource(Res.string.home_my_car_section_header),
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
@@ -189,7 +188,7 @@ private fun LazyListScope.spotsSection(
     showFilterBar: Boolean,
 ) {
     item("spots_header") {
-        HomeSectionHeader(
+        PapSectionHeader(
             title = if (filteredSpots.isNotEmpty())
                 stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
             else
@@ -371,21 +370,3 @@ private fun HomeSizeFilterBar(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section header
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-internal fun HomeSectionHeader(
-    title: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        title,
-        modifier = modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
-        letterSpacing = 0.8.sp,
-    )
-}

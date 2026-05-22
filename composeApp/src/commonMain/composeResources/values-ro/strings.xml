@@ -237,7 +237,6 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un loc liber pe care l-ai v&#xE3;zut &#x219;i vrei s&#x103;-l &#xEE;mp&#x103;rt&#x103;&#x219;e&#x219;ti.</string>
-    <string name="home_report_action">Anun&#x21B;&#x103; comunitatea</string>
     <string name="home_report_fab_cd">Raporteaz&#x103; un loc liber</string>
     <string name="home_report_cancel_cd">Anuleaz&#x103; raportarea</string>
 

@@ -12,25 +12,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Bookmark
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
+import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
 import io.apptolast.paparcar.domain.model.Zone
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import org.jetbrains.compose.resources.stringResource
@@ -52,6 +54,7 @@ internal fun HomeZoneChips(
     zones: List<Zone>,
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
+    onDeleteZone: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyRow(
@@ -65,14 +68,14 @@ internal fun HomeZoneChips(
                 label = zone.name,
                 iconKey = zone.iconKey,
                 onClick = { onSelectZone(zone.id) },
+                onDelete = { onDeleteZone(zone.id) },
             )
         }
         item("add_zone") {
             PaparcarAddChip(
                 onClick = onAddZone,
-                shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
                 iconSize = CHIP_ICON_DP.dp,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                contentPad = 8.dp,
             )
         }
     }
@@ -83,42 +86,21 @@ private fun ZoneChip(
     label: String,
     iconKey: String,
     onClick: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    PaparcarFilterChip(
+        label = label,
+        selected = false,
         onClick = onClick,
-        shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = CHIP_BORDER_ALPHA),
-        ),
+        leadingIcon = zoneIconFor(iconKey),
+        trailingIcon = Icons.Outlined.Close,
+        onTrailingClick = onDelete,
         modifier = modifier,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = zoneIconFor(iconKey),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(CHIP_ICON_DP.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-    }
+    )
 }
 
-private const val CHIP_CORNER_DP = 18
 private const val CHIP_ICON_DP = 18
-private const val CHIP_BORDER_ALPHA = 0.6f
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Empty zones card — same molde as HomeParkingEmptyCard for visual coherence.
@@ -133,10 +115,10 @@ internal fun HomeZonesEmptyCard(
         onClick = onAddZone,
         modifier = modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_CARD_BG_ALPHA),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(
-            width = 1.5.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = EMPTY_CARD_BORDER_ALPHA),
+            width = PapBorders.thin,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
         ),
     ) {
         Row(
@@ -148,7 +130,7 @@ internal fun HomeZonesEmptyCard(
                 modifier = Modifier
                     .size(ICON_BOX_DP.dp)
                     .clip(RoundedCornerShape(ICON_BOX_CORNER_DP.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -202,6 +184,4 @@ internal fun HomeZonesEmptyCard(
 private const val ICON_BOX_DP = 44
 private const val ICON_BOX_CORNER_DP = 14
 private const val PILL_RADIUS_DP = 999
-private const val EMPTY_CARD_BG_ALPHA = 0.4f
-private const val EMPTY_CARD_BORDER_ALPHA = 0.4f
 private const val EMPTY_CARD_SUBTITLE_ALPHA = 0.55f

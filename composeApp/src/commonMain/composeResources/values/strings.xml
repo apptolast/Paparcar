@@ -248,7 +248,6 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">A free spot you\'ve seen and want to share with others.</string>
-    <string name="home_report_action">Notify the community</string>
     <string name="home_report_fab_cd">Report a free spot</string>
     <string name="home_report_cancel_cd">Cancel report</string>
     <!-- Refreshed copy for the reporting peek card (v1 design) -->

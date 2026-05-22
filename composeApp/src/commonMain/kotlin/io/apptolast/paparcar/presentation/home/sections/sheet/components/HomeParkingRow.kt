@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
@@ -165,10 +166,10 @@ internal fun HomeParkingEmptyCard(
         onClick = onManualPark,
         modifier = modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_CARD_BG_ALPHA),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(
-            width = 1.5.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = OUTLINE_ALPHA),
+            width = PapBorders.thin,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
         ),
     ) {
         Row(
@@ -180,7 +181,7 @@ internal fun HomeParkingEmptyCard(
                 modifier = Modifier
                     .size(ICON_BOX_DP.dp)
                     .clip(RoundedCornerShape(ICON_BOX_CORNER_DP.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -241,4 +242,3 @@ private const val SUBTITLE_ALPHA_DEFAULT = 0.6f
 private const val SUBTITLE_ALPHA_EMPTY = 0.55f
 private const val ICON_BG_ALPHA_ON_PRIMARY = 0.18f
 private const val CHEVRON_ALPHA = 0.6f
-private const val EMPTY_CARD_BG_ALPHA = 0.4f
