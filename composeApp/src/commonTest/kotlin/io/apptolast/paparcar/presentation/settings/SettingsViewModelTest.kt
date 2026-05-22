@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.swmansion.kmpmaps.core.MapType
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -55,7 +56,7 @@ class SettingsViewModelTest {
 
     private fun buildVm(customPrefs: FakeAppPreferences = prefs): SettingsViewModel {
         val useCase = DeleteAccountUseCase(auth, parking, vehicles, profile, spots)
-        return SettingsViewModel(customPrefs, auth, profile, useCase)
+        return SettingsViewModel(customPrefs, auth, profile, parking, useCase)
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
@@ -117,6 +118,51 @@ class SettingsViewModelTest {
         vm.handleIntent(SettingsIntent.ToggleSpotFreedNotif(false))
         assertFalse(vm.state.value.notifySpotFreed)
         assertFalse(prefs.notifySpotFreed)
+    }
+
+    // ── Map type ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `should_loadMapType_from_prefs_on_init`() = runTest {
+        val customPrefs = FakeAppPreferences(initialDefaultMapType = "SATELLITE")
+        val vm = buildVm(customPrefs)
+        assertEquals(MapType.SATELLITE, vm.state.value.mapType)
+    }
+
+    @Test
+    fun `should_updateMapType_state_and_prefs`() = runTest {
+        vm.handleIntent(SettingsIntent.SetMapType(MapType.TERRAIN))
+        assertEquals(MapType.TERRAIN, vm.state.value.mapType)
+        assertEquals("TERRAIN", prefs.defaultMapType)
+    }
+
+    // ── Master notifications ───────────────────────────────────────────────────
+
+    @Test
+    fun `should_disableBothNotifications_when_masterToggleOff`() = runTest {
+        vm.handleIntent(SettingsIntent.ToggleMasterNotifications(false))
+        assertFalse(vm.state.value.notifyParkingDetected)
+        assertFalse(vm.state.value.notifySpotFreed)
+        assertFalse(prefs.notifyParkingDetected)
+        assertFalse(prefs.notifySpotFreed)
+    }
+
+    @Test
+    fun `should_enableBothNotifications_when_masterToggleOn`() = runTest {
+        prefs.setNotifyParkingDetected(false)
+        prefs.setNotifySpotFreed(false)
+        vm.handleIntent(SettingsIntent.ToggleMasterNotifications(true))
+        assertTrue(vm.state.value.notifyParkingDetected)
+        assertTrue(vm.state.value.notifySpotFreed)
+    }
+
+    // ── Refresh from prefs ────────────────────────────────────────────────────
+
+    @Test
+    fun `should_reflectNewPrefs_after_refreshFromPreferences`() = runTest {
+        prefs.setAutoDetectParking(false)
+        vm.refreshFromPreferences()
+        assertFalse(vm.state.value.autoDetectParking)
     }
 
     // ── Delete account flow ───────────────────────────────────────────────────
