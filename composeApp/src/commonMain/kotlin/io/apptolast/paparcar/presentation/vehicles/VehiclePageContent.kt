@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -54,6 +55,7 @@ import io.apptolast.paparcar.presentation.history.HistoryIntent
 import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -165,21 +167,29 @@ private fun VehicleHeroCard(
     val isActive = vehicle.isDefault
 
     val cs = MaterialTheme.colorScheme
-    val cardBg = if (isActive) cs.primaryContainer.copy(alpha = ACTIVE_CARD_BG_ALPHA) else cs.surface
-    val borderColor = if (isActive) cs.primary else cs.outline.copy(alpha = INACTIVE_BORDER_ALPHA)
+    val cardBg = if (isActive) cs.primaryContainer.copy(alpha = ACTIVE_CARD_BG_ALPHA) else cs.surfaceContainerHigh
+    // Active state used to render with a 1dp neon-green border (cs.primary). That
+    // read as "radioactive" against the dark page. The selected affordance now lives
+    // in the green tinted background + ActiveBadge; the border stays subtle so the
+    // family feels coherent with the parking-card reference. [DS-BORDERS-001]
+    val borderColor = cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     val iconBg = if (isActive) cs.primary else cs.surfaceVariant
     val iconTint = if (isActive) cs.onPrimary else cs.primary
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = PapShapes.cardLarge,
         color = cardBg,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(PapBorders.thin, borderColor),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Title row owns the full width (minus icon + overflow). The
+            // "active" badge used to live here too and ate ~40% of the row,
+            // ellipsing brand/model names. It now sits on the metadata row
+            // below so the title can breathe.
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(HERO_ICON_BOX_DP.dp)
@@ -191,31 +201,19 @@ private fun VehicleHeroCard(
                         imageVector = vehicle.sizeCategory.icon,
                         contentDescription = null,
                         tint = iconTint,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(22.dp),
                     )
                 }
                 Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = cs.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = sizeLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    if (isActive) {
-                        ActiveBadge()
-                    } else {
-                        SetActiveButton(onClick = onSetActive)
-                    }
-                }
+                Text(
+                    text = displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = cs.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 OverflowMenu(
                     canDelete = canDelete,
                     onEdit = onEdit,
@@ -223,36 +221,50 @@ private fun VehicleHeroCard(
                     onDelete = onDelete,
                 )
             }
-            Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.height(6.dp))
+            // Metadata row: size label on the left, status (active dot+label
+            // or "set active" CTA) on the right. The status text is small and
+            // primary-tinted so it reads as a tag, not a button.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = sizeLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                    modifier = Modifier.weight(1f),
+                )
+                if (isActive) {
+                    ActiveStatusInline()
+                } else {
+                    SetActiveButton(onClick = onSetActive)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
             DetectionChip(bluetoothDeviceId = vehicle.bluetoothDeviceId)
         }
     }
 }
 
 @Composable
-private fun ActiveBadge() {
-    Surface(
-        shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
-        color = MaterialTheme.colorScheme.primary,
+private fun ActiveStatusInline() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(5.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onPrimary),
-            )
-            Text(
-                text = stringResource(Res.string.my_car_active_vehicle).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-        }
+        Box(
+            modifier = Modifier
+                .size(ACTIVE_DOT_DP.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary),
+        )
+        Text(
+            text = stringResource(Res.string.my_car_active_vehicle).uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 
@@ -289,8 +301,8 @@ private fun VehicleStatsCompact(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         StatCard(
             value = sessionCount.toString(),
@@ -315,14 +327,14 @@ private fun StatCard(value: String, label: String, modifier: Modifier = Modifier
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(STAT_CARD_CORNER_DP.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(
             1.dp,
             MaterialTheme.colorScheme.outline.copy(alpha = STAT_CARD_BORDER_ALPHA),
         ),
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 10.dp),
+            modifier = Modifier.padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -464,14 +476,14 @@ private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
     VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
 }
 
-private const val HERO_ICON_BOX_DP = 44
-private const val HERO_ICON_CORNER_DP = 12
+private const val HERO_ICON_BOX_DP = 40
+private const val HERO_ICON_CORNER_DP = 10
 private const val STAT_CARD_CORNER_DP = 12
 private const val CHIP_CORNER_DP = 12
 private const val PILL_RADIUS_DP = 999
+private const val ACTIVE_DOT_DP = 6
 
 private const val ACTIVE_CARD_BG_ALPHA = 0.5f
-private const val INACTIVE_BORDER_ALPHA = 0.4f
 private const val SUBTITLE_ALPHA = 0.55f
 private const val STAT_CARD_BORDER_ALPHA = 0.35f
 private const val STAT_CARD_LABEL_ALPHA = 0.55f

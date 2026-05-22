@@ -73,7 +73,7 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(CARD_CORNER_DP.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(
             1.dp,
@@ -83,7 +83,7 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
                 stringResource(Res.string.history_weekly_title),
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
