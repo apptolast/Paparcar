@@ -46,7 +46,7 @@ Compiled resources show both XML drawables packaged; no broken references.
 
 ---
 
-## 2. `ICON-LOGO-PALETTE-002` — legacy mipmap PNGs — ⚪ Pending
+## 2. `ICON-LOGO-PALETTE-002` — legacy mipmap PNGs — ✅ Done
 
 **Scope:** Regenerate the pre-API-26 launcher fallbacks at every density:
 - `mipmap-mdpi/ic_launcher.png` + `ic_launcher_round.png`
@@ -61,27 +61,12 @@ picks `mipmap-anydpi-v26/ic_launcher.xml` over the density-bucketed PNGs. The
 legacy PNGs are currently stale (old artwork) but inert — they will only
 matter if someone unpacks the APK or a tooling step reads them directly.
 
-**Why not done in this pass:** the host CI environment does not have a working
-SVG → PNG rasterizer (`magick`, `rsvg-convert`, `inkscape`, `cairosvg`, etc.).
-The fastest path is Android Studio's built-in Image Asset Studio:
-
-1. In Android Studio: `File → New → Image Asset`.
-2. Icon type: **Launcher Icons (Adaptive and Legacy)**.
-3. Foreground layer → Asset Type **Image**, point at
-   `Documents/Paparcar/2022/Icon Logo 2022/Fore and Back/paparcar_icon_fore.svg`,
-   trim true, resize as needed so the car fills the safe zone.
-4. Background layer → Asset Type **Color**, pick `#0B0F0E` (PapInk — or use
-   the existing vector by selecting `Asset Type: Image` →
-   `ic_launcher_background.xml`). Foreground tint: `#25F48C` (PapGreen).
-5. Legacy → ensure square + round legacy icons are enabled; shape **circle**.
-6. **IMPORTANT** uncheck overwriting `mipmap-anydpi-v26/*.xml` and the
-   `drawable/ic_launcher_*` vectors that ship `ICON-LOGO-PALETTE-001` — we only
-   want Image Asset Studio to overwrite the density PNGs.
-
-**Alternative (CI-friendly):** add a one-off Gradle task using `aapt2 compile
---legacy` or a small `cairosvg`/`rsvg-convert`-based Python script invoked
-from `composeApp/build.gradle.kts`. Tracked here in case Image Asset Studio
-is not viable.
+**How it was done:** Chrome headless (`--headless=new --screenshot`) was used as
+an SVG rasterizer. A self-contained HTML file (`paparcar_icon_gen.html`) draws
+the icon on a `<canvas>` using Canvas 2D API — SVG path data reproduced via
+`Path2D`, ellipse wheels drawn with `ctx.ellipse()` and the original SVG
+transforms replayed via `ctx.translate/rotate`. Chrome was invoked once per
+size×variant with `--window-size=NxN --force-device-scale-factor=1`.
 
 ---
 
