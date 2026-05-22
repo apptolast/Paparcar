@@ -103,8 +103,8 @@ class HomeViewModel(
             .catch { /* best-effort; debounce errors don't affect the rest of the chain */ }
             .launchIn(viewModelScope)
 
-        userParkingRepository.observeActiveSession()
-            .onEach { session -> updateState { copy(userParking = session) } }
+        userParkingRepository.observeActiveSessions()
+            .onEach { sessions -> updateState { copy(activeSessions = sessions) } }
             .catch { e ->
                 sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }

@@ -159,7 +159,7 @@ private fun HomePeekHandleParkingSelectedDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         HomePeekHandle(
             state = HomeState(
-                userParking = FakeData.activeSession,
+                activeSessions = listOf(FakeData.activeSession),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
                 selectedItemId = HomeState.PARKING_ITEM_ID,
@@ -174,7 +174,7 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
     PaparcarTheme(darkTheme = false) {
         HomePeekHandle(
             state = HomeState(
-                userParking = FakeData.activeSessionSupermarket,
+                activeSessions = listOf(FakeData.activeSessionSupermarket),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
                 selectedItemId = HomeState.PARKING_ITEM_ID,
@@ -401,7 +401,7 @@ private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
         PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
-                userParking = FakeData.activeSession,
+                activeSessions = listOf(FakeData.activeSession),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
@@ -416,7 +416,7 @@ private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
         PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
-                userParking = FakeData.activeSessionSupermarket,
+                activeSessions = listOf(FakeData.activeSessionSupermarket),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
@@ -432,7 +432,6 @@ private fun HomeSheetContentSpotsFirstDarkPreview() {
         PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
-                userParking = null,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
@@ -447,7 +446,6 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
         PreviewSheet(
             state = HomeState(
                 allPermissionsGranted = true,
-                userParking = null,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
@@ -461,7 +459,7 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
 private fun HomeSheetContentEmptyDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         PreviewSheet(
-            state = HomeState(allPermissionsGranted = true, userParking = null, nearbySpots = emptyList()),
+            state = HomeState(allPermissionsGranted = true, nearbySpots = emptyList()),
         )
     }
 }
@@ -471,7 +469,7 @@ private fun HomeSheetContentEmptyDarkPreview() {
 private fun HomeSheetContentNoPermissionsLightPreview() {
     PaparcarTheme(darkTheme = false) {
         PreviewSheet(
-            state = HomeState(allPermissionsGranted = false, userParking = null, nearbySpots = emptyList()),
+            state = HomeState(allPermissionsGranted = false, nearbySpots = emptyList()),
         )
     }
 }

@@ -67,15 +67,12 @@ class DetectParkingDepartureUseCase(
         exitTimestampMs: Long,
         currentSpeedKmh: Float?,
     ): DepartureDecision {
-        // Signal 1: must have an active parking session to report
-        val session = userParkingRepository.getActiveSession() ?: return DepartureDecision.Rejected
-
-        // Signal 2: the exit must belong to the current session's geofence.
-        // Also rejects if session.geofenceId is null — a session without a registered
-        // geofence should never trigger a departure report.
-        if (session.geofenceId != geofenceId) {
-            return DepartureDecision.Rejected
-        }
+        // Signals 1+2: an active parking session must exist *for this exact geofence*.
+        // Looking up by geofenceId (instead of fetching the single active session and
+        // comparing) is correct under multi-parking — different vehicles can each have
+        // their own active session, each tied to its own geofence. [MULTI-PARKING-001]
+        userParkingRepository.getActiveSessionByGeofence(geofenceId)
+            ?: return DepartureDecision.Rejected
 
         val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt
         val speedConfirmsMovement = currentSpeedKmh != null &&

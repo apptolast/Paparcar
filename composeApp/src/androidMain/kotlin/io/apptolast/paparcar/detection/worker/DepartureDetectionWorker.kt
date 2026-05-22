@@ -71,7 +71,9 @@ class DepartureDetectionWorker(
         }
 
         // Confirmed (or Inconclusive after max retries — geofence exit = departure).
-        val session = userParkingRepository.getActiveSession()
+        // Resolve by geofenceId so we only ever clear the session tied to *this* exit,
+        // never another vehicle's still-parked session. [MULTI-PARKING-001]
+        val session = userParkingRepository.getActiveSessionByGeofence(geofenceId)
         val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
         val lat = session?.location?.latitude
         val lon = session?.location?.longitude
@@ -83,7 +85,9 @@ class DepartureDetectionWorker(
         }
         // Clear AFTER scheduling. If the clear fails we retry; the session is still
         // present so DetectParkingDepartureUseCase returns Confirmed again on the next attempt.
-        userParkingRepository.clearActive().onFailure { return Result.retry() }
+        if (session != null) {
+            userParkingRepository.clearActiveById(session.id).onFailure { return Result.retry() }
+        }
         departureEventBus.reset()
         // Remove the geofence so Play Services doesn't keep monitoring it and re-firing
         // exits after the session is already cleared.

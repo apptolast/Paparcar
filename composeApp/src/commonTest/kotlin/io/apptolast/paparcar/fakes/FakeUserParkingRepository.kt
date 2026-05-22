@@ -34,18 +34,32 @@ class FakeUserParkingRepository(
         saveSessionResult?.let { override ->
             if (override.isFailure) return override
         }
-        val previousActiveId = sessions.firstOrNull { it.isActive }?.id
-        sessions.removeAll { it.isActive }
+        val vehicleId = session.vehicleId
+        val previousActiveId = vehicleId
+            ?.let { sessions.firstOrNull { s -> s.isActive && s.vehicleId == it } }
+            ?.id
+        if (vehicleId != null) {
+            sessions.replaceAll { s ->
+                if (s.isActive && s.vehicleId == vehicleId) s.copy(isActive = false) else s
+            }
+        }
         sessions.add(session)
         _sessionsFlow.value = sessions.toList()
         return Result.success(previousActiveId)
     }
 
-    override suspend fun getActiveSession(): UserParking? =
+    override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
+        sessions.firstOrNull { it.isActive && it.geofenceId == geofenceId }
+
+    /**
+     * Test-only convenience — returns the first active session regardless of geofence.
+     * Mirrors the legacy single-active assumption used by pre-multi-parking tests.
+     */
+    fun getActiveSession(): UserParking? =
         sessions.firstOrNull { it.isActive }
 
-    override fun observeActiveSession(): Flow<UserParking?> =
-        _sessionsFlow.map { it.firstOrNull { s -> s.isActive } }
+    override fun observeActiveSessions(): Flow<List<UserParking>> =
+        _sessionsFlow.map { list -> list.filter { it.isActive } }
 
     override fun observeAllSessions(): Flow<List<UserParking>> = _sessionsFlow
 
@@ -55,8 +69,8 @@ class FakeUserParkingRepository(
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
         sessions.drop(offset).take(limit)
 
-    override suspend fun clearActive(): Result<Unit> {
-        sessions.replaceAll { it.copy(isActive = false) }
+    override suspend fun clearActiveById(sessionId: String): Result<Unit> {
+        sessions.replaceAll { if (it.id == sessionId) it.copy(isActive = false) else it }
         _sessionsFlow.value = sessions.toList()
         return Result.success(Unit)
     }

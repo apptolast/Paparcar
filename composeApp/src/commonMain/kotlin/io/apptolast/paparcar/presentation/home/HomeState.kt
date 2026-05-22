@@ -44,8 +44,13 @@ data class HomeState(
     val userGpsPoint: GpsPoint? = null,
     /** LocationInfo for the user's current GPS position (geocoded on-demand, not stored). */
     val userLocationInfo: LocationInfo? = null,
-    val userParking: UserParking? = null,
-    /** Enriched view of all active parking sessions, one per vehicle (v1 = 0 or 1 element). */
+    /**
+     * Raw set of currently-active parking sessions, one per parked vehicle.
+     * Source of truth for behavioural logic (release, move-location, geofence).
+     * The display projection lives in [parkedVehicles]. [MULTI-PARKING-001]
+     */
+    val activeSessions: List<UserParking> = emptyList(),
+    /** Enriched view of all active parking sessions, one per vehicle. */
     val parkedVehicles: List<ParkedVehicleView> = emptyList(),
     /** ID of the currently selected item: a spot ID, [PARKING_ITEM_ID], or null for none. */
     val selectedItemId: String? = null,
@@ -102,13 +107,22 @@ data class HomeState(
         get() = if (sizeFilter == null) nearbySpots
                 else nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == sizeFilter }
 
+    /**
+     * Convenience projection: the "primary" parked session (first by emission order).
+     * Existing UI code still reads `userParking` for camera focus / release flows;
+     * under multi-parking it points at the first active session. Per-row behaviour
+     * lives in [parkedVehicles] / [activeSessions]. [MULTI-PARKING-001]
+     */
+    val userParking: UserParking?
+        get() = activeSessions.firstOrNull()
+
     /** True when [selectedItemId] points at the user's parked car (vs a community spot). */
     val isParkingSelected: Boolean
         get() = selectedItemId == PARKING_ITEM_ID
 
     /** True when any item (parking session or community spot) holds the active selection. */
     val hasActiveContent: Boolean
-        get() = userParking != null || selectedItemId != null
+        get() = activeSessions.isNotEmpty() || selectedItemId != null
 
     /**
      * The selected community spot, or null if nothing is selected or the

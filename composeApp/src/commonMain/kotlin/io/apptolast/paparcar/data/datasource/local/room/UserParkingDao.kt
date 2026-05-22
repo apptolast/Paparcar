@@ -16,8 +16,11 @@ interface UserParkingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(sessions: List<UserParkingEntity>)
 
-    @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
-    suspend fun getActive(): UserParkingEntity?
+    @Query("SELECT * FROM parking_sessions WHERE isActive = 1 AND geofenceId = :geofenceId LIMIT 1")
+    suspend fun getActiveByGeofence(geofenceId: String): UserParkingEntity?
+
+    @Query("SELECT * FROM parking_sessions WHERE isActive = 1 AND vehicleId = :vehicleId LIMIT 1")
+    suspend fun getActiveByVehicle(vehicleId: String): UserParkingEntity?
 
     @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParkingEntity>
@@ -25,14 +28,17 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC")
     fun observeAll(): Flow<List<UserParkingEntity>>
 
-    @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC LIMIT 1")
-    fun observeActive(): Flow<UserParkingEntity?>
+    @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC")
+    fun observeActive(): Flow<List<UserParkingEntity>>
 
     @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
     fun observeByVehicle(vehicleId: String): Flow<List<UserParkingEntity>>
 
-    @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1")
-    suspend fun clearActive()
+    @Query("UPDATE parking_sessions SET isActive = 0 WHERE id = :sessionId")
+    suspend fun clearActiveById(sessionId: String)
+
+    @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1 AND vehicleId = :vehicleId")
+    suspend fun clearActiveByVehicle(vehicleId: String)
 
     @Query("DELETE FROM parking_sessions WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)

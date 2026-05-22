@@ -158,10 +158,11 @@ private fun LazyListScope.parkingSection(
     onParkingClick: () -> Unit,
     onManualPark: () -> Unit,
 ) {
-    if (state.userParking != null) {
+    val parking = state.userParking
+    if (parking != null) {
         item("parking_banner") {
             HomeParkingRow(
-                parking = state.userParking,
+                parking = parking,
                 userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                 isSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID,
                 onSelect = onParkingClick,
