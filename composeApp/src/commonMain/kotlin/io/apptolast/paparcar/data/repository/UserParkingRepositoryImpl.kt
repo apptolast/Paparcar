@@ -25,20 +25,24 @@ class UserParkingRepositoryImpl(
      * Room-only. Firestore propagation lives in [ParkingSyncWorker], scheduled by
      * [ConfirmParkingUseCase] using the [previousActive] id returned here.
      * Keeps the confirm-parking critical path bounded by local I/O only. [PIPE-001]
+     *
+     * Multi-parking semantics: clears the previously-active session **only for the
+     * same vehicleId** so each vehicle keeps its own independent active session.
+     * Sessions saved without a vehicleId (legacy / unidentified) clear no rows. [MULTI-PARKING-001]
      */
     override suspend fun saveSession(session: UserParking): Result<String?> =
         runCatching {
-            val previousActive = dao.getActive()
-            dao.clearActive()
+            val previousActive = session.vehicleId?.let { dao.getActiveByVehicle(it) }
+            session.vehicleId?.let { dao.clearActiveByVehicle(it) }
             dao.insert(session.toEntity())
             previousActive?.id
         }
 
-    override suspend fun getActiveSession(): UserParking? =
-        dao.getActive()?.toDomain()
+    override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
+        dao.getActiveByGeofence(geofenceId)?.toDomain()
 
-    override fun observeActiveSession(): Flow<UserParking?> =
-        dao.observeActive().map { it?.toDomain() }
+    override fun observeActiveSessions(): Flow<List<UserParking>> =
+        dao.observeActive().map { list -> list.map { it.toDomain() } }
 
     override fun observeAllSessions(): Flow<List<UserParking>> =
         dao.observeAll().map { list -> list.map { it.toDomain() } }
@@ -50,15 +54,12 @@ class UserParkingRepositoryImpl(
         dao.getSessionsPaged(limit, offset).map { it.toDomain() }
 
     /**
-     * Room-only clear. Firestore reconciliation is scheduled via [ParkingSyncScheduler]
-     * so this never suspends on network I/O. [PIPE-002]
+     * Room-only clear of a specific session. Firestore reconciliation is scheduled via
+     * [ParkingSyncScheduler] so this never suspends on network I/O. [PIPE-002]
      */
-    override suspend fun clearActive(): Result<Unit> = runCatching {
-        val active = dao.getActive()
-        dao.clearActive()
-        active?.let { entity ->
-            parkingSyncScheduler.scheduleClearActive(entity.id)
-        }
+    override suspend fun clearActiveById(sessionId: String): Result<Unit> = runCatching {
+        dao.clearActiveById(sessionId)
+        parkingSyncScheduler.scheduleClearActive(sessionId)
     }
 
     override suspend fun syncParkingHistoryFromRemote(userId: String): Result<Unit> =

@@ -9,7 +9,6 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -17,7 +16,10 @@ import org.koin.core.component.inject
 /**
  * System BroadcastReceiver that translates ACL Bluetooth events into parking-detection signals.
  *
- * Only reacts to the default vehicle's paired device address — all other devices are ignored.
+ * Reacts when the ACL event's device matches **any** of the user's vehicles' paired addresses
+ * (resolved via [VehicleRepository.getVehicleByBluetoothDeviceId]). Events from unrelated
+ * devices are ignored. The resolved vehicleId is forwarded so detection attaches the session
+ * to the correct vehicle even when it is not the default one.
  *
  * - [BluetoothDevice.ACTION_ACL_DISCONNECTED] → [BluetoothParkingDetector.onCarDisconnected]
  * - [BluetoothDevice.ACTION_ACL_CONNECTED]    → [BluetoothParkingDetector.onCarConnected]
@@ -46,19 +48,17 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
         val pending = goAsync()
         scope.launch {
             try {
-                val defaultVehicle = vehicleRepository.observeDefaultVehicle().first()
-                if (defaultVehicle?.bluetoothDeviceId == null) {
-                    PaparcarLogger.d(TAG, "No BT pairing configured for default vehicle — ignoring event")
-                    return@launch
-                }
-                if (!deviceAddress.equals(defaultVehicle.bluetoothDeviceId, ignoreCase = true)) {
-                    PaparcarLogger.d(TAG, "Event from $deviceAddress — not the car device, ignoring")
+                val pairedVehicle = vehicleRepository.getVehicleByBluetoothDeviceId(deviceAddress)
+                if (pairedVehicle == null) {
+                    PaparcarLogger.d(TAG, "Event from $deviceAddress — no vehicle paired with this device, ignoring")
                     return@launch
                 }
 
                 when (action) {
-                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> detector.onCarDisconnected(deviceAddress)
-                    BluetoothDevice.ACTION_ACL_CONNECTED -> detector.onCarConnected(deviceAddress)
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED ->
+                        detector.onCarDisconnected(deviceAddress, pairedVehicle.id)
+                    BluetoothDevice.ACTION_ACL_CONNECTED ->
+                        detector.onCarConnected(deviceAddress)
                 }
             } finally {
                 pending.finish()

@@ -76,6 +76,7 @@ import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
+import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.history.MONTH_SHORT_RES
 import kotlinx.datetime.TimeZone
@@ -249,11 +250,13 @@ internal fun SettingsContent(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
                 scrollBehavior = scrollBehavior,
             )
         },
+        // Match Home's bottom-sheet tone so the page doesn't feel near-black.
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -408,24 +411,17 @@ internal fun SettingsContent(
 
 @Composable
 private fun SectionHeaderMuted(title: String) {
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
-        letterSpacing = SECTION_LABEL_TRACKING_SP.sp,
+    PapSectionHeader(
+        title = title,
         modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp),
     )
 }
 
 @Composable
 private fun SectionHeaderDanger(title: String) {
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.ExtraBold,
+    PapSectionHeader(
+        title = title,
         color = MaterialTheme.colorScheme.error,
-        letterSpacing = SECTION_LABEL_TRACKING_SP.sp,
         modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 4.dp),
     )
 }
@@ -446,7 +442,7 @@ private fun ProfileCardV2(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -603,7 +599,7 @@ private fun ThemePickerCard(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -722,7 +718,7 @@ private fun MapTypePickerCard(selected: MapType, onSelect: (MapType) -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -844,7 +840,7 @@ private fun NotificationsGroupCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column {
@@ -985,7 +981,7 @@ private fun SettingsSwitchItem(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Row(
@@ -1009,7 +1005,7 @@ private fun SettingsInfoItem(icon: ImageVector, label: String, value: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Row(
@@ -1036,7 +1032,7 @@ private fun SettingsNavItem(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Row(
@@ -1095,7 +1091,7 @@ private fun SettingsDropdownItem(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
-        color = cs.surface,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {

@@ -59,7 +59,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.ZoneIcon
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
@@ -90,6 +92,7 @@ import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_active_session
+import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_peek_reliability_label
 import paparcar.composeapp.generated.resources.home_peek_spot_expires
@@ -127,11 +130,11 @@ internal fun HomePeekHandle(
     onMoveParkingLocation: () -> Unit = {},
 ) {
     val freeCount = state.nearbySpots.size
-    val isParkingSelected = state.selectedItemId == HomeState.PARKING_ITEM_ID
-    val selectedSpot = state.selectedItemId
-        ?.takeIf { !isParkingSelected }
-        ?.let { id -> state.nearbySpots.find { it.id == id } }
-    val parkingToShow = if (isParkingSelected) state.userParking else null
+    val isParkingSelected = state.isParkingSelected
+    val selectedSpot = state.selectedSpot
+    // Under multi-parking pick the *specific* selected session, not just the first active one,
+    // so the peek's title, address and actions refer to the vehicle the user actually tapped.
+    val parkingToShow = state.selectedSession
 
     val peekState: PeekState = when {
         state.mode is HomeMode.AddingParking ->
@@ -182,6 +185,7 @@ internal fun HomePeekHandle(
                 )
                 is PeekState.SelectedParking -> ParkingPeekRow(
                     parking = target.parking,
+                    vehicle = state.vehicles.firstOrNull { it.id == target.parking.vehicleId },
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     onDismiss = onDismiss,
                     onRelease = onRelease,
@@ -502,6 +506,7 @@ private fun remainingMinutes(expiresAtMs: Long): Int? {
 @Composable
 private fun ParkingPeekRow(
     parking: UserParking,
+    vehicle: Vehicle?,
     userLocation: Pair<Double, Double>?,
     onDismiss: () -> Unit,
     onRelease: () -> Unit,
@@ -518,9 +523,14 @@ private fun ParkingPeekRow(
         lat = parking.location.latitude,
         lon = parking.location.longitude,
     )
+    // Header label = vehicle name when we can resolve it (multi-parking UX hook),
+    // fallback to the generic "Active session" label otherwise. [MULTI-PARKING-001]
+    val fallbackVehicleName = stringResource(Res.string.home_vehicle_fallback_name)
+    val headerLabel = vehicle?.displayName(fallback = fallbackVehicleName)
+        ?: stringResource(Res.string.home_peek_active_session)
 
     PeekStateCard(
-        headerLabel = stringResource(Res.string.home_peek_active_session),
+        headerLabel = headerLabel,
         title = title,
         onDismiss = onDismiss,
         leading = { PeekHeaderIconChip(icon = Icons.Filled.DirectionsCar) },
@@ -586,11 +596,24 @@ private fun AddingParkingPeekRow(
 ) {
     val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
 
-    val headerLabel = if (isEditing) {
+    // Resolve which vehicle this AddingParking session is FOR so the header
+    // shows e.g. "Toyota Corolla" instead of the generic mode label — the user
+    // needs to recognise the car when they hit confirm. [MULTI-PARKING-001]
+    //  - create: state.addingParkingVehicleId set by the row tap
+    //  - edit:   editingParkingId → activeSessions → vehicleId
+    val targetVehicleId = if (isEditing) {
+        state.activeSessions.firstOrNull { it.id == state.editingParkingId }?.vehicleId
+    } else {
+        state.addingParkingVehicleId
+    }
+    val targetVehicle = targetVehicleId?.let { id -> state.vehicles.firstOrNull { it.id == id } }
+    val fallbackVehicleName = stringResource(Res.string.home_vehicle_fallback_name)
+    val genericHeader = if (isEditing) {
         stringResource(Res.string.home_add_parking_header_label_edit)
     } else {
         stringResource(Res.string.home_add_parking_header_label_create)
     }
+    val headerLabel = targetVehicle?.displayName(fallback = fallbackVehicleName) ?: genericHeader
     val helperPrimary = if (isEditing) {
         stringResource(Res.string.home_add_parking_helper_primary_edit)
     } else {

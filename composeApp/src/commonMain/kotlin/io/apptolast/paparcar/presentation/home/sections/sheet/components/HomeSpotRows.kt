@@ -21,8 +21,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.FilterAltOff
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
@@ -53,6 +53,7 @@ import paparcar.composeapp.generated.resources.home_filter_empty_clear
 import paparcar.composeapp.generated.resources.home_filter_empty_subtitle
 import paparcar.composeapp.generated.resources.home_filter_empty_title
 import paparcar.composeapp.generated.resources.home_report_fab_cd
+import paparcar.composeapp.generated.resources.home_report_subtitle
 import paparcar.composeapp.generated.resources.home_spot_reliability_high
 import paparcar.composeapp.generated.resources.home_spot_reliability_low
 import paparcar.composeapp.generated.resources.home_spot_reliability_manual
@@ -232,7 +233,11 @@ internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = PapShapes.cardSmall,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_BG_ALPHA),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(
+            width = PapBorders.thin,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
+        ),
     ) {
         Column(
             modifier = Modifier
@@ -271,7 +276,11 @@ internal fun HomeEmptyFilteredSpots(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = PapShapes.cardSmall,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = EMPTY_BG_ALPHA),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(
+            width = PapBorders.thin,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
+        ),
     ) {
         Column(
             modifier = Modifier
@@ -311,8 +320,9 @@ internal fun HomeEmptyFilteredSpots(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Report spot CTA — primary full-width button placed at the end of the spot
-// list. Mirrors the v1 button style (44dp / 12dp radius / primary fill).
+// Report spot CTA — same molde as HomeParkingRow (icon box + title + subtitle)
+// but with a trailing "+" instead of a chevron. The "+" alone signals the
+// add-action; the redundant "Notify the community" pill is dropped.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -320,47 +330,72 @@ internal fun HomeReportSpotCard(
     onReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(
+    Surface(
         onClick = onReport,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(REPORT_BUTTON_HEIGHT_DP.dp),
-        shape = RoundedCornerShape(REPORT_BUTTON_CORNER_DP.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+        modifier = modifier.fillMaxWidth(),
+        shape = PapShapes.cardSmall,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(
+            width = PapBorders.thin,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
         ),
     ) {
-        Icon(
-            Icons.Outlined.Campaign,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            stringResource(Res.string.home_report_fab_cd),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.width(6.dp))
-        Icon(
-            Icons.Outlined.Add,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(PRIMARY_CARD_ICON_BOX_DP.dp)
+                    .clip(RoundedCornerShape(PRIMARY_CARD_ICON_CORNER_DP.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Campaign,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(Res.string.home_report_fab_cd),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stringResource(Res.string.home_report_subtitle),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = PRIMARY_CARD_SUBTITLE_ALPHA),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+        }
     }
 }
 
 private const val SELECTION_INDICATOR_W_DP = 3
 private const val SELECTION_INDICATOR_H_DP = 56
 private const val BADGE_DP = 42
-private const val REPORT_BUTTON_HEIGHT_DP = 44
-private const val REPORT_BUTTON_CORNER_DP = 12
-
 private const val SELECTED_ROW_BG_ALPHA = 0.18f
 private const val META_SEPARATOR_ALPHA = 0.3f
 private const val META_VALUE_ALPHA = 0.6f
 private const val META_MUTED_ALPHA = 0.55f
-private const val EMPTY_BG_ALPHA = 0.4f
+private const val PRIMARY_CARD_SUBTITLE_ALPHA = 0.55f
+private const val PRIMARY_CARD_ICON_BOX_DP = 44
+private const val PRIMARY_CARD_ICON_CORNER_DP = 14
 private const val EMPTY_ICON_ALPHA = 0.25f
 private const val EMPTY_SUBTITLE_ALPHA = 0.5f

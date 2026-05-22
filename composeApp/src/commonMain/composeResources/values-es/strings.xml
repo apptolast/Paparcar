@@ -12,9 +12,15 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Estás aparcado</string>
     <string name="home_where_to_park_title">¿Dónde quieres aparcar?</string>
-    <!-- Header de la sección del coche en el sheet -->
-    <string name="home_my_car_section_header">Tu coche</string>
-    <!-- ParkingPeekRow (hero card del coche seleccionado) -->
+    <!-- Header de la sección "Tus vehículos" en el sheet. [MULTI-PARKING-001] -->
+    <string name="home_vehicles_section_header">Tus vehículos</string>
+    <!-- Píldora CTA en la fila por vehículo cuando no hay sesión activa. -->
+    <string name="home_vehicle_card_park_cta">Aparcar</string>
+    <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
+    <string name="home_vehicle_card_status_empty">Sin aparcar</string>
+    <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
+    <string name="home_vehicle_fallback_name">Vehículo</string>
+    <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_active_session">Sesión activa</string>
     <string name="home_peek_parked_label">Aparcado</string>
     <string name="home_peek_walk_label">A pie</string>
@@ -289,7 +295,6 @@
 
     <!-- Modo Reporting en Home -->
     <string name="home_report_subtitle">Una plaza libre que has visto y quieres compartir.</string>
-    <string name="home_report_action">Avisar a la comunidad</string>
     <string name="home_report_fab_cd">Avisar plaza libre</string>
     <string name="home_report_cancel_cd">Cancelar reporte</string>
     <!-- Copy refrescada para la card del modo Avisar (diseño v1) -->
@@ -468,4 +473,11 @@
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Descartar</string>
     <string name="bt_config_cd_back">Atrás</string>
+    <!-- Auth screens -->
+    <string name="auth_header_tagline">Encuentra tu plaza, comparte tu espacio</string>
+    <string name="auth_field_email">Correo electrónico</string>
+    <string name="auth_field_password">Contraseña</string>
+    <string name="auth_field_name">Nombre</string>
+    <string name="auth_field_confirm_password">Confirmar contraseña</string>
+    <string name="auth_forgot_password">¿Olvidaste tu contraseña?</string>
 </resources>

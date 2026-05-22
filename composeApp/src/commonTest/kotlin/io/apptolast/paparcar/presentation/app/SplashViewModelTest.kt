@@ -73,6 +73,7 @@ class SplashViewModelTest {
             userParkingRepository = fakeParkingRepo,
             zoneRepository = fakeZoneRepo,
         ),
+        vehicleRepository = fakeVehicleRepo,
         appPreferences = fakePrefs,
         permissionManager = fakePerms,
         localSessionCache = fakeSessionCache,

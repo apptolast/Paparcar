@@ -37,10 +37,17 @@ class BluetoothParkingDetector(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var detectionJob: Job? = null
 
-    fun onCarDisconnected(deviceAddress: String) {
+    /**
+     * @param vehicleId id of the vehicle whose paired BT device disconnected. The detector
+     *  passes it to [ConfirmParkingUseCase] so the session is attached to the *actually
+     *  parked* vehicle — under multi-vehicle BT the default vehicle is no longer a safe
+     *  proxy. The caller (BluetoothConnectionReceiver) resolves this from the device
+     *  address before invoking.
+     */
+    fun onCarDisconnected(deviceAddress: String, vehicleId: String) {
         detectionJob?.cancel()
         detectionJob = scope.launch {
-            PaparcarLogger.d(TAG, "BT disconnected ($deviceAddress) — debouncing for reconnect check")
+            PaparcarLogger.d(TAG, "BT disconnected ($deviceAddress, vehicle=$vehicleId) — debouncing for reconnect check")
 
             // BT-005: wait before acting — brief stops and BT oscillation fire
             // disconnect events too; if BT reconnects within the window, abort.
@@ -75,8 +82,8 @@ class BluetoothParkingDetector(
                 }
                 .first()
 
-            PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking")
-            confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY)
+            PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking for vehicle=$vehicleId")
+            confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY, vehicleId = vehicleId)
                 .onFailure { e -> PaparcarLogger.e(TAG, "Failed to confirm parking", e) }
         }
     }

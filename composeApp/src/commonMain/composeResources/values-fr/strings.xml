@@ -237,7 +237,6 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Une place libre que vous avez vue et souhaitez partager.</string>
-    <string name="home_report_action">Avertir la communauté</string>
     <string name="home_report_fab_cd">Signaler une place libre</string>
     <string name="home_report_cancel_cd">Annuler le signalement</string>
 
@@ -394,7 +393,10 @@
     <string name="home_zones_empty_pill">Ajouter</string>
 
     <!-- Sheet section headers + permissions -->
-    <string name="home_my_car_section_header">Ta voiture</string>
+    <string name="home_vehicles_section_header">Tes véhicules</string>
+    <string name="home_vehicle_card_park_cta">Garer</string>
+    <string name="home_vehicle_card_status_empty">Non garé</string>
+    <string name="home_vehicle_fallback_name">Véhicule</string>
     <string name="home_permissions_title">Activer la localisation</string>
 
     <!-- ParkingPeekRow (hero card du véhicule sélectionné) -->
@@ -484,4 +486,11 @@
     <string name="vehicle_stats_sessions">sessions</string>
     <string name="vehicle_stats_last_session">dernier</string>
     <string name="vehicle_stats_reliability">fiabilité</string>
+    <!-- Auth screens -->
+    <string name="auth_header_tagline">Trouvez votre place, partagez l'espace</string>
+    <string name="auth_field_email">E-mail</string>
+    <string name="auth_field_password">Mot de passe</string>
+    <string name="auth_field_name">Prénom</string>
+    <string name="auth_field_confirm_password">Confirmer le mot de passe</string>
+    <string name="auth_forgot_password">Mot de passe oublié ?</string>
 </resources>

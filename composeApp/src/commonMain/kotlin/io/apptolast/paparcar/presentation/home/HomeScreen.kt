@@ -243,7 +243,14 @@ private fun HomeContent(
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(state.userGpsPoint) {
-        state.userGpsPoint?.let { uiController.onUserLocationAvailable(it.latitude, it.longitude) }
+        val gps = state.userGpsPoint ?: return@LaunchedEffect
+        val parking = state.userParking
+        val spot = state.selectedSpot
+        when {
+            parking != null -> uiController.onUserLocationAvailable(parking.location.latitude, parking.location.longitude)
+            spot != null -> uiController.onUserLocationAvailable(spot.location.latitude, spot.location.longitude)
+            else -> uiController.onUserLocationAvailable(gps.latitude, gps.longitude)
+        }
     }
 
     LaunchedEffect(selectedSpotId) {
@@ -476,7 +483,7 @@ private fun HomeContent(
 
                 val onMyCarMarkerClick: () -> Unit = {
                     state.userParking?.let { p ->
-                        onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
+                        onIntent(HomeIntent.SelectItem(p.id))
                         uiController.moveCamera(p.location.latitude, p.location.longitude)
                         animateSheetToHalf()
                     }
@@ -590,26 +597,29 @@ private fun HomeContent(
                     coroutineScope = coroutineScope,
                     onPeekHeightChanged = { h -> peekHeightPx = h },
                     onIntent = onIntent,
-                    onParkingClick = {
-                        onIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
-                        state.userParking?.location?.let { loc ->
-                            uiController.moveCamera(loc.latitude, loc.longitude)
-                        }
+                    onParkingClick = { parking ->
+                        onIntent(HomeIntent.SelectItem(parking.id))
+                        uiController.moveCamera(parking.location.latitude, parking.location.longitude)
                     },
-                    onManualPark = {
-                        // Empty-state CTA — enter AddingParking pre-centred on
-                        // the user's current GPS. Confirming with no drag is
-                        // equivalent to the old snap-to-GPS behaviour, but the
-                        // user can reposition the pin first.
-                        onIntent(HomeIntent.EnterAddParkingMode(initialGps = state.userGpsPoint))
+                    onParkVehicle = { vehicleId ->
+                        // Per-vehicle "Aparcar" pill — enter AddingParking pre-centred
+                        // on the user's current GPS and tagged with the chosen
+                        // vehicleId so ConfirmParkingUseCase persists the session
+                        // for that specific car instead of the default. [MULTI-PARKING-001]
+                        onIntent(
+                            HomeIntent.EnterAddParkingMode(
+                                initialGps = state.userGpsPoint,
+                                targetVehicleId = vehicleId,
+                            ),
+                        )
                     },
                     onMoveParkingLocation = {
                         // "Mover ubicación" button on the parking peek — enter
-                        // AddingParking pre-centred on the existing parking
-                        // and tagged with its id so the confirm updates the
-                        // row in place (UpdateParkingLocationUseCase) instead
-                        // of creating a new session.
-                        state.userParking?.let { parking ->
+                        // AddingParking pre-centred on the SELECTED session
+                        // (not just the first active one) and tagged with its id
+                        // so the confirm updates the row in place via
+                        // UpdateParkingLocationUseCase. [MULTI-PARKING-001]
+                        state.selectedSession?.let { parking ->
                             onIntent(
                                 HomeIntent.EnterAddParkingMode(
                                     initialGps = parking.location,

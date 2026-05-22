@@ -22,6 +22,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
@@ -53,8 +54,10 @@ internal fun HomeBottomSheet(
     coroutineScope: CoroutineScope,
     onPeekHeightChanged: (Float) -> Unit,
     onIntent: (HomeIntent) -> Unit,
-    onParkingClick: () -> Unit,
-    onManualPark: () -> Unit,
+    /** Tap on a per-vehicle row that already has an active session — selects that session. */
+    onParkingClick: (UserParking) -> Unit,
+    /** Tap on the "Aparcar" pill of a per-vehicle row with no active session — enters AddingParking for that vehicle. */
+    onParkVehicle: (vehicleId: String) -> Unit,
     /** Tap on the "Mover ubicación" button on the active-parking peek — opens the AddingParking edit flow. */
     onMoveParkingLocation: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
@@ -124,7 +127,7 @@ internal fun HomeBottomSheet(
             // renders the list (selected spot is the exception — the user may
             // want to compare with nearby alternatives).
             val showList = state.mode is HomeMode.Browse &&
-                state.selectedItemId != HomeState.PARKING_ITEM_ID
+                !state.isParkingSelected
             if (showList) {
                 LazyColumn(
                     state = lazyListState,
@@ -144,7 +147,7 @@ internal fun HomeBottomSheet(
                         onIntent = onIntent,
                         onCameraMove = onCameraMove,
                         onParkingClick = onParkingClick,
-                        onManualPark = onManualPark,
+                        onParkVehicle = onParkVehicle,
                         onSpotSelect = onSpotSelect,
                     )
                 }

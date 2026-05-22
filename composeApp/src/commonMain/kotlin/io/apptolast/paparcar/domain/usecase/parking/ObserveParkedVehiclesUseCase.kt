@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.combine
 
 /**
  * Emits the current set of active parking sessions enriched with vehicle display data.
- *
- * v1: only one session can be active at a time, so the list has 0 or 1 element.
- * The multi-vehicle path is ready for when concurrent sessions are supported.
+ * Under multi-parking, the list can hold 0..N entries — one per vehicle with an active
+ * session. Sessions whose [vehicleId] no longer resolves to a known vehicle are skipped
+ * (e.g., user deleted the vehicle while it was parked). [MULTI-PARKING-001]
  *
  * paletteIndex is assigned by sorting vehicleIds lexicographically so the colour
  * is stable across restarts regardless of insertion order.
@@ -22,26 +22,21 @@ class ObserveParkedVehiclesUseCase(
 ) {
     operator fun invoke(): Flow<List<ParkedVehicleView>> =
         combine(
-            userParkingRepository.observeActiveSession(),
+            userParkingRepository.observeActiveSessions(),
             vehicleRepository.observeVehicles(),
-        ) { activeSession, vehicles ->
-            if (activeSession == null) return@combine emptyList()
-
-            val vehicleId = activeSession.vehicleId ?: return@combine emptyList()
-            val vehicle = vehicles.find { it.id == vehicleId } ?: return@combine emptyList()
-
+        ) { activeSessions, vehicles ->
             val sortedIds = vehicles.map { it.id }.sorted()
-            val paletteIndex = sortedIds.indexOf(vehicleId).coerceAtLeast(0)
-
-            listOf(
+            activeSessions.mapNotNull { session ->
+                val vehicleId = session.vehicleId ?: return@mapNotNull null
+                val vehicle = vehicles.find { it.id == vehicleId } ?: return@mapNotNull null
                 ParkedVehicleView(
-                    sessionId = activeSession.id,
+                    sessionId = session.id,
                     vehicleId = vehicleId,
                     displayName = vehicle.displayName(),
-                    location = activeSession.location,
-                    sizeCategory = activeSession.sizeCategory,
-                    paletteIndex = paletteIndex,
+                    location = session.location,
+                    sizeCategory = session.sizeCategory,
+                    paletteIndex = sortedIds.indexOf(vehicleId).coerceAtLeast(0),
                 )
-            )
+            }
         }
 }

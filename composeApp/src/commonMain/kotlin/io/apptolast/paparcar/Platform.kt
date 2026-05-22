@@ -8,3 +8,6 @@ package io.apptolast.paparcar
  *          the Xcode build configuration (Debug → true, Release → false).
  */
 expect val isDebugBuild: Boolean
+
+/** Human-readable version string (e.g. "1.2.3") sourced from the platform build system. */
+expect val appVersion: String

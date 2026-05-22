@@ -11,3 +11,6 @@ import kotlin.native.Platform
  * tracks the Xcode scheme without any additional `freeCompilerArgs` wiring.
  */
 actual val isDebugBuild: Boolean = Platform.isDebugBinary
+actual val appVersion: String =
+    platform.Foundation.NSBundle.mainBundle.infoDictionary
+        ?.get("CFBundleShortVersionString") as? String ?: "?"

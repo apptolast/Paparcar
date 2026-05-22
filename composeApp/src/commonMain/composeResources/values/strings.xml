@@ -12,9 +12,15 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">You are parked</string>
     <string name="home_where_to_park_title">Where do you want to park?</string>
-    <!-- Sheet section header above the parking row (always shown, even when empty) -->
-    <string name="home_my_car_section_header">Your car</string>
-    <!-- ParkingPeekRow (selected vehicle hero card) -->
+    <!-- Sheet section header above the per-vehicle rows. [MULTI-PARKING-001] -->
+    <string name="home_vehicles_section_header">Your vehicles</string>
+    <!-- Per-vehicle row when the vehicle has no active session — CTA pill on the right. -->
+    <string name="home_vehicle_card_park_cta">Park</string>
+    <!-- Per-vehicle row when the vehicle has no active session — subtitle. -->
+    <string name="home_vehicle_card_status_empty">Not parked</string>
+    <!-- Fallback label when a Vehicle has no name, brand or model set. -->
+    <string name="home_vehicle_fallback_name">Vehicle</string>
+    <!-- ParkingPeekRow (selected vehicle hero card) — fallback when vehicle lookup fails. -->
     <string name="home_peek_active_session">Active session</string>
     <string name="home_peek_parked_label">Parked</string>
     <string name="home_peek_walk_label">On foot</string>
@@ -248,7 +254,6 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">A free spot you\'ve seen and want to share with others.</string>
-    <string name="home_report_action">Notify the community</string>
     <string name="home_report_fab_cd">Report a free spot</string>
     <string name="home_report_cancel_cd">Cancel report</string>
     <!-- Refreshed copy for the reporting peek card (v1 design) -->
@@ -474,4 +479,11 @@
     <!-- Accessibility content descriptions (QA-006) -->
     <string name="home_peek_dismiss_cd">Dismiss</string>
     <string name="bt_config_cd_back">Back</string>
+    <!-- Auth screens -->
+    <string name="auth_header_tagline">Find your spot, share your space</string>
+    <string name="auth_field_email">Email</string>
+    <string name="auth_field_password">Password</string>
+    <string name="auth_field_name">Name</string>
+    <string name="auth_field_confirm_password">Confirm password</string>
+    <string name="auth_forgot_password">Forgot password?</string>
 </resources>

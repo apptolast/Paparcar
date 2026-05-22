@@ -8,18 +8,23 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserParkingRepository {
     /**
-     * Inserts [session] into Room as the new active session, clearing any previously active
-     * row. Returns the id of the previous active session (if any) wrapped in a [Result] so
-     * the caller can hand it to [io.apptolast.paparcar.domain.service.ParkingSyncScheduler]
-     * for remote backfill — Firestore writes happen off the critical path.
+     * Inserts [session] into Room as the new active session. Clears the previously-active
+     * row **scoped to the same vehicleId** so concurrent sessions for *different* vehicles
+     * remain active in parallel. Returns the id of the previous session that was cleared
+     * (if any) wrapped in a [Result] so the caller can hand it to
+     * [io.apptolast.paparcar.domain.service.ParkingSyncScheduler] for remote backfill —
+     * Firestore writes happen off the critical path.
      */
     suspend fun saveSession(session: UserParking): Result<String?>
-    suspend fun getActiveSession(): UserParking?
-    fun observeActiveSession(): Flow<UserParking?>
+    /** Returns the currently-active session whose geofenceId matches [geofenceId], or null. */
+    suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking?
+    /** Reactive stream of all currently-active sessions (0..N, one per parked vehicle). */
+    fun observeActiveSessions(): Flow<List<UserParking>>
     fun observeAllSessions(): Flow<List<UserParking>>
     fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>>
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking>
-    suspend fun clearActive(): Result<Unit>
+    /** Clears the active flag of the session with [sessionId] and schedules Firestore reconciliation. */
+    suspend fun clearActiveById(sessionId: String): Result<Unit>
     /**
      * Downloads parking history from Firestore and populates Room.
      * No-op if Room already has data — covers new installs and device switches.

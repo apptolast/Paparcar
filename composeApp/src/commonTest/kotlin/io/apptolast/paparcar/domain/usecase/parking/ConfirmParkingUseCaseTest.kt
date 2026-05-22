@@ -248,6 +248,88 @@ class ConfirmParkingUseCaseTest {
         assertEquals(0, repo.saveSessionCallCount)
     }
 
+    // ── Explicit vehicleId (BT-strategy path) ─────────────────────────────────
+
+    @Test
+    fun `should attach session to explicit vehicleId when provided`() = runTest {
+        // BT strategy resolves the parking vehicle from the disconnected device address
+        // and passes that vehicleId explicitly. The use case must honour it, even when
+        // it is NOT the user's default vehicle (default ≠ parked under multi-vehicle BT).
+        val repo = FakeUserParkingRepository()
+        val secondary = Vehicle(
+            id = "v-2",
+            userId = "user-42",
+            sizeCategory = VehicleSize.VAN,
+            bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+        )
+        val useCase = buildUseCase(
+            repo = repo,
+            vehicles = FakeVehicleRepository(
+                defaultVehicle = defaultVehicle,
+                extraVehicles = listOf(secondary),
+            ),
+        )
+
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-2")
+
+        assertTrue(result.isSuccess)
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertEquals("v-2", savedSession.vehicleId)
+    }
+
+    @Test
+    fun `should resolve sizeCategory from explicit vehicle when vehicleId provided`() = runTest {
+        val repo = FakeUserParkingRepository()
+        val secondary = Vehicle(id = "v-2", userId = "user-42", sizeCategory = VehicleSize.VAN)
+        val useCase = buildUseCase(
+            repo = repo,
+            vehicles = FakeVehicleRepository(
+                defaultVehicle = defaultVehicle, // MEDIUM
+                extraVehicles = listOf(secondary),
+            ),
+        )
+
+        useCase(location, detectionReliability = 0.9f, vehicleId = "v-2")
+
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertEquals(VehicleSize.VAN, savedSession.sizeCategory)
+    }
+
+    @Test
+    fun `should NOT fall back to default vehicle when explicit vehicleId does not resolve`() = runTest {
+        // If the caller passes a vehicleId we cannot find, that is a precondition violation
+        // (BT receiver resolved from a row that has since been deleted, or test misconfig).
+        // Silently falling back to the default would attach the session to the wrong vehicle.
+        val repo = FakeUserParkingRepository()
+        val useCase = buildUseCase(
+            repo = repo,
+            vehicles = FakeVehicleRepository(defaultVehicle = defaultVehicle),
+        )
+
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-missing")
+
+        assertTrue(result.isFailure)
+        assertIs<PaparcarError.Parking.NoDefaultVehicle>(result.exceptionOrNull())
+        assertEquals(0, repo.saveSessionCallCount)
+    }
+
+    @Test
+    fun `should fall back to default vehicle when vehicleId is null`() = runTest {
+        // Coordinator-strategy / manual paths still call without a vehicleId — the default
+        // resolution remains the legacy single-vehicle behaviour.
+        val repo = FakeUserParkingRepository()
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = null)
+
+        assertTrue(result.isSuccess)
+        val savedSession = repo.getActiveSession()
+        assertNotNull(savedSession)
+        assertEquals(defaultVehicle.id, savedSession.vehicleId)
+    }
+
     // ── No authenticated user ─────────────────────────────────────────────────
 
     @Test

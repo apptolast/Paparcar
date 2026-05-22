@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.model.VehicleWithStats
 data class VehiclesState(
     val vehicles: List<VehicleWithStats> = emptyList(),
     val isLoading: Boolean = true,
+    val selectedVehicleIndex: Int = 0,
     val pendingDeleteVehicleId: String? = null,
     val bluetoothConnectedVehicleId: String? = null,
 ) {

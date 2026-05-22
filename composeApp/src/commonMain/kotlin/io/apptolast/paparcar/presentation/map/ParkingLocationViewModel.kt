@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 class ParkingLocationViewModel(
@@ -16,7 +17,11 @@ class ParkingLocationViewModel(
 ) : BaseViewModel<ParkingLocationState, ParkingLocationIntent, ParkingLocationEffect>() {
 
     init {
-        userParkingRepository.observeActiveSession()
+        // Full-screen ParkingLocationScreen pre-dates multi-parking — pick the first
+        // active session as "the" focus. The richer Home flow now drives multi-vehicle
+        // markers from [ObserveParkedVehiclesUseCase] instead. [MULTI-PARKING-001]
+        userParkingRepository.observeActiveSessions()
+            .map { it.firstOrNull() }
             .onEach { session -> updateState { copy(userParking = session) } }
             .catch { e ->
                 sendEffect(ParkingLocationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))

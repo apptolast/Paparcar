@@ -237,7 +237,6 @@
 
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Een vrije plek die je hebt gezien en wilt delen.</string>
-    <string name="home_report_action">Community waarschuwen</string>
     <string name="home_report_fab_cd">Vrije plek melden</string>
     <string name="home_report_cancel_cd">Melding annuleren</string>
 
@@ -484,4 +483,11 @@
     <string name="vehicle_stats_sessions">sessies</string>
     <string name="vehicle_stats_last_session">laatste</string>
     <string name="vehicle_stats_reliability">betrouwbaarheid</string>
+    <!-- Auth screens -->
+    <string name="auth_header_tagline">Vind je plek, deel je ruimte</string>
+    <string name="auth_field_email">E-mail</string>
+    <string name="auth_field_password">Wachtwoord</string>
+    <string name="auth_field_name">Naam</string>
+    <string name="auth_field_confirm_password">Wachtwoord bevestigen</string>
+    <string name="auth_forgot_password">Wachtwoord vergeten?</string>
 </resources>

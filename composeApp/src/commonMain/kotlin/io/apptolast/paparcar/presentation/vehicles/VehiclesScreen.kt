@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,9 +54,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.icons.icon
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -151,6 +156,8 @@ internal fun VehiclesContent(
                 ),
             )
         },
+        // Match Home's bottom-sheet tone so the page doesn't feel near-black.
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -190,17 +197,24 @@ private fun VehiclesPager(
     onNavigateToMap: (lat: Double, lon: Double) -> Unit,
 ) {
     val vehicles = state.vehicles
-    val pagerState = rememberPagerState(pageCount = { vehicles.size })
+    val pagerState = rememberPagerState(
+        initialPage = state.selectedVehicleIndex,
+        pageCount = { vehicles.size },
+    )
     val scope = rememberCoroutineScope()
 
-    // Keep the pager's currentPage inside the valid range when the list
-    // shrinks (e.g. the user deletes the vehicle currently being shown).
-    // Without this clamp `pagerState.currentPage` can point past the end
-    // and HorizontalPager renders an empty page below the tab row.
-    LaunchedEffect(vehicles.size) {
-        if (vehicles.isNotEmpty() && pagerState.currentPage > vehicles.lastIndex) {
-            pagerState.scrollToPage(vehicles.lastIndex)
+    // Scroll pager when ViewModel changes the selected index (e.g. restore on back-nav).
+    LaunchedEffect(state.selectedVehicleIndex) {
+        if (pagerState.currentPage != state.selectedVehicleIndex) {
+            pagerState.scrollToPage(state.selectedVehicleIndex)
         }
+    }
+
+    // Sync swipe gestures back to ViewModel so the selection survives navigation.
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }
+            .distinctUntilChanged()
+            .collect { page -> onIntent(VehiclesIntent.SelectVehicle(page)) }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -208,6 +222,7 @@ private fun VehiclesPager(
             vehicles = vehicles.map { it.vehicle },
             selectedIndex = pagerState.currentPage,
             onTabClick = { index ->
+                onIntent(VehiclesIntent.SelectVehicle(index))
                 scope.launch { pagerState.animateScrollToPage(index) }
             },
             onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
@@ -252,53 +267,44 @@ private fun VehicleTabRow(
                 onClick = { onTabClick(index) },
             )
         }
-        AddVehiclePill(onClick = onAddVehicle)
+        // 32dp diameter: iconSize 16 + contentPad 8 per side = 32dp total to
+        // align vertically with adjacent VehicleTabPills.
+        PaparcarAddChip(
+            onClick = onAddVehicle,
+            iconSize = 16.dp,
+            contentPad = 8.dp,
+            contentDescription = stringResource(Res.string.my_car_add_vehicle),
+        )
     }
 }
+
 
 /**
- * "+" trailing chip — circular outlined button, fixed [TAB_HEIGHT_DP] so it
- * matches the height of the surrounding [VehicleTabPill]s in the row.
+ * Vehicle pager tab — aligned with [PaparcarFilterChip] visual contract:
+ * neutral [PapBorders] outline (no neon-primary border on selected), primary-
+ * tinted leading icon, and label colours that follow the selected state.
+ * Adds an `isDefault` dot suffix that the base chip doesn't need.
  */
-@Composable
-private fun AddVehiclePill(onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.size(TAB_HEIGHT_DP.dp),
-        shape = CircleShape,
-        color = Color.Transparent,
-        border = BorderStroke(
-            width = 1.5.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = ADD_PILL_BORDER_ALPHA),
-        ),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = stringResource(Res.string.my_car_add_vehicle),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp),
-            )
-        }
-    }
-}
-
 @Composable
 private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val tabName = vehicle.displayName(
         fallback = stringResource(Res.string.my_car_unnamed_vehicle),
     )
-    val bg = if (selected) cs.primaryContainer else Color.Transparent
-    val borderColor = if (selected) cs.primary else cs.outline.copy(alpha = TAB_INACTIVE_BORDER_ALPHA)
-    val fg = if (selected) cs.onPrimaryContainer else cs.onSurface.copy(alpha = TAB_INACTIVE_FG_ALPHA)
+    val bg = if (selected) cs.primaryContainer else cs.surfaceContainerHigh
+    val borderColor = if (selected) {
+        cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA + 0.2f)
+    } else {
+        cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
+    }
+    val fg = if (selected) cs.onPrimaryContainer else cs.onSurface
 
     Surface(
         onClick = onClick,
         modifier = Modifier.height(TAB_HEIGHT_DP.dp),
         shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
         color = bg,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(PapBorders.thin, borderColor),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp),
@@ -308,7 +314,7 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
             Icon(
                 imageVector = vehicle.sizeCategory.icon,
                 contentDescription = null,
-                tint = fg,
+                tint = cs.primary,
                 modifier = Modifier.size(14.dp),
             )
             Text(
@@ -441,9 +447,6 @@ private fun EmptyVehicleState(
 private const val TITLE_LETTER_SPACING_SP = -0.5
 private const val PILL_RADIUS_DP = 999
 private const val TAB_HEIGHT_DP = 32
-private const val ADD_PILL_BORDER_ALPHA = 0.6f
-private const val TAB_INACTIVE_BORDER_ALPHA = 0.5f
-private const val TAB_INACTIVE_FG_ALPHA = 0.7f
 private const val ACTIVE_DOT_DP = 6
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private const val EMPTY_BODY_ALPHA = 0.65f

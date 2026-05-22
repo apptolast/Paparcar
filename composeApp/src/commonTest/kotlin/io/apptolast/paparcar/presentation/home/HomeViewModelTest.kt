@@ -9,9 +9,11 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
@@ -94,6 +96,7 @@ class HomeViewModelTest {
             enrichmentScheduler = FakeParkingEnrichmentScheduler(),
             config = ParkingDetectionConfig(),
         )
+        val observeParkedVehicles = ObserveParkedVehiclesUseCase(parkingRepo, vehicleRepo)
         val zoneRepo = FakeZoneRepository()
         return HomeViewModel(
             permissionManager = permissions,
@@ -105,6 +108,7 @@ class HomeViewModelTest {
             releaseSession = releaseSession,
             getLocationInfo = getLocationInfo,
             confirmParking = confirmParking,
+            observeParkedVehicles = observeParkedVehicles,
             updateParkingLocation = updateParkingLocation,
             searchAddress = searchAddress,
             appPreferences = prefs,
@@ -113,6 +117,7 @@ class HomeViewModelTest {
             observeZones = ObserveZonesUseCase(zoneRepo),
             saveZone = SaveZoneUseCase(zoneRepo, authRepo),
             deleteZone = DeleteZoneUseCase(zoneRepo),
+            vehicleRepository = vehicleRepo,
         )
     }
 
@@ -476,15 +481,128 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_keep_PARKING_selectedItemId_when_spots_change`() = runTest {
+    fun `should_keep_session_selectedItemId_when_spots_change`() = runTest {
+        val session = UserParking(
+            id = "session-1",
+            userId = "user-1",
+            vehicleId = "v-1",
+            location = location,
+            isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSession = session)
+        vm = buildVm()
+
         val spot = Spot(id = "s1", location = location, reportedBy = "u1", address = null, placeInfo = null)
         spotRepo.spots = listOf(spot)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitBalanced(location)
 
-        vm.handleIntent(HomeIntent.SelectItem(HomeState.PARKING_ITEM_ID))
+        vm.handleIntent(HomeIntent.SelectItem(session.id))
         spotRepo.spots = emptyList()
 
-        assertEquals(HomeState.PARKING_ITEM_ID, vm.state.value.selectedItemId)
+        assertEquals(session.id, vm.state.value.selectedItemId)
+    }
+
+    // ── Multi-vehicle vehicleCards projection ─────────────────────────────────
+
+    @Test
+    fun `should_emit_one_vehicleCard_per_registered_vehicle_with_session_joined_by_vehicleId`() = runTest {
+        val parked = UserParking(
+            id = "session-parked",
+            userId = "user-1",
+            vehicleId = "veh-A",
+            location = location,
+            isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSession = parked)
+        vehicleRepo = FakeVehicleRepository(
+            defaultVehicle = Vehicle(
+                id = "veh-A",
+                userId = "user-1",
+                brand = "Toyota",
+                model = "Corolla",
+                sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM,
+            ),
+            extraVehicles = listOf(
+                Vehicle(
+                    id = "veh-B",
+                    userId = "user-1",
+                    brand = "Ford",
+                    model = "Transit",
+                    sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.LARGE,
+                ),
+            ),
+        )
+        vm = buildVm()
+
+        val cards = vm.state.value.vehicleCards
+        assertEquals(2, cards.size)
+        val parkedCard = cards.first { it.vehicle.id == "veh-A" }
+        val emptyCard = cards.first { it.vehicle.id == "veh-B" }
+        assertEquals("session-parked", parkedCard.session?.id)
+        assertNull(emptyCard.session)
+    }
+
+    @Test
+    fun `should_emit_empty_vehicleCards_when_no_vehicles_registered`() = runTest {
+        // Default FakeVehicleRepository in setUp has no vehicles
+        assertEquals(emptyList(), vm.state.value.vehicleCards)
+    }
+
+    // ── Release-by-sessionId (multi-parking) ──────────────────────────────────
+
+    @Test
+    fun `should_release_only_the_selected_session_when_multiple_active_sessions_exist`() = runTest {
+        val sessionA = UserParking(
+            id = "session-A",
+            userId = "user-1",
+            vehicleId = "veh-A",
+            location = location,
+            isActive = true,
+        )
+        val sessionB = UserParking(
+            id = "session-B",
+            userId = "user-1",
+            vehicleId = "veh-B",
+            location = location,
+            isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(sessionA, sessionB))
+        vm = buildVm()
+
+        // User taps the second vehicle's row → selectedItemId == sessionB.id
+        vm.handleIntent(HomeIntent.SelectItem(sessionB.id))
+        vm.handleIntent(HomeIntent.ReleaseParking(location.latitude, location.longitude, publishSpot = false))
+
+        // sessionA must remain active; sessionB cleared.
+        val activeAfter = vm.state.value.activeSessions.map { it.id }.toSet()
+        assertEquals(setOf("session-A"), activeAfter)
+    }
+
+    @Test
+    fun `should_fall_back_to_first_active_session_on_release_when_nothing_selected`() = runTest {
+        val sessionA = UserParking(
+            id = "session-A",
+            userId = "user-1",
+            vehicleId = "veh-A",
+            location = location,
+            isActive = true,
+        )
+        val sessionB = UserParking(
+            id = "session-B",
+            userId = "user-1",
+            vehicleId = "veh-B",
+            location = location,
+            isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(sessionA, sessionB))
+        vm = buildVm()
+
+        assertNull(vm.state.value.selectedItemId)
+        vm.handleIntent(HomeIntent.ReleaseParking(location.latitude, location.longitude, publishSpot = false))
+
+        val activeAfter = vm.state.value.activeSessions.map { it.id }.toSet()
+        // First-emitted session (sessionA) is the legacy fallback target.
+        assertEquals(setOf("session-B"), activeAfter)
     }
 }

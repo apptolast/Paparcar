@@ -43,6 +43,10 @@ class ReleaseActiveParkingSessionUseCase(
             reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)
         }
 
-        return userParkingRepository.clearActive()
+        // Under multi-parking we can only clear *this* specific session — clearing
+        // by id leaves other vehicles' active sessions intact. If the caller did
+        // not supply a session (legacy / manual delete), nothing to clear locally.
+        val sessionId = currentSession?.id ?: return Result.success(Unit)
+        return userParkingRepository.clearActiveById(sessionId)
     }
 }

@@ -4,6 +4,7 @@ package io.apptolast.paparcar.presentation.settings
 
 import com.apptolast.customlogin.domain.AuthRepository
 import com.swmansion.kmpmaps.core.MapType
+import io.apptolast.paparcar.appVersion as platformAppVersion
 import io.apptolast.paparcar.core.crash.CrashReporter
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.preferences.AppPreferences
@@ -87,6 +88,7 @@ class SettingsViewModel(
                 notifyParkingDetected = prefs.notifyParkingDetected,
                 notifySpotFreed = prefs.notifySpotFreed,
                 mapType = prefs.defaultMapType.toMapType(),
+                appVersion = platformAppVersion,
             )
         }
     }
