@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,46 +23,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.history.BodyMedium
-import io.apptolast.paparcar.presentation.history.LabelBold
+import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_empty_subtitle
 import paparcar.composeapp.generated.resources.history_empty_title
 
 /**
- * Active section header (v1 redesign) — pulsing primary dot + uppercase
- * primary text. Padding-top 12dp for clearer separation from the timeline.
+ * Active section header — primary-tinted variant of [PapSectionHeaderRow]
+ * with a leading pulsing dot. Padding-top 12dp for clearer separation from
+ * the timeline.
  */
 @Composable
 internal fun ActiveSectionHeader(text: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        PulsingDot(
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(8.dp),
-        )
-        Text(
-            text = text.uppercase(),
-            style = LabelBold,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-    }
-}
-
-@Composable
-internal fun HistorySectionHeader(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = LabelBold,
-        fontWeight = FontWeight.ExtraBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier,
+    PapSectionHeaderRow(
+        title = text,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+        leading = {
+            PulsingDot(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(8.dp),
+            )
+        },
     )
 }
 

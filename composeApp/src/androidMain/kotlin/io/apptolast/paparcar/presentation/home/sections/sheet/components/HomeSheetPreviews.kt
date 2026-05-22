@@ -17,6 +17,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.preview.FakeData
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
+import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import kotlin.time.Clock
 
@@ -68,7 +69,7 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 //  Bottom sheet con lista vertical de HomeSpotRow. El peek muestra contexto de
 //  cámara + badge de spots libres. Diseño implementado en producción.
 //  Componentes: HomeSheetContent · HomeSpotRow · HomeParkingRow ·
-//               HomePeekHandle · HomeParkingEmptyCard · HomeSectionHeader ·
+//               HomePeekHandle · HomeParkingEmptyCard · PapSectionHeader ·
 //               HomeEmptySpots · HomePermissionsCard · PaparcarBottomActionBar
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -244,22 +245,22 @@ private fun HomeParkingEmptyCardLightPreview() {
     }
 }
 
-// ─── A — HomeSectionHeader ────────────────────────────────────────────────────
+// ─── A — PapSectionHeader ─────────────────────────────────────────────────────
 
-@Preview(name = "A — HomeSectionHeader (oscuro)", showBackground = true,
+@Preview(name = "A — PapSectionHeader (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun HomeSectionHeaderDarkPreview() {
+private fun PapSectionHeaderDarkPreview() {
     PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) { HomeSectionHeader(title = "CERCA DE TI") }
+        Column(Modifier.padding(16.dp)) { PapSectionHeader(title = "Cerca de ti") }
     }
 }
 
-@Preview(name = "A — HomeSectionHeader (claro)", showBackground = true)
+@Preview(name = "A — PapSectionHeader (claro)", showBackground = true)
 @Composable
-private fun HomeSectionHeaderLightPreview() {
+private fun PapSectionHeaderLightPreview() {
     PaparcarTheme(darkTheme = false) {
-        Column(Modifier.padding(16.dp)) { HomeSectionHeader(title = "ESTÁS APARCADO") }
+        Column(Modifier.padding(16.dp)) { PapSectionHeader(title = "Estás aparcado") }
     }
 }
 
