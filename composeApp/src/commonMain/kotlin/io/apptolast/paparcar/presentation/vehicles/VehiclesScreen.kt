@@ -58,6 +58,7 @@ import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.icons.icon
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -155,6 +156,8 @@ internal fun VehiclesContent(
                 ),
             )
         },
+        // Match Home's bottom-sheet tone so the page doesn't feel near-black.
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -264,33 +267,44 @@ private fun VehicleTabRow(
                 onClick = { onTabClick(index) },
             )
         }
+        // 32dp diameter: iconSize 16 + contentPad 8 per side = 32dp total to
+        // align vertically with adjacent VehicleTabPills.
         PaparcarAddChip(
             onClick = onAddVehicle,
-            shape = CircleShape,
-            modifier = Modifier.size(TAB_HEIGHT_DP.dp),
-            contentPadding = PaddingValues(0.dp),
+            iconSize = 16.dp,
+            contentPad = 8.dp,
             contentDescription = stringResource(Res.string.my_car_add_vehicle),
         )
     }
 }
 
 
+/**
+ * Vehicle pager tab — aligned with [PaparcarFilterChip] visual contract:
+ * neutral [PapBorders] outline (no neon-primary border on selected), primary-
+ * tinted leading icon, and label colours that follow the selected state.
+ * Adds an `isDefault` dot suffix that the base chip doesn't need.
+ */
 @Composable
 private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val tabName = vehicle.displayName(
         fallback = stringResource(Res.string.my_car_unnamed_vehicle),
     )
-    val bg = if (selected) cs.primaryContainer else Color.Transparent
-    val borderColor = if (selected) cs.primary else cs.outline.copy(alpha = TAB_INACTIVE_BORDER_ALPHA)
-    val fg = if (selected) cs.onPrimaryContainer else cs.onSurface.copy(alpha = TAB_INACTIVE_FG_ALPHA)
+    val bg = if (selected) cs.primaryContainer else cs.surfaceContainerHigh
+    val borderColor = if (selected) {
+        cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA + 0.2f)
+    } else {
+        cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
+    }
+    val fg = if (selected) cs.onPrimaryContainer else cs.onSurface
 
     Surface(
         onClick = onClick,
         modifier = Modifier.height(TAB_HEIGHT_DP.dp),
         shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
         color = bg,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(PapBorders.thin, borderColor),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp),
@@ -300,7 +314,7 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
             Icon(
                 imageVector = vehicle.sizeCategory.icon,
                 contentDescription = null,
-                tint = fg,
+                tint = cs.primary,
                 modifier = Modifier.size(14.dp),
             )
             Text(
@@ -433,9 +447,6 @@ private fun EmptyVehicleState(
 private const val TITLE_LETTER_SPACING_SP = -0.5
 private const val PILL_RADIUS_DP = 999
 private const val TAB_HEIGHT_DP = 32
-private const val ADD_PILL_BORDER_ALPHA = 0.6f
-private const val TAB_INACTIVE_BORDER_ALPHA = 0.5f
-private const val TAB_INACTIVE_FG_ALPHA = 0.7f
 private const val ACTIVE_DOT_DP = 6
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private const val EMPTY_BODY_ALPHA = 0.65f
