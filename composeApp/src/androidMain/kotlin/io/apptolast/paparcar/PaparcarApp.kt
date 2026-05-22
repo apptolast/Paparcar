@@ -9,9 +9,7 @@ import androidx.work.WorkManager
 import com.apptolast.customlogin.appContext
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
-import com.apptolast.customlogin.config.AppleSignInConfig
 import com.apptolast.customlogin.config.GoogleSignInConfig
-import com.apptolast.customlogin.config.MagicLinkConfig
 import com.apptolast.customlogin.di.LoginLibraryConfig
 import com.apptolast.customlogin.di.initLoginKoin
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
@@ -38,14 +36,6 @@ class PaparcarApp : Application() {
             googleSignInConfig = GoogleSignInConfig(
                 webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
             ),
-            appleSignInConfig = AppleSignInConfig(),
-            githubEnabled = true,
-            microsoftEnabled = true,
-            twitterEnabled = true,
-            facebookEnabled = true,
-            magicLinkConfig = MagicLinkConfig(
-                continueUrl = "https://apptolast.com/login"
-            )
         )
 
         initLoginKoin(config = loginConfig) {

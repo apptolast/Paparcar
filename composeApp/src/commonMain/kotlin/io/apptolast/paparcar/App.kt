@@ -78,6 +78,7 @@ import io.apptolast.paparcar.presentation.util.LocalDistanceUnit
 import io.apptolast.paparcar.presentation.util.applyAppLocale
 import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
 import io.apptolast.paparcar.presentation.vehicle.VehicleSizeExplainerScreen
+import io.apptolast.paparcar.ui.auth.paparcarAuthSlots
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -245,6 +246,7 @@ private fun AuthNavigation() {
         authRoutesFlow(
             navController = navController,
             startDestination = LoginRoute,
+            slots = paparcarAuthSlots(),
             onNavigateToHome = { /* Handled by AuthState change */ },
         )
     }
