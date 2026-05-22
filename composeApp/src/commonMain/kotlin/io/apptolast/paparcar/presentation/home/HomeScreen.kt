@@ -243,7 +243,14 @@ private fun HomeContent(
     val lazyListState = rememberLazyListState()
 
     LaunchedEffect(state.userGpsPoint) {
-        state.userGpsPoint?.let { uiController.onUserLocationAvailable(it.latitude, it.longitude) }
+        val gps = state.userGpsPoint ?: return@LaunchedEffect
+        val parking = state.userParking
+        val spot = state.selectedSpot
+        when {
+            parking != null -> uiController.onUserLocationAvailable(parking.location.latitude, parking.location.longitude)
+            spot != null -> uiController.onUserLocationAvailable(spot.location.latitude, spot.location.longitude)
+            else -> uiController.onUserLocationAvailable(gps.latitude, gps.longitude)
+        }
     }
 
     LaunchedEffect(selectedSpotId) {

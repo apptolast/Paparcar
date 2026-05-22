@@ -9,8 +9,11 @@ import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -63,8 +66,15 @@ class HistoryViewModel(
         val nowMs = Clock.System.now().toEpochMilliseconds()
         return when (filter) {
             HistoryFilter.All -> sessions
-            HistoryFilter.ThisWeek -> sessions.filter {
-                it.location.timestamp >= nowMs - WEEK_MS
+            HistoryFilter.ThisWeek -> {
+                val tz = TimeZone.currentSystemDefault()
+                val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
+                val daysFromMonday = nowLocal.date.dayOfWeek.isoDayNumber - 1
+                val weekStartMs = nowLocal.date
+                    .minus(daysFromMonday, DateTimeUnit.DAY)
+                    .atStartOfDayIn(tz)
+                    .toEpochMilliseconds()
+                sessions.filter { it.location.timestamp >= weekStartMs }
             }
             HistoryFilter.ThisMonth -> {
                 val tz = TimeZone.currentSystemDefault()

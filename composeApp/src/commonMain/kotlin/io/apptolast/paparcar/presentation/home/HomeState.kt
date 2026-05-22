@@ -106,6 +106,10 @@ data class HomeState(
     val isParkingSelected: Boolean
         get() = selectedItemId == PARKING_ITEM_ID
 
+    /** True when any item (parking session or community spot) holds the active selection. */
+    val hasActiveContent: Boolean
+        get() = userParking != null || selectedItemId != null
+
     /**
      * The selected community spot, or null if nothing is selected or the
      * selection is the user's own parking. Replaces an O(n) `nearbySpots.find { }`
