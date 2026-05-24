@@ -67,6 +67,7 @@ import io.apptolast.paparcar.presentation.history.components.HistoryFilterBar
 import io.apptolast.paparcar.presentation.history.components.HistoryInsightsCard
 import io.apptolast.paparcar.presentation.history.components.StatsRow
 import io.apptolast.paparcar.presentation.history.components.WeeklyActivityCard
+import io.apptolast.paparcar.ui.theme.appBarTitle
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
@@ -116,48 +117,7 @@ import paparcar.composeapp.generated.resources.history_today
 import paparcar.composeapp.generated.resources.history_yesterday
 import kotlin.time.Instant
 
-// ─── Typography ───────────────────────────────────────────────────────────────
-//
-// Uncomment once font files are in composeResources/font/:
-//
-// val SyneFontFamily = FontFamily(
-//     Font(Res.font.syne_bold,      FontWeight.Bold),
-//     Font(Res.font.syne_extrabold, FontWeight.ExtraBold),
-// )
-// val JostFontFamily = FontFamily(
-//     Font(Res.font.jost_regular,  FontWeight.Normal),
-//     Font(Res.font.jost_medium,   FontWeight.Medium),
-//     Font(Res.font.jost_semibold, FontWeight.SemiBold),
-//     Font(Res.font.jost_bold,     FontWeight.Bold),
-// )
-
-internal val TopBarFont = FontFamily.Default   // replace with SyneFontFamily
-internal val BodyFont = FontFamily.SansSerif // replace with JostFontFamily
-
-internal val BodyMedium = TextStyle(
-    fontFamily = BodyFont,
-    fontWeight = FontWeight.Normal,
-    fontSize = 13.sp,
-    letterSpacing = 0.1.sp,
-)
-internal val BodySmall = TextStyle(
-    fontFamily = BodyFont,
-    fontWeight = FontWeight.Normal,
-    fontSize = 11.sp,
-    letterSpacing = 0.1.sp,
-)
-internal val LabelBold = TextStyle(
-    fontFamily = BodyFont,
-    fontWeight = FontWeight.Bold,
-    fontSize = 11.sp,
-    letterSpacing = 0.5.sp,
-)
-internal val TitleBody = TextStyle(
-    fontFamily = BodyFont,
-    fontWeight = FontWeight.SemiBold,
-    fontSize = 15.sp,
-    letterSpacing = 0.sp,
-)
+// ─── Month resources ─────────────────────────────────────────────────────────
 
 // ─── Month resources ──────────────────────────────────────────────────────────
 
@@ -257,11 +217,7 @@ fun HistoryScreen(
                 title = {
                     Text(
                         text = stringResource(Res.string.history_title),
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontFamily = TopBarFont,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp,
-                        ),
+                        style = MaterialTheme.typography.appBarTitle,
                     )
                 },
                 navigationIcon = {

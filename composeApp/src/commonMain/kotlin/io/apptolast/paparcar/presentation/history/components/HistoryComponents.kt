@@ -22,7 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.history.BodyMedium
+
 import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -87,7 +87,7 @@ internal fun EmptyHistoryState(modifier: Modifier = Modifier) {
         )
         Text(
             stringResource(Res.string.history_empty_subtitle),
-            style = BodyMedium,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
             textAlign = TextAlign.Center,
         )

@@ -42,11 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.presentation.history.BodyMedium
-import io.apptolast.paparcar.presentation.history.BodySmall
-import io.apptolast.paparcar.presentation.history.LabelBold
 import io.apptolast.paparcar.presentation.history.MONTH_RES
-import io.apptolast.paparcar.presentation.history.TitleBody
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.ui.theme.PapGreen
@@ -142,8 +138,8 @@ internal fun ActiveSessionHeroCard(
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = activeSinceStr, style = TitleBody, color = textPrimary)
-                    Text(text = dateStr, style = BodySmall, color = textMuted)
+                    Text(text = activeSinceStr, style = MaterialTheme.typography.titleSmall, color = textPrimary)
+                    Text(text = dateStr, style = MaterialTheme.typography.bodySmall, color = textMuted)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     PulsingDot(color = accentColor)
@@ -155,7 +151,7 @@ internal fun ActiveSessionHeroCard(
                         Text(
                             stringResource(Res.string.history_status_active),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            style = LabelBold,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = accentColor,
                         )
                     }
@@ -173,7 +169,7 @@ internal fun ActiveSessionHeroCard(
             ) {
                 Text(
                     text = locationLabel,
-                    style = BodyMedium.copy(fontWeight = FontWeight.Medium),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     color = textPrimary.copy(alpha = 0.85f),
                     modifier = Modifier.weight(1f),
                     maxLines = 1,
@@ -184,7 +180,7 @@ internal fun ActiveSessionHeroCard(
                     Text(
                         text = precisionStr,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = LabelBold,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = accentColor,
                     )
                 }
@@ -203,7 +199,7 @@ internal fun ActiveSessionHeroCard(
             ) {
                 Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(Res.string.history_view_map), style = LabelBold)
+                Text(stringResource(Res.string.history_view_map), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
             }
         }
     }
@@ -280,8 +276,8 @@ internal fun ActiveSessionStripCard(
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = activeSinceStr, style = TitleBody, color = textPrimary)
-                        Text(text = dateStr, style = BodySmall, color = textMuted)
+                        Text(text = activeSinceStr, style = MaterialTheme.typography.titleSmall, color = textPrimary)
+                        Text(text = dateStr, style = MaterialTheme.typography.bodySmall, color = textMuted)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         PulsingDot(color = accentColor)
@@ -293,7 +289,7 @@ internal fun ActiveSessionStripCard(
                             Text(
                                 stringResource(Res.string.history_status_active),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                style = LabelBold,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = accentColor,
                             )
                         }
@@ -309,7 +305,7 @@ internal fun ActiveSessionStripCard(
                 ) {
                     Text(
                         text = locationLabel,
-                        style = BodyMedium.copy(fontWeight = FontWeight.Medium),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                         color = textPrimary.copy(alpha = 0.85f),
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
@@ -320,7 +316,7 @@ internal fun ActiveSessionStripCard(
                         Text(
                             text = precisionStr,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = LabelBold,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = accentColor,
                         )
                     }
@@ -337,7 +333,7 @@ internal fun ActiveSessionStripCard(
                 ) {
                     Icon(Icons.Filled.Map, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text(stringResource(Res.string.history_view_map), style = LabelBold)
+                    Text(stringResource(Res.string.history_view_map), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
             }
         }

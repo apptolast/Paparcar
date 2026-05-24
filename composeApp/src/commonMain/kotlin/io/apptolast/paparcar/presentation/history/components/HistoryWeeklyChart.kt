@@ -35,9 +35,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.apptolast.paparcar.presentation.history.BodyFont
-import io.apptolast.paparcar.presentation.history.BodySmall
 import io.apptolast.paparcar.presentation.history.WeekDayStats
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_weekly_subtitle
@@ -66,6 +65,7 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
     val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(1)
     val total = data.sumOf { it.sessions }
     val textMeasurer = rememberTextMeasurer()
+    val dataType = rememberDataTypography()
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -95,7 +95,7 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
                     }
                     append(stringResource(Res.string.history_weekly_subtitle))
                 },
-                style = BodySmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
             )
 
@@ -113,6 +113,8 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
                     textMeasurer = textMeasurer,
                     primaryColor = primaryColor,
                     onSurfaceColor = onSurfaceColor,
+                    labelStyle = dataType.chartDayLabel,
+                    countStyle = dataType.chartCountBadge,
                 )
             }
         }
@@ -126,6 +128,8 @@ private fun DrawScope.drawBarChart(
     textMeasurer: TextMeasurer,
     primaryColor: Color,
     onSurfaceColor: Color,
+    labelStyle: TextStyle,
+    countStyle: TextStyle,
 ) {
     if (data.isEmpty()) return
 
@@ -145,19 +149,6 @@ private fun DrawScope.drawBarChart(
             cap = StrokeCap.Round,
         )
     }
-
-    val labelStyle = TextStyle(
-        fontFamily = BodyFont,
-        fontSize = 10.sp,
-        fontWeight = FontWeight.Normal,
-        color = onSurfaceColor.copy(alpha = LABEL_ALPHA_MUTED),
-    )
-    val countStyle = TextStyle(
-        fontFamily = BodyFont,
-        fontSize = 9.sp,
-        fontWeight = FontWeight.ExtraBold,
-        color = primaryColor,
-    )
 
     data.forEachIndexed { index, item ->
         val centerX = barAreaWidth * index + barAreaWidth / 2f

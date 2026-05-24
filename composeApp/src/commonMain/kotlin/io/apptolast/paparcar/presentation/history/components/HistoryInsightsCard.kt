@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.history.BodySmall
 import io.apptolast.paparcar.presentation.history.DAY_SHORT_RES
 import io.apptolast.paparcar.presentation.history.HistoryStatsData
 import org.jetbrains.compose.resources.stringResource
@@ -93,7 +92,7 @@ internal fun HistoryInsightsCard(
                     ) {
                         Text(
                             text = stringResource(Res.string.history_insights_top_street),
-                            style = BodySmall,
+                            style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = STREET_LABEL_ALPHA),
                         )
@@ -138,7 +137,7 @@ private fun InsightChip(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = label,
-                style = BodySmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = CHIP_LABEL_ALPHA),
             )
         }

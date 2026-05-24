@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.presentation.history.BodySmall
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -100,7 +99,7 @@ private fun StatChip(label: String, value: String, modifier: Modifier = Modifier
             Spacer(Modifier.height(4.dp))
             Text(
                 label,
-                style = BodySmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = LABEL_ALPHA),
             )
         }

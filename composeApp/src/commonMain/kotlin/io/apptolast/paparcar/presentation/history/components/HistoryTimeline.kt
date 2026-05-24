@@ -33,9 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.presentation.history.BodyMedium
-import io.apptolast.paparcar.presentation.history.BodySmall
-import io.apptolast.paparcar.presentation.history.LabelBold
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import kotlinx.datetime.TimeZone
@@ -61,7 +58,7 @@ internal fun DayHeaderRow(label: String) {
         )
         Text(
             text = label.uppercase(),
-            style = LabelBold,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
         )
     }
@@ -161,7 +158,7 @@ private fun SessionCardContent(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = primaryText,
-                    style = BodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = textPrimary,
                     maxLines = 1,
                     modifier = Modifier.basicMarquee(),
@@ -169,7 +166,7 @@ private fun SessionCardContent(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = secondaryText,
-                    style = BodySmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = textMuted,
                 )
             }

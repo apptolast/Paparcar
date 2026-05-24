@@ -59,6 +59,7 @@ import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.appBarTitle
 import io.apptolast.paparcar.ui.icons.icon
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +81,7 @@ import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
  *
- *  - TopAppBar con tipografía Outfit ExtraBold (headlineSmall + (-0.5)sp).
+ *  - TopAppBar con tipografía appBarTitle (Outfit ExtraBold, headlineSmall + (-0.5)sp).
  *  - Tabs rediseñadas: pills custom con icono + nombre + dot si activo.
  *  - "+" trailing chip para añadir vehículo además del icon action en top bar.
  *  - Empty state con icono circular 120dp + display title + CTA grande.
@@ -145,10 +146,7 @@ internal fun VehiclesContent(
                 title = {
                     Text(
                         text = stringResource(Res.string.my_car_title),
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = TITLE_LETTER_SPACING_SP.sp,
-                        ),
+                        style = MaterialTheme.typography.appBarTitle,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

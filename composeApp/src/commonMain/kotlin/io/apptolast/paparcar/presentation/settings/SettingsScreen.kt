@@ -78,6 +78,7 @@ import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.appBarTitle
 import io.apptolast.paparcar.presentation.history.MONTH_SHORT_RES
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -234,10 +235,7 @@ internal fun SettingsContent(
                 title = {
                     Text(
                         text = stringResource(Res.string.settings_title),
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = TITLE_LETTER_SPACING_SP.sp,
-                        ),
+                        style = MaterialTheme.typography.appBarTitle,
                     )
                 },
                 navigationIcon = {
