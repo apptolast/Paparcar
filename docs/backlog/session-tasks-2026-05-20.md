@@ -126,19 +126,34 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 ## Tarea 08 · Compilación Release + Firebase App Distribution
 
 **Ticket:** `RELEASE-001`
-**Rama sugerida:** `chore/RELEASE-001-release-build-and-distribution`
+**Rama:** `chore/RELEASE-001-release-build-and-distribution` (creada 2026-05-22, **uncommitted WIP**)
 **Prioridad:** Alta | **Esfuerzo:** Medio
-**Estado:** ⚪ Pending
+**Estado:** 🔵 In progress — scaffold listo, bloqueado por audit de seguridad pre-beta
 
-**Qué hacer:**
-1. Revisar y completar la configuración de firma del APK/AAB (keystore, `signingConfigs` en `build.gradle.kts`).
-2. Verificar ProGuard/R8: rules file, que no se rompan clases de dominio ni DTOs de Firestore.
-3. Configurar Firebase App Distribution en `composeApp/build.gradle.kts` con grupos de testers.
-4. Documentar el proceso en `docs/release/RELEASE-PROCESS.md` o un script `scripts/release.sh`.
+**Hecho 2026-05-22 (working tree, sin commit todavía):**
+- `gradle/libs.versions.toml`: alias `firebaseAppDistribution` v5.0.0
+- `composeApp/build.gradle.kts`: plugin App Distribution + `signingConfigs.release` desde `local.properties` + warning si faltan keys + bump `versionCode=2 / versionName="1.0.0-beta01"` + bloque `firebaseAppDistribution { groups="beta-paparcar", releaseNotesFile=$rootDir/distribution/release-notes.txt }`
+- `composeApp/proguard-rules.pro`: keeps completas (Koin/Room/Firestore DTOs/Crashlytics/WorkManager/BaseLogin/kotlinx.serialization/Compose)
+- `.gitignore`: `keystore/`, `firebase-service-account*.json`, `google-application-credentials*.json`
+- `distribution/release-notes.txt` + `docs/release/RELEASE-PROCESS.md` (runbook completo)
+- Verificado via `./gradlew :composeApp:tasks --all`: tareas `appDistributionUpload*` registradas correctamente
 
-**Notas:**
-- Keystore: NO commitear el archivo `.jks` ni las credenciales — usar variables de entorno o `local.properties`.
-- Verificar que `google-services.json` está configurado para el variant `release`.
+**Audit de seguridad (2026-05-22) — P0, resolver antes de subir la beta:**
+1. Maps API key hardcoded en `composeApp/src/androidMain/AndroidManifest.xml:83` (`AIzaSyBpOJ6G-...`). Mover a `local.properties` vía `manifestPlaceholders["MAPS_API_KEY"]`.
+2. Restringir Maps API key en Google Cloud Console: API → "Maps SDK for Android" only; Application → package `io.apptolast.paparcar` + SHA-1 release.
+3. Auditar Firestore Security Rules — toda colección debe filtrar por `request.auth.uid`. Sin esto, la API key Firebase (en historial git) permite leer/escribir.
+
+**Audit — P1 (opcional, valoración del usuario):**
+4. Rotar Maps + Firebase API keys en GCP/Firebase Console.
+5. `git filter-repo` para limpiar `google-services.json` del historial. Reescribe `origin/master` — sólo merece la pena si el repo se comparte.
+
+**Acciones del usuario antes de retomar (paso 0):**
+1. Generar keystore con `keytool` (comando en `docs/release/RELEASE-PROCESS.md §0.1`).
+2. Añadir las 4 vars de signing a `local.properties` (`RELEASE_KEYSTORE_FILE`, `_PASSWORD`, `RELEASE_KEY_ALIAS`, `_PASSWORD`).
+3. Firebase Console → App Distribution → crear grupo `beta-paparcar` + añadir emails de testers.
+4. `npm install -g firebase-tools && firebase login` para que el plugin Gradle pueda subir desde tu máquina.
+
+**Detalle completo:** memoria `project_release001_in_progress.md` + `reference_api_keys_inventory.md`.
 
 ---
 

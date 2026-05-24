@@ -7,7 +7,7 @@
 
 # ── Android ──────────────────────────────────────────────────────────────────
 agp = "9.1.0"
-android-compileSdk = "36"
+android-compileSdk = "37"
 android-minSdk = "26"      # NotificationChannel (26) + FOREGROUND_SERVICE_LOCATION (29) → mínimo real 26
 android-targetSdk = "36"
 
@@ -54,6 +54,7 @@ sqlite = "2.6.2"
 # GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
 firebase-bom = "34.10.0"
 firebase-crashlytics-plugin = "3.0.4"
+firebase-appdistribution-plugin = "5.0.0"
 firebase-gitlive = "2.4.0"
 google-services = "4.4.4"
 
@@ -175,5 +176,6 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
 firebaseCrashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebase-crashlytics-plugin" }
+firebaseAppDistribution = { id = "com.google.firebase.appdistribution", version.ref = "firebase-appdistribution-plugin" }
 room = { id = "androidx.room", version.ref = "room" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

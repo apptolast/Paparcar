@@ -15,12 +15,38 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.room)
     alias(libs.plugins.ksp)
-    // google-services procesa google-services.json y configura Firebase para Android.
-    // Si no tienes el archivo en el repo (gitignored), usa un placeholder o elimina esta línea
-    // hasta que estés listo para conectar Firebase en Android.
     alias(libs.plugins.googleServices)
     alias(libs.plugins.firebaseCrashlytics)
+    alias(libs.plugins.firebaseAppDistribution)
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CREDENTIALS — read from keystore.properties → local.properties → env vars.
+// None of these files are committed (all gitignored). CI injects via env vars.
+// ─────────────────────────────────────────────────────────────────────────────
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
+fun prop(key: String): String? =
+    keystoreProps.getProperty(key)?.takeIf { it.isNotBlank() }
+        ?: localProps.getProperty(key)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(key)?.takeIf { it.isNotBlank() }
+
+val releaseKeystoreFile     = prop("RELEASE_KEYSTORE_FILE")
+val releaseKeystorePassword = prop("RELEASE_KEYSTORE_PASSWORD")
+val releaseKeyAlias         = prop("RELEASE_KEY_ALIAS")
+val releaseKeyPassword      = prop("RELEASE_KEY_PASSWORD")
+val hasReleaseSigning = listOf(
+    releaseKeystoreFile, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword
+).all { !it.isNullOrBlank() }
+
+val appDistributionCredentialsFile = prop("APP_DISTRIBUTION_CREDENTIALS_FILE")
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KOTLIN MULTIPLATFORM
@@ -91,7 +117,6 @@ kotlin {
             implementation(libs.navigation.compose)
 
             // Firebase — GitLive SDK (wrapper KMP sobre Firebase oficial)
-            // Siempre en commonMain. En Android necesita google-services.json en runtime.
             implementation(libs.firebase.firestore)
             implementation(libs.firebase.auth)
             implementation(libs.firebase.common)
@@ -111,32 +136,29 @@ kotlin {
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.material)
             implementation(libs.androidx.lifecycle.service)
-
             implementation(libs.androidx.splashscreen)
 
             // Coroutines Android dispatcher
             implementation(libs.kotlinx.coroutines.android)
 
-            // DI — Koin Android (KoinApplication, androidContext(), etc.)
+            // DI — Koin Android
             implementation(libs.koin.android)
-            // Koin AndroidX Compose (koinViewModel con scoping Android ViewModel)
             implementation(libs.koin.androidx.compose)
 
-            // ── Detección (exclusivo Android) ─────────────────────────────────
-            // FusedLocationProviderClient + Activity Recognition Transitions API
+            // Detección — FusedLocationProviderClient + Activity Recognition
             implementation(libs.play.services.location)
-            // Firebase BOM — gestiona versiones nativas que GitLive SDK necesita en Android
+
+            // Firebase BOM + Crashlytics
             implementation(project.dependencies.platform(libs.firebase.bom))
-            // Crashlytics — crash reporting y non-fatal error tracking
             implementation(libs.firebase.crashlytics)
 
-            // WorkManager (tareas en background opcionales)
+            // WorkManager
             implementation(libs.work.runtime.ktx)
 
-            // DataStore Preferences (reemplaza SharedPreferences)
+            // DataStore Preferences
             implementation(libs.androidx.datastore.preferences)
 
-            // GeoFirestore — queries de proximidad por geohash
+            // GeoFirestore — proximity queries via geohash
             implementation(libs.geofire.android)
         }
 
@@ -171,31 +193,22 @@ kotlin {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ROOM KMP
-// schemaDirectory exporta el JSON del esquema para migraciones
-// KSP debe configurarse para CADA plataforma objetivo de Room
 // ─────────────────────────────────────────────────────────────────────────────
 room {
     schemaDirectory("$projectDir/schemas")
 }
 
 dependencies {
-    // KSP processors — uno por cada plataforma KMP objetivo
     add("kspAndroid", libs.room.compiler)
     add("kspIosArm64", libs.room.compiler)
     add("kspIosSimulatorArm64", libs.room.compiler)
 
-    // Compose tooling (solo debug)
     debugImplementation(compose.uiTooling)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ANDROID
 // ─────────────────────────────────────────────────────────────────────────────
-val localProps = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) load(f.inputStream())
-}
-
 android {
     namespace = "io.apptolast.paparcar"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -204,26 +217,32 @@ android {
         applicationId = "io.apptolast.paparcar"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.0-beta01"
 
-        buildConfigField(
-            "String",
-            "GOOGLE_WEB_CLIENT_ID",
-            "\"${localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"",
-        )
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${prop("GOOGLE_WEB_CLIENT_ID") ?: ""}\"")
+        manifestPlaceholders["MAPS_API_KEY"] = prop("MAPS_API_KEY") ?: ""
     }
 
     buildFeatures {
         buildConfig = true
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile     = rootProject.file(releaseKeystoreFile!!)
+                storePassword = releaseKeystorePassword
+                keyAlias      = releaseKeyAlias
+                keyPassword   = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
-//            applicationIdSuffix = ".debug"
-//            versionNameSuffix = "-debug"
         }
         release {
             isDebuggable = false
@@ -232,6 +251,19 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                logger.warn("⚠️  RELEASE signing keys not found — build will be UNSIGNED.")
+            }
+            firebaseAppDistribution {
+                artifactType      = "APK"
+                releaseNotesFile  = "$rootDir/distribution/release-notes.txt"
+                groups            = "beta-paparcar"
+                if (!appDistributionCredentialsFile.isNullOrBlank()) {
+                    serviceCredentialsFile = appDistributionCredentialsFile
+                }
+            }
         }
     }
 

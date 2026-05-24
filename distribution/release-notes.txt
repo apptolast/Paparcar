@@ -1,0 +1,10 @@
+Paparcar 1.0.0-beta01
+
+Primera beta interna. Funcional pero pre-release — esperad bugs.
+
+— Detección automática (BT + Coordinator) operativa.
+— Pantalla Home con tarjetas por vehículo y multi-parking.
+— Historial, vehículos, ajustes y zonas.
+— Login con Google vía BaseLogin.
+
+Reporte de bugs: rndeveloper11501@gmail.com

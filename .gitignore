@@ -28,9 +28,15 @@ misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
 
-# Keystore files
+# Keystore files and signing credentials
 *.jks
 *.keystore
+keystore/
+keystore.properties
+
+# Firebase service account JSONs — used by App Distribution CI uploads
+**/firebase-service-account*.json
+**/google-application-credentials*.json
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
