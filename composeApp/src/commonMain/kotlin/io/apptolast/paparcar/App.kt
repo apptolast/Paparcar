@@ -63,6 +63,8 @@ import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.app.AppEffect
 import io.apptolast.paparcar.presentation.app.AppIntent
 import io.apptolast.paparcar.presentation.app.AppViewModel
+import io.apptolast.paparcar.presentation.app.BootstrapFailure
+import io.apptolast.paparcar.presentation.app.SplashEffect
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
@@ -84,6 +86,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
+import paparcar.composeapp.generated.resources.error_bootstrap_offline_body
+import paparcar.composeapp.generated.resources.error_bootstrap_offline_title
+import paparcar.composeapp.generated.resources.error_bootstrap_retry
 import paparcar.composeapp.generated.resources.gps_disclaimer_body
 import paparcar.composeapp.generated.resources.gps_disclaimer_confirm
 import paparcar.composeapp.generated.resources.gps_disclaimer_title
@@ -164,6 +169,16 @@ fun App(
                     }
                 }
             }
+            // SplashEffect: fatal errors just redirect via auth state (sign-out is already done).
+            // Offline errors surface a dialog with a retry button.
+            LaunchedEffect(Unit) {
+                splashViewModel.effect.collect { effect ->
+                    when (effect) {
+                        is SplashEffect.ShowOfflineError -> { /* handled by BootstrapOfflineDialog below */ }
+                        is SplashEffect.ShowError -> { /* sign-out already triggered; AuthState change drives nav */ }
+                    }
+                }
+            }
 
             Box(modifier = Modifier.fillMaxSize()) {
                 // AnimatedContent switches between auth and app content.
@@ -227,9 +242,29 @@ fun App(
                         .padding(bottom = 80.dp),
                 )
             }
+
+            // Offline bootstrap dialog: shown when auth succeeded but Firestore was unreachable.
+            // The user is still authenticated — they can retry without re-entering credentials.
+            if (splashState.bootstrapFailure == BootstrapFailure.Offline) {
+                BootstrapOfflineDialog(onRetry = { splashViewModel.retry() })
+            }
         }
         }
     }
+}
+
+@Composable
+private fun BootstrapOfflineDialog(onRetry: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { /* not dismissable — user must retry or kill the app */ },
+        title = { Text(stringResource(Res.string.error_bootstrap_offline_title)) },
+        text = { Text(stringResource(Res.string.error_bootstrap_offline_body)) },
+        confirmButton = {
+            TextButton(onClick = onRetry) {
+                Text(stringResource(Res.string.error_bootstrap_retry))
+            }
+        },
+    )
 }
 
 @Composable

@@ -7,6 +7,8 @@ import com.apptolast.customlogin.domain.model.AuthState
 import io.apptolast.paparcar.Routes
 import io.apptolast.paparcar.core.crash.CrashReporter
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -24,8 +26,18 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed class SplashEffect {
-    /** Emitted when profile sync fails unrecoverably — UI should show a snackbar and redirect to login. */
+    /** Profile sync failed unrecoverably — UI should show a snackbar; user was signed out. */
     data class ShowError(val error: PaparcarError) : SplashEffect()
+    /** Bootstrap failed because the device is offline — user was NOT signed out; retry is available. */
+    data object ShowOfflineError : SplashEffect()
+}
+
+/** Non-null when bootstrap failed and [SplashViewModel.retry] is available. */
+sealed class BootstrapFailure {
+    /** Device offline at login time — user was not signed out, retry when back online. */
+    data object Offline : BootstrapFailure()
+    /** Fatal error (auth/data) — user was signed out, must re-login. */
+    data object Fatal : BootstrapFailure()
 }
 
 data class SplashState(
@@ -39,6 +51,12 @@ data class SplashState(
      *    Firestore sync when Room is empty — see VehicleRepositoryImpl).
      */
     val startRoute: String? = null,
+    /**
+     * Non-null when bootstrap failed before resolving [startRoute]. The UI should surface a
+     * recoverable error for [BootstrapFailure.Offline] (retry button) or redirect to login
+     * for [BootstrapFailure.Fatal] (already handled by signOut → AuthState change).
+     */
+    val bootstrapFailure: BootstrapFailure? = null,
 )
 
 class SplashViewModel(
@@ -49,7 +67,11 @@ class SplashViewModel(
     private val appPreferences: AppPreferences,
     private val permissionManager: PermissionManager,
     private val localSessionCache: LocalSessionCache,
+    private val connectivityObserver: ConnectivityObserver,
 ) : ViewModel() {
+
+    /** Kept so [retry] can re-enter the bootstrap chain without waiting for a new auth emission. */
+    @Volatile private var lastAuthState: AuthState.Authenticated? = null
 
     val authState: StateFlow<AuthState> = authRepository.observeAuthState()
         .stateIn(
@@ -68,12 +90,13 @@ class SplashViewModel(
      * Checked synchronously by the native Android splash screen condition.
      * Returns true once:
      *  - the auth state is resolved AND
-     *  - if Authenticated, the start route has been computed (vehicle + prefs + permissions all read).
+     *  - if Authenticated, either startRoute is computed OR bootstrap has failed
+     *    (offline/fatal — App will show recovery UI instead of remaining on blank screen).
      */
     val isReady: Boolean
         get() = when (authState.value) {
             is AuthState.Loading -> false
-            is AuthState.Authenticated -> _state.value.startRoute != null
+            is AuthState.Authenticated -> _state.value.startRoute != null || _state.value.bootstrapFailure != null
             // Unauthenticated states use the AuthNavigation flow — no startRoute needed.
             else -> true
         }
@@ -113,10 +136,31 @@ class SplashViewModel(
         _state.value = SplashState()
     }
 
+    /** Re-runs bootstrap after an [BootstrapFailure.Offline] failure without requiring re-login. */
+    fun retry() {
+        val state = lastAuthState ?: return
+        viewModelScope.launch {
+            _state.value = SplashState()  // clear failure, reset to loading state
+            bootstrap(state)
+        }
+    }
+
     private suspend fun bootstrap(state: AuthState.Authenticated) {
+        lastAuthState = state
         val session = state.session
         PaparcarLogger.i(TAG, "[step 1/3] auth Authenticated — userId=${session.userId}")
         CrashReporter.setUserId(session.userId)
+
+        // Fail-fast before touching Firestore: if the device is offline the round-trips will
+        // time out anyway, but detecting it here gives a faster, differentiated error path
+        // (no sign-out, retry available).
+        if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
+            PaparcarLogger.w(TAG, "bootstrap aborted — device offline")
+            _state.value = SplashState(bootstrapFailure = BootstrapFailure.Offline)
+            _effect.emit(SplashEffect.ShowOfflineError)
+            return
+        }
+
         // Sequential bootstrap. Order matters:
         //   1. profile           — pulls / creates the UserProfile doc.
         //   2. bootstrapUserData — parallel sync of vehicles + parking history + zones.
@@ -163,6 +207,7 @@ class SplashViewModel(
 
     /** Single exit point for any fatal bootstrap failure: sign out and notify UI. */
     private suspend fun abortBootstrap() {
+        _state.value = SplashState(bootstrapFailure = BootstrapFailure.Fatal)
         authRepository.signOut()
         _effect.emit(SplashEffect.ShowError(PaparcarError.Auth.ProfileSyncFailed))
     }

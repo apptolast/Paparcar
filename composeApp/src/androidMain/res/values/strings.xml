@@ -20,6 +20,10 @@
     <string name="notif_uploading_title">Paparcar</string>
     <string name="notif_uploading_text">Uploading new spot…</string>
 
+    <!-- Notification: permission revoked while service was running -->
+    <string name="notif_permission_revoked_title">Paparcar needs permissions</string>
+    <string name="notif_permission_revoked_text">Location permission revoked — tap to restore</string>
+
     <!-- Notification: debug (dev builds only) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

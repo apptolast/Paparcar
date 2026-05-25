@@ -3,10 +3,13 @@ package io.apptolast.paparcar.presentation.app
 import app.cash.turbine.test
 import com.apptolast.customlogin.domain.model.AuthState
 import io.apptolast.paparcar.Routes
+import io.apptolast.paparcar.presentation.app.BootstrapFailure
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
+import io.apptolast.paparcar.fakes.FakeConnectivityObserver
 import io.apptolast.paparcar.fakes.FakeLocalSessionCache
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -43,6 +46,7 @@ class SplashViewModelTest {
     private lateinit var fakePrefs: FakeAppPreferences
     private lateinit var fakePerms: FakePermissionManager
     private lateinit var fakeSessionCache: FakeLocalSessionCache
+    private lateinit var fakeConnectivity: FakeConnectivityObserver
 
     @BeforeTest
     fun setUp() {
@@ -55,6 +59,7 @@ class SplashViewModelTest {
         fakePrefs = FakeAppPreferences()
         fakePerms = FakePermissionManager()
         fakeSessionCache = FakeLocalSessionCache()
+        fakeConnectivity = FakeConnectivityObserver()
     }
 
     @AfterTest
@@ -62,22 +67,28 @@ class SplashViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun buildViewModel() = SplashViewModel(
-        authRepository = fakeAuth,
-        getOrCreateUserProfile = GetOrCreateUserProfileUseCase(
-            userProfileRepository = fakeProfileRepo,
+    private fun buildViewModel(
+        connectivityStatus: ConnectivityStatus = ConnectivityStatus.Online,
+    ): SplashViewModel {
+        fakeConnectivity.emit(connectivityStatus)
+        return SplashViewModel(
             authRepository = fakeAuth,
-        ),
-        bootstrapUserData = BootstrapUserDataUseCase(
+            getOrCreateUserProfile = GetOrCreateUserProfileUseCase(
+                userProfileRepository = fakeProfileRepo,
+                authRepository = fakeAuth,
+            ),
+            bootstrapUserData = BootstrapUserDataUseCase(
+                vehicleRepository = fakeVehicleRepo,
+                userParkingRepository = fakeParkingRepo,
+                zoneRepository = fakeZoneRepo,
+            ),
             vehicleRepository = fakeVehicleRepo,
-            userParkingRepository = fakeParkingRepo,
-            zoneRepository = fakeZoneRepo,
-        ),
-        vehicleRepository = fakeVehicleRepo,
-        appPreferences = fakePrefs,
-        permissionManager = fakePerms,
-        localSessionCache = fakeSessionCache,
-    )
+            appPreferences = fakePrefs,
+            permissionManager = fakePerms,
+            localSessionCache = fakeSessionCache,
+            connectivityObserver = fakeConnectivity,
+        )
+    }
 
     private fun vehicle() = Vehicle(
         id = "v-1",
@@ -314,6 +325,40 @@ class SplashViewModelTest {
         fakeAuth.emitState(AuthState.Authenticated(session))
 
         assertEquals(Routes.HOME, vm.state.value.startRoute)
+    }
+
+    // ── Offline bootstrap ────────────────────────────────────────────────────
+
+    @Test
+    fun `emits ShowOfflineError and does NOT sign out when device is offline at login`() = runTest {
+        val vm = buildViewModel(connectivityStatus = ConnectivityStatus.Offline)
+        vm.effect.test {
+            fakeAuth.emitState(AuthState.Authenticated(session))
+
+            val effect = awaitItem()
+            assertTrue(effect is SplashEffect.ShowOfflineError)
+            cancelAndIgnoreRemainingEvents()
+        }
+        // User must NOT be signed out — they can retry when back online.
+        assertEquals(0, fakeAuth.signOutCount)
+        assertNull(vm.state.value.startRoute)
+        assertEquals(BootstrapFailure.Offline, vm.state.value.bootstrapFailure)
+    }
+
+    @Test
+    fun `retry clears failure and resolves startRoute when connectivity is restored`() = runTest {
+        val vm = buildViewModel(connectivityStatus = ConnectivityStatus.Offline)
+        fakeAuth.emitState(AuthState.Authenticated(session))
+        // Confirm we are in the offline failure state.
+        assertEquals(BootstrapFailure.Offline, vm.state.value.bootstrapFailure)
+
+        // Restore connectivity and retry.
+        fakeConnectivity.emit(ConnectivityStatus.Online)
+        vm.retry()
+
+        // startRoute should now resolve (defaults → ONBOARDING).
+        assertEquals(Routes.ONBOARDING, vm.state.value.startRoute)
+        assertNull(vm.state.value.bootstrapFailure)
     }
 
     /** Configures the fake profile repo to return a profile with a vehicle pointer set. */
