@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Build
+import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.domain.permissions.PermissionManager
@@ -24,6 +25,7 @@ class PermissionManagerImpl(private val context: Context) : PermissionManager {
             hasNotificationPermission = hasNotificationPermission(),
             isLocationServicesEnabled = isLocationServicesEnabled(),
             hasBluetoothConnectPermission = hasBluetoothConnectPermission(),
+            isBatteryOptimizationExempt = isBatteryOptimizationExempt(),
         )
         _permissionState.value = new
     }
@@ -73,6 +75,15 @@ class PermissionManagerImpl(private val context: Context) : PermissionManager {
         } else {
             true // Pre-Android 12 — permission not required
         }
+
+    private fun isBatteryOptimizationExempt(): Boolean {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm.isIgnoringBatteryOptimizations(context.packageName)
+        } else {
+            true // No Doze on pre-M
+        }
+    }
 
     private fun isLocationServicesEnabled(): Boolean {
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager

@@ -66,6 +66,8 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         post(UPLOAD_NOTIFICATION_ID, content)
     }
 
+    override fun showPermissionRevoked() = Unit // Android-only concept; iOS handles this via system UI
+
     override fun showDebug(message: String) {
         val content = UNMutableNotificationContent().apply {
             setTitle("Paparcar Debug")

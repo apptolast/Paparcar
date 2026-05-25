@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
@@ -15,7 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Surface
 
 /**
  * Provided by HomeScreen when the user is actively dragging the map camera.
@@ -80,11 +80,12 @@ fun GlassSurface(
     val resolvedContainer = colors.container.copy(alpha = containerAlpha)
     val border = BorderStroke(colors.borderWidth, colors.border.copy(alpha = borderAlpha))
     val resolvedShadow = shadowElevation * shadowFactor
+    val blurModifier = if (isInteracting) modifier.glassBlur(GlassDefaults.BLUR_RADIUS) else modifier
 
     if (onClick != null) {
         Surface(
             onClick = onClick,
-            modifier = modifier,
+            modifier = blurModifier,
             shape = shape,
             color = resolvedContainer,
             border = border,
@@ -93,7 +94,7 @@ fun GlassSurface(
         )
     } else {
         Surface(
-            modifier = modifier,
+            modifier = blurModifier,
             shape = shape,
             color = resolvedContainer,
             border = border,
@@ -117,6 +118,7 @@ object GlassDefaults {
     internal const val FADE_IN_MS = 160
     internal const val FADE_OUT_MS = 320
     internal const val BORDER_ALPHA = 0.18f
+    internal val BLUR_RADIUS = 20.dp
     private val BORDER_WIDTH = 0.5.dp
 
     @Composable
