@@ -212,7 +212,7 @@ fun App(
                                     startRoute = startRoute,
                                     isFullyOperational = appState.isFullyOperational,
                                     hasSeenGpsAccuracyDisclaimer = appState.hasSeenGpsAccuracyDisclaimer,
-                                    hasVehicle = appState.hasVehicle,
+                                    postPermissionsRoute = splashState.postPermissionsRoute,
                                     onMarkOnboardingCompleted = { appViewModel.handleIntent(AppIntent.MarkOnboardingCompleted) },
                                     themeMode = appState.themeMode,
                                     onSetThemeMode = { appViewModel.handleIntent(AppIntent.SetThemeMode(it)) },
@@ -292,7 +292,7 @@ private fun MainAppNavigation(
     startRoute: String,
     isFullyOperational: Boolean,
     hasSeenGpsAccuracyDisclaimer: Boolean,
-    hasVehicle: Boolean,
+    postPermissionsRoute: String,
     onMarkOnboardingCompleted: () -> Unit,
     themeMode: ThemeMode,
     onSetThemeMode: (ThemeMode) -> Unit,
@@ -466,12 +466,8 @@ private fun MainAppNavigation(
             composable(Routes.GPS_DISCLAIMER) {
                 io.apptolast.paparcar.presentation.permissions.GpsDisclaimerScreen(
                     onAccepted = {
-                        // Mark as seen in global state/preferences
                         onDismissGpsDisclaimer()
-                        
-                        // Finalize the flow: go Home or to Vehicle Setup
-                        val next = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
-                        navController.navigate(next) {
+                        navController.navigate(postPermissionsRoute) {
                             popUpTo(Routes.GPS_DISCLAIMER) { inclusive = true }
                         }
                     }

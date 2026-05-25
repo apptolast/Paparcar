@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.concurrent.Volatile
 
 sealed class SplashEffect {
     /** Profile sync failed unrecoverably — UI should show a snackbar; user was signed out. */
@@ -44,13 +45,14 @@ data class SplashState(
     /**
      * Null while the splash is still computing the entry point. The native splash screen
      * stays visible during this window (via [isReady]).
-     *
-     * Resolved exactly once per [AuthState.Authenticated] session, after:
-     *  - profile sync succeeds,
-     *  - the first emission of [VehicleRepository.observeVehicles] (which performs lazy
-     *    Firestore sync when Room is empty — see VehicleRepositoryImpl).
      */
     val startRoute: String? = null,
+    /**
+     * Route to navigate to after the user completes the permissions + GPS-disclaimer flow.
+     * Resolved during bootstrap: HOME if the user already has a vehicle, VEHICLE_SIZE_EXPLAINER
+     * if they still need to register one. Navigation decision lives here, not in App.kt. [NAV-001]
+     */
+    val postPermissionsRoute: String = Routes.HOME,
     /**
      * Non-null when bootstrap failed before resolving [startRoute]. The UI should surface a
      * recoverable error for [BootstrapFailure.Offline] (retry button) or redirect to login
@@ -71,7 +73,8 @@ class SplashViewModel(
 ) : ViewModel() {
 
     /** Kept so [retry] can re-enter the bootstrap chain without waiting for a new auth emission. */
-    @Volatile private var lastAuthState: AuthState.Authenticated? = null
+    @Volatile
+    private var lastAuthState: AuthState.Authenticated? = null
 
     val authState: StateFlow<AuthState> = authRepository.observeAuthState()
         .stateIn(
@@ -216,21 +219,16 @@ class SplashViewModel(
         val isOnboardingCompleted = appPreferences.isOnboardingCompleted
         val perms = permissionManager.permissionState.value
 
+        // Destination once the full onboarding+permissions flow is complete.
+        // Computed separately from route because route may short-circuit to ONBOARDING
+        // before reaching the hasVehicle check — the two are independent decisions.
+        val postPermissionsRoute = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
+
         val route = when {
-            // First-run flow is linear:
-            //   Onboarding → PermissionsRationale → Permissions → VehicleRegistration → Home.
-            // Permissions come before vehicle registration because:
-            //  (a) the Onboarding narrative ends in "set up permissions", so the next screen
-            //      should be the rationale, not a coche form.
-            //  (b) registering a vehicle is trivial post-permissions and doesn't need consent.
-            //  (c) if the user rejects permissions, the app cannot function — so we don't waste
-            //      their effort collecting vehicle data first.
             !isOnboardingCompleted -> Routes.ONBOARDING
             !perms.allPermissionsGranted -> Routes.PERMISSIONS_RATIONALE
             !perms.isLocationServicesEnabled -> Routes.PERMISSIONS
-            // The explainer is the visible step; it leads to VEHICLE_REGISTRATION on continue.
-            !hasVehicle -> Routes.VEHICLE_SIZE_EXPLAINER
-            else -> Routes.HOME
+            else -> postPermissionsRoute
         }
         PaparcarLogger.i(
             TAG,
@@ -240,7 +238,7 @@ class SplashViewModel(
                 "gpsEnabled=${perms.isLocationServicesEnabled} " +
                 "→ route=$route",
         )
-        _state.value = SplashState(startRoute = route)
+        _state.value = SplashState(startRoute = route, postPermissionsRoute = postPermissionsRoute)
     }
 
     private companion object {
