@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.preferences.ThemeMode
 import platform.Foundation.NSUserDefaults
 
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_seen"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
@@ -29,6 +30,13 @@ class IosAppPreferences : AppPreferences {
 
     override fun setOnboardingCompleted() {
         userDefaults.setBool(true, forKey = KEY_ONBOARDING_COMPLETED)
+    }
+
+    override val hasSeenGpsAccuracyDisclaimer: Boolean
+        get() = userDefaults.boolForKey(KEY_GPS_ACCURACY_DISCLAIMER_SEEN)
+
+    override fun setGpsAccuracyDisclaimerSeen() {
+        userDefaults.setBool(true, forKey = KEY_GPS_ACCURACY_DISCLAIMER_SEEN)
     }
 
     override val autoDetectParking: Boolean

@@ -2,16 +2,21 @@ package io.apptolast.paparcar.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.preferencesDataStore
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
@@ -24,12 +29,32 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     private val store = context.dataStore
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Single blocking warmup at construction. The DataStore APIs are suspend-only,
+    // but the [AppPreferences] contract is synchronous (read on Main thread, before
+    // first composition, by AppViewModel/SplashViewModel). Blocking once at startup
+    // is the trade-off that lets every subsequent getter return from the in-memory
+    // snapshot without touching disk or jumping threads — see [PERF-001].
+    @Volatile
+    private var snapshot: Preferences = runBlocking { store.data.first() }
+
+    init {
+        store.data
+            .onEach { snapshot = it }
+            .launchIn(scope)
+    }
 
     private fun <T> get(key: Preferences.Key<T>, default: T): T =
-        runBlocking { store.data.map { it[key] ?: default }.first() }
+        snapshot[key] ?: default
 
-    private fun <T> set(key: Preferences.Key<T>, value: T): Unit =
-        runBlocking { store.edit { it[key] = value }.let {} }
+    private fun <T> set(key: Preferences.Key<T>, value: T) {
+        // Optimistic in-memory update so the next sync getter returns the new value
+        // before the async DataStore write flushes. The collect() above will reconcile
+        // shortly with the persisted state.
+        snapshot = snapshot.toMutablePreferences().apply { this[key] = value }
+        scope.launch { store.edit { it[key] = value } }
+    }
 
     // ── Onboarding ──────────────────────────────────────────────────────────
 
