@@ -23,6 +23,7 @@ import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
 import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
+import io.apptolast.paparcar.domain.usecase.zone.UpdateZoneUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
@@ -40,6 +41,7 @@ val domainModule = module {
     // Zone UseCases
     factory { ObserveZonesUseCase(get()) }
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
+    factory { UpdateZoneUseCase(get()) }
     factory { DeleteZoneUseCase(get()) }
 
     // Location UseCases

@@ -116,6 +116,11 @@ data class HomeState(
     /** In-progress AddingZone form fields. Reset on Browse re-entry. */
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
+    /**
+     * When non-null, [HomeMode.AddingZone] is editing the existing zone with
+     * this id instead of creating a new one. Reset on Browse re-entry.
+     */
+    val editingZoneId: String? = null,
 ) {
     /**
      * Subset of [nearbySpots] visible after applying [sizeFilter]. Computed

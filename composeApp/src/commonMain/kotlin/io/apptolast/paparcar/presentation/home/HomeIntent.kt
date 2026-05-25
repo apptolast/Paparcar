@@ -69,6 +69,9 @@ sealed class HomeIntent {
     /** User long-pressed a zone chip → delete. */
     data class DeleteZone(val zoneId: String) : HomeIntent()
 
+    /** User long-pressed a zone chip → enter edit mode pre-filled with the zone's data. */
+    data class EnterEditZoneMode(val zoneId: String) : HomeIntent()
+
     /**
      * Enter the manual parked-car positioning mode — pin appears at the
      * camera centre. Two flavours:

@@ -108,6 +108,7 @@ import paparcar.composeapp.generated.resources.home_report_helper_primary
 import paparcar.composeapp.generated.resources.home_report_helper_secondary
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 import paparcar.composeapp.generated.resources.spot_indicator_en_route
+import paparcar.composeapp.generated.resources.home_zone_edit_header_label
 import paparcar.composeapp.generated.resources.home_zone_header_label
 import paparcar.composeapp.generated.resources.home_zone_icon_section
 import paparcar.composeapp.generated.resources.home_zone_name_placeholder
@@ -731,8 +732,13 @@ private fun AddingZonePeekRow(
 ) {
     val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
 
+    val headerLabel = if (state.editingZoneId != null) {
+        stringResource(Res.string.home_zone_edit_header_label)
+    } else {
+        stringResource(Res.string.home_zone_header_label)
+    }
     PeekStateCard(
-        headerLabel = stringResource(Res.string.home_zone_header_label),
+        headerLabel = headerLabel,
         title = primaryText,
         onDismiss = onCancel,
         leading = { PeekHeaderIconChip(icon = Icons.Outlined.Bookmark) },

@@ -27,6 +27,7 @@ import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
 import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
+import io.apptolast.paparcar.domain.usecase.zone.UpdateZoneUseCase
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -67,6 +68,7 @@ class HomeViewModel(
     private val connectivityObserver: ConnectivityObserver,
     private val observeZones: ObserveZonesUseCase,
     private val saveZone: SaveZoneUseCase,
+    private val updateZone: UpdateZoneUseCase,
     private val deleteZone: DeleteZoneUseCase,
     private val vehicleRepository: VehicleRepository,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
@@ -244,6 +246,7 @@ class HomeViewModel(
                     pinCameraLon = null,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
+                    editingZoneId = null,
                 )
             }
             is HomeIntent.ExitAddZoneMode -> updateState {
@@ -253,6 +256,7 @@ class HomeViewModel(
                     pinCameraLon = null,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
+                    editingZoneId = null,
                 )
             }
             is HomeIntent.ConfirmAddZone -> confirmAddZone()
@@ -260,6 +264,7 @@ class HomeViewModel(
             is HomeIntent.UpdateAddingZoneIcon -> updateState { copy(addingZoneIconKey = intent.iconKey) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DeleteZone -> viewModelScope.launch { deleteZone(intent.zoneId) }
+            is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
             is HomeIntent.EnterAddParkingMode -> updateState {
                 copy(
                     mode = HomeMode.AddingParking,
@@ -358,6 +363,22 @@ class HomeViewModel(
         }
     }
 
+    private fun enterEditZoneMode(zoneId: String) {
+        val zone = state.value.zones.find { it.id == zoneId } ?: return
+        updateState {
+            copy(
+                mode = HomeMode.AddingZone,
+                selectedItemId = null,
+                pinCameraLat = zone.lat,
+                pinCameraLon = zone.lon,
+                addingZoneName = zone.name,
+                addingZoneIconKey = zone.iconKey,
+                editingZoneId = zoneId,
+            )
+        }
+        sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
+    }
+
     private fun confirmAddZone() {
         val current = state.value
         if (current.mode !is HomeMode.AddingZone || current.isSavingZone) return
@@ -371,10 +392,18 @@ class HomeViewModel(
         if (name.isEmpty()) return  // UI keeps the CTA disabled in this case
         updateState { copy(isSavingZone = true) }
         viewModelScope.launch {
-            saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
-                .onFailure { e ->
-                    sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
+            val editingId = current.editingZoneId
+            if (editingId != null) {
+                val existing = current.zones.find { it.id == editingId }
+                if (existing != null) {
+                    updateZone(existing, name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
                 }
+            } else {
+                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
+                    .onFailure { e ->
+                        sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
+                    }
+            }
             updateState {
                 copy(
                     isSavingZone = false,
@@ -383,6 +412,7 @@ class HomeViewModel(
                     pinCameraLon = null,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
+                    editingZoneId = null,
                 )
             }
         }
@@ -507,5 +537,11 @@ class HomeViewModel(
         MapType.SATELLITE -> MAP_TYPE_SATELLITE
         MapType.TERRAIN -> MAP_TYPE_TERRAIN
         else -> MAP_TYPE_NORMAL
+    }
+
+    override fun onCleared() {
+        searchQueryFlow.value = ""
+        reconnectTick.value = 0
+        super.onCleared()
     }
 }

@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +25,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
@@ -55,6 +58,7 @@ internal fun HomeZoneChips(
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
     onDeleteZone: (String) -> Unit,
+    onEditZone: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyRow(
@@ -64,11 +68,15 @@ internal fun HomeZoneChips(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
     ) {
         items(zones, key = { it.id }) { zone ->
+            val onChipClick = remember(zone.id, onSelectZone) { { onSelectZone(zone.id) } }
+            val onChipDelete = remember(zone.id, onDeleteZone) { { onDeleteZone(zone.id) } }
+            val onChipLongPress = remember(zone.id, onEditZone) { { onEditZone(zone.id) } }
             ZoneChip(
                 label = zone.name,
                 iconKey = zone.iconKey,
-                onClick = { onSelectZone(zone.id) },
-                onDelete = { onDeleteZone(zone.id) },
+                onClick = onChipClick,
+                onDelete = onChipDelete,
+                onLongPress = onChipLongPress,
             )
         }
         item("add_zone") {
@@ -87,6 +95,7 @@ private fun ZoneChip(
     iconKey: String,
     onClick: () -> Unit,
     onDelete: () -> Unit,
+    onLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     PaparcarFilterChip(
@@ -96,7 +105,9 @@ private fun ZoneChip(
         leadingIcon = zoneIconFor(iconKey),
         trailingIcon = Icons.Outlined.Close,
         onTrailingClick = onDelete,
-        modifier = modifier,
+        modifier = modifier.pointerInput(onLongPress) {
+            detectTapGestures(onLongPress = { onLongPress() })
+        },
     )
 }
 

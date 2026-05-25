@@ -27,6 +27,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,6 +92,7 @@ internal fun LazyListScope.homeSheetItems(
                 onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
                 onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
                 onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
+                onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
@@ -167,15 +169,18 @@ private fun LazyListScope.vehiclesSection(
     val userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     vehicleCards.forEach { card ->
         item("vehicle_${card.vehicle.id}") {
+            val onCardClick = remember(card.session?.id, card.vehicle.id, onParkingClick, onParkVehicle) {
+                {
+                    val session = card.session
+                    if (session != null) onParkingClick(session)
+                    else onParkVehicle(card.vehicle.id)
+                }
+            }
             HomeVehicleCard(
                 card = card,
                 userLocation = userLocation,
                 isSelected = card.session != null && state.selectedItemId == card.session.id,
-                onClick = {
-                    val session = card.session
-                    if (session != null) onParkingClick(session)
-                    else onParkVehicle(card.vehicle.id)
-                },
+                onClick = onCardClick,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
