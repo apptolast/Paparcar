@@ -88,6 +88,9 @@
     <string name="permissions_perm_notifications_desc">Um das Parken zu bestätigen und dich über freie Stellplätze in der Nähe zu informieren</string>
     <string name="permissions_perm_bluetooth">Bluetooth</string>
     <string name="permissions_perm_bluetooth_desc">Ermöglicht die automatische Parkplatzerkennung beim Verbinden oder Trennen vom Bluetooth des Autos</string>
+    <string name="permissions_perm_battery">Unbegrenzte Akkunutzung</string>
+    <string name="permissions_perm_battery_desc">Verhindert, dass das System die Parkplatzerkennung im Hintergrund beendet. Dringend empfohlen auf Xiaomi-, Oppo- und Huawei-Geraten.</string>
+    <string name="permissions_perm_battery_oem_hint">Ihr Geratehersteller kann auch die Aktivierung von "Autostart" oder "Hintergrundaktivitat" in den Systemeinstellungen erfordern.</string>
     <string name="permissions_status_optional">Optional</string>
     <string name="permissions_btn_grant">Berechtigungen erteilen</string>
     <string name="permissions_btn_background">Hintergrundstandort aktivieren</string>
@@ -220,6 +223,9 @@
     <string name="error_gps_unavailable">Warte auf GPS-Signal…</string>
     <string name="error_network_no_connection">Keine Internetverbindung</string>
     <string name="error_profile_sync">Profil konnte nicht geladen werden. Bitte erneut anmelden</string>
+    <string name="error_bootstrap_offline_title">Keine Internetverbindung</string>
+    <string name="error_bootstrap_offline_body">Paparcar benötigt eine Verbindung, um deine Daten zu laden. Überprüfe dein Netzwerk und versuche es erneut.</string>
+    <string name="error_bootstrap_retry">Erneut versuchen</string>
     <string name="error_parking_save_failed">Parkplatz konnte nicht gespeichert werden. Bitte versuche es erneut.</string>
 
     <!-- Unbekannter Standort -->
@@ -393,7 +399,10 @@
     <string name="home_zones_empty_pill">Hinzufügen</string>
 
     <!-- Sheet section headers + Berechtigungen -->
-    <string name="home_my_car_section_header">Dein Auto</string>
+    <string name="home_vehicles_section_header">Deine Fahrzeuge</string>
+    <string name="home_vehicle_card_park_cta">Parken</string>
+    <string name="home_vehicle_card_status_empty">Nicht geparkt</string>
+    <string name="home_vehicle_fallback_name">Fahrzeug</string>
     <string name="home_permissions_title">Standort aktivieren</string>
 
     <!-- ParkingPeekRow (Hero Card des ausgewählten Fahrzeugs) -->
@@ -435,6 +444,7 @@
     <string name="home_spot_reliability_manual">Manuell</string>
 
     <!-- AddingZonePeekRow (neue habituelle Zone) -->
+    <string name="home_zone_edit_header_label">Zone bearbeiten</string>
     <string name="home_zone_header_label">Neue habituelle Zone</string>
     <string name="home_zone_icon_section">Symbol</string>
 
@@ -477,6 +487,8 @@
     <string name="vehicle_detail_cd_back">Zurück</string>
     <string name="vehicle_detail_history_empty">Noch keine Parksitzungen für dieses Fahrzeug erfasst.</string>
     <string name="vehicle_registration_edit_title">Fahrzeug bearbeiten</string>
+    <string name="auth_cd_show_password">Passwort anzeigen</string>
+    <string name="auth_cd_hide_password">Passwort verbergen</string>
     <string name="vehicles_view_history">Parkverlauf anzeigen</string>
 
     <!-- VehicleStatsRow inline cards -->
@@ -484,6 +496,7 @@
     <string name="vehicle_stats_last_session">letzte</string>
     <string name="vehicle_stats_reliability">Zuverlässigkeit</string>
     <!-- Auth screens -->
+    <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Finden Sie Ihren Platz, teilen Sie den Raum</string>
     <string name="auth_field_email">E-Mail</string>
     <string name="auth_field_password">Passwort</string>

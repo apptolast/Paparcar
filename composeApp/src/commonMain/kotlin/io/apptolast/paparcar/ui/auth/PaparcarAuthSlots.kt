@@ -12,15 +12,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +41,9 @@ import com.apptolast.customlogin.presentation.slots.defaultslots.SocialLoginButt
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.auth_cd_hide_password
+import paparcar.composeapp.generated.resources.auth_header_app_name
+import paparcar.composeapp.generated.resources.auth_cd_show_password
 import paparcar.composeapp.generated.resources.auth_field_confirm_password
 import paparcar.composeapp.generated.resources.auth_field_email
 import paparcar.composeapp.generated.resources.auth_field_name
@@ -141,7 +142,7 @@ private fun PaparcarAuthHeader() {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Paparcar",
+            text = stringResource(Res.string.auth_header_app_name),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
@@ -236,7 +237,10 @@ private fun CompactPasswordField(
             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                 Icon(
                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                    contentDescription = null,
+                    contentDescription = stringResource(
+                        if (passwordVisible) Res.string.auth_cd_hide_password
+                        else Res.string.auth_cd_show_password,
+                    ),
                 )
             }
         },
@@ -250,22 +254,13 @@ private fun CompactSubmitButton(
     enabled: Boolean,
     text: String,
 ) {
-    Button(
+    PapPrimaryButton(
+        label = text,
         onClick = onClick,
+        isLoading = isLoading,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(vertical = 12.dp),
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(18.dp),
-                strokeWidth = 2.dp,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-        } else {
-            Text(text = text, style = MaterialTheme.typography.labelLarge)
-        }
-    }
+    )
 }
 
 @Composable

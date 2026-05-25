@@ -88,6 +88,9 @@
     <string name="permissions_perm_notifications_desc">Pentru a confirma parcarea și a te alerta cu privire la locurile libere din apropiere</string>
     <string name="permissions_perm_bluetooth">Bluetooth</string>
     <string name="permissions_perm_bluetooth_desc">Permite detectarea automată a parcării la conectarea sau deconectarea de la Bluetooth-ul mașinii</string>
+    <string name="permissions_perm_battery">Utilizare nelimitata a bateriei</string>
+    <string name="permissions_perm_battery_desc">Impiedica sistemul sa opreasca detectarea parcarii in fundal. Recomandat pe dispozitivele Xiaomi, Oppo si Huawei.</string>
+    <string name="permissions_perm_battery_oem_hint">Producatorul dispozitivului tau poate necesita activarea "Pornire automata" sau "Activitate in fundal" in setarile sistemului.</string>
     <string name="permissions_status_optional">Opțional</string>
     <string name="permissions_btn_grant">Acordă permisiunile</string>
     <string name="permissions_btn_background">Activează locația în fundal</string>
@@ -220,6 +223,9 @@
     <string name="error_gps_unavailable">Se așteaptă semnalul GPS…</string>
     <string name="error_network_no_connection">Nicio conexiune la internet</string>
     <string name="error_profile_sync">Nu s-a putut încărca profilul. Te rugăm să te conectezi din nou</string>
+    <string name="error_bootstrap_offline_title">Fără conexiune la internet</string>
+    <string name="error_bootstrap_offline_body">Paparcar are nevoie de o conexiune pentru a-ți încărca datele. Verifică rețeaua și încearcă din nou.</string>
+    <string name="error_bootstrap_retry">Reîncearcă</string>
     <string name="error_parking_save_failed">Nu s-a putut salva locul de parcare. Încearcă din nou.</string>
 
     <!-- Address fallback -->
@@ -393,7 +399,10 @@
     <string name="home_zones_empty_pill">Adaugă</string>
 
     <!-- Sheet section headers + permisiuni -->
-    <string name="home_my_car_section_header">Mașina ta</string>
+    <string name="home_vehicles_section_header">Vehiculele tale</string>
+    <string name="home_vehicle_card_park_cta">Parchează</string>
+    <string name="home_vehicle_card_status_empty">Neparcat</string>
+    <string name="home_vehicle_fallback_name">Vehicul</string>
     <string name="home_permissions_title">Activează locația</string>
 
     <!-- ParkingPeekRow (card vehicul selectat) -->
@@ -435,6 +444,7 @@
     <string name="home_spot_reliability_manual">Manual</string>
 
     <!-- AddingZonePeekRow (zonă obișnuită nouă) -->
+    <string name="home_zone_edit_header_label">Editare zonă</string>
     <string name="home_zone_header_label">Zonă obișnuită nouă</string>
     <string name="home_zone_icon_section">Pictogramă</string>
 
@@ -477,6 +487,8 @@
     <string name="vehicle_detail_cd_back">Înapoi</string>
     <string name="vehicle_detail_history_empty">Nicio sesiune de parcare înregistrată încă pentru acest vehicul.</string>
     <string name="vehicle_registration_edit_title">Editează vehiculul</string>
+    <string name="auth_cd_show_password">Afiseaza parola</string>
+    <string name="auth_cd_hide_password">Ascunde parola</string>
     <string name="vehicles_view_history">Vezi istoricul parcărilor</string>
 
     <!-- VehicleStatsRow inline cards -->
@@ -484,6 +496,7 @@
     <string name="vehicle_stats_last_session">ultima</string>
     <string name="vehicle_stats_reliability">fiabilitate</string>
     <!-- Auth screens -->
+    <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Găsește-ți locul, împarte spațiul</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Parolă</string>

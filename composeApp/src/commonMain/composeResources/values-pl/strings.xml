@@ -88,6 +88,9 @@
     <string name="permissions_perm_notifications_desc">Aby potwierdzić parkowanie i powiadamiać o wolnych miejscach w pobliżu</string>
     <string name="permissions_perm_bluetooth">Bluetooth</string>
     <string name="permissions_perm_bluetooth_desc">Umożliwia automatyczne wykrywanie parkowania przy połączeniu lub rozłączeniu z Bluetooth samochodu</string>
+    <string name="permissions_perm_battery">Nieograniczone uzycie baterii</string>
+    <string name="permissions_perm_battery_desc">Zapobiega wylaczeniu wykrywania parkowania w tle przez system. Zdecydowanie zalecane na urzadzeniach Xiaomi, Oppo i Huawei.</string>
+    <string name="permissions_perm_battery_oem_hint">Producent urzadzenia moze rowniez wymagac wlaczenia "Autostartu" lub "Aktywnosci w tle" w ustawieniach systemowych.</string>
     <string name="permissions_status_optional">Opcjonalne</string>
     <string name="permissions_btn_grant">Przyznaj uprawnienia</string>
     <string name="permissions_btn_background">Aktywuj lokalizację w tle</string>
@@ -220,6 +223,9 @@
     <string name="error_gps_unavailable">Oczekiwanie na sygnał GPS…</string>
     <string name="error_network_no_connection">Brak połączenia z internetem</string>
     <string name="error_profile_sync">Nie można załadować profilu. Zaloguj się ponownie</string>
+    <string name="error_bootstrap_offline_title">Brak połączenia z internetem</string>
+    <string name="error_bootstrap_offline_body">Paparcar potrzebuje połączenia, aby załadować Twoje dane. Sprawdź sieć i spróbuj ponownie.</string>
+    <string name="error_bootstrap_retry">Spróbuj ponownie</string>
     <string name="error_parking_save_failed">Nie udało się zapisać miejsca parkingowego. Spróbuj ponownie.</string>
 
     <!-- Address fallback -->
@@ -393,7 +399,10 @@
     <string name="home_zones_empty_pill">Dodaj</string>
 
     <!-- Sheet section headers + uprawnienia -->
-    <string name="home_my_car_section_header">Twój samochód</string>
+    <string name="home_vehicles_section_header">Twoje pojazdy</string>
+    <string name="home_vehicle_card_park_cta">Parkuj</string>
+    <string name="home_vehicle_card_status_empty">Nie zaparkowany</string>
+    <string name="home_vehicle_fallback_name">Pojazd</string>
     <string name="home_permissions_title">Włącz lokalizację</string>
 
     <!-- ParkingPeekRow (karta wybranego pojazdu) -->
@@ -435,6 +444,7 @@
     <string name="home_spot_reliability_manual">Ręczne</string>
 
     <!-- AddingZonePeekRow (nowa stała strefa) -->
+    <string name="home_zone_edit_header_label">Edytuj strefę</string>
     <string name="home_zone_header_label">Nowa stała strefa</string>
     <string name="home_zone_icon_section">Ikona</string>
 
@@ -477,6 +487,8 @@
     <string name="vehicle_detail_cd_back">Wstecz</string>
     <string name="vehicle_detail_history_empty">Brak zarejestrowanych sesji parkowania dla tego pojazdu.</string>
     <string name="vehicle_registration_edit_title">Edytuj pojazd</string>
+    <string name="auth_cd_show_password">Pokaz haslo</string>
+    <string name="auth_cd_hide_password">Ukryj haslo</string>
     <string name="vehicles_view_history">Zobacz historię parkowań</string>
 
     <!-- VehicleStatsRow inline cards -->
@@ -484,6 +496,7 @@
     <string name="vehicle_stats_last_session">ostatnia</string>
     <string name="vehicle_stats_reliability">wiarygodność</string>
     <!-- Auth screens -->
+    <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Znajdź swoje miejsce, podziel się przestrzenią</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Hasło</string>

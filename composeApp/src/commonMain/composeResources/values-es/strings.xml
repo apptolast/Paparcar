@@ -122,6 +122,9 @@
     <string name="permissions_perm_notifications_desc">Para confirmarte el aparcamiento y avisarte de plazas libres cercanas</string>
     <string name="permissions_perm_bluetooth">Bluetooth</string>
     <string name="permissions_perm_bluetooth_desc">Permite la detección automática de aparcamiento al conectar o desconectar el Bluetooth de tu coche</string>
+    <string name="permissions_perm_battery">Uso de batería sin restricciones</string>
+    <string name="permissions_perm_battery_desc">Evita que el sistema mate la detección de aparcamiento en segundo plano. Muy recomendado en dispositivos Xiaomi, Oppo y Huawei.</string>
+    <string name="permissions_perm_battery_oem_hint">Tu fabricante puede requerir también activar "Inicio automático" o "Actividad en segundo plano" en los ajustes del sistema.</string>
     <string name="permissions_status_optional">Opcional</string>
     <string name="permissions_btn_grant">Conceder permisos</string>
     <string name="permissions_btn_background">Activar ubicación en segundo plano</string>
@@ -278,6 +281,9 @@
     <string name="error_gps_unavailable">Esperando señal GPS…</string>
     <string name="error_network_no_connection">Sin conexión a internet</string>
     <string name="error_profile_sync">No se pudo cargar tu perfil. Inicia sesión de nuevo</string>
+    <string name="error_bootstrap_offline_title">Sin conexión a internet</string>
+    <string name="error_bootstrap_offline_body">Paparcar necesita conexión para cargar tus datos. Comprueba tu red e inténtalo de nuevo.</string>
+    <string name="error_bootstrap_retry">Reintentar</string>
     <string name="error_parking_save_failed">No se pudo guardar tu plaza de aparcamiento. Inténtalo de nuevo.</string>
 
     <!-- Dirección desconocida -->
@@ -323,6 +329,7 @@
     <string name="home_zone_icon_picker_cd">Elegir un icono</string>
     <!-- Copy refrescada para la card de Nueva zona (diseño v1) -->
     <string name="home_zone_header_label">Nueva zona habitual</string>
+    <string name="home_zone_edit_header_label">Editar zona</string>
     <string name="home_zone_icon_section">Icono</string>
     <string name="home_zones_section">Lugares habituales</string>
     <string name="home_zones_empty_title">Guarda un lugar habitual</string>
@@ -371,6 +378,8 @@
     <!-- Registro de vehículo -->
     <string name="vehicle_registration_title">Registrar tu vehículo</string>
     <string name="vehicle_registration_edit_title">Editar vehículo</string>
+    <string name="auth_cd_show_password">Mostrar contraseña</string>
+    <string name="auth_cd_hide_password">Ocultar contraseña</string>
     <string name="vehicle_registration_save">Guardar</string>
     <string name="vehicle_registration_name_label">Nombre</string>
     <string name="vehicle_registration_name_placeholder">Coche %1$d</string>
@@ -474,6 +483,7 @@
     <string name="home_peek_dismiss_cd">Descartar</string>
     <string name="bt_config_cd_back">Atrás</string>
     <!-- Auth screens -->
+    <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Encuentra tu plaza, comparte tu espacio</string>
     <string name="auth_field_email">Correo electrónico</string>
     <string name="auth_field_password">Contraseña</string>

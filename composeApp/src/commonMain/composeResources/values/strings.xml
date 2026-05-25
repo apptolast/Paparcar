@@ -122,6 +122,9 @@
     <string name="permissions_perm_notifications_desc">To confirm your parking and alert you to nearby free spots</string>
     <string name="permissions_perm_bluetooth">Bluetooth</string>
     <string name="permissions_perm_bluetooth_desc">Enables automatic parking detection when you connect or disconnect from your car's Bluetooth</string>
+    <string name="permissions_perm_battery">Unrestricted battery usage</string>
+    <string name="permissions_perm_battery_desc">Prevents the system from killing the parking detection in the background. Strongly recommended on Xiaomi, Oppo, and Huawei devices.</string>
+    <string name="permissions_perm_battery_oem_hint">Your device manufacturer may also require enabling "Autostart" or "Background activity" in system settings for reliable detection.</string>
     <string name="permissions_status_optional">Optional</string>
     <string name="permissions_btn_grant">Grant permissions</string>
     <string name="permissions_btn_background">Activate background location</string>
@@ -235,6 +238,9 @@
     <string name="error_gps_unavailable">Waiting for GPS fix…</string>
     <string name="error_network_no_connection">No internet connection</string>
     <string name="error_profile_sync">Couldn\'t load your profile. Please sign in again</string>
+    <string name="error_bootstrap_offline_title">No internet connection</string>
+    <string name="error_bootstrap_offline_body">Paparcar needs a connection to load your data. Check your network and try again.</string>
+    <string name="error_bootstrap_retry">Retry</string>
     <string name="error_parking_save_failed">Could not save your parking spot. Please try again.</string>
 
     <!-- Address fallback -->
@@ -282,6 +288,7 @@
     <string name="home_zone_icon_picker_cd">Choose an icon</string>
     <!-- Refreshed copy for the new-zone peek card (v1 design) -->
     <string name="home_zone_header_label">New habitual zone</string>
+    <string name="home_zone_edit_header_label">Edit zone</string>
     <string name="home_zone_icon_section">Icon</string>
     <string name="home_zones_section">Habitual places</string>
     <string name="home_zones_empty_title">Save a habitual place</string>
@@ -374,6 +381,8 @@
     <!-- Vehicle Registration screen -->
     <string name="vehicle_registration_title">Register your vehicle</string>
     <string name="vehicle_registration_edit_title">Edit vehicle</string>
+    <string name="auth_cd_show_password">Show password</string>
+    <string name="auth_cd_hide_password">Hide password</string>
     <string name="vehicle_registration_save">Save</string>
     <string name="vehicle_registration_name_label">Name</string>
     <!-- %1$d = sequential car number (Car 1, Car 2…) -->
@@ -480,6 +489,7 @@
     <string name="home_peek_dismiss_cd">Dismiss</string>
     <string name="bt_config_cd_back">Back</string>
     <!-- Auth screens -->
+    <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Find your spot, share your space</string>
     <string name="auth_field_email">Email</string>
     <string name="auth_field_password">Password</string>

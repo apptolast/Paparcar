@@ -88,6 +88,9 @@
     <string name="permissions_perm_notifications_desc">Om uw parkeren te bevestigen en u te waarschuwen voor vrije parkeerplaatsen in de buurt</string>
     <string name="permissions_perm_bluetooth">Bluetooth</string>
     <string name="permissions_perm_bluetooth_desc">Maakt automatische parkeerdetectie mogelijk bij het verbinden of verbreken van de Bluetooth van je auto</string>
+    <string name="permissions_perm_battery">Onbeperkt batterijgebruik</string>
+    <string name="permissions_perm_battery_desc">Voorkomt dat het systeem de parkeerdetectie op de achtergrond beeindigti. Sterk aanbevolen op Xiaomi-, Oppo- en Huawei-apparaten.</string>
+    <string name="permissions_perm_battery_oem_hint">Uw apparaatfabrikant kan ook het inschakelen van "Automatisch opstarten" of "Achtergrondactiviteit" in de systeeminstellingen vereisen.</string>
     <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <string name="permissions_btn_background">Achtergrondlocatie activeren</string>
@@ -220,6 +223,9 @@
     <string name="error_gps_unavailable">Wachten op GPS-signaal…</string>
     <string name="error_network_no_connection">Geen internetverbinding</string>
     <string name="error_profile_sync">Kon uw profiel niet laden. Meld u opnieuw aan</string>
+    <string name="error_bootstrap_offline_title">Geen internetverbinding</string>
+    <string name="error_bootstrap_offline_body">Paparcar heeft een verbinding nodig om je gegevens te laden. Controleer je netwerk en probeer het opnieuw.</string>
+    <string name="error_bootstrap_retry">Opnieuw proberen</string>
     <string name="error_parking_save_failed">Kon je parkeerplaats niet opslaan. Probeer het opnieuw.</string>
 
     <!-- Address fallback -->
@@ -393,7 +399,10 @@
     <string name="home_zones_empty_pill">Toevoegen</string>
 
     <!-- Sheet section headers + permissies -->
-    <string name="home_my_car_section_header">Jouw auto</string>
+    <string name="home_vehicles_section_header">Jouw voertuigen</string>
+    <string name="home_vehicle_card_park_cta">Parkeren</string>
+    <string name="home_vehicle_card_status_empty">Niet geparkeerd</string>
+    <string name="home_vehicle_fallback_name">Voertuig</string>
     <string name="home_permissions_title">Locatie inschakelen</string>
 
     <!-- ParkingPeekRow (hero card van geselecteerd voertuig) -->
@@ -435,6 +444,7 @@
     <string name="home_spot_reliability_manual">Handmatig</string>
 
     <!-- AddingZonePeekRow (nieuwe vaste zone) -->
+    <string name="home_zone_edit_header_label">Zone bewerken</string>
     <string name="home_zone_header_label">Nieuwe vaste zone</string>
     <string name="home_zone_icon_section">Icoon</string>
 
@@ -477,6 +487,8 @@
     <string name="vehicle_detail_cd_back">Terug</string>
     <string name="vehicle_detail_history_empty">Nog geen parkeersessies geregistreerd voor dit voertuig.</string>
     <string name="vehicle_registration_edit_title">Voertuig bewerken</string>
+    <string name="auth_cd_show_password">Wachtwoord tonen</string>
+    <string name="auth_cd_hide_password">Wachtwoord verbergen</string>
     <string name="vehicles_view_history">Parkeergeschiedenis bekijken</string>
 
     <!-- VehicleStatsRow inline cards -->
@@ -484,6 +496,7 @@
     <string name="vehicle_stats_last_session">laatste</string>
     <string name="vehicle_stats_reliability">betrouwbaarheid</string>
     <!-- Auth screens -->
+    <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Vind je plek, deel je ruimte</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Wachtwoord</string>

@@ -88,6 +88,9 @@
     <string name="permissions_perm_notifications_desc">Pour confirmer le stationnement et vous alerter des places libres à proximité</string>
     <string name="permissions_perm_bluetooth">Bluetooth</string>
     <string name="permissions_perm_bluetooth_desc">Permet la détection automatique du stationnement lors de la connexion ou déconnexion du Bluetooth de votre voiture</string>
+    <string name="permissions_perm_battery">Utilisation illimitee de la batterie</string>
+    <string name="permissions_perm_battery_desc">Empeche le systeme de tuer la detection de stationnement en arriere-plan. Fortement recommande sur les appareils Xiaomi, Oppo et Huawei.</string>
+    <string name="permissions_perm_battery_oem_hint">Le fabricant de votre appareil peut egalement necessiter l'activation du 'Demarrage automatique' ou de l'Activite en arriere-plan dans les parametres systeme.</string>
     <string name="permissions_status_optional">Optionnel</string>
     <string name="permissions_btn_grant">Accorder les permissions</string>
     <string name="permissions_btn_background">Activer la position en arrière-plan</string>
@@ -220,6 +223,9 @@
     <string name="error_gps_unavailable">En attente du signal GPS…</string>
     <string name="error_network_no_connection">Pas de connexion internet</string>
     <string name="error_profile_sync">Impossible de charger votre profil. Veuillez vous reconnecter</string>
+    <string name="error_bootstrap_offline_title">Pas de connexion internet</string>
+    <string name="error_bootstrap_offline_body">Paparcar a besoin d\'une connexion pour charger tes données. Vérifie ton réseau et réessaie.</string>
+    <string name="error_bootstrap_retry">Réessayer</string>
     <string name="error_parking_save_failed">Impossible d\'enregistrer votre place de parking. Veuillez réessayer.</string>
 
     <!-- Emplacement inconnu -->
@@ -438,6 +444,7 @@
     <string name="home_spot_reliability_manual">Manuelle</string>
 
     <!-- AddingZonePeekRow (nouvelle zone habituelle) -->
+    <string name="home_zone_edit_header_label">Modifier la zone</string>
     <string name="home_zone_header_label">Nouvelle zone habituelle</string>
     <string name="home_zone_icon_section">Icône</string>
 
@@ -480,6 +487,8 @@
     <string name="vehicle_detail_cd_back">Retour</string>
     <string name="vehicle_detail_history_empty">Aucune session de stationnement enregistrée pour ce véhicule.</string>
     <string name="vehicle_registration_edit_title">Modifier le véhicule</string>
+    <string name="auth_cd_show_password">Afficher le mot de passe</string>
+    <string name="auth_cd_hide_password">Masquer le mot de passe</string>
     <string name="vehicles_view_history">Voir l\'historique des stationnements</string>
 
     <!-- VehicleStatsRow inline cards -->
@@ -487,6 +496,7 @@
     <string name="vehicle_stats_last_session">dernier</string>
     <string name="vehicle_stats_reliability">fiabilité</string>
     <!-- Auth screens -->
+    <string name="auth_header_app_name">Paparcar</string>
     <string name="auth_header_tagline">Trouvez votre place, partagez l'espace</string>
     <string name="auth_field_email">E-mail</string>
     <string name="auth_field_password">Mot de passe</string>
