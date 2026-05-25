@@ -1,8 +1,11 @@
 package io.apptolast.paparcar.detection.service
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -33,8 +36,18 @@ class ParkingDetectionService : LifecycleService() {
 
         PaparcarLogger.d(DIAG, "▶ onStartCommand action=${intent?.action} flags=$flags startId=$startId")
 
-        when (intent?.action) {
+        // null intent = START_STICKY restart after process kill. Treat as START_TRACKING but guard
+        // permissions first — the user may have revoked location access while we were dead. [§9]
+        val action = intent?.action ?: ACTION_START_TRACKING
+
+        when (action) {
             ACTION_START_TRACKING -> {
+                if (!hasRequiredPermissions()) {
+                    PaparcarLogger.w(DIAG, "  ✗ START_TRACKING aborted — missing location permission")
+                    notificationPort.showPermissionRevoked()
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
                 if (detectionJob?.isActive == true && parkingDetectionCoordinator.hasDetectedMovement) {
                     PaparcarLogger.d(DIAG, "  ↻ START_TRACKING ignored — job active + hasDetectedMovement=true")
                     return START_STICKY
@@ -94,6 +107,16 @@ class ParkingDetectionService : LifecycleService() {
                 stopSelf()
             }
         }
+    }
+
+    private fun hasRequiredPermissions(): Boolean {
+        val fineLoc = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        val bgLoc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+        } else true
+        return fineLoc && bgLoc
     }
 
     override fun onDestroy() {

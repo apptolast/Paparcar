@@ -12,6 +12,10 @@ data class AppPermissionState(
     // Optional — only available on Android 12+. Not required for core app functionality;
     // only needed for the Bluetooth parking detection strategy.
     val hasBluetoothConnectPermission: Boolean = false,
+    // Optional — not a runtime permission. User must approve via system dialog.
+    // Critical on Doze-aggressive OEMs (MIUI, ColorOS, EMUI). Not in allPermissionsGranted
+    // because the app still works without it; detection just degrades on OEM killers. [DOZE-001]
+    val isBatteryOptimizationExempt: Boolean = false,
 ) {
     val allPermissionsGranted: Boolean
         get() = hasLocationPermission

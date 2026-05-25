@@ -26,6 +26,9 @@
     <!-- Bluetooth — needed to read paired device names/addresses (Android 12+) -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <!-- Battery optimization — allows requesting exemption via system dialog [DOZE-001] -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:name=".PaparcarApp"
         android:allowBackup="true"

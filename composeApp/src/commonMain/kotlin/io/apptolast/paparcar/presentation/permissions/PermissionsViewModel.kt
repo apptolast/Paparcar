@@ -25,6 +25,7 @@ class PermissionsViewModel(
                     hasNotifications = current.hasNotificationPermission,
                     isLocationServicesEnabled = current.isLocationServicesEnabled,
                     hasBluetoothConnect = current.hasBluetoothConnectPermission,
+                    isBatteryOptimizationExempt = current.isBatteryOptimizationExempt,
                 )
             }
         }
@@ -39,6 +40,7 @@ class PermissionsViewModel(
                         hasNotifications = appState.hasNotificationPermission,
                         isLocationServicesEnabled = appState.isLocationServicesEnabled,
                         hasBluetoothConnect = appState.hasBluetoothConnectPermission,
+                        isBatteryOptimizationExempt = appState.isBatteryOptimizationExempt,
                     )
                 }
                 // Navigate home once the app is fully operational.
@@ -55,6 +57,7 @@ class PermissionsViewModel(
         when (intent) {
             PermissionsIntent.RequestPermissions -> handleRequestPermissions()
             PermissionsIntent.RequestBluetoothPermission -> sendEffect(PermissionsEffect.RequestStepBluetooth)
+            PermissionsIntent.RequestBatteryOptimization -> sendEffect(PermissionsEffect.RequestBatteryOptimizationExemption)
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
         }
     }

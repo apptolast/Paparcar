@@ -29,6 +29,10 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
                     requester.requestStep1()
                 PermissionsEffect.RequestStep2BackgroundLocation ->
                     requester.requestAlwaysLocation()
+                PermissionsEffect.RequestStepBluetooth ->
+                    requester.requestBluetooth()
+                PermissionsEffect.RequestBatteryOptimizationExemption ->
+                    Unit // no battery optimization concept on iOS
                 PermissionsEffect.OpenAppSettings,
                 PermissionsEffect.OpenLocationSettings -> openIosSettings()
                 PermissionsEffect.NavigateToHome ->
@@ -41,6 +45,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
     PermissionsContent(
         state = state,
         onRequestPermissions = { viewModel.handleIntent(PermissionsIntent.RequestPermissions) },
+        onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
     )
 }
 

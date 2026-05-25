@@ -8,6 +8,9 @@ data class PermissionsState(
     val isLocationServicesEnabled: Boolean = false,
     /** Optional — Bluetooth parking detection only. Does not block navigation. */
     val hasBluetoothConnect: Boolean = false,
+    /** Optional — battery optimization exemption. Does not block navigation.
+     *  Critical on Doze-aggressive OEMs (MIUI, ColorOS, EMUI). [DOZE-001] */
+    val isBatteryOptimizationExempt: Boolean = false,
     val showRationale: Boolean = false,
     val showSettingsPrompt: Boolean = false,
 )

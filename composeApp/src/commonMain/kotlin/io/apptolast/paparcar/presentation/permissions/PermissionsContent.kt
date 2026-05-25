@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material3.Button
@@ -51,6 +52,9 @@ import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
 import paparcar.composeapp.generated.resources.permissions_perm_background
 import paparcar.composeapp.generated.resources.permissions_perm_background_desc
+import paparcar.composeapp.generated.resources.permissions_perm_battery
+import paparcar.composeapp.generated.resources.permissions_perm_battery_desc
+import paparcar.composeapp.generated.resources.permissions_perm_battery_oem_hint
 import paparcar.composeapp.generated.resources.permissions_perm_bluetooth
 import paparcar.composeapp.generated.resources.permissions_perm_bluetooth_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location
@@ -80,6 +84,7 @@ internal fun PermissionsContent(
     state: PermissionsState,
     onRequestPermissions: () -> Unit,
     onRequestBluetooth: () -> Unit = {},
+    onRequestBatteryOptimization: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -167,6 +172,29 @@ internal fun PermissionsContent(
                 granted = state.hasBluetoothConnect,
                 onGrant = onRequestBluetooth,
             )
+
+            // ── Optional battery optimization exemption ──────────────────────
+            Spacer(Modifier.height(PaparcarSpacing.xl))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                thickness = 1.dp,
+            )
+            Spacer(Modifier.height(PaparcarSpacing.xl))
+            OptionalPermissionRow(
+                icon = Icons.Outlined.BatteryFull,
+                title = stringResource(Res.string.permissions_perm_battery),
+                desc = stringResource(Res.string.permissions_perm_battery_desc),
+                granted = state.isBatteryOptimizationExempt,
+                onGrant = onRequestBatteryOptimization,
+            )
+            if (!state.isBatteryOptimizationExempt) {
+                Spacer(Modifier.height(PaparcarSpacing.sm))
+                Text(
+                    text = stringResource(Res.string.permissions_perm_battery_oem_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             if (state.showRationale && !state.showSettingsPrompt) {
                 Spacer(Modifier.height(PaparcarSpacing.xl))

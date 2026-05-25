@@ -4,6 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.work.WorkManager
+import io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker
+import io.apptolast.paparcar.detection.worker.GeofenceJanitorWorker
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import org.koin.core.component.KoinComponent
@@ -24,7 +26,10 @@ class BootCompletedReceiver : BroadcastReceiver(), KoinComponent {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
 
+        val workManager = WorkManager.getInstance(context)
         activityRecognitionManager.registerTransitions()
-        RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(context))
+        RegisterActivityTransitionsWorker.enqueueKeep(workManager)
+        GeofenceJanitorWorker.enqueueKeep(workManager)
+        DetectionHeartbeatWorker.enqueueKeep(workManager)
     }
 }

@@ -17,7 +17,11 @@ import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val androidDetectionModule = module {
@@ -44,6 +48,8 @@ val androidDetectionModule = module {
     single<ReportSpotScheduler> { WorkManagerReportSpotScheduler(androidContext()) }
 
     // --- Bluetooth Parking Detection ---
-    single { BluetoothParkingDetector(get(), get()) }
+    // Named scope so tests can inject a TestScope and control cancellation. [§13]
+    single(named("btDetectorScope")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+    single { BluetoothParkingDetector(get(), get(), get(named("btDetectorScope"))) }
 
 }

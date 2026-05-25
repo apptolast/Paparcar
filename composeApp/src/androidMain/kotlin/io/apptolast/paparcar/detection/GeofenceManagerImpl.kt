@@ -30,7 +30,7 @@ class GeofenceManagerImpl(
         val geofence = Geofence.Builder()
             .setRequestId(geofenceId)
             .setCircularRegion(latitude, longitude, radiusMeters)
-            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setExpirationDuration(GEOFENCE_TTL_MS)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_EXIT)
             .setLoiteringDelay(LOITERING_DELAY_MS)
             .build()
@@ -64,5 +64,8 @@ class GeofenceManagerImpl(
         const val LOITERING_DELAY_MS = 60_000
         /** Suppress the initial dwell trigger when registering a geofence. */
         const val NO_INITIAL_TRIGGER = 0
+        /** Geofences self-destruct after 24 h. GeofenceJanitorWorker re-registers any that
+         *  are still needed (active parking session), preventing orphan accumulation. [GEOF-001] */
+        const val GEOFENCE_TTL_MS = 24L * 60 * 60 * 1_000
     }
 }

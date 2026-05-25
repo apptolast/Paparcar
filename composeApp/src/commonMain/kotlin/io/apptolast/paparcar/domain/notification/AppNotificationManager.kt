@@ -35,6 +35,14 @@ interface AppNotificationManager {
     fun showSpotUploading()
 
     /**
+     * Shows a notification prompting the user to re-grant location permission.
+     * Tapping opens the app, which auto-redirects to the Permissions screen via the gate.
+     * Called when the detection service starts (START_STICKY restart or explicit start)
+     * and finds that location permission was revoked while the process was dead. [§9]
+     */
+    fun showPermissionRevoked()
+
+    /**
      * Shows a transient debug notification. Only called when [BuildConfig.DEBUG] is true.
      *
      * @param message Diagnostic text to display.
@@ -61,5 +69,8 @@ interface AppNotificationManager {
 
         /** ID for the parking confirmation notification (channel: DEBUG / HIGH priority). */
         const val PARKING_CONFIRMATION_NOTIFICATION_ID = 2002
+
+        /** ID for the permission-revoked notification shown when the service restarts without location access. */
+        const val PERMISSION_REVOKED_NOTIFICATION_ID = 2003
     }
 }

@@ -5,9 +5,7 @@ import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseC
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -33,8 +31,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 class BluetoothParkingDetector(
     private val observeLocation: ObserveAdaptiveLocationUseCase,
     private val confirmParking: ConfirmParkingUseCase,
+    private val scope: CoroutineScope,
 ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     @Volatile private var detectionJob: Job? = null
 
     /**

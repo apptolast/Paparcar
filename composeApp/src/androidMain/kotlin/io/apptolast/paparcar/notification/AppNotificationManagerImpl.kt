@@ -107,6 +107,19 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
     }
 
+    override fun showPermissionRevoked() {
+        val notification = NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_permission_revoked_title))
+            .setContentText(context.getString(R.string.notif_permission_revoked_text))
+            .setSmallIcon(R.drawable.ic_notification_detection)
+            .setColor(COLOR_DEBUG)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setContentIntent(buildOpenAppIntent(RC_PERMISSION_REVOKED))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.PERMISSION_REVOKED_NOTIFICATION_ID, notification)
+    }
+
     override fun showDebug(message: String) {
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_debug_title))
@@ -181,6 +194,7 @@ class AppNotificationManagerImpl(
         private const val RC_SPOT_SAVED = 12
         private const val RC_UPLOADING = 13
         private const val RC_DEBUG = 14
+        private const val RC_PERMISSION_REVOKED = 15
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active
