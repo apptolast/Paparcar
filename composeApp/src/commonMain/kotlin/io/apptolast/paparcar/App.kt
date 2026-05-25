@@ -169,6 +169,13 @@ fun App(
                     }
                 }
             }
+            // Apply the saved language on every app start. AppEffect.ApplyLocale only fires
+            // on user-driven changes; this LaunchedEffect covers the cold-start case where
+            // the preference is already in appState but applyAppLocale() was never called.
+            // applyAppLocale() is idempotent — returns early if the locale is already set.
+            LaunchedEffect(appState.selectedLanguage) {
+                applyAppLocale(appState.selectedLanguage)
+            }
             // SplashEffect: fatal errors just redirect via auth state (sign-out is already done).
             // Offline errors surface a dialog with a retry button.
             LaunchedEffect(Unit) {
