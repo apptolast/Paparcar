@@ -33,6 +33,7 @@
 - **BUG-PERMS-UX-001** — guía paso a paso antes de abrir Settings para ubicación en segundo plano (Android 11+ no muestra dialog, el usuario no sabe que debe elegir "Permitir siempre"). `PapAlertDialog` con instrucciones numeradas. Done 2026-05-25.
 - **IOS-AR-001 · IOS-BUILD-001 · IOS-SYNC-001 · IOS-PLACES-001** — iOS completado al ~95% (solo IOS-DIST-001 y BGTask pending)
 - **I18N-001** — strings EN/ES/IT/PT/FR/DE/NL/PL/RO sincronizadas; stale key `home_my_car_section_header` eliminada en DE/NL/PL/RO
+- **BUG-LANG-002** — idioma guardado no se aplicaba al arrancar la app en frío. `LaunchedEffect(appState.selectedLanguage)` en `App.kt` llama a `applyAppLocale()` en la primera composición. Idempotente: no-op en API 33+ donde el sistema ya restaura el locale. Done 2026-05-26.
 
 ---
 
