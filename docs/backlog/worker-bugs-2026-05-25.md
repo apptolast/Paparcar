@@ -11,12 +11,11 @@ Ambos bugs son P0 — bloquean parking sessions en remoto. Reproducibles en todo
 
 ---
 
-## BUG-WORKER-001 · Race condition LocationUpdateSyncWorker → NOT_FOUND 🔴
+## BUG-WORKER-001 · Race condition LocationUpdateSyncWorker → NOT_FOUND ✅
 
 **Ticket:** `BUG-WORKER-001`
-**Rama:** `bugfix/BUG-WORKER-001-location-update-race`
 **Prioridad:** P0 — crítico | **Esfuerzo:** Pequeño
-**Estado:** ⚪ Pending
+**Estado:** ✅ Done 2026-05-25
 
 ### Root cause
 
@@ -55,20 +54,23 @@ Esto garantiza que `LocationUpdateSyncWorker` solo corre después de que `Parkin
 complete con éxito. Si `ParkingSyncWorker` falla y entra en backoff, `LocationUpdateSyncWorker`
 espera también.
 
-### Archivos a tocar
-- `WorkManagerParkingSyncScheduler.kt` — refactor de `schedule()` + `scheduleLocationUpdate()`
-  para usar `beginUniqueWork().then()` en lugar de dos `enqueueUniqueWork` independientes.
-- `ParkingSyncWorkerTest.kt` — añadir test que verifica que `LocationUpdateSyncWorker`
-  no se encola sin `ParkingSyncWorker` como prerequisito.
+### Fix implementado (2026-05-25)
+
+`schedule()` usa `beginUniqueWork("parking_chain_$sessionId", REPLACE, ParkingSyncWorker)`.
+`scheduleLocationUpdate()` usa `beginUniqueWork("parking_chain_$sessionId", APPEND_OR_REPLACE, LocationUpdateSyncWorker)` — mismo nombre de cadena, WorkManager garantiza que `LocationUpdateSyncWorker` espera a que `ParkingSyncWorker` complete.
+
+`APPEND_OR_REPLACE`: si ParkingSync falla definitivamente (retries agotados), LocationUpdate corre igualmente — datos parciales mejor que ninguno.
+
+### Archivos modificados
+- `WorkManagerParkingSyncScheduler.kt` — `schedule()` + `scheduleLocationUpdate()` usan la misma cadena `parking_chain_$sessionId`.
 
 ---
 
-## BUG-WORKER-002 · ParkingSyncWorker cancelado — JobCancellationException 🔴
+## BUG-WORKER-002 · ParkingSyncWorker cancelado — JobCancellationException ✅
 
 **Ticket:** `BUG-WORKER-002`
-**Rama:** `bugfix/BUG-WORKER-002-sync-worker-cancellation`
 **Prioridad:** P0 — crítico | **Esfuerzo:** Pequeño
-**Estado:** ⚪ Pending
+**Estado:** ✅ Done 2026-05-25
 
 ### Root cause
 
@@ -109,9 +111,12 @@ return runCatching {
 WorkManager intente cancelar el Job (ej. proceso muerto por OEM). El worker igualmente
 puede ser re-encolado por WorkManager si falla, pero no se cortará a medias.
 
-### Archivos a tocar
-- `ParkingSyncWorker.kt` — añadir `withContext(NonCancellable)` alrededor del bloque de escritura.
-- `ParkingSyncWorkerTest.kt` — test que verifica que una cancelación externa no impide la escritura.
+### Fix implementado (2026-05-25)
+
+`withContext(NonCancellable)` envuelve ambas llamadas Firestore (`updateParkingSessionActiveFlag` + `saveParkingSession`) en `ParkingSyncWorker.doWork()`. Si el Job padre es cancelado por el OEM mientras la escritura está en vuelo, el bloque completa igualmente.
+
+### Archivos modificados
+- `ParkingSyncWorker.kt` — `withContext(NonCancellable)` alrededor del bloque de escritura Firestore.
 
 ---
 

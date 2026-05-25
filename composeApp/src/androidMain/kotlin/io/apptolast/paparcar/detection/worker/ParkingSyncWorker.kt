@@ -15,6 +15,8 @@ import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
@@ -54,13 +56,17 @@ class ParkingSyncWorker(
         PaparcarLogger.d(TAG, "▶ ParkingSyncWorker.doWork session=${newSession.id} previous=$previousSessionId attempt=$runAttemptCount")
 
         return runCatching {
-            // Mark previous active session as inactive in Firestore via update()
-            // (not set()) so we only flip the isActive flag without overwriting
-            // existing coordinates or other fields. [PIPE-001 bugfix in PIPE-002]
-            previousSessionId?.let { prevId ->
-                userProfileDataSource.updateParkingSessionActiveFlag(userId, prevId, false)
+            // NonCancellable: if the OEM kills the WorkManager Job mid-flight, the Firestore
+            // writes complete anyway. Without this, JobCancellationException leaves Room and
+            // Firestore inconsistent — session saved locally but invisible to other users. [BUG-WORKER-002]
+            withContext(NonCancellable) {
+                // update() not set() — only flip the isActive flag without overwriting
+                // existing coordinates or other fields. [PIPE-001 bugfix in PIPE-002]
+                previousSessionId?.let { prevId ->
+                    userProfileDataSource.updateParkingSessionActiveFlag(userId, prevId, false)
+                }
+                userProfileDataSource.saveParkingSession(userId, newSession)
             }
-            userProfileDataSource.saveParkingSession(userId, newSession)
         }.fold(
             onSuccess = {
                 PaparcarLogger.d(TAG, "■ ParkingSyncWorker SUCCESS session=${newSession.id}")

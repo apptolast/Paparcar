@@ -40,11 +40,15 @@ class WorkManagerParkingSyncScheduler(
                 PaparcarLogger.w(TAG, "schedule() skipped — no auth session for ${session.id}")
                 return@launch
             }
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                "parking_sync_${session.id}",
-                ExistingWorkPolicy.REPLACE,
-                ParkingSyncWorker.buildRequest(userId, session, previousSessionId),
-            )
+            // Chain head: LocationUpdateSyncWorker must run after this completes (set() before update()).
+            // [BUG-WORKER-001]
+            WorkManager.getInstance(context)
+                .beginUniqueWork(
+                    "parking_chain_${session.id}",
+                    ExistingWorkPolicy.REPLACE,
+                    ParkingSyncWorker.buildRequest(userId, session, previousSessionId),
+                )
+                .enqueue()
             PaparcarLogger.d(TAG, "schedule() enqueued session=${session.id} previous=$previousSessionId")
         }
     }
@@ -72,11 +76,17 @@ class WorkManagerParkingSyncScheduler(
                 PaparcarLogger.w(TAG, "scheduleLocationUpdate() skipped — no auth session for $sessionId")
                 return@launch
             }
-            WorkManager.getInstance(context).enqueueUniqueWork(
-                "parking_location_update_$sessionId",
-                ExistingWorkPolicy.REPLACE,
-                LocationUpdateSyncWorker.buildRequest(userId, sessionId, address, placeInfo),
-            )
+            // Appended to the same chain as ParkingSyncWorker so it only runs after
+            // set() completes — avoids NOT_FOUND on update(). [BUG-WORKER-001]
+            // APPEND_OR_REPLACE: if ParkingSync is FAILED (all retries exhausted),
+            // LocationUpdate runs anyway — partial data is better than none.
+            WorkManager.getInstance(context)
+                .beginUniqueWork(
+                    "parking_chain_$sessionId",
+                    ExistingWorkPolicy.APPEND_OR_REPLACE,
+                    LocationUpdateSyncWorker.buildRequest(userId, sessionId, address, placeInfo),
+                )
+                .enqueue()
             PaparcarLogger.d(TAG, "scheduleLocationUpdate() enqueued session=$sessionId")
         }
     }

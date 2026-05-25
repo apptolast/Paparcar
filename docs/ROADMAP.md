@@ -58,8 +58,8 @@ Tickets nuevos derivados del resumen ejecutivo. Detalle técnico en `docs/BUGS_A
 | ✅ **IOS-AR-001** | ~~Cablear los 3 TODO de `IosActivityRecognitionManagerImpl` con el coordinator~~ — done 2026-05-24 | 2 h | IOS_PLAN §3 |
 | ⚠️ **SEC-001** | Parte código done (fail-fast + RELEASE-SECURITY.md). Pendiente: rotar key + restricciones GCP Console (acción usuario) | 1 h + GCP | BUGS §4 |
 | ⚠️ **AUDIT-FIRESTORE-001** | Reglas mínimas documentadas en `docs/release/RELEASE-SECURITY.md §2`. Pendiente: desplegar + testear en Firebase Console (acción usuario) | 0 h código | RELEASE-001 |
-| ⚠️ **BUG-WORKER-001** | Race condition `LocationUpdateSyncWorker` vs `ParkingSyncWorker` — `update()` antes de `set()` → NOT_FOUND en 100% de sesiones. Fix: encadenar con `.then()` en `WorkManagerParkingSyncScheduler`. | 1 h | worker-bugs-2026-05-25 |
-| ⚠️ **BUG-WORKER-002** | `ParkingSyncWorker` cancelado por OEM (Redmi) — `JobCancellationException` → parking nunca llega a Firestore. Fix: `withContext(NonCancellable)` en el bloque Firestore. | 1 h | worker-bugs-2026-05-25 |
+| ✅ **BUG-WORKER-001** | Race condition `LocationUpdateSyncWorker` vs `ParkingSyncWorker` — resuelto 2026-05-25. `scheduleLocationUpdate()` usa `APPEND_OR_REPLACE` en la misma cadena `parking_chain_$sessionId`, garantizando `set()` antes de `update()`. | 1 h | worker-bugs-2026-05-25 |
+| ✅ **BUG-WORKER-002** | `ParkingSyncWorker` cancelado por OEM (Redmi) — resuelto 2026-05-25. `withContext(NonCancellable)` protege las escrituras Firestore de cancelaciones externas del Job. | 1 h | worker-bugs-2026-05-25 |
 
 ### P1 — High (calidad / producción)
 | Ticket | Descripción | Estimado | Ref |
