@@ -235,14 +235,45 @@ return padded.coerceAtMost(200f)     // geofenceMaxRadiusMeters
 
 A moto parked with 5 m GPS accuracy gets a 67.5 m geofence — tight enough to detect a real departure without false-positives from parked-but-shifting GPS. A van parked with 40 m accuracy gets 180 m. The cap of 200 m exists so a single garbage fix can't cover a whole neighborhood.
 
-### 1.7 Departure detection
+### 1.7 Departure detection — step-by-step flow
 
-`DetectParkingDepartureUseCase` (driven by `onCarConnected` on the BT path, or by GMS geofence-exit events on the coordinator path) decides whether the user really drove away:
+When the user leaves with their car, departure detection runs through two parallel signal chains that must agree before the parking session is cleared and the spot is published.
 
-- A `IN_VEHICLE_ENTER` Activity Recognition transition must precede the geofence exit by no more than `vehicleEnterWindowMs = 30 min`. Older signals are stale (yesterday's drive).
-- GPS speed must reach `minimumDepartureSpeedKmh = 10 km/h` to confirm — skipped if GPS is unavailable.
+#### Step 1 — Geofence exit
 
-When both clauses pass, `ReleaseActiveParkingSessionUseCase` runs.
+When the user drives far enough from the saved parking location, Google Play Services fires a geofence exit event to `GeofenceBroadcastReceiver`. The receiver extracts `GeofencingEvent.fromIntent(intent)`, reads `triggeringGeofences`, and enqueues `DepartureDetectionWorker` via WorkManager with `KEY_GEOFENCE_ID` and `KEY_EXIT_TIMESTAMP`.
+
+> **Important:** the geofence `PendingIntent` **must** use `FLAG_MUTABLE`. Play Services fills `GeofencingEvent` extras into the intent at delivery time; `FLAG_IMMUTABLE` blocks this on Android 12+ — `triggeringGeofences` arrives as `null` and the receiver silently returns without enqueuing the worker. See BUG-GEOFENCE-001 in §2.
+
+#### Step 2 — Activity Recognition: IN_VEHICLE_ENTER
+
+Independently, `ActivityRecognitionManagerImpl` is subscribed to `IN_VEHICLE_ENTER` transitions. When Play Services fires this event, it delivers directly to `ParkingDetectionService` via `PendingIntent.getForegroundService()` (ACTION_VEHICLE_TRANSITION). The service records `departureEventBus.onVehicleEntered(epochMs)` — an in-memory timestamp marking the moment the user entered a vehicle.
+
+#### Step 3 — DepartureDetectionWorker: three-signal check
+
+`DepartureDetectionWorker.doWork()` calls `DetectParkingDepartureUseCase` with the geofence id, the exit timestamp, and the current GPS speed (fresh fix via `GetOneLocationUseCase`). The use case checks:
+
+1. **Active session exists** and its `geofenceId` matches the one that fired — prevents false cross-vehicle triggers. Returns `Rejected` if no match.
+2. **IN_VEHICLE_ENTER window** — `departureEventBus.lastVehicleEnteredAt` must be within `vehicleEnterWindowMs = 30 min` of the exit timestamp. Stale signals (yesterday's drive) are ignored. Returns `Inconclusive` if no recent signal.
+3. **GPS speed** — if a fresh fix is available, speed must exceed `minimumDepartureSpeedKmh = 10 km/h`. Returns `Inconclusive` if below threshold.
+
+If any check is `Inconclusive` (AR not yet delivered, user still slow), the worker retries with exponential backoff up to `MAX_INCONCLUSIVE_RETRIES = 3` times (total ~2 min window). After exhausting retries, a geofence exit alone is treated as ground truth (`Confirmed`).
+
+#### Step 4 — Session clear + spot release
+
+On `Confirmed`:
+
+1. `userParkingRepository.getActiveSessionByGeofence(geofenceId)` — resolves the exact session from Room.
+2. `reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)` — geocodes and enqueues `ReportSpotWorker` to publish the freed spot to Firestore.
+3. `userParkingRepository.clearActiveById(session.id)` — removes the active session from Room and enqueues `ClearActiveSyncWorker` for Firestore reconciliation.
+4. `departureEventBus.reset()` — clears the in-memory `lastVehicleEnteredAt` state.
+5. `geofenceService.removeGeofence(geofenceId)` — deregisters the GMS geofence so Play Services stops monitoring it.
+
+Note: `reportSpotReleased` is called **before** `clearActive` — the WorkManager job is durably enqueued even if the worker is killed before the clear, and `REPLACE` policy on retries prevents duplicate publications.
+
+#### Caveat: in-memory AR state
+
+`DepartureEventBus.lastVehicleEnteredAt` is in-memory only. If the process is killed between parking confirmation and the geofence exit, the timestamp is lost. `DetectParkingDepartureUseCase` then returns `Inconclusive` for steps 2 and 3. After `MAX_INCONCLUSIVE_RETRIES`, the worker falls through to `Confirmed` anyway — geofence exit is strong enough evidence on its own for an established parking session.
 
 ### 1.8 Diagnostic logging — `PARKDIAG`
 
@@ -441,3 +472,13 @@ On Android 12+ (API 31+), calling `startForegroundService()` from a BroadcastRec
 `startForeground()` is always called first (before routing) to satisfy the Android 8+ 5-second contract. `StartDetectionWorker` (the WorkManager bridge that was the provisional fix) was deleted.
 
 **Guard today.** `hasRequiredPermissions()` runs immediately after `startForeground()` in `ACTION_VEHICLE_TRANSITION`. If permissions were revoked between the transition firing and delivery, the service calls `notificationPort.showPermissionRevoked()` + `stopSelf()` + returns `START_NOT_STICKY`.
+
+### BUG-GEOFENCE-001 — FLAG_MUTABLE required for geofence PendingIntent
+
+**Commit:** to be filled after merge.
+
+`GeofenceManagerImpl.buildPendingIntent()` was using `PendingIntent.FLAG_IMMUTABLE`. On Android 12+ (API 31+), `FLAG_IMMUTABLE` prevents Google Play Services from filling `GeofencingEvent` extras into the intent at delivery time. `GeofencingEvent.fromIntent(intent).triggeringGeofences` arrived as `null` in `GeofenceBroadcastReceiver.onReceive()`, causing the receiver to return at line 48 without enqueuing `DepartureDetectionWorker`. Departure detection silently did nothing.
+
+**Fix.** Changed to `PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT`. `FLAG_MUTABLE` is required here for the same reason it is required for Activity Recognition: Play Services must write into the intent at delivery time. This is the documented requirement from the GMS Geofencing API.
+
+**Companion fix.** `DepartureDetectionWorker` now forwards session metadata to `reportSpotReleased()` — `spotType`, `detectionReliability` (as `confidence`), and `sizeCategory` — instead of defaulting all three. Session is resolved via `userParkingRepository.getActiveSessionByGeofence(geofenceId)` which is already called to get `lat`/`lon`; fields were already present, just not forwarded.

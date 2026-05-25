@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DepartureDecision
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
+import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
@@ -81,7 +82,14 @@ class DepartureDetectionWorker(
         // even if a retry fires after the session has been deleted. On retry the job is
         // re-enqueued with REPLACE policy — no duplicate publications.
         if (lat != null && lon != null) {
-            reportSpotReleased(lat, lon, spotId)
+            reportSpotReleased(
+                lat = lat,
+                lon = lon,
+                spotId = spotId,
+                spotType = session?.spotType ?: SpotType.AUTO_DETECTED,
+                confidence = session?.detectionReliability ?: 1f,
+                sizeCategory = session?.sizeCategory,
+            )
         }
         // Clear AFTER scheduling. If the clear fails we retry; the session is still
         // present so DetectParkingDepartureUseCase returns Confirmed again on the next attempt.

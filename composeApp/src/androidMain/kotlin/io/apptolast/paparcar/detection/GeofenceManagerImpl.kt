@@ -51,11 +51,14 @@ class GeofenceManagerImpl(
 
     private fun buildPendingIntent(): PendingIntent {
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
+        // FLAG_MUTABLE is required: Play Services fills GeofencingEvent extras into the intent
+        // at delivery time. FLAG_IMMUTABLE blocks this on Android 12+ — triggeringGeofences
+        // would be null and the receiver silently returns without firing departure detection.
         return PendingIntent.getBroadcast(
             context,
             REQUEST_CODE,
             intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
     }
 
