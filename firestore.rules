@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Spots — recurso comunitario; cualquier usuario autenticado puede leer y escribir.
+    // Los campos enRouteCount / acceptCount / rejectCount los actualiza la comunidad.
+    // Delete: sólo el reportador o spots anónimos (auto-detectados sin UID).
+    match /spots/{spotId} {
+      allow read:   if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null
+                    && (resource.data.reportedBy == request.auth.uid
+                        || resource.data.reportedBy == "anonymous");
+    }
+
+    // Perfil de usuario y todas sus subcollections — sólo el propio usuario.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /vehicles/{vehicleId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      match /parkingHistory/{sessionId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      match /zones/{zoneId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Denegar cualquier otra colección no listada explícitamente.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
