@@ -224,6 +224,22 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = prop("MAPS_API_KEY") ?: ""
     }
 
+    // Fail-fast: a release build without MAPS_API_KEY produces an APK whose map
+    // tiles silently fail to load. Catch it at configuration time instead of in
+    // the field. Debug builds keep working without the key — the map just shows
+    // the unauthenticated "for development purposes only" overlay. [SEC-001]
+    gradle.taskGraph.whenReady {
+        if (allTasks.any { it.name.contains("Release", ignoreCase = true) } &&
+            prop("MAPS_API_KEY").isNullOrBlank()
+        ) {
+            throw GradleException(
+                "MAPS_API_KEY is required for release builds — set it in local.properties or the " +
+                    "MAPS_API_KEY env var. The key must also be restricted in GCP Console by package " +
+                    "name + SHA-1; see docs/release/RELEASE-SECURITY.md."
+            )
+        }
+    }
+
     buildFeatures {
         buildConfig = true
     }
