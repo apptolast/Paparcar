@@ -135,6 +135,10 @@
     <string name="permissions_btn_location_settings">Activar GPS</string>
     <string name="permissions_status_granted">Concedido</string>
     <string name="permissions_status_pending">Pendiente</string>
+    <string name="permissions_bg_guide_title">Activar ubicación en segundo plano</string>
+    <string name="permissions_bg_guide_body">En la siguiente pantalla:\n\n1. Pulsa «Ubicación»\n2. Selecciona «Permitir siempre»\n3. Pulsa Atrás para volver a Paparcar</string>
+    <string name="permissions_bg_guide_cta">Abrir ajustes</string>
+    <string name="permissions_bg_guide_dismiss">Ahora no</string>
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Actividad semanal</string>

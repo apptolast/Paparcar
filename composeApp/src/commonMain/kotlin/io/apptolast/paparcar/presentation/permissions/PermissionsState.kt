@@ -13,4 +13,8 @@ data class PermissionsState(
     val isBatteryOptimizationExempt: Boolean = false,
     val showRationale: Boolean = false,
     val showSettingsPrompt: Boolean = false,
+    /** Show step-by-step guide before opening system Settings for background location.
+     *  Android 11+ takes the user directly to Settings with no dialog — without this
+     *  guide users don't know they must select "Allow all the time" then press Back. */
+    val showBackgroundLocationGuide: Boolean = false,
 )

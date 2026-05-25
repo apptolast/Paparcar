@@ -41,9 +41,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.permissions_bg_guide_body
+import paparcar.composeapp.generated.resources.permissions_bg_guide_cta
+import paparcar.composeapp.generated.resources.permissions_bg_guide_dismiss
+import paparcar.composeapp.generated.resources.permissions_bg_guide_title
 import paparcar.composeapp.generated.resources.permissions_btn_background
 import paparcar.composeapp.generated.resources.permissions_btn_grant
 import paparcar.composeapp.generated.resources.permissions_btn_location_settings
@@ -85,7 +90,21 @@ internal fun PermissionsContent(
     onRequestPermissions: () -> Unit,
     onRequestBluetooth: () -> Unit = {},
     onRequestBatteryOptimization: () -> Unit = {},
+    onConfirmBackgroundLocationGuide: () -> Unit = {},
+    onDismissBackgroundLocationGuide: () -> Unit = {},
 ) {
+    if (state.showBackgroundLocationGuide) {
+        PapAlertDialog(
+            onDismiss = onDismissBackgroundLocationGuide,
+            icon = Icons.Outlined.Explore,
+            title = stringResource(Res.string.permissions_bg_guide_title),
+            body = stringResource(Res.string.permissions_bg_guide_body),
+            primaryLabel = stringResource(Res.string.permissions_bg_guide_cta),
+            onPrimary = onConfirmBackgroundLocationGuide,
+            cancelLabel = stringResource(Res.string.permissions_bg_guide_dismiss),
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

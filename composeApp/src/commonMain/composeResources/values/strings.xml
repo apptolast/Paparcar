@@ -135,6 +135,10 @@
     <string name="permissions_btn_location_settings">Enable GPS</string>
     <string name="permissions_status_granted">Granted</string>
     <string name="permissions_status_pending">Pending</string>
+    <string name="permissions_bg_guide_title">Enable background location</string>
+    <string name="permissions_bg_guide_body">On the next screen:\n\n1. Tap «Location»\n2. Select «Allow all the time»\n3. Press Back to return to Paparcar</string>
+    <string name="permissions_bg_guide_cta">Open settings</string>
+    <string name="permissions_bg_guide_dismiss">Not now</string>
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Weekly activity</string>

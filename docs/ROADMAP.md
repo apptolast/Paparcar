@@ -28,6 +28,8 @@
 - **DS unification Phase A** — superficies opacas, `PapSectionHeader`, CTAs unificados
 - **PERF-001/002 · DI-001 · DB-001 · A11Y-001 · DOZE-001 · GEOF-001** — auditoría P0/P1 completada 2026-05-24/25
 - **§9 · §10 · §13 · §15 · §16** — auditoría Medium/Low completada 2026-05-25 (permission guard START_STICKY, collectAsStateLifecycleAware, BT scope inyectado, getParcelableExtra API 33+, HomeViewModel reset)
+- **BUG-FGS-001 + BUG-FGS-002** — eliminados 24+5 crashes (9+1 usuarios). `PendingIntent.getForegroundService()` en `ActivityRecognitionManagerImpl`; lógica de routing IN_VEHICLE movida a `ParkingDetectionService.ACTION_VEHICLE_TRANSITION`; `ActivityTransitionReceiver` simplificado a STILL-only; `StartDetectionWorker` eliminado. Done 2026-05-25.
+- **BUG-PERMS-UX-001** — guía paso a paso antes de abrir Settings para ubicación en segundo plano (Android 11+ no muestra dialog, el usuario no sabe que debe elegir "Permitir siempre"). `PapAlertDialog` con instrucciones numeradas. Done 2026-05-25.
 - **IOS-AR-001 · IOS-BUILD-001 · IOS-SYNC-001 · IOS-PLACES-001** — iOS completado al ~95% (solo IOS-DIST-001 y BGTask pending)
 - **I18N-001** — strings EN/ES/IT/PT/FR/DE/NL/PL/RO sincronizadas; stale key `home_my_car_section_header` eliminada en DE/NL/PL/RO
 
@@ -56,6 +58,8 @@ Tickets nuevos derivados del resumen ejecutivo. Detalle técnico en `docs/BUGS_A
 | ✅ **IOS-AR-001** | ~~Cablear los 3 TODO de `IosActivityRecognitionManagerImpl` con el coordinator~~ — done 2026-05-24 | 2 h | IOS_PLAN §3 |
 | ⚠️ **SEC-001** | Parte código done (fail-fast + RELEASE-SECURITY.md). Pendiente: rotar key + restricciones GCP Console (acción usuario) | 1 h + GCP | BUGS §4 |
 | ⚠️ **AUDIT-FIRESTORE-001** | Reglas mínimas documentadas en `docs/release/RELEASE-SECURITY.md §2`. Pendiente: desplegar + testear en Firebase Console (acción usuario) | 0 h código | RELEASE-001 |
+| ⚠️ **BUG-WORKER-001** | Race condition `LocationUpdateSyncWorker` vs `ParkingSyncWorker` — `update()` antes de `set()` → NOT_FOUND en 100% de sesiones. Fix: encadenar con `.then()` en `WorkManagerParkingSyncScheduler`. | 1 h | worker-bugs-2026-05-25 |
+| ⚠️ **BUG-WORKER-002** | `ParkingSyncWorker` cancelado por OEM (Redmi) — `JobCancellationException` → parking nunca llega a Firestore. Fix: `withContext(NonCancellable)` en el bloque Firestore. | 1 h | worker-bugs-2026-05-25 |
 
 ### P1 — High (calidad / producción)
 | Ticket | Descripción | Estimado | Ref |

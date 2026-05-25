@@ -110,5 +110,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
         onRequestPermissions = { viewModel.handleIntent(PermissionsIntent.RequestPermissions) },
         onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
         onRequestBatteryOptimization = { viewModel.handleIntent(PermissionsIntent.RequestBatteryOptimization) },
+        onConfirmBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.ConfirmBackgroundLocationGuide) },
+        onDismissBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.DismissBackgroundLocationGuide) },
     )
 }

@@ -59,6 +59,13 @@ class PermissionsViewModel(
             PermissionsIntent.RequestBluetoothPermission -> sendEffect(PermissionsEffect.RequestStepBluetooth)
             PermissionsIntent.RequestBatteryOptimization -> sendEffect(PermissionsEffect.RequestBatteryOptimizationExemption)
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
+            PermissionsIntent.ConfirmBackgroundLocationGuide -> {
+                updateState { copy(showBackgroundLocationGuide = false) }
+                requestCount++
+                sendEffect(PermissionsEffect.RequestStep2BackgroundLocation)
+            }
+            PermissionsIntent.DismissBackgroundLocationGuide ->
+                updateState { copy(showBackgroundLocationGuide = false) }
         }
     }
 
@@ -78,11 +85,12 @@ class PermissionsViewModel(
                 sendEffect(PermissionsEffect.RequestStep1)
             }
 
-            // Step 2: background location still pending.
+            // Step 2: background location still pending — show guide first so the user
+            // knows to select "Allow all the time" and press Back. The guide's confirm
+            // button dispatches ConfirmBackgroundLocationGuide which sends the real effect.
             !current.hasBackgroundLocation -> {
                 escalateIfNeeded()
-                requestCount++
-                sendEffect(PermissionsEffect.RequestStep2BackgroundLocation)
+                updateState { copy(showBackgroundLocationGuide = true) }
             }
 
             // All runtime permissions granted, but GPS is off.
