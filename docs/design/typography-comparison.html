@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DS-TYPO-002 · Paparcar typography comparison</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ── Brand tokens (dark theme) ─────────────────────────────────────────── */
+:root {
+  --pap-green:           #25F48C;
+  --pap-green-dark:      #1AC070;
+  --pap-ink-deep:        #06090A;
+  --pap-ink:             #0B0F0E;
+  --pap-ink-container:   #141918;
+  --pap-ink-high:        #1C2221;
+  --pap-ink-highest:     #252B2A;
+  --pap-forest-dark:     #0D3D2E;
+  --pap-green-muted:     #133D28;
+  --pap-green-element:   #226D49;
+  --pap-on-dark:         #E8F5EC;
+  --pap-on-dark-muted:   #8EB5A0;
+  --pap-on-green-muted:  #9CBCAC;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #050807;
+  color: var(--pap-on-dark);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  padding: 32px 24px 64px;
+}
+
+/* ── Top header ────────────────────────────────────────────────────────── */
+.page-header {
+  max-width: 1320px;
+  margin: 0 auto 32px;
+  text-align: center;
+}
+.page-header h1 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: -0.5px;
+  color: var(--pap-on-dark);
+}
+.page-header p {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--pap-on-dark-muted);
+  margin-top: 8px;
+}
+
+/* ── Grid of 3 options ─────────────────────────────────────────────────── */
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+@media (max-width: 1100px) {
+  .options-grid { grid-template-columns: 1fr; }
+}
+
+.option {
+  background: var(--pap-ink);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.option-label {
+  padding: 16px 20px 14px;
+  background: var(--pap-ink-container);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.option-label .tag {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--pap-green);
+  text-transform: uppercase;
+}
+.option-label h2 {
+  font-weight: 800;
+  font-size: 18px;
+  margin-top: 4px;
+  color: var(--pap-on-dark);
+}
+.option-label .fonts-list {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--pap-on-dark-muted);
+  margin-top: 4px;
+}
+
+/* The 3 option-specific font stacks ────────────────────────────────────── */
+.opt-a {
+  --display-font: 'Outfit', sans-serif;
+  --body-font:    'Inter', sans-serif;
+  --data-font:    'Barlow Condensed', sans-serif;
+}
+.opt-b {
+  --display-font: 'Syne', sans-serif;
+  --body-font:    'Inter', sans-serif;
+  --data-font:    'Barlow Condensed', sans-serif;
+}
+.opt-c {
+  --display-font: 'Space Grotesk', sans-serif;
+  --body-font:    'Inter', sans-serif;
+  --data-font:    'Barlow Condensed', sans-serif;
+}
+
+.opt-a .option-label h2 { font-family: 'Outfit', sans-serif; }
+.opt-b .option-label h2 { font-family: 'Syne', sans-serif; }
+.opt-c .option-label h2 { font-family: 'Space Grotesk', sans-serif; }
+
+/* ── Phone frame ───────────────────────────────────────────────────────── */
+.phone {
+  background: var(--pap-ink-container);
+  padding: 18px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── App bar ───────────────────────────────────────────────────────────── */
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px 12px;
+}
+.app-bar .arrow {
+  width: 24px; height: 24px;
+  color: var(--pap-on-dark);
+}
+.app-bar .title {
+  font-family: var(--display-font);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.5px;
+  color: var(--pap-on-dark);
+}
+
+/* ── Stats row ─────────────────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.stat-card {
+  background: var(--pap-ink);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 12px 8px;
+  text-align: center;
+}
+.stat-card .value {
+  font-family: var(--data-font);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.5px;
+  color: var(--pap-green);
+}
+.stat-card .label {
+  font-family: var(--body-font);
+  font-weight: 400;
+  font-size: 12px;
+  color: rgba(232,245,236,0.55);
+  margin-top: 4px;
+}
+
+/* ── Active session card ───────────────────────────────────────────────── */
+.active-card {
+  background: var(--pap-green-muted);
+  border-radius: 20px;
+  padding: 20px;
+}
+.active-card .when {
+  font-family: var(--display-font);
+  font-weight: 600;
+  font-size: 14px;
+  color: #B8F5CE;
+}
+.active-card .where {
+  font-family: var(--body-font);
+  font-weight: 400;
+  font-size: 12px;
+  color: rgba(184,245,206,0.6);
+  margin-top: 2px;
+}
+.active-card .divider {
+  height: 1px;
+  background: rgba(37,244,140,0.1);
+  margin: 12px 0;
+}
+.active-card .location-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.active-card .location {
+  font-family: var(--body-font);
+  font-weight: 500;
+  font-size: 14px;
+  color: rgba(184,245,206,0.85);
+  flex: 1;
+}
+.active-card .accuracy {
+  background: rgba(37,244,140,0.12);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-family: var(--body-font);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--pap-green);
+}
+
+/* ── Weekly chart card ─────────────────────────────────────────────────── */
+.chart-card {
+  background: var(--pap-ink-high);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 20px;
+  padding: 20px;
+}
+.chart-card h3 {
+  font-family: var(--display-font);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.15px;
+  color: var(--pap-on-dark);
+}
+.chart-card .meta {
+  font-family: var(--body-font);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.chart-card .meta .num {
+  color: var(--pap-green);
+  font-weight: 700;
+}
+.chart-card .meta .label {
+  color: rgba(232,245,236,0.55);
+}
+.bars-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  margin-top: 16px;
+}
+.bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.bar-count {
+  font-family: var(--data-font);
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--pap-green);
+  height: 12px;
+  display: flex;
+  align-items: center;
+}
+.bar-count.empty { visibility: hidden; }
+.bar-bg {
+  position: relative;
+  width: 18px;
+  height: 60px;
+  background: rgba(232,245,236,0.06);
+  border-radius: 9px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.bar-fill {
+  width: 100%;
+  background: rgba(37,244,140,0.5);
+  border-radius: 9px;
+}
+.bar-fill.today { background: var(--pap-green); }
+.bar-label {
+  font-family: var(--data-font);
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(232,245,236,0.45);
+}
+.bar-label.today {
+  font-weight: 700;
+  color: rgba(232,245,236,0.8);
+}
+
+/* ── Insights card ─────────────────────────────────────────────────────── */
+.insights-card {
+  background: var(--pap-ink);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 14px;
+}
+.insights-card .eyebrow {
+  font-family: var(--body-font);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: rgba(232,245,236,0.55);
+}
+.insights-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+.insight-chip {
+  background: rgba(28,34,33,0.5);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.insight-chip .v {
+  font-family: var(--display-font);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--pap-green);
+}
+.insight-chip .l {
+  font-family: var(--body-font);
+  font-size: 12px;
+  color: rgba(232,245,236,0.5);
+  margin-top: 2px;
+}
+
+/* ── Scale catalogue ───────────────────────────────────────────────────── */
+.scale-card {
+  background: var(--pap-ink);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 16px;
+}
+.scale-card .eyebrow {
+  font-family: var(--body-font);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: rgba(232,245,236,0.4);
+}
+.scale-card .row { color: var(--pap-on-dark); }
+.scale-card .row.muted { color: rgba(232,245,236,0.6); }
+.scale-card .gap-4 { margin-top: 4px; }
+.scale-card .gap-8 { margin-top: 8px; }
+
+.s-appbartitle {
+  font-family: var(--display-font);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: -0.5px;
+}
+.s-titlelarge {
+  font-family: var(--display-font);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 28px;
+}
+.s-titlemedium {
+  font-family: var(--display-font);
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: 0.15px;
+}
+.s-titlesmall {
+  font-family: var(--display-font);
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+}
+.s-bodymedium {
+  font-family: var(--body-font);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+}
+.s-bodysmall {
+  font-family: var(--body-font);
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+}
+.s-labelsmall {
+  font-family: var(--body-font);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.8px;
+  color: var(--pap-green);
+}
+
+.data-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-top: 4px;
+}
+.d-stat {
+  font-family: var(--data-font);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.5px;
+  color: var(--pap-green);
+}
+.d-distance {
+  font-family: var(--data-font);
+  font-weight: 600;
+  font-size: 13px;
+}
+.d-size {
+  font-family: var(--data-font);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: rgba(232,245,236,0.6);
+}
+
+/* ── Glyph showcase ────────────────────────────────────────────────────── */
+.section-title {
+  max-width: 1320px;
+  margin: 40px auto 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pap-on-dark-muted);
+  text-align: center;
+}
+.glyph-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+@media (max-width: 1100px) { .glyph-grid { grid-template-columns: 1fr; } }
+
+.glyph-card {
+  background: var(--pap-ink);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  padding: 20px 16px;
+}
+.glyph-card .glyph-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--pap-green);
+  text-transform: uppercase;
+  text-align: center;
+}
+.glyph-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 14px;
+}
+.glyph-cell {
+  background: var(--pap-ink-container);
+  border-radius: 10px;
+  padding: 14px 0 6px;
+  text-align: center;
+}
+.glyph-cell .ch {
+  font-weight: 600;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--pap-on-dark);
+  display: block;
+}
+.glyph-cell .lbl {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 9px;
+  color: var(--pap-on-dark-muted);
+  margin-top: 6px;
+}
+.opt-a .glyph-cell .ch { font-family: 'Outfit', sans-serif; }
+.opt-b .glyph-cell .ch { font-family: 'Syne', sans-serif; }
+.opt-c .glyph-cell .ch { font-family: 'Space Grotesk', sans-serif; }
+
+/* ── History screen ────────────────────────────────────────────────────── */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+.chip {
+  background: var(--pap-ink);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: var(--body-font);
+  font-weight: 500;
+  font-size: 12px;
+  color: rgba(232,245,236,0.7);
+}
+.chip.active {
+  background: var(--pap-green-muted);
+  border-color: var(--pap-green-element);
+  color: var(--pap-green);
+  font-weight: 700;
+}
+.section-header {
+  font-family: var(--body-font);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: rgba(232,245,236,0.45);
+  text-transform: uppercase;
+  margin: 4px 4px 0;
+}
+.session-card {
+  background: var(--pap-ink);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.session-icon {
+  width: 40px; height: 40px;
+  background: var(--pap-green-muted);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--pap-green);
+  flex-shrink: 0;
+}
+.session-icon svg { width: 20px; height: 20px; }
+.session-body {
+  flex: 1;
+  min-width: 0;
+}
+.session-title {
+  font-family: var(--display-font);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--pap-on-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.session-meta {
+  font-family: var(--body-font);
+  font-size: 12px;
+  color: rgba(232,245,236,0.55);
+  margin-top: 2px;
+}
+.session-trailing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.session-duration {
+  font-family: var(--data-font);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--pap-on-dark);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+.session-unit {
+  font-family: var(--data-font);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: rgba(232,245,236,0.5);
+  text-transform: uppercase;
+}
+.empty-spacer { height: 8px; }
+.hero-duration {
+  font-family: var(--data-font);
+  font-weight: 700;
+  font-size: 56px;
+  letter-spacing: -2px;
+  color: var(--pap-green);
+  line-height: 1;
+}
+.hero-card {
+  background: var(--pap-forest-dark);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.hero-card .hero-info {
+  flex: 1;
+}
+.hero-card .hero-title {
+  font-family: var(--display-font);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(184,245,206,0.7);
+}
+.hero-card .hero-sub {
+  font-family: var(--body-font);
+  font-size: 13px;
+  color: rgba(184,245,206,0.85);
+  margin-top: 4px;
+}
+
+/* ── Footer note ───────────────────────────────────────────────────────── */
+.footnote {
+  max-width: 1320px;
+  margin: 28px auto 0;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: rgba(232,245,236,0.45);
+}
+.footnote code {
+  background: rgba(255,255,255,0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>DS-TYPO-002 · Comparativa tipográfica</h1>
+  <p>Tres pares display + body, mismo cuerpo Inter, mismo slot condensado Barlow. Mismo layout, distinta personalidad.</p>
+</header>
+
+<!-- ── Glyph showcase ─────────────────────────────────────────────────── -->
+<div class="section-title">Glifos diferenciadores · a g R Q 0 1 7</div>
+<section class="glyph-grid">
+
+  <article class="glyph-card opt-a">
+    <div class="glyph-name">Opción A · Outfit</div>
+    <div class="glyph-row">
+      <div class="glyph-cell"><span class="ch">a</span><div class="lbl">a</div></div>
+      <div class="glyph-cell"><span class="ch">g</span><div class="lbl">g</div></div>
+      <div class="glyph-cell"><span class="ch">R</span><div class="lbl">R</div></div>
+      <div class="glyph-cell"><span class="ch">Q</span><div class="lbl">Q</div></div>
+      <div class="glyph-cell"><span class="ch">0</span><div class="lbl">0</div></div>
+      <div class="glyph-cell"><span class="ch">1</span><div class="lbl">1</div></div>
+      <div class="glyph-cell"><span class="ch">7</span><div class="lbl">7</div></div>
+    </div>
+  </article>
+
+  <article class="glyph-card opt-b">
+    <div class="glyph-name">Opción B · Syne</div>
+    <div class="glyph-row">
+      <div class="glyph-cell"><span class="ch">a</span><div class="lbl">a</div></div>
+      <div class="glyph-cell"><span class="ch">g</span><div class="lbl">g</div></div>
+      <div class="glyph-cell"><span class="ch">R</span><div class="lbl">R</div></div>
+      <div class="glyph-cell"><span class="ch">Q</span><div class="lbl">Q</div></div>
+      <div class="glyph-cell"><span class="ch">0</span><div class="lbl">0</div></div>
+      <div class="glyph-cell"><span class="ch">1</span><div class="lbl">1</div></div>
+      <div class="glyph-cell"><span class="ch">7</span><div class="lbl">7</div></div>
+    </div>
+  </article>
+
+  <article class="glyph-card opt-c">
+    <div class="glyph-name">Opción C · Space Grotesk</div>
+    <div class="glyph-row">
+      <div class="glyph-cell"><span class="ch">a</span><div class="lbl">a</div></div>
+      <div class="glyph-cell"><span class="ch">g</span><div class="lbl">g</div></div>
+      <div class="glyph-cell"><span class="ch">R</span><div class="lbl">R</div></div>
+      <div class="glyph-cell"><span class="ch">Q</span><div class="lbl">Q</div></div>
+      <div class="glyph-cell"><span class="ch">0</span><div class="lbl">0</div></div>
+      <div class="glyph-cell"><span class="ch">1</span><div class="lbl">1</div></div>
+      <div class="glyph-cell"><span class="ch">7</span><div class="lbl">7</div></div>
+    </div>
+  </article>
+
+</section>
+
+<div class="section-title">Pantalla · Mi coche</div>
+<section class="options-grid">
+
+  <!-- ─── OPTION A ─────────────────────────────────────────────────── -->
+  <article class="option opt-a">
+    <header class="option-label">
+      <div class="tag">Opción A</div>
+      <h2>Outfit</h2>
+      <div class="fonts-list">Outfit · Inter · Barlow Condensed</div>
+    </header>
+    <div class="phone">
+
+      <!-- App bar -->
+      <div class="app-bar">
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <div class="title">Mi coche</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card"><div class="value">23</div><div class="label">Total sesiones</div></div>
+        <div class="stat-card"><div class="value">4</div><div class="label">Esta semana</div></div>
+        <div class="stat-card"><div class="value">12</div><div class="label">Este mes</div></div>
+      </div>
+
+      <!-- Active session -->
+      <div class="active-card">
+        <div class="when">Aparcado hace 1h 23min</div>
+        <div class="where">Calle Mayor, 14 · 10:32</div>
+        <div class="divider"></div>
+        <div class="location-row">
+          <div class="location">Calle Mayor · Madrid</div>
+          <div class="accuracy">± 4 m</div>
+        </div>
+      </div>
+
+      <!-- Weekly chart -->
+      <div class="chart-card">
+        <h3>Actividad semanal</h3>
+        <div class="meta"><span class="num">7</span> <span class="label">sesiones · últimos 7 días</span></div>
+        <div class="bars-row">
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:40%"></div></div><div class="bar-label">L</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:70%"></div></div><div class="bar-label">M</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:30%"></div></div><div class="bar-label">X</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:90%"></div></div><div class="bar-label">J</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:60%"></div></div><div class="bar-label">V</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:20%"></div></div><div class="bar-label">S</div></div>
+          <div class="bar-col"><div class="bar-count">5</div><div class="bar-bg"><div class="bar-fill today" style="height:100%"></div></div><div class="bar-label today">D</div></div>
+        </div>
+      </div>
+
+      <!-- Insights -->
+      <div class="insights-card">
+        <div class="eyebrow">TU PATRÓN</div>
+        <div class="insights-row">
+          <div class="insight-chip"><div class="v">4.2</div><div class="l">Sesiones/sem</div></div>
+          <div class="insight-chip"><div class="v">Jue</div><div class="l">Día pico</div></div>
+          <div class="insight-chip"><div class="v">94%</div><div class="l">Fiabilidad</div></div>
+        </div>
+      </div>
+
+      <!-- Scale -->
+      <div class="scale-card">
+        <div class="eyebrow">ESCALA TIPOGRÁFICA</div>
+        <div class="gap-8 row s-appbartitle">Pantalla principal</div>
+        <div class="row s-titlelarge">titleLarge · 22sp</div>
+        <div class="row s-titlemedium">titleMedium · 18sp</div>
+        <div class="row s-titlesmall">titleSmall · 14sp</div>
+        <div class="gap-4 row s-bodymedium">bodyMedium — Texto descriptivo de tarjeta</div>
+        <div class="row s-bodysmall muted">bodySmall — Calle Mayor, 14 · hace 1h 23min</div>
+        <div class="gap-4 s-labelsmall">LABELSMALL · ESTADO ACTIVO</div>
+        <div class="data-row">
+          <span class="d-stat">28</span>
+          <span class="d-distance">4,2 km</span>
+          <span class="d-size">COMPACTO</span>
+        </div>
+      </div>
+
+    </div>
+  </article>
+
+  <!-- ─── OPTION B ─────────────────────────────────────────────────── -->
+  <article class="option opt-b">
+    <header class="option-label">
+      <div class="tag">Opción B</div>
+      <h2>Syne</h2>
+      <div class="fonts-list">Syne · Inter · Barlow Condensed</div>
+    </header>
+    <div class="phone">
+
+      <div class="app-bar">
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <div class="title">Mi coche</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="value">23</div><div class="label">Total sesiones</div></div>
+        <div class="stat-card"><div class="value">4</div><div class="label">Esta semana</div></div>
+        <div class="stat-card"><div class="value">12</div><div class="label">Este mes</div></div>
+      </div>
+
+      <div class="active-card">
+        <div class="when">Aparcado hace 1h 23min</div>
+        <div class="where">Calle Mayor, 14 · 10:32</div>
+        <div class="divider"></div>
+        <div class="location-row">
+          <div class="location">Calle Mayor · Madrid</div>
+          <div class="accuracy">± 4 m</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Actividad semanal</h3>
+        <div class="meta"><span class="num">7</span> <span class="label">sesiones · últimos 7 días</span></div>
+        <div class="bars-row">
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:40%"></div></div><div class="bar-label">L</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:70%"></div></div><div class="bar-label">M</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:30%"></div></div><div class="bar-label">X</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:90%"></div></div><div class="bar-label">J</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:60%"></div></div><div class="bar-label">V</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:20%"></div></div><div class="bar-label">S</div></div>
+          <div class="bar-col"><div class="bar-count">5</div><div class="bar-bg"><div class="bar-fill today" style="height:100%"></div></div><div class="bar-label today">D</div></div>
+        </div>
+      </div>
+
+      <div class="insights-card">
+        <div class="eyebrow">TU PATRÓN</div>
+        <div class="insights-row">
+          <div class="insight-chip"><div class="v">4.2</div><div class="l">Sesiones/sem</div></div>
+          <div class="insight-chip"><div class="v">Jue</div><div class="l">Día pico</div></div>
+          <div class="insight-chip"><div class="v">94%</div><div class="l">Fiabilidad</div></div>
+        </div>
+      </div>
+
+      <div class="scale-card">
+        <div class="eyebrow">ESCALA TIPOGRÁFICA</div>
+        <div class="gap-8 row s-appbartitle">Pantalla principal</div>
+        <div class="row s-titlelarge">titleLarge · 22sp</div>
+        <div class="row s-titlemedium">titleMedium · 18sp</div>
+        <div class="row s-titlesmall">titleSmall · 14sp</div>
+        <div class="gap-4 row s-bodymedium">bodyMedium — Texto descriptivo de tarjeta</div>
+        <div class="row s-bodysmall muted">bodySmall — Calle Mayor, 14 · hace 1h 23min</div>
+        <div class="gap-4 s-labelsmall">LABELSMALL · ESTADO ACTIVO</div>
+        <div class="data-row">
+          <span class="d-stat">28</span>
+          <span class="d-distance">4,2 km</span>
+          <span class="d-size">COMPACTO</span>
+        </div>
+      </div>
+
+    </div>
+  </article>
+
+  <!-- ─── OPTION C ─────────────────────────────────────────────────── -->
+  <article class="option opt-c">
+    <header class="option-label">
+      <div class="tag">Opción C</div>
+      <h2>Space Grotesk</h2>
+      <div class="fonts-list">Space Grotesk · Inter · Barlow Condensed</div>
+    </header>
+    <div class="phone">
+
+      <div class="app-bar">
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <div class="title">Mi coche</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="value">23</div><div class="label">Total sesiones</div></div>
+        <div class="stat-card"><div class="value">4</div><div class="label">Esta semana</div></div>
+        <div class="stat-card"><div class="value">12</div><div class="label">Este mes</div></div>
+      </div>
+
+      <div class="active-card">
+        <div class="when">Aparcado hace 1h 23min</div>
+        <div class="where">Calle Mayor, 14 · 10:32</div>
+        <div class="divider"></div>
+        <div class="location-row">
+          <div class="location">Calle Mayor · Madrid</div>
+          <div class="accuracy">± 4 m</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Actividad semanal</h3>
+        <div class="meta"><span class="num">7</span> <span class="label">sesiones · últimos 7 días</span></div>
+        <div class="bars-row">
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:40%"></div></div><div class="bar-label">L</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:70%"></div></div><div class="bar-label">M</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:30%"></div></div><div class="bar-label">X</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:90%"></div></div><div class="bar-label">J</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:60%"></div></div><div class="bar-label">V</div></div>
+          <div class="bar-col"><div class="bar-count empty">0</div><div class="bar-bg"><div class="bar-fill" style="height:20%"></div></div><div class="bar-label">S</div></div>
+          <div class="bar-col"><div class="bar-count">5</div><div class="bar-bg"><div class="bar-fill today" style="height:100%"></div></div><div class="bar-label today">D</div></div>
+        </div>
+      </div>
+
+      <div class="insights-card">
+        <div class="eyebrow">TU PATRÓN</div>
+        <div class="insights-row">
+          <div class="insight-chip"><div class="v">4.2</div><div class="l">Sesiones/sem</div></div>
+          <div class="insight-chip"><div class="v">Jue</div><div class="l">Día pico</div></div>
+          <div class="insight-chip"><div class="v">94%</div><div class="l">Fiabilidad</div></div>
+        </div>
+      </div>
+
+      <div class="scale-card">
+        <div class="eyebrow">ESCALA TIPOGRÁFICA</div>
+        <div class="gap-8 row s-appbartitle">Pantalla principal</div>
+        <div class="row s-titlelarge">titleLarge · 22sp</div>
+        <div class="row s-titlemedium">titleMedium · 18sp</div>
+        <div class="row s-titlesmall">titleSmall · 14sp</div>
+        <div class="gap-4 row s-bodymedium">bodyMedium — Texto descriptivo de tarjeta</div>
+        <div class="row s-bodysmall muted">bodySmall — Calle Mayor, 14 · hace 1h 23min</div>
+        <div class="gap-4 s-labelsmall">LABELSMALL · ESTADO ACTIVO</div>
+        <div class="data-row">
+          <span class="d-stat">28</span>
+          <span class="d-distance">4,2 km</span>
+          <span class="d-size">COMPACTO</span>
+        </div>
+      </div>
+
+    </div>
+  </article>
+
+</section>
+
+<!-- ── Second screen — History ────────────────────────────────────────── -->
+<div class="section-title">Pantalla · Historial</div>
+<section class="options-grid">
+
+  <!-- ─── OPTION A ─────────────────────────────────────────────────── -->
+  <article class="option opt-a">
+    <header class="option-label">
+      <div class="tag">Opción A</div>
+      <h2>Outfit</h2>
+      <div class="fonts-list">Outfit · Inter · Barlow Condensed</div>
+    </header>
+    <div class="phone">
+
+      <div class="app-bar">
+        <div class="title">Historial</div>
+      </div>
+
+      <div class="filter-row">
+        <div class="chip active">Semana</div>
+        <div class="chip">Mes</div>
+        <div class="chip">Año</div>
+        <div class="chip">Todo</div>
+      </div>
+
+      <!-- Hero — total time -->
+      <div class="hero-card">
+        <div class="hero-info">
+          <div class="hero-title">Tiempo aparcado · Esta semana</div>
+          <div class="hero-sub">7 sesiones · 4 ubicaciones distintas</div>
+        </div>
+        <div class="hero-duration">12h<span style="font-size:24px;letter-spacing:-1px;">42</span></div>
+      </div>
+
+      <div class="section-header">JUEVES, 22 MAY</div>
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Calle Mayor, 14</div>
+          <div class="session-meta">10:32 · Madrid centro · ± 4 m</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">1h 23</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Av. de la Reina Victoria</div>
+          <div class="session-meta">Ayer · 18:05 · Chamberí</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">3h 12</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+      <div class="section-header">MARTES, 20 MAY</div>
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Parking Plaza España</div>
+          <div class="session-meta">09:14 · 4,2 km de casa</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">7h 48</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+    </div>
+  </article>
+
+  <!-- ─── OPTION B ─────────────────────────────────────────────────── -->
+  <article class="option opt-b">
+    <header class="option-label">
+      <div class="tag">Opción B</div>
+      <h2>Syne</h2>
+      <div class="fonts-list">Syne · Inter · Barlow Condensed</div>
+    </header>
+    <div class="phone">
+
+      <div class="app-bar">
+        <div class="title">Historial</div>
+      </div>
+
+      <div class="filter-row">
+        <div class="chip active">Semana</div>
+        <div class="chip">Mes</div>
+        <div class="chip">Año</div>
+        <div class="chip">Todo</div>
+      </div>
+
+      <div class="hero-card">
+        <div class="hero-info">
+          <div class="hero-title">Tiempo aparcado · Esta semana</div>
+          <div class="hero-sub">7 sesiones · 4 ubicaciones distintas</div>
+        </div>
+        <div class="hero-duration">12h<span style="font-size:24px;letter-spacing:-1px;">42</span></div>
+      </div>
+
+      <div class="section-header">JUEVES, 22 MAY</div>
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Calle Mayor, 14</div>
+          <div class="session-meta">10:32 · Madrid centro · ± 4 m</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">1h 23</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Av. de la Reina Victoria</div>
+          <div class="session-meta">Ayer · 18:05 · Chamberí</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">3h 12</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+      <div class="section-header">MARTES, 20 MAY</div>
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Parking Plaza España</div>
+          <div class="session-meta">09:14 · 4,2 km de casa</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">7h 48</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+    </div>
+  </article>
+
+  <!-- ─── OPTION C ─────────────────────────────────────────────────── -->
+  <article class="option opt-c">
+    <header class="option-label">
+      <div class="tag">Opción C</div>
+      <h2>Space Grotesk</h2>
+      <div class="fonts-list">Space Grotesk · Inter · Barlow Condensed</div>
+    </header>
+    <div class="phone">
+
+      <div class="app-bar">
+        <div class="title">Historial</div>
+      </div>
+
+      <div class="filter-row">
+        <div class="chip active">Semana</div>
+        <div class="chip">Mes</div>
+        <div class="chip">Año</div>
+        <div class="chip">Todo</div>
+      </div>
+
+      <div class="hero-card">
+        <div class="hero-info">
+          <div class="hero-title">Tiempo aparcado · Esta semana</div>
+          <div class="hero-sub">7 sesiones · 4 ubicaciones distintas</div>
+        </div>
+        <div class="hero-duration">12h<span style="font-size:24px;letter-spacing:-1px;">42</span></div>
+      </div>
+
+      <div class="section-header">JUEVES, 22 MAY</div>
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Calle Mayor, 14</div>
+          <div class="session-meta">10:32 · Madrid centro · ± 4 m</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">1h 23</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Av. de la Reina Victoria</div>
+          <div class="session-meta">Ayer · 18:05 · Chamberí</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">3h 12</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+      <div class="section-header">MARTES, 20 MAY</div>
+      <div class="session-card">
+        <div class="session-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 22s-8-7.58-8-13a8 8 0 0 1 16 0c0 5.42-8 13-8 13z"/></svg>
+        </div>
+        <div class="session-body">
+          <div class="session-title">Parking Plaza España</div>
+          <div class="session-meta">09:14 · 4,2 km de casa</div>
+        </div>
+        <div class="session-trailing">
+          <div class="session-duration">7h 48</div>
+          <div class="session-unit">min</div>
+        </div>
+      </div>
+
+    </div>
+  </article>
+
+</section>
+
+<footer class="footnote">
+  Mismos tamaños y pesos que <code>rememberAppTypography()</code> y <code>rememberDataTypography()</code> en cada rama <code>feature/DS-TYPO-002-option-*</code>.
+</footer>
+
+</body>
+</html>

@@ -96,7 +96,7 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 **Ticket:** `HOME-ZONES-EDIT-001`
 **Rama sugerida:** `feature/HOME-ZONES-EDIT-001-delete-edit-zones`
 **Prioridad:** Alta | **Esfuerzo:** Medio
-**Estado:** 🔵 Parcial 2026-05-20 — delete ✅ (× en chip → HomeIntent.DeleteZone); edit ⚪ bloqueado: SaveZoneUseCase solo crea, no actualiza — requiere UpdateZoneUseCase en dominio primero
+**Estado:** ✅ Done 2026-05-25 — delete ✅ (× en chip → HomeIntent.DeleteZone); edit ✅ — `UpdateZoneUseCase` creado; `EnterEditZoneMode` + `editingZoneId` en HomeState; long-press en ZoneChip → pre-fill form + camera move; `confirmAddZone()` rama update/create. Header peek adapta título "Edit zone" vs "New habitual zone". Strings en 9 locales.
 
 **Contexto:** en la modal de Home ya existe la fila de chips de zonas con "añadir zona" funcional. La lógica de eliminar y editar existe en repositorio/ViewModel pero no está expuesta en la UI.
 
@@ -162,7 +162,7 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 **Ticket:** `AUTH-SCREENS-001`
 **Rama sugerida:** `feature/AUTH-SCREENS-001-login-register-ui`
 **Prioridad:** Alta | **Esfuerzo:** Medio
-**Estado:** 🔵 Branch ready
+**Estado:** ✅ Done 2026-05-25 — pantallas revisadas, submit button migrado a `PapPrimaryButton`, "Paparcar" hardcode eliminado (→ `auth_header_app_name`). Análisis Apple Sign-In: ver abajo.
 
 **Contexto:** `BaseLogin` es una librería de autenticación propia, publicada en JitPack desde `Documents/AndroidProjects/BaseLogin/`. Ya integrada en Paparcar (ver memoria `feedback_baselogin_jitpack_flow.md`). Los flujos de auth están conectados pero las pantallas pueden necesitar revisión visual.
 
@@ -174,6 +174,20 @@ Cruzan con trabajo ya realizado en sprints anteriores (indicado con ✅).
 
 **Notas:**
 - Recordar que cambios en BaseLogin requieren publish a JitPack + bump de versión en Paparcar (ver memoria).
+
+### Análisis Sign In with Apple
+
+**Dificultad:** Alta. Requiere cambios en tres capas:
+
+1. **iOS entitlements + Apple Developer Console** — configurar `com.apple.developer.applesignin` capability, registrar el Service ID en Apple, habilitar el Sign In with Apple capability en el provisioning profile.
+
+2. **KMP iOS implementation** — `ASAuthorizationAppleIDProvider` de AuthenticationServices (`@available(iOS 13.0, *)`). El flujo es: `ASAuthorizationAppleIDRequest → ASAuthorizationController (delegate) → credential.identityToken (JWT) → Firebase Auth signIn(withApple:)`. Requiere un `actual` en iosMain que gestione el delegate de UIKit.
+
+3. **BaseLogin** — actualmente BaseLogin no expone un slot para Apple ni un `SocialProvider.Apple`. Habría que añadir `SocialProvider.Apple` a la sealed class, un `AppleSignInManager` en iosMain, y wire el credential hacia Firebase. En Android es también requerido por Apple (para apps con Auth en iOS que también están en Android) pero se implementa vía Firebase + web redirect — no nativo.
+
+**Bloqueantes reales:** Apple Developer membership ($99/año) y entitlements del provisioning profile. Sin eso no se puede probar ni distribuir.
+
+**Recomendación:** diferir a post-beta. El flujo Email + Google cubre el lanzamiento. Trackear como `AUTH-APPLE-001` cuando el Developer account esté activo.
 
 ---
 
