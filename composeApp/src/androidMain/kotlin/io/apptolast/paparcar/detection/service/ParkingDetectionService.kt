@@ -5,12 +5,18 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.ActivityTransition
+import com.google.android.gms.location.ActivityTransitionResult
+import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
+import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
@@ -24,6 +30,8 @@ class ParkingDetectionService : LifecycleService() {
     private val observeAdaptiveLocation: ObserveAdaptiveLocationUseCase by inject()
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
     private val notificationPort: AppNotificationManager by inject()
+    private val departureEventBus: DepartureEventBus by inject()
+    private val strategyResolver: ParkingStrategyResolver by inject()
     private var detectionJob: Job? = null
 
     override fun onCreate() {
@@ -55,22 +63,20 @@ class ParkingDetectionService : LifecycleService() {
                 PaparcarLogger.d(DIAG, "  → START_TRACKING — (re)starting detection")
                 detectionJob?.cancel()
                 detectionJob = null
-                val notification = foregroundNotificationProvider.buildDetectionNotification()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(
-                        AppNotificationManager.DETECTION_NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
-                    )
-                } else {
-                    startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
-                }
-                PaparcarLogger.d(DIAG, "  ✓ startForeground done (notif ${AppNotificationManager.DETECTION_NOTIFICATION_ID})")
+                startForegroundCompat()
                 startParkingDetection()
             }
-            ACTION_VEHICLE_EXIT -> {
-                PaparcarLogger.d(DIAG, "  → VEHICLE_EXIT delivered to coordinator")
-                parkingDetectionCoordinator.onVehicleExit()
+            ACTION_VEHICLE_TRANSITION -> {
+                // Delivered directly from Play Services via PendingIntent.getForegroundService().
+                // startForeground() must be called first — Android 8+ enforces a 5 s window. [BUG-FGS-001]
+                startForegroundCompat()
+                if (!hasRequiredPermissions()) {
+                    PaparcarLogger.w(DIAG, "  ✗ VEHICLE_TRANSITION aborted — location permissions not granted")
+                    notificationPort.showPermissionRevoked()
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+                handleVehicleTransition(intent!!)
             }
             ACTION_PARKING_CONFIRMED -> {
                 PaparcarLogger.d(DIAG, "  → PARKING_CONFIRMED delivered to coordinator")
@@ -87,6 +93,67 @@ class ParkingDetectionService : LifecycleService() {
         }
 
         return START_STICKY
+    }
+
+    private fun handleVehicleTransition(intent: Intent) {
+        val result = ActivityTransitionResult.extractResult(intent) ?: run {
+            PaparcarLogger.w(DIAG, "  ✗ VEHICLE_TRANSITION — no ActivityTransitionResult in intent")
+            if (detectionJob?.isActive != true) stopSelf()
+            return
+        }
+
+        result.transitionEvents.forEach { event ->
+            PaparcarLogger.d(DIAG, "  → VEHICLE_TRANSITION ${activityLabel(event.activityType)} ${transitionLabel(event.transitionType)}")
+
+            when {
+                event.activityType == DetectedActivity.IN_VEHICLE &&
+                event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER -> {
+                    val eventEpochMs = System.currentTimeMillis() -
+                        SystemClock.elapsedRealtime() +
+                        event.elapsedRealTimeNanos / 1_000_000L
+                    departureEventBus.onVehicleEntered(eventEpochMs)
+
+                    lifecycleScope.launch {
+                        if (strategyResolver.shouldUseCoordinator()) {
+                            if (!hasRequiredPermissions()) {
+                                PaparcarLogger.w(DIAG, "  ✗ IN_VEHICLE_ENTER — location permissions not granted")
+                                if (detectionJob?.isActive != true) stopSelf()
+                                return@launch
+                            }
+                            if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
+                                PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator")
+                                startParkingDetection()
+                            } else {
+                                PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER — Coordinator already active")
+                            }
+                        } else {
+                            PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — BT strategy active, Coordinator not started")
+                            if (detectionJob?.isActive != true) stopSelf()
+                        }
+                    }
+                }
+
+                event.activityType == DetectedActivity.IN_VEHICLE &&
+                event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT -> {
+                    parkingDetectionCoordinator.onVehicleExit()
+                    if (detectionJob?.isActive != true) stopSelf()
+                }
+            }
+        }
+    }
+
+    private fun startForegroundCompat() {
+        val notification = foregroundNotificationProvider.buildDetectionNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                AppNotificationManager.DETECTION_NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
+            )
+        } else {
+            startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
+        }
+        PaparcarLogger.d(DIAG, "  ✓ startForeground done (notif ${AppNotificationManager.DETECTION_NOTIFICATION_ID})")
     }
 
     private fun startParkingDetection() {
@@ -126,10 +193,24 @@ class ParkingDetectionService : LifecycleService() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy DONE")
     }
 
+    private fun activityLabel(type: Int) = when (type) {
+        DetectedActivity.STILL -> "STILL"
+        DetectedActivity.IN_VEHICLE -> "IN_VEHICLE"
+        DetectedActivity.WALKING -> "WALKING"
+        DetectedActivity.RUNNING -> "RUNNING"
+        else -> "UNKNOWN($type)"
+    }
+
+    private fun transitionLabel(type: Int) = when (type) {
+        ActivityTransition.ACTIVITY_TRANSITION_ENTER -> "ENTER"
+        ActivityTransition.ACTIVITY_TRANSITION_EXIT -> "EXIT"
+        else -> "UNKNOWN($type)"
+    }
+
     companion object {
         const val ACTION_START_TRACKING = "io.apptolast.paparcar.ACTION_START_TRACKING"
         const val ACTION_STOP_TRACKING = "io.apptolast.paparcar.ACTION_STOP_TRACKING"
-        const val ACTION_VEHICLE_EXIT = "io.apptolast.paparcar.ACTION_VEHICLE_EXIT"
+        const val ACTION_VEHICLE_TRANSITION = "io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION"
         const val ACTION_PARKING_CONFIRMED = "io.apptolast.paparcar.ACTION_PARKING_CONFIRMED"
         const val ACTION_PARKING_DENIED = "io.apptolast.paparcar.ACTION_PARKING_DENIED"
         private const val DIAG = "PARKDIAG/Service"

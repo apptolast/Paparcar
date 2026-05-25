@@ -12,6 +12,7 @@ import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionRequest
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.receiver.ActivityTransitionReceiver
+import io.apptolast.paparcar.detection.service.ParkingDetectionService
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.github.aakira.napier.Napier
 
@@ -20,13 +21,30 @@ class ActivityRecognitionManagerImpl(
 ) : ActivityRecognitionManager {
 
     private val activityClient = ActivityRecognition.getClient(context)
-    private val pendingIntent: PendingIntent by lazy {
+
+    // STILL events → BroadcastReceiver. No FGS needed — coordinator.onStillDetected() is fire-and-forget.
+    private val stillPendingIntent: PendingIntent by lazy {
         val intent = Intent(context, ActivityTransitionReceiver::class.java)
         PendingIntent.getBroadcast(
             context,
             ActivityTransitionReceiver.REQUEST_CODE,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+        )
+    }
+
+    // IN_VEHICLE events → ForegroundService PendingIntent. Play Services delivers directly to the
+    // service with system privileges, bypassing the Android 12+ background FGS start restriction.
+    // [BUG-FGS-001]
+    private val vehiclePendingIntent: PendingIntent by lazy {
+        val intent = Intent(context, ParkingDetectionService::class.java).apply {
+            action = ParkingDetectionService.ACTION_VEHICLE_TRANSITION
+        }
+        PendingIntent.getForegroundService(
+            context,
+            VEHICLE_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
         )
     }
 
@@ -36,34 +54,40 @@ class ActivityRecognitionManagerImpl(
             return
         }
 
-        val transitions = listOf(
-            ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.IN_VEHICLE)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
-                .build(),
-            ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.IN_VEHICLE)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
-                .build(),
-            ActivityTransition.Builder()
-                .setActivityType(DetectedActivity.STILL)
-                .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
-                .build(),
+        val stillRequest = ActivityTransitionRequest(
+            listOf(
+                ActivityTransition.Builder()
+                    .setActivityType(DetectedActivity.STILL)
+                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+                    .build(),
+            ),
         )
 
-        val request = ActivityTransitionRequest(transitions)
+        val vehicleRequest = ActivityTransitionRequest(
+            listOf(
+                ActivityTransition.Builder()
+                    .setActivityType(DetectedActivity.IN_VEHICLE)
+                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+                    .build(),
+                ActivityTransition.Builder()
+                    .setActivityType(DetectedActivity.IN_VEHICLE)
+                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
+                    .build(),
+            ),
+        )
 
-        activityClient.requestActivityTransitionUpdates(request, pendingIntent)
-            .addOnSuccessListener {
-                Napier.d("Activity transition updates registered", tag = TAG)
-            }
-            .addOnFailureListener { e ->
-                Napier.e("Failed to register activity transition updates", e, tag = TAG)
-            }
+        activityClient.requestActivityTransitionUpdates(stillRequest, stillPendingIntent)
+            .addOnSuccessListener { Napier.d("STILL transitions registered", tag = TAG) }
+            .addOnFailureListener { e -> Napier.e("Failed to register STILL transitions", e, tag = TAG) }
+
+        activityClient.requestActivityTransitionUpdates(vehicleRequest, vehiclePendingIntent)
+            .addOnSuccessListener { Napier.d("IN_VEHICLE transitions registered", tag = TAG) }
+            .addOnFailureListener { e -> Napier.e("Failed to register IN_VEHICLE transitions", e, tag = TAG) }
     }
 
     override fun unregisterTransitions() {
-        activityClient.removeActivityTransitionUpdates(pendingIntent)
+        activityClient.removeActivityTransitionUpdates(stillPendingIntent)
+        activityClient.removeActivityTransitionUpdates(vehiclePendingIntent)
     }
 
     private fun hasActivityRecognitionPermission(): Boolean =
@@ -78,5 +102,6 @@ class ActivityRecognitionManagerImpl(
 
     private companion object {
         const val TAG = "ActivityRecognitionManager"
+        const val VEHICLE_REQUEST_CODE = 102
     }
 }
