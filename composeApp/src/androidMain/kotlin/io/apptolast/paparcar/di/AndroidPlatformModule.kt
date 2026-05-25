@@ -27,12 +27,15 @@ import org.koin.dsl.module
 
 val androidPlatformModule = module {
     // Database
+    // Destructive migration is gated to legacy versions (1, 2) only — pre-beta installs
+    // with no real user data. From v3 onward, schema bumps MUST ship an explicit
+    // Migration; otherwise Room will throw at startup. See AppDatabase doc. [DB-001]
     single<AppDatabase> {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).fallbackToDestructiveMigration(true)
+        ).fallbackToDestructiveMigrationFrom(true, 1, 2)
             .build()
     }
 

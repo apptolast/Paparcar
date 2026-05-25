@@ -31,6 +31,9 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC")
     fun observeActive(): Flow<List<UserParkingEntity>>
 
+    @Query("SELECT * FROM parking_sessions WHERE isActive = 1 ORDER BY timestamp DESC")
+    suspend fun getAllActive(): List<UserParkingEntity>
+
     @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
     fun observeByVehicle(vehicleId: String): Flow<List<UserParkingEntity>>
 

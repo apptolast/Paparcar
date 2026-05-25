@@ -16,9 +16,9 @@ import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.connectivity.IosConnectivityObserver
 import io.apptolast.paparcar.ios.preferences.IosAppPreferences
-import io.apptolast.paparcar.ios.stub.StubPlacesDataSource
 import io.apptolast.paparcar.location.IosGeocoderDataSourceImpl
 import io.apptolast.paparcar.location.IosLocationDataSourceImpl
+import io.apptolast.paparcar.location.IosOverpassPlacesDataSourceImpl
 import io.apptolast.paparcar.notification.IosAppNotificationManagerImpl
 import io.apptolast.paparcar.permissions.IosPermissionManagerImpl
 import org.koin.dsl.module
@@ -28,11 +28,14 @@ import platform.Foundation.NSUserDomainMask
 
 val iosPlatformModule = module {
     // Database
+    // Destructive migration is gated to legacy versions (1, 2) only — pre-beta installs
+    // with no real user data. From v3 onward, schema bumps MUST ship an explicit
+    // Migration; otherwise Room will throw at startup. See AppDatabase doc. [DB-001]
     single<AppDatabase> {
         val dbFilePath = documentDirectory() + "/paparcar.db"
         Room.databaseBuilder<AppDatabase>(name = dbFilePath)
             .setDriver(BundledSQLiteDriver())
-            .fallbackToDestructiveMigration(true)
+            .fallbackToDestructiveMigrationFrom(true, 1, 2)
             .build()
     }
 
@@ -40,7 +43,8 @@ val iosPlatformModule = module {
     single<LocationDataSource> { IosLocationDataSourceImpl() }
     // Geocoder — real iOS implementation (CLGeocoder)
     single<GeocoderDataSource> { IosGeocoderDataSourceImpl() }
-    single<PlacesDataSource> { StubPlacesDataSource() }
+    // Places — real iOS implementation (Overpass API via NSURLSession) [IOS-PLACES-001]
+    single<PlacesDataSource> { IosOverpassPlacesDataSourceImpl() }
 
     // Notifications — real iOS implementation (UNUserNotificationCenter)
     single<AppNotificationManager> { IosAppNotificationManagerImpl() }
