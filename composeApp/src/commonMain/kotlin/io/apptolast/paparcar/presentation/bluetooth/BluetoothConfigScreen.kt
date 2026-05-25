@@ -32,7 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -66,7 +66,7 @@ fun BluetoothConfigScreen(
     onNavigateBack: () -> Unit,
     viewModel: BluetoothConfigViewModel = koinViewModel(parameters = { parametersOf(vehicleId) }),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateLifecycleAware()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
 

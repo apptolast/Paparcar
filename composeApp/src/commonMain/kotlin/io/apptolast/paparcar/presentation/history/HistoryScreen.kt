@@ -44,7 +44,7 @@ import androidx.compose.material3.TopAppBarDefaults
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -178,7 +178,7 @@ fun HistoryScreen(
         parameters = if (vehicleId != null) ({ parametersOf(vehicleId) }) else null,
     ),
 ) {
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateLifecycleAware()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val currentOnNavigateToMap by rememberUpdatedState(onNavigateToMap)

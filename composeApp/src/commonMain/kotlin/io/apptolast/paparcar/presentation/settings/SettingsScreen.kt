@@ -54,7 +54,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -164,7 +164,7 @@ fun SettingsScreen(
     onSetLanguage: (String) -> Unit = {},
 ) {
     val viewModel: SettingsViewModel = koinViewModel()
-    val state by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateLifecycleAware()
     val uriHandler = LocalUriHandler.current
 
     // Refresh pref-backed fields every time the screen re-enters composition,

@@ -33,7 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,7 +104,7 @@ internal fun VehiclePageContent(
         key = "history_$vehicleId",
         parameters = { parametersOf(vehicleId) },
     )
-    val historyState by historyVm.state.collectAsState()
+    val historyState by historyVm.state.collectAsStateLifecycleAware()
 
     LaunchedEffect(vehicleId) {
         historyVm.effect.collect { effect ->
