@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -68,7 +67,6 @@ import paparcar.composeapp.generated.resources.my_car_edit_vehicle
 import paparcar.composeapp.generated.resources.my_car_more_actions
 import paparcar.composeapp.generated.resources.my_car_set_active
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
-import paparcar.composeapp.generated.resources.vehicle_card_detection_ar
 import paparcar.composeapp.generated.resources.vehicle_card_detection_bt
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
@@ -241,8 +239,10 @@ private fun VehicleHeroCard(
                     SetActiveButton(onClick = onSetActive)
                 }
             }
-            Spacer(Modifier.height(10.dp))
-            DetectionChip(bluetoothDeviceId = vehicle.bluetoothDeviceId)
+            if (vehicle.bluetoothDeviceId != null) {
+                Spacer(Modifier.height(10.dp))
+                DetectionChip(bluetoothDeviceId = vehicle.bluetoothDeviceId)
+            }
         }
     }
 }
@@ -360,23 +360,14 @@ private fun StatCard(value: String, label: String, modifier: Modifier = Modifier
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun DetectionChip(bluetoothDeviceId: String?) {
+private fun DetectionChip(bluetoothDeviceId: String) {
     val cs = MaterialTheme.colorScheme
-    val data: DetectionChipData = if (bluetoothDeviceId != null) {
-        DetectionChipData(
-            label = "${stringResource(Res.string.vehicle_card_detection_bt)} · ${bluetoothDeviceId.takeLast(BT_LABEL_LENGTH)}",
-            bg = cs.tertiaryContainer.copy(alpha = CHIP_BG_ALPHA),
-            fg = cs.tertiary,
-            icon = Icons.Outlined.Bluetooth,
-        )
-    } else {
-        DetectionChipData(
-            label = stringResource(Res.string.vehicle_card_detection_ar),
-            bg = cs.secondaryContainer.copy(alpha = CHIP_BG_ALPHA),
-            fg = cs.secondary,
-            icon = Icons.Outlined.DirectionsCar,
-        )
-    }
+    val data = DetectionChipData(
+        label = "${stringResource(Res.string.vehicle_card_detection_bt)} · ${bluetoothDeviceId.takeLast(BT_LABEL_LENGTH)}",
+        bg = cs.tertiaryContainer.copy(alpha = CHIP_BG_ALPHA),
+        fg = cs.tertiary,
+        icon = Icons.Outlined.Bluetooth,
+    )
     Surface(
         shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
         color = data.bg,

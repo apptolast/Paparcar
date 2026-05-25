@@ -26,8 +26,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.stickyHeader
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
@@ -79,6 +81,13 @@ import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
 import paparcar.composeapp.generated.resources.history_cd_back
+import paparcar.composeapp.generated.resources.history_day_full_fri
+import paparcar.composeapp.generated.resources.history_day_full_mon
+import paparcar.composeapp.generated.resources.history_day_full_sat
+import paparcar.composeapp.generated.resources.history_day_full_sun
+import paparcar.composeapp.generated.resources.history_day_full_thu
+import paparcar.composeapp.generated.resources.history_day_full_tue
+import paparcar.composeapp.generated.resources.history_day_full_wed
 import paparcar.composeapp.generated.resources.history_day_short_fri
 import paparcar.composeapp.generated.resources.history_day_short_mon
 import paparcar.composeapp.generated.resources.history_day_short_sat
@@ -146,6 +155,13 @@ internal val DAY_SHORT_RES: List<StringResource> = listOf(
     Res.string.history_day_short_wed, Res.string.history_day_short_thu,
     Res.string.history_day_short_fri, Res.string.history_day_short_sat,
     Res.string.history_day_short_sun,
+)
+
+internal val DAY_FULL_RES: List<StringResource> = listOf(
+    Res.string.history_day_full_mon, Res.string.history_day_full_tue,
+    Res.string.history_day_full_wed, Res.string.history_day_full_thu,
+    Res.string.history_day_full_fri, Res.string.history_day_full_sat,
+    Res.string.history_day_full_sun,
 )
 
 // ─── Weekly chart data model ───────────────────────────────────────────────────
@@ -247,6 +263,7 @@ fun HistoryScreen(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun HistoryContent(
     state: HistoryState,
@@ -266,6 +283,7 @@ internal fun HistoryContent(
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
     val monthNamesShort = MONTH_SHORT_RES.map { stringResource(it) }
     val dayLabels = DAY_SHORT_RES.map { stringResource(it) }
+    val dayFullLabels = DAY_FULL_RES.map { stringResource(it) }
 
     Box(
         modifier = modifier
@@ -290,8 +308,8 @@ internal fun HistoryContent(
                     state.filteredSessions.firstOrNull { it.isActive }
                 }
                 val ended = remember(state.filteredSessions) { state.filteredSessions.filter { !it.isActive } }
-                val timelineItems = remember(ended, todayLabel, yesterdayLabel, monthNamesShort) {
-                    buildTimeline(ended, todayLabel, yesterdayLabel, monthNamesShort)
+                val timelineItems = remember(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels) {
+                    buildTimeline(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels)
                 }
 
                 LazyColumn(
@@ -316,8 +334,7 @@ internal fun HistoryContent(
                         }
                     }
 
-                    item(key = "filter_bar") {
-                        Spacer(Modifier.height(4.dp))
+                    stickyHeader(key = "filter_bar") {
                         HistoryFilterBar(
                             activeFilter = state.activeFilter,
                             onFilterSelected = onFilterSelected,
@@ -393,6 +410,7 @@ private fun buildTimeline(
     todayLabel: String,
     yesterdayLabel: String,
     monthNamesShort: List<String>,
+    dayFullLabels: List<String>,
 ): List<TimelineItem> {
     val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
@@ -411,7 +429,7 @@ private fun buildTimeline(
             val label = when (date) {
                 today -> todayLabel
                 yesterday -> yesterdayLabel
-                else -> "${date.day} ${monthNamesShort[date.month.number - 1]} ${date.year}"
+                else -> "${dayFullLabels[date.dayOfWeek.isoDayNumber - 1]}, ${date.day} ${monthNamesShort[date.month.number - 1]} ${date.year}"
             }
             flat += TimelineItem.Header(label)
             daySessions.forEach { flat += TimelineItem.Session(it, isLast = false) }

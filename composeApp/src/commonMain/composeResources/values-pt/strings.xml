@@ -174,6 +174,13 @@
     <string name="history_day_short_fri">Sex</string>
     <string name="history_day_short_sat">Sáb</string>
     <string name="history_day_short_sun">Dom</string>
+    <string name="history_day_full_mon">Segunda</string>
+    <string name="history_day_full_tue">Terça</string>
+    <string name="history_day_full_wed">Quarta</string>
+    <string name="history_day_full_thu">Quinta</string>
+    <string name="history_day_full_fri">Sexta</string>
+    <string name="history_day_full_sat">Sábado</string>
+    <string name="history_day_full_sun">Domingo</string>
 
     <!-- MapScreen -->
     <string name="map_title">Mapa de lugares</string>

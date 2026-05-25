@@ -220,6 +220,13 @@
     <string name="history_day_short_fri">Fr</string>
     <string name="history_day_short_sat">Sa</string>
     <string name="history_day_short_sun">Su</string>
+    <string name="history_day_full_mon">Monday</string>
+    <string name="history_day_full_tue">Tuesday</string>
+    <string name="history_day_full_wed">Wednesday</string>
+    <string name="history_day_full_thu">Thursday</string>
+    <string name="history_day_full_fri">Friday</string>
+    <string name="history_day_full_sat">Saturday</string>
+    <string name="history_day_full_sun">Sunday</string>
 
     <!-- MapScreen -->
     <string name="map_title">Spots map</string>

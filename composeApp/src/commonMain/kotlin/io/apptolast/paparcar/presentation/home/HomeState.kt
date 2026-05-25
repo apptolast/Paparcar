@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
+import androidx.compose.runtime.Immutable
 import io.apptolast.paparcar.domain.model.ZoneIcon
 
 /**
@@ -49,6 +50,7 @@ sealed class HomeMode {
  * Estado de la pantalla Home.
  * Representa todos los datos necesarios para renderizar la UI.
  */
+@Immutable
 data class HomeState(
     val isLoading: Boolean = false,
     val allPermissionsGranted: Boolean = false,

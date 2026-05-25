@@ -218,6 +218,13 @@
     <string name="history_day_short_fri">V</string>
     <string name="history_day_short_sat">S</string>
     <string name="history_day_short_sun">D</string>
+    <string name="history_day_full_mon">Lunes</string>
+    <string name="history_day_full_tue">Martes</string>
+    <string name="history_day_full_wed">Miércoles</string>
+    <string name="history_day_full_thu">Jueves</string>
+    <string name="history_day_full_fri">Viernes</string>
+    <string name="history_day_full_sat">Sábado</string>
+    <string name="history_day_full_sun">Domingo</string>
 
     <!-- MapScreen -->
     <string name="map_title">Mapa de plazas</string>

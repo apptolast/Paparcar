@@ -1,8 +1,10 @@
 package io.apptolast.paparcar.presentation.vehicles
 
+import androidx.compose.runtime.Immutable
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 
+@Immutable
 data class VehiclesState(
     val vehicles: List<VehicleWithStats> = emptyList(),
     val isLoading: Boolean = true,
