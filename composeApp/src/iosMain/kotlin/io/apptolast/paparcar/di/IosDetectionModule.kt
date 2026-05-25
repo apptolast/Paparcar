@@ -10,18 +10,19 @@ import io.apptolast.paparcar.detection.IosActivityRecognitionManagerImpl
 import io.apptolast.paparcar.detection.IosGeofenceEventBusImpl
 import io.apptolast.paparcar.detection.IosGeofenceManagerImpl
 import io.apptolast.paparcar.detection.IosParkingEnrichmentScheduler
+import io.apptolast.paparcar.detection.IosParkingSyncScheduler
 import io.apptolast.paparcar.detection.IosReportSpotScheduler
 import io.apptolast.paparcar.ios.stub.StubDepartureEventBus
-import io.apptolast.paparcar.ios.stub.StubParkingSyncScheduler
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import org.koin.dsl.module
 
 val iosDetectionModule = module {
-    single<ActivityRecognitionManager> { IosActivityRecognitionManagerImpl() }
+    single<ActivityRecognitionManager> { IosActivityRecognitionManagerImpl(get(), get()) }
     single<GeofenceEventBus> { IosGeofenceEventBusImpl() }
     single<GeofenceManager> { IosGeofenceManagerImpl(get()) }
     single<DepartureEventBus> { StubDepartureEventBus() }
     single<ParkingEnrichmentScheduler> { IosParkingEnrichmentScheduler(get(), get()) }
-    single<ParkingSyncScheduler> { StubParkingSyncScheduler() }
+    // Real iOS implementation — coroutine-scope + retry. No process-death persistence yet. [IOS-SYNC-001]
+    single<ParkingSyncScheduler> { IosParkingSyncScheduler(get(), get()) }
     single<ReportSpotScheduler> { IosReportSpotScheduler(get(), get()) }
 }
