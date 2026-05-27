@@ -3,6 +3,7 @@ package io.apptolast.paparcar.data.repository
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.local.room.UserProfileDao
 import io.apptolast.paparcar.data.datasource.local.room.VehicleDao
+import io.apptolast.paparcar.data.datasource.local.room.VehicleEntity
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toDto
@@ -95,16 +96,28 @@ class VehicleRepositoryImpl(
             PaparcarLogger.e(DIAG, "  ✗ no vehicles from Firestore — upsert skipped")
             return@runCatching
         }
-        dao.upsertAll(remoteEntities)
-        PaparcarLogger.d(DIAG, "■ syncFromRemote upserted ${remoteEntities.size} vehicle(s) into Room")
+        val normalized = enforceAtMostOneDefault(remoteEntities)
+        if (normalized.count { it.isDefault } != remoteEntities.count { it.isDefault }) {
+            PaparcarLogger.w(DIAG, "  ⚠ multiple isDefault=true in remote data — normalized to single default")
+        }
+        dao.deleteByUser(userId)
+        dao.upsertAll(normalized)
+        PaparcarLogger.d(DIAG, "■ syncFromRemote replaced local with ${normalized.size} remote vehicle(s) in Room")
     }
 
     override suspend fun saveVehicle(vehicle: Vehicle) {
-        dao.insert(vehicle.toEntity())
         currentUserId()?.let { uid ->
+            if (vehicle.isDefault) {
+                // Enforce single-default invariant before inserting: clear the flag on
+                // all sibling vehicles in Room and Firestore so we never end up with two
+                // rows where isDefault=1.
+                dao.clearDefault(uid)
+                dao.getByUser(uid)
+                    .filter { it.id != vehicle.id }
+                    .forEach { userProfileDataSource.updateVehicleDefaultFlag(uid, it.id, false) }
+            }
+            dao.insert(vehicle.toEntity())
             userProfileDataSource.saveVehicle(uid, vehicle.toDto())
-            // If this is being saved as the default, mirror it on the user profile
-            // so the splash can decide hasVehicle without a list query.
             if (vehicle.isDefault) {
                 profileDao.updateDefaultVehicleId(uid, vehicle.id)
                 userProfileDataSource.updateDefaultVehicleId(uid, vehicle.id)
@@ -160,6 +173,18 @@ class VehicleRepositoryImpl(
 
     override suspend fun hasVehicles(userId: String): Boolean =
         dao.countByUser(userId) > 0
+
+    private fun enforceAtMostOneDefault(entities: List<VehicleEntity>): List<VehicleEntity> {
+        if (entities.count { it.isDefault } <= 1) return entities
+        var kept = false
+        return entities.map { entity ->
+            when {
+                !entity.isDefault -> entity
+                !kept -> entity.also { kept = true }
+                else -> entity.copy(isDefault = false)
+            }
+        }
+    }
 
     private companion object {
         const val DIAG = "PARKDIAG/VehicleSync"

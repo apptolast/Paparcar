@@ -41,6 +41,7 @@ class ZoneRepositoryImpl(
         val remoteEntities = firebaseDataSource.getZones(userId)
             .map { it.toEntity() }
         if (remoteEntities.isEmpty()) return@runCatching
+        dao.deleteByUser(userId)
         dao.upsertAll(remoteEntities)
     }
 
