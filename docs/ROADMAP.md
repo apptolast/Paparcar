@@ -34,6 +34,7 @@
 - **IOS-AR-001 · IOS-BUILD-001 · IOS-SYNC-001 · IOS-PLACES-001** — iOS completado al ~95% (solo IOS-DIST-001 y BGTask pending)
 - **I18N-001** — strings EN/ES/IT/PT/FR/DE/NL/PL/RO sincronizadas; stale key `home_my_car_section_header` eliminada en DE/NL/PL/RO
 - **BUG-LANG-002** — idioma guardado no se aplicaba al arrancar la app en frío. `LaunchedEffect(appState.selectedLanguage)` en `App.kt` llama a `applyAppLocale()` en la primera composición. Idempotente: no-op en API 33+ donde el sistema ya restaura el locale. Done 2026-05-26.
+- **REFACTOR-DETECT-001** — limpieza del flujo Service + Coordinator + Receiver. `collectLatest → collect` (sin cancelaciones espurias de notificaciones), `update + .value → updateAndGet` (lectura atómica del snapshot post-update), `guardPermissions(actionLabel)` consolida 3 checks duplicados, labels compartidos en `ActivityRecognitionLabels.kt`, request codes co-localizados en el manager. Done 2026-05-27 (commit `935e6fc`). Ver `docs/backlog/detection-improvements-2026-05-27.md`.
 
 ---
 
@@ -45,6 +46,11 @@
 | ✅ **OFFLINE-LOGIN-GUARD-001** | Fail-fast + retry + error diferenciado — done 2026-05-25 | Cerrado | Offline: no sign-out, `BootstrapFailure.Offline`, `retry()` + `BootstrapOfflineDialog`. Fatal: sign-out + `ShowError` (previo). Tests: 2 casos nuevos en `SplashViewModelTest`. |
 | **HOME-MARKERS-AUDIT** | ~~#1 TTL dead code~~ ✅ / ~~#3 SELECTED~~ ✅ / **#2 MANUAL decay** ⏳ deferred (product decision needed) | Backlog | #2: MANUAL spots stay blue forever — after N rejections? fraction of TTL? Needs design call before touching code |
 | **VEH-MARKERS + VEH-NAME** | 7 tickets de vehículos + multi-parking markers | Diseño | Ver `docs/backlog/vehicles-multimarker-2026-05-19.md` |
+| **BUG-GARAGE-COLA-001** | Falso positivo aparcando en cola de garaje/parking público. Propuesta: usar Step Detector como señal canónica de "usuario fuera del coche", con IN_VEHICLE_ENTER durante ventana como cancelación. Ver `docs/backlog/detection-improvements-2026-05-27.md §3`. | ⚪ Next | — |
+| **BUG-SCOOTER-001** | Patín eléctrico clasificado como IN_VEHICLE. Propuesta: `VehicleType` + smart confirmation prompt cuando sesión ≥ 8 min con velocidad máxima ≤ 28 km/h. Ver `docs/backlog/detection-improvements-2026-05-27.md §4`. | ⚪ Tras BUG-GARAGE-COLA | — |
+| **FEAT-HOME-PARKING-001..004** | Marcador "mi parking de casa" con geocerca + notificación de confirmación. 4 fases. Ver `docs/backlog/detection-improvements-2026-05-27.md §5`. | 🟡 Deferred | Tras BUG-GARAGE-COLA + BUG-SCOOTER |
+| **DECISION-SERVICE-LIFECYCLE-001** | ¿Cuándo matar `ParkingDetectionService`? Necesita telemetría de duración y tasa de resurrección. | 🟡 Pendiente de definición | Datos de campo |
+| **DECISION-MERGE-BT-COORDINATOR-002** | ¿Fusionar `BluetoothDetectionStrategy` con `ParkingDetectionCoordinator`? Cambio arquitectural; debate técnico previo. | 🟡 Pendiente de definición | Debate |
 
 ---
 

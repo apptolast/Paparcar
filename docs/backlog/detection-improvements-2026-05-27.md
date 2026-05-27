@@ -17,9 +17,9 @@ Este documento agrupa:
 
 ---
 
-## 0 · Refactor de limpieza del flujo de detección — 🔵 branch ready
+## 0 · Refactor de limpieza del flujo de detección — ✅ Done
 
-**Estado:** Cambios aplicados y `compileDebugKotlinAndroid` verde. Pendiente de commit.
+**Commit:** `935e6fc` (2026-05-27).
 
 **Resumen de lo que toca:**
 - `ParkingDetectionCoordinator.kt` — `collectLatest` → `collect` (M1); `update {} + .value` → `updateAndGet {}` (M2); eliminado `withContext(NonCancellable)` redundante alrededor de `notifyParkingConfirmation` (era necesario solo por la cancelación del `collectLatest`).
@@ -27,11 +27,9 @@ Este documento agrupa:
 - `ActivityRecognitionLabels.kt` — Nuevo archivo común con `activityLabel()` y `transitionLabel()` (M3). Eliminadas las duplicaciones inline en `ParkingDetectionService` y `ActivityTransitionReceiver`.
 - `ActivityRecognitionManagerImpl.kt` — `STILL_REQUEST_CODE` y `VEHICLE_REQUEST_CODE` co-localizados en el manager (M4). Eliminada constante huérfana en `ActivityTransitionReceiver`.
 
-**Lo que NO se tocó (pendiente de razonar):**
-- C1 — cuándo matar el service (ver sección 1).
-- O2 — fusionar BT detection con Coordinator (ver sección 2).
-
-**Próximo paso:** commit con mensaje `refactor(detection): clean up service+coordinator+receiver flow`.
+**Lo que NO se tocó (pendiente de definición):**
+- C1 — cuándo matar el service (ver sección 1) · 🟡 deferred.
+- O2 — fusionar BT detection con Coordinator (ver sección 2) · 🟡 deferred.
 
 ---
 
@@ -98,63 +96,216 @@ Este documento agrupa:
 ## 3 · BUG-GARAGE-COLA-001 — Falso positivo aparcando en cola de parking · ⚪
 
 **Origen:** reportado por usuario real.
-**Síntoma:** El usuario está esperando en la puerta del garaje a que se abra, o haciendo cola en un parking público para sacar el ticket. La velocidad es muy baja (< 5 km/h) o cero durante varios segundos. La app detecta `STILL` y dispara el flujo de confirmación de aparcamiento → publica una plaza inexistente.
 
-**Causa raíz:**
-1. `DetectedActivity.STILL ENTER` se dispara con cualquier parada larga (semáforos, atascos, colas).
-2. El coordinator no diferencia entre "parado en zona conocida de tránsito" y "parado en una plaza real".
-3. No hay validación de que `IN_VEHICLE_EXIT` haya ocurrido — un coche detenido en cola sigue siendo `IN_VEHICLE`.
+### 3.1 Casos reales que tenemos que cubrir
 
-**Propuestas de mitigación (combinables):**
+**Caso A — Garaje de casa con puerta automática.**
+- Usuario llega calle ↓ velocidad de 25 km/h a 0 frente al portón.
+- Espera ~30-60 s a que la puerta abra (motor encendido, sigue dentro del coche).
+- Entra a 5 km/h, baja la rampa, aparca dentro a 0 km/h.
+- Sale del coche, camina 4 m al ascensor.
 
-### 3.1 — Requerir `IN_VEHICLE_EXIT` antes de aceptar `STILL` como señal de aparcamiento
-Hoy, `STILL ENTER` es suficiente para entrar en el scoring. Si añadimos la regla **"STILL solo cuenta tras un EXIT de IN_VEHICLE"**, una cola con motor encendido (sigue siendo IN_VEHICLE) no dispara nada. La transición real cuando uno aparca y sale del coche es: `IN_VEHICLE EXIT → STILL ENTER`. Sin EXIT no hay aparcamiento.
+**Caso B — Parking público de pago, cola del ticket.**
+- Usuario llega a 30 km/h, se para en cola (motor encendido, sigue dentro).
+- Espera 2 min en cola. La cola avanza a 2 km/h cada 15 s.
+- Tras sacar el ticket, conduce 1 min más a su plaza, aparca.
+- Sale del coche, camina ~20 m al ascensor.
 
-### 3.2 — Walking confirmation antes de confirmar (como BT strategy)
-Replicar el "walking ≥ 30 m" del BT path en el Coordinator: tras `STILL ENTER`, esperar a que la nueva posición esté ≥ 30 m de donde se detectó STILL. Esto descarta colas (el usuario no camina; está dentro del coche).
+**Caso C — Atasco severo / semáforo largo.**
+- Coche parado 90 s, motor encendido, usuario dentro. Igual que Caso A/B pero no aparca: vuelve a moverse y continúa viaje.
 
-### 3.3 — Velocidad de los últimos N segundos
-Si la velocidad media de los últimos 60 s antes del STILL fue < 8 km/h *continuamente* (cola lenta), descartar. Si hubo picos de velocidad de carretera y luego frenazo, sí parece aparcamiento real.
+En los tres casos la app **hoy** dispara `STILL ENTER` y entra en la lógica de aparcamiento. En A y B termina publicando una plaza falsa donde no debería; en C ya hemos mitigado parcialmente con BUG-3 (sin EXIT/STILL después, no notificamos Low/Medium), pero la lógica High puede dispararse igual si el coche se queda parado mucho rato.
 
-### 3.4 — Geofence negativa: "zonas de tránsito conocidas"
-Mantenido por el usuario: si tu casa tiene un garaje con cola, el usuario puede marcar manualmente esa zona como "no aparcamiento". Solución que se enlaza con FEAT-HOME-PARKING-001 invertida.
+### 3.2 Por qué la propuesta "walking ≥ 30 m" NO es suficiente
 
-**Recomendación previa:** combinar **3.1 + 3.2**. 3.1 elimina el caso "motor encendido en cola"; 3.2 elimina "motor apagado en cola del peaje". 3.3 y 3.4 son opcionales.
+El usuario lo señaló: la distancia caminada es muy variable.
+- En el Caso A (garaje casa) el usuario camina **4 m al ascensor**. Si exigimos 30 m, perdemos el aparcamiento real.
+- En el Caso B (cola parking público) el usuario camina **20 m al ascensor** tras aparcar. También por debajo del umbral.
+- Y al revés: un usuario que aparca y va andando a una tienda recorre 200 m sin que eso confirme nada nuevo.
 
-**Esfuerzo estimado:** Mediano. Tocaría `ParkingDetectionCoordinator` (añadir estado `WaitingForExit`) y posiblemente un nuevo use case `WaitForWalkingAwayUseCase` compartido con BT.
+La distancia caminada **no es** la señal correcta. El tiempo y la velocidad tampoco son discriminantes fiables — un parado de 60 s puede ser un semáforo o el comienzo de un aparcamiento.
+
+### 3.3 La señal correcta: ¿el usuario ha salido del coche?
+
+Lo único que distingue **inequívocamente** una cola de un aparcamiento real es:
+
+> **El usuario sale del coche y empieza a caminar.**
+
+En la cola/espera, el usuario sigue dentro del coche. En el aparcamiento real, sale y da pasos. Esto es independiente de:
+- Distancia recorrida (puede ser 4 m al ascensor).
+- Velocidad previa (puede haber llegado a la plaza a 5 km/h).
+- Tiempo de parada (puede haber esperado 30 s o 5 min).
+
+### 3.4 Tres señales que indican "usuario fuera del coche", por orden de fiabilidad
+
+**a) Step Detector (`Sensor.TYPE_STEP_DETECTOR`)** — sensor hardware del teléfono. Dispara un evento por cada paso real. No requiere GPS, no se confunde con coche en marcha (los pasos del coche no son pasos del usuario porque el sensor mide aceleración + cadencia humana). **Permiso necesario:** `ACTIVITY_RECOGNITION` (ya lo tenemos).
+
+**b) Bluetooth disconnect del coche (si pareado)** — ya cubierto por `BluetoothDetectionStrategy`. Aquí es complementario: si llega un BT disconnect mientras estamos en el flujo del Coordinator, confirmar.
+
+**c) `ActivityTransition` ENTER de `WALKING` / `ON_FOOT`** — fallback si el step detector no está disponible (hardware viejo). Menos preciso pero suficiente.
+
+### 3.5 Propuesta refinada
+
+Reescribir el sub-flujo del Coordinator tras `STILL ENTER` así:
+
+1. **Detectar `STILL ENTER`** → entrar en estado `Candidate` (igual que hoy).
+2. **Suscribirse al `StepDetector` (sensor)** durante una ventana de `CANDIDATE_VALIDATION_WINDOW_MS = 180_000` (3 min).
+3. **Tres salidas posibles:**
+   - **Pasos detectados (≥ `MIN_STEPS_TO_CONFIRM = 8`):** confirmar aparcamiento. El usuario ha salido del coche.
+   - **`IN_VEHICLE_ENTER` durante la ventana:** descartar — era una cola/parada técnica. Reset state.
+   - **Timeout de 3 min sin pasos ni IN_VEHICLE:** fallback al scoring actual (con menor reliability — modo "podría ser aparcamiento real con el teléfono dentro del coche", ej: usuario aparcó y se olvidó el móvil dentro). Confidence MEDIUM como máximo.
+
+Esto cubre los tres casos:
+- Caso A: tras llegar abajo del garaje, usuario sale del coche → step detector dispara → confirmar. Aunque solo camine 4 m, los 8 pasos llegan en ~5 s.
+- Caso B: cola → no hay pasos (sigue dentro) → IN_VEHICLE_ENTER cuando reanuda la cola → descartar.
+- Caso C: atasco/semáforo → no hay pasos → IN_VEHICLE_ENTER cuando reanuda marcha → descartar.
+
+### 3.6 Bonus: combinar con Vehicle Exit (cuando esté disponible)
+
+Si llega `IN_VEHICLE_EXIT` durante la ventana, no hay que esperar al step counter — confirmar directamente. La API de Activity Recognition es ruidosa en EXIT (a veces tarda 30+ s, a veces no llega) por lo que NO podemos depender de ella exclusivamente, pero cuando llega, es una señal más temprana que los pasos.
+
+### 3.7 Trade-offs
+
+- **+** Step Detector es muy preciso (false positive rate < 1% según specs Android) y no consume batería significativa.
+- **+** No añade permisos nuevos.
+- **+** Resuelve A y B sin tocar BT strategy ni cambiar umbrales de scoring.
+- **−** Hardware viejo (pre-API 19) podría no tener `Sensor.TYPE_STEP_DETECTOR`. Fallback a `WALKING ENTER` de Activity Recognition.
+- **−** Si el usuario aparca y deja el móvil dentro del coche (raro, pero ocurre), no detectamos pasos. El timeout + fallback al scoring lo cubre con confidence MEDIUM.
+
+### 3.8 Esfuerzo + alcance
+
+**Esfuerzo:** Mediano (~1.5 días).
+
+**Tickets sub-divisibles:**
+| Ticket | Descripción |
+|--------|-------------|
+| `BUG-GARAGE-COLA-001a` | Crear `StepDetectorSource` (`androidMain`) — Flow de eventos del sensor. Inyectable en common via `expect/actual` |
+| `BUG-GARAGE-COLA-001b` | Añadir estado `CandidateWaitingForSteps` al Coordinator + listener del flow durante ventana |
+| `BUG-GARAGE-COLA-001c` | Wiring del IN_VEHICLE_ENTER como cancelación + timeout con fallback degraded |
+| `BUG-GARAGE-COLA-001d` | Tests unitarios del Coordinator con `FakeStepDetectorSource` |
 
 ---
 
 ## 4 · BUG-SCOOTER-001 — Patín eléctrico clasificado como IN_VEHICLE · ⚪
 
 **Origen:** reportado por usuario real.
-**Síntoma:** Usuario en patín eléctrico (≤ 25 km/h). Google Activity Recognition lo clasifica como `IN_VEHICLE`. Al detener el patín → STILL ENTER → falso aparcamiento.
 
-**Causa raíz:**
-- La API de Activity Recognition de Google **no distingue** patines/bicis eléctricas de coches por debajo de cierta velocidad. La clasificación se basa en patrones de aceleración + GPS, y un patín a 25 km/h en línea recta es indistinguible de un coche en una zona 20.
-- No hay un `DetectedActivity` específico para "scooter eléctrico".
+### 4.1 El caso real
 
-**Propuestas de mitigación:**
+Usuario tiene registrado un Ford Focus (su vehículo principal, `isDefault = true`). Puntualmente coge su patín eléctrico (≤ 25 km/h legal en España). Activity Recognition lo clasifica como `IN_VEHICLE`. Al detenerse → STILL → publicamos una plaza falsa del Ford Focus en un sitio donde no está.
 
-### 4.1 — Filtrar por velocidad sostenida mínima
-Si en los últimos 5 minutos de "IN_VEHICLE" la velocidad **máxima** registrada por GPS fue ≤ 30 km/h, descartar como vehículo de baja energía (probablemente bici/patín). Un coche real, incluso en ciudad, supera los 30 km/h en algún momento.
+**El twist clave que el usuario señaló:**
+> "Se puede dar el caso que esté mi Ford Focus activo pero coja el patín puntualmente."
 
-### 4.2 — Cruce con `ON_BICYCLE`
-Si en la ventana reciente hubo eventos de `ON_BICYCLE` (con confidence > 50), aumenta la probabilidad de patín/bici. La API a veces oscila entre `ON_BICYCLE` e `IN_VEHICLE` para patinetes; capturar el `ON_BICYCLE` como señal de "esto NO es un coche".
+Por tanto, **no podemos asumir que `vehicleType == CAR` significa que el viaje actual es en coche**. El active vehicle puede no corresponder con lo que el usuario está usando ahora mismo.
 
-### 4.3 — User preference: tipo de vehículo
-En la pantalla de registro de vehículo, el usuario ya selecciona marca/modelo. Si elegimos un set de marcas/modelos de patines/bicis (Xiaomi M365, Cecotec Bongo, etc.), podemos clasificar el `Vehicle` como `BIKE` o `SCOOTER` y **desactivar la detección por Activity Recognition para ese vehículo** — solo BT (si tiene) o detección manual.
+### 4.2 Por qué el filtro simple "velocidad máxima ≤ 30 km/h" no es suficiente
 
-### 4.4 — Vehicle type field
-Añadir `vehicleType: VehicleType` (CAR / SCOOTER / BIKE / MOTORCYCLE) al modelo `Vehicle`. Si no es CAR/MOTORCYCLE, ignorar Activity Recognition.
+El usuario también señaló (textual):
+> "Durante un rato es normal ir a 25 en coche pero no un tramo tan largo."
 
-**Recomendación previa:** **4.4 + 4.1** como combo. 4.4 es la solución limpia a medio plazo (datos correctos); 4.1 es una red de seguridad que protege incluso si el usuario elige un tipo erróneo.
+Esto descarta el filtro ingenuo. En un Ford Focus por ciudad es perfectamente posible:
+- 5 min a < 25 km/h en una zona 20 + un atasco.
+- Salir de un aparcamiento a 5 km/h, recorrer 200 m antes de subir a 50 km/h.
 
-**Esfuerzo estimado:** Mediano (4.4 toca modelo + UI + Room + Firestore migration). 4.1 solo toca el Coordinator.
+Si ponemos un filtro "vel max ≤ 30 km/h → no es coche", romperíamos detecciones legítimas de aparcamiento tras un trayecto corto urbano.
+
+**La diferencia real entre coche y patín no es el pico de velocidad, sino la distribución sostenida.**
+
+### 4.3 Análisis de la distribución de velocidad
+
+Datos de referencia (literatura + observación):
+
+| Tipo de viaje | Vel media | Vel máxima típica | Vel P90 (90% del tiempo ≤) |
+|---|---|---|---|
+| Coche urbano denso | 15-25 km/h | 50+ km/h | 35 km/h |
+| Coche urbano fluido | 25-40 km/h | 60+ km/h | 50 km/h |
+| Coche interurbano | 60-90 km/h | 110+ km/h | 90 km/h |
+| Patín eléctrico (legal ES) | 20-25 km/h | 25 km/h | 25 km/h |
+| Bici eléctrica | 18-25 km/h | 25-30 km/h | 25 km/h |
+
+**Lo distintivo del patín no es la velocidad media (que se solapa con coche urbano) sino el **techo plano**: nunca supera 25-28 km/h, mientras que un coche, incluso en ciudad, **eventualmente** mete acelerador y supera 30-35.**
+
+**Heurística que sí funciona:**
+> En una ventana ≥ N minutos, si el coche **nunca** ha superado un cierto umbral de velocidad, probablemente no es un coche.
+
+### 4.4 Propuesta combinada (4 niveles)
+
+#### Nivel 1 — Vehicle type explícito + opt-out de Activity Recognition
+
+Añadir `vehicleType: VehicleType` al modelo `Vehicle` con valores `{ CAR, MOTORCYCLE, SCOOTER, BIKE }`.
+
+- `CAR` / `MOTORCYCLE` → detección automática habilitada (Activity Recognition + BT).
+- `SCOOTER` / `BIKE` → detección automática **deshabilitada**. Solo BT (si lo tiene) o registro manual.
+
+**Esto resuelve el caso "el usuario cogió hoy el patín y el patín está activo"**, pero no el del usuario.
+
+#### Nivel 2 — Smart confirmation antes de publicar plaza (red de seguridad para el twist)
+
+Cuando el Coordinator está a punto de confirmar un aparcamiento, **analizar la sesión completa** (desde IN_VEHICLE_ENTER hasta STILL):
+
+```
+if (sessionDurationMs >= 8 * 60 * 1000      // sesión ≥ 8 min
+    && maxSpeedKmh <= 28.0                  // nunca superó 28 km/h
+    && activeVehicle.vehicleType == CAR) {  // el coche activo es coche
+    // perfil sospechoso de "no es un coche real"
+    showVehicleMismatchPrompt(activeVehicle, candidateLocation)
+    return  // no publicar plaza directamente
+}
+```
+
+`showVehicleMismatchPrompt()`:
+> *"¿Acabas de aparcar tu Ford Focus o estabas en otro vehículo? La velocidad sugiere que no era un coche."*
+> Opciones: `[Sí, era el Ford Focus]` / `[Estaba en otro]` / `[Cancelar]`
+
+- `Sí` → confirmar aparcamiento normal.
+- `Otro` → no publicar plaza, opcionalmente abrir selector de vehículo para registrar el aparcamiento contra el patín (si lo tiene registrado) o descartar.
+- `Cancelar` → descartar sin publicar.
+
+**Por qué ≥ 8 min y P de 28 km/h:**
+- 8 min es suficiente para que CUALQUIER trayecto urbano real toque al menos 30 km/h en algún tramo (semáforo verde + aceleración).
+- 28 km/h da margen de error sobre el límite legal del patín (25 km/h) — un patín en bajada puede llegar a 27-28 km/h ocasionalmente, no más.
+
+Esto **NO** rompe el caso del usuario yendo al supermercado en coche por ciudad densa, porque incluso en un trayecto de 8 min en coche urbano el P95 supera 28 km/h casi seguro. Lo verificamos con telemetría antes de hacer la regla más estricta.
+
+#### Nivel 3 — Pista visual en el aparcamiento (post-confirmación)
+
+En la pantalla de Home / detalle del aparcamiento, si el perfil de velocidad de la sesión fue anómalo (`maxSpeedKmh ≤ 28`), mostrar un badge sutil "*Velocidad inusual para coche*" con un botón "Cambiar vehículo / borrar". Es una segunda oportunidad para corregir.
+
+#### Nivel 4 — Cruce con `ON_BICYCLE` (señal complementaria, sin uso autónomo)
+
+Google Activity Recognition a veces oscila entre `IN_VEHICLE` y `ON_BICYCLE` para patines/bicis eléctricas. Si en la ventana reciente hubo eventos de `ON_BICYCLE` con confianza > 50, **aumentar la probabilidad** de mostrar el prompt del Nivel 2 — pero **nunca** descartar la detección automáticamente solo por esto (la API es ruidosa también en el sentido contrario).
+
+### 4.5 Recomendación
+
+**Combo recomendado: Nivel 1 + Nivel 2.**
+
+- Nivel 1 resuelve el caso limpio (usuario con patín registrado y activo).
+- Nivel 2 resuelve el twist del usuario (Ford Focus activo + patín puntualmente).
+- Nivel 3 y 4 son refinamientos posteriores.
+
+### 4.6 Esfuerzo + tickets
+
+| Ticket | Descripción | Esfuerzo |
+|--------|-------------|----------|
+| `BUG-SCOOTER-001a` | `VehicleType` enum + campo en Room + Firestore mapper + migration | Pequeño-Medio |
+| `BUG-SCOOTER-001b` | UI de selección de vehicleType en registro/edición de vehículo | Pequeño |
+| `BUG-SCOOTER-001c` | `ParkingStrategyResolver` ignora vehículos no-CAR/MOTORCYCLE (early-return) | Pequeño |
+| `BUG-SCOOTER-001d` | Tracking de `maxSpeedKmh` + `sessionDurationMs` en `ParkingDetectionState`. Cálculo de P95 de velocidad como signal del state. | Pequeño |
+| `BUG-SCOOTER-001e` | `showVehicleMismatchPrompt` + intercepción en `ConfirmParkingUseCase` antes de publicar | Medio |
+| `BUG-SCOOTER-001f` | Tests del prompt + del path "Otro vehículo" | Pequeño |
+
+### 4.7 Notas de implementación
+
+- **`maxSpeedKmh` ya existe** (parcialmente) en `ParkingDetectionState`. Verificar y reusar antes de añadir tracking nuevo.
+- **Telemetría previa**: antes de hardcodear los umbrales (8 min / 28 km/h), idealmente logear estos valores para sesiones confirmadas durante un sprint, ver la distribución real y ajustar.
+- **El prompt no es bloqueante**: si el usuario lo ignora, tras un timeout corto (ej. 60 s) se elimina la notificación y NO se publica la plaza por defecto (fail-safe — preferimos no publicar nada que publicar una plaza falsa).
 
 ---
 
-## 5 · FEAT-HOME-PARKING-001 — Marcador "mi parking de casa" con geocerca · ⚪
+## 5 · FEAT-HOME-PARKING-001 — Marcador "mi parking de casa" con geocerca · 🟡 deferred
+
+**Estado:** Diferido hasta completar BUG-GARAGE-COLA-001 + BUG-SCOOTER-001 (decisión usuario 2026-05-27).
 
 **Ticket family:** `FEAT-HOME-PARKING-001..004`
 **Origen:** propuesta del usuario en sesión 2026-05-27.
@@ -219,13 +370,13 @@ Cada fase es mergeable de forma independiente.
 
 ---
 
-## Resumen — Prioridades sugeridas
+## Resumen — Estado y orden actualizado (2026-05-27)
 
-| Orden | Item | Razón |
-|-------|------|-------|
-| 1 | Commit del refactor (sección 0) | Trabajo ya hecho, no bloquea nada |
-| 2 | BUG-GARAGE-COLA-001 (sec. 3) | Bug real reportado, mitigación 3.1 es barata |
-| 3 | FEAT-HOME-PARKING-001 (sec. 5) | Feature que además mitiga 3 en parte |
-| 4 | BUG-SCOOTER-001 (sec. 4) | Bug real, pero más complejo (toca modelo) |
-| 5 | DECISION-SERVICE-LIFECYCLE-001 (sec. 1) | Necesita datos antes de decidir |
-| 6 | DECISION-MERGE-BT-COORDINATOR-002 (sec. 2) | Cambio arquitectural; debate técnico antes |
+| Orden | Item | Estado |
+|-------|------|--------|
+| 0 | Refactor de detección | ✅ Done (commit `935e6fc`) |
+| 1 | `BUG-GARAGE-COLA-001` (sec. 3) — Step Detector como señal canónica | ⚪ Next |
+| 2 | `BUG-SCOOTER-001` (sec. 4) — VehicleType + smart confirmation prompt | ⚪ Tras 1 |
+| 3 | `FEAT-HOME-PARKING-001` (sec. 5) | 🟡 Deferred — retomar tras 1 y 2 |
+| 4 | `DECISION-SERVICE-LIFECYCLE-001` (sec. 1) | 🟡 Deferred — necesita razonamiento + telemetría |
+| 5 | `DECISION-MERGE-BT-COORDINATOR-002` (sec. 2) | 🟡 Deferred — necesita debate técnico |
