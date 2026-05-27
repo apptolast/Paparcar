@@ -121,10 +121,12 @@ class ParkingDetectionService : LifecycleService() {
                                 return@launch
                             }
                             if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
-                                PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator")
+                                PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator (cancelling stale job if any)")
+                                detectionJob?.cancel()
+                                detectionJob = null
                                 startParkingDetection()
                             } else {
-                                PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER — Coordinator already active")
+                                PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER — Coordinator already active + hasDetectedMovement=true")
                             }
                         } else {
                             PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — BT strategy active, Coordinator not started")

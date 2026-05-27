@@ -406,7 +406,7 @@ class ParkingDetectionCoordinator(
                     PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, exit=${state.vehicleExitConfirmed} still=${state.activityStillDetected})")
                     _detectionState.update { it.copy(mediumNotificationShown = true) }
                     PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
-                    notifyParkingConfirmation(confidence)
+                    withContext(NonCancellable) { notifyParkingConfirmation(confidence) }
                     PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
                 } else if (!state.mediumNotificationShown) {
                     PaparcarLogger.d(DIAG, "  ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]")
@@ -422,7 +422,9 @@ class ParkingDetectionCoordinator(
                     )
                 }
                 PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
-                notifyParkingConfirmation(confidence)
+                // NonCancellable: state is already set; a new GPS fix arriving while the
+                // notification is being built must not silently skip the user-facing prompt.
+                withContext(NonCancellable) { notifyParkingConfirmation(confidence) }
                 PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
             }
         }

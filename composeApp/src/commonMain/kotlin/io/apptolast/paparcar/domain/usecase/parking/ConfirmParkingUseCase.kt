@@ -53,7 +53,6 @@ class ConfirmParkingUseCase(
         )
 
         PaparcarLogger.d(DIAG, "  → authRepository.getCurrentSession() BEFORE")
-        // Obtenemos el id desde firebase (solo con internet)
         val userId = authRepository.getCurrentSession()?.userId
             ?: run {
                 PaparcarLogger.d(
@@ -109,7 +108,6 @@ class ConfirmParkingUseCase(
         )
 
         PaparcarLogger.d(DIAG, "  → saveSession BEFORE sessionId=$sessionId")
-        //Esto guarda en local en Room, no necesita un worker
         val saved = userParkingRepository.saveSession(session)
         PaparcarLogger.d(DIAG, "  ← saveSession AFTER isSuccess=${saved.isSuccess}")
         if (saved.isFailure) {
