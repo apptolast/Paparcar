@@ -10,13 +10,16 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.content.ContextCompat
+import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.permissions.PermissionManager
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import androidx.work.WorkManager
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
@@ -35,6 +38,7 @@ class MainActivity : ComponentActivity() {
     private val permissionManager: PermissionManager by inject()
     private val activityRecognitionManager: ActivityRecognitionManager by inject()
     private val connectivityObserver: ConnectivityObserver by inject()
+    private val appPreferences: AppPreferences by inject()
 
     // Detects GPS toggled on/off from the quick-settings panel without leaving the app.
     // Registered dynamically (not in manifest) so it is scoped to the Activity lifecycle.
@@ -47,6 +51,19 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Restore the saved locale at the process level before setContent.
+        // CMP Resources reads locale from Locale.getDefault() (ResourceEnvironment.android.kt).
+        // AppCompatDelegate.setApplicationLocales() is the only API that correctly updates
+        // Locale.getDefault() + the application configuration on all API levels:
+        //   API 33+  → delegates to LocaleManager (system-persisted, typically a no-op here)
+        //   API 24-32 → updates Locale.getDefault() + application Resources configuration
+        // AppPreferences.selectedLanguage is synchronously available via the blocking DataStore
+        // warmup that runs at Koin singleton construction (before this point). [BUG-LANG-002]
+        val savedLanguage = appPreferences.selectedLanguage
+        if (savedLanguage != "auto") {
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLanguage))
+        }
+
         ActivityHolder.setActivity(this)
         enableEdgeToEdge()
         val splashScreen = installSplashScreen()
