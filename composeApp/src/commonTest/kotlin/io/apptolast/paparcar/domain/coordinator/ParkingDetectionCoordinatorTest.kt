@@ -80,6 +80,7 @@ class ParkingDetectionCoordinatorTest {
             confirmParking = confirmParking,
             notifyParkingConfirmation = notifyParking,
             notificationPort = notification,
+            vehicleRepository = vehicleRepo,
             config = config,
         )
         return TestEnv(coordinator, parkingRepo, geofence, enrichment, notification)

@@ -78,6 +78,7 @@ val domainModule = module {
             confirmParking = get(),
             notifyParkingConfirmation = get(),
             notificationPort = get(),
+            vehicleRepository = get(),
             config = get(),
         )
     }

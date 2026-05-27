@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingSignals
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
@@ -57,6 +59,7 @@ class ParkingDetectionCoordinator(
     private val confirmParking: ConfirmParkingUseCase,
     private val notifyParkingConfirmation: NotifyParkingConfirmationUseCase,
     private val notificationPort: AppNotificationManager,
+    private val vehicleRepository: VehicleRepository,
     private val config: ParkingDetectionConfig,
 ) {
     /**
@@ -129,6 +132,14 @@ class ParkingDetectionCoordinator(
     suspend operator fun invoke(locations: Flow<GpsPoint>) {
         PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry — calling reset()")
         reset()
+
+        val activeVehicleId = vehicleRepository.observeDefaultVehicle().first()?.id
+        if (activeVehicleId == null) {
+            PaparcarLogger.w(DIAG, "  ✗ no default vehicle — aborting coordinator session")
+            return
+        }
+        PaparcarLogger.d(DIAG, "  ✓ active vehicleId=$activeVehicleId")
+
         var completed = false
         val sessionStartMs = Clock.System.now().toEpochMilliseconds()
         var locationCount = 0
@@ -189,7 +200,7 @@ class ParkingDetectionCoordinator(
                     completed = true
                     withContext(NonCancellable) {
                         PaparcarLogger.d(DIAG, "    → confirmParking(reliability=user) START")
-                        confirmParking(locationToConfirm, config.reliabilityUserConfirmed)
+                        confirmParking(locationToConfirm, config.reliabilityUserConfirmed, vehicleId = activeVehicleId)
                             .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
                         PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=user) END")
                     }
@@ -220,7 +231,7 @@ class ParkingDetectionCoordinator(
                         completed = true
                         withContext(NonCancellable) {
                             PaparcarLogger.d(DIAG, "    → confirmParking(reliability=$reliability) START")
-                            confirmParking(locationToConfirm, reliability)
+                            confirmParking(locationToConfirm, reliability, vehicleId = activeVehicleId)
                                 .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
                             PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=$reliability) END")
                         }
@@ -386,12 +397,19 @@ class ParkingDetectionCoordinator(
             is ParkingConfidence.NotYet -> Unit
             is ParkingConfidence.Low,
             is ParkingConfidence.Medium -> {
-                if (!state.mediumNotificationShown) {
-                    PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium)")
+                // Only show the notification if an activity-exit or STILL signal has
+                // arrived. Without one, this is almost certainly a traffic stop — no
+                // exit transition means the user is still in a moving vehicle. [BUG-3]
+                if (!state.mediumNotificationShown &&
+                    (state.vehicleExitConfirmed || state.activityStillDetected)
+                ) {
+                    PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, exit=${state.vehicleExitConfirmed} still=${state.activityStillDetected})")
                     _detectionState.update { it.copy(mediumNotificationShown = true) }
                     PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
                     notifyParkingConfirmation(confidence)
                     PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
+                } else if (!state.mediumNotificationShown) {
+                    PaparcarLogger.d(DIAG, "  ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]")
                 }
             }
 

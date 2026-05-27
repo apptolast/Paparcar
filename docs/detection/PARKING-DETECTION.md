@@ -70,7 +70,7 @@ The coordinator is a Koin **single**, kept stateful across sessions so the foreg
                                        │                                 │
                                        │  scoring (CalculateParkingConf.)│
                                        │  ├── NotYet  → do nothing       │
-                                       │  ├── Low/Med → notify user      │
+                                       │  ├── Low/Med → notify user*     │
                                        │  └── High    → CANDIDATE phase  │
                                        │                                 │
                                        └─────────────────┬───────────────┘
@@ -121,7 +121,7 @@ The 2.5 m/s driving ceiling is deliberately above typical walking speed (~1.4 m/
 `CalculateParkingConfidenceUseCase` reads a `ParkingSignals` snapshot (`speed`, `stoppedDurationMs`, `gpsAccuracy`, `activityExit`, `activityStill`) and returns one of:
 
 - `NotYet` — early or invalid signal combination.
-- `Low(score)` — gates a confirmation notification but never auto-confirms.
+- `Low(score)` — gates a confirmation notification (only if `vehicleExit` or `activityStill` signal present) but never auto-confirms.
 - `Medium(score)` — same.
 - `High(score)` — opens the CANDIDATE phase.
 
@@ -482,3 +482,11 @@ On Android 12+ (API 31+), calling `startForegroundService()` from a BroadcastRec
 **Fix.** Changed to `PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT`. `FLAG_MUTABLE` is required here for the same reason it is required for Activity Recognition: Play Services must write into the intent at delivery time. This is the documented requirement from the GMS Geofencing API.
 
 **Companion fix.** `DepartureDetectionWorker` now forwards session metadata to `reportSpotReleased()` — `spotType`, `detectionReliability` (as `confidence`), and `sizeCategory` — instead of defaulting all three. Session is resolved via `userParkingRepository.getActiveSessionByGeofence(geofenceId)` which is already called to get `lat`/`lon`; fields were already present, just not forwarded.
+
+### BUG-3 — False-positive Low/Medium notification during traffic stops
+
+**Observed:** 2026-05-27 test drive. At 12:11:22, user stopped 93 s at a traffic light (acc=1.8 m) → `ParkingConfidence.Low` scored → notification fired. User continued driving 30+ more minutes before actually parking.
+
+**Root cause.** `ParkingDetectionCoordinator.evaluateConfidence()` showed the Low/Medium notification whenever `!state.mediumNotificationShown`, with no check for an activity-exit or STILL signal. A traffic stop long enough to pass the `slowPathGateMs` gate (90 s) was sufficient to trigger the notification even when the user was still in a moving vehicle.
+
+**Fix.** Gate the Low/Medium notification on `vehicleExitConfirmed || activityStillDetected`. Without either activity-transition signal, brief stops are treated as traffic/errand stops and no notification is shown. The High-confidence CANDIDATE phase is unaffected — it always notifies.
