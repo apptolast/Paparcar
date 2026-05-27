@@ -14,7 +14,7 @@ import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.receiver.ActivityTransitionReceiver
 import io.apptolast.paparcar.detection.service.ParkingDetectionService
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
-import io.github.aakira.napier.Napier
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 
 class ActivityRecognitionManagerImpl(
     private val context: Context,
@@ -49,8 +49,9 @@ class ActivityRecognitionManagerImpl(
     }
 
     override fun registerTransitions() {
+        PaparcarLogger.d(TAG, "▶ registerTransitions called")
         if (!hasActivityRecognitionPermission()) {
-            Napier.w("registerTransitions skipped — ACTIVITY_RECOGNITION permission not granted", tag = TAG)
+            PaparcarLogger.w(TAG, "  ✗ skipped — ACTIVITY_RECOGNITION permission not granted")
             return
         }
 
@@ -77,12 +78,12 @@ class ActivityRecognitionManagerImpl(
         )
 
         activityClient.requestActivityTransitionUpdates(stillRequest, stillPendingIntent)
-            .addOnSuccessListener { Napier.d("STILL transitions registered", tag = TAG) }
-            .addOnFailureListener { e -> Napier.e("Failed to register STILL transitions", e, tag = TAG) }
+            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ STILL transitions registered") }
+            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register STILL transitions", e) }
 
         activityClient.requestActivityTransitionUpdates(vehicleRequest, vehiclePendingIntent)
-            .addOnSuccessListener { Napier.d("IN_VEHICLE transitions registered", tag = TAG) }
-            .addOnFailureListener { e -> Napier.e("Failed to register IN_VEHICLE transitions", e, tag = TAG) }
+            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE transitions registered") }
+            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE transitions", e) }
     }
 
     override fun unregisterTransitions() {

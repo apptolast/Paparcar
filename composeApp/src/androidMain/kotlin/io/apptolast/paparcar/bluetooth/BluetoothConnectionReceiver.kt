@@ -49,14 +49,18 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
         } ?: return
         val deviceAddress = runCatching { device.address }.getOrNull() ?: return
 
+        val eventLabel = if (action == BluetoothDevice.ACTION_ACL_DISCONNECTED) "DISCONNECTED" else "CONNECTED"
+        PaparcarLogger.d(TAG, "▶ BT $eventLabel device=$deviceAddress")
+
         val pending = goAsync()
         scope.launch {
             try {
                 val pairedVehicle = vehicleRepository.getVehicleByBluetoothDeviceId(deviceAddress)
                 if (pairedVehicle == null) {
-                    PaparcarLogger.d(TAG, "Event from $deviceAddress — no vehicle paired with this device, ignoring")
+                    PaparcarLogger.d(TAG, "  no vehicle paired with $deviceAddress — ignoring")
                     return@launch
                 }
+                PaparcarLogger.d(TAG, "  matched vehicle=${pairedVehicle.id} — forwarding $eventLabel")
 
                 when (action) {
                     BluetoothDevice.ACTION_ACL_DISCONNECTED ->
