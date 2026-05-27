@@ -12,6 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
+import io.apptolast.paparcar.detection.activityLabel
+import io.apptolast.paparcar.detection.transitionLabel
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
@@ -50,12 +52,7 @@ class ParkingDetectionService : LifecycleService() {
 
         when (action) {
             ACTION_START_TRACKING -> {
-                if (!hasRequiredPermissions()) {
-                    PaparcarLogger.w(DIAG, "  ✗ START_TRACKING aborted — missing location permission")
-                    notificationPort.showPermissionRevoked()
-                    stopSelf()
-                    return START_NOT_STICKY
-                }
+                if (!guardPermissions("START_TRACKING")) return START_NOT_STICKY
                 if (detectionJob?.isActive == true && parkingDetectionCoordinator.hasDetectedMovement) {
                     PaparcarLogger.d(DIAG, "  ↻ START_TRACKING ignored — job active + hasDetectedMovement=true")
                     return START_STICKY
@@ -70,12 +67,7 @@ class ParkingDetectionService : LifecycleService() {
                 // Delivered directly from Play Services via PendingIntent.getForegroundService().
                 // startForeground() must be called first — Android 8+ enforces a 5 s window. [BUG-FGS-001]
                 startForegroundCompat()
-                if (!hasRequiredPermissions()) {
-                    PaparcarLogger.w(DIAG, "  ✗ VEHICLE_TRANSITION aborted — location permissions not granted")
-                    notificationPort.showPermissionRevoked()
-                    stopSelf()
-                    return START_NOT_STICKY
-                }
+                if (!guardPermissions("VEHICLE_TRANSITION")) return START_NOT_STICKY
                 handleVehicleTransition(intent!!)
             }
             ACTION_PARKING_CONFIRMED -> {
@@ -115,11 +107,7 @@ class ParkingDetectionService : LifecycleService() {
 
                     lifecycleScope.launch {
                         if (strategyResolver.shouldUseCoordinator()) {
-                            if (!hasRequiredPermissions()) {
-                                PaparcarLogger.w(DIAG, "  ✗ IN_VEHICLE_ENTER — location permissions not granted")
-                                if (detectionJob?.isActive != true) stopSelf()
-                                return@launch
-                            }
+                            if (!guardPermissions("IN_VEHICLE_ENTER")) return@launch
                             if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
                                 PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator (cancelling stale job if any)")
                                 detectionJob?.cancel()
@@ -188,25 +176,25 @@ class ParkingDetectionService : LifecycleService() {
         return fineLoc && bgLoc
     }
 
+    /**
+     * Centralised location-permission gate. Returns `false` (and stops the service) when the
+     * user has revoked location access since the service was first scheduled — covers every
+     * entry path: explicit START, IN_VEHICLE PendingIntent delivery, and Activity Recognition
+     * fallback. Caller should `return START_NOT_STICKY` so the framework does not restart us.
+     */
+    private fun guardPermissions(actionLabel: String): Boolean {
+        if (hasRequiredPermissions()) return true
+        PaparcarLogger.w(DIAG, "  ✗ $actionLabel aborted — missing location permission")
+        notificationPort.showPermissionRevoked()
+        stopSelf()
+        return false
+    }
+
     override fun onDestroy() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")
         detectionJob?.cancel()
         super.onDestroy()
         PaparcarLogger.d(DIAG, "■ Service onDestroy DONE")
-    }
-
-    private fun activityLabel(type: Int) = when (type) {
-        DetectedActivity.STILL -> "STILL"
-        DetectedActivity.IN_VEHICLE -> "IN_VEHICLE"
-        DetectedActivity.WALKING -> "WALKING"
-        DetectedActivity.RUNNING -> "RUNNING"
-        else -> "UNKNOWN($type)"
-    }
-
-    private fun transitionLabel(type: Int) = when (type) {
-        ActivityTransition.ACTIVITY_TRANSITION_ENTER -> "ENTER"
-        ActivityTransition.ACTIVITY_TRANSITION_EXIT -> "EXIT"
-        else -> "UNKNOWN($type)"
     }
 
     companion object {

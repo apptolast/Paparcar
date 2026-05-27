@@ -6,6 +6,8 @@ import android.content.Intent
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
+import io.apptolast.paparcar.detection.activityLabel
+import io.apptolast.paparcar.detection.transitionLabel
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent
@@ -25,9 +27,7 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
         PaparcarLogger.d(TAG, "  events=${result.transitionEvents.size}")
         result.transitionEvents.forEach { event ->
-            val activity = activityLabel(event.activityType)
-            val transition = transitionLabel(event.transitionType)
-            PaparcarLogger.d(TAG, "  → $activity $transition")
+            PaparcarLogger.d(TAG, "  → ${activityLabel(event.activityType)} ${transitionLabel(event.transitionType)}")
 
             if (event.activityType == DetectedActivity.STILL &&
                 event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER) {
@@ -37,24 +37,7 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
         }
     }
 
-    private fun activityLabel(type: Int) = when (type) {
-        DetectedActivity.STILL -> "STILL"
-        DetectedActivity.IN_VEHICLE -> "IN_VEHICLE"
-        DetectedActivity.WALKING -> "WALKING"
-        DetectedActivity.RUNNING -> "RUNNING"
-        DetectedActivity.ON_BICYCLE -> "ON_BICYCLE"
-        DetectedActivity.ON_FOOT -> "ON_FOOT"
-        else -> "UNKNOWN($type)"
-    }
-
-    private fun transitionLabel(type: Int) = when (type) {
-        ActivityTransition.ACTIVITY_TRANSITION_ENTER -> "ENTER"
-        ActivityTransition.ACTIVITY_TRANSITION_EXIT -> "EXIT"
-        else -> "UNKNOWN($type)"
-    }
-
-    companion object {
-        const val REQUEST_CODE = 101
-        private const val TAG = "PARKDIAG/ARReceiver"
+    private companion object {
+        const val TAG = "PARKDIAG/ARReceiver"
     }
 }

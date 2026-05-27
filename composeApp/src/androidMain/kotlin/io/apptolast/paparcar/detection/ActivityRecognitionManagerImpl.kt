@@ -27,7 +27,7 @@ class ActivityRecognitionManagerImpl(
         val intent = Intent(context, ActivityTransitionReceiver::class.java)
         PendingIntent.getBroadcast(
             context,
-            ActivityTransitionReceiver.REQUEST_CODE,
+            STILL_REQUEST_CODE,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
         )
@@ -103,6 +103,9 @@ class ActivityRecognitionManagerImpl(
 
     private companion object {
         const val TAG = "ActivityRecognitionManager"
+        // PendingIntent request codes — keep distinct so FLAG_UPDATE_CURRENT does not collide
+        // between the broadcast (STILL) and the foreground-service (IN_VEHICLE) PendingIntents.
+        const val STILL_REQUEST_CODE = 101
         const val VEHICLE_REQUEST_CODE = 102
     }
 }

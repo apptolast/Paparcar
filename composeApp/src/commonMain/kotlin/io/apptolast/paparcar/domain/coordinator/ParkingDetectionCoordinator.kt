@@ -14,10 +14,11 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -151,7 +152,7 @@ class ParkingDetectionCoordinator(
                 keep
             }
             .catch { e -> PaparcarLogger.e(DIAG, "✗ upstream flow error", e) }
-            .collectLatest { location ->
+            .collect { location ->
                 locationCount++
                 val now = Clock.System.now().toEpochMilliseconds()
                 val sessionAgeMs = now - sessionStartMs
@@ -161,7 +162,10 @@ class ParkingDetectionCoordinator(
                 )
                 val stoppedDuration = updateStopTracking(location, now)
 
-                _detectionState.update { s ->
+                // updateAndGet returns the post-update snapshot atomically — without it, an external
+                // callback (onVehicleExit/onStillDetected) could mutate state between .update {} and
+                // a subsequent .value read, giving us a 'state' that doesn't reflect our own write.
+                val state = _detectionState.updateAndGet { s ->
                     val origin = s.sessionOrigin ?: location
                     val distFromOrigin = io.apptolast.paparcar.domain.util.haversineMeters(
                         origin.latitude, origin.longitude,
@@ -178,8 +182,6 @@ class ParkingDetectionCoordinator(
                         hasEverMoved = s.hasEverMoved || hasJustMoved,
                     )
                 }
-
-                val state = _detectionState.value
                 PaparcarLogger.d(
                     DIAG,
                     "  state hasEverMoved=${state.hasEverMoved} userConfirmed=${state.userConfirmedParking} " +
@@ -191,7 +193,7 @@ class ParkingDetectionCoordinator(
                 if (!state.hasEverMoved && (now - sessionStartMs) > config.maxNoMovementMs) {
                     PaparcarLogger.d(DIAG, "  ⚑ maxNoMovementMs guard hit → completed=true (spurious IN_VEHICLE_ENTER)")
                     completed = true
-                    return@collectLatest
+                    return@collect
                 }
 
                 if (state.userConfirmedParking) {
@@ -205,12 +207,12 @@ class ParkingDetectionCoordinator(
                         PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=user) END")
                     }
                     PaparcarLogger.d(DIAG, "  ◀ USER-CONFIRMED path done — returning from collectLatest")
-                    return@collectLatest
+                    return@collect
                 }
 
                 if (!state.hasEverMoved) {
                     PaparcarLogger.d(DIAG, "  ⏸ skipping: !hasEverMoved")
-                    return@collectLatest
+                    return@collect
                 }
 
                 if (state.highConfidenceReachedAt != null) {
@@ -237,7 +239,7 @@ class ParkingDetectionCoordinator(
                         }
                         PaparcarLogger.d(DIAG, "  ◀ CANDIDATE confirm done — returning from collectLatest")
                     }
-                    return@collectLatest
+                    return@collect
                 }
 
                 evaluateConfidence(location, stoppedDuration, state, now)
@@ -406,7 +408,7 @@ class ParkingDetectionCoordinator(
                     PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, exit=${state.vehicleExitConfirmed} still=${state.activityStillDetected})")
                     _detectionState.update { it.copy(mediumNotificationShown = true) }
                     PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
-                    withContext(NonCancellable) { notifyParkingConfirmation(confidence) }
+                    notifyParkingConfirmation(confidence)
                     PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
                 } else if (!state.mediumNotificationShown) {
                     PaparcarLogger.d(DIAG, "  ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]")
@@ -422,9 +424,7 @@ class ParkingDetectionCoordinator(
                     )
                 }
                 PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
-                // NonCancellable: state is already set; a new GPS fix arriving while the
-                // notification is being built must not silently skip the user-facing prompt.
-                withContext(NonCancellable) { notifyParkingConfirmation(confidence) }
+                notifyParkingConfirmation(confidence)
                 PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
             }
         }
