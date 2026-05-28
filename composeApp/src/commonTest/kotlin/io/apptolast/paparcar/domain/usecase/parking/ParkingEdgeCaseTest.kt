@@ -260,6 +260,7 @@ class ParkingEdgeCaseTest {
         reportSpotReleased = ReportSpotReleasedUseCase(
             reportSpotScheduler = scheduler,
             getLocationInfo = GetLocationInfoUseCase(geocoder, FakePlacesDataSource()),
+            authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = repo,
     )

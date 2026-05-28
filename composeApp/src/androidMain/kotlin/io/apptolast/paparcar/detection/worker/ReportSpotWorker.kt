@@ -71,7 +71,7 @@ class ReportSpotWorker(
                 timestamp = inputData.getLong(KEY_TIMESTAMP, nowMs),
                 speed = 0f,
             ),
-            reportedBy = "anonymous",
+            reportedBy = inputData.getString(KEY_REPORTER_NAME) ?: "",
             address = inputData.toAddressInfo(),
             placeInfo = inputData.toPlaceInfo(),
             type = spotType,
@@ -122,6 +122,7 @@ class ReportSpotWorker(
         private const val KEY_SPOT_TYPE = "spot_type"
         private const val KEY_CONFIDENCE = "confidence"
         private const val KEY_SIZE_CATEGORY = "size_category"
+        private const val KEY_REPORTER_NAME = "reporter_name"
 
         fun buildRequest(
             spotId: String,
@@ -132,6 +133,7 @@ class ReportSpotWorker(
             spotType: SpotType = SpotType.AUTO_DETECTED,
             confidence: Float = 1f,
             sizeCategory: VehicleSize? = null,
+            reporterName: String? = null,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<ReportSpotWorker>()
                 .setInputData(
@@ -149,6 +151,7 @@ class ReportSpotWorker(
                         KEY_SPOT_TYPE to spotType.name,
                         KEY_CONFIDENCE to confidence,
                         KEY_SIZE_CATEGORY to sizeCategory?.name,
+                        KEY_REPORTER_NAME to reporterName,
                     )
                 )
                 .setConstraints(

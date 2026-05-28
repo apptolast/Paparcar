@@ -52,6 +52,7 @@ class IosReportSpotScheduler(
         spotType: SpotType,
         confidence: Float,
         sizeCategory: VehicleSize?,
+        reporterName: String?,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
         val expiresAt = nowMs + ttlForType(spotType)
@@ -64,7 +65,7 @@ class IosReportSpotScheduler(
                 timestamp = nowMs,
                 speed = 0f,
             ),
-            reportedBy = REPORTED_BY_ANONYMOUS,
+            reportedBy = reporterName ?: "",
             address = address,
             placeInfo = placeInfo,
             type = spotType,

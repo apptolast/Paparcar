@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
@@ -25,6 +26,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
     private val reportSpotReleased = ReportSpotReleasedUseCase(
         reportSpotScheduler = scheduler,
         getLocationInfo = GetLocationInfoUseCase(FakeGeocoderDataSource(), FakePlacesDataSource()),
+        authRepository = FakeAuthRepository(initialSession = null),
     )
     private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)
 

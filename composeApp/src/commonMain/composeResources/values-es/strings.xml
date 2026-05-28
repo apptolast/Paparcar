@@ -27,6 +27,7 @@
     <!-- SpotPeekRow (hero card de plaza seleccionada) -->
     <string name="home_peek_reliability_label">Fiabilidad</string>
     <string name="home_peek_spot_expires">Caduca en %1$d min</string>
+    <string name="home_peek_spot_posted_by">de %1$s</string>
     <string name="home_peek_spot_still_free_hint">¿Sigue libre? Toca para confirmar al llegar</string>
     <string name="home_peek_spot_high">Plaza fiable</string>
     <string name="home_peek_spot_medium">Plaza media</string>

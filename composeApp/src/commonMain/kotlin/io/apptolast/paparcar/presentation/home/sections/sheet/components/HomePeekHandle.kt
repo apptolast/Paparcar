@@ -38,10 +38,13 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -60,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.HomeMode
@@ -69,6 +73,7 @@ import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
+import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.walkTimeString
@@ -100,7 +105,13 @@ import paparcar.composeapp.generated.resources.home_peek_spot_high
 import paparcar.composeapp.generated.resources.home_peek_spot_low
 import paparcar.composeapp.generated.resources.home_peek_spot_manual
 import paparcar.composeapp.generated.resources.home_peek_spot_medium
+import paparcar.composeapp.generated.resources.home_peek_spot_posted_by
 import paparcar.composeapp.generated.resources.home_peek_spot_still_free_hint
+import paparcar.composeapp.generated.resources.vehicle_size_large
+import paparcar.composeapp.generated.resources.vehicle_size_medium
+import paparcar.composeapp.generated.resources.vehicle_size_moto
+import paparcar.composeapp.generated.resources.vehicle_size_small
+import paparcar.composeapp.generated.resources.vehicle_size_van
 import paparcar.composeapp.generated.resources.home_peek_walk_label
 import paparcar.composeapp.generated.resources.home_report_confirm_here
 import paparcar.composeapp.generated.resources.home_report_header_label
@@ -271,6 +282,12 @@ private fun SpotPeekRow(
                     }
                 } else null,
             )
+            Spacer(Modifier.height(8.dp))
+            SpotSecondaryMeta(
+                reportedAtMs = spot.location.timestamp,
+                sizeCategory = spot.sizeCategory,
+                reporterName = spot.reportedBy.takeIf { it.isNotBlank() },
+            )
             Spacer(Modifier.height(12.dp))
             ReliabilitySection(palette = palette, ttlMinutes = ttlMinutes)
             Spacer(Modifier.height(14.dp))
@@ -334,6 +351,87 @@ private fun SpotReliabilityBadge(palette: SpotPeekPalette) {
             fontWeight = FontWeight.ExtraBold,
             color = palette.badgeFg,
         )
+    }
+}
+
+/**
+ * Secondary metadata row: time since posted · vehicle size chip · reporter name.
+ * All three fields are optional/conditional — the row renders nothing if all are absent.
+ */
+@Composable
+private fun SpotSecondaryMeta(
+    reportedAtMs: Long,
+    sizeCategory: VehicleSize?,
+    reporterName: String?,
+) {
+    val timeAgo = compactRelativeTimeText(reportedAtMs)
+    val sizeLabel = sizeCategory?.let {
+        stringResource(
+            when (it) {
+                VehicleSize.MOTO -> Res.string.vehicle_size_moto
+                VehicleSize.SMALL -> Res.string.vehicle_size_small
+                VehicleSize.MEDIUM -> Res.string.vehicle_size_medium
+                VehicleSize.LARGE -> Res.string.vehicle_size_large
+                VehicleSize.VAN -> Res.string.vehicle_size_van
+            }
+        )
+    }
+    val metaAlpha = 0.55f
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Icon(
+            Icons.Outlined.Schedule,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+            modifier = Modifier.size(13.dp),
+        )
+        Text(
+            text = timeAgo,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+        )
+        if (sizeLabel != null) {
+            Text(
+                text = "·",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+            )
+            Icon(
+                Icons.Outlined.DirectionsCar,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+                modifier = Modifier.size(13.dp),
+            )
+            Text(
+                text = sizeLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+            )
+        }
+        if (reporterName != null) {
+            Text(
+                text = "·",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+            )
+            Icon(
+                Icons.Outlined.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+                modifier = Modifier.size(13.dp),
+            )
+            Text(
+                text = stringResource(Res.string.home_peek_spot_posted_by, reporterName),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+        }
     }
 }
 

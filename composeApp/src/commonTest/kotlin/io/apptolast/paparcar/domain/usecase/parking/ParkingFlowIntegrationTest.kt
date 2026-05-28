@@ -78,6 +78,7 @@ class ParkingFlowIntegrationTest {
         reportSpotReleased = ReportSpotReleasedUseCase(
             reportSpotScheduler = spotScheduler,
             getLocationInfo = GetLocationInfoUseCase(geocoder, places),
+            authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = parkingRepo,
     )

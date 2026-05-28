@@ -5,7 +5,9 @@ import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
+import com.apptolast.customlogin.domain.model.UserSession
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
@@ -19,9 +21,18 @@ class ReportSpotReleasedUseCaseTest {
     private val geocoder = FakeGeocoderDataSource()
     private val places = FakePlacesDataSource()
     private val scheduler = FakeReportSpotScheduler()
+    private val auth = FakeAuthRepository(
+        initialSession = UserSession(
+            userId = "uid-1",
+            email = "test@paparcar.io",
+            displayName = "Carlos M.",
+            photoUrl = null,
+        )
+    )
     private val useCase = ReportSpotReleasedUseCase(
         reportSpotScheduler = scheduler,
         getLocationInfo = GetLocationInfoUseCase(geocoder, places),
+        authRepository = auth,
     )
 
     // ── Schedule always called ─────────────────────────────────────────────────
@@ -103,5 +114,28 @@ class ReportSpotReleasedUseCaseTest {
         useCase(40.416775, -3.703790, "spot-1")
 
         assertEquals(SpotType.AUTO_DETECTED, scheduler.lastSpotType)
+    }
+
+    // ── Reporter name ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `should_passDisplayName_as_reporterName_when_session_exists`() = runTest {
+        useCase(40.416775, -3.703790, "spot-1")
+
+        assertEquals("Carlos M.", scheduler.lastReporterName)
+    }
+
+    @Test
+    fun `should_passNull_as_reporterName_when_no_session`() = runTest {
+        auth.emitState(com.apptolast.customlogin.domain.model.AuthState.Unauthenticated)
+        val ucNoAuth = ReportSpotReleasedUseCase(
+            reportSpotScheduler = scheduler,
+            getLocationInfo = GetLocationInfoUseCase(geocoder, places),
+            authRepository = auth,
+        )
+
+        ucNoAuth(40.416775, -3.703790, "spot-2")
+
+        assertNull(scheduler.lastReporterName)
     }
 }

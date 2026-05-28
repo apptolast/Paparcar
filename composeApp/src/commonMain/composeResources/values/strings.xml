@@ -27,6 +27,7 @@
     <!-- SpotPeekRow (selected spot hero card) -->
     <string name="home_peek_reliability_label">Reliability</string>
     <string name="home_peek_spot_expires">Expires in %1$d min</string>
+    <string name="home_peek_spot_posted_by">by %1$s</string>
     <string name="home_peek_spot_still_free_hint">Still free? Tap to confirm when you arrive</string>
     <string name="home_peek_spot_high">Reliable spot</string>
     <string name="home_peek_spot_medium">Medium spot</string>

@@ -433,6 +433,7 @@
     <!-- SpotPeekRow (karta wybranego miejsca) -->
     <string name="home_peek_reliability_label">Wiarygodność</string>
     <string name="home_peek_spot_expires">Wygasa za %1$d min</string>
+    <string name="home_peek_spot_posted_by">przez %1$s</string>
     <string name="home_peek_spot_still_free_hint">Nadal wolne? Dotknij, aby potwierdzić po przybyciu</string>
     <string name="home_peek_spot_high">Wiarygodne miejsce</string>
     <string name="home_peek_spot_medium">Średnie miejsce</string>

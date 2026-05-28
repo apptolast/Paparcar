@@ -433,6 +433,7 @@
     <!-- SpotPeekRow (hero card van geselecteerde plek) -->
     <string name="home_peek_reliability_label">Betrouwbaarheid</string>
     <string name="home_peek_spot_expires">Verloopt over %1$d min</string>
+    <string name="home_peek_spot_posted_by">door %1$s</string>
     <string name="home_peek_spot_still_free_hint">Nog vrij? Tik om te bevestigen bij aankomst</string>
     <string name="home_peek_spot_high">Betrouwbare plek</string>
     <string name="home_peek_spot_medium">Gemiddelde plek</string>

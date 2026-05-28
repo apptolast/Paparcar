@@ -79,7 +79,7 @@ class HomeViewModelTest {
         val searchAddress = SearchAddressUseCase(geocoder)
         val observeNearbySpots = ObserveNearbySpotsUseCase(spotRepo)
         val sendSpotSignal = SendSpotSignalUseCase(spotRepo)
-        val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getLocationInfo)
+        val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getLocationInfo, FakeAuthRepository(initialSession = null))
         val releaseSession = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,

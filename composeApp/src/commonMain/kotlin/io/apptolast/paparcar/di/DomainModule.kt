@@ -35,7 +35,7 @@ val domainModule = module {
 
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }
-    factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getLocationInfo = get()) }
+    factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getLocationInfo = get(), authRepository = get()) }
     factory { SendSpotSignalUseCase(get()) }
 
     // Zone UseCases

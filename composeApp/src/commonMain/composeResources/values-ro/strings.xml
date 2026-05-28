@@ -433,6 +433,7 @@
     <!-- SpotPeekRow (card loc selectat) -->
     <string name="home_peek_reliability_label">Fiabilitate</string>
     <string name="home_peek_spot_expires">Expiră în %1$d min</string>
+    <string name="home_peek_spot_posted_by">de %1$s</string>
     <string name="home_peek_spot_still_free_hint">Încă liber? Atinge pentru a confirma la sosire</string>
     <string name="home_peek_spot_high">Loc de încredere</string>
     <string name="home_peek_spot_medium">Loc cu fiabilitate medie</string>

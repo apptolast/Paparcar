@@ -24,5 +24,6 @@ interface ReportSpotScheduler {
         spotType: SpotType = SpotType.AUTO_DETECTED,
         confidence: Float = 1f,
         sizeCategory: VehicleSize? = null,
+        reporterName: String? = null,
     )
 }

@@ -433,6 +433,7 @@
     <!-- SpotPeekRow (hero card de la place sélectionnée) -->
     <string name="home_peek_reliability_label">Fiabilité</string>
     <string name="home_peek_spot_expires">Expire dans %1$d min</string>
+    <string name="home_peek_spot_posted_by">par %1$s</string>
     <string name="home_peek_spot_still_free_hint">Toujours libre ? Touche pour confirmer à ton arrivée</string>
     <string name="home_peek_spot_high">Place fiable</string>
     <string name="home_peek_spot_medium">Place moyenne</string>

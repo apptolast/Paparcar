@@ -29,11 +29,12 @@ class WorkManagerReportSpotScheduler(
         spotType: SpotType,
         confidence: Float,
         sizeCategory: VehicleSize?,
+        reporterName: String?,
     ) {
         WorkManager.getInstance(context).enqueueUniqueWork(
             "${ReportSpotWorker.TAG}_$spotId",
             ExistingWorkPolicy.REPLACE,
-            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory),
+            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, reporterName),
         )
     }
 }

@@ -18,6 +18,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     var lastSizeCategory: VehicleSize? = null
     var lastAddress: AddressInfo? = null
     var lastPlaceInfo: PlaceInfo? = null
+    var lastReporterName: String? = null
 
     override fun schedule(
         spotId: String,
@@ -28,6 +29,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         spotType: SpotType,
         confidence: Float,
         sizeCategory: VehicleSize?,
+        reporterName: String?,
     ) {
         scheduleCallCount++
         lastSpotId = spotId
@@ -38,5 +40,6 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         lastSpotType = spotType
         lastConfidence = confidence
         lastSizeCategory = sizeCategory
+        lastReporterName = reporterName
     }
 }

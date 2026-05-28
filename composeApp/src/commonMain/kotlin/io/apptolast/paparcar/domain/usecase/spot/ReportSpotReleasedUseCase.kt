@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.spot
 
+import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
@@ -23,6 +24,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 class ReportSpotReleasedUseCase(
     private val reportSpotScheduler: ReportSpotScheduler,
     private val getLocationInfo: GetLocationInfoUseCase,
+    private val authRepository: AuthRepository,
 ) {
     suspend operator fun invoke(
         lat: Double,
@@ -32,6 +34,7 @@ class ReportSpotReleasedUseCase(
         confidence: Float = 1f,
         sizeCategory: VehicleSize? = null,
     ) {
+        val reporterName = authRepository.getCurrentSession()?.displayName
         var address: AddressInfo? = null
         var placeInfo: PlaceInfo? = null
         withTimeoutOrNull(GEOCODE_TIMEOUT_MS) {
@@ -42,7 +45,7 @@ class ReportSpotReleasedUseCase(
                     placeInfo = info.placeInfo ?: placeInfo
                 }
         }
-        reportSpotScheduler.schedule(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory)
+        reportSpotScheduler.schedule(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, reporterName)
     }
 
     companion object {

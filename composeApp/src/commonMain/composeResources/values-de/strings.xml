@@ -433,6 +433,7 @@
     <!-- SpotPeekRow (Hero Card des ausgewählten Stellplatzes) -->
     <string name="home_peek_reliability_label">Zuverlässigkeit</string>
     <string name="home_peek_spot_expires">Läuft in %1$d Min. ab</string>
+    <string name="home_peek_spot_posted_by">von %1$s</string>
     <string name="home_peek_spot_still_free_hint">Noch frei? Tippe zum Bestätigen, wenn du ankommst</string>
     <string name="home_peek_spot_high">Zuverlässiger Stellplatz</string>
     <string name="home_peek_spot_medium">Mittlerer Stellplatz</string>
