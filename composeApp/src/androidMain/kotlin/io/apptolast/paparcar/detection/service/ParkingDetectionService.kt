@@ -37,6 +37,12 @@ class ParkingDetectionService : LifecycleService() {
     private val strategyResolver: ParkingStrategyResolver by inject()
     private var detectionJob: Job? = null
 
+    // Tracks the last IN_VEHICLE transition seen, independent of detectionJob state. Activity
+    // Recognition emits duplicate IN_VEHICLE_ENTER bursts in real-world driving (yields,
+    // traffic lights, idle); without this guard each duplicate would cancel and restart the
+    // coordinator, losing the in-flight session. [BUG-DETECT-ENTER-DEBOUNCE-001]
+    private var currentVehicleState: VehicleState = VehicleState.OUT
+
     override fun onCreate() {
         super.onCreate()
         PaparcarLogger.d(DIAG, "▶ Service onCreate")
@@ -101,6 +107,12 @@ class ParkingDetectionService : LifecycleService() {
             when {
                 event.activityType == DetectedActivity.IN_VEHICLE &&
                 event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER -> {
+                    if (currentVehicleState == VehicleState.IN) {
+                        PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER ignored — already IN (AR noise debounce) [BUG-DETECT-ENTER-DEBOUNCE-001]")
+                        return@forEach
+                    }
+                    currentVehicleState = VehicleState.IN
+
                     val eventEpochMs = System.currentTimeMillis() -
                         SystemClock.elapsedRealtime() +
                         event.elapsedRealTimeNanos / 1_000_000L
@@ -110,14 +122,10 @@ class ParkingDetectionService : LifecycleService() {
                         when (strategyResolver.resolve()) {
                             ParkingStrategy.COORDINATOR -> {
                                 if (!guardPermissions("IN_VEHICLE_ENTER")) return@launch
-                                if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
-                                    PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator (cancelling stale job if any)")
-                                    detectionJob?.cancel()
-                                    detectionJob = null
-                                    startParkingDetection()
-                                } else {
-                                    PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER — Coordinator already active + hasDetectedMovement=true")
-                                }
+                                PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator")
+                                detectionJob?.cancel()
+                                detectionJob = null
+                                startParkingDetection()
                             }
                             ParkingStrategy.BLUETOOTH -> {
                                 PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — BT strategy active, Coordinator not started")
@@ -134,6 +142,7 @@ class ParkingDetectionService : LifecycleService() {
 
                 event.activityType == DetectedActivity.IN_VEHICLE &&
                 event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT -> {
+                    currentVehicleState = VehicleState.OUT
                     parkingDetectionCoordinator.onVehicleExit()
                     if (detectionJob?.isActive != true) stopSelf()
                 }
@@ -205,6 +214,8 @@ class ParkingDetectionService : LifecycleService() {
         super.onDestroy()
         PaparcarLogger.d(DIAG, "■ Service onDestroy DONE")
     }
+
+    private enum class VehicleState { OUT, IN }
 
     companion object {
         const val ACTION_START_TRACKING = "io.apptolast.paparcar.ACTION_START_TRACKING"

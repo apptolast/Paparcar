@@ -450,6 +450,54 @@ val shouldClearBestStop = isDriving || isRepositionBurst
 
 **ADD-ZONE-PIN restyle** shipped alongside as a pure visual change — `ZoneCenterPin` now reuses the same `TeardropPinScaffold` as Report / Parking pins (white teardrop + inner disc + chosen zone icon overlay) so all three add-modes read as one family with only the inner silhouette varying.
 
+### BUG-DETECT-ENTER-DEBOUNCE-001 — Duplicate `IN_VEHICLE_ENTER` from Activity Recognition was cancelling in-flight detection (2026-05-28)
+
+**Commit:** to be filled after merge.
+
+**Symptom.** Field test on 2026-05-27 with two phones (Oppo CPH2371 + Redmi Note 11) on the same trip: 3 of 6 parking events failed to auto-confirm. The pattern in `diagnostics/2026-05-27/{oppo,redmi-note-11}.log` was always the same — multiple `→ VEHICLE_TRANSITION IN_VEHICLE ENTER` events arriving within seconds of each other, each followed by `✗ detection cancelled: StandaloneCoroutine was cancelled` and a fresh `▶ detection coroutine entered`. The coordinator never reached its CANDIDATE phase before the trip ended, so no Notify and no Confirm fired even though the EXIT eventually arrived correctly. Real-world driving (yields, traffic lights, brief idle) is enough for Play Services Activity Recognition to fire IN_VEHICLE ENTER bursts; the service treated each burst as a new trip and reset state.
+
+**Root cause.** `ParkingDetectionService.handleVehicleTransition()` guarded the restart with:
+
+```kotlin
+if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
+    detectionJob?.cancel(); startParkingDetection()
+} else {
+    /* skip */
+}
+```
+
+The `OR` meant "restart if (job inactive) **OR** (no movement detected yet)". In the first seconds after ENTER, `hasDetectedMovement = false` because the coordinator needs several GPS fixes that pass `minimumTripSpeedMps` + `minimumTripDistanceMeters` before flipping the flag. Any duplicate ENTER arriving in that window restarted the job even though it was actively running. The `↻ Coordinator already active + hasDetectedMovement=true` log (the else branch) never appeared in any field log — the guard never engaged.
+
+**Fix.** Move the debounce upstream into the service itself with a binary state:
+
+```kotlin
+private enum class VehicleState { OUT, IN }
+private var currentVehicleState: VehicleState = VehicleState.OUT
+
+// IN_VEHICLE_ENTER branch — first thing inside the `when`:
+if (currentVehicleState == VehicleState.IN) {
+    PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER ignored — already IN (AR noise debounce)")
+    return@forEach
+}
+currentVehicleState = VehicleState.IN
+// … strategy resolution + startParkingDetection as before
+
+// IN_VEHICLE_EXIT branch:
+currentVehicleState = VehicleState.OUT
+parkingDetectionCoordinator.onVehicleExit()
+```
+
+The `hasDetectedMovement`-based guard inside the COORDINATOR strategy branch was removed — the upstream state machine guarantees we only reach that code on a real OUT→IN transition. Spurious `IN_VEHICLE_ENTER` events that don't lead to actual movement are still caught by `maxNoMovementMs` inside the coordinator (line 239), which kills phantom sessions from inside.
+
+**Why a binary state and not a time-based debounce.** A time-based "ignore ENTERs within N seconds" approach loses the distinction between (a) AR noise within an active trip and (b) legitimate re-entry after an out-of-vehicle gap (e.g., trip 5 in the field log: user stopped at an ATM for 2 min, walked out, came back, drove on). The binary state handles both correctly: re-entry only fires `ENTER` after the previous `EXIT` has set state back to `OUT`.
+
+**Field validation.** New log line `↻ IN_VEHICLE_ENTER ignored — already IN (AR noise debounce)` makes the debounce visible in `parkdiag.log` — the next field test confirms whether the duplicate-ENTER bursts are now absorbed. No unit test was added; Robolectric-wrapping the foreground service to exercise this 4-line state machine has a poor cost/benefit when the log line is unambiguous.
+
+**Files touched.**
+- `composeApp/src/androidMain/.../detection/service/ParkingDetectionService.kt` — state field, enum, debounce check in ENTER branch, OUT reset in EXIT branch, removal of stale `hasDetectedMovement` guard in COORDINATOR.
+
+`hasDetectedMovement` itself is still used by the `ACTION_START_TRACKING` path and by the coordinator's internal `maxNoMovementMs` guard, so it stays on `ParkingDetectionCoordinator`.
+
 ---
 
 ## 3. Open questions / future work
