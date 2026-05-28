@@ -22,6 +22,7 @@ import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
 import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
+import io.apptolast.paparcar.domain.usecase.zone.UpdateZoneUseCase
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAppPreferences
@@ -116,6 +117,7 @@ class HomeViewModelTest {
             connectivityObserver = connectivity,
             observeZones = ObserveZonesUseCase(zoneRepo),
             saveZone = SaveZoneUseCase(zoneRepo, authRepo),
+            updateZone = UpdateZoneUseCase(zoneRepo),
             deleteZone = DeleteZoneUseCase(zoneRepo),
             vehicleRepository = vehicleRepo,
         )

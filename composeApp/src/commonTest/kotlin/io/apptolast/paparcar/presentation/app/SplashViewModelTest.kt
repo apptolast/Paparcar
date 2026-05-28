@@ -20,6 +20,7 @@ import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -361,10 +362,17 @@ class SplashViewModelTest {
         assertNull(vm.state.value.bootstrapFailure)
     }
 
-    /** Configures the fake profile repo to return a profile with a vehicle pointer set. */
+    /** Configures the fake profile repo to return a profile with a vehicle pointer set,
+     *  AND seeds the vehicle repo so `hasVehicles(userId)` returns true — NAV-001 reads
+     *  the Room count directly instead of the profile pointer. */
     private fun setProfileWithVehicle() {
         fakeProfileRepo.getOrCreateResult = Result.success(
             FakeUserProfileRepository.defaultProfile().copy(defaultVehicleId = "v-1"),
         )
+        runBlocking {
+            fakeVehicleRepo.saveVehicle(
+                vehicle().copy(userId = session.userId),
+            )
+        }
     }
 }

@@ -77,9 +77,12 @@ class ConfirmParkingUseCaseTest {
 
     @Test
     fun `should pass previous session id to parking sync when a session was already active`() = runTest {
+        // FakeUserParkingRepository scopes "previous active" by vehicleId since MULTI-PARKING-001 —
+        // mirror the default vehicle so the fake's match logic fires.
         val previousSession = io.apptolast.paparcar.domain.model.UserParking(
             id = "previous-session-id",
             userId = "user-42",
+            vehicleId = defaultVehicle.id,
             location = location,
             isActive = true,
         )

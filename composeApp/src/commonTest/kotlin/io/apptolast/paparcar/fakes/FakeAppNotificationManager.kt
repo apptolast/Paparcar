@@ -18,6 +18,8 @@ open class FakeAppNotificationManager : AppNotificationManager {
 
     override fun showSpotUploading() = Unit
 
+    override fun showPermissionRevoked() = Unit
+
     override fun showDebug(message: String) = Unit
 
     final override fun dismiss(notificationId: Int) {

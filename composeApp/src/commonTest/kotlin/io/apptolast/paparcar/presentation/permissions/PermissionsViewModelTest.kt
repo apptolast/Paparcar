@@ -142,7 +142,7 @@ class PermissionsViewModelTest {
     }
 
     @Test
-    fun `RequestPermissions emits RequestStep2 when step1 done but background missing`() = runTest {
+    fun `RequestPermissions shows guide then emits RequestStep2 on confirm when step1 done but background missing`() = runTest {
         fakePermissions.emit(
             AppPermissionState(
                 hasLocationPermission = true,
@@ -154,8 +154,13 @@ class PermissionsViewModelTest {
         )
         val vm = PermissionsViewModel(fakePermissions)
 
+        vm.handleIntent(PermissionsIntent.RequestPermissions)
+        // Step 2 goes through a user-facing guide ("Allow all the time + press Back") before
+        // the OS dialog opens. The VM raises the guide flag, not the effect.
+        assertTrue(vm.state.value.showBackgroundLocationGuide)
+
         vm.effect.test {
-            vm.handleIntent(PermissionsIntent.RequestPermissions)
+            vm.handleIntent(PermissionsIntent.ConfirmBackgroundLocationGuide)
             assertIs<PermissionsEffect.RequestStep2BackgroundLocation>(awaitItem())
         }
     }
