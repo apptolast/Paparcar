@@ -14,10 +14,11 @@ Origen: test de campo del 2026-05-27 con **dos móviles juntos** (Oppo CPH2371 +
 
 ---
 
-## A · `IN_VEHICLE ENTER` duplicado dispara cancel/restart → coordinator pierde el viaje · ⚪ Pending
+## A · `IN_VEHICLE ENTER` duplicado dispara cancel/restart → coordinator pierde el viaje · ✅ Done (2026-05-28)
 
 **Ticket:** `BUG-DETECT-ENTER-DEBOUNCE-001`
 **Prioridad:** Alta — explica 3 de 6 fallos (50%) en el test de ayer.
+**Shipped en commit `61a024d`** (master). Opción 1 elegida (estado binario `VehicleState.OUT/IN` en `ParkingDetectionService`). Doc actualizada en `docs/detection/PARKING-DETECTION.md` §2.
 
 ### Evidencia
 
@@ -132,66 +133,52 @@ Estos OEMs ignoran las recomendaciones de Android y matan foreground services en
 
 ---
 
-## C · `IN_VEHICLE EXIT` llega muy tarde — Step Detector ya existe pero no auto-confirmó · 🔍 Investigation
+## C · `IN_VEHICLE EXIT` llega muy tarde — Step Detector ya existe pero no auto-confirmó · ✅ Closed — No es bug (2026-05-28)
 
 **Ticket:** `BUG-DETECT-EXIT-LAG-VS-STEPS-001`
-**Prioridad:** Media — afecta UX (notificación premature en mitad del viaje) pero hay workaround natural (siguiente parada).
+**Resolución:** El algoritmo funcionó correctamente. El log demuestra que el `minStepsToConfirm=8` rechazó un falso positivo y luego confirmó el aparcamiento real en 4 segundos.
 
-### Evidencia
+### Cronología real del trayecto 5 (reconstruida del Oppo log)
 
-Trayecto 5 Oppo:
-- `21:39:43` IN_VEHICLE ENTER
-- `22:05:06` Notify **High(0.8)** ← HIGH alcanzado, aparcamiento real (parada ATM)
-- `22:18:45` IN_VEHICLE EXIT ← **13 minutos tarde**
-- `22:20:24` Notify High(0.75) ← segundo HIGH (parada final)
-- `22:20:28` **Confirm SUCCESS** ← finalmente confirma, pero con location de la 2ª parada, no del ATM
+| Hora | Evento | Decisión del algoritmo |
+|---|---|---|
+| ~21:39 | IN_VEHICLE ENTER — arranca sesión | Coordinator inicia |
+| **22:00-22:08** | Parada larga (~8 min). El usuario y acompañantes vieron a un amigo y se quedaron charlando en el coche sin bajarse. | HIGH(0.8) alcanzado, entró en CANDIDATE. `steps=5/8` (5 pasos espurios por vibración/movimiento dentro del coche). **NO confirma — rechazado falso positivo ✅** |
+| 22:08 | Coche resume movimiento | CANDIDATE se cancela limpiamente |
+| 22:19:22 | IN_VEHICLE EXIT — aparcamiento real | `vehicleExit=true` |
+| 22:19:24 → 22:20:24 | Usuario camina al portal: 90 steps en 1 minuto | Step Detector emite eventos correctamente |
+| 22:20:24 | HIGH(0.75) con `vehicleExit=true` | Entra CANDIDATE phase |
+| **22:20:28** | `CANDIDATE confirmed via steps — steps=90/8` | `confirmParking(reliability=0.9)` ✅ **4 segundos desde HIGH** |
 
-El usuario confirma: "a las 22:05 nos bajamos del coche, EXIT lo detecto bastante tarde".
+### Por qué la percepción inicial fue equivocada
 
-### Lo que ya está implementado (revisado en `ParkingDetectionCoordinator.kt:296`)
+El usuario recordó "a las 22:05 nos bajamos del coche" pero el log demuestra que a las 22:05 estaban **parados con un amigo dentro del coche sin salir**. El verdadero aparcamiento fue a las 22:19-22:20. La memoria humana fusionó los dos stops.
 
-```kotlin
-val confirmNow = when {
-    isMismatch -> false
-    hasStepsProof -> true                                      // ← Step Detector path
-    windowElapsed && state.highCandidateHadVehicleExit -> true // ← AR EXIT path
-    else -> false
-}
-```
+### Validación del diseño
 
-El path de Step Detector **ya existe** y tiene precedencia sobre AR EXIT. Si en el trayecto 5 no disparó, las hipótesis son:
+Este trayecto es **evidencia directa de que el sistema discrimina correctamente**:
 
-**H1.** `stepCount` no llegó a `minStepsToConfirm` durante la parada del ATM. Plausible: 2 min de parada, usuario sale del coche → camina pocos pasos al cajero → vuelve. Si `minStepsToConfirm` está calibrado para una caminata más larga, no se cumple. **Verificar el valor actual en `ParkingDetectionConfig`** y revisar logs del Coord en la ventana 22:05-22:18 buscando `✦ step #N (stopped)`.
+1. **Gate `minStepsToConfirm=8` cumple su propósito**: a las 22:00 el algoritmo estuvo a punto de confirmar un falso positivo (semáforo / parada social con HIGH score por 5 min de inmovilidad + speed=0 + accuracy excelente). Los 5 pasos espurios contados no llegaron al threshold → **no se guardó plaza fantasma**.
+2. **Step Detector funciona en campo**: en el aparcamiento real registró 90 steps en 60 s mientras el usuario caminaba al portal → confirmación inmediata.
+3. **Latencia de confirmación final = 4 segundos** (22:20:24 HIGH → 22:20:28 SUCCESS).
 
-**H2.** El candidato HIGH se descartó (`highConfidenceReachedAt = null`) cuando el coche se movió tras el ATM (`isDriving` en `updateStopTracking`). En ese caso los pasos contados también se borran (`stepCount = if (isDriving) 0`). Cuando llegan a la 2ª parada (22:20) ya no hay historia previa — la confirmación es válida pero con la location equivocada (la del re-aparcamiento, no la del aparcamiento real del ATM).
+### Lo que NO es bug
 
-**H3.** Step Detector no estaba registrado / no recibió eventos en Oppo en esa franja. Verificar con `grep stepDetector` en el log.
+- El Notify a las 22:05 con HIGH(0.8) **es correcto** dado el código actual: política "always notify on HIGH". Es una **sugerencia** al usuario, no un guardado. La separación Notify (sugerir) vs Confirm (auto-guardar) **funciona como diseñada**.
+- El gate de 8 steps no es demasiado alto — es lo que evita que paradas sociales / atascos largos guarden plazas fantasma.
 
-### Plan de investigación
+### Conclusión
 
-- 🔍 **C.1** Extraer del log `oppo.log` la franja 22:00-22:25 con TODAS las líneas `PARKDIAG/Coord` (incluyendo scoring, step counts, transiciones de estado). Reconstruir qué decisión tomó el coordinator en cada loc fix.
-- 🔍 **C.2** Leer el valor actual de `minStepsToConfirm` en `ParkingDetectionConfig` y evaluar si es realista para una parada de 2 min con poca caminata.
-- 🔍 **C.3** Verificar que `StepDetectorSource` esté emitiendo eventos en Android (la implementación `AndroidStepDetectorSource` debe registrar `Sensor.TYPE_STEP_DETECTOR`).
-- 🧠 **C.4** Decisión: ¿bajar `minStepsToConfirm`? Trade-off con falso positivo (usuario que se estira en el coche).
-- 🧠 **C.5** Decisión: ¿proteger el candidato HIGH durante una ventana corta tras movimiento, en lugar de borrarlo en cuanto el coche acelera? Permitiría capturar el caso "salí del coche, el coche se movió 5 min después en convoy con otro conductor". Probablemente fuera de scope.
-
-### Lo que NO está roto
-
-El Notify a las 22:05 con HIGH(0.8) **es correcto** dado el código actual: política "always notify on HIGH". El "bug" percibido por el usuario es que el Notify llegó *antes* del Confirm — pero esa es la separación deliberada entre **sugerir** y **auto-guardar**. La pregunta real es por qué no se auto-guardó por pasos.
-
-### Files a leer (investigación, sin tocar todavía)
-- `composeApp/src/commonMain/kotlin/io/apptolast/paparcar/domain/model/ParkingDetectionConfig.kt` — valores actuales.
-- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/detection/sensor/AndroidStepDetectorSource.kt` (o nombre similar).
-- `diagnostics/2026-05-27/oppo.log` líneas 22:00-22:25 completas.
+Cerrar el ticket sin cambios de código. Mantener el valor `minStepsToConfirm=8` y el doble path `hasStepsProof || (windowElapsed && highCandidateHadVehicleExit)` exactamente como está.
 
 ---
 
 ## Resumen de prioridades
 
-| # | Ticket | Tipo | Prioridad | Bloqueado por |
+| # | Ticket | Tipo | Estado | Bloqueado por |
 |---|---|---|---|---|
-| A | `BUG-DETECT-ENTER-DEBOUNCE-001` | Fix de código | **Alta** | — |
-| B | `BUG-DETECT-OEM-KILLER-001` | UX + onboarding | Alta | Decisión sobre B.3/B.4 |
-| C | `BUG-DETECT-EXIT-LAG-VS-STEPS-001` | Investigación | Media | Análisis de logs C.1-C.3 |
+| A | `BUG-DETECT-ENTER-DEBOUNCE-001` | Fix de código | ✅ Done (`61a024d`) | — |
+| B | `BUG-DETECT-OEM-KILLER-001` | UX + onboarding | 🟡 Blocked | Decisión sobre B.3/B.4 |
+| C | `BUG-DETECT-EXIT-LAG-VS-STEPS-001` | Investigación | ✅ Closed — no bug | Validado en campo |
 
-A es el más mecánico y de mayor impacto inmediato (3 de 6 fallos del test). C es el más interesante porque ya tenemos la infraestructura — solo falta verificar por qué no disparó. B requiere conversación de producto.
+A se mergeó y resuelve los 3/6 fallos por ENTER duplicado. C resultó ser un falso positivo correctamente rechazado por el algoritmo (gate `minStepsToConfirm=8` funcionando). Pendiente real: B, que requiere conversación de producto sobre la UX de autoarranque en MIUI/ColorOS.

@@ -498,6 +498,22 @@ The `hasDetectedMovement`-based guard inside the COORDINATOR strategy branch was
 
 `hasDetectedMovement` itself is still used by the `ACTION_START_TRACKING` path and by the coordinator's internal `maxNoMovementMs` guard, so it stays on `ParkingDetectionCoordinator`.
 
+### Field validation: `minStepsToConfirm=8` correctly rejects in-car social/idle stops (2026-05-28)
+
+**Context.** During the 2026-05-27 field test, trip 5 on the Oppo had a long stationary period (22:00-22:08) where the coordinator entered CANDIDATE with `score=High(0.8)` (5 minutes stopped + speed=0 + excellent GPS accuracy + `vehicleExit=false`). The trip then resumed and only ended at 22:19 when the user actually parked at home.
+
+**What the algorithm did.** During the 22:00-22:08 stop, `stepCount` rose to 5 (spurious accelerometer events from people moving inside the parked car) and froze there for the remaining ~3 minutes. The CANDIDATE-phase log line `⏳ CANDIDATE phase — elapsed=Nms window=300000ms steps=5/8` repeated identically until the car resumed motion, at which point `clearBestStopSpeedMps` cleared the candidate cleanly. **No `confirmParking` fired.** At 22:19 the real `IN_VEHICLE EXIT` arrived, the user walked to the door (90 steps in 60 s), and confirmation completed in **4 s** (22:20:24 HIGH → 22:20:28 SUCCESS via `hasStepsProof`).
+
+**User confirmed scenario.** The 22:00-22:08 stop was a chat with a friend from the car — nobody got out. So the "5 steps" were noise, the threshold of 8 was the **only** thing standing between a phantom parking record and a correct rejection.
+
+**Conclusion.** Keep `minStepsToConfirm = 8`. Field evidence shows:
+
+1. The threshold blocks the most common false-positive class (long social/traffic stops in the car) without help from AR EXIT.
+2. Real parkings still confirm within seconds because 8 steps takes ~6 s of normal walking.
+3. The dual-path `confirmNow = hasStepsProof || (windowElapsed && highCandidateHadVehicleExit)` in `ParkingDetectionCoordinator` is the right shape — step proof gates fast confirms, AR EXIT + 2-min window remains the slower fallback.
+
+Resolved without code changes. Ticket `BUG-DETECT-EXIT-LAG-VS-STEPS-001` closed in `docs/backlog/parking-detection-real-world-2026-05-28.md`.
+
 ---
 
 ## 3. Open questions / future work
