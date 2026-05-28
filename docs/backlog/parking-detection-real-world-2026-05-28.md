@@ -122,14 +122,15 @@ Estos OEMs ignoran las recomendaciones de Android y matan foreground services en
 
 ### Plan
 
-- ⚪ **B.1** Pantalla onboarding "Permitir autoarranque" específica Xiaomi/Oppo. Solo se muestra si `Build.MANUFACTURER` matchea.
-- ⚪ **B.2** Trigger `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` tras `ACCESS_BACKGROUND_LOCATION`.
+- ✅ **B.1** Card guiada "Autostart" en `PermissionsScreen` para fabricantes whitelisted. **Shipped en commit `85285b4`** (master).
+  - `OemBackgroundReliabilityManager` (commonMain interface + Android impl con fallback chains por OEM + iOS stub).
+  - DI en `androidPlatformModule` + `iosPlatformModule`.
+  - MVI: `showAutostartCard` state, `RequestOemAutostart` intent, `LaunchOemAutostartSettings` effect.
+  - Card con `Icons.Outlined.RocketLaunch` en `PermissionsContent`, solo visible en fabricantes whitelisted.
+  - Strings en 9 locales. 3 previews. `FakeOemBackgroundReliabilityManager` + 3 tests.
+- ✅ **B.2** Trigger `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` — ya existía como `OptionalPermissionRow` en `PermissionsContent` antes de esta sesión.
 - 🧠 **B.3** Decisión: ¿añadimos WorkManager heartbeat? Coste de batería vs ganancia de cobertura. Probablemente postponer hasta ver datos de retención reales tras B.1+B.2.
 - 🧠 **B.4** Decisión: ¿geofences en "zonas del usuario" (casa/trabajo)? Necesita data — postponer.
-
-### Files a tocar (cuando empecemos)
-- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/presentation/onboarding/` — nueva pantalla `AutostartGuideScreen`.
-- `composeApp/src/androidMain/kotlin/io/apptolast/paparcar/permission/` — extender `PermissionManager` con `requestIgnoreBatteryOptimizations`.
 
 ---
 
@@ -178,7 +179,7 @@ Cerrar el ticket sin cambios de código. Mantener el valor `minStepsToConfirm=8`
 | # | Ticket | Tipo | Estado | Bloqueado por |
 |---|---|---|---|---|
 | A | `BUG-DETECT-ENTER-DEBOUNCE-001` | Fix de código | ✅ Done (`61a024d`) | — |
-| B | `BUG-DETECT-OEM-KILLER-001` | UX + onboarding | 🟡 Blocked | Decisión sobre B.3/B.4 |
+| B | `BUG-DETECT-OEM-KILLER-001` | UX + onboarding | ✅ Done B.1+B.2 (`85285b4`) · B.3/B.4 🧠 deferred | — |
 | C | `BUG-DETECT-EXIT-LAG-VS-STEPS-001` | Investigación | ✅ Closed — no bug | Validado en campo |
 
-A se mergeó y resuelve los 3/6 fallos por ENTER duplicado. C resultó ser un falso positivo correctamente rechazado por el algoritmo (gate `minStepsToConfirm=8` funcionando). Pendiente real: B, que requiere conversación de producto sobre la UX de autoarranque en MIUI/ColorOS.
+A se mergeó y resuelve los 3/6 fallos por ENTER duplicado. B.1+B.2 shipped — card guiada de autoarranque visible en MIUI/ColorOS/EMUI + exclusión de batería ya existente. C resultó ser un falso positivo correctamente rechazado por el algoritmo (gate `minStepsToConfirm=8` funcionando). B.3 (WorkManager heartbeat) y B.4 (geofences casa/trabajo) diferidos hasta ver datos de retención reales.
