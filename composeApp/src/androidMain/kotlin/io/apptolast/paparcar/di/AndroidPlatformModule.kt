@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
+import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.bluetooth.AndroidBluetoothScanner
@@ -21,6 +22,7 @@ import io.apptolast.paparcar.location.AndroidLocationDataSourceImpl
 import io.apptolast.paparcar.location.OverpassPlacesDataSourceImpl
 import io.apptolast.paparcar.notification.AppNotificationManagerImpl
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
+import io.apptolast.paparcar.permissions.OemBackgroundReliabilityManagerImpl
 import io.apptolast.paparcar.permissions.PermissionManagerImpl
 import io.apptolast.paparcar.preferences.AndroidDataStoreAppPreferences
 import org.koin.android.ext.koin.androidContext
@@ -55,6 +57,7 @@ val androidPlatformModule = module {
 
     // Permissions
     single<PermissionManager> { PermissionManagerImpl(androidContext()) }
+    single<OemBackgroundReliabilityManager> { OemBackgroundReliabilityManagerImpl(androidContext()) }
 
     // Preferences
     single<AppPreferences> { AndroidDataStoreAppPreferences(androidContext()) }

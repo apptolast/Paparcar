@@ -91,6 +91,8 @@
     <string name="permissions_perm_battery">Utilizzo batteria senza restrizioni</string>
     <string name="permissions_perm_battery_desc">Impedisce al sistema di terminare il rilevamento del parcheggio in background. Consigliato su dispositivi Xiaomi, Oppo e Huawei.</string>
     <string name="permissions_perm_battery_oem_hint">Il produttore del tuo dispositivo potrebbe richiedere anche di abilitare "Avvio automatico" o "Attività in background" nelle impostazioni di sistema.</string>
+    <string name="permissions_perm_autostart">Avvio automatico</string>
+    <string name="permissions_perm_autostart_desc">Il tuo dispositivo richiede l'attivazione dell'avvio automatico affinché l'app possa riprendere il rilevamento del parcheggio dopo essere stata terminata in background.</string>
     <string name="permissions_status_optional">Opzionale</string>
     <string name="permissions_btn_grant">Concedi permessi</string>
     <string name="permissions_btn_background">Attiva posizione in background</string>

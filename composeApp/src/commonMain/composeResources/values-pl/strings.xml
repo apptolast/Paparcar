@@ -91,6 +91,8 @@
     <string name="permissions_perm_battery">Nieograniczone uzycie baterii</string>
     <string name="permissions_perm_battery_desc">Zapobiega wylaczeniu wykrywania parkowania w tle przez system. Zdecydowanie zalecane na urzadzeniach Xiaomi, Oppo i Huawei.</string>
     <string name="permissions_perm_battery_oem_hint">Producent urzadzenia moze rowniez wymagac wlaczenia "Autostartu" lub "Aktywnosci w tle" w ustawieniach systemowych.</string>
+    <string name="permissions_perm_autostart">Autostart</string>
+    <string name="permissions_perm_autostart_desc">Twoje urzadzenie wymaga wlaczenia autostartu, aby aplikacja mogla wznowic wykrywanie parkowania po zamknieciu w tle.</string>
     <string name="permissions_status_optional">Opcjonalne</string>
     <string name="permissions_btn_grant">Przyznaj uprawnienia</string>
     <string name="permissions_btn_background">Aktywuj lokalizację w tle</string>

@@ -15,11 +15,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.platform.LocalContext
 
 actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
     val viewModel = koinViewModel<PermissionsViewModel>()
+    val oemReliabilityManager = koinInject<OemBackgroundReliabilityManager>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -90,6 +93,8 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
                             },
                         )
                     }
+                PermissionsEffect.LaunchOemAutostartSettings ->
+                    oemReliabilityManager.launchAutostartSettings()
                 PermissionsEffect.OpenAppSettings ->
                     context.startActivity(
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -110,6 +115,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
         onRequestPermissions = { viewModel.handleIntent(PermissionsIntent.RequestPermissions) },
         onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
         onRequestBatteryOptimization = { viewModel.handleIntent(PermissionsIntent.RequestBatteryOptimization) },
+        onRequestOemAutostart = { viewModel.handleIntent(PermissionsIntent.RequestOemAutostart) },
         onConfirmBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.ConfirmBackgroundLocationGuide) },
         onDismissBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.DismissBackgroundLocationGuide) },
     )

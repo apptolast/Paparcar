@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -55,6 +56,8 @@ import paparcar.composeapp.generated.resources.permissions_btn_location_settings
 import paparcar.composeapp.generated.resources.permissions_btn_settings
 import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
+import paparcar.composeapp.generated.resources.permissions_perm_autostart
+import paparcar.composeapp.generated.resources.permissions_perm_autostart_desc
 import paparcar.composeapp.generated.resources.permissions_perm_background
 import paparcar.composeapp.generated.resources.permissions_perm_background_desc
 import paparcar.composeapp.generated.resources.permissions_perm_battery
@@ -90,6 +93,7 @@ internal fun PermissionsContent(
     onRequestPermissions: () -> Unit,
     onRequestBluetooth: () -> Unit = {},
     onRequestBatteryOptimization: () -> Unit = {},
+    onRequestOemAutostart: () -> Unit = {},
     onConfirmBackgroundLocationGuide: () -> Unit = {},
     onDismissBackgroundLocationGuide: () -> Unit = {},
 ) {
@@ -212,6 +216,26 @@ internal fun PermissionsContent(
                     text = stringResource(Res.string.permissions_perm_battery_oem_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // ── Optional OEM autostart whitelist (MIUI/ColorOS/EMUI…) ────────
+            // We cannot read the actual toggle state — no public API exposes it.
+            // Card stays visible (always granted=false) on whitelisted manufacturers
+            // so the user can re-open the screen if they cleared the toggle later.
+            if (state.showAutostartCard) {
+                Spacer(Modifier.height(PaparcarSpacing.xl))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                )
+                Spacer(Modifier.height(PaparcarSpacing.xl))
+                OptionalPermissionRow(
+                    icon = Icons.Outlined.RocketLaunch,
+                    title = stringResource(Res.string.permissions_perm_autostart),
+                    desc = stringResource(Res.string.permissions_perm_autostart_desc),
+                    granted = false,
+                    onGrant = onRequestOemAutostart,
                 )
             }
 

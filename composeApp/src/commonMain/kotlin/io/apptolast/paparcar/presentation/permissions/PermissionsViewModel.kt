@@ -1,11 +1,13 @@
 package io.apptolast.paparcar.presentation.permissions
 
+import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.launch
 
 class PermissionsViewModel(
     private val permissionManager: PermissionManager,
+    private val oemBackgroundReliabilityManager: OemBackgroundReliabilityManager,
 ) : BaseViewModel<PermissionsState, PermissionsIntent, PermissionsEffect>() {
 
     // Counts how many times a system permission dialog has been launched.
@@ -26,6 +28,7 @@ class PermissionsViewModel(
                     isLocationServicesEnabled = current.isLocationServicesEnabled,
                     hasBluetoothConnect = current.hasBluetoothConnectPermission,
                     isBatteryOptimizationExempt = current.isBatteryOptimizationExempt,
+                    showAutostartCard = oemBackgroundReliabilityManager.requiresAutostartWhitelist,
                 )
             }
         }
@@ -58,6 +61,7 @@ class PermissionsViewModel(
             PermissionsIntent.RequestPermissions -> handleRequestPermissions()
             PermissionsIntent.RequestBluetoothPermission -> sendEffect(PermissionsEffect.RequestStepBluetooth)
             PermissionsIntent.RequestBatteryOptimization -> sendEffect(PermissionsEffect.RequestBatteryOptimizationExemption)
+            PermissionsIntent.RequestOemAutostart -> sendEffect(PermissionsEffect.LaunchOemAutostartSettings)
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
             PermissionsIntent.ConfirmBackgroundLocationGuide -> {
                 updateState { copy(showBackgroundLocationGuide = false) }

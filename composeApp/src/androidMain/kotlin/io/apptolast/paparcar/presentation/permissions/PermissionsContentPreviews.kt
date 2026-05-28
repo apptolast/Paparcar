@@ -123,3 +123,68 @@ private fun PermissionsSettingsPromptDarkPreview() {
         )
     }
 }
+
+// ── OEM autostart card visible (manufacturer requires whitelist) ─────────────
+
+@Preview(name = "Permissions — autostart card · Light", showBackground = true)
+@Composable
+private fun PermissionsAutostartCardLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        PermissionsContent(
+            state = PermissionsState(
+                hasFineLocation = true,
+                hasBackgroundLocation = true,
+                hasActivityRecognition = true,
+                hasNotifications = true,
+                isLocationServicesEnabled = true,
+                isBatteryOptimizationExempt = true,
+                showAutostartCard = true,
+            ),
+            onRequestPermissions = {},
+        )
+    }
+}
+
+@Preview(
+    name = "Permissions — autostart card · Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun PermissionsAutostartCardDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        PermissionsContent(
+            state = PermissionsState(
+                hasFineLocation = true,
+                hasBackgroundLocation = true,
+                hasActivityRecognition = true,
+                hasNotifications = true,
+                isLocationServicesEnabled = true,
+                isBatteryOptimizationExempt = true,
+                showAutostartCard = true,
+            ),
+            onRequestPermissions = {},
+        )
+    }
+}
+
+// ── OEM autostart card visible WITH battery hint (early onboarding state) ────
+
+@Preview(name = "Permissions — autostart + battery pending · Light", showBackground = true)
+@Composable
+private fun PermissionsAutostartAndBatteryLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        PermissionsContent(
+            state = PermissionsState(
+                hasFineLocation = true,
+                hasBackgroundLocation = true,
+                hasActivityRecognition = true,
+                hasNotifications = true,
+                isLocationServicesEnabled = true,
+                isBatteryOptimizationExempt = false,
+                showAutostartCard = true,
+            ),
+            onRequestPermissions = {},
+        )
+    }
+}

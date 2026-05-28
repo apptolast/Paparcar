@@ -91,6 +91,8 @@
     <string name="permissions_perm_battery">Onbeperkt batterijgebruik</string>
     <string name="permissions_perm_battery_desc">Voorkomt dat het systeem de parkeerdetectie op de achtergrond beeindigti. Sterk aanbevolen op Xiaomi-, Oppo- en Huawei-apparaten.</string>
     <string name="permissions_perm_battery_oem_hint">Uw apparaatfabrikant kan ook het inschakelen van "Automatisch opstarten" of "Achtergrondactiviteit" in de systeeminstellingen vereisen.</string>
+    <string name="permissions_perm_autostart">Automatisch opstarten</string>
+    <string name="permissions_perm_autostart_desc">Uw apparaat vereist het inschakelen van automatisch opstarten zodat de app parkeerdetectie kan hervatten nadat deze op de achtergrond is beeindigd.</string>
     <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <string name="permissions_btn_background">Achtergrondlocatie activeren</string>

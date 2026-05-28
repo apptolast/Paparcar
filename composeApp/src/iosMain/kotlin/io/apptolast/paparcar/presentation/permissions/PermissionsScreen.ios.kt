@@ -33,6 +33,8 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
                     requester.requestBluetooth()
                 PermissionsEffect.RequestBatteryOptimizationExemption ->
                     Unit // no battery optimization concept on iOS
+                PermissionsEffect.LaunchOemAutostartSettings ->
+                    Unit // no OEM autostart whitelist concept on iOS
                 PermissionsEffect.OpenAppSettings,
                 PermissionsEffect.OpenLocationSettings -> openIosSettings()
                 PermissionsEffect.NavigateToHome ->

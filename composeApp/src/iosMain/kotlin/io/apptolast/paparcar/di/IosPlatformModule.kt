@@ -12,6 +12,7 @@ import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.preferences.AppPreferences
@@ -21,6 +22,7 @@ import io.apptolast.paparcar.location.IosGeocoderDataSourceImpl
 import io.apptolast.paparcar.location.IosLocationDataSourceImpl
 import io.apptolast.paparcar.location.IosOverpassPlacesDataSourceImpl
 import io.apptolast.paparcar.notification.IosAppNotificationManagerImpl
+import io.apptolast.paparcar.permissions.IosOemBackgroundReliabilityManagerImpl
 import io.apptolast.paparcar.permissions.IosPermissionManagerImpl
 import org.koin.dsl.module
 import platform.Foundation.NSDocumentDirectory
@@ -53,6 +55,8 @@ val iosPlatformModule = module {
 
     // Permissions — real iOS implementation (CLLocationManager + CoreMotion + UserNotifications)
     single<PermissionManager> { IosPermissionManagerImpl() }
+    // OEM autostart whitelist — no iOS equivalent, stub always reports "not required"
+    single<OemBackgroundReliabilityManager> { IosOemBackgroundReliabilityManagerImpl() }
 
     // Preferences — real iOS implementation (NSUserDefaults)
     single<AppPreferences> { IosAppPreferences() }

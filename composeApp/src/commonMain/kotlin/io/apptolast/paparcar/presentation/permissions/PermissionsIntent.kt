@@ -4,6 +4,8 @@ sealed class PermissionsIntent {
     data object RequestPermissions : PermissionsIntent()
     data object RequestBluetoothPermission : PermissionsIntent()
     data object RequestBatteryOptimization : PermissionsIntent()
+    /** Open the manufacturer's autostart / background-activity settings screen. */
+    data object RequestOemAutostart : PermissionsIntent()
     data object RefreshPermissions : PermissionsIntent()
     /** User confirmed the background-location guide and wants to open system Settings now. */
     data object ConfirmBackgroundLocationGuide : PermissionsIntent()

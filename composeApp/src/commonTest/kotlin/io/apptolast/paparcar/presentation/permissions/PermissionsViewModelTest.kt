@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.permissions
 
 import app.cash.turbine.test
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
+import io.apptolast.paparcar.fakes.FakeOemBackgroundReliabilityManager
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,12 +23,18 @@ class PermissionsViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private lateinit var fakePermissions: FakePermissionManager
+    private lateinit var fakeOemManager: FakeOemBackgroundReliabilityManager
 
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         fakePermissions = FakePermissionManager()
+        fakeOemManager = FakeOemBackgroundReliabilityManager()
     }
+
+    private fun viewModel(
+        oem: FakeOemBackgroundReliabilityManager = fakeOemManager,
+    ) = PermissionsViewModel(fakePermissions, oem)
 
     @AfterTest
     fun tearDown() {
@@ -38,7 +45,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `initial state is all false when no permissions`() {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         assertFalse(vm.state.value.hasFineLocation)
         assertFalse(vm.state.value.hasBackgroundLocation)
@@ -52,7 +59,7 @@ class PermissionsViewModelTest {
     @Test
     fun `initial state reflects current permissions synchronously`() {
         fakePermissions.emit(FakePermissionManager.allGranted())
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         assertTrue(vm.state.value.hasFineLocation)
         assertTrue(vm.state.value.hasBackgroundLocation)
@@ -63,7 +70,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `state updates when permissions change after creation`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
         assertFalse(vm.state.value.hasFineLocation)
 
         fakePermissions.emit(FakePermissionManager.allGranted())
@@ -76,7 +83,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `NavigateToHome emitted when all permissions and GPS are granted`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         vm.effect.test {
             fakePermissions.emit(FakePermissionManager.allGranted())
@@ -86,7 +93,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `NavigateToHome NOT emitted when permissions granted but GPS off`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         vm.effect.test {
             fakePermissions.emit(FakePermissionManager.permissionsOnlyNoGps())
@@ -98,7 +105,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `showRationale shown on second tap when permissions still denied`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         vm.handleIntent(PermissionsIntent.RequestPermissions) // tap 1: no escalation yet
         assertFalse(vm.state.value.showRationale)
@@ -110,7 +117,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `showSettingsPrompt escalated on third tap when rationale already shown`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         vm.handleIntent(PermissionsIntent.RequestPermissions) // tap 1
         vm.handleIntent(PermissionsIntent.RequestPermissions) // tap 2: showRationale = true
@@ -122,7 +129,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `showRationale NOT shown if requestCount is zero`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
         fakePermissions.emit(FakePermissionManager.allDenied())
 
         assertFalse(vm.state.value.showRationale)
@@ -133,7 +140,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `RequestPermissions emits RequestStep1 when step1 is pending`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         vm.effect.test {
             vm.handleIntent(PermissionsIntent.RequestPermissions)
@@ -152,7 +159,7 @@ class PermissionsViewModelTest {
                 isLocationServicesEnabled = true,
             ),
         )
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         vm.handleIntent(PermissionsIntent.RequestPermissions)
         // Step 2 goes through a user-facing guide ("Allow all the time + press Back") before
@@ -168,7 +175,7 @@ class PermissionsViewModelTest {
     @Test
     fun `RequestPermissions emits OpenLocationSettings when all permissions granted but GPS off`() = runTest {
         fakePermissions.emit(FakePermissionManager.permissionsOnlyNoGps())
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
 
         vm.effect.test {
             vm.handleIntent(PermissionsIntent.RequestPermissions)
@@ -178,7 +185,7 @@ class PermissionsViewModelTest {
 
     @Test
     fun `RequestPermissions emits OpenAppSettings when showSettingsPrompt is true`() = runTest {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
         // Escalate to settings prompt via three taps
         vm.handleIntent(PermissionsIntent.RequestPermissions) // tap 1
         vm.handleIntent(PermissionsIntent.RequestPermissions) // tap 2: showRationale
@@ -195,11 +202,37 @@ class PermissionsViewModelTest {
 
     @Test
     fun `RefreshPermissions calls permissionManager refreshPermissions`() {
-        val vm = PermissionsViewModel(fakePermissions)
+        val vm = viewModel()
         val countBefore = fakePermissions.refreshCount
 
         vm.handleIntent(PermissionsIntent.RefreshPermissions)
 
         assertEquals(countBefore + 1, fakePermissions.refreshCount)
+    }
+
+    // ── OEM autostart card visibility ─────────────────────────────────────────
+
+    @Test
+    fun `showAutostartCard is false when manufacturer does not require whitelist`() {
+        val vm = viewModel(FakeOemBackgroundReliabilityManager(requiresAutostartWhitelist = false))
+
+        assertFalse(vm.state.value.showAutostartCard)
+    }
+
+    @Test
+    fun `showAutostartCard is true when manufacturer requires whitelist`() {
+        val vm = viewModel(FakeOemBackgroundReliabilityManager(requiresAutostartWhitelist = true))
+
+        assertTrue(vm.state.value.showAutostartCard)
+    }
+
+    @Test
+    fun `RequestOemAutostart emits LaunchOemAutostartSettings`() = runTest {
+        val vm = viewModel(FakeOemBackgroundReliabilityManager(requiresAutostartWhitelist = true))
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.RequestOemAutostart)
+            assertIs<PermissionsEffect.LaunchOemAutostartSettings>(awaitItem())
+        }
     }
 }
