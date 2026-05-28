@@ -416,6 +416,17 @@
     <string name="vehicle_size_van">Van / SUV</string>
     <string name="vehicle_size_van_examples">e.g. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
 
+    <!-- Vehicle type selector — registration / edit screen -->
+    <string name="vehicle_type_label">Vehicle type</string>
+    <string name="vehicle_type_car">Car</string>
+    <string name="vehicle_type_car_examples">Standard car, SUV, van — uses parking spots</string>
+    <string name="vehicle_type_motorcycle">Motorcycle</string>
+    <string name="vehicle_type_motorcycle_examples">Highway-capable motorbike — uses parking spots</string>
+    <string name="vehicle_type_scooter">Scooter</string>
+    <string name="vehicle_type_scooter_examples">Moped or electric scooter — usually doesn\'t need spots</string>
+    <string name="vehicle_type_bike">Bike</string>
+    <string name="vehicle_type_bike_examples">Bicycle or e-bike — usually doesn\'t need spots</string>
+
     <!-- Permissions Rationale screen -->
     <string name="perm_rationale_title">How Paparcar works</string>
     <string name="perm_rationale_subtitle">We need a few permissions to detect your parking automatically.</string>

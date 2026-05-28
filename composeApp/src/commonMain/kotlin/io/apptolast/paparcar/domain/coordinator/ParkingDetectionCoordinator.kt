@@ -4,13 +4,16 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingSignals
+import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.sensor.StepDetectorSource
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -61,6 +65,7 @@ class ParkingDetectionCoordinator(
     private val notifyParkingConfirmation: NotifyParkingConfirmationUseCase,
     private val notificationPort: AppNotificationManager,
     private val vehicleRepository: VehicleRepository,
+    private val stepDetector: StepDetectorSource,
     private val config: ParkingDetectionConfig,
 ) {
     /**
@@ -105,10 +110,32 @@ class ParkingDetectionCoordinator(
          *  (a maneuver into the actual parking spot after waiting nearby) from sustained
          *  walking, which never crosses the reposition speed. [PARKING-001] */
         val consecutiveRepositionFixes: Int = 0,
+        /** Pedestrian steps counted while the car is stopped (`stoppedSince != null`).
+         *  Reset to 0 whenever the vehicle drives away. When this reaches
+         *  [ParkingDetectionConfig.minStepsToConfirm] during the CANDIDATE phase, the
+         *  coordinator auto-confirms with [ParkingDetectionConfig.reliabilityVehicleExit]
+         *  reliability — pedestrian steps are unambiguous proof the user got out of the
+         *  car, and therefore a stronger signal than the activity-exit transition (which
+         *  is noisy on real hardware). [BUG-GARAGE-COLA-001] */
+        val stepCount: Int = 0,
+        /** Epoch-ms when the coordinator received its first GPS sample in this session.
+         *  Used to compute session-duration heuristics (e.g. the scooter/bike mismatch
+         *  prompt — a "long trip below 30 km/h with a CAR vehicle" is suspicious).
+         *  Set once and never overwritten until [reset]. [BUG-SCOOTER-001] */
+        val sessionStartMs: Long? = null,
+        /** Maximum GPS speed (m/s) observed in this session. Combined with
+         *  [sessionStartMs] to differentiate genuine driving from a scooter trip. */
+        val maxSpeedMps: Float = 0f,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
             stoppedFixes.minByOrNull { it.accuracy } ?: fallback
+
+        /** Convenience accessor for the mismatch heuristic — km/h is the human-facing unit. */
+        val maxSpeedKmh: Float get() = maxSpeedMps * 3.6f
+
+        /** Wall-clock duration since the first GPS fix, in ms; `0` if no fix has arrived yet. */
+        fun sessionDurationMs(now: Long): Long = sessionStartMs?.let { now - it } ?: 0L
     }
 
     private val _detectionState = MutableStateFlow(ParkingDetectionState())
@@ -130,20 +157,37 @@ class ParkingDetectionCoordinator(
      * Runs the detection loop until a parking spot is confirmed or [locations] ends.
      * Resets all session state on entry and dismisses any stale confirmation notification.
      */
-    suspend operator fun invoke(locations: Flow<GpsPoint>) {
+    suspend operator fun invoke(locations: Flow<GpsPoint>) = coroutineScope {
         PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry — calling reset()")
         reset()
 
-        val activeVehicleId = vehicleRepository.observeDefaultVehicle().first()?.id
-        if (activeVehicleId == null) {
+        val activeVehicle = vehicleRepository.observeDefaultVehicle().first()
+        if (activeVehicle == null) {
             PaparcarLogger.w(DIAG, "  ✗ no default vehicle — aborting coordinator session")
-            return
+            return@coroutineScope
         }
-        PaparcarLogger.d(DIAG, "  ✓ active vehicleId=$activeVehicleId")
+        val activeVehicleId = activeVehicle.id
+        val activeVehicleType = activeVehicle.vehicleType
+        PaparcarLogger.d(DIAG, "  ✓ active vehicleId=$activeVehicleId type=$activeVehicleType")
 
         var completed = false
         val sessionStartMs = Clock.System.now().toEpochMilliseconds()
         var locationCount = 0
+
+        // Sibling job: count pedestrian steps while the vehicle is stopped. Steps that
+        // arrive during a stop are strong evidence the user got out of the car, which
+        // is the canonical signal that distinguishes a real park from a queue.
+        // [BUG-GARAGE-COLA-001]
+        val stepJob = launch {
+            stepDetector.steps().collect {
+                val updated = _detectionState.updateAndGet { s ->
+                    if (s.stoppedSince != null) s.copy(stepCount = s.stepCount + 1) else s
+                }
+                if (updated.stoppedSince != null) {
+                    PaparcarLogger.d(DIAG, "  ✦ step #${updated.stepCount} (stopped)")
+                }
+            }
+        }
 
         locations
             .takeWhile {
@@ -180,6 +224,8 @@ class ParkingDetectionCoordinator(
                     s.copy(
                         sessionOrigin = s.sessionOrigin ?: location,
                         hasEverMoved = s.hasEverMoved || hasJustMoved,
+                        sessionStartMs = s.sessionStartMs ?: now,
+                        maxSpeedMps = if (location.speed > s.maxSpeedMps) location.speed else s.maxSpeedMps,
                     )
                 }
                 PaparcarLogger.d(
@@ -206,7 +252,7 @@ class ParkingDetectionCoordinator(
                             .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
                         PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=user) END")
                     }
-                    PaparcarLogger.d(DIAG, "  ◀ USER-CONFIRMED path done — returning from collectLatest")
+                    PaparcarLogger.d(DIAG, "  ◀ USER-CONFIRMED path done — returning from collect")
                     return@collect
                 }
 
@@ -216,19 +262,56 @@ class ParkingDetectionCoordinator(
                 }
 
                 if (state.highConfidenceReachedAt != null) {
+                    // Pedestrian steps observed while stopped are the strongest evidence that
+                    // the user has actually exited the car — confirm immediately regardless of
+                    // the activity-exit signal or elapsed window. [BUG-GARAGE-COLA-001]
+                    val hasStepsProof = state.stepCount >= config.minStepsToConfirm
                     val window = if (state.highCandidateHadVehicleExit)
                         config.vehicleExitObservationWindowMs
                     else
                         config.confirmationObservationWindowMs
                     val elapsed = now - state.highConfidenceReachedAt
-                    PaparcarLogger.d(DIAG, "  ⏳ CANDIDATE phase — elapsed=${elapsed}ms window=${window}ms")
+                    val windowElapsed = elapsed >= window
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⏳ CANDIDATE phase — elapsed=${elapsed}ms window=${window}ms steps=${state.stepCount}/${config.minStepsToConfirm}"
+                    )
 
-                    if (elapsed >= window) {
-                        val reliability = if (state.highCandidateHadVehicleExit)
-                            config.reliabilityVehicleExit
-                        else
-                            config.reliabilitySlowPath
-                        PaparcarLogger.d(DIAG, "  ▶ CANDIDATE window expired — entering confirmParking(reliability=$reliability)")
+                    // Vehicle-mismatch guard: if the user's active vehicle is a CAR but the
+                    // session profile (sustained slow trip) looks like a scooter, suppress
+                    // auto-confirm and rely on the High-confidence notification — the user
+                    // tells us by tapping. Prevents false-positive parking events when the
+                    // user took their scooter but the app has the car selected as default.
+                    // [BUG-SCOOTER-001]
+                    val isMismatch = activeVehicleType == VehicleType.CAR &&
+                            state.sessionDurationMs(now) >= config.mismatchMinSessionDurationMs &&
+                            state.maxSpeedKmh <= config.mismatchMaxSpeedKmh
+
+                    // Three confirmation paths:
+                    //  1. Step proof (hasStepsProof) — strongest, fires the moment the user steps out.
+                    //  2. Vehicle-exit fast path — window elapsed with an IN_VEHICLE→EXIT signal present.
+                    //  3. Slow path — only if steps confirm; otherwise the candidate is discarded as a
+                    //     likely queue / traffic stop. This is the key change vs the pre-step behaviour,
+                    //     where 5 minutes of stillness alone was enough to auto-confirm. [BUG-GARAGE-COLA-001]
+                    val confirmNow = when {
+                        isMismatch -> false
+                        hasStepsProof -> true
+                        windowElapsed && state.highCandidateHadVehicleExit -> true
+                        else -> false
+                    }
+                    if (isMismatch) {
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  ⊘ MISMATCH guard active — CAR vehicle but maxSpeed=${state.maxSpeedKmh}km/h " +
+                                    "≤ ${config.mismatchMaxSpeedKmh}, session=${state.sessionDurationMs(now)}ms " +
+                                    "≥ ${config.mismatchMinSessionDurationMs}. Suppressing auto-confirm. [BUG-SCOOTER-001]"
+                        )
+                    }
+
+                    if (confirmNow) {
+                        val reliability = config.reliabilityVehicleExit
+                        val pathLabel = if (hasStepsProof) "steps" else "vehicleExit+window"
+                        PaparcarLogger.d(DIAG, "  ▶ CANDIDATE confirmed via $pathLabel — entering confirmParking(reliability=$reliability)")
                         val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
                         completed = true
                         withContext(NonCancellable) {
@@ -237,13 +320,22 @@ class ParkingDetectionCoordinator(
                                 .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
                             PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=$reliability) END")
                         }
-                        PaparcarLogger.d(DIAG, "  ◀ CANDIDATE confirm done — returning from collectLatest")
+                        PaparcarLogger.d(DIAG, "  ◀ CANDIDATE confirm done — returning from collect")
+                    } else if (windowElapsed) {
+                        // Slow path expired without steps and without vehicleExit — almost certainly
+                        // a queue / traffic stop with the user still inside the car. Discard the
+                        // candidate so a subsequent legitimate stop can be evaluated freshly.
+                        // The user notification fired when High was first reached; if they did park
+                        // and ignored the notification, the next session will catch them.
+                        PaparcarLogger.d(DIAG, "  ⊘ CANDIDATE expired without steps/exit — discarding (likely cola/atasco) [BUG-GARAGE-COLA-001]")
+                        _detectionState.update { it.copy(highConfidenceReachedAt = null) }
                     }
                     return@collect
                 }
 
                 evaluateConfidence(location, stoppedDuration, state, now)
             }
+        stepJob.cancel()
         PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=$locationCount completed=$completed")
     }
 
@@ -368,6 +460,9 @@ class ParkingDetectionCoordinator(
                     activityStillDetected = if (isDriving) false else it.activityStillDetected,
                     highConfidenceReachedAt = if (isDriving) null else it.highConfidenceReachedAt,
                     consecutiveRepositionFixes = newConsecutive,
+                    // Vehicle drove away — discard accumulated steps so a future stop is evaluated
+                    // freshly without inheriting evidence from a previous walking/queue episode.
+                    stepCount = if (isDriving) 0 else it.stepCount,
                 )
             }
             0L

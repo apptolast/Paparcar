@@ -11,6 +11,8 @@ data class VehicleDto(
     val brand: String? = null,
     val model: String? = null,
     val sizeCategory: String = "",
+    /** VehicleType enum name. Empty string for pre-feature rows; mappers default to "CAR". */
+    val vehicleType: String = "",
     val bluetoothDeviceId: String? = null,
     val showBrandModelOnSpot: Boolean = false,
     val isDefault: Boolean = false,

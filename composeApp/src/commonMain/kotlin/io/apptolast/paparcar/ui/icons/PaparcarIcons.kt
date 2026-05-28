@@ -3,6 +3,9 @@ package io.apptolast.paparcar.ui.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AirportShuttle
+import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.ElectricScooter
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Hotel
 import androidx.compose.material.icons.outlined.LocalCafe
@@ -27,6 +30,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleType
 
 /**
  * Custom icon set for Paparcar.
@@ -80,6 +84,14 @@ object PaparcarIcons {
     val VehicleSmall: ImageVector by lazy { vehicleSmallVector() }
     val VehicleMedium: ImageVector by lazy { vehicleMediumVector() }
     val VehicleLarge: ImageVector by lazy { vehicleLargeVector() }
+
+    // ── Vehicle types (high-level taxonomy, independent of size) ─────────────
+    // Used in registration/edit to pick the user's vehicle category. Drives
+    // detection strategy: SCOOTER / BIKE never enter the Coordinator algorithm.
+    val VehicleCar: ImageVector get() = Icons.Outlined.DirectionsCar
+    val VehicleMotorcycle: ImageVector get() = Icons.Outlined.TwoWheeler
+    val VehicleScooter: ImageVector get() = Icons.Outlined.ElectricScooter
+    val VehicleBike: ImageVector get() = Icons.AutoMirrored.Outlined.DirectionsBike
 
 
     /**
@@ -366,6 +378,18 @@ val VehicleSize.icon: ImageVector
         VehicleSize.MEDIUM -> PaparcarIcons.VehicleMedium
         VehicleSize.LARGE  -> PaparcarIcons.VehicleLarge
         VehicleSize.VAN    -> PaparcarIcons.VehicleVan
+    }
+
+/**
+ * Paparcar icon for each [VehicleType]. Used by [VehicleTypeSelector] and any
+ * call site that needs a quick glyph for the user's vehicle category.
+ */
+val VehicleType.icon: ImageVector
+    get() = when (this) {
+        VehicleType.CAR        -> PaparcarIcons.VehicleCar
+        VehicleType.MOTORCYCLE -> PaparcarIcons.VehicleMotorcycle
+        VehicleType.SCOOTER    -> PaparcarIcons.VehicleScooter
+        VehicleType.BIKE       -> PaparcarIcons.VehicleBike
     }
 
 /**

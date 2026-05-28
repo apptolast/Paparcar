@@ -310,6 +310,17 @@
     <string name="vehicle_size_large_examples">z.B. BMW 5er, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Transporter / SUV</string>
     <string name="vehicle_size_van_examples">z.B. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Fahrzeugtyp-Auswahl — Registrierungs-/Bearbeitungs-Bildschirm -->
+    <string name="vehicle_type_label">Fahrzeugtyp</string>
+    <string name="vehicle_type_car">Auto</string>
+    <string name="vehicle_type_car_examples">Auto, SUV oder Transporter — braucht einen Parkplatz</string>
+    <string name="vehicle_type_motorcycle">Motorrad</string>
+    <string name="vehicle_type_motorcycle_examples">Straßenmotorrad — braucht einen Parkplatz</string>
+    <string name="vehicle_type_scooter">Roller</string>
+    <string name="vehicle_type_scooter_examples">Moped oder E-Scooter — braucht meist keinen Parkplatz</string>
+    <string name="vehicle_type_bike">Fahrrad</string>
+    <string name="vehicle_type_bike_examples">Fahrrad oder E-Bike — braucht meist keinen Parkplatz</string>
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Manuell</string>
 

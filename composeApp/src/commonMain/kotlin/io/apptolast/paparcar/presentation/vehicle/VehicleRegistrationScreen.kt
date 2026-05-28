@@ -42,6 +42,7 @@ import io.apptolast.paparcar.presentation.vehicle.data.VehicleCatalog
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.components.VehicleSizeSelector
+import io.apptolast.paparcar.ui.components.VehicleTypeSelector
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -61,6 +62,7 @@ import paparcar.composeapp.generated.resources.vehicle_registration_title
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot_desc
 import paparcar.composeapp.generated.resources.vehicle_size_label
+import paparcar.composeapp.generated.resources.vehicle_type_label
 
 @Composable
 fun VehicleRegistrationScreen(
@@ -291,6 +293,18 @@ internal fun VehicleRegistrationContent(
                     }
                 }
             }
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = stringResource(Res.string.vehicle_type_label),
+                style = MaterialTheme.typography.titleSmall,
+            )
+
+            VehicleTypeSelector(
+                selected = state.vehicleType,
+                onSelect = { onIntent(VehicleRegistrationIntent.SetVehicleType(it)) },
+            )
 
             Spacer(Modifier.height(4.dp))
 

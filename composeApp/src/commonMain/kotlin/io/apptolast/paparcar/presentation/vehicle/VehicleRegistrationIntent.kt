@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.vehicle
 
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleType
 
 sealed class VehicleRegistrationIntent {
     data class SetName(val value: String) : VehicleRegistrationIntent()
@@ -17,6 +18,8 @@ sealed class VehicleRegistrationIntent {
     /** Update the free-text model value when [SelectModelOther] is active. */
     data class SetCustomModel(val value: String) : VehicleRegistrationIntent()
     data class SetSize(val size: VehicleSize) : VehicleRegistrationIntent()
+    /** Pick a high-level vehicle category (CAR / MOTORCYCLE / SCOOTER / BIKE). [BUG-SCOOTER-001] */
+    data class SetVehicleType(val type: VehicleType) : VehicleRegistrationIntent()
     data class SetShowOnSpot(val enabled: Boolean) : VehicleRegistrationIntent()
     data class LoadVehicle(val vehicleId: String) : VehicleRegistrationIntent()
     data object Save : VehicleRegistrationIntent()

@@ -167,6 +167,39 @@ data class ParkingDetectionConfig(
     /** Reliability score assigned when parking is auto-confirmed via the slow path only
      *  (no activity-exit signal, stopped for [confirmationObservationWindowMs]). */
     val reliabilitySlowPath: Float = 0.75f,
+
+    // ── STEP DETECTOR (BUG-GARAGE-COLA-001) ───────────────────────────────────
+    /** Number of pedestrian steps observed while the car is stopped that count as
+     *  strong evidence the user has exited the vehicle. Once reached, the coordinator
+     *  auto-confirms immediately with [reliabilityVehicleExit] reliability, regardless
+     *  of whether the IN_VEHICLE→EXIT activity transition has arrived.
+     *
+     *  **Why 8.** A real parking event produces ≥ 8 steps within ~5–8 s of the user
+     *  getting out (slamming door, walking to elevator/sidewalk). 8 is small enough
+     *  to fire quickly even in a tight garage (4 m to the lift) and large enough to
+     *  ignore stray accelerometer noise. Tune with field telemetry if needed.
+     *
+     *  **Why this gate.** Without it, the slow path (5 min stopped, no activity-exit)
+     *  auto-confirms parking in queues (garage gate, parking ticket booth) where the
+     *  user is still sitting in the car. Requiring a pedestrian-step burst eliminates
+     *  that false positive without affecting real parkings.
+     */
+    val minStepsToConfirm: Int = 8,
+
+    // ── VEHICLE-MISMATCH GUARD (BUG-SCOOTER-001) ──────────────────────────────
+    /** Maximum session top speed (km/h) below which an auto-confirm is treated as
+     *  *suspicious* for a CAR vehicle — scooter/moped territory. Combined with
+     *  [mismatchMinSessionDurationMs] so a short city errand at 25 km/h doesn't
+     *  trigger; a sustained slow trip does. Default 28 km/h sits between the EU
+     *  L1e moped cap (45 km/h) and typical urban car cruise (≥ 30 km/h), so cars
+     *  in traffic naturally cross it but scooters typically don't. */
+    val mismatchMaxSpeedKmh: Float = 28f,
+    /** Minimum session wall-clock duration (ms) before the mismatch guard kicks
+     *  in. Below this we don't have enough samples to trust [maxSpeedMps].
+     *  Default 8 minutes — short enough to catch a typical scooter commute,
+     *  long enough that a quick "drive to the kerb to drop someone off" car
+     *  trip is exempt. */
+    val mismatchMinSessionDurationMs: Long = 8 * 60_000L,
 ) {
     init {
         require(highConfidenceThreshold in 0f..1f) {
@@ -243,6 +276,15 @@ data class ParkingDetectionConfig(
         }
         require(reliabilitySlowPath in 0f..reliabilityVehicleExit) {
             "reliabilitySlowPath must be in 0..reliabilityVehicleExit, was $reliabilitySlowPath"
+        }
+        require(minStepsToConfirm >= 1) {
+            "minStepsToConfirm must be >= 1, was $minStepsToConfirm"
+        }
+        require(mismatchMaxSpeedKmh > 0) {
+            "mismatchMaxSpeedKmh must be > 0, was $mismatchMaxSpeedKmh"
+        }
+        require(mismatchMinSessionDurationMs > 0) {
+            "mismatchMinSessionDurationMs must be > 0, was $mismatchMinSessionDurationMs"
         }
     }
 }

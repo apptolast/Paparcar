@@ -310,6 +310,17 @@
     <string name="vehicle_size_large_examples">np. BMW Seria 5, Mercedes Klasa E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Van / SUV</string>
     <string name="vehicle_size_van_examples">np. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Wybór typu pojazdu — ekran rejestracji / edycji -->
+    <string name="vehicle_type_label">Typ pojazdu</string>
+    <string name="vehicle_type_car">Samochód</string>
+    <string name="vehicle_type_car_examples">Samochód, SUV lub van — zajmuje miejsce parkingowe</string>
+    <string name="vehicle_type_motorcycle">Motocykl</string>
+    <string name="vehicle_type_motorcycle_examples">Motocykl drogowy — zajmuje miejsce parkingowe</string>
+    <string name="vehicle_type_scooter">Hulajnoga</string>
+    <string name="vehicle_type_scooter_examples">Motorower lub hulajnoga elektryczna — zwykle nie potrzebuje miejsca</string>
+    <string name="vehicle_type_bike">Rower</string>
+    <string name="vehicle_type_bike_examples">Rower lub e-bike — zwykle nie potrzebuje miejsca</string>
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Ręczne</string>
 

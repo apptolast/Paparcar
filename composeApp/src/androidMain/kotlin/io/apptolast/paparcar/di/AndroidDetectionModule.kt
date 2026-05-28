@@ -10,7 +10,9 @@ import io.apptolast.paparcar.detection.GeofenceManagerImpl
 import io.apptolast.paparcar.detection.WorkManagerParkingEnrichmentScheduler
 import io.apptolast.paparcar.detection.WorkManagerParkingSyncScheduler
 import io.apptolast.paparcar.detection.WorkManagerReportSpotScheduler
+import io.apptolast.paparcar.detection.sensor.AndroidStepDetectorSource
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.sensor.StepDetectorSource
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -29,6 +31,9 @@ val androidDetectionModule = module {
     // --- Activity Recognition ---
     single<ActivityRecognitionManager> { ActivityRecognitionManagerImpl(androidContext()) }
     single { ActivityRecognition.getClient(androidContext()) }
+
+    // --- Step Detector (Sensor.TYPE_STEP_DETECTOR) [BUG-GARAGE-COLA-001] ---
+    single<StepDetectorSource> { AndroidStepDetectorSource(androidContext()) }
 
     // --- Geofence ---
     single { LocationServices.getGeofencingClient(androidContext()) }

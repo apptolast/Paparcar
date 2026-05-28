@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_3_4
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -36,6 +37,7 @@ val androidPlatformModule = module {
             AppDatabase::class.java,
             "paparcar.db"
         ).fallbackToDestructiveMigrationFrom(true, 1, 2)
+            .addMigrations(MIGRATION_3_4)
             .build()
     }
 

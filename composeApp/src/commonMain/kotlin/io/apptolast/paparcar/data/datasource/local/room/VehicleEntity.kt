@@ -12,6 +12,9 @@ data class VehicleEntity(
     val model: String? = null,
     /** VehicleSize enum name (e.g. "MEDIUM"). */
     val sizeCategory: String,
+    /** VehicleType enum name (e.g. "CAR"). Defaulted to "CAR" by the v3→v4 migration
+     *  for pre-existing rows. [BUG-SCOOTER-001] */
+    val vehicleType: String = "CAR",
     /** BT device address — on-device only, never synced to Firestore. */
     val bluetoothDeviceId: String? = null,
     val showBrandModelOnSpot: Boolean = false,

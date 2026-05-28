@@ -14,6 +14,7 @@ import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
+import io.apptolast.paparcar.fakes.FakeStepDetectorSource
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.cancelAndJoin
@@ -75,15 +76,17 @@ class ParkingDetectionCoordinatorTest {
             vehicleRepository = vehicleRepo,
         )
         val calcConfidence = CalculateParkingConfidenceUseCase(config)
+        val stepDetector = FakeStepDetectorSource()
         val coordinator = ParkingDetectionCoordinator(
             calculateParkingConfidence = calcConfidence,
             confirmParking = confirmParking,
             notifyParkingConfirmation = notifyParking,
             notificationPort = notification,
             vehicleRepository = vehicleRepo,
+            stepDetector = stepDetector,
             config = config,
         )
-        return TestEnv(coordinator, parkingRepo, geofence, enrichment, notification)
+        return TestEnv(coordinator, parkingRepo, geofence, enrichment, notification, stepDetector)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -426,5 +429,6 @@ class ParkingDetectionCoordinatorTest {
         val geofence: FakeGeofenceManager,
         val enrichment: FakeParkingEnrichmentScheduler,
         val notification: FakeAppNotificationManager,
+        val stepDetector: FakeStepDetectorSource,
     )
 }

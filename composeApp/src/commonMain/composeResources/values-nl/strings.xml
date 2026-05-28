@@ -310,6 +310,17 @@
     <string name="vehicle_size_large_examples">bijv. BMW 5 Serie, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Bestelbus / SUV</string>
     <string name="vehicle_size_van_examples">bijv. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Voertuigtype-keuze — registratie / bewerk scherm -->
+    <string name="vehicle_type_label">Voertuigtype</string>
+    <string name="vehicle_type_car">Auto</string>
+    <string name="vehicle_type_car_examples">Auto, SUV of bestelbus — heeft een parkeerplek nodig</string>
+    <string name="vehicle_type_motorcycle">Motor</string>
+    <string name="vehicle_type_motorcycle_examples">Motorfiets voor de weg — heeft een parkeerplek nodig</string>
+    <string name="vehicle_type_scooter">Step</string>
+    <string name="vehicle_type_scooter_examples">Bromfiets of e-step — meestal geen parkeerplek nodig</string>
+    <string name="vehicle_type_bike">Fiets</string>
+    <string name="vehicle_type_bike_examples">Fiets of e-bike — meestal geen parkeerplek nodig</string>
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Handmatig</string>
 

@@ -412,6 +412,17 @@
     <string name="vehicle_size_van">Furgoneta / SUV</string>
     <string name="vehicle_size_van_examples">ej. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
 
+    <!-- Selector de tipo de vehículo — pantalla de registro / edición -->
+    <string name="vehicle_type_label">Tipo de vehículo</string>
+    <string name="vehicle_type_car">Coche</string>
+    <string name="vehicle_type_car_examples">Coche, SUV o furgoneta — ocupa plazas</string>
+    <string name="vehicle_type_motorcycle">Moto</string>
+    <string name="vehicle_type_motorcycle_examples">Moto de carretera — ocupa plazas</string>
+    <string name="vehicle_type_scooter">Patinete</string>
+    <string name="vehicle_type_scooter_examples">Ciclomotor o patinete eléctrico — normalmente no necesita plaza</string>
+    <string name="vehicle_type_bike">Bici</string>
+    <string name="vehicle_type_bike_examples">Bicicleta o e-bike — normalmente no necesita plaza</string>
+
     <!-- Pantalla de rationale de permisos -->
     <string name="perm_rationale_title">Cómo funciona Paparcar</string>
     <string name="perm_rationale_subtitle">Necesitamos algunos permisos para detectar tu aparcamiento automáticamente.</string>

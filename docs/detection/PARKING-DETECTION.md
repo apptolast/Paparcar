@@ -22,16 +22,23 @@ Paparcar detects the moment a user parks their car so it can publish the freshly
 The choice is made in `ParkingStrategyResolver`:
 
 ```kotlin
-fun resolveStrategy(vehicle: Vehicle, isBluetoothEnabled: Boolean): ParkingDetectionStrategy {
-    return if (vehicle.bluetoothDeviceId != null && isBluetoothEnabled) {
-        BluetoothDetectionStrategy(vehicle.bluetoothDeviceId)
+enum class ParkingStrategy { NONE, BLUETOOTH, COORDINATOR }
+
+suspend fun resolve(): ParkingStrategy {
+    val vehicle = vehicleRepository.observeDefaultVehicle().first()
+    if (vehicle != null && vehicle.vehicleType in NON_PARKING_TYPES) {
+        return ParkingStrategy.NONE        // SCOOTER, BIKE
+    }
+    val hasBtConfig = vehicle?.bluetoothDeviceId != null
+    return if (hasBtConfig && bluetoothScanner.isBluetoothEnabled()) {
+        ParkingStrategy.BLUETOOTH
     } else {
-        CoordinatorDetectionStrategy()
+        ParkingStrategy.COORDINATOR
     }
 }
 ```
 
-The strategies never mix signals. Each one ends in `ConfirmParkingUseCase`, which owns the persistence pipeline.
+The strategies never mix signals. BLUETOOTH and COORDINATOR converge on `ConfirmParkingUseCase`. NONE skips parking detection entirely — scooters and bikes are dismounted on the sidewalk and never liberate a parking spot. See BUG-SCOOTER-001 in §2.
 
 ### 1.2 BluetoothDetectionStrategy (deterministic)
 
@@ -157,7 +164,9 @@ During the window, the only events that matter are:
 1. `userConfirmedParking()` → confirm immediately with `reliabilityUserConfirmed = 1.0f`.
 2. `userDeniedParking()` → full state reset (preserving `hasEverMoved`).
 3. A trusted driving signal (speed ≥ 2.5 m/s, accuracy ≤ 50 m) → reset to scoring.
-4. Window expires → confirm with `reliabilityVehicleExit = 0.90f` (fast path) or `reliabilitySlowPath = 0.75f` (slow path).
+4. **Pedestrian steps** ≥ `minStepsToConfirm = 8` while stopped → confirm immediately with `reliabilityVehicleExit = 0.90f`. Steps are unambiguous proof the user exited the car, stronger than the AR exit transition. [BUG-GARAGE-COLA-001]
+5. Window expires **with** vehicle-exit signal → confirm with `reliabilityVehicleExit = 0.90f`.
+6. Window expires **without** steps and without vehicle-exit → discard the candidate (likely cola/atasco). The notification that fired on High entry remains the only chance to confirm; if the user did park and ignored it, the next session catches them.
 
 The confirmation notification is **always** posted when the CANDIDATE phase opens, so the user has the option to override.
 
@@ -466,7 +475,7 @@ On Android 12+ (API 31+), calling `startForegroundService()` from a BroadcastRec
 - `IN_VEHICLE_ENTER` + `IN_VEHICLE_EXIT` → `PendingIntent.getForegroundService()` → `ParkingDetectionService` (Play Services delivers with system privileges, bypassing the restriction).
 
 `ParkingDetectionService.onStartCommand(ACTION_VEHICLE_TRANSITION)` extracts the `ActivityTransitionResult` from the intent, guards permissions, and routes:
-- **IN_VEHICLE_ENTER** → `departureEventBus.onVehicleEntered(epochMs)` + `strategyResolver.shouldUseCoordinator()` → start detection or `stopSelf()` (BT strategy is owner).
+- **IN_VEHICLE_ENTER** → `departureEventBus.onVehicleEntered(epochMs)` + `strategyResolver.resolve()` → start coordinator (`COORDINATOR`), `stopSelf()` (`BLUETOOTH` is owner), or `stopSelf()` (`NONE` — scooter/bike opts out).
 - **IN_VEHICLE_EXIT** → `coordinator.onVehicleExit()` + `stopSelf()` if no active detection job.
 
 `startForeground()` is always called first (before routing) to satisfy the Android 8+ 5-second contract. `StartDetectionWorker` (the WorkManager bridge that was the provisional fix) was deleted.
@@ -506,3 +515,67 @@ Mechanical clean-up of the three classes that own the detection runtime: `Parkin
 **Deferred.** Two larger questions surfaced during this refactor and are tracked in `docs/backlog/detection-improvements-2026-05-27.md`:
 - *When does it make sense to kill the service?* — needs telemetry data before deciding (DECISION-SERVICE-LIFECYCLE-001).
 - *Should BluetoothDetectionStrategy be folded into the Coordinator?* — architectural change; debate pending (DECISION-MERGE-BT-COORDINATOR-002).
+
+### BUG-GARAGE-COLA-001 — Step Detector as canonical "user exited the car" signal
+
+**Commit:** to be filled after merge.
+
+**Symptom.** Long stops inside the car (queue at a garage entrance, traffic jam ≥ 5 min, drive-through line) were being auto-confirmed by the slow path. Pre-fix, once stopped duration ≥ 5 min, the Coordinator scored `High` and after the 5-minute observation window expired it confirmed with `reliabilitySlowPath`. The user was still in the car.
+
+**Why "walking ≥ 30 m" was not the answer.** The Bluetooth strategy uses a 30 m walk as proof the user left the car, which works for outdoor street parking but fails in garages — the user typically walks ~4 m from the parking slot to a door, then takes an elevator. Distance is too coarse and venue-dependent to be the canonical signal in the Coordinator.
+
+**Fix.** Introduce `StepDetectorSource` (`Sensor.TYPE_STEP_DETECTOR` on Android, empty stub on iOS — `CMPedometer` port deferred) and wire it as a sibling coroutine inside `ParkingDetectionCoordinator.invoke()`. Steps that arrive while `stoppedSince != null` increment `stepCount`. When `stepCount ≥ minStepsToConfirm = 8` during the CANDIDATE phase, confirm immediately with `reliabilityVehicleExit = 0.90f` — pedestrian steps are unambiguous evidence the user has exited the car, stronger than the AR exit transition (which is noisy on real hardware).
+
+**Behaviour change.** The slow path no longer auto-confirms purely on time. CANDIDATE expiry now requires **either** step proof **or** the vehicle-exit signal; otherwise the candidate is discarded as likely cola/atasco. This trades a small surface of "user parked and ignored the notification" cases (still recovered next session) for elimination of the long-stop false positives.
+
+**Wiring.**
+- `commonMain/.../domain/sensor/StepDetectorSource.kt` — domain interface.
+- `androidMain/.../detection/sensor/AndroidStepDetectorSource.kt` — `Sensor.TYPE_STEP_DETECTOR` via `callbackFlow`; returns `emptyFlow()` if hardware missing. ACTIVITY_RECOGNITION permission covers it (already required for AR transitions).
+- `iosMain/.../detection/IosStepDetectorSource.kt` — `emptyFlow()` stub. CMPedometer backing tracked in the same backlog file.
+- Koin: `AndroidDetectionModule` + `IosDetectionModule` provide the platform impl; `DomainModule` injects into `ParkingDetectionCoordinator`.
+- `stepCount` reset to 0 whenever a driving signal arrives (`updateStopTracking` clears it alongside `stoppedSince`).
+
+### BUG-SCOOTER-001 — VehicleType-aware detection + mismatch guard
+
+**Commit:** to be filled after merge.
+
+**Symptom.** Two failure modes for non-car users:
+1. *User has a scooter/e-bike registered as default vehicle.* Activity Recognition fires `IN_VEHICLE_ENTER` (the API is noisy for two-wheeled microvehicles) → the Coordinator runs → after 5 min stopped at a destination the slow path auto-confirms a "parking" → the spot is published to the community. Scooters and e-bikes are dismounted on the sidewalk and never liberate a real parking slot, so every one of these confirmations is a false-positive published to the map.
+2. *User has a car as default but rides their scooter to work today.* Same outcome — the active vehicle is `Ford Focus`, but the trip was actually on a Xiaomi Mi Pro. The app confirms a parking and saves it against the car.
+
+**Fix — Level 1: vehicleType awareness.** `Vehicle` now carries `vehicleType: VehicleType ∈ { CAR, MOTORCYCLE, SCOOTER, BIKE }`. Persisted in Room (schema v4 via `MIGRATION_3_4`, column `vehicle_type` default `'CAR'`) and Firestore (`ifBlank → "CAR"` on read for backwards compatibility). UI exposes the choice via `VehicleTypeSelector` in vehicle registration/edit, mirroring the existing `VehicleSizeSelector` pattern.
+
+`ParkingStrategyResolver.resolve()` short-circuits to `ParkingStrategy.NONE` when `vehicleType ∈ { SCOOTER, BIKE }` — the Coordinator never starts. `MOTORCYCLE` still resolves to BLUETOOTH/COORDINATOR (motorcycles do park). `ParkingDetectionService.handleVehicleTransition()` switches on the enum: COORDINATOR starts detection, BLUETOOTH and NONE both `stopSelf()`.
+
+**Fix — Level 2: vehicle-mismatch guard (covers case 2).** The Coordinator now tracks per-session velocity profile:
+
+```kotlin
+data class ParkingDetectionState(
+    val sessionStartMs: Long? = null,
+    val maxSpeedMps: Float = 0f,
+    // …
+) {
+    val maxSpeedKmh: Float get() = maxSpeedMps * 3.6f
+    fun sessionDurationMs(now: Long): Long = sessionStartMs?.let { now - it } ?: 0L
+}
+```
+
+`sessionStartMs` is set on the first fix of the session and `maxSpeedMps` is `max(location.speed, prev)` on every update. Before auto-confirming, the coordinator applies a mismatch heuristic:
+
+```kotlin
+val isMismatch = activeVehicleType == VehicleType.CAR &&
+    state.sessionDurationMs(now) >= config.mismatchMinSessionDurationMs &&  // 8 min
+    state.maxSpeedKmh <= config.mismatchMaxSpeedKmh                          // 28 km/h
+val confirmNow = when {
+    isMismatch -> false                                              // suppress auto-confirm
+    hasStepsProof -> true                                            // BUG-GARAGE-COLA-001
+    windowElapsed && state.highCandidateHadVehicleExit -> true
+    else -> false
+}
+```
+
+28 km/h sits between the EU moped speed cap (~25 km/h) and typical urban car cruise (~40–50 km/h). 8 min is long enough that a real car trip would have hit at least one stretch above 28 km/h. When both thresholds hold AND the active vehicle is a `CAR`, auto-confirm is suppressed but the user-facing notification from CANDIDATE entry remains — the user can still tap "Yes I parked" to confirm manually, which is the desired manual-override path for the corner case where a user is genuinely riding a friend's scooter while their `CAR` is the default.
+
+**Trade-off accepted.** A real car trip in extreme bumper-to-bumper traffic that never exceeds 28 km/h for 8+ min triggers the same gate. The notification still fires, so the user can override — we prefer "ask the user" over "publish a wrong spot." Thresholds live in `ParkingDetectionConfig.mismatchMaxSpeedKmh` / `mismatchMinSessionDurationMs` for future tuning once telemetry is available.
+
+**Tests.** `ParkingStrategyResolverTest` covers all enum branches: SCOOTER → NONE (even with BT config), BIKE → NONE, MOTORCYCLE without BT → COORDINATOR, CAR with BT → BLUETOOTH, no default vehicle → COORDINATOR. Mismatch-guard unit tests deferred to a future integration ticket — they need `now` mocking + a CANDIDATE-phase fixture which the current test setup does not yet support.

@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.vehicle
 
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleType
 
 data class VehicleRegistrationState(
     /** Optional friendly name chosen by the user (e.g. "My Golf"). */
@@ -14,6 +15,13 @@ data class VehicleRegistrationState(
     /** Whether the user selected "Other…" for model (shows free-text field). */
     val isModelOther: Boolean = false,
     val sizeCategory: VehicleSize? = null,
+    /**
+     * High-level vehicle category. Drives detection-strategy resolution:
+     * SCOOTER / BIKE bypass the Coordinator entirely. Required from the user
+     * — no implicit CAR default in the UI; existing vehicles without a stored
+     * type fall back to CAR silently via the data mapper. [BUG-SCOOTER-001]
+     */
+    val vehicleType: VehicleType? = null,
     val showBrandModelOnSpot: Boolean = false,
     val isSaving: Boolean = false,
     val editingVehicleId: String? = null,
@@ -36,10 +44,11 @@ data class VehicleRegistrationState(
     val defaultNamePlaceholderIndex: Int get() = existingVehicleCount + 1
 
     /**
-     * CTA is enabled when size is chosen AND at least one of name/brand/model is non-blank.
+     * CTA is enabled when type + size are chosen AND at least one of name/brand/model is non-blank.
      * Prevents saving a vehicle with no identifying information.
      */
     val canSubmit: Boolean
-        get() = sizeCategory != null &&
+        get() = vehicleType != null &&
+                sizeCategory != null &&
                 (name.isNotBlank() || brand.isNotBlank() || model.isNotBlank())
 }

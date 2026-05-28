@@ -4,6 +4,7 @@ import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.vehicle.data.VehicleCatalog
@@ -61,6 +62,8 @@ class VehicleRegistrationViewModel(
 
             is VehicleRegistrationIntent.SetSize ->
                 updateState { copy(sizeCategory = intent.size, hasInteractedWithForm = true) }
+            is VehicleRegistrationIntent.SetVehicleType ->
+                updateState { copy(vehicleType = intent.type, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetShowOnSpot ->
                 updateState { copy(showBrandModelOnSpot = intent.enabled) }
             is VehicleRegistrationIntent.LoadVehicle -> loadVehicle(intent.vehicleId)
@@ -90,6 +93,7 @@ class VehicleRegistrationViewModel(
                         model = vehicle.model ?: "",
                         isModelOther = vehicle.model != null && !modelInCatalog,
                         sizeCategory = vehicle.sizeCategory,
+                        vehicleType = vehicle.vehicleType,
                         showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
                     )
                 }
@@ -110,6 +114,9 @@ class VehicleRegistrationViewModel(
             sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown("size_required")))
             return
         }
+        // Silent CAR default for safety — UI requires a pick (canSubmit gate),
+        // so this only triggers on programmatic save paths. [BUG-SCOOTER-001]
+        val type = current.vehicleType ?: VehicleType.CAR
         // name is required when both brand and model are blank — persist placeholder if that slips through
         val resolvedName = current.name.trim().ifBlank {
             if (current.brand.isBlank() && current.model.isBlank()) "Car ${current.defaultNamePlaceholderIndex}" else null
@@ -129,6 +136,7 @@ class VehicleRegistrationViewModel(
                     brand = current.brand.trim().ifBlank { null },
                     model = current.model.trim().ifBlank { null },
                     sizeCategory = size,
+                    vehicleType = type,
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
                     isDefault = true,
                 )

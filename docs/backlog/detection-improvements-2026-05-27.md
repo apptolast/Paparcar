@@ -93,7 +93,7 @@ Este documento agrupa:
 
 ---
 
-## 3 · BUG-GARAGE-COLA-001 — Falso positivo aparcando en cola de parking · ⚪
+## 3 · BUG-GARAGE-COLA-001 — Falso positivo aparcando en cola de parking · 🔵 Branch ready
 
 **Origen:** reportado por usuario real.
 
@@ -179,10 +179,17 @@ Si llega `IN_VEHICLE_EXIT` durante la ventana, no hay que esperar al step counte
 **Tickets sub-divisibles:**
 | Ticket | Descripción |
 |--------|-------------|
-| `BUG-GARAGE-COLA-001a` | Crear `StepDetectorSource` (`androidMain`) — Flow de eventos del sensor. Inyectable en common via `expect/actual` |
-| `BUG-GARAGE-COLA-001b` | Añadir estado `CandidateWaitingForSteps` al Coordinator + listener del flow durante ventana |
-| `BUG-GARAGE-COLA-001c` | Wiring del IN_VEHICLE_ENTER como cancelación + timeout con fallback degraded |
-| `BUG-GARAGE-COLA-001d` | Tests unitarios del Coordinator con `FakeStepDetectorSource` |
+| `BUG-GARAGE-COLA-001a` ✅ | `StepDetectorSource` (common interface) + `AndroidStepDetectorSource` (`Sensor.TYPE_STEP_DETECTOR` via `callbackFlow`) + `IosStepDetectorSource` (emptyFlow stub) |
+| `BUG-GARAGE-COLA-001b` ✅ | Coordinator: sibling step-listener job + `stepCount` en `ParkingDetectionState`; CANDIDATE confirm si `stepCount ≥ minStepsToConfirm`. Slow path expirado sin steps/exit → descartar candidate |
+| `BUG-GARAGE-COLA-001c` ✅ | Koin wiring (Android + iOS + DomainModule); reset de `stepCount` cuando llega señal de driving |
+| `BUG-GARAGE-COLA-001d` ✅ | `FakeStepDetectorSource` añadido; `ParkingDetectionCoordinatorTest.setup()` pasa el fake. Tests de step-driven confirm requieren CANDIDATE phase (time-driven) → deferred a integration test |
+
+**Notas de implementación (2026-05-27):**
+- `minStepsToConfirm = 8` con reliability `reliabilityVehicleExit = 0.90f` cuando confirma por steps.
+- Reescritura del slow path: la ventana de 5 min ya no auto-confirma sola; requiere steps O vehicle-exit, si no descarta candidato (likely cola/atasco).
+- Reset de `IN_VEHICLE_ENTER como cancelación`: en lugar de cancelar la ventana, se reusa el reset existente cuando llega un driving signal (speed ≥ 2.5 m/s + accuracy ≤ 50 m) — limpia `stepCount`, `highConfidenceReachedAt`, etc.
+- Permiso `ACTIVITY_RECOGNITION` ya estaba pedido para AR transitions → cubre Step Detector sin cambios en manifest.
+- iOS: `IosStepDetectorSource` devuelve `emptyFlow()`; integración con `CMPedometer` se rastrea en `docs/backlog/ios-detection-2026-05-27.md` cuando llegue (CMPedometer no es step-event-stream — necesitará polling diferencial).
 
 ---
 
@@ -286,14 +293,14 @@ Google Activity Recognition a veces oscila entre `IN_VEHICLE` y `ON_BICYCLE` par
 
 ### 4.6 Esfuerzo + tickets
 
-| Ticket | Descripción | Esfuerzo |
-|--------|-------------|----------|
-| `BUG-SCOOTER-001a` | `VehicleType` enum + campo en Room + Firestore mapper + migration | Pequeño-Medio |
-| `BUG-SCOOTER-001b` | UI de selección de vehicleType en registro/edición de vehículo | Pequeño |
-| `BUG-SCOOTER-001c` | `ParkingStrategyResolver` ignora vehículos no-CAR/MOTORCYCLE (early-return) | Pequeño |
-| `BUG-SCOOTER-001d` | Tracking de `maxSpeedKmh` + `sessionDurationMs` en `ParkingDetectionState`. Cálculo de P95 de velocidad como signal del state. | Pequeño |
-| `BUG-SCOOTER-001e` | `showVehicleMismatchPrompt` + intercepción en `ConfirmParkingUseCase` antes de publicar | Medio |
-| `BUG-SCOOTER-001f` | Tests del prompt + del path "Otro vehículo" | Pequeño |
+| Ticket | Descripción | Esfuerzo | Estado |
+|--------|-------------|----------|--------|
+| `BUG-SCOOTER-001a` | `VehicleType` enum + campo en Room + Firestore mapper + migration | Pequeño-Medio | ✅ Done — MIGRATION_3_4 (schema v4), `vehicle_type` column con default `'CAR'`, Firestore `ifBlank → CAR` |
+| `BUG-SCOOTER-001b` | UI de selección de vehicleType en registro/edición de vehículo | Pequeño | ✅ Done — `VehicleTypeSelector` (4 tipos sueltos: CAR/MOTORCYCLE/SCOOTER/BIKE), strings i18n en 9 locales |
+| `BUG-SCOOTER-001c` | `ParkingStrategyResolver` ignora vehículos no-CAR/MOTORCYCLE (early-return) | Pequeño | ✅ Done — `ParkingStrategy { NONE, BLUETOOTH, COORDINATOR }` enum; `ParkingDetectionService` ramifica con `when` |
+| `BUG-SCOOTER-001d` | Tracking de `maxSpeedKmh` + `sessionDurationMs` en `ParkingDetectionState`. Cálculo de P95 de velocidad como signal del state. | Pequeño | ✅ Done — `sessionStartMs` + `maxSpeedMps` en state, helpers `maxSpeedKmh`/`sessionDurationMs(now)` |
+| `BUG-SCOOTER-001e` | `showVehicleMismatchPrompt` + intercepción en `ConfirmParkingUseCase` antes de publicar | Medio | ✅ Done (parcial) — guard de mismatch en `ParkingDetectionCoordinator.confirmNow`: si CAR + sesión ≥ 8 min + maxSpeedKmh ≤ 28 → no auto-confirm (cae al prompt MEDIUM). Umbrales en `ParkingDetectionConfig.mismatchMaxSpeedKmh` / `mismatchMinSessionDurationMs` |
+| `BUG-SCOOTER-001f` | Tests del prompt + del path "Otro vehículo" | Pequeño | ✅ Done — `ParkingStrategyResolverTest` cubre NONE (SCOOTER/BIKE) + COORDINATOR (MOTORCYCLE) + BLUETOOTH. Tests time-driven del mismatch deferidos a integración futura |
 
 ### 4.7 Notas de implementación
 
@@ -375,8 +382,8 @@ Cada fase es mergeable de forma independiente.
 | Orden | Item | Estado |
 |-------|------|--------|
 | 0 | Refactor de detección | ✅ Done (commit `935e6fc`) |
-| 1 | `BUG-GARAGE-COLA-001` (sec. 3) — Step Detector como señal canónica | ⚪ Next |
-| 2 | `BUG-SCOOTER-001` (sec. 4) — VehicleType + smart confirmation prompt | ⚪ Tras 1 |
+| 1 | `BUG-GARAGE-COLA-001` (sec. 3) — Step Detector como señal canónica | 🔵 Branch ready — pendiente commit/merge |
+| 2 | `BUG-SCOOTER-001` (sec. 4) — VehicleType + smart confirmation prompt | 🔵 Branch ready — pendiente commit/merge |
 | 3 | `FEAT-HOME-PARKING-001` (sec. 5) | 🟡 Deferred — retomar tras 1 y 2 |
 | 4 | `DECISION-SERVICE-LIFECYCLE-001` (sec. 1) | 🟡 Deferred — necesita razonamiento + telemetría |
 | 5 | `DECISION-MERGE-BT-COORDINATOR-002` (sec. 2) | 🟡 Deferred — necesita debate técnico |

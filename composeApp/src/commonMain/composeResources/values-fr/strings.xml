@@ -310,6 +310,17 @@
     <string name="vehicle_size_large_examples">ex. BMW Série 5, Mercedes Classe E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Fourgon / SUV</string>
     <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+
+    <!-- Sélecteur de type de véhicule — écran d\'enregistrement / édition -->
+    <string name="vehicle_type_label">Type de véhicule</string>
+    <string name="vehicle_type_car">Voiture</string>
+    <string name="vehicle_type_car_examples">Voiture, SUV ou fourgon — occupe une place</string>
+    <string name="vehicle_type_motorcycle">Moto</string>
+    <string name="vehicle_type_motorcycle_examples">Moto de route — occupe une place</string>
+    <string name="vehicle_type_scooter">Trottinette</string>
+    <string name="vehicle_type_scooter_examples">Cyclomoteur ou trottinette électrique — n\'a normalement pas besoin de place</string>
+    <string name="vehicle_type_bike">Vélo</string>
+    <string name="vehicle_type_bike_examples">Vélo ou e-bike — n\'a normalement pas besoin de place</string>
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Manuel</string>
 

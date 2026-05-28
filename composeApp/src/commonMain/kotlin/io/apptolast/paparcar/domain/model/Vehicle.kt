@@ -25,6 +25,9 @@ data class Vehicle(
     val model: String? = null,
     /** Mandatory size category used on Spot for space estimation. */
     val sizeCategory: VehicleSize,
+    /** Mandatory vehicle type. Controls whether automatic detection runs (CAR/MOTORCYCLE) or is
+     *  suppressed (SCOOTER/BIKE), and feeds the vehicle-mismatch prompt heuristic. [BUG-SCOOTER-001] */
+    val vehicleType: VehicleType = VehicleType.CAR,
     /** BT Classic / BLE device address paired with this vehicle. On-device only, never synced. */
     val bluetoothDeviceId: String? = null,
     /** Whether this vehicle's brand/model should appear on the public Spot. */

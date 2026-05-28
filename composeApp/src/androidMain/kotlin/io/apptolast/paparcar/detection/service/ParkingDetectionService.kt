@@ -17,6 +17,7 @@ import io.apptolast.paparcar.detection.transitionLabel
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
+import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -106,19 +107,27 @@ class ParkingDetectionService : LifecycleService() {
                     departureEventBus.onVehicleEntered(eventEpochMs)
 
                     lifecycleScope.launch {
-                        if (strategyResolver.shouldUseCoordinator()) {
-                            if (!guardPermissions("IN_VEHICLE_ENTER")) return@launch
-                            if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
-                                PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator (cancelling stale job if any)")
-                                detectionJob?.cancel()
-                                detectionJob = null
-                                startParkingDetection()
-                            } else {
-                                PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER — Coordinator already active + hasDetectedMovement=true")
+                        when (strategyResolver.resolve()) {
+                            ParkingStrategy.COORDINATOR -> {
+                                if (!guardPermissions("IN_VEHICLE_ENTER")) return@launch
+                                if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
+                                    PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — starting Coordinator (cancelling stale job if any)")
+                                    detectionJob?.cancel()
+                                    detectionJob = null
+                                    startParkingDetection()
+                                } else {
+                                    PaparcarLogger.d(DIAG, "  ↻ IN_VEHICLE_ENTER — Coordinator already active + hasDetectedMovement=true")
+                                }
                             }
-                        } else {
-                            PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — BT strategy active, Coordinator not started")
-                            if (detectionJob?.isActive != true) stopSelf()
+                            ParkingStrategy.BLUETOOTH -> {
+                                PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — BT strategy active, Coordinator not started")
+                                if (detectionJob?.isActive != true) stopSelf()
+                            }
+                            ParkingStrategy.NONE -> {
+                                // SCOOTER / BIKE — never auto-detect a parking spot. [BUG-SCOOTER-001]
+                                PaparcarLogger.d(DIAG, "  → IN_VEHICLE_ENTER — vehicle type opts out of detection, stopSelf")
+                                if (detectionJob?.isActive != true) stopSelf()
+                            }
                         }
                     }
                 }
