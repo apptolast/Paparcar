@@ -11,6 +11,7 @@ data class VehiclesState(
     val selectedVehicleIndex: Int = 0,
     val pendingDeleteVehicleId: String? = null,
     val bluetoothConnectedVehicleId: String? = null,
+    val historyState: HistoryState = HistoryState(),
 ) {
     val activeVehicle: Vehicle?
         get() = vehicles

@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.history.components
+package io.apptolast.paparcar.presentation.vehicles.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.history.DAY_SHORT_RES
-import io.apptolast.paparcar.presentation.history.HistoryStatsData
+import io.apptolast.paparcar.presentation.vehicles.DAY_SHORT_RES
+import io.apptolast.paparcar.presentation.vehicles.HistoryStatsData
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_insights_avg_week
@@ -38,7 +38,6 @@ internal fun HistoryInsightsCard(
     modifier: Modifier = Modifier,
 ) {
     val dayLabels = DAY_SHORT_RES.map { stringResource(it) }
-    val noData = "—"
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -63,18 +62,18 @@ internal fun HistoryInsightsCard(
             ) {
                 InsightChip(
                     label = stringResource(Res.string.history_insights_avg_week),
-                    value = stats.avgSessionsPerWeek?.let { "%.1f".format(it) } ?: noData,
+                    value = stats.avgSessionsPerWeek?.let { "%.1f".format(it) } ?: NO_DATA,
                     modifier = Modifier.weight(1f),
                 )
                 InsightChip(
                     label = stringResource(Res.string.history_insights_peak_day),
                     value = stats.mostActiveDayOfWeek
-                        ?.let { dayLabels.getOrNull(it - 1) } ?: noData,
+                        ?.let { dayLabels.getOrNull(it - 1) } ?: NO_DATA,
                     modifier = Modifier.weight(1f),
                 )
                 InsightChip(
                     label = stringResource(Res.string.history_insights_reliability),
-                    value = stats.avgReliabilityPct?.let { "$it%" } ?: noData,
+                    value = stats.avgReliabilityPct?.let { "$it%" } ?: NO_DATA,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -144,6 +143,7 @@ private fun InsightChip(
     }
 }
 
+private const val NO_DATA = "—"
 private const val CARD_CORNER_DP = 16
 private const val CHIP_CORNER_DP = 10
 private const val STREET_CORNER_DP = 10

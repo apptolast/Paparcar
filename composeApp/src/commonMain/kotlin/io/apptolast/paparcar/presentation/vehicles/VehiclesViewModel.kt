@@ -1,6 +1,9 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.presentation.vehicles
 
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -8,9 +11,22 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class VehiclesViewModel(
     private val vehicleRepository: VehicleRepository,
@@ -20,6 +36,11 @@ class VehiclesViewModel(
     override fun initState(): VehiclesState = VehiclesState()
 
     init {
+        observeVehicles()
+        observeHistory()
+    }
+
+    private fun observeVehicles() {
         combine(
             vehicleRepository.observeVehicles(),
             userParkingRepository.observeAllSessions(),
@@ -49,13 +70,48 @@ class VehiclesViewModel(
             .launchIn(viewModelScope)
     }
 
+    private fun observeHistory() {
+        state
+            .map { it.vehicles.getOrNull(it.selectedVehicleIndex)?.vehicle?.id }
+            .distinctUntilChanged()
+            .flatMapLatest { vehicleId ->
+                if (vehicleId == null) {
+                    flowOf(HistoryState(isLoading = false))
+                } else {
+                    flow {
+                        val currentFilter = state.value.historyState.activeFilter
+                        emit(HistoryState(isLoading = true, activeFilter = currentFilter))
+                        userParkingRepository.observeSessionsByVehicle(vehicleId).collect { sessions ->
+                            val filter = state.value.historyState.activeFilter
+                            val nowMs = Clock.System.now().toEpochMilliseconds()
+                            emit(
+                                HistoryState(
+                                    isLoading = false,
+                                    sessions = sessions,
+                                    activeFilter = filter,
+                                    filteredSessions = applyHistoryFilter(sessions, filter, nowMs),
+                                    statsData = computeHistoryStats(sessions, nowMs),
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            .onEach { newHistoryState -> updateState { copy(historyState = newHistoryState) } }
+            .catch { e ->
+                PaparcarLogger.e(TAG, "Failed to load history", e)
+                updateState { copy(historyState = HistoryState(isLoading = false)) }
+                sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+            }
+            .launchIn(viewModelScope)
+    }
+
     override fun handleIntent(intent: VehiclesIntent) {
         when (intent) {
             is VehiclesIntent.SetActiveVehicle -> setActiveVehicle(intent.vehicleId)
             is VehiclesIntent.BluetoothVehicleConnected ->
                 updateState { copy(bluetoothConnectedVehicleId = intent.vehicleId) }
             is VehiclesIntent.RequestDeleteVehicle -> {
-                // Business rule: the user must keep at least one registered vehicle.
                 if (state.value.vehicles.size <= 1) {
                     sendEffect(VehiclesEffect.ShowCannotDeleteLastVehicle)
                 } else {
@@ -75,6 +131,14 @@ class VehiclesViewModel(
             is VehiclesIntent.EditVehicle ->
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
             is VehiclesIntent.AddVehicle -> sendEffect(VehiclesEffect.NavigateToAddVehicle)
+            is VehiclesIntent.SetHistoryFilter -> {
+                val filtered = applyHistoryFilter(state.value.historyState.sessions, intent.filter)
+                updateState {
+                    copy(historyState = historyState.copy(activeFilter = intent.filter, filteredSessions = filtered))
+                }
+            }
+            is VehiclesIntent.ViewOnMap ->
+                sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon))
         }
     }
 
@@ -98,7 +162,85 @@ class VehiclesViewModel(
         }
     }
 
+    private fun applyHistoryFilter(
+        sessions: List<UserParking>,
+        filter: HistoryFilter,
+        nowMs: Long = Clock.System.now().toEpochMilliseconds(),
+    ): List<UserParking> = when (filter) {
+        HistoryFilter.All -> sessions
+        HistoryFilter.ThisWeek -> {
+            val tz = TimeZone.currentSystemDefault()
+            val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
+            val daysFromMonday = nowLocal.date.dayOfWeek.isoDayNumber - 1
+            val weekStartMs = nowLocal.date
+                .minus(daysFromMonday, DateTimeUnit.DAY)
+                .atStartOfDayIn(tz)
+                .toEpochMilliseconds()
+            sessions.filter { it.location.timestamp >= weekStartMs }
+        }
+        HistoryFilter.ThisMonth -> {
+            val tz = TimeZone.currentSystemDefault()
+            val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
+            sessions.filter {
+                val dt = Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz)
+                dt.year == nowLocal.year && dt.month == nowLocal.month
+            }
+        }
+        HistoryFilter.Last3Months -> sessions.filter {
+            it.location.timestamp >= nowMs - MONTHS_3_MS
+        }
+    }
+
+    private fun computeHistoryStats(
+        sessions: List<UserParking>,
+        nowMs: Long = Clock.System.now().toEpochMilliseconds(),
+    ): HistoryStatsData? {
+        if (sessions.isEmpty()) return null
+        val ended = sessions.filter { !it.isActive }
+
+        val avgPerWeek: Float? = run {
+            val oldest = ended.minOfOrNull { it.location.timestamp } ?: return@run null
+            val weeks = (nowMs - oldest).toFloat() / WEEK_MS
+            if (weeks < MIN_WEEKS_FOR_AVG) null else ended.size / weeks
+        }
+
+        val peakDay: Int? = run {
+            if (ended.size < MIN_SESSIONS_FOR_PEAK) return@run null
+            val tz = TimeZone.currentSystemDefault()
+            ended
+                .groupBy<UserParking, Int> {
+                    Instant.fromEpochMilliseconds(it.location.timestamp)
+                        .toLocalDateTime(tz).date.dayOfWeek.isoDayNumber
+                }
+                .maxByOrNull { it.value.size }
+                ?.key
+        }
+
+        val topStreet: String? = ended
+            .mapNotNull { it.address?.street?.takeIf { s -> s.isNotBlank() } }
+            .groupBy { it }
+            .maxByOrNull { it.value.size }
+            ?.key
+
+        val avgReliabilityPct: Int? = ended
+            .mapNotNull { it.detectionReliability }
+            .takeIf { it.isNotEmpty() }
+            ?.let { (it.sum() / it.size * PERCENT).toInt() }
+
+        return HistoryStatsData(
+            avgSessionsPerWeek = avgPerWeek,
+            mostActiveDayOfWeek = peakDay,
+            favoriteStreet = topStreet,
+            avgReliabilityPct = avgReliabilityPct,
+        )
+    }
+
     private companion object {
         const val TAG = "VehiclesViewModel"
+        const val WEEK_MS = 7L * 24 * 60 * 60 * 1000
+        const val MONTHS_3_MS = 90L * 24 * 60 * 60 * 1000
+        const val MIN_WEEKS_FOR_AVG = 2f
+        const val MIN_SESSIONS_FOR_PEAK = 5
+        const val PERCENT = 100f
     }
 }

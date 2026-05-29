@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,8 +32,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,24 +40,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
-import io.apptolast.paparcar.presentation.history.HistoryContent
-import io.apptolast.paparcar.presentation.history.HistoryEffect
-import io.apptolast.paparcar.presentation.history.HistoryIntent
-import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.parameter.parametersOf
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_active_vehicle
 import paparcar.composeapp.generated.resources.my_car_bt_configure
@@ -77,71 +69,46 @@ import paparcar.composeapp.generated.resources.vehicle_stats_last_session
 import paparcar.composeapp.generated.resources.vehicle_stats_reliability
 import paparcar.composeapp.generated.resources.vehicle_stats_sessions
 
-/**
- * VehiclePageContent (v1 redesign) — Vehicles + History fusionado.
- *
- * Layout:
- *  1. VehicleHeroCard       — bg coloreado si es activo
- *  2. VehicleStatsCompact   — 3 inline mini cards: sesiones · última · fiabilidad
- *                              (sólo cuando hay sesiones)
- *  3. HistoryContent        — chart + filter + timeline (HOY/AYER…) — embebido
- *                              con `showInternalStats = false` para no duplicar
- *                              el StatsRow / InsightsCard del modo standalone.
- */
 @Composable
 internal fun VehiclePageContent(
     vehicleWithStats: VehicleWithStats,
+    historyState: HistoryState,
     onIntent: (VehiclesIntent) -> Unit,
     onConfigureBluetooth: (vehicleId: String) -> Unit,
-    onNavigateToMap: (lat: Double, lon: Double) -> Unit,
     canDelete: Boolean = true,
 ) {
     val vehicleId = vehicleWithStats.vehicle.id
 
-    val historyVm: HistoryViewModel = koinViewModel(
-        key = "history_$vehicleId",
-        parameters = { parametersOf(vehicleId) },
-    )
-    val historyState by historyVm.state.collectAsStateLifecycleAware()
-
-    LaunchedEffect(vehicleId) {
-        historyVm.effect.collect { effect ->
-            when (effect) {
-                is HistoryEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon)
-                is HistoryEffect.ShowError -> { /* shown inline via state */ }
+    HistoryContent(
+        state = historyState,
+        contentPadding = PaddingValues(0.dp),
+        onViewOnMap = { lat, lon -> onIntent(VehiclesIntent.ViewOnMap(lat, lon)) },
+        onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
+        modifier = Modifier.fillMaxSize(),
+        showInternalStats = false,
+        headerSlot = {
+            item(key = "vehicle_hero") {
+                VehicleHeroCard(
+                    vehicleWithStats = vehicleWithStats,
+                    canDelete = canDelete,
+                    onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
+                    onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
+                    onDelete = { onIntent(VehiclesIntent.RequestDeleteVehicle(vehicleId)) },
+                    onConfigureBluetooth = { onConfigureBluetooth(vehicleId) },
+                )
             }
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        VehicleHeroCard(
-            vehicleWithStats = vehicleWithStats,
-            canDelete = canDelete,
-            onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
-            onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
-            onDelete = { onIntent(VehiclesIntent.RequestDeleteVehicle(vehicleId)) },
-            onConfigureBluetooth = { onConfigureBluetooth(vehicleId) },
-        )
-        if (vehicleWithStats.sessionCount > 0) {
-            VehicleStatsCompact(
-                sessionCount = vehicleWithStats.sessionCount,
-                lastSessionMs = vehicleWithStats.lastSession?.location?.timestamp,
-                reliabilityPct = historyState.statsData?.avgReliabilityPct,
-            )
-        }
-        HistoryContent(
-            state = historyState,
-            contentPadding = PaddingValues(0.dp),
-            onViewOnMap = { lat, lon ->
-                historyVm.handleIntent(HistoryIntent.ViewOnMap(lat, lon))
-            },
-            onFilterSelected = { filter ->
-                historyVm.handleIntent(HistoryIntent.SetFilter(filter))
-            },
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            showInternalStats = false,
-        )
-    }
+            if (vehicleWithStats.sessionCount > 0) {
+                item(key = "vehicle_stats") {
+                    VehicleStatsCompact(
+                        sessionCount = vehicleWithStats.sessionCount,
+                        lastSessionMs = vehicleWithStats.lastSession?.location?.timestamp,
+                        reliabilityPct = historyState.statsData?.avgReliabilityPct,
+                    )
+                }
+            }
+            item(key = "header_chart_gap") { Spacer(Modifier.height(6.dp)) }
+        },
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -166,10 +133,7 @@ private fun VehicleHeroCard(
 
     val cs = MaterialTheme.colorScheme
     val cardBg = if (isActive) cs.primaryContainer.copy(alpha = ACTIVE_CARD_BG_ALPHA) else cs.surfaceContainerHigh
-    // Active state used to render with a 1dp neon-green border (cs.primary). That
-    // read as "radioactive" against the dark page. The selected affordance now lives
-    // in the green tinted background + ActiveBadge; the border stays subtle so the
-    // family feels coherent with the parking-card reference. [DS-BORDERS-001]
+    // Active state border is intentionally subtle — the green background already signals selection. [DS-BORDERS-001]
     val borderColor = cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     val iconBg = if (isActive) cs.primary else cs.surfaceVariant
     val iconTint = if (isActive) cs.onPrimary else cs.primary
@@ -183,10 +147,6 @@ private fun VehicleHeroCard(
         border = BorderStroke(PapBorders.thin, borderColor),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Title row owns the full width (minus icon + overflow). The
-            // "active" badge used to live here too and ate ~40% of the row,
-            // ellipsing brand/model names. It now sits on the metadata row
-            // below so the title can breathe.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -220,9 +180,6 @@ private fun VehicleHeroCard(
                 )
             }
             Spacer(Modifier.height(6.dp))
-            // Metadata row: size label on the left, status (active dot+label
-            // or "set active" CTA) on the right. The status text is small and
-            // primary-tinted so it reads as a tag, not a button.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -288,8 +245,6 @@ private fun SetActiveButton(onClick: () -> Unit) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VehicleStatsCompact — 3 inline mini stat cards (sessions · last · reliability)
-// Matches the design's compact stats strip below the hero card. Replaces the
-// previous 2-card big-number layout.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -362,39 +317,27 @@ private fun StatCard(value: String, label: String, modifier: Modifier = Modifier
 @Composable
 private fun DetectionChip(bluetoothDeviceId: String) {
     val cs = MaterialTheme.colorScheme
-    val data = DetectionChipData(
-        label = "${stringResource(Res.string.vehicle_card_detection_bt)} · ${bluetoothDeviceId.takeLast(BT_LABEL_LENGTH)}",
-        bg = cs.tertiaryContainer.copy(alpha = CHIP_BG_ALPHA),
-        fg = cs.tertiary,
-        icon = Icons.Outlined.Bluetooth,
-    )
+    val label = "${stringResource(Res.string.vehicle_card_detection_bt)} · ${bluetoothDeviceId.takeLast(BT_LABEL_LENGTH)}"
     Surface(
         shape = RoundedCornerShape(CHIP_CORNER_DP.dp),
-        color = data.bg,
+        color = cs.tertiaryContainer.copy(alpha = CHIP_BG_ALPHA),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(data.icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = data.fg)
+            Icon(Icons.Outlined.Bluetooth, contentDescription = null, modifier = Modifier.size(14.dp), tint = cs.tertiary)
             Text(
-                text = data.label,
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = data.fg,
+                color = cs.tertiary,
                 maxLines = 1,
             )
         }
     }
 }
-
-private data class DetectionChipData(
-    val label: String,
-    val bg: Color,
-    val fg: Color,
-    val icon: ImageVector,
-)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Overflow menu
@@ -427,12 +370,7 @@ private fun OverflowMenu(
                 leadingIcon = { Icon(Icons.Outlined.Bluetooth, contentDescription = null) },
                 onClick = { expanded = false; onConfigureBluetooth() },
             )
-            // Delete: disabled (no click, no visual response) when this is
-            // the user's only vehicle. The "must keep at least one"
-            // explanation lives in the EmptyVehicleState copy / the
-            // CannotDeleteLastVehicle snackbar (triggered from the VM via
-            // a different code path); here we just refuse the action so
-            // the menu item doesn't look broken.
+            // Disabled (not hidden) so the affordance stays visible; snackbar explains why.
             DropdownMenuItem(
                 enabled = canDelete,
                 text = {

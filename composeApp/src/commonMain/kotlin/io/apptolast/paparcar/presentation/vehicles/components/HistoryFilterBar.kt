@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.history.components
+package io.apptolast.paparcar.presentation.vehicles.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -11,7 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.history.HistoryFilter
+import io.apptolast.paparcar.presentation.vehicles.HistoryFilter
 import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -36,9 +36,9 @@ internal fun HistoryFilterBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
             .horizontalScroll(rememberScrollState())
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         filters.forEach { (filter, label) ->

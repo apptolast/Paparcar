@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.history.components
+package io.apptolast.paparcar.presentation.vehicles.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -34,8 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import io.apptolast.paparcar.presentation.history.WeekDayStats
+import io.apptolast.paparcar.presentation.vehicles.WeekDayStats
 import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -139,6 +138,24 @@ private fun DrawScope.drawBarChart(
     val barWidth = barAreaWidth * BAR_WIDTH_FRACTION
     val corner = CornerRadius(barWidth / 2f, barWidth / 2f)
 
+    drawGridLines(chartHeight, onSurfaceColor)
+
+    data.forEachIndexed { index, item ->
+        val centerX = barAreaWidth * index + barAreaWidth / 2f
+        val barLeft = centerX - barWidth / 2f
+        val fillRatio = if (maxValue > 0) item.sessions.toFloat() / maxValue else 0f
+        val barHeight = chartHeight * fillRatio * progress
+        val isToday = index == data.size - 1
+
+        drawBar(barLeft, barWidth, barHeight, chartHeight, corner, isToday, primaryColor, onSurfaceColor)
+        drawDayLabel(centerX, item.label, isToday, textMeasurer, labelStyle, onSurfaceColor)
+        if (item.sessions > 0 && progress > COUNT_FADE_START) {
+            drawCountLabel(centerX, barHeight, chartHeight, item.sessions, progress, textMeasurer, countStyle, primaryColor)
+        }
+    }
+}
+
+private fun DrawScope.drawGridLines(chartHeight: Float, onSurfaceColor: Color) {
     repeat(GRID_LINE_COUNT) { i ->
         val y = chartHeight * (1f - (i + 1).toFloat() / GRID_LINE_COUNT)
         drawLine(
@@ -149,61 +166,78 @@ private fun DrawScope.drawBarChart(
             cap = StrokeCap.Round,
         )
     }
+}
 
-    data.forEachIndexed { index, item ->
-        val centerX = barAreaWidth * index + barAreaWidth / 2f
-        val barLeft = centerX - barWidth / 2f
-        val fillRatio = if (maxValue > 0) item.sessions.toFloat() / maxValue else 0f
-        val barHeight = chartHeight * fillRatio * progress
-        val isToday = index == data.size - 1
-
+private fun DrawScope.drawBar(
+    barLeft: Float,
+    barWidth: Float,
+    barHeight: Float,
+    chartHeight: Float,
+    corner: CornerRadius,
+    isToday: Boolean,
+    primaryColor: Color,
+    onSurfaceColor: Color,
+) {
+    drawRoundRect(
+        color = onSurfaceColor.copy(alpha = PLACEHOLDER_BAR_ALPHA),
+        topLeft = Offset(barLeft, 0f),
+        size = Size(barWidth, chartHeight),
+        cornerRadius = corner,
+    )
+    if (barHeight > 0f) {
         drawRoundRect(
-            color = onSurfaceColor.copy(alpha = PLACEHOLDER_BAR_ALPHA),
-            topLeft = Offset(barLeft, 0f),
-            size = Size(barWidth, chartHeight),
+            color = if (isToday) primaryColor else primaryColor.copy(alpha = INACTIVE_BAR_ALPHA),
+            topLeft = Offset(barLeft, chartHeight - barHeight),
+            size = Size(barWidth, barHeight),
             cornerRadius = corner,
         )
-
-        if (barHeight > 0f) {
-            drawRoundRect(
-                color = if (isToday) primaryColor else primaryColor.copy(alpha = INACTIVE_BAR_ALPHA),
-                topLeft = Offset(barLeft, chartHeight - barHeight),
-                size = Size(barWidth, barHeight),
-                cornerRadius = corner,
-            )
-        }
-
-        val labelResult = textMeasurer.measure(
-            item.label,
-            labelStyle.copy(
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                color = if (isToday) onSurfaceColor.copy(alpha = LABEL_ALPHA_TODAY)
-                        else onSurfaceColor.copy(alpha = LABEL_ALPHA_MUTED),
-            ),
-        )
-        drawText(
-            textLayoutResult = labelResult,
-            topLeft = Offset(
-                x = centerX - labelResult.size.width / 2f,
-                y = size.height - labelResult.size.height,
-            ),
-        )
-
-        if (item.sessions > 0 && progress > COUNT_FADE_START) {
-            val fade = ((progress - COUNT_FADE_START) / (1f - COUNT_FADE_START)).coerceIn(0f, 1f)
-            val countResult = textMeasurer.measure(
-                item.sessions.toString(),
-                countStyle.copy(color = primaryColor.copy(alpha = fade)),
-            )
-            drawText(
-                textLayoutResult = countResult,
-                topLeft = Offset(
-                    x = centerX - countResult.size.width / 2f,
-                    y = chartHeight - barHeight - countResult.size.height - 4.dp.toPx(),
-                ),
-            )
-        }
     }
+}
+
+private fun DrawScope.drawDayLabel(
+    centerX: Float,
+    label: String,
+    isToday: Boolean,
+    textMeasurer: TextMeasurer,
+    labelStyle: TextStyle,
+    onSurfaceColor: Color,
+) {
+    val result = textMeasurer.measure(
+        label,
+        labelStyle.copy(
+            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+            color = if (isToday) onSurfaceColor.copy(alpha = LABEL_ALPHA_TODAY)
+                    else onSurfaceColor.copy(alpha = LABEL_ALPHA_MUTED),
+        ),
+    )
+    drawText(
+        textLayoutResult = result,
+        topLeft = Offset(x = centerX - result.size.width / 2f, y = size.height - result.size.height),
+    )
+}
+
+private fun DrawScope.drawCountLabel(
+    centerX: Float,
+    barHeight: Float,
+    chartHeight: Float,
+    sessionCount: Int,
+    progress: Float,
+    textMeasurer: TextMeasurer,
+    countStyle: TextStyle,
+    primaryColor: Color,
+) {
+    val fade = ((progress - COUNT_FADE_START) / (1f - COUNT_FADE_START)).coerceIn(0f, 1f)
+    val result = textMeasurer.measure(
+        sessionCount.toString(),
+        countStyle.copy(color = primaryColor.copy(alpha = fade)),
+    )
+    drawText(
+        textLayoutResult = result,
+        topLeft = Offset(
+            x = centerX - result.size.width / 2f,
+            y = chartHeight - barHeight - result.size.height - 4.dp.toPx(),
+        ),
+    )
 }
 
 private const val CARD_CORNER_DP = 20

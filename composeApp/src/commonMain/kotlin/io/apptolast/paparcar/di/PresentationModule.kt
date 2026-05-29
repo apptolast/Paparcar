@@ -2,14 +2,13 @@ package io.apptolast.paparcar.di
 
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.app.AppViewModel
-import io.apptolast.paparcar.presentation.history.HistoryViewModel
 import io.apptolast.paparcar.presentation.home.HomeViewModel
 import io.apptolast.paparcar.presentation.map.ParkingLocationViewModel
 import io.apptolast.paparcar.presentation.permissions.PermissionsViewModel
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigViewModel
 import io.apptolast.paparcar.presentation.vehicles.VehiclesViewModel
 import io.apptolast.paparcar.presentation.settings.SettingsViewModel
-import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationViewModel
+import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistrationViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -18,8 +17,6 @@ val presentationModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AppViewModel)
     viewModelOf(::HomeViewModel)
-    // vehicleId = null → all sessions; vehicleId = "xyz" → per-vehicle filter
-    viewModel { params -> HistoryViewModel(params.getOrNull(), get()) }
     viewModelOf(::ParkingLocationViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::PermissionsViewModel)

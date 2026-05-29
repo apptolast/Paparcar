@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.history
+package io.apptolast.paparcar.presentation.vehicles
 
 import androidx.compose.runtime.Immutable
 import io.apptolast.paparcar.domain.model.UserParking

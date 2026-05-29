@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.history
+package io.apptolast.paparcar.presentation.vehicles
 
 data class HistoryStatsData(
     val avgSessionsPerWeek: Float?,    // null if fewer than 2 weeks of data

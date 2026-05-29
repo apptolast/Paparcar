@@ -106,6 +106,7 @@ fun VehiclesScreen(
             when (effect) {
                 is VehiclesEffect.NavigateToAddVehicle -> onAddVehicle()
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
+                is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
                 is VehiclesEffect.ShowCannotDeleteLastVehicle ->
                     snackbarHostState.showSnackbar(cannotDeleteLastMessage)
@@ -118,7 +119,6 @@ fun VehiclesScreen(
         snackbarHostState = snackbarHostState,
         onIntent = viewModel::handleIntent,
         onConfigureBluetooth = onConfigureBluetooth,
-        onNavigateToMap = onNavigateToMap,
         onShowExplainer = onShowExplainer,
     )
 }
@@ -130,7 +130,6 @@ internal fun VehiclesContent(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onIntent: (VehiclesIntent) -> Unit = {},
     onConfigureBluetooth: (vehicleId: String) -> Unit = {},
-    onNavigateToMap: (lat: Double, lon: Double) -> Unit = { _, _ -> },
     onShowExplainer: () -> Unit = {},
 ) {
     state.pendingDeleteVehicleId?.let { pendingId ->
@@ -175,7 +174,6 @@ internal fun VehiclesContent(
                     state = state,
                     onIntent = onIntent,
                     onConfigureBluetooth = onConfigureBluetooth,
-                    onNavigateToMap = onNavigateToMap,
                 )
             }
         }
@@ -192,7 +190,6 @@ private fun VehiclesPager(
     state: VehiclesState,
     onIntent: (VehiclesIntent) -> Unit,
     onConfigureBluetooth: (vehicleId: String) -> Unit,
-    onNavigateToMap: (lat: Double, lon: Double) -> Unit,
 ) {
     val vehicles = state.vehicles
     val pagerState = rememberPagerState(
@@ -225,7 +222,11 @@ private fun VehiclesPager(
             },
             onAddVehicle = { onIntent(VehiclesIntent.AddVehicle) },
         )
-        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+            key = { index -> vehicles.getOrElse(index) { vehicles.last() }.vehicle.id },
+        ) { page ->
             // Defensive guard: during the recomposition where vehicles
             // shrinks and the clamp above hasn't run yet, `page` may
             // briefly point at an out-of-bounds index. Use the clamped
@@ -233,9 +234,9 @@ private fun VehiclesPager(
             val safePage = page.coerceAtMost(vehicles.lastIndex)
             VehiclePageContent(
                 vehicleWithStats = vehicles[safePage],
+                historyState = state.historyState,
                 onIntent = onIntent,
                 onConfigureBluetooth = onConfigureBluetooth,
-                onNavigateToMap = onNavigateToMap,
                 canDelete = vehicles.size > 1,
             )
         }
@@ -442,7 +443,6 @@ private fun EmptyVehicleState(
     }
 }
 
-private const val TITLE_LETTER_SPACING_SP = -0.5
 private const val PILL_RADIUS_DP = 999
 private const val TAB_HEIGHT_DP = 32
 private const val ACTIVE_DOT_DP = 6

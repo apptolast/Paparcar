@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.history.components
+package io.apptolast.paparcar.presentation.vehicles.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

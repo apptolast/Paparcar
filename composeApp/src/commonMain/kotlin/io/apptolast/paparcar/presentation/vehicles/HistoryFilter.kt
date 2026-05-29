@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.history
+package io.apptolast.paparcar.presentation.vehicles
 
 sealed class HistoryFilter {
     data object All : HistoryFilter()
