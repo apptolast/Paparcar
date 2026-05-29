@@ -141,7 +141,7 @@ private fun VehicleHeroCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
         shape = PapShapes.cardLarge,
         color = cardBg,
         border = BorderStroke(PapBorders.thin, borderColor),
