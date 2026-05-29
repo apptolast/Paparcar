@@ -103,6 +103,9 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
                 placeInfo = runCatching { get<PlaceInfoDto?>("placeInfo") }.getOrNull(),
                 acceptCount = runCatching { get<Long?>(FIELD_ACCEPT_COUNT)?.toInt() }.getOrNull() ?: 0,
                 rejectCount = runCatching { get<Long?>(FIELD_REJECT_COUNT)?.toInt() }.getOrNull() ?: 0,
+                countryCode = get<String?>("countryCode"),
+                citySlug = get<String?>("citySlug"),
+                geohash = get<String?>("geohash"),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toSpotDto failed for doc=$id", e)

@@ -5,6 +5,7 @@ data class AddressInfo(
     val city: String?,
     val region: String?,
     val country: String?,
+    val countryCode: String? = null,
 ) {
     val displayLine: String?
         get() = street ?: city ?: region ?: country

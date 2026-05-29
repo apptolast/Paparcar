@@ -10,7 +10,6 @@ sealed class HomeEffect {
     data class ShowError(val error: PaparcarError) : HomeEffect()
     data object SpotReported : HomeEffect()
     data object TestSpotSent : HomeEffect()
-    data object NavigateToHistory : HomeEffect()
     data object RequestLocationPermission : HomeEffect()
     data object SpotSignalSent : HomeEffect()
     data object OfflineActionBlocked : HomeEffect()

@@ -125,5 +125,6 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
         city = locality ?: subAdminArea,
         region = adminArea,
         country = countryName,
+        countryCode = countryCode?.lowercase(),
     )
 }

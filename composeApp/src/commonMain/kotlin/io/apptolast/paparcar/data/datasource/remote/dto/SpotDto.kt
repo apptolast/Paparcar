@@ -8,6 +8,7 @@ data class AddressDto(
     val city: String? = null,
     val region: String? = null,
     val country: String? = null,
+    val countryCode: String? = null,
 )
 
 @Serializable
@@ -37,4 +38,8 @@ data class SpotDto(
     // Phase 7 — community signals (default 0 for backward compat)
     val acceptCount: Int = 0,
     val rejectCount: Int = 0,
+    // Phase 8 — geo-indexing fields (denormalized for Firestore compound queries)
+    val countryCode: String? = null,
+    val citySlug: String? = null,
+    val geohash: String? = null,
 )

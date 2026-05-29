@@ -25,3 +25,31 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         )
     }
 }
+
+/**
+ * v4 → v5: add `addressCountryCode TEXT` to `cached_spots`.
+ *
+ * Backfilled from the geocoder on next Firestore sync. Existing cached rows will have
+ * NULL until the bounding-box listener replaces them with fresh data. [GEO-INDEX-001]
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE cached_spots ADD COLUMN addressCountryCode TEXT"
+        )
+    }
+}
+
+/**
+ * v5 → v6: add `geohash TEXT` to `cached_spots`.
+ *
+ * Backfilled from Firestore on next bbox sync. Existing rows will have NULL
+ * until replaced. [GEO-INDEX-001]
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE cached_spots ADD COLUMN geohash TEXT"
+        )
+    }
+}

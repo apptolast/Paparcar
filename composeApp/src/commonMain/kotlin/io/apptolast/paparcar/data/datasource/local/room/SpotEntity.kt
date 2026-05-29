@@ -22,6 +22,8 @@ data class SpotEntity(
     val addressCity: String? = null,
     val addressRegion: String? = null,
     val addressCountry: String? = null,
+    val addressCountryCode: String? = null,
+    val geohash: String? = null,
     val placeInfoName: String? = null,
     val placeInfoCategory: String? = null,
     val type: String = "AUTO_DETECTED",

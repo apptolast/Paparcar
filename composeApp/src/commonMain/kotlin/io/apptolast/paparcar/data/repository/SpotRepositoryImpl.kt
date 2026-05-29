@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.time.Clock
 
 /**
  * Offline-first implementation of [SpotRepository].
@@ -47,7 +48,12 @@ class SpotRepositoryImpl(
             //    data, avoiding unnecessary recomposition in the UI.
             launch {
                 spotDao.observeNearby(bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon)
-                    .map { it.map(SpotEntity::toDomain) }
+                    .map { entities ->
+                        val now = Clock.System.now().toEpochMilliseconds()
+                        entities
+                            .filter { it.expiresAt == 0L || it.expiresAt > now }
+                            .map(SpotEntity::toDomain)
+                    }
                     .distinctUntilChanged()
                     .collect { send(it) }
             }

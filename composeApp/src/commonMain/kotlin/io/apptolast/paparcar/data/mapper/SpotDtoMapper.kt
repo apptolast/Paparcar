@@ -4,6 +4,7 @@ package io.apptolast.paparcar.data.mapper
 
 import io.apptolast.paparcar.data.datasource.local.room.SpotEntity
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
+import io.apptolast.paparcar.data.geohash.encodeGeohash
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.domain.model.AddressInfo
@@ -26,7 +27,7 @@ fun SpotDto.toDomain(): Spot = Spot(
     ),
     reportedBy = reportedBy,
     address = address?.let {
-        AddressInfo(street = it.street, city = it.city, region = it.region, country = it.country)
+        AddressInfo(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode)
     },
     placeInfo = placeInfo?.let { dto ->
         runCatching { PlaceInfo(dto.name, PlaceCategory.valueOf(dto.category)) }.getOrNull()
@@ -54,8 +55,11 @@ fun Spot.toDto(): SpotDto = SpotDto(
     reportedBy = reportedBy,
     speed = location.speed,
     address = address?.let {
-        AddressDto(street = it.street, city = it.city, region = it.region, country = it.country)
+        AddressDto(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode)
     },
+    countryCode = address?.countryCode,
+    citySlug = address?.city?.toCitySlug(),
+    geohash = encodeGeohash(location.latitude, location.longitude),
     placeInfo = placeInfo?.let { PlaceInfoDto(name = it.name, category = it.category.name) },
     type = type.name,
     confidence = confidence,
@@ -80,6 +84,8 @@ fun SpotDto.toEntity(): SpotEntity = SpotEntity(
     addressCity = address?.city,
     addressRegion = address?.region,
     addressCountry = address?.country,
+    addressCountryCode = address?.countryCode,
+    geohash = geohash,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
     type = type,
@@ -102,7 +108,7 @@ fun SpotEntity.toDomain(): Spot = Spot(
     ),
     reportedBy = reportedBy,
     address = if (addressStreet != null || addressCity != null || addressRegion != null || addressCountry != null)
-        AddressInfo(street = addressStreet, city = addressCity, region = addressRegion, country = addressCountry)
+        AddressInfo(street = addressStreet, city = addressCity, region = addressRegion, country = addressCountry, countryCode = addressCountryCode)
     else null,
     placeInfo = placeInfoName?.let { name ->
         placeInfoCategory?.let { cat ->
@@ -159,3 +165,11 @@ internal fun decayedConfidence(
 
 private const val MIN_VOTES_FOR_SIGNAL = 3
 private const val LAPLACE_PRIOR = 1f
+
+// Produces a stable, lowercase ASCII slug from a city name for Firestore indexing.
+// Accented characters are stripped (not transliterated) — consistent on write and read.
+// Examples: "Madrid" → "madrid", "New York" → "new-york", "São Paulo" → "so-paulo"
+internal fun String.toCitySlug(): String =
+    lowercase().trim()
+        .replace(Regex("\\s+"), "-")
+        .replace(Regex("[^a-z0-9\\-]"), "")

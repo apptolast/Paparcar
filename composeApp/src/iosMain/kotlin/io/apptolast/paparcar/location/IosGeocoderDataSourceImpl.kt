@@ -72,6 +72,7 @@ class IosGeocoderDataSourceImpl : GeocoderDataSource {
         city = locality ?: subLocality,
         region = administrativeArea,
         country = country,
+        countryCode = isoCountryCode?.lowercase(),
     )
 
     private fun CLPlacemark.toSearchResult(): SearchResult? {

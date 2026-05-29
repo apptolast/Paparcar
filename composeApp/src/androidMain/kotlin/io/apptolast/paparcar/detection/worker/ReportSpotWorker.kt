@@ -116,6 +116,7 @@ class ReportSpotWorker(
         private const val KEY_ADDRESS_CITY = "address_city"
         private const val KEY_ADDRESS_REGION = "address_region"
         private const val KEY_ADDRESS_COUNTRY = "address_country"
+        private const val KEY_ADDRESS_COUNTRY_CODE = "address_country_code"
         private const val KEY_PLACE_NAME = "place_name"
         private const val KEY_PLACE_CATEGORY = "place_category"
         // Phase 4 keys
@@ -146,6 +147,7 @@ class ReportSpotWorker(
                         KEY_ADDRESS_CITY to address?.city,
                         KEY_ADDRESS_REGION to address?.region,
                         KEY_ADDRESS_COUNTRY to address?.country,
+                        KEY_ADDRESS_COUNTRY_CODE to address?.countryCode,
                         KEY_PLACE_NAME to placeInfo?.name,
                         KEY_PLACE_CATEGORY to placeInfo?.category?.name,
                         KEY_SPOT_TYPE to spotType.name,
@@ -168,8 +170,9 @@ class ReportSpotWorker(
             val city = getString(KEY_ADDRESS_CITY)
             val region = getString(KEY_ADDRESS_REGION)
             val country = getString(KEY_ADDRESS_COUNTRY)
+            val countryCode = getString(KEY_ADDRESS_COUNTRY_CODE)
             return if (street != null || city != null || region != null || country != null)
-                AddressInfo(street = street, city = city, region = region, country = country)
+                AddressInfo(street = street, city = city, region = region, country = country, countryCode = countryCode)
             else null
         }
 
