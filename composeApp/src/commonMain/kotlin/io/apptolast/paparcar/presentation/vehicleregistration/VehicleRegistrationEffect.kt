@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.vehicle
+package io.apptolast.paparcar.presentation.vehicleregistration
 
 import io.apptolast.paparcar.domain.error.PaparcarError
 

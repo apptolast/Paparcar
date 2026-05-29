@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.vehicle.data
+package io.apptolast.paparcar.presentation.vehicleregistration.data
 
 /**
  * Static catalog of popular vehicle brands and their top models.

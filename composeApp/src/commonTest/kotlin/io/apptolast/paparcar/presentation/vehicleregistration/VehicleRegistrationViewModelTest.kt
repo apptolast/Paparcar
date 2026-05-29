@@ -1,6 +1,6 @@
 @file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
-package io.apptolast.paparcar.presentation.vehicle
+package io.apptolast.paparcar.presentation.vehicleregistration
 
 import app.cash.turbine.test
 import io.apptolast.paparcar.domain.model.Vehicle

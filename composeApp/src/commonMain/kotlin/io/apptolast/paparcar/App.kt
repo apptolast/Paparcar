@@ -66,7 +66,6 @@ import io.apptolast.paparcar.presentation.app.AppViewModel
 import io.apptolast.paparcar.presentation.app.BootstrapFailure
 import io.apptolast.paparcar.presentation.app.SplashEffect
 import io.apptolast.paparcar.presentation.app.SplashViewModel
-import io.apptolast.paparcar.presentation.history.HistoryScreen
 import io.apptolast.paparcar.presentation.home.HomeScreen
 import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
 import io.apptolast.paparcar.presentation.vehicles.VehiclesScreen
@@ -78,8 +77,8 @@ import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.presentation.util.DistanceUnit
 import io.apptolast.paparcar.presentation.util.LocalDistanceUnit
 import io.apptolast.paparcar.presentation.util.applyAppLocale
-import io.apptolast.paparcar.presentation.vehicle.VehicleRegistrationScreen
-import io.apptolast.paparcar.presentation.vehicle.VehicleSizeExplainerScreen
+import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistrationScreen
+import io.apptolast.paparcar.presentation.vehicleregistration.VehicleSizeExplainerScreen
 import io.apptolast.paparcar.ui.auth.paparcarAuthSlots
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
@@ -99,7 +98,6 @@ import paparcar.composeapp.generated.resources.nav_tab_vehicles
 object Routes {
     const val HOME = "home"
     const val PARKING_LOCATION = "map"
-    const val HISTORY = "history"
     const val VEHICLES = "vehicles"
     const val SETTINGS = "settings"
     const val ONBOARDING = "onboarding"
@@ -485,7 +483,6 @@ private fun MainAppNavigation(
             }
             composable(Routes.HOME) {
                 HomeScreen(
-                    onNavigateToHistory = { navController.navigateToTab(Routes.HISTORY) },
                     navProgressState = navProgress,
                     bottomPadding = scaffoldPadding.calculateBottomPadding(),
                 )
@@ -503,24 +500,6 @@ private fun MainAppNavigation(
                     onNavigateBack = { navController.popBackStack() },
                     initialFocus = if (lat != null && lon != null) Pair(lat, lon) else null,
                 )
-            }
-            composable(Routes.HISTORY) {
-                // consumeWindowInsets prevents the nested HistoryScreen Scaffold
-                // from re-applying navigationBars padding on top of scaffoldPadding
-                // (which already includes the nav inset via AppBottomNavigation),
-                // which would otherwise leave a blank band above the bottom nav.
-                Box(
-                    modifier = Modifier
-                        .padding(scaffoldPadding)
-                        .consumeWindowInsets(scaffoldPadding),
-                ) {
-                    HistoryScreen(
-                        onNavigateBack = { navController.popBackStack() },
-                        onNavigateToMap = { lat, lon ->
-                            navController.navigate("${Routes.PARKING_LOCATION}?lat=$lat&lon=$lon")
-                        },
-                    )
-                }
             }
             composable(Routes.VEHICLES) {
                 Box(

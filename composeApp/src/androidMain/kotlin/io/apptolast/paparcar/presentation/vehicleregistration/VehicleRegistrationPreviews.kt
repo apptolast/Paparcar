@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.vehicle
+package io.apptolast.paparcar.presentation.vehicleregistration
 
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable

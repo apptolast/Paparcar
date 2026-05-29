@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.vehicle
+package io.apptolast.paparcar.presentation.vehicleregistration
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

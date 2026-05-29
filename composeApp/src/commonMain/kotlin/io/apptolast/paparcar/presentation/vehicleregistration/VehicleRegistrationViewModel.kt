@@ -1,4 +1,4 @@
-package io.apptolast.paparcar.presentation.vehicle
+package io.apptolast.paparcar.presentation.vehicleregistration
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -7,7 +7,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import io.apptolast.paparcar.presentation.vehicle.data.VehicleCatalog
+import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
