@@ -93,6 +93,8 @@
     <string name="permissions_perm_battery_oem_hint">Uw apparaatfabrikant kan ook het inschakelen van "Automatisch opstarten" of "Achtergrondactiviteit" in de systeeminstellingen vereisen.</string>
     <string name="permissions_perm_autostart">Automatisch opstarten</string>
     <string name="permissions_perm_autostart_desc">Uw apparaat vereist het inschakelen van automatisch opstarten zodat de app parkeerdetectie kan hervatten nadat deze op de achtergrond is beeindigd.</string>
+    <string name="permissions_perm_oem_battery">Achtergrond energiebesparing</string>
+    <string name="permissions_perm_oem_battery_desc">Uw OPPO/Realme-apparaat kan apps op de achtergrond bevriezen. Schakel energiebesparing voor Paparcar uit in de batterij-instellingen om GPS-onderbrekingen te voorkomen.</string>
     <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <string name="permissions_btn_background">Achtergrondlocatie activeren</string>

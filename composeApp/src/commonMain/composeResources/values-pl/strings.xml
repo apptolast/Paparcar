@@ -93,6 +93,8 @@
     <string name="permissions_perm_battery_oem_hint">Producent urzadzenia moze rowniez wymagac wlaczenia "Autostartu" lub "Aktywnosci w tle" w ustawieniach systemowych.</string>
     <string name="permissions_perm_autostart">Autostart</string>
     <string name="permissions_perm_autostart_desc">Twoje urzadzenie wymaga wlaczenia autostartu, aby aplikacja mogla wznowic wykrywanie parkowania po zamknieciu w tle.</string>
+    <string name="permissions_perm_oem_battery">Oszczedzanie baterii w tle</string>
+    <string name="permissions_perm_oem_battery_desc">Twoje urzadzenie OPPO/Realme moze zamrazac aplikacje w tle. Wylacz oszczedzanie baterii dla Paparcar w ustawieniach baterii, aby zapobiec przerwom GPS.</string>
     <string name="permissions_status_optional">Opcjonalne</string>
     <string name="permissions_btn_grant">Przyznaj uprawnienia</string>
     <string name="permissions_btn_background">Aktywuj lokalizację w tle</string>

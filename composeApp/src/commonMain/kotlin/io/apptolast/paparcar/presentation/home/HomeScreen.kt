@@ -106,7 +106,6 @@ private val FAB_ABOVE_SHEET_GAP = 12.dp
 
 @Composable
 fun HomeScreen(
-    onNavigateToHistory: () -> Unit = {},
     navProgressState: MutableFloatState = remember { mutableFloatStateOf(1f) },
     bottomPadding: Dp = 0.dp,
     viewModel: HomeViewModel = koinViewModel(),
@@ -145,7 +144,6 @@ fun HomeScreen(
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
                 HomeEffect.OfflineActionBlocked -> snackbarHostState.showSnackbar(msgOfflineBlocked)
-                is HomeEffect.NavigateToHistory -> onNavigateToHistory()
                 HomeEffect.RequestLocationPermission -> {}
                 // MoveCameraTo needs the HomeUiController which lives inside
                 // HomeContent; a dedicated collector down there handles it.

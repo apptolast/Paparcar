@@ -93,6 +93,8 @@
     <string name="permissions_perm_battery_oem_hint">Ihr Geratehersteller kann auch die Aktivierung von "Autostart" oder "Hintergrundaktivitat" in den Systemeinstellungen erfordern.</string>
     <string name="permissions_perm_autostart">Autostart</string>
     <string name="permissions_perm_autostart_desc">Ihr Gerat erfordert die Aktivierung des Autostarts, damit die App die Parkplatzerkennung nach dem Beenden im Hintergrund fortsetzen kann.</string>
+    <string name="permissions_perm_oem_battery">Hintergrund-Energiesparmodus</string>
+    <string name="permissions_perm_oem_battery_desc">Ihr OPPO/Realme-Gerat kann Apps im Hintergrund einfrieren. Deaktivieren Sie den Energiesparmodus fur Paparcar in den Akkueinstellungen, um GPS-Ausfalle zu vermeiden.</string>
     <string name="permissions_status_optional">Optional</string>
     <string name="permissions_btn_grant">Berechtigungen erteilen</string>
     <string name="permissions_btn_background">Hintergrundstandort aktivieren</string>

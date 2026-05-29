@@ -14,7 +14,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
-import io.apptolast.paparcar.presentation.history.WeekDayStats
+import io.apptolast.paparcar.presentation.vehicles.WeekDayStats
 import kotlin.time.Clock
 
 /**

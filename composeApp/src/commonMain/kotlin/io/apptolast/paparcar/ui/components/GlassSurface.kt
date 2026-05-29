@@ -80,12 +80,10 @@ fun GlassSurface(
     val resolvedContainer = colors.container.copy(alpha = containerAlpha)
     val border = BorderStroke(colors.borderWidth, colors.border.copy(alpha = borderAlpha))
     val resolvedShadow = shadowElevation * shadowFactor
-    val blurModifier = if (isInteracting) modifier.glassBlur(GlassDefaults.BLUR_RADIUS) else modifier
-
     if (onClick != null) {
         Surface(
             onClick = onClick,
-            modifier = blurModifier,
+            modifier = modifier,
             shape = shape,
             color = resolvedContainer,
             border = border,
@@ -94,7 +92,7 @@ fun GlassSurface(
         )
     } else {
         Surface(
-            modifier = blurModifier,
+            modifier = modifier,
             shape = shape,
             color = resolvedContainer,
             border = border,
@@ -114,11 +112,10 @@ data class GlassColors(
 object GlassDefaults {
 
     internal const val ALPHA_IDLE = 1.0f
-    internal const val ALPHA_INTERACTING = 0.52f
+    internal const val ALPHA_INTERACTING = 0.88f
     internal const val FADE_IN_MS = 160
     internal const val FADE_OUT_MS = 320
     internal const val BORDER_ALPHA = 0.18f
-    internal val BLUR_RADIUS = 20.dp
     private val BORDER_WIDTH = 0.5.dp
 
     @Composable

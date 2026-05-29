@@ -128,6 +128,8 @@
     <string name="permissions_perm_battery_oem_hint">Tu fabricante puede requerir también activar "Inicio automático" o "Actividad en segundo plano" en los ajustes del sistema.</string>
     <string name="permissions_perm_autostart">Inicio automático</string>
     <string name="permissions_perm_autostart_desc">Tu dispositivo requiere activar el inicio automático para que la app pueda reanudar la detección de aparcamiento tras ser cerrada en segundo plano.</string>
+    <string name="permissions_perm_oem_battery">Ahorro de batería en segundo plano</string>
+    <string name="permissions_perm_oem_battery_desc">Tu dispositivo OPPO/Realme puede congelar apps en segundo plano. Desactiva el ahorro de batería para Paparcar en los ajustes de batería para evitar cortes del GPS.</string>
     <string name="permissions_status_optional">Opcional</string>
     <string name="permissions_btn_grant">Conceder permisos</string>
     <string name="permissions_btn_background">Activar ubicación en segundo plano</string>

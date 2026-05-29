@@ -1,9 +1,5 @@
 package io.apptolast.paparcar.presentation.home.sections.header
 
-import io.apptolast.paparcar.presentation.home.sections.header.components.HomeGpsAccuracyBanner
-import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
-import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypePicker
-
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +14,9 @@ import androidx.compose.ui.unit.dp
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.sections.header.components.HomeGpsAccuracyBanner
+import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
+import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypePicker
 
 /**
  * Top floating layer of HomeScreen: search bar + map-type picker + GPS
