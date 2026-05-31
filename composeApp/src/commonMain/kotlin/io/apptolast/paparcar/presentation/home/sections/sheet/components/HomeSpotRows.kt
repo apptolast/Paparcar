@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.stateColors
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
@@ -215,13 +216,14 @@ private data class ReliabilityPalette(
 
 @Composable
 private fun SpotReliabilityUiState.palette(): ReliabilityPalette {
-    val cs = MaterialTheme.colorScheme
-    return when (this) {
-        SpotReliabilityUiState.HIGH   -> ReliabilityPalette(cs.primary,   cs.onPrimary,   stringResource(Res.string.home_spot_reliability_high))
-        SpotReliabilityUiState.MEDIUM -> ReliabilityPalette(cs.secondary, cs.onSecondary, stringResource(Res.string.home_spot_reliability_medium))
-        SpotReliabilityUiState.LOW    -> ReliabilityPalette(cs.error,     cs.onError,     stringResource(Res.string.home_spot_reliability_low))
-        SpotReliabilityUiState.MANUAL -> ReliabilityPalette(cs.tertiary,  cs.onTertiary,  stringResource(Res.string.home_spot_reliability_manual))
+    val sc = stateColors()
+    val label = when (this) {
+        SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_spot_reliability_high)
+        SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_spot_reliability_medium)
+        SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_spot_reliability_low)
+        SpotReliabilityUiState.MANUAL -> stringResource(Res.string.home_spot_reliability_manual)
     }
+    return ReliabilityPalette(sc.bg, sc.on, label)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

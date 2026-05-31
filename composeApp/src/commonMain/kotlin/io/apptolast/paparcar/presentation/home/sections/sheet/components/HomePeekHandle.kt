@@ -81,6 +81,7 @@ import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_add_parking_cancel_cd
@@ -573,17 +574,14 @@ private data class SpotPeekPalette(
 
 @Composable
 private fun SpotReliabilityUiState.peekPalette(): SpotPeekPalette {
-    val cs = MaterialTheme.colorScheme
-    return when (this) {
-        SpotReliabilityUiState.HIGH ->
-            SpotPeekPalette(cs.primary, cs.onPrimary, stringResource(Res.string.home_peek_spot_high), FILL_HIGH)
-        SpotReliabilityUiState.MEDIUM ->
-            SpotPeekPalette(cs.secondary, cs.onSecondary, stringResource(Res.string.home_peek_spot_medium), FILL_MEDIUM)
-        SpotReliabilityUiState.LOW ->
-            SpotPeekPalette(cs.error, cs.onError, stringResource(Res.string.home_peek_spot_low), FILL_LOW)
-        SpotReliabilityUiState.MANUAL ->
-            SpotPeekPalette(cs.tertiary, cs.onTertiary, stringResource(Res.string.home_peek_spot_manual), FILL_MANUAL)
+    val sc = stateColors()
+    val (label, fill) = when (this) {
+        SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_peek_spot_high)   to FILL_HIGH
+        SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_peek_spot_medium) to FILL_MEDIUM
+        SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_peek_spot_low)    to FILL_LOW
+        SpotReliabilityUiState.MANUAL -> stringResource(Res.string.home_peek_spot_manual) to FILL_MANUAL
     }
+    return SpotPeekPalette(sc.bg, sc.on, label, fill)
 }
 
 private const val FILL_HIGH = 1.0f

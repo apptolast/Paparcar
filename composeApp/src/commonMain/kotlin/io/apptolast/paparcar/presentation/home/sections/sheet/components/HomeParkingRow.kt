@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -40,6 +41,7 @@ import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.vehicleStateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_vehicle_card_park_cta
@@ -75,9 +77,10 @@ internal fun HomeVehicleCard(
     )
     val session = card.session
 
+    val vc = vehicleStateColors()
     val cardBg = when {
         isSelected -> MaterialTheme.colorScheme.primary
-        session != null -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = SELECTED_BG_ALPHA)
+        session != null -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = SELECTED_BG_ALPHA)
         else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
     val borderColor = if (isSelected) Color.Transparent
@@ -88,12 +91,12 @@ internal fun HomeVehicleCard(
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA_DEFAULT)
     val iconBg = when {
         isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = ICON_BG_ALPHA_ON_PRIMARY)
-        session != null -> MaterialTheme.colorScheme.primary
+        session != null -> vc.bg
         else -> MaterialTheme.colorScheme.surfaceContainer
     }
     val iconTint = when {
         isSelected -> MaterialTheme.colorScheme.onPrimary
-        session != null -> MaterialTheme.colorScheme.onPrimary
+        session != null -> vc.on
         else -> MaterialTheme.colorScheme.primary
     }
 
@@ -112,7 +115,7 @@ internal fun HomeVehicleCard(
             Box(
                 modifier = Modifier
                     .size(ICON_BOX_DP.dp)
-                    .clip(RoundedCornerShape(ICON_BOX_CORNER_DP.dp))
+                    .clip(CircleShape)
                     .background(iconBg),
                 contentAlignment = Alignment.Center,
             ) {
@@ -217,7 +220,6 @@ private fun parkedSubtitle(
 }
 
 private const val ICON_BOX_DP = 44
-private const val ICON_BOX_CORNER_DP = 14
 private const val PILL_RADIUS_DP = 999
 private const val SELECTED_BG_ALPHA = 0.35f
 private const val OUTLINE_ALPHA = 0.4f
