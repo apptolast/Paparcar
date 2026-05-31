@@ -43,7 +43,7 @@ class HomeUiController {
 
     private var centeredOnUser = false
 
-    fun moveCamera(lat: Double, lon: Double, zoom: Float = 17f) {
+    fun moveCamera(lat: Double, lon: Double, zoom: Float? = null) {
         isProgrammaticMove = true
         cameraTarget = CameraTarget(lat, lon, zoom, token = (cameraTarget?.token ?: 0) + 1)
     }

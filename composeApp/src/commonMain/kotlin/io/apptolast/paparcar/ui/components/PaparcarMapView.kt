@@ -634,6 +634,7 @@ fun PaparcarMapView(
         initialCamera = config.initialCamera,
         actualCamLat = actualCamLat,
         actualCamLon = actualCamLon,
+        actualCamZoom = currentZoom,
     )
 
     val loadingAlpha by animateFloatAsState(
@@ -836,6 +837,7 @@ private fun rememberCameraAnimationState(
     initialCamera: CameraTarget?,
     actualCamLat: Float?,
     actualCamLon: Float?,
+    actualCamZoom: Float,
 ): CameraPosition {
     // Seed priority: explicit cameraTarget > config.initialCamera > live userLocation > origin.
     val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
@@ -850,19 +852,23 @@ private fun rememberCameraAnimationState(
 
     // Snap Animatables to the actual map position only right before launching
     // a programmatic animation. This ensures animations start from wherever
-    // the user left the camera (after dragging/flinging) without creating a
-    // feedback loop that would interrupt the native fling each frame.
+    // the user left the camera (after dragging/flinging/pinching) without
+    // creating a feedback loop that would interrupt the native gesture each frame.
     LaunchedEffect(cameraTarget) {
         val target = cameraTarget ?: return@LaunchedEffect
-        // Sync to real camera position so animation starts from the correct point.
+        // Sync all three axes to the real camera so the animation never jumps.
         actualCamLat?.let { animLat.snapTo(it) }
         actualCamLon?.let { animLon.snapTo(it) }
-        val (targetLat, targetLon, targetZoom) = if (target.boundsLat2 != null && target.boundsLon2 != null) {
+        animZoom.snapTo(actualCamZoom)
+        val targetLat: Float
+        val targetLon: Float
+        val targetZoom: Float?
+        if (target.boundsLat2 != null && target.boundsLon2 != null) {
             val maxDelta = maxOf(
                 abs(target.lat - target.boundsLat2),
                 abs(target.lon - target.boundsLon2),
             ).toFloat()
-            val zoom = when {
+            targetZoom = when {
                 maxDelta < BOUNDS_DELTA_220M  -> ZOOM_STREET        // ~220 m
                 maxDelta < BOUNDS_DELTA_550M  -> ZOOM_CLOSE         // ~550 m
                 maxDelta < BOUNDS_DELTA_1100M -> ZOOM_DEFAULT       // ~1.1 km
@@ -870,18 +876,17 @@ private fun rememberCameraAnimationState(
                 maxDelta < BOUNDS_DELTA_4500M -> ZOOM_DISTRICT      // ~4.5 km
                 else                          -> ZOOM_WIDE
             }
-            Triple(
-                ((target.lat + target.boundsLat2) / 2.0).toFloat(),
-                ((target.lon + target.boundsLon2) / 2.0).toFloat(),
-                zoom,
-            )
+            targetLat = ((target.lat + target.boundsLat2) / 2.0).toFloat()
+            targetLon = ((target.lon + target.boundsLon2) / 2.0).toFloat()
         } else {
-            Triple(target.lat.toFloat(), target.lon.toFloat(), target.zoom)
+            targetLat = target.lat.toFloat()
+            targetLon = target.lon.toFloat()
+            targetZoom = target.zoom  // null → preserve current zoom
         }
         val spec = tween<Float>(CAMERA_ANIM_MS, easing = FastOutSlowInEasing)
         launch { animLat.animateTo(targetLat, spec) }
         launch { animLon.animateTo(targetLon, spec) }
-        launch { animZoom.animateTo(targetZoom, spec) }
+        targetZoom?.let { launch { animZoom.animateTo(it, spec) } }
     }
 
     return CameraPosition(

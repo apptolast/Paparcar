@@ -9,7 +9,8 @@ package io.apptolast.paparcar.presentation.map
 data class CameraTarget(
     val lat: Double,
     val lon: Double,
-    val zoom: Float = 17f,
+    /** Null means preserve whatever zoom the user has at the moment of the tap. */
+    val zoom: Float? = null,
     val token: Int = 0,
     /** When set, animate to fit both points with [paddingDp] margin instead of single-point zoom. */
     val boundsLat2: Double? = null,
