@@ -86,9 +86,9 @@ class DepartureDetectionWorker(
                 lat = lat,
                 lon = lon,
                 spotId = spotId,
-                spotType = session?.spotType ?: SpotType.AUTO_DETECTED,
-                confidence = session?.detectionReliability ?: 1f,
-                sizeCategory = session?.sizeCategory,
+                spotType = session.spotType,
+                confidence = session.detectionReliability ?: 1f,
+                sizeCategory = session.sizeCategory,
             )
         }
         // Clear AFTER scheduling. If the clear fails we retry; the session is still
