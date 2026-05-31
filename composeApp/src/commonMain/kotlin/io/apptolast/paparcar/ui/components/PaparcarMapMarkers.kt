@@ -40,6 +40,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
 import kotlinx.coroutines.launch
 
@@ -62,6 +63,14 @@ private object MarkerColors {
     // Free spot — classic parking green
     val SpotGreen     = Color(0xFF22C55E)
     val SpotOnGreen   = Color(0xFF052E16)
+
+    // Reliability palette
+    val SpotHigh      = Color(0xFF22C55E) // Green
+    val SpotMedium    = Color(0xFFF59E0B) // Amber
+    val SpotLow       = Color(0xFFEF4444) // Red
+    val SpotManual    = Color(0xFF3B82F6) // Blue
+    val SpotOnDark    = Color(0xFFFFFFFF)
+    val SpotOnLight   = Color(0xFF052E16)
 
     // Parked vehicle — amber/orange ("mine, active")
     val PlateAmber    = Color(0xFFF59E0B)
@@ -216,19 +225,28 @@ private val MY_VEHICLE_H = 55.dp
 // ─── Marker 2 — Free spot (FreeSpotMarker) ───────────────────────────────────
 
 /**
- * Free-spot marker. Green circle with a parking "P" icon — same circle pattern
+ * Free-spot marker. Circle with a parking "P" icon — same circle pattern
  * as [ZoneMarker] and [VehicleBadgeMarker] for a coherent three-marker family.
- * Green universally signals availability in parking contexts.
+ * Color signals reliability level.
  *
  * @param selected when true the border turns white to indicate selection.
+ * @param reliability reliability tier determining the marker color.
  */
 @Composable
 fun FreeSpotMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    reliability: SpotReliabilityLevel = SpotReliabilityLevel.HIGH,
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
     val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
+
+    val (fill, onFill) = when (reliability) {
+        SpotReliabilityLevel.HIGH -> MarkerColors.SpotHigh to MarkerColors.SpotOnLight
+        SpotReliabilityLevel.MEDIUM -> MarkerColors.SpotMedium to MarkerColors.SpotOnLight
+        SpotReliabilityLevel.LOW -> MarkerColors.SpotLow to MarkerColors.SpotOnDark
+        SpotReliabilityLevel.MANUAL -> MarkerColors.SpotManual to MarkerColors.SpotOnDark
+    }
 
     Box(
         modifier = modifier.size(
@@ -246,10 +264,10 @@ fun FreeSpotMarker(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .size(FREE_SPOT_MARKER_DIAM)
-                .background(color = MarkerColors.SpotGreen, shape = CircleShape)
+                .background(color = fill, shape = CircleShape)
                 .border(
                     width = if (selected) FREE_SPOT_SEL_STROKE else FREE_SPOT_MARKER_STROKE,
-                    color = if (selected) Color.White else MarkerColors.SpotOnGreen,
+                    color = if (selected) Color.White else onFill.copy(alpha = 0.3f),
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -257,7 +275,7 @@ fun FreeSpotMarker(
             Icon(
                 imageVector = Icons.Outlined.LocalParking,
                 contentDescription = null,
-                tint = MarkerColors.SpotOnGreen,
+                tint = onFill,
                 modifier = Modifier.size(FREE_SPOT_MARKER_ICON),
             )
         }

@@ -66,6 +66,8 @@ import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.map.CameraTarget
 
 import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
+import io.apptolast.paparcar.presentation.util.toSpotReliabilityLevel
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
@@ -224,6 +226,7 @@ private data class SpotMeta(
     val spotId: String,
     val sizeCategory: VehicleSize?,
     val enRouteCount: Int,
+    val reliability: SpotReliabilityLevel,
 )
 
 // ── Marker content IDs ──────────────────────────────────────────────────────
@@ -242,12 +245,16 @@ private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 
-// Free-spot markers — three variants (normal / selected / dimmed).
-// Reliability tiers are preserved in business logic but no longer encoded
-// visually; shape + colour carry the semantics instead.
-private const val MARKER_FREE_SPOT     = "free_spot"
-private const val MARKER_FREE_SPOT_SEL = "free_spot_selected"
-private const val MARKER_FREE_SPOT_DIM = "free_spot_dim"
+// Free-spot markers — various variants (reliability / selected / dimmed).
+private fun spotContentId(spot: Spot, selected: Boolean, dim: Boolean): String {
+    val reliability = spot.toSpotReliabilityLevel().name.lowercase()
+    val suffix = when {
+        selected -> "sel"
+        dim      -> "dim"
+        else     -> "nrm"
+    }
+    return "free_spot_${reliability}_$suffix"
+}
 
 // Alpha applied to dimmed markers — visible enough to deter duplicate
 // reports, subordinate enough that the centre pin dominates.
@@ -421,7 +428,12 @@ fun PaparcarMapView(
                     val spot = cluster.spots.first()
                     put(
                         Coordinates(spot.location.latitude, spot.location.longitude),
-                        SpotMeta(spot.id, spot.sizeCategory, spot.enRouteCount),
+                        SpotMeta(
+                            spot.id,
+                            spot.sizeCategory,
+                            spot.enRouteCount,
+                            spot.toSpotReliabilityLevel()
+                        ),
                     )
                 }
             }
@@ -488,11 +500,11 @@ fun PaparcarMapView(
                         Marker(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
                             title = null,
-                            contentId = when {
-                                spot.id == selectedSpotId -> MARKER_FREE_SPOT_SEL
-                                dimSpots -> MARKER_FREE_SPOT_DIM
-                                else -> MARKER_FREE_SPOT
-                            },
+                            contentId = spotContentId(
+                                spot = spot,
+                                selected = spot.id == selectedSpotId,
+                                dim = dimSpots && spot.id != selectedSpotId
+                            ),
                         ),
                     )
                 } else {
@@ -515,32 +527,36 @@ fun PaparcarMapView(
     //   - ZoneMarker: blue teardrop + darker-blue disc + zone icon
     // FreeSpot size/en-route overlays are preserved via FreeSpotWithOverlays.
     val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots) {
-        mapOf<String, @Composable (Marker) -> Unit>(
+        val spotContentHandlers: List<Pair<String, @Composable (Marker) -> Unit>> = spotMetaByCoords.values.flatMap { meta ->
+            val reliability = meta.reliability
+            listOf(
+                "free_spot_${reliability.name.lowercase()}_nrm" to { _: Marker ->
+                    FreeSpotWithOverlays(meta)
+                },
+                "free_spot_${reliability.name.lowercase()}_sel" to { _: Marker ->
+                    FreeSpotWithOverlays(meta, selected = true)
+                },
+                "free_spot_${reliability.name.lowercase()}_dim" to { _: Marker ->
+                    Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
+                        FreeSpotWithOverlays(meta)
+                    }
+                }
+            )
+        }
+
+        val baseHandlers: Map<String, @Composable (Marker) -> Unit> = mapOf(
             // ── Legacy fallback teardrop (ParkingLocationScreen) ──
             MARKER_MY_CAR to { _ -> MyVehicleMarker() },
             MARKER_MY_CAR_SELECTED to { _ -> MyVehicleMarker(selected = true) },
             MARKER_MY_CAR_DIM to { _ ->
                 Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { MyVehicleMarker() }
             },
-            // ── Free spot (3 variants: normal / selected / dimmed) ──
-            MARKER_FREE_SPOT to { marker ->
-                FreeSpotWithOverlays(spotMetaByCoords[marker.coordinates])
-            },
-            MARKER_FREE_SPOT_SEL to { marker ->
-                FreeSpotWithOverlays(spotMetaByCoords[marker.coordinates], selected = true)
-            },
-            MARKER_FREE_SPOT_DIM to { marker ->
-                // Distinct contentId so kmpmaps rasterises a separate bitmap; switching
-                // contentId on dim ON/OFF triggers re-rasterisation instead of reusing
-                // the full-opacity cached bitmap.
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    FreeSpotWithOverlays(spotMetaByCoords[marker.coordinates])
-                }
-            },
             MARKER_CLUSTER to { marker ->
                 FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
             },
-        ) + parkedVehicles.flatMap { v ->
+        )
+
+        baseHandlers + spotContentHandlers.toMap() + parkedVehicles.flatMap { v ->
             // Explicit type annotation preserves @Composable on each lambda through flatMap.
             val entries: List<Pair<String, @Composable (Marker) -> Unit>> = listOf(
                 vehicleBadgeContentId(v, selected = false, dim = false) to { _: Marker ->
@@ -917,8 +933,9 @@ private fun FreeSpotWithOverlays(
 ) {
     val sizeCategory = meta?.sizeCategory
     val enRouteCount = meta?.enRouteCount ?: 0
+    val reliability = meta?.reliability ?: SpotReliabilityLevel.HIGH
     Box {
-        FreeSpotMarker(selected = selected)
+        FreeSpotMarker(selected = selected, reliability = reliability)
         val label = sizeCategory?.badgeLabel()
         if (label != null) {
             SpotSizeBadge(

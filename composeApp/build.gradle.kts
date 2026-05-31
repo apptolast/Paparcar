@@ -255,6 +255,26 @@ android {
         buildConfig = true
     }
 
+    flavorDimensions += "environment"
+    productFlavors {
+        create("prod") {
+            dimension = "environment"
+        }
+        create("mock") {
+            dimension = "environment"
+            applicationIdSuffix = ".mock"
+            versionNameSuffix = "-mock"
+        }
+    }
+
+    // Disable Google Services for mock flavor to avoid package name mismatch
+    // in google-services.json which doesn't contain .mock suffix.
+    project.afterEvaluate {
+        tasks.matching { it.name.contains("processMock", ignoreCase = true) && it.name.contains("GoogleServices") }.configureEach {
+            enabled = false
+        }
+    }
+
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
