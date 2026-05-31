@@ -13,4 +13,8 @@ class IosOemBackgroundReliabilityManagerImpl : OemBackgroundReliabilityManager {
     override val requiresAutostartWhitelist: Boolean = false
 
     override suspend fun launchAutostartSettings(): Boolean = false
+
+    override val requiresOemBatterySettings: Boolean = false
+
+    override suspend fun launchOemBatterySettings(): Boolean = false
 }

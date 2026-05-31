@@ -90,11 +90,11 @@
     <string name="permissions_perm_bluetooth_desc">Permet la détection automatique du stationnement lors de la connexion ou déconnexion du Bluetooth de votre voiture</string>
     <string name="permissions_perm_battery">Utilisation illimitee de la batterie</string>
     <string name="permissions_perm_battery_desc">Empeche le systeme de tuer la detection de stationnement en arriere-plan. Fortement recommande sur les appareils Xiaomi, Oppo et Huawei.</string>
-    <string name="permissions_perm_battery_oem_hint">Le fabricant de votre appareil peut egalement necessiter l'activation du 'Demarrage automatique' ou de l'Activite en arriere-plan dans les parametres systeme.</string>
-    <string name="permissions_perm_autostart">Demarrage automatique</string>
-    <string name="permissions_perm_autostart_desc">Votre appareil necessite d'activer le demarrage automatique pour que l'app puisse reprendre la detection de stationnement apres avoir ete arretee en arriere-plan.</string>
+    <string name="permissions_perm_battery_oem_hint">Le fabricant de votre appareil peut egalement necessiter l activation du Demarrage automatique ou de l Activite en arriere-plan dans les parametres systeme. Sans eux, la detection peut s arreter apres quelques heures.</string>
+    <string name="permissions_perm_autostart">Demarrage automatique / activite en arriere-plan</string>
+    <string name="permissions_perm_autostart_desc">Facultatif — l app fonctionne sans cela, mais sur les appareils Xiaomi, OPPO et Huawei la detection peut s arreter apres quelques heures. L activer permet a l app de se reveiller de maniere fiable. Impact minimal sur la batterie.</string>
     <string name="permissions_perm_oem_battery">Economie de batterie en arriere-plan</string>
-    <string name="permissions_perm_oem_battery_desc">Votre appareil OPPO/Realme peut geler les apps en arriere-plan. Desactivez l'economie de batterie pour Paparcar dans les parametres batterie pour eviter les coupures GPS.</string>
+    <string name="permissions_perm_oem_battery_desc">Facultatif — votre appareil OPPO/Realme peut geler les apps en arriere-plan. Sans cela, le GPS peut s interrompre pendant la detection. Desactivez l economie de batterie pour Paparcar dans les parametres batterie. Impact minimal sur la batterie.</string>
     <string name="permissions_status_optional">Optionnel</string>
     <string name="permissions_btn_grant">Accorder les permissions</string>
     <string name="permissions_btn_background">Activer la position en arrière-plan</string>
@@ -419,6 +419,7 @@
     <!-- Pills CTA des cards Home -->
     <string name="home_manual_park_pill">Marquer</string>
     <string name="home_zones_empty_pill">Ajouter</string>
+    <string name="home_header_add_zone">Ajouter une zone habituelle</string>
 
     <!-- Sheet section headers + permissions -->
     <string name="home_vehicles_section_header">Tes véhicules</string>

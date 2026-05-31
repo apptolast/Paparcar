@@ -13,9 +13,19 @@ data class PermissionsState(
     val isBatteryOptimizationExempt: Boolean = false,
     /** Optional — OEM autostart / background-activity whitelist. Only shown on
      *  manufacturers that ship the toggle (MIUI, ColorOS, EMUI, OriginOS…).
-     *  We can't read its actual state (no public API), so the card always shows
-     *  as "pending action" while it is visible. [BUG-DETECT-OEM-KILLER-001] */
+     *  We can't read its actual state (no public API), so we track whether the
+     *  user has tapped the button and opened settings. [BUG-DETECT-OEM-KILLER-001] */
     val showAutostartCard: Boolean = false,
+    /** `true` once the user has tapped the autostart button this session, used to
+     *  show the card in the "granted" visual state (optimistic — we trust the user
+     *  granted it after opening settings). Resets on process death. */
+    val hasAcknowledgedAutostart: Boolean = false,
+    /** Optional — OEM battery / power management settings for OplusHansManager (ColorOS).
+     *  Hans freezes background processes with SIGSTOP independent of the autostart toggle.
+     *  Only shown on OPPO/Realme. [OEM-002] */
+    val showOemBatteryCard: Boolean = false,
+    /** `true` once the user has tapped the OEM battery button this session. */
+    val hasAcknowledgedOemBattery: Boolean = false,
     val showRationale: Boolean = false,
     val showSettingsPrompt: Boolean = false,
     /** Show step-by-step guide before opening system Settings for background location.

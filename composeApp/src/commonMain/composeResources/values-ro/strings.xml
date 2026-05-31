@@ -90,11 +90,11 @@
     <string name="permissions_perm_bluetooth_desc">Permite detectarea automată a parcării la conectarea sau deconectarea de la Bluetooth-ul mașinii</string>
     <string name="permissions_perm_battery">Utilizare nelimitata a bateriei</string>
     <string name="permissions_perm_battery_desc">Impiedica sistemul sa opreasca detectarea parcarii in fundal. Recomandat pe dispozitivele Xiaomi, Oppo si Huawei.</string>
-    <string name="permissions_perm_battery_oem_hint">Producatorul dispozitivului tau poate necesita activarea "Pornire automata" sau "Activitate in fundal" in setarile sistemului.</string>
-    <string name="permissions_perm_autostart">Pornire automata</string>
-    <string name="permissions_perm_autostart_desc">Dispozitivul tau necesita activarea pornirii automate pentru ca aplicatia sa poata relua detectarea parcarii dupa ce a fost oprita in fundal.</string>
+    <string name="permissions_perm_battery_oem_hint">Producatorul dispozitivului tau poate necesita activarea Pornirii automate sau Activitatii in fundal in setarile sistemului. Fara acestea, detectarea poate inceta sa functioneze dupa cateva ore.</string>
+    <string name="permissions_perm_autostart">Pornire automata / activitate in fundal</string>
+    <string name="permissions_perm_autostart_desc">Optional — aplicatia functioneaza si fara aceasta, dar pe dispozitivele Xiaomi, OPPO si Huawei detectarea parcarii poate esua dupa cateva ore. Activarea permite aplicatiei sa se trezeasca in mod fiabil. Impact minim asupra bateriei.</string>
     <string name="permissions_perm_oem_battery">Economisire baterie in fundal</string>
-    <string name="permissions_perm_oem_battery_desc">Dispozitivul tau OPPO/Realme poate ingheta aplicatiile in fundal. Dezactiveaza economisirea bateriei pentru Paparcar in setarile bateriei pentru a preveni intreruperile GPS.</string>
+    <string name="permissions_perm_oem_battery_desc">Optional — dispozitivul tau OPPO/Realme poate ingheta aplicatiile in fundal. Fara aceasta, GPS-ul poate cadea in timpul detectarii. Dezactiveaza economisirea bateriei pentru Paparcar in setarile bateriei. Impact minim asupra bateriei.</string>
     <string name="permissions_status_optional">Opțional</string>
     <string name="permissions_btn_grant">Acordă permisiunile</string>
     <string name="permissions_btn_background">Activează locația în fundal</string>
@@ -419,6 +419,7 @@
     <!-- CTA pills în cardurile Home -->
     <string name="home_manual_park_pill">Marchează</string>
     <string name="home_zones_empty_pill">Adaugă</string>
+    <string name="home_header_add_zone">Adaugă o zonă</string>
 
     <!-- Sheet section headers + permisiuni -->
     <string name="home_vehicles_section_header">Vehiculele tale</string>

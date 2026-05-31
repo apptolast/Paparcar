@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.BatteryAlert
 import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Explore
@@ -58,6 +59,8 @@ import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
 import paparcar.composeapp.generated.resources.permissions_perm_autostart
 import paparcar.composeapp.generated.resources.permissions_perm_autostart_desc
+import paparcar.composeapp.generated.resources.permissions_perm_oem_battery
+import paparcar.composeapp.generated.resources.permissions_perm_oem_battery_desc
 import paparcar.composeapp.generated.resources.permissions_perm_background
 import paparcar.composeapp.generated.resources.permissions_perm_background_desc
 import paparcar.composeapp.generated.resources.permissions_perm_battery
@@ -94,6 +97,7 @@ internal fun PermissionsContent(
     onRequestBluetooth: () -> Unit = {},
     onRequestBatteryOptimization: () -> Unit = {},
     onRequestOemAutostart: () -> Unit = {},
+    onRequestOemBatterySettings: () -> Unit = {},
     onConfirmBackgroundLocationGuide: () -> Unit = {},
     onDismissBackgroundLocationGuide: () -> Unit = {},
 ) {
@@ -220,9 +224,8 @@ internal fun PermissionsContent(
             }
 
             // ── Optional OEM autostart whitelist (MIUI/ColorOS/EMUI…) ────────
-            // We cannot read the actual toggle state — no public API exposes it.
-            // Card stays visible (always granted=false) on whitelisted manufacturers
-            // so the user can re-open the screen if they cleared the toggle later.
+            // No public API to read the actual toggle state. We track whether the
+            // user has opened the settings screen this session (optimistic grant).
             if (state.showAutostartCard) {
                 Spacer(Modifier.height(PaparcarSpacing.xl))
                 HorizontalDivider(
@@ -234,8 +237,27 @@ internal fun PermissionsContent(
                     icon = Icons.Outlined.RocketLaunch,
                     title = stringResource(Res.string.permissions_perm_autostart),
                     desc = stringResource(Res.string.permissions_perm_autostart_desc),
-                    granted = false,
+                    granted = state.hasAcknowledgedAutostart,
                     onGrant = onRequestOemAutostart,
+                )
+            }
+
+            // ── Optional OEM battery / Hans freeze (ColorOS/OPPO/Realme) ─────
+            // OplusHansManager freezes processes with SIGSTOP even when autostart is
+            // whitelisted. Only shown on manufacturers shipping ColorOS. [OEM-002]
+            if (state.showOemBatteryCard) {
+                Spacer(Modifier.height(PaparcarSpacing.xl))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.dp,
+                )
+                Spacer(Modifier.height(PaparcarSpacing.xl))
+                OptionalPermissionRow(
+                    icon = Icons.Outlined.BatteryAlert,
+                    title = stringResource(Res.string.permissions_perm_oem_battery),
+                    desc = stringResource(Res.string.permissions_perm_oem_battery_desc),
+                    granted = state.hasAcknowledgedOemBattery,
+                    onGrant = onRequestOemBatterySettings,
                 )
             }
 

@@ -125,11 +125,11 @@
     <string name="permissions_perm_bluetooth_desc">Permite la detección automática de aparcamiento al conectar o desconectar el Bluetooth de tu coche</string>
     <string name="permissions_perm_battery">Uso de batería sin restricciones</string>
     <string name="permissions_perm_battery_desc">Evita que el sistema mate la detección de aparcamiento en segundo plano. Muy recomendado en dispositivos Xiaomi, Oppo y Huawei.</string>
-    <string name="permissions_perm_battery_oem_hint">Tu fabricante puede requerir también activar "Inicio automático" o "Actividad en segundo plano" en los ajustes del sistema.</string>
-    <string name="permissions_perm_autostart">Inicio automático</string>
-    <string name="permissions_perm_autostart_desc">Tu dispositivo requiere activar el inicio automático para que la app pueda reanudar la detección de aparcamiento tras ser cerrada en segundo plano.</string>
+    <string name="permissions_perm_battery_oem_hint">Tu fabricante puede requerir también activar "Inicio automático" o "Actividad en segundo plano" en los ajustes del sistema. Sin ellos, la detección puede dejar de funcionar al cabo de unas horas en segundo plano.</string>
+    <string name="permissions_perm_autostart">Inicio automático / actividad en segundo plano</string>
+    <string name="permissions_perm_autostart_desc">Opcional — la app funciona sin esto, pero en dispositivos Xiaomi, OPPO y Huawei la detección de aparcamiento puede dejar de funcionar al cabo de unas horas si está desactivado. Activarlo permite a la app despertar de forma fiable cuando empiezas a conducir. Impacto mínimo en la batería.</string>
     <string name="permissions_perm_oem_battery">Ahorro de batería en segundo plano</string>
-    <string name="permissions_perm_oem_battery_desc">Tu dispositivo OPPO/Realme puede congelar apps en segundo plano. Desactiva el ahorro de batería para Paparcar en los ajustes de batería para evitar cortes del GPS.</string>
+    <string name="permissions_perm_oem_battery_desc">Opcional — tu dispositivo OPPO/Realme puede congelar apps en segundo plano. Sin esto, el GPS puede cortarse durante la detección y perderse eventos de aparcamiento. Desactivar el ahorro de batería para Paparcar mantiene la detección fiable. Impacto mínimo en la batería.</string>
     <string name="permissions_status_optional">Opcional</string>
     <string name="permissions_btn_grant">Conceder permisos</string>
     <string name="permissions_btn_background">Activar ubicación en segundo plano</string>
@@ -351,6 +351,7 @@
     <string name="home_zones_empty_title">Guarda un lugar habitual</string>
     <string name="home_zones_empty_subtitle">Casa, trabajo, familia\u2026 navegaci&#xF3;n con un toque</string>
     <string name="home_zones_empty_pill">Añadir</string>
+    <string name="home_header_add_zone">Añadir zona habitual</string>
 
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

@@ -29,6 +29,7 @@ class PermissionsViewModel(
                     hasBluetoothConnect = current.hasBluetoothConnectPermission,
                     isBatteryOptimizationExempt = current.isBatteryOptimizationExempt,
                     showAutostartCard = oemBackgroundReliabilityManager.requiresAutostartWhitelist,
+                    showOemBatteryCard = oemBackgroundReliabilityManager.requiresOemBatterySettings,
                 )
             }
         }
@@ -61,7 +62,14 @@ class PermissionsViewModel(
             PermissionsIntent.RequestPermissions -> handleRequestPermissions()
             PermissionsIntent.RequestBluetoothPermission -> sendEffect(PermissionsEffect.RequestStepBluetooth)
             PermissionsIntent.RequestBatteryOptimization -> sendEffect(PermissionsEffect.RequestBatteryOptimizationExemption)
-            PermissionsIntent.RequestOemAutostart -> sendEffect(PermissionsEffect.LaunchOemAutostartSettings)
+            PermissionsIntent.RequestOemAutostart -> {
+                updateState { copy(hasAcknowledgedAutostart = true) }
+                sendEffect(PermissionsEffect.LaunchOemAutostartSettings)
+            }
+            PermissionsIntent.RequestOemBatterySettings -> {
+                updateState { copy(hasAcknowledgedOemBattery = true) }
+                sendEffect(PermissionsEffect.LaunchOemBatterySettings)
+            }
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
             PermissionsIntent.ConfirmBackgroundLocationGuide -> {
                 updateState { copy(showBackgroundLocationGuide = false) }

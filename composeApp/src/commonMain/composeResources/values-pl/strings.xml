@@ -90,11 +90,11 @@
     <string name="permissions_perm_bluetooth_desc">Umożliwia automatyczne wykrywanie parkowania przy połączeniu lub rozłączeniu z Bluetooth samochodu</string>
     <string name="permissions_perm_battery">Nieograniczone uzycie baterii</string>
     <string name="permissions_perm_battery_desc">Zapobiega wylaczeniu wykrywania parkowania w tle przez system. Zdecydowanie zalecane na urzadzeniach Xiaomi, Oppo i Huawei.</string>
-    <string name="permissions_perm_battery_oem_hint">Producent urzadzenia moze rowniez wymagac wlaczenia "Autostartu" lub "Aktywnosci w tle" w ustawieniach systemowych.</string>
-    <string name="permissions_perm_autostart">Autostart</string>
-    <string name="permissions_perm_autostart_desc">Twoje urzadzenie wymaga wlaczenia autostartu, aby aplikacja mogla wznowic wykrywanie parkowania po zamknieciu w tle.</string>
+    <string name="permissions_perm_battery_oem_hint">Producent urzadzenia moze rowniez wymagac wlaczenia Autostartu lub Aktywnosci w tle w ustawieniach systemowych. Bez tego wykrywanie moze przestac dzialac po kilku godzinach.</string>
+    <string name="permissions_perm_autostart">Autostart / aktywnosc w tle</string>
+    <string name="permissions_perm_autostart_desc">Opcjonalne — aplikacja dziala bez tego, ale na urzadzeniach Xiaomi, OPPO i Huawei wykrywanie moze przestac dzialac po kilku godzinach. Wlaczenie pozwala aplikacji niezawodnie sie budzic. Minimalny wplyw na baterie.</string>
     <string name="permissions_perm_oem_battery">Oszczedzanie baterii w tle</string>
-    <string name="permissions_perm_oem_battery_desc">Twoje urzadzenie OPPO/Realme moze zamrazac aplikacje w tle. Wylacz oszczedzanie baterii dla Paparcar w ustawieniach baterii, aby zapobiec przerwom GPS.</string>
+    <string name="permissions_perm_oem_battery_desc">Opcjonalne — urzadzenie OPPO/Realme moze zamrazac aplikacje w tle. Bez tego GPS moze sie wylaczac podczas wykrywania. Wylacz oszczedzanie baterii dla Paparcar w ustawieniach baterii. Minimalny wplyw na baterie.</string>
     <string name="permissions_status_optional">Opcjonalne</string>
     <string name="permissions_btn_grant">Przyznaj uprawnienia</string>
     <string name="permissions_btn_background">Aktywuj lokalizację w tle</string>
@@ -419,6 +419,7 @@
     <!-- CTA pills w kartach Home -->
     <string name="home_manual_park_pill">Zaznacz</string>
     <string name="home_zones_empty_pill">Dodaj</string>
+    <string name="home_header_add_zone">Dodaj strefę</string>
 
     <!-- Sheet section headers + uprawnienia -->
     <string name="home_vehicles_section_header">Twoje pojazdy</string>

@@ -33,4 +33,20 @@ interface OemBackgroundReliabilityManager {
      * place.
      */
     suspend fun launchAutostartSettings(): Boolean
+
+    /**
+     * `true` on OPPO/Realme devices that ship OplusHansManager (ColorOS). Hans is a
+     * process-freeze daemon that sends SIGSTOP to background processes every ~10 s,
+     * independent of the autostart whitelist. Users must exclude the app from Hans's
+     * "App Quick Freeze" / battery power saving list to prevent GPS blackouts. [OEM-002]
+     */
+    val requiresOemBatterySettings: Boolean
+
+    /**
+     * Opens the OEM-specific battery / power management settings where the user can
+     * exclude the app from aggressive background freezing. Returns `true` if a
+     * vendor-specific intent succeeded, `false` if we fell back to Android's generic
+     * battery optimization settings screen.
+     */
+    suspend fun launchOemBatterySettings(): Boolean
 }

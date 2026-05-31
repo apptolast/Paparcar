@@ -90,11 +90,11 @@
     <string name="permissions_perm_bluetooth_desc">Ermöglicht die automatische Parkplatzerkennung beim Verbinden oder Trennen vom Bluetooth des Autos</string>
     <string name="permissions_perm_battery">Unbegrenzte Akkunutzung</string>
     <string name="permissions_perm_battery_desc">Verhindert, dass das System die Parkplatzerkennung im Hintergrund beendet. Dringend empfohlen auf Xiaomi-, Oppo- und Huawei-Geraten.</string>
-    <string name="permissions_perm_battery_oem_hint">Ihr Geratehersteller kann auch die Aktivierung von "Autostart" oder "Hintergrundaktivitat" in den Systemeinstellungen erfordern.</string>
-    <string name="permissions_perm_autostart">Autostart</string>
-    <string name="permissions_perm_autostart_desc">Ihr Gerat erfordert die Aktivierung des Autostarts, damit die App die Parkplatzerkennung nach dem Beenden im Hintergrund fortsetzen kann.</string>
+    <string name="permissions_perm_battery_oem_hint">Ihr Geraetehersteller kann auch die Aktivierung von Autostart oder Hintergrundaktivitaet in den Systemeinstellungen erfordern. Ohne diese kann die Erkennung nach einigen Stunden aufhoeren zu funktionieren.</string>
+    <string name="permissions_perm_autostart">Autostart / Hintergrundaktivitaet</string>
+    <string name="permissions_perm_autostart_desc">Optional — die App funktioniert auch ohne, aber auf Xiaomi-, OPPO- und Huawei-Geraeten kann die Parkerkennung nach einigen Stunden ausfallen. Das Aktivieren ermoeglicht der App, zuverlaessig aufzuwachen. Minimale Auswirkung auf den Akku.</string>
     <string name="permissions_perm_oem_battery">Hintergrund-Energiesparmodus</string>
-    <string name="permissions_perm_oem_battery_desc">Ihr OPPO/Realme-Gerat kann Apps im Hintergrund einfrieren. Deaktivieren Sie den Energiesparmodus fur Paparcar in den Akkueinstellungen, um GPS-Ausfalle zu vermeiden.</string>
+    <string name="permissions_perm_oem_battery_desc">Optional — Ihr OPPO/Realme-Geraet kann Apps im Hintergrund einfrieren. Ohne dies kann GPS waehrend der Erkennung ausfallen. Deaktivieren Sie den Energiesparmodus fuer Paparcar in den Akkueinstellungen. Minimale Auswirkung auf den Akku.</string>
     <string name="permissions_status_optional">Optional</string>
     <string name="permissions_btn_grant">Berechtigungen erteilen</string>
     <string name="permissions_btn_background">Hintergrundstandort aktivieren</string>
@@ -419,6 +419,7 @@
     <!-- CTA pills in Home cards -->
     <string name="home_manual_park_pill">Markieren</string>
     <string name="home_zones_empty_pill">Hinzufügen</string>
+    <string name="home_header_add_zone">Gewohnheitszone hinzufügen</string>
 
     <!-- Sheet section headers + Berechtigungen -->
     <string name="home_vehicles_section_header">Deine Fahrzeuge</string>

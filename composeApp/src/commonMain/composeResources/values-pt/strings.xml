@@ -90,11 +90,11 @@
     <string name="permissions_perm_bluetooth_desc">Permite a deteção automática de estacionamento ao ligar ou desligar o Bluetooth do teu carro</string>
     <string name="permissions_perm_battery">Uso ilimitado da bateria</string>
     <string name="permissions_perm_battery_desc">Impede o sistema de encerrar a detecao de estacionamento em segundo plano. Muito recomendado em dispositivos Xiaomi, Oppo e Huawei.</string>
-    <string name="permissions_perm_battery_oem_hint">O fabricante do seu dispositivo pode tambem exigir a ativacao de "Inicio automatico" ou "Atividade em segundo plano" nas definicoes do sistema.</string>
-    <string name="permissions_perm_autostart">Inicio automatico</string>
-    <string name="permissions_perm_autostart_desc">O seu dispositivo exige ativar o inicio automatico para que a app possa retomar a detecao de estacionamento apos ser encerrada em segundo plano.</string>
+    <string name="permissions_perm_battery_oem_hint">O fabricante do seu dispositivo pode tambem exigir a ativacao de Inicio automatico ou Atividade em segundo plano nas definicoes do sistema. Sem eles, a detecao pode parar apos algumas horas.</string>
+    <string name="permissions_perm_autostart">Inicio automatico / atividade em segundo plano</string>
+    <string name="permissions_perm_autostart_desc">Opcional — a app funciona sem isto, mas em dispositivos Xiaomi, OPPO e Huawei a detecao pode parar apos algumas horas se desativado. Ativa-lo permite a app acordar de forma fiavel. Impacto minimo na bateria.</string>
     <string name="permissions_perm_oem_battery">Poupanca de bateria em segundo plano</string>
-    <string name="permissions_perm_oem_battery_desc">O seu dispositivo OPPO/Realme pode congelar apps em segundo plano. Desative a poupanca de bateria para o Paparcar nas definicoes de bateria para evitar falhas do GPS.</string>
+    <string name="permissions_perm_oem_battery_desc">Opcional — o seu dispositivo OPPO/Realme pode congelar apps em segundo plano. Sem isto, o GPS pode falhar durante a detecao e eventos podem ser perdidos. Impacto minimo na bateria.</string>
     <string name="permissions_status_optional">Opcional</string>
     <string name="permissions_btn_grant">Conceder permissões</string>
     <string name="permissions_btn_background">Ativar localização em segundo plano</string>
@@ -419,6 +419,7 @@
     <!-- Pills CTA das cards de Home -->
     <string name="home_manual_park_pill">Marcar</string>
     <string name="home_zones_empty_pill">Adicionar</string>
+    <string name="home_header_add_zone">Adicionar zona habitual</string>
 
     <!-- Sheet section headers + permissões -->
     <string name="home_vehicles_section_header">Os teus veículos</string>

@@ -6,6 +6,8 @@ sealed class PermissionsIntent {
     data object RequestBatteryOptimization : PermissionsIntent()
     /** Open the manufacturer's autostart / background-activity settings screen. */
     data object RequestOemAutostart : PermissionsIntent()
+    /** Open the OEM-specific battery / power management settings (ColorOS Hans freeze). */
+    data object RequestOemBatterySettings : PermissionsIntent()
     data object RefreshPermissions : PermissionsIntent()
     /** User confirmed the background-location guide and wants to open system Settings now. */
     data object ConfirmBackgroundLocationGuide : PermissionsIntent()

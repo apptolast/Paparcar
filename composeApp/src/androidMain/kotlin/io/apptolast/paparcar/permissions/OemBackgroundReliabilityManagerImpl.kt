@@ -18,6 +18,32 @@ class OemBackgroundReliabilityManagerImpl(
     override val requiresAutostartWhitelist: Boolean =
         manufacturer in OEM_MANUFACTURERS
 
+    // OplusHansManager (ColorOS) freezes processes with SIGSTOP every ~10 s regardless
+    // of the autostart whitelist. Only present on OPPO and Realme. [OEM-002]
+    override val requiresOemBatterySettings: Boolean =
+        manufacturer in OEM_HANS_MANUFACTURERS
+
+    override suspend fun launchOemBatterySettings(): Boolean {
+        val candidates = BATTERY_INTENT_CANDIDATES[manufacturer].orEmpty()
+        for ((pkg, cls) in candidates) {
+            if (tryStart(pkg, cls)) {
+                PaparcarLogger.d(TAG, "Opened OEM battery settings via $pkg/$cls")
+                return true
+            }
+        }
+        PaparcarLogger.w(TAG, "All battery intents failed for '$manufacturer'; falling back to standard battery settings")
+        return try {
+            val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
+            false
+        } catch (e: Exception) {
+            openAppInfoFallback()
+            false
+        }
+    }
+
     override suspend fun launchAutostartSettings(): Boolean {
         val candidates = INTENT_CANDIDATES[manufacturer].orEmpty()
         for ((pkg, cls) in candidates) {
@@ -65,6 +91,25 @@ class OemBackgroundReliabilityManagerImpl(
             "oppo", "realme", "oneplus",
             "vivo", "iqoo",
             "huawei", "honor",
+        )
+
+        // Subset that ships OplusHansManager (ColorOS) — the process-freeze daemon
+        // that sends SIGSTOP to background apps even when whitelisted for autostart.
+        val OEM_HANS_MANUFACTURERS = setOf("oppo", "realme")
+
+        // Per-OEM power-management intents to guide the user past the Hans freeze list.
+        // OplusHansManager is exposed via the standard ColorOS Battery/Power manager.
+        val BATTERY_INTENT_CANDIDATES: Map<String, List<Pair<String, String>>> = mapOf(
+            "oppo" to listOf(
+                "com.coloros.oppoguardelf" to "com.coloros.powermanager.fuelgaue.PowerUsageModelActivity",
+                "com.coloros.oppoguardelf" to "com.coloros.powermanager.PowerAppListActivity",
+                "com.oplus.battery" to "com.coloros.powermanager.fuelgaue.PowerUsageModelActivity",
+                "com.coloros.healthcheck" to "com.coloros.healthcheck.ui.activity.LaunchActivity",
+            ),
+            "realme" to listOf(
+                "com.coloros.oppoguardelf" to "com.coloros.powermanager.fuelgaue.PowerUsageModelActivity",
+                "com.coloros.oppoguardelf" to "com.coloros.powermanager.PowerAppListActivity",
+            ),
         )
 
         // Per-OEM list of (pkg, activity) candidates. We try each in order until

@@ -95,6 +95,8 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
                     }
                 PermissionsEffect.LaunchOemAutostartSettings ->
                     oemReliabilityManager.launchAutostartSettings()
+                PermissionsEffect.LaunchOemBatterySettings ->
+                    oemReliabilityManager.launchOemBatterySettings()
                 PermissionsEffect.OpenAppSettings ->
                     context.startActivity(
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -116,6 +118,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
         onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
         onRequestBatteryOptimization = { viewModel.handleIntent(PermissionsIntent.RequestBatteryOptimization) },
         onRequestOemAutostart = { viewModel.handleIntent(PermissionsIntent.RequestOemAutostart) },
+        onRequestOemBatterySettings = { viewModel.handleIntent(PermissionsIntent.RequestOemBatterySettings) },
         onConfirmBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.ConfirmBackgroundLocationGuide) },
         onDismissBackgroundLocationGuide = { viewModel.handleIntent(PermissionsIntent.DismissBackgroundLocationGuide) },
     )
