@@ -38,10 +38,10 @@ fun prop(key: String): String? =
         ?: localProps.getProperty(key)?.takeIf { it.isNotBlank() }
         ?: System.getenv(key)?.takeIf { it.isNotBlank() }
 
-val releaseKeystoreFile     = prop("RELEASE_KEYSTORE_FILE")
+val releaseKeystoreFile = prop("RELEASE_KEYSTORE_FILE")
 val releaseKeystorePassword = prop("RELEASE_KEYSTORE_PASSWORD")
-val releaseKeyAlias         = prop("RELEASE_KEY_ALIAS")
-val releaseKeyPassword      = prop("RELEASE_KEY_PASSWORD")
+val releaseKeyAlias = prop("RELEASE_KEY_ALIAS")
+val releaseKeyPassword = prop("RELEASE_KEY_PASSWORD")
 val hasReleaseSigning = listOf(
     releaseKeystoreFile, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword
 ).all { !it.isNullOrBlank() }
@@ -84,14 +84,14 @@ kotlin {
         commonMain.dependencies {
 
             // Compose Multiplatform
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
-            implementation(compose.materialIconsExtended)
+            implementation(libs.runtime)
+            implementation(libs.foundation)
+            implementation(libs.material)
+            implementation(libs.material3)
+            implementation(libs.ui)
+            implementation(libs.components.resources)
+            implementation(libs.ui.tooling.preview)
+            implementation(libs.material.icons.extended)
 
             // Login Library (JitPack)
             implementation(libs.baselogin)
@@ -198,6 +198,13 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPOSE RESOURCES
+// ─────────────────────────────────────────────────────────────────────────────
+compose.resources {
+    packageOfResClass = "paparcar.composeapp.generated.resources"
+}
+
 dependencies {
     add("kspAndroid", libs.room.compiler)
     add("kspIosArm64", libs.room.compiler)
@@ -217,10 +224,14 @@ android {
         applicationId = "io.apptolast.paparcar"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "1.0.0-beta01"
+        versionCode = 3
+        versionName = "1.0.0-beta02"
 
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${prop("GOOGLE_WEB_CLIENT_ID") ?: ""}\"")
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"${prop("GOOGLE_WEB_CLIENT_ID") ?: ""}\""
+        )
         manifestPlaceholders["MAPS_API_KEY"] = prop("MAPS_API_KEY") ?: ""
     }
 
@@ -234,8 +245,8 @@ android {
         ) {
             throw GradleException(
                 "MAPS_API_KEY is required for release builds — set it in local.properties or the " +
-                    "MAPS_API_KEY env var. The key must also be restricted in GCP Console by package " +
-                    "name + SHA-1; see docs/release/RELEASE-SECURITY.md."
+                        "MAPS_API_KEY env var. The key must also be restricted in GCP Console by package " +
+                        "name + SHA-1; see docs/release/RELEASE-SECURITY.md."
             )
         }
     }
@@ -247,10 +258,10 @@ android {
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
-                storeFile     = rootProject.file(releaseKeystoreFile!!)
+                storeFile = rootProject.file(releaseKeystoreFile!!)
                 storePassword = releaseKeystorePassword
-                keyAlias      = releaseKeyAlias
-                keyPassword   = releaseKeyPassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
             }
         }
     }
@@ -273,9 +284,9 @@ android {
                 logger.warn("⚠️  RELEASE signing keys not found — build will be UNSIGNED.")
             }
             firebaseAppDistribution {
-                artifactType      = "APK"
-                releaseNotesFile  = "$rootDir/distribution/release-notes.txt"
-                groups            = "beta-paparcar"
+                artifactType = "APK"
+                releaseNotesFile = "$rootDir/distribution/release-notes.txt"
+                groups = "beta-paparcar"
                 if (!appDistributionCredentialsFile.isNullOrBlank()) {
                     serviceCredentialsFile = appDistributionCredentialsFile
                 }
