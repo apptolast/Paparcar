@@ -13,7 +13,7 @@ val PapGreenDark     = Color(0xFF1AC070)   // pressed / hover variant
 val PapInkDeep       = Color(0xFF06090A)   // surfaceContainerLowest — behind the map
 val PapInk           = Color(0xFF0B0F0E)   // surface — app base
 val PapInkContainer  = Color(0xFF141918)   // surfaceContainer — sheet, nav
-val PapInkHigh       = Color(0xFF1C2221)   // surfaceContainerHigh — cards, chips
+val PapInkHigh       = Color(0xFF1C2221)   // surfaceContainerHigh — cards (elevated dark surface, lifted above flat chrome)
 val PapInkHighest    = Color(0xFF252B2A)   // surfaceContainerHighest — modals, popovers
 
 // Forest greens — demoted from surface to interactive accents (containers, outlines)

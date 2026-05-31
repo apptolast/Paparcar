@@ -57,9 +57,9 @@ fun PaparcarFilterChip(
 ) {
     val cs = MaterialTheme.colorScheme
     val bg = when {
-        !enabled -> cs.surfaceContainerHigh.copy(alpha = DISABLED_BG_ALPHA)
+        !enabled -> cs.surfaceContainer.copy(alpha = DISABLED_BG_ALPHA)
         selected -> cs.primaryContainer
-        else -> cs.surfaceContainerHigh
+        else -> cs.surfaceContainer
     }
     val borderColor = when {
         !enabled -> cs.outlineVariant.copy(alpha = DISABLED_BORDER_ALPHA)

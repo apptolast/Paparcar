@@ -79,7 +79,7 @@ import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.appBarTitle
-import io.apptolast.paparcar.presentation.history.MONTH_SHORT_RES
+import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
@@ -237,14 +237,6 @@ internal fun SettingsContent(
                         text = stringResource(Res.string.settings_title),
                         style = MaterialTheme.typography.appBarTitle,
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.settings_cd_back),
-                        )
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,

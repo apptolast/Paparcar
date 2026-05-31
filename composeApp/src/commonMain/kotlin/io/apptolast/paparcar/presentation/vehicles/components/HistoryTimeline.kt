@@ -148,7 +148,7 @@ private fun SessionCardContent(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isActive) cs.primaryContainer else cs.surface,
+            containerColor = if (isActive) cs.primaryContainer else cs.surfaceContainerHigh,
         ),
     ) {
         Row(

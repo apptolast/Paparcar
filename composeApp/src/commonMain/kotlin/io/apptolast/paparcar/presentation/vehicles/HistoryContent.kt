@@ -1,7 +1,8 @@
-    @file:OptIn(kotlin.time.ExperimentalTime::class)
+@file:OptIn(kotlin.time.ExperimentalTime::class)
 
 package io.apptolast.paparcar.presentation.vehicles
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -122,11 +122,13 @@ internal fun HistoryContent(
 
     val allEnded = remember(state.sessions) { state.sessions.filter { !it.isActive } }
     val weeklyStats = remember(allEnded, dayLabels) { buildWeeklyStats(allEnded, dayLabels) }
-    val activeSession = remember(state.filteredSessions) { state.filteredSessions.firstOrNull { it.isActive } }
+    val activeSession =
+        remember(state.filteredSessions) { state.filteredSessions.firstOrNull { it.isActive } }
     val ended = remember(state.filteredSessions) { state.filteredSessions.filter { !it.isActive } }
-    val timelineItems = remember(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels) {
-        buildTimeline(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels)
-    }
+    val timelineItems =
+        remember(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels) {
+            buildTimeline(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels)
+        }
 
     Box(modifier = modifier.padding(contentPadding)) {
         LazyColumn(
@@ -142,7 +144,7 @@ internal fun HistoryContent(
                 item(key = "loading") {
                     Box(
                         modifier = if (headerSlot == null) Modifier.fillParentMaxSize()
-                                   else Modifier.fillMaxWidth().padding(vertical = 48.dp),
+                        else Modifier.fillMaxWidth().padding(vertical = 48.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
@@ -152,7 +154,7 @@ internal fun HistoryContent(
                 item(key = "empty") {
                     EmptyHistoryState(
                         modifier = if (headerSlot == null) Modifier.fillParentMaxSize()
-                                   else Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                        else Modifier.fillMaxWidth().padding(vertical = 32.dp),
                     )
                 }
             } else {
@@ -230,7 +232,10 @@ internal fun HistoryContent(
 
 private const val DAY_MS = 86_400_000L
 
-private fun buildWeeklyStats(sessions: List<UserParking>, dayLabels: List<String>): List<WeekDayStats> {
+private fun buildWeeklyStats(
+    sessions: List<UserParking>,
+    dayLabels: List<String>
+): List<WeekDayStats> {
     val tz = TimeZone.currentSystemDefault()
     val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
 

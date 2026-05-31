@@ -13,7 +13,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PapBorders
@@ -43,7 +42,7 @@ fun PaparcarAddChip(
         onClick = onClick,
         modifier = modifier,
         shape = CircleShape,
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.surfaceContainer,
         border = BorderStroke(
             width = PapBorders.thin,
             color = MaterialTheme.colorScheme.primary.copy(alpha = ADD_BORDER_ALPHA),
