@@ -424,13 +424,13 @@ class ParkingDetectionCoordinator(
                     location.accuracy <= config.minGpsAccuracyForDriving
             // A fix counts as a reposition candidate when it crosses the lower
             // [repositionSpeedMps] threshold (between sustained walking and clearBestStop)
-            // with good accuracy. Two or more consecutive candidates clear bestStopLocation
-            // — that distinguishes a brief vehicle maneuver from a single GPS spike (single
-            // fix, LOC-002 territory) and from sustained walking (never crosses 1.7 m/s).
-            // The accuracy gate is the same one LOC-002 uses so the two guards are
-            // co-extensive: a noisy fix can never trigger a reposition burst. [PARKING-001]
+            // with good accuracy. Three or more consecutive candidates clear bestStopLocation
+            // — that distinguishes a brief vehicle maneuver from GPS oscillation (accuracy
+            // > 15 m at 1.7 m/s is noise, not real motion; field-confirmed Redmi 2026-05-30).
+            // Uses [repositionMaxAccuracyMeters] (stricter than the LOC-002 isDriving gate)
+            // so that urban GPS drift at 22–48 m accuracy can never trigger a burst. [PARKING-001]
             val isRepositionCandidate = location.speed >= config.repositionSpeedMps &&
-                    location.accuracy <= config.minGpsAccuracyForDriving
+                    location.accuracy <= config.repositionMaxAccuracyMeters
             if (location.speed >= config.clearBestStopSpeedMps && !isDriving) {
                 PaparcarLogger.d(
                     DIAG,

@@ -36,7 +36,7 @@ class DetectionHeartbeatWorker(
 
     private val db: AppDatabase by inject()
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
-// FIXME: Analizar bien esta clase
+
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
             AppNotificationManager.DETECTION_NOTIFICATION_ID,

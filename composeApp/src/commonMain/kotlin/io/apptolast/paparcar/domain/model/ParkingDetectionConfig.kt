@@ -136,19 +136,25 @@ data class ParkingDetectionConfig(
      *  to detect the "wait + maneuver to spot" scenario: the user stops 10–15 m short of
      *  the real plaza waiting for another car, the initial-stop window freezes
      *  [bestStopLocation] there, then the brief maneuver to the actual plaza never crosses
-     *  [clearBestStopSpeedMps] so the stale waiting position survives. With two or more
+     *  [clearBestStopSpeedMps] so the stale waiting position survives. With three or more
      *  consecutive fixes above this threshold (good accuracy required), the reposition is
      *  treated as real vehicle motion and [bestStopLocation] is cleared so the next stop
      *  window can capture the plaza. [PARKING-001] */
     val repositionSpeedMps: Float = 1.7f,
     /** Number of *consecutive* GPS fixes that must report speed ≥ [repositionSpeedMps]
-     *  with accuracy ≤ [minGpsAccuracyForDriving] before [bestStopLocation] is cleared
-     *  as a reposition burst. Two is enough to discard a single 1.7 m/s noise spike
-     *  while still detecting real maneuvers, given the HIGH_ACCURACY 5 s GPS cadence.
-     *  Higher values risk missing fast maneuvers; lower values reintroduce the noise
-     *  problem that [minGpsAccuracyForDriving] (single-fix) already mitigated for the
-     *  higher driving threshold. [PARKING-001] */
-    val repositionFixCount: Int = 2,
+     *  with accuracy ≤ [repositionMaxAccuracyMeters] before [bestStopLocation] is cleared
+     *  as a reposition burst. Three filters a single 1.7 m/s noise spike and most
+     *  two-fix GPS oscillation bursts (common on Redmi Note 11 near buildings) while
+     *  still detecting real maneuvers given the HIGH_ACCURACY 5 s GPS cadence. [PARKING-001] */
+    val repositionFixCount: Int = 3,
+    /** GPS horizontal accuracy (meters) at or below which a sub-driving-speed fix is
+     *  trusted as evidence of a real vehicle reposition. Intentionally stricter than
+     *  [minGpsAccuracyForDriving] (50 m) because a slow maneuver at ~1.7 m/s with
+     *  accuracy > 15 m is almost certainly GPS oscillation noise, not real motion.
+     *  Field logs (Redmi Note 11 2026-05-30) showed sustained 5-burst storms at
+     *  acc=22–48 m that cleared [bestStopLocation] while the user was parked, causing
+     *  missed confirmations. Real repositions show acc < 10 m. Default 15 m. [PARKING-001] */
+    val repositionMaxAccuracyMeters: Float = 15f,
     /** Observation window (ms) before auto-confirming when an activity-exit signal was observed.
      *  Shorter because the IN_VEHICLE→EXIT transition is strong evidence. Default 2 minutes. */
     val vehicleExitObservationWindowMs: Long = 2 * 60_000L,
@@ -261,6 +267,9 @@ data class ParkingDetectionConfig(
         }
         require(repositionFixCount >= 1) {
             "repositionFixCount must be >= 1, was $repositionFixCount"
+        }
+        require(repositionMaxAccuracyMeters > 0 && repositionMaxAccuracyMeters <= minGpsAccuracyForDriving) {
+            "repositionMaxAccuracyMeters ($repositionMaxAccuracyMeters) must be in (0, minGpsAccuracyForDriving=$minGpsAccuracyForDriving]"
         }
         require(vehicleExitObservationWindowMs > 0) {
             "vehicleExitObservationWindowMs must be > 0, was $vehicleExitObservationWindowMs"

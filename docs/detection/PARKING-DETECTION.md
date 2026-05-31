@@ -119,9 +119,9 @@ Both clauses must hold simultaneously. This kills spurious `IN_VEHICLE_ENTER` ev
 - **Moving** (`speed ≥ 1 m/s`):
   - `stoppedSince = null`, `stoppedFixes = emptyList()`.
   - If `speed ≥ clearBestStopSpeedMps = 2.5 m/s` **AND** `accuracy ≤ minGpsAccuracyForDriving = 50 m`, the coordinator treats the fix as evidence the vehicle is driving away again: `bestStopLocation`, `vehicleExitConfirmed`, `activityStillDetected`, and `highConfidenceReachedAt` are all cleared. The accuracy gate exists because hardware GPS hallucinates apparent-driving speed in noisy fixes — see LOC-002 in §2.
-  - If `speed ≥ repositionSpeedMps = 1.7 m/s` **AND** `accuracy ≤ minGpsAccuracyForDriving = 50 m` for **two consecutive fixes**, `bestStopLocation` is cleared as a reposition burst. This is between sustained walking (~1.2 m/s, never crosses 1.7) and the driving threshold; it lets the coordinator distinguish a brief vehicle maneuver (wait + park into a freed spot) from a single noisy spike or sustained walking — see PARKING-001 in §2.
+  - If `speed ≥ repositionSpeedMps = 1.7 m/s` **AND** `accuracy ≤ repositionMaxAccuracyMeters = 15 m` for **three consecutive fixes**, `bestStopLocation` is cleared as a reposition burst. This is between sustained walking (~1.2 m/s, never crosses 1.7) and the driving threshold; it lets the coordinator distinguish a brief vehicle maneuver (wait + park into a freed spot) from GPS oscillation noise — see PARKING-001 in §2.
 
-The 2.5 m/s driving ceiling is deliberately above typical walking speed (~1.4 m/s), so the captured parked-car position survives the user walking away on foot. The 1.7 m/s reposition floor is deliberately above walking too, gated by two consecutive fixes so a single GPS spike at that speed (without sustained motion) does not clear state. The 50 m accuracy floor is shared by both gates, deliberately above typical urban GPS noise (~10–30 m), so legitimate traffic-light-then-resume-driving still clears state correctly.
+The 2.5 m/s driving ceiling is deliberately above typical walking speed (~1.4 m/s), so the captured parked-car position survives the user walking away on foot. The 1.7 m/s reposition floor is deliberately above walking too, gated by **three** consecutive fixes with accuracy ≤ 15 m. The reposition accuracy gate (15 m) is stricter than the driving gate (50 m) because at slow-maneuver speeds, GPS noise with acc > 15 m is far more common than genuine vehicle motion — field logs (Redmi Note 11, 2026-05-30) showed sustained 5-burst storms at acc=22–48 m that cleared `bestStopLocation` while the user was stationary. The 50 m gate is preserved only for the `isDriving` path (speed ≥ 2.5 m/s), where Redmi hardware can report legitimate driving at that accuracy level.
 
 #### Confidence scoring
 
@@ -404,24 +404,25 @@ LOC-001 protects against walking destinations overwriting `bestStopLocation`; LO
 
 ### PARKING-001 — Reposition-burst detection for "wait + maneuver" scenario
 
-**Commit:** pending (Option A; B and C deferred).
+**Commit:** pending (Option A initial; accuracy-gate split 2026-05-31; B and C deferred).
 
 User report (`diagnostics/2026-05-14/redmi-note-11.log`, drive of 2026-05-13): when the user stops 10–15 m short of the actual parking spot, waits for another car to leave, then maneuvers into the freed spot, the app saves the *waiting* position as the final parking location instead of the actual plaza.
 
 **Root cause.** The maneuver to the real plaza is short (~10 m) and slow (peak ~1.5–2 m/s), so it never crosses `clearBestStopSpeedMps = 2.5 m/s` with `accuracy ≤ 50 m`. LOC-002's single-fix gate correctly preserves `bestStopLocation` against noisy spikes, but as a side effect also preserves the stale waiting-position bestStopLocation through the maneuver. Then LOC-001 freezes the new initial-stop window without ever overwriting the stale value (since its accuracy was already very good — the user was idle there long enough for GPS to converge).
 
-**Fix.** Introduce a *consecutive* reposition signal between sustained walking pace (~1.4 m/s) and `clearBestStopSpeedMps`. New config:
+**Fix (Option A).** Introduce a *consecutive* reposition signal between sustained walking pace (~1.4 m/s) and `clearBestStopSpeedMps`. Config:
 
 ```kotlin
-val repositionSpeedMps: Float = 1.7f      // single-fix threshold
-val repositionFixCount: Int = 2           // consecutive fixes needed
+val repositionSpeedMps: Float = 1.7f               // single-fix speed threshold
+val repositionFixCount: Int = 3                    // consecutive fixes needed
+val repositionMaxAccuracyMeters: Float = 15f       // stricter accuracy gate vs isDriving (50 m)
 ```
 
 In `updateStopTracking()` moving branch:
 
 ```kotlin
 val isRepositionCandidate = location.speed >= config.repositionSpeedMps &&
-        location.accuracy <= config.minGpsAccuracyForDriving
+        location.accuracy <= config.repositionMaxAccuracyMeters    // 15 m, not 50 m
 val newConsecutive = if (isRepositionCandidate) state.consecutiveRepositionFixes + 1 else 0
 val isRepositionBurst = newConsecutive >= config.repositionFixCount
 val shouldClearBestStop = isDriving || isRepositionBurst
@@ -431,10 +432,13 @@ val shouldClearBestStop = isDriving || isRepositionBurst
 
 **Why the differentiation works.**
 - **Walking** sustains ~1.2 m/s and never crosses 1.7 m/s reliably — counter stays at 0.
-- **Single GPS spike** at >1.7 m/s with good accuracy is rare but possible — increments counter to 1, but the next fix returns to walking pace → counter resets, bestStopLocation preserved (LOC-002 semantics extended).
-- **Vehicle maneuver** crosses 1.7 m/s with good accuracy for ≥2 fixes (≥5 s at HIGH_ACCURACY cadence) — counter reaches 2, bestStopLocation cleared, the next stop window captures the real plaza.
+- **GPS noise storm** (Redmi Note 11, acc=22–48 m): fails the `repositionMaxAccuracyMeters=15 m` gate — counter never increments. **Field-confirmed** from `diagnostics/2026-05-30/redmi.log` 19:23 session: 5 consecutive bursts at acc=22–48 m were clearing `bestStopLocation` while the user was parked; none would pass the new 15 m gate.
+- **Single GPS spike** at >1.7 m/s with acc ≤ 15 m — increments counter to 1, next fix returns to stopped or below reposition threshold → counter resets, bestStopLocation preserved.
+- **Vehicle maneuver** crosses 1.7 m/s with acc ≤ 15 m for ≥3 consecutive fixes (≥10 s at HIGH_ACCURACY cadence) — counter reaches 3, bestStopLocation cleared, the next stop window captures the real plaza.
 
-**Accepted trade-off.** Jogging with the phone (>1.7 m/s sustained) after parking but before HIGH is reached would now clear `bestStopLocation`. This is a niche scenario; deferred until evidence warrants a separate guard.
+**Why the accuracy gate is split from `isDriving`.** The `isDriving` path (speed ≥ 2.5 m/s) intentionally uses `minGpsAccuracyForDriving=50 m` because Redmi Note 11 hardware reports acc=50–200 m during genuine fast driving; without a 50 m gate, those fixes would not trigger CANDIDATE phase clearing and the user would see a stale location. At slow-maneuver speeds (1.7 m/s), noise at 22–48 m is commonplace even while stationary; a 15 m gate filters it while real slow motion (outdoor maneuvering) produces acc < 10 m.
+
+**Accepted trade-off.** Jogging with the phone (>1.7 m/s, acc ≤ 15 m, sustained ≥3 fixes) after parking but before HIGH is reached would clear `bestStopLocation`. This is a niche scenario; deferred until evidence warrants a separate guard.
 
 **Companion options considered (Section 3, deferred).** Option B (1 s GPS sampling boost during CANDIDATE) and Option C (lowering `clearBestStopSpeedMps` to 2.0) were both proposed. Option A is the cheapest and most surgical; ship it first and fold in B/C only if a captured failure shows A is insufficient.
 
@@ -513,6 +517,83 @@ The `hasDetectedMovement`-based guard inside the COORDINATOR strategy branch was
 3. The dual-path `confirmNow = hasStepsProof || (windowElapsed && highCandidateHadVehicleExit)` in `ParkingDetectionCoordinator` is the right shape — step proof gates fast confirms, AR EXIT + 2-min window remains the slower fallback.
 
 Resolved without code changes. Ticket `BUG-DETECT-EXIT-LAG-VS-STEPS-001` closed in `docs/backlog/parking-detection-real-world-2026-05-28.md`.
+
+### HEARTBEAT-001 — DetectionHeartbeatWorker was restarting coordinator during active trips (2026-05-30)
+
+**Commit:** `3a9701b`.
+
+`DetectionHeartbeatWorker` fired every 15 minutes (WorkManager periodic job) and called `startForegroundService(ACTION_START_TRACKING)` unconditionally. This restarted the coordinator even when a detection session was actively running, creating a continuous stream of service restart events every 15 minutes throughout any drive.
+
+**Root cause.** The worker was conceived as a "make sure the service is alive" watchdog, without differentiating between "user is mid-drive (coordinator running)" and "user is parked (coordinator stopped, session in Room)". Both cases received the same restart signal.
+
+**Fix.** `doWork()` reads `db.parkingSessionDao().getAllActive()` from Room:
+- `activeSessions.isEmpty()` → skip restart (user is mid-drive or idle; IN_VEHICLE_ENTER via PendingIntent.getForegroundService() handles restarts).
+- `activeSessions.isNotEmpty()` → also skip (user is parked; departure detection runs independently via geofence + AR).
+
+The worker stays enrolled (WorkManager KEEP policy) so OEM Doze restrictions cannot silently cancel the periodic job, but its body is now a no-op in both states. The rationale: if the process was killed mid-drive, START_STICKY + IN_VEHICLE_ENTER via Play Services PendingIntent.getForegroundService() are sufficient to restart detection without this worker.
+
+**Field evidence.** Logs from `diagnostics/2026-05-30` showed the 15-minute heartbeat firing while the coordinator was active (PARKDIAG timestamps align with :00/:15/:30/:45 min boundaries), each time triggering the DETECT-SERVICE-RACE-001 race (see below).
+
+### DETECT-SERVICE-RACE-001 — `finally { stopSelf() }` in superseded detection job killed the replacement coordinator (2026-05-30)
+
+**Commit:** pending (fix applied 2026-05-31).
+
+**Symptom.** Field test 2026-05-30: 5-stop trip (Decathlon → Hospital Puerto Real → Jerez → Puerto1 → Puerto2). Redmi detected 3/5, Oppo 2/5. PARKDIAG shows the race pattern at Oppo 19:31:08, 19:35:53 and Redmi 18:33:32, 18:38:47 — each an instance of a missed detection.
+
+**Root cause.** `ParkingDetectionService.startParkingDetection()` launched the coordinator in a `lifecycleScope.launch { }` block with:
+
+```kotlin
+detectionJob = lifecycleScope.launch {
+    try {
+        parkingDetectionCoordinator(observeAdaptiveLocation())
+    } catch (e: CancellationException) {
+        throw e
+    } finally {
+        stopSelf()    // ← fired unconditionally
+    }
+}
+```
+
+Sequence when a new IN_VEHICLE_ENTER (or heartbeat START_TRACKING) arrived while the coordinator was running:
+
+1. Old coordinator job is running.
+2. New intent: `detectionJob?.cancel()` cancels the old job; `detectionJob = null`; `startParkingDetection()` launches new job.
+3. Old job's `finally` fires → `stopSelf()` — this targets the **service** (not the job), calling `onDestroy()`.
+4. `onDestroy()` cancels `detectionJob` (the **new** job).
+5. Service dies. No detection until the next AR or heartbeat event restarts it.
+
+The race was **amplified by HEARTBEAT-001** (pre-fix): the heartbeat created a restart collision every 15 minutes throughout a drive.
+
+**Fix.** Capture the job reference from inside the coroutine and guard the `stopSelf()` call:
+
+```kotlin
+detectionJob = lifecycleScope.launch {
+    val thisJob = coroutineContext[Job]
+    try {
+        parkingDetectionCoordinator(observeAdaptiveLocation())
+    } catch (e: CancellationException) {
+        throw e
+    } finally {
+        // Only stop the service if this job was not superseded by a newer one.
+        // If detectionJob !== thisJob, a newer session has taken ownership and
+        // calling stopSelf() here would destroy it. [DETECT-SERVICE-RACE-001]
+        if (detectionJob === thisJob) {
+            stopSelf()
+        }
+        // else: superseded — skip stopSelf, newer job manages lifecycle.
+    }
+}
+```
+
+After the replacement, `detectionJob` is either `null` (briefly, between cancel and re-assign) or the new job. In either case `detectionJob !== thisJob`, so superseded jobs skip `stopSelf()` and the new coordinator runs uninterrupted.
+
+**Field evidence.** Classic log pattern confirmed at ≥4 timestamps across both devices:
+```
+■ finally → calling stopSelf()           ← old job
+▶ coordinator.invoke() entry             ← new job starts
+■ Service onDestroy — cancelling job     ← stopSelf kills new job
+```
+After fix, expect only `■ finally → superseded by newer job, skipping stopSelf()` in the log for any superseded job.
 
 ---
 
