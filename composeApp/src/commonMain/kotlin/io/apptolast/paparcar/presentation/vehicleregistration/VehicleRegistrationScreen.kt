@@ -1,9 +1,11 @@
 package io.apptolast.paparcar.presentation.vehicleregistration
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,26 +13,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Bluetooth
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,19 +51,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import io.apptolast.paparcar.ui.components.PapAlertDialog
-import io.apptolast.paparcar.ui.components.PapCard
-import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapSectionHeader
-import io.apptolast.paparcar.ui.components.PapTextButton
 import io.apptolast.paparcar.ui.components.PapTextField
 import io.apptolast.paparcar.ui.components.VehicleSizeSelector
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -71,7 +82,6 @@ import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_name_label
 import paparcar.composeapp.generated.resources.vehicle_registration_name_placeholder
 import paparcar.composeapp.generated.resources.vehicle_registration_other_option
-import paparcar.composeapp.generated.resources.vehicle_registration_preview_subtitle_default
 import paparcar.composeapp.generated.resources.vehicle_registration_preview_title
 import paparcar.composeapp.generated.resources.vehicle_registration_save
 import paparcar.composeapp.generated.resources.vehicle_registration_section_detection
@@ -82,6 +92,11 @@ import paparcar.composeapp.generated.resources.vehicle_registration_size_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_title
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot_desc
+import paparcar.composeapp.generated.resources.vehicle_size_large
+import paparcar.composeapp.generated.resources.vehicle_size_medium
+import paparcar.composeapp.generated.resources.vehicle_size_moto
+import paparcar.composeapp.generated.resources.vehicle_size_small
+import paparcar.composeapp.generated.resources.vehicle_size_van
 
 @Composable
 fun VehicleRegistrationScreen(
@@ -94,7 +109,6 @@ fun VehicleRegistrationScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
-
     var pendingBtRecommendation: String? by remember { mutableStateOf(null) }
 
     LaunchedEffect(vehicleId) {
@@ -126,7 +140,7 @@ fun VehicleRegistrationScreen(
         onIntent = viewModel::handleIntent,
         onConfigureBluetooth = {
             state.editingVehicleId?.let { onConfigureBluetooth(it) }
-        }
+        },
     )
 
     pendingBtRecommendation?.let { newVehicleId ->
@@ -168,6 +182,7 @@ internal fun VehicleRegistrationContent(
     onIntent: (VehicleRegistrationIntent) -> Unit = {},
     onConfigureBluetooth: () -> Unit = {},
 ) {
+    val cs = MaterialTheme.colorScheme
     val isEditing = state.editingVehicleId != null
     val brands = remember { VehicleCatalog.brands() }
     val otherLabel = stringResource(Res.string.vehicle_registration_other_option)
@@ -176,23 +191,25 @@ internal fun VehicleRegistrationContent(
     var modelExpanded by remember { mutableStateOf(false) }
 
     val models = remember(state.brand, state.isBrandOther) {
-        if (!state.isBrandOther && state.brand.isNotBlank()) VehicleCatalog.modelsFor(state.brand) else emptyList()
+        if (!state.isBrandOther && state.brand.isNotBlank()) VehicleCatalog.modelsFor(state.brand)
+        else emptyList()
     }
 
     val nameError = state.hasInteractedWithForm &&
             state.name.isBlank() && state.brand.isBlank() && state.model.isBlank()
 
     Scaffold(
+        containerColor = cs.surfaceContainer,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        stringResource(
+                        text = stringResource(
                             if (isEditing) Res.string.vehicle_registration_edit_title
                             else Res.string.vehicle_registration_title,
                         ),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                 },
                 navigationIcon = {
@@ -200,16 +217,19 @@ internal fun VehicleRegistrationContent(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = cs.surfaceContainer,
+                ),
             )
         },
         bottomBar = {
-            Box(modifier = Modifier.padding(16.dp)) {
-                PapFooterButton(
-                    label = if (state.isSaving) "Guardando..." else stringResource(Res.string.vehicle_registration_save),
-                    onClick = { onIntent(VehicleRegistrationIntent.Save) },
-                    enabled = state.canSubmit && !state.isSaving
-                )
-            }
+            VehicleRegistrationBottomBar(
+                isSaving = state.isSaving,
+                canSubmit = state.canSubmit,
+                sizeSelected = state.sizeCategory != null,
+                onSave = { onIntent(VehicleRegistrationIntent.Save) },
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
@@ -217,26 +237,27 @@ internal fun VehicleRegistrationContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
         ) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(CONTENT_TOP_SPACING))
 
-            // ── Vehicle Preview Card ─────────────────────────────────────────
-            VehiclePreviewCard(
-                name = state.name.ifBlank { stringResource(Res.string.vehicle_registration_preview_title) },
-                details = if (state.brand.isNotBlank()) "${state.brand} ${state.model}" else stringResource(Res.string.vehicle_registration_preview_subtitle_default),
-                size = state.sizeCategory
+            // ── Hero card ─────────────────────────────────────────────────────
+            VehicleHeroCard(
+                state = state,
+                modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
             )
 
-            // ── Size Section ─────────────────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // ── Size section ─────────────────────────────────────────────────
+            Column(
+                modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_size))
                 Text(
                     text = stringResource(Res.string.vehicle_registration_size_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = cs.onSurfaceVariant,
                 )
                 VehicleSizeSelector(
                     selected = state.sizeCategory,
@@ -244,28 +265,33 @@ internal fun VehicleRegistrationContent(
                 )
             }
 
-            // ── Optional Details Section ─────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // ── Identity section ─────────────────────────────────────────────
+            Column(
+                modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_optional))
 
                 PapTextField(
                     value = state.name,
                     onValueChange = { onIntent(VehicleRegistrationIntent.SetName(it)) },
                     label = stringResource(Res.string.vehicle_registration_name_label),
-                    placeholder = stringResource(Res.string.vehicle_registration_name_placeholder, state.defaultNamePlaceholderIndex),
+                    placeholder = stringResource(
+                        Res.string.vehicle_registration_name_placeholder,
+                        state.defaultNamePlaceholderIndex,
+                    ),
                     isError = nameError,
                     modifier = Modifier.fillMaxWidth(),
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Brand dropdown
                     Box(modifier = Modifier.weight(1f)) {
                         ExposedDropdownMenuBox(
                             expanded = brandExpanded,
                             onExpandedChange = { brandExpanded = it },
                         ) {
                             PapTextField(
-                                value = if (state.isBrandOther) state.brand else state.brand,
+                                value = state.brand,
                                 onValueChange = {
                                     if (state.isBrandOther) onIntent(VehicleRegistrationIntent.SetCustomBrand(it))
                                 },
@@ -274,7 +300,11 @@ internal fun VehicleRegistrationContent(
                                 trailingIcon = {
                                     if (!state.isBrandOther) {
                                         IconButton(onClick = { brandExpanded = true }) {
-                                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.ArrowForward,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                            )
                                         }
                                     }
                                 },
@@ -306,11 +336,12 @@ internal fun VehicleRegistrationContent(
                         }
                     }
 
-                    // Model dropdown
                     Box(modifier = Modifier.weight(1f)) {
                         ExposedDropdownMenuBox(
                             expanded = modelExpanded && (models.isNotEmpty() || state.isBrandOther),
-                            onExpandedChange = { if (models.isNotEmpty() || state.isBrandOther) modelExpanded = it },
+                            onExpandedChange = {
+                                if (models.isNotEmpty() || state.isBrandOther) modelExpanded = it
+                            },
                         ) {
                             PapTextField(
                                 value = state.model,
@@ -323,7 +354,11 @@ internal fun VehicleRegistrationContent(
                                 trailingIcon = {
                                     if (models.isNotEmpty() && !state.isModelOther) {
                                         IconButton(onClick = { modelExpanded = true }) {
-                                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.ArrowForward,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp),
+                                            )
                                         }
                                     }
                                 },
@@ -358,113 +393,284 @@ internal fun VehicleRegistrationContent(
                 }
             }
 
-            // ── Bluetooth Section ────────────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // ── Bluetooth section ────────────────────────────────────────────
+            Column(
+                modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_detection))
-                PapCard(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    padding = 12.dp
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = PapShapes.card,
+                    color = cs.surfaceContainerHigh,
+                    border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
                 ) {
                     Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(BT_ICON_BOX_SIZE)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
+                                .background(cs.primaryContainer),
+                            contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Bluetooth,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                modifier = Modifier.size(BT_ICON_SIZE),
+                                tint = cs.primary,
                             )
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(Res.string.vehicle_registration_bt_title),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cs.onSurface,
                             )
                             Text(
                                 text = stringResource(Res.string.vehicle_registration_bt_desc),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                             )
                         }
-                        PapTextButton(
-                            label = stringResource(Res.string.vehicle_registration_bt_cta),
+                        Button(
                             onClick = onConfigureBluetooth,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            shape = PapShapes.cardSmall,
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.vehicle_registration_bt_cta),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Privacy section ──────────────────────────────────────────────
+            Column(
+                modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_privacy))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = PapShapes.card,
+                    color = cs.surfaceContainerHigh,
+                    border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(Res.string.vehicle_show_on_spot),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cs.onSurface,
+                            )
+                            Text(
+                                text = stringResource(Res.string.vehicle_show_on_spot_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                            )
+                        }
+                        Switch(
+                            checked = state.showBrandModelOnSpot,
+                            onCheckedChange = { onIntent(VehicleRegistrationIntent.SetShowOnSpot(it)) },
                         )
                     }
                 }
             }
 
-            // ── Privacy Section ──────────────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_privacy))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(Res.string.vehicle_show_on_spot),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Text(
-                            text = stringResource(Res.string.vehicle_show_on_spot_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(
-                        checked = state.showBrandModelOnSpot,
-                        onCheckedChange = { onIntent(VehicleRegistrationIntent.SetShowOnSpot(it)) },
+            Spacer(Modifier.height(SECTION_SPACING))
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hero card
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun VehicleHeroCard(
+    state: VehicleRegistrationState,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+
+    val heroName = when {
+        state.name.isNotBlank() -> state.name
+        state.brand.isNotBlank() && state.model.isNotBlank() -> "${state.brand} ${state.model}"
+        state.brand.isNotBlank() -> state.brand
+        else -> stringResource(Res.string.vehicle_registration_preview_title)
+    }
+
+    val sizeLabel = when (state.sizeCategory) {
+        VehicleSize.MOTO   -> stringResource(Res.string.vehicle_size_moto)
+        VehicleSize.SMALL  -> stringResource(Res.string.vehicle_size_small)
+        VehicleSize.MEDIUM -> stringResource(Res.string.vehicle_size_medium)
+        VehicleSize.LARGE  -> stringResource(Res.string.vehicle_size_large)
+        VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
+        null               -> stringResource(Res.string.vehicle_registration_size_hint)
+    }
+
+    val sizeSelected = state.sizeCategory != null
+    val iconTint = if (sizeSelected) cs.primary
+                   else cs.onSurface.copy(alpha = HERO_ICON_INACTIVE_ALPHA)
+    val nameColor = if (sizeSelected) cs.primary else cs.onPrimaryContainer
+    val subtitleColor = if (sizeSelected) cs.primary.copy(alpha = HERO_SUBTITLE_ALPHA)
+                        else cs.onSurfaceVariant
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = PapShapes.cardLarge,
+        color = cs.primaryContainer.copy(alpha = HERO_CARD_BG_ALPHA),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = HERO_CARD_VERTICAL_PADDING),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Icon(
+                imageVector = state.sizeCategory?.icon ?: PaparcarIcons.VehicleMedium,
+                contentDescription = null,
+                modifier = Modifier.size(HERO_ICON_SIZE),
+                tint = iconTint,
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = heroName,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = nameColor,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = sizeLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = subtitleColor,
+            )
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bottom CTA bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun VehicleRegistrationBottomBar(
+    isSaving: Boolean,
+    canSubmit: Boolean,
+    sizeSelected: Boolean,
+    onSave: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    val saveLabel = stringResource(Res.string.vehicle_registration_save)
+
+    Surface(
+        color = cs.surfaceContainer,
+        shadowElevation = BOTTOM_BAR_SHADOW_ELEVATION,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SCREEN_H_PADDING, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Button(
+                onClick = onSave,
+                enabled = canSubmit && !isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(SAVE_BUTTON_HEIGHT),
+                shape = RoundedCornerShape(SAVE_BUTTON_CORNER),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = cs.primary,
+                    contentColor = cs.onPrimary,
+                    disabledContainerColor = cs.primary.copy(alpha = BUTTON_DISABLED_BG_ALPHA),
+                    disabledContentColor = cs.onPrimary.copy(alpha = BUTTON_DISABLED_FG_ALPHA),
+                ),
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(SAVING_INDICATOR_SIZE),
+                        strokeWidth = 2.dp,
+                        color = cs.onPrimary,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Guardando…",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(SAVE_BUTTON_ICON_SIZE),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = saveLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            if (!sizeSelected && !isSaving) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Elige un tamaño para continuar",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurface.copy(alpha = HINT_TEXT_ALPHA),
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
 
-@Composable
-private fun VehiclePreviewCard(name: String, details: String, size: VehicleSize?) {
-    PapCard(
-        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 0.dp,
-        tonalElevation = 0.dp
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = size?.icon ?: PaparcarIcons.VehicleMedium,
-                contentDescription = null,
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                text = details,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-            )
-        }
-    }
-}
+// ── Layout tokens ─────────────────────────────────────────────────────────────
 
+private val SCREEN_H_PADDING             = 16.dp
+private val SECTION_SPACING              = 16.dp
+private val CONTENT_TOP_SPACING          = 8.dp
+
+// Hero card
+private val HERO_ICON_SIZE               = 64.dp
+private val HERO_CARD_VERTICAL_PADDING   = 24.dp
+private const val HERO_CARD_BG_ALPHA     = 0.4f
+private const val HERO_ICON_INACTIVE_ALPHA = 0.35f
+private const val HERO_SUBTITLE_ALPHA    = 0.75f
+
+// BT card icon
+private val BT_ICON_BOX_SIZE             = 38.dp
+private val BT_ICON_SIZE                 = 20.dp
+
+// Section items
+private const val SUBTITLE_ALPHA         = 0.55f
+
+// Bottom bar / CTA button
+private val SAVE_BUTTON_HEIGHT           = 52.dp
+private val SAVE_BUTTON_CORNER           = 14.dp
+private val SAVE_BUTTON_ICON_SIZE        = 18.dp
+private val SAVING_INDICATOR_SIZE        = 18.dp
+private val BOTTOM_BAR_SHADOW_ELEVATION  = 8.dp
+private const val BUTTON_DISABLED_BG_ALPHA  = 0.38f
+private const val BUTTON_DISABLED_FG_ALPHA  = 0.6f
+private const val HINT_TEXT_ALPHA        = 0.5f
