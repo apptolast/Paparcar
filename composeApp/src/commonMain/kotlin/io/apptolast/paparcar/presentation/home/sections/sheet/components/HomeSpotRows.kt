@@ -390,7 +390,7 @@ internal fun HomeReportSpotCard(
 private const val SELECTION_INDICATOR_W_DP = 3
 private const val SELECTION_INDICATOR_H_DP = 56
 private const val BADGE_DP = 42
-private const val SELECTED_ROW_BG_ALPHA = 0.18f
+private const val SELECTED_ROW_BG_ALPHA = 0.30f
 private const val META_SEPARATOR_ALPHA = 0.3f
 private const val META_VALUE_ALPHA = 0.6f
 private const val META_MUTED_ALPHA = 0.55f

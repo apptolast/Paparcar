@@ -54,19 +54,18 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
 /**
  * Emits the sheet content items into a [LazyListScope].
  *
- * Section order (Home v1 design):
- *  1. **Zone chips** — habitual-place shortcuts at the top of the sheet so the
- *     discovery flow (zone → spots) reads top-down. Falls through to a
- *     zones empty CTA card when none saved.
- *  2. **"TUS VEHÍCULOS" header + per-vehicle rows** — one row per registered
+ * Section order:
+ *  1. **"TUS VEHÍCULOS" header + per-vehicle rows** — one row per registered
  *     vehicle. Vehicles with an active session show their park status; others
  *     show a "Park" pill that enters AddingParking for that specific vehicle.
  *     The section is hidden entirely when the user has no vehicles registered
  *     yet (onboarding edge — should not happen in steady state).
  *     [MULTI-PARKING-001]
- *  3. **"PLAZAS LIBRES CERCA · N" header + filter bar + spots list** — the
+ *  2. **"PLAZAS LIBRES CERCA · N" header + filter bar + spots list** — the
  *     community discovery feed, capped by a "Report a free spot" CTA after
  *     the list.
+ *
+ * Zone chips have moved to [HomeHeaderSection] (below the search bar).
  */
 internal fun LazyListScope.homeSheetItems(
     state: HomeState,
@@ -75,38 +74,17 @@ internal fun LazyListScope.homeSheetItems(
     onParkingClick: (UserParking) -> Unit,
     onParkVehicle: (vehicleId: String) -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
+    onEnterReportMode: () -> Unit,
 ) {
     val selectedSpotId = state.selectedSpot?.id
+    val isSpotSelected = selectedSpotId != null
     val filteredSpots = state.filteredNearbySpots
     val vehicleCards = state.vehicleCards
     val showPersonalBlocks = state.allPermissionsGranted && vehicleCards.isNotEmpty()
-    val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
-    val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
-    // ── 1. Zone chips (discovery navigation, top of sheet) ─────────────────
-    if (showZoneChips) {
-        item("zones_chips") {
-            HomeZoneChips(
-                zones = state.zones,
-                onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
-                onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
-                onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
-                onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-    } else if (showZonesEmpty) {
-        item("zones_empty_card") {
-            HomeZonesEmptyCard(
-                onAddZone = { onIntent(HomeIntent.EnterAddZoneMode) },
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
-            )
-        }
-    }
-
-    // ── 2. "TUS VEHÍCULOS" header + per-vehicle rows ───────────────────────
-    if (showPersonalBlocks) {
+    // ── 1. "TUS VEHÍCULOS" header + per-vehicle rows — hidden when a spot is selected
+    if (showPersonalBlocks && !isSpotSelected) {
         item("vehicles_header") {
             PapSectionHeader(
                 title = stringResource(Res.string.home_vehicles_section_header),
@@ -125,6 +103,8 @@ internal fun LazyListScope.homeSheetItems(
         selectedSpotId = selectedSpotId,
         filteredSpots = filteredSpots,
         showFilterBar = showFilterBar,
+        isSpotSelected = isSpotSelected,
+        onEnterReportMode = onEnterReportMode,
     )
 }
 
@@ -139,19 +119,18 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
 
     val vehicleCards = state.vehicleCards
     val showPersonalBlocks = state.allPermissionsGranted && vehicleCards.isNotEmpty()
-    val showZoneChips = state.allPermissionsGranted && state.zones.isNotEmpty()
-    val showZonesEmpty = state.allPermissionsGranted && state.zones.isEmpty()
     val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
 
-    var base = 1 // handle / top item in LazyColumn
-    if (showZoneChips) base += 1        // zones_chips
-    else if (showZonesEmpty) base += 1  // zones_empty_card
-    if (showPersonalBlocks) {
-        base += 1                       // vehicles_header
-        base += vehicleCards.size       // one vehicle_card item per registered vehicle
+    val isSpotSelected = state.selectedSpot != null
+    var base = 1 // offset carried from original layout
+    if (!isSpotSelected) {
+        if (showPersonalBlocks) {
+            base += 1                   // vehicles_header
+            base += vehicleCards.size   // one vehicle_card item per registered vehicle
+        }
+        base += 1                       // spots_header (hidden when spot is selected)
     }
-    base += 1                           // spots_header
-    if (showFilterBar) base += 1        // filter_bar
+    if (showFilterBar) base += 1        // filter_bar (sticky)
     // report_spot_cta sits AFTER the spot list, so it does not shift indices.
     return base + spotIdx
 }
@@ -195,24 +174,34 @@ private fun LazyListScope.spotsSection(
     selectedSpotId: String?,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
+    isSpotSelected: Boolean,
+    onEnterReportMode: () -> Unit,
 ) {
-    item("spots_header") {
-        PapSectionHeader(
-            title = if (filteredSpots.isNotEmpty())
-                stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
-            else
-                stringResource(Res.string.home_feed_nearby),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
+    if (!isSpotSelected) {
+        item("spots_header") {
+            PapSectionHeader(
+                title = if (filteredSpots.isNotEmpty())
+                    stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
+                else
+                    stringResource(Res.string.home_feed_nearby),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+            )
+        }
     }
 
     if (showFilterBar) {
-        item("filter_bar") {
-            HomeSizeFilterBar(
-                selectedSize = state.sizeFilter,
-                onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-            )
+        stickyHeader(key = "filter_bar") {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceContainer),
+            ) {
+                HomeSizeFilterBar(
+                    selectedSize = state.sizeFilter,
+                    onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            }
         }
     }
 
@@ -260,7 +249,7 @@ private fun LazyListScope.spotsSection(
     if (state.allPermissionsGranted) {
         item("report_spot_cta") {
             HomeReportSpotCard(
-                onReport = { onIntent(HomeIntent.EnterReportMode) },
+                onReport = onEnterReportMode,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
             )
         }

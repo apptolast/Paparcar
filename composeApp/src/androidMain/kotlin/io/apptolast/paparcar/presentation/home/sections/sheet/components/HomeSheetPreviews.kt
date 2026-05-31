@@ -411,6 +411,7 @@ private fun PreviewSheet(state: HomeState) {
             onParkingClick = {},
             onParkVehicle = {},
             onSpotSelect = { _, _, _ -> },
+            onEnterReportMode = {},
         )
     }
 }
