@@ -1,8 +1,11 @@
 package io.apptolast.paparcar.presentation.home
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -373,6 +376,9 @@ private fun HomeContent(
                 // True midpoint between the two expansion extremes — more accurate than
                 // containerHeight/2 when content-aware full snap is in play.
                 val halfOffsetPx = (fullSnapOffsetPx + peekOffsetPx) / 2f
+                // Overlay hide fires at 20% of the peek→half range so components
+                // fully fade out before the sheet reaches its midpoint snap.
+                val overlayHideThresholdPx = peekOffsetPx - (peekOffsetPx - halfOffsetPx) * 0.2f
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
@@ -437,6 +443,15 @@ private fun HomeContent(
                 val fabBottomDp =
                     with(density) { (rawContainerHeightPx - sheetOffsetPx.value).toDp() } +
                         FAB_ABOVE_SHEET_GAP
+                // Location/car FABs stay visible when sheet is expanded — clamp their
+                // inset to peek height so they don't fly off-screen past the midpoint.
+                val permanentFabBottomDp = run {
+                    val currentSheetH = (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f)
+                    val peekH = (rawContainerHeightPx - peekOffsetPx).coerceAtLeast(0f)
+                    with(density) {
+                        (if (sheetOffsetPx.value >= halfOffsetPx) currentSheetH else peekH).toDp()
+                    } + FAB_ABOVE_SHEET_GAP
+                }
                 val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + MAP_BOTTOM_BLEED
                 val sheetHeightDp = with(density) {
                     (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
@@ -529,34 +544,41 @@ private fun HomeContent(
                 )
 
                 // ── Floating search bar + map-type picker + GPS banner ───────
-                HomeHeaderSection(
-                    state = state,
-                    onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
-                    onSearchResultClick = { result ->
-                        uiController.moveCamera(result.lat, result.lon, zoom = 15f)
-                        onIntent(HomeIntent.SelectSearchResult(result))
-                    },
-                    onSearchClear = { onIntent(HomeIntent.ClearSearch) },
-                    onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
-                    onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
-                    onAddZone = {
-                        onIntent(
-                            HomeIntent.EnterAddZoneMode(
-                                lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
-                                lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
-                            )
-                        )
-                    },
-                    onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
-                    onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
+                AnimatedVisibility(
+                    visible = sheetOffsetPx.value >= overlayHideThresholdPx,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
                     modifier = Modifier.align(Alignment.TopStart),
-                )
+                ) {
+                    HomeHeaderSection(
+                        state = state,
+                        onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                        onSearchResultClick = { result ->
+                            uiController.moveCamera(result.lat, result.lon, zoom = 15f)
+                            onIntent(HomeIntent.SelectSearchResult(result))
+                        },
+                        onSearchClear = { onIntent(HomeIntent.ClearSearch) },
+                        onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
+                        onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
+                        onAddZone = {
+                            onIntent(
+                                HomeIntent.EnterAddZoneMode(
+                                    lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
+                                    lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
+                                )
+                            )
+                        },
+                        onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
+                        onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
+                        modifier = Modifier,
+                    )
+                }
 
                 // ── Right FAB column (utilities) ─────────────────────────────
                 HomeMapFabsLayer(
                     state = state,
-                    visible = sheetOffsetPx.value >= halfOffsetPx,
-                    bottomInset = fabBottomDp,
+                    visible = true,
+                    bottomInset = permanentFabBottomDp,
                     onMyLocation = {
                         state.userGpsPoint?.let {
                             uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
@@ -579,10 +601,10 @@ private fun HomeContent(
                 )
 
                 // ── Left FAB (report a free spot — entry to Reporting mode) ──
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = sheetOffsetPx.value >= halfOffsetPx,
-                    enter = androidx.compose.animation.fadeIn(),
-                    exit = androidx.compose.animation.fadeOut(),
+                AnimatedVisibility(
+                    visible = sheetOffsetPx.value >= overlayHideThresholdPx,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 14.dp, bottom = fabBottomDp),
