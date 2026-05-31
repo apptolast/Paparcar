@@ -27,6 +27,9 @@
     <!-- Notification: debug (dev builds only) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 
+    <!-- Attribution tag label (required as resource reference by PackageParser) -->
+    <string name="attribution_detection_label">Parking detection</string>
+
     <!-- Notification channel names and descriptions -->
     <string name="channel_detection_name">Spot Detection</string>
     <string name="channel_detection_desc">Persistent notification while parking detection is active</string>

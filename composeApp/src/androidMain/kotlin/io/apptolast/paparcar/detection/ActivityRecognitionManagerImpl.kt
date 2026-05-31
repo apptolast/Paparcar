@@ -20,7 +20,17 @@ class ActivityRecognitionManagerImpl(
     private val context: Context,
 ) : ActivityRecognitionManager {
 
-    private val activityClient = ActivityRecognition.getClient(context)
+    // createAttributionContext (API 30+) ties AppOps operations to the "detection" tag declared
+    // in the manifest. Without it, Play Services logs "attributionTag not declared" for every AR
+    // operation and the same AppOps startTime leaks forever, filling logcat with 5 000+
+    // ACTIVITY_RECOGNITION warnings that bury all PARKDIAG output. [FGS-004]
+    private val activityClient = ActivityRecognition.getClient(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            context.createAttributionContext("detection")
+        } else {
+            context
+        },
+    )
 
     // STILL events → BroadcastReceiver. No FGS needed — coordinator.onStillDetected() is fire-and-forget.
     private val stillPendingIntent: PendingIntent by lazy {

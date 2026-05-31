@@ -153,6 +153,9 @@ class ParkingDetectionService : LifecycleService() {
     private fun startForegroundCompat() {
         val notification = foregroundNotificationProvider.buildDetectionNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Android 14 logs "foreground service started by ACTIVITY_RECOGNITION exemption
+            // can not have location access" — this is informational only; the service still
+            // receives GPS fixes. The exemption type warning does not block any API. [FGS-003]
             startForeground(
                 AppNotificationManager.DETECTION_NOTIFICATION_ID,
                 notification,

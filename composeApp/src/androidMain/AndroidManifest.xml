@@ -29,6 +29,10 @@
     <!-- Battery optimization — allows requesting exemption via system dialog [DOZE-001] -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Attribution tag required by ActivityRecognition.getClient(createAttributionContext(...))
+         to avoid "attributionTag not declared in manifest" AppOps leak. [FGS-004] -->
+    <attribution android:tag="detection" android:label="@string/attribution_detection_label" />
+
     <application
         android:name=".PaparcarApp"
         android:allowBackup="true"
