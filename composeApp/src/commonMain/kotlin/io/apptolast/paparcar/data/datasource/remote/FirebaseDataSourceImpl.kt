@@ -6,6 +6,7 @@ import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ZoneDto
+import io.apptolast.paparcar.data.geohash.geohashQueryRange
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,17 +19,30 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         latitude: Double,
         longitude: Double,
         radiusMeters: Double,
-    ): Flow<Map<String, SpotDto>> =
-        spotsCollection
+    ): Flow<Map<String, SpotDto>> {
+        // Geohash precision 4 (~39km × 20km cell) guarantees the entire radius is
+        // within one cell regardless of where the center falls inside it. A smaller
+        // precision (e.g. 5 = ~4.9km) would miss spots at cell boundaries for a
+        // 2km radius. Room's bbox filter in SpotRepositoryImpl clips the result to
+        // the actual radius after the write.
+        val (startHash, endHash) = geohashQueryRange(latitude, longitude, queryPrecision = GEOHASH_QUERY_PRECISION)
+        return spotsCollection
+            .where { "geohash" greaterThanOrEqualTo startHash }
+            .where { "geohash" lessThan endHash }
             .snapshots
             .map { snapshot ->
                 snapshot.documents
                     .mapNotNull { doc -> doc.toSpotDto()?.let { doc.id to it } }
                     .toMap()
             }
+    }
 
     override suspend fun reportSpotReleased(spotDto: SpotDto) {
         spotsCollection.document(spotDto.id).set(spotDto)
+    }
+
+    override suspend fun deleteSpot(spotId: String) {
+        spotsCollection.document(spotId).delete()
     }
 
     @Suppress("DEPRECATION")
@@ -122,5 +136,8 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         const val TAG = "FirebaseDataSourceImpl"
         const val FIELD_ACCEPT_COUNT = "acceptCount"
         const val FIELD_REJECT_COUNT = "rejectCount"
+        // Precision 4 cells are ~39km × 20km — large enough that a 2km radius is
+        // always fully contained in one cell regardless of position within the cell.
+        const val GEOHASH_QUERY_PRECISION = 4
     }
 }

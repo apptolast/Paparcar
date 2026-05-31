@@ -39,6 +39,10 @@ class FakeFirebaseDataSource : FirebaseDataSource {
         lastReportedSpot = spotDto
     }
 
+    override suspend fun deleteSpot(spotId: String) {
+        // No-op for now
+    }
+
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean) {
         sendSpotSignalCallCount++
         lastSignal = spotId to accepted

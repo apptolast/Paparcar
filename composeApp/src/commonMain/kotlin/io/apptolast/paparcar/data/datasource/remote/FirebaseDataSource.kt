@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface FirebaseDataSource {
     fun observeNearbySpots(latitude: Double, longitude: Double, radiusMeters: Double): Flow<Map<String, SpotDto>>
     suspend fun reportSpotReleased(spotDto: SpotDto)
+    suspend fun deleteSpot(spotId: String)
     /** Atomically increments the accept or reject counter for the given spot. */
     suspend fun sendSpotSignal(spotId: String, accepted: Boolean)
 

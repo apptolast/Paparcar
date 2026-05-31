@@ -12,6 +12,6 @@ class ObserveNearbySpotsUseCase(private val spotRepository: SpotRepository) {
     }
 
     companion object {
-        const val DEFAULT_SEARCH_RADIUS_METERS = 1000.0
+        const val DEFAULT_SEARCH_RADIUS_METERS = 2000.0
     }
 }

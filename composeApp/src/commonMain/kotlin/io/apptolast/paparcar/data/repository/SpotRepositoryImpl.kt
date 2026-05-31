@@ -57,19 +57,37 @@ class SpotRepositoryImpl(
                     .distinctUntilChanged()
                     .collect { send(it) }
             }
-            // 2. Subscribe to Firestore and atomically replace the bbox slice in Room.
-            //    replaceForBoundingBox() deletes stale entries first so spots that were
-            //    removed or expired in Firestore are not kept alive in the local cache.
-            //    Room's Flow picks up every write and re-emits above.
-            //    .catch{} isolates Firestore errors so they do NOT cancel the Room
-            //    observation — the UI continues showing cached spots while Firestore
-            //    is temporarily unavailable.
+            // 2. Subscribe to Firestore — real-time listener, fires on every remote change.
+            //    Firestore may return a larger geo area (geohash cell) than the exact bbox,
+            //    so we pre-filter to bbox before writing to Room. smartReplaceForBoundingBox
+            //    then does a diff: only removes spots that disappeared, only upserts new/changed
+            //    ones. Room dispatches ONE invalidation after the transaction commits, so the
+            //    UI Flow never sees an intermediate empty-list state.
+            //    .catch{} isolates Firestore errors — the UI keeps showing cached spots.
             firebaseDataSource.observeNearbySpots(location.latitude, location.longitude, radiusMeters)
                 .catch { e -> PaparcarLogger.w(TAG, "Firestore spots listener error — using cache", e) }
                 .collect { dtoMap ->
-                    spotDao.replaceForBoundingBox(
+                    val now = Clock.System.now().toEpochMilliseconds()
+                    val bboxDtos = dtoMap.values.filter { dto ->
+                        dto.latitude in bbox.minLat..bbox.maxLat &&
+                        dto.longitude in bbox.minLon..bbox.maxLon
+                    }
+                    // Passive cleanup: delete expired spots from Firestore so all clients
+                    // benefit without waiting for server-side TTL.
+                    bboxDtos
+                        .filter { it.expiresAt != 0L && it.expiresAt < now }
+                        .forEach { expired ->
+                            launch {
+                                runCatching { firebaseDataSource.deleteSpot(expired.id) }
+                                    .onFailure { e -> PaparcarLogger.w(TAG, "Failed to delete expired spot ${expired.id}", e) }
+                            }
+                        }
+                    val validEntities = bboxDtos
+                        .filter { it.expiresAt == 0L || it.expiresAt >= now }
+                        .map(SpotDto::toEntity)
+                    spotDao.smartReplaceForBoundingBox(
                         bbox.minLat, bbox.maxLat, bbox.minLon, bbox.maxLon,
-                        dtoMap.values.map(SpotDto::toEntity),
+                        validEntities,
                     )
                 }
         }

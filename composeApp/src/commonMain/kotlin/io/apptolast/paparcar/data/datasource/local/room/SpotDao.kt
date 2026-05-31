@@ -20,7 +20,8 @@ interface SpotDao {
     @Query(
         "SELECT * FROM cached_spots " +
         "WHERE latitude BETWEEN :minLat AND :maxLat " +
-        "AND longitude BETWEEN :minLon AND :maxLon"
+        "AND longitude BETWEEN :minLon AND :maxLon " +
+        "ORDER BY reportedAt DESC"
     )
     fun observeNearby(
         minLat: Double,
@@ -51,32 +52,40 @@ interface SpotDao {
     @Query("DELETE FROM cached_spots")
     suspend fun deleteAll()
 
+    /** Returns the IDs of all cached spots within the given bounding box. */
+    @Query(
+        "SELECT id FROM cached_spots " +
+        "WHERE latitude BETWEEN :minLat AND :maxLat " +
+        "AND longitude BETWEEN :minLon AND :maxLon"
+    )
+    suspend fun getIdsInBbox(
+        minLat: Double,
+        maxLat: Double,
+        minLon: Double,
+        maxLon: Double,
+    ): List<String>
+
     /**
-     * Atomically replaces all cached spots within the bounding box with [spots].
-     * Ensures that spots removed from Firestore are also removed from the local cache —
-     * a plain upsertAll() would leave deleted spots indefinitely in Room.
+     * Diff-based atomic update for the bounding-box cache slice.
+     *
+     * Unlike the old delete-all+insert approach, this only removes spots that
+     * Firestore no longer reports, and upserts new or changed ones. Room's
+     * InvalidationTracker dispatches ONE notification after the transaction
+     * commits, so the UI Flow sees a single consistent state — no empty-list
+     * flicker between the delete and insert steps.
      */
     @Transaction
-    suspend fun replaceForBoundingBox(
+    suspend fun smartReplaceForBoundingBox(
         minLat: Double,
         maxLat: Double,
         minLon: Double,
         maxLon: Double,
         spots: List<SpotEntity>,
     ) {
-        deleteInBoundingBox(minLat, maxLat, minLon, maxLon)
-        upsertAll(spots)
+        val newIds = spots.map { it.id }.toSet()
+        getIdsInBbox(minLat, maxLat, minLon, maxLon)
+            .filter { it !in newIds }
+            .forEach { delete(it) }
+        if (spots.isNotEmpty()) upsertAll(spots)
     }
-
-    @Query(
-        "DELETE FROM cached_spots " +
-        "WHERE latitude BETWEEN :minLat AND :maxLat " +
-        "AND longitude BETWEEN :minLon AND :maxLon"
-    )
-    suspend fun deleteInBoundingBox(
-        minLat: Double,
-        maxLat: Double,
-        minLon: Double,
-        maxLon: Double,
-    )
 }
