@@ -538,15 +538,24 @@ private fun HomeContent(
                     },
                     onSearchClear = { onIntent(HomeIntent.ClearSearch) },
                     onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
+                    onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
+                    onAddZone = {
+                        onIntent(
+                            HomeIntent.EnterAddZoneMode(
+                                lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
+                                lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
+                            )
+                        )
+                    },
+                    onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
+                    onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
                     modifier = Modifier.align(Alignment.TopStart),
                 )
 
                 // ── Right FAB column (utilities) ─────────────────────────────
                 HomeMapFabsLayer(
                     state = state,
-                    // Hidden in any pin-positioning mode so the user focuses
-                    // on the centre pin without competing controls.
-                    visible = !isPinningMode && sheetOffsetPx.value >= halfOffsetPx,
+                    visible = sheetOffsetPx.value >= halfOffsetPx,
                     bottomInset = fabBottomDp,
                     onMyLocation = {
                         state.userGpsPoint?.let {
@@ -571,7 +580,7 @@ private fun HomeContent(
 
                 // ── Left FAB (report a free spot — entry to Reporting mode) ──
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = !isPinningMode && sheetOffsetPx.value >= halfOffsetPx,
+                    visible = sheetOffsetPx.value >= halfOffsetPx,
                     enter = androidx.compose.animation.fadeIn(),
                     exit = androidx.compose.animation.fadeOut(),
                     modifier = Modifier
@@ -579,7 +588,14 @@ private fun HomeContent(
                         .padding(start = 14.dp, bottom = fabBottomDp),
                 ) {
                     HomeReportFab(
-                        onClick = { onIntent(HomeIntent.EnterReportMode) },
+                        onClick = {
+                            onIntent(
+                                HomeIntent.EnterReportMode(
+                                    lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
+                                    lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
+                                )
+                            )
+                        },
                     )
                 }
 
@@ -628,6 +644,14 @@ private fun HomeContent(
                     },
                     onSpotSelect = { _, _, spotId -> onIntent(HomeIntent.SelectItem(spotId)) },
                     onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
+                    onEnterReportMode = {
+                        onIntent(
+                            HomeIntent.EnterReportMode(
+                                lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
+                                lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
+                            )
+                        )
+                    },
                     onRelease = { showReleaseDialog = true },
                     onNavigateExternal = openExternalNav,
                     modifier = Modifier.align(Alignment.BottomCenter),

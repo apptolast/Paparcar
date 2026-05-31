@@ -105,6 +105,12 @@ data class HomeState(
      */
     val pinCameraLat: Double? = null,
     val pinCameraLon: Double? = null,
+    /**
+     * True while the map camera is in motion (user drag or programmatic move)
+     * during a pin-positioning mode. Confirm buttons are disabled while true
+     * to prevent confirming a coordinate that hasn't settled yet.
+     */
+    val isCameraMoving: Boolean = false,
 
     // ── Reporting mode ────────────────────────────────────────────────────────
 

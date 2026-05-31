@@ -62,6 +62,7 @@ internal fun HomeBottomSheet(
     onMoveParkingLocation: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     onCameraMove: (lat: Double, lon: Double) -> Unit,
+    onEnterReportMode: () -> Unit,
     onRelease: () -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -149,6 +150,7 @@ internal fun HomeBottomSheet(
                         onParkingClick = onParkingClick,
                         onParkVehicle = onParkVehicle,
                         onSpotSelect = onSpotSelect,
+                        onEnterReportMode = onEnterReportMode,
                     )
                 }
             }

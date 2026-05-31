@@ -374,16 +374,6 @@ class HomeViewModelTest {
         assertEquals(countAfterFirst, prefs.defaultMapType)
     }
 
-    // ── OpenHistory ───────────────────────────────────────────────────────────
-
-    @Test
-    fun `should_emit_NavigateToHistory_on_OpenHistory`() = runTest {
-        vm.effect.test {
-            vm.handleIntent(HomeIntent.OpenHistory)
-            assertIs<HomeEffect.NavigateToHistory>(awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 
     // ── Search ────────────────────────────────────────────────────────────────
 

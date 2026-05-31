@@ -749,7 +749,7 @@ private fun AddingParkingPeekRow(
                               else Icons.Filled.DirectionsCar,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
-                enabled = !state.isSavingParking,
+                enabled = !state.isSavingParking && !state.isCameraMoving,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -810,6 +810,7 @@ private fun ReportPeekRow(
                 leadingIcon = Icons.Outlined.Campaign,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
+                enabled = !state.isCameraMoving && !state.isReporting,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -876,7 +877,7 @@ private fun AddingZonePeekRow(
                 leadingIcon = Icons.Outlined.Bookmark,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
-                enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone,
+                enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone && !state.isCameraMoving,
                 modifier = Modifier.fillMaxWidth(),
             )
         },

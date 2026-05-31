@@ -26,9 +26,9 @@ sealed class HomeIntent {
 
     // ── Reporting mode ────────────────────────────────────────────────────────
 
-    data object EnterReportMode : HomeIntent()
+    /** Enter reporting mode anchored at the map's current centre. */
+    data class EnterReportMode(val lat: Double, val lon: Double) : HomeIntent()
     data object ExitReportMode : HomeIntent()
-    /** Confirm the report at the current camera centre (falls back to user GPS). */
     data object ConfirmReportSpot : HomeIntent()
 
     // ── Detection lifecycle ───────────────────────────────────────────────────
@@ -68,7 +68,8 @@ sealed class HomeIntent {
 
     // ── Zone management ───────────────────────────────────────────────────────
 
-    data object EnterAddZoneMode : HomeIntent()
+    /** Enter zone-placement mode anchored at the map's current centre. */
+    data class EnterAddZoneMode(val lat: Double, val lon: Double) : HomeIntent()
     data object ExitAddZoneMode : HomeIntent()
     data object ConfirmAddZone : HomeIntent()
     data class UpdateAddingZoneName(val name: String) : HomeIntent()

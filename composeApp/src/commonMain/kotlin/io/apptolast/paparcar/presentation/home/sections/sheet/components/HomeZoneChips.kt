@@ -90,7 +90,7 @@ internal fun HomeZoneChips(
 }
 
 @Composable
-private fun ZoneChip(
+internal fun ZoneChip(
     label: String,
     iconKey: String,
     onClick: () -> Unit,

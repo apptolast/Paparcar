@@ -89,6 +89,7 @@ class HomeViewModel(
 
     private var userGeocoderJob: Job? = null
     private var cameraGeocoderJob: Job? = null
+    private var cameraSettledJob: Job? = null
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -127,10 +128,10 @@ class HomeViewModel(
 
             // Reporting mode
             is HomeIntent.EnterReportMode -> updateState {
-                copy(mode = HomeMode.Reporting, selectedItemId = null, pinCameraLat = null, pinCameraLon = null)
+                copy(mode = HomeMode.Reporting, selectedItemId = null, pinCameraLat = intent.lat, pinCameraLon = intent.lon)
             }
             is HomeIntent.ExitReportMode -> updateState {
-                copy(mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null)
+                copy(mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null, isCameraMoving = false)
             }
             is HomeIntent.ConfirmReportSpot -> confirmReportSpot()
 
@@ -156,6 +157,7 @@ class HomeViewModel(
                     mode = HomeMode.Browse,
                     pinCameraLat = null,
                     pinCameraLon = null,
+                    isCameraMoving = false,
                     editingParkingId = null,
                     addingParkingVehicleId = null,
                 )
@@ -167,8 +169,9 @@ class HomeViewModel(
                 copy(
                     mode = HomeMode.AddingZone,
                     selectedItemId = null,
-                    pinCameraLat = null,
-                    pinCameraLon = null,
+                    pinCameraLat = intent.lat,
+                    pinCameraLon = intent.lon,
+                    isCameraMoving = false,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
                     editingZoneId = null,
@@ -179,6 +182,7 @@ class HomeViewModel(
                     mode = HomeMode.Browse,
                     pinCameraLat = null,
                     pinCameraLon = null,
+                    isCameraMoving = false,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
                     editingZoneId = null,
@@ -326,7 +330,12 @@ class HomeViewModel(
 
     private fun onCameraPositionChanged(lat: Double, lon: Double) {
         if (state.value.mode !is HomeMode.Browse) {
-            updateState { copy(pinCameraLat = lat, pinCameraLon = lon) }
+            updateState { copy(pinCameraLat = lat, pinCameraLon = lon, isCameraMoving = true) }
+            cameraSettledJob?.cancel()
+            cameraSettledJob = viewModelScope.launch {
+                kotlinx.coroutines.delay(CAMERA_SETTLED_MS)
+                updateState { copy(isCameraMoving = false) }
+            }
         } else {
             val current = spotQueryCenter.value
             if (current != null && haversineMeters(current.latitude, current.longitude, lat, lon) > SPOT_CAMERA_PAN_THRESHOLD_METERS) {
@@ -359,10 +368,10 @@ class HomeViewModel(
     private fun confirmReportSpot() {
         val current = state.value
         if (current.mode !is HomeMode.Reporting || current.isReporting) return
-        val lat = current.pinCameraLat ?: current.userGpsPoint?.latitude ?: run {
+        val lat = current.pinCameraLat ?: run {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled)); return
         }
-        val lon = current.pinCameraLon ?: current.userGpsPoint?.longitude ?: run {
+        val lon = current.pinCameraLon ?: run {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled)); return
         }
         updateState { copy(isReporting = true) }
@@ -399,10 +408,10 @@ class HomeViewModel(
     private fun confirmAddParking() {
         val current = state.value
         if (current.mode !is HomeMode.AddingParking || current.isSavingParking) return
-        val lat = current.pinCameraLat ?: current.userGpsPoint?.latitude ?: run {
+        val lat = current.pinCameraLat ?: run {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled)); return
         }
-        val lon = current.pinCameraLon ?: current.userGpsPoint?.longitude ?: run {
+        val lon = current.pinCameraLon ?: run {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled)); return
         }
         if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
@@ -440,10 +449,10 @@ class HomeViewModel(
     private fun confirmAddZone() {
         val current = state.value
         if (current.mode !is HomeMode.AddingZone || current.isSavingZone) return
-        val lat = current.pinCameraLat ?: current.userGpsPoint?.latitude ?: run {
+        val lat = current.pinCameraLat ?: run {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled)); return
         }
-        val lon = current.pinCameraLon ?: current.userGpsPoint?.longitude ?: run {
+        val lon = current.pinCameraLon ?: run {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled)); return
         }
         val name = current.addingZoneName.trim().ifEmpty { return }
@@ -578,9 +587,12 @@ class HomeViewModel(
         // Timing
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
+        const val CAMERA_SETTLED_MS = 280L
 
         // Distance thresholds
-        const val SPOT_RESUBSCRIBE_THRESHOLD_METERS = 100.0
+        // Both at 300m so GPS drift alone never triggers a Firestore reconnect —
+        // only a genuine camera pan or location jump does.
+        const val SPOT_RESUBSCRIBE_THRESHOLD_METERS = 300.0
         const val SPOT_CAMERA_PAN_THRESHOLD_METERS = 300.0
 
         // Map type preference strings
