@@ -1,7 +1,6 @@
 package io.apptolast.paparcar.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,36 +26,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
-import io.apptolast.paparcar.ui.theme.PaparcarSpacing
-import org.jetbrains.compose.resources.stringResource
-import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.vehicle_size_large
-import paparcar.composeapp.generated.resources.vehicle_size_large_examples
-import paparcar.composeapp.generated.resources.vehicle_size_medium
-import paparcar.composeapp.generated.resources.vehicle_size_medium_examples
-import paparcar.composeapp.generated.resources.vehicle_size_moto
-import paparcar.composeapp.generated.resources.vehicle_size_moto_examples
-import paparcar.composeapp.generated.resources.vehicle_size_small
-import paparcar.composeapp.generated.resources.vehicle_size_small_examples
-import paparcar.composeapp.generated.resources.vehicle_size_van
-import paparcar.composeapp.generated.resources.vehicle_size_van_examples
 
-private val IconSize = 32.dp
-private val BorderWidth = 1.5.dp
+private val IconSize = 24.dp
+private val TilePadding = 8.dp
 
 private data class SizeOption(
     val size: VehicleSize,
     val icon: ImageVector,
-    val label: @Composable () -> String,
-    val examples: @Composable () -> String,
+    val label: String,
 )
 
 /**
  * Visual vehicle size selector.
  *
- * Replaces the radio-button list in [VehicleRegistrationScreen] with tappable
- * cards arranged in a vertical list. Each card shows a Paparcar vehicle
- * icon ([PaparcarIcons]), a size label, and example model names.
+ * Horizontal row of tappable tiles. Each tile shows a Paparcar vehicle
+ * icon and a short label.
  *
  * @param selected  Currently selected [VehicleSize], or null for nothing selected.
  * @param onSelect  Called when the user taps a size option.
@@ -69,22 +52,23 @@ fun VehicleSizeSelector(
     modifier: Modifier = Modifier,
 ) {
     val options = listOf(
-        SizeOption(VehicleSize.MOTO,   PaparcarIcons.VehicleMoto,   { stringResource(Res.string.vehicle_size_moto) },   { stringResource(Res.string.vehicle_size_moto_examples) }),
-        SizeOption(VehicleSize.SMALL,  PaparcarIcons.VehicleSmall,  { stringResource(Res.string.vehicle_size_small) },  { stringResource(Res.string.vehicle_size_small_examples) }),
-        SizeOption(VehicleSize.MEDIUM, PaparcarIcons.VehicleMedium, { stringResource(Res.string.vehicle_size_medium) }, { stringResource(Res.string.vehicle_size_medium_examples) }),
-        SizeOption(VehicleSize.LARGE,  PaparcarIcons.VehicleLarge,  { stringResource(Res.string.vehicle_size_large) },  { stringResource(Res.string.vehicle_size_large_examples) }),
-        SizeOption(VehicleSize.VAN,    PaparcarIcons.VehicleVan,    { stringResource(Res.string.vehicle_size_van) },    { stringResource(Res.string.vehicle_size_van_examples) }),
+        SizeOption(VehicleSize.MOTO,   PaparcarIcons.VehicleMoto,   "Mini"),
+        SizeOption(VehicleSize.SMALL,  PaparcarIcons.VehicleSmall,  "Pequeño"),
+        SizeOption(VehicleSize.MEDIUM, PaparcarIcons.VehicleMedium, "Mediano"),
+        SizeOption(VehicleSize.LARGE,  PaparcarIcons.VehicleLarge,  "Grande"),
+        SizeOption(VehicleSize.VAN,    PaparcarIcons.VehicleVan,    "Furgo"),
     )
 
-    Column(
+    Row(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         options.forEach { option ->
             SizeTile(
                 option = option,
                 isSelected = selected == option.size,
                 onClick = { onSelect(option.size) },
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -95,57 +79,45 @@ private fun SizeTile(
     option: SizeOption,
     isSelected: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val borderColor = if (isSelected)
-        MaterialTheme.colorScheme.primary
-    else
-        MaterialTheme.colorScheme.outlineVariant
-
     val bgColor = if (isSelected)
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+        MaterialTheme.colorScheme.primaryContainer
     else
-        MaterialTheme.colorScheme.surface
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
+    val contentColor = if (isSelected)
+        MaterialTheme.colorScheme.onPrimaryContainer
+    else
+        MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        modifier = modifier
+            .padding(horizontal = 2.dp)
             .clip(MaterialTheme.shapes.small)
             .background(bgColor)
-            .border(BorderWidth, borderColor, MaterialTheme.shapes.small)
             .clickable(onClick = onClick)
             .semantics {
                 role = Role.RadioButton
                 this.selected = isSelected
             }
-            .padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(vertical = TilePadding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = option.icon,
             contentDescription = null,
             modifier = Modifier.size(IconSize),
-            tint = if (isSelected) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurface,
+            tint = contentColor,
         )
-        Spacer(Modifier.width(PaparcarSpacing.lg))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = option.label(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = option.examples(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (isSelected) {
-            Spacer(Modifier.width(PaparcarSpacing.sm))
-            PapStatusBadge(label = "✓")
-        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = option.label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = contentColor,
+        )
     }
 }
+

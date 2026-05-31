@@ -170,6 +170,7 @@ class ParkingDetectionService : LifecycleService() {
     private fun startParkingDetection() {
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator")
         detectionJob = lifecycleScope.launch {
+            val thisJob = coroutineContext[Job]
             try {
                 PaparcarLogger.d(DIAG, "    ▶ detection coroutine entered, invoking coordinator")
                 parkingDetectionCoordinator(observeAdaptiveLocation())
@@ -181,8 +182,16 @@ class ParkingDetectionService : LifecycleService() {
                 PaparcarLogger.e(DIAG, "    ✗ detection error", e)
                 notificationPort.showDebug("Detection error: ${e.message}")
             } finally {
-                PaparcarLogger.d(DIAG, "    ■ finally → calling stopSelf()")
-                stopSelf()
+                // Skip stopSelf when this job has been superseded by a newer detection job
+                // (START_TRACKING / IN_VEHICLE_ENTER replacement). Calling stopSelf here would
+                // destroy the service after the replacement coordinator was just launched,
+                // killing it via onDestroy. [DETECT-SERVICE-RACE-001]
+                if (detectionJob === thisJob) {
+                    PaparcarLogger.d(DIAG, "    ■ finally → calling stopSelf()")
+                    stopSelf()
+                } else {
+                    PaparcarLogger.d(DIAG, "    ■ finally → superseded by newer job, skipping stopSelf()")
+                }
             }
         }
     }

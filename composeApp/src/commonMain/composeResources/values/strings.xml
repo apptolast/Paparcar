@@ -397,6 +397,16 @@
 
     <!-- Vehicle Registration screen -->
     <string name="vehicle_registration_title">Register your vehicle</string>
+    <string name="vehicle_registration_section_size">Vehicle size</string>
+    <string name="vehicle_registration_section_optional">Optional details</string>
+    <string name="vehicle_registration_section_detection">Automatic detection</string>
+    <string name="vehicle_registration_section_privacy">Privacy</string>
+    <string name="vehicle_registration_size_hint">Tap to select the size</string>
+    <string name="vehicle_registration_bt_title">Pair Bluetooth</string>
+    <string name="vehicle_registration_bt_desc">Detect your parking reliably</string>
+    <string name="vehicle_registration_bt_cta">Pair</string>
+    <string name="vehicle_registration_preview_title">Your car</string>
+    <string name="vehicle_registration_preview_subtitle_default">Medium car</string>
     <string name="vehicle_registration_edit_title">Edit vehicle</string>
     <string name="auth_cd_show_password">Show password</string>
     <string name="auth_cd_hide_password">Hide password</string>
