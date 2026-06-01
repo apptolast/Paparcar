@@ -104,6 +104,7 @@ runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "run
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "ui" }
+ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "ui" }
 ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "uiToolingPreview" }
 work-testing = { module = "androidx.work:work-testing", version.ref = "work-runtime" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

@@ -210,7 +210,7 @@ dependencies {
     add("kspIosArm64", libs.room.compiler)
     add("kspIosSimulatorArm64", libs.room.compiler)
 
-    debugImplementation(compose.uiTooling)
+    debugImplementation(libs.ui.tooling)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,7 +270,13 @@ android {
     // Disable Google Services for mock flavor to avoid package name mismatch
     // in google-services.json which doesn't contain .mock suffix.
     project.afterEvaluate {
-        tasks.matching { it.name.contains("processMock", ignoreCase = true) && it.name.contains("GoogleServices") }.configureEach {
+        tasks.matching {
+            it.name.contains("Mock", ignoreCase = true) && (
+                    it.name.contains("GoogleServices") ||
+                            it.name.contains("uploadCrashlyticsMappingFile") ||
+                            it.name.contains("injectCrashlyticsMappingFileId")
+                    )
+        }.configureEach {
             enabled = false
         }
     }
@@ -294,6 +300,7 @@ android {
         release {
             isDebuggable = false
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -324,4 +331,8 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    // Baseline profiles from Compose/AndroidX deps fail to install on x86_64 emulators.
+    // Disabling embedding has no effect on prod devices (no custom profile module exists).
+    experimentalProperties["android.experimental.art.profile.enable"] = false
 }

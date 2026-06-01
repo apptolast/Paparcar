@@ -53,6 +53,8 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
         PaparcarLogger.d(TAG, "▶ BT $eventLabel device=$deviceAddress")
 
         val pending = goAsync()
+
+        //FIXME: Should be this class in a receiver?
         scope.launch {
             try {
                 val pairedVehicle = vehicleRepository.getVehicleByBluetoothDeviceId(deviceAddress)
