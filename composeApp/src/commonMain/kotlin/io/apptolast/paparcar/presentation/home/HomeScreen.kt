@@ -34,9 +34,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
@@ -101,6 +103,12 @@ private val MAP_BOTTOM_BLEED = 20.dp
 
 // FAB inset above the sheet top edge.
 private val FAB_ABOVE_SHEET_GAP = 12.dp
+
+// When peekOffsetPx changes by less than this amount and the sheet is at rest,
+// snap directly instead of animating — avoids the visible 300ms glide that
+// occurs when the peek handle is first measured and peekHeightPx is corrected
+// from the SheetPeekHeightInitial estimate to the real measured height.
+private val PEEK_LAYOUT_SNAP_TOLERANCE = 64.dp
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -381,6 +389,7 @@ private fun HomeContent(
                 val overlayHideThresholdPx = peekOffsetPx - (peekOffsetPx - halfOffsetPx) * 0.2f
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
+                val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
                 LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
                     // Pin-positioning modes (Reporting / AddingZone) and the
                     // selected-vehicle state both lock the sheet to peek height
@@ -390,7 +399,15 @@ private fun HomeContent(
                         state.mode is HomeMode.AddingZone
                     val lockToPeek = isPinning || isParkingSelected
                     if (state.selectedItemId == null || lockToPeek) {
-                        sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
+                        // If the sheet is at rest and the correction is small (layout
+                        // measurement settling after first frame), snap directly so the
+                        // user never sees the 300ms glide from the bootstrap estimate.
+                        val correction = kotlin.math.abs(sheetOffsetPx.value - peekOffsetPx)
+                        if (!sheetOffsetPx.isRunning && correction < peekSnapTolerancePx) {
+                            sheetOffsetPx.snapTo(peekOffsetPx)
+                        } else {
+                            sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
+                        }
                     } else if (sheetOffsetPx.value >= peekOffsetPx) {
                         sheetOffsetPx.snapTo(peekOffsetPx)
                     }
@@ -433,29 +450,24 @@ private fun HomeContent(
                 // Boolean — equality short-circuits recomposition for downstream readers
                 // (e.g. PaparcarMapView.reportMode) on every drag frame.
                 // "Expanded" = sheet past the halfway point between peek and full snap.
-                val sheetExpanded by remember {
+                // Key on halfOffsetPx so the lambda captures the fresh value whenever
+                // the snap geometry changes (e.g. after first peek-height measurement).
+                val sheetExpanded by remember(halfOffsetPx) {
                     derivedStateOf { sheetOffsetPx.value < halfOffsetPx }
                 }
 
-                // Derived sizing: FAB sits just above the sheet's current top edge;
-                // map extends slightly past the sheet top so its rounded corners
-                // sit on opaque tiles; sheet height fills the rest below its top.
-                val fabBottomDp =
-                    with(density) { (rawContainerHeightPx - sheetOffsetPx.value).toDp() } +
-                        FAB_ABOVE_SHEET_GAP
-                // Location/car FABs stay visible when sheet is expanded — clamp their
-                // inset to peek height so they don't fly off-screen past the midpoint.
-                val permanentFabBottomDp = run {
-                    val currentSheetH = (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f)
-                    val peekH = (rawContainerHeightPx - peekOffsetPx).coerceAtLeast(0f)
-                    with(density) {
-                        (if (sheetOffsetPx.value >= halfOffsetPx) currentSheetH else peekH).toDp()
-                    } + FAB_ABOVE_SHEET_GAP
+                // overlayHideThresholdPx is a pure Float derived in composition and
+                // therefore a valid derivedStateOf key — the derivation only re-runs
+                // when the Float changes, so the boolean only triggers recomposition
+                // on the two frames when it actually flips, not on every drag frame.
+                val overlayVisible by remember(overlayHideThresholdPx) {
+                    derivedStateOf { sheetOffsetPx.value >= overlayHideThresholdPx }
                 }
-                val mapHeightDp = with(density) { sheetOffsetPx.value.toDp() } + MAP_BOTTOM_BLEED
-                val sheetHeightDp = with(density) {
-                    (rawContainerHeightPx - sheetOffsetPx.value).coerceAtLeast(0f).toDp()
-                }
+
+                // Cache the bleed in pixels for use inside layout-phase lambdas
+                // (Modifier.layout/offset) where toDp() is not available.
+                val mapBleedPx = with(density) { MAP_BOTTOM_BLEED.toPx() }
+                val fabGapPx = with(density) { FAB_ABOVE_SHEET_GAP.toPx() }
 
                 val dragSnap = remember(peekOffsetPx, halfOffsetPx, fullSnapOffsetPx) {
                     HomeSheetSnap(
@@ -517,20 +529,15 @@ private fun HomeContent(
                 }
 
                 // ── Map ──────────────────────────────────────────────────────
+                // Height is set via Modifier.layout so sheetOffsetPx is read in
+                // the layout phase only — dragging never triggers recomposition here.
                 HomeMapSection(
                     state = state,
                     selectedSpotId = selectedSpotId,
                     isMyCarSelected = isParkingSelected,
-                    // Switch the marker stroke style to "report" while in any
-                    // pin-positioning mode (Reporting / AddingZone). Keeps
-                    // Browse cleanly off the report visual.
                     reportMode = isPinningMode,
                     cameraTarget = uiController.cameraTarget,
-                    mapHeightDp = mapHeightDp,
                     centerPin = centerPinKind,
-                    // Dim non-focus markers across all focus states. Selected
-                    // items bypass the dim pass (selected spot via SELECTED
-                    // contentId, parking via isMyCarSelected).
                     dimSpots = isPinningMode || state.selectedItemId != null,
                     onSpotClick = onSpotMarkerClick,
                     onMyCarClick = onMyCarMarkerClick,
@@ -540,12 +547,24 @@ private fun HomeContent(
                         onIntent(HomeIntent.CameraPositionChanged(lat, lon))
                         onCameraFrame()
                     },
-                    modifier = Modifier.align(Alignment.TopCenter),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .layout { measurable, constraints ->
+                            val heightPx = (sheetOffsetPx.value + mapBleedPx)
+                                .roundToInt().coerceAtLeast(0)
+                            val placeable = measurable.measure(
+                                constraints.copy(
+                                    minHeight = 0,
+                                    maxHeight = heightPx.coerceAtMost(constraints.maxHeight),
+                                )
+                            )
+                            layout(placeable.width, heightPx) { placeable.place(0, 0) }
+                        },
                 )
 
                 // ── Floating search bar + map-type picker + GPS banner ───────
                 AnimatedVisibility(
-                    visible = sheetOffsetPx.value >= overlayHideThresholdPx,
+                    visible = overlayVisible,
                     enter = fadeIn(),
                     exit = fadeOut(),
                     modifier = Modifier.align(Alignment.TopStart),
@@ -575,10 +594,11 @@ private fun HomeContent(
                 }
 
                 // ── Right FAB column (utilities) ─────────────────────────────
+                // Bottom positioning is done in the layout phase via Modifier.offset
+                // so dragging never triggers recomposition of this subtree.
                 HomeMapFabsLayer(
                     state = state,
-                    visible = sheetOffsetPx.value >= overlayHideThresholdPx,
-                    bottomInset = permanentFabBottomDp,
+                    visible = overlayVisible,
                     onMyLocation = {
                         state.userGpsPoint?.let {
                             uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
@@ -597,17 +617,32 @@ private fun HomeContent(
                             )
                         }
                     },
-                    modifier = Modifier.align(Alignment.BottomEnd),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset {
+                            val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
+                                .coerceAtLeast(0f)
+                            val peekH = (rawContainerHeightPx - peekOffsetPx)
+                                .coerceAtLeast(0f)
+                            // Clamp to peek when expanded so FABs don't fly off-screen.
+                            val base = if (sheetOffsetPx.value >= halfOffsetPx) sheetH else peekH
+                            IntOffset(0, -(base + fabGapPx).roundToInt())
+                        },
                 )
 
                 // ── Left FAB (report a free spot — entry to Reporting mode) ──
                 AnimatedVisibility(
-                    visible = sheetOffsetPx.value >= overlayHideThresholdPx,
+                    visible = overlayVisible,
                     enter = fadeIn(),
                     exit = fadeOut(),
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(start = 14.dp, bottom = fabBottomDp),
+                        .padding(start = 14.dp)
+                        .offset {
+                            val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
+                                .coerceAtLeast(0f)
+                            IntOffset(0, -(sheetH + fabGapPx).roundToInt())
+                        },
                 ) {
                     HomeReportFab(
                         onClick = {
@@ -624,7 +659,7 @@ private fun HomeContent(
                 // ── Bottom sheet ─────────────────────────────────────────────
                 HomeBottomSheet(
                     state = state,
-                    sheetHeightDp = sheetHeightDp,
+                    containerHeightPx = rawContainerHeightPx,
                     sheetOffsetPx = sheetOffsetPx,
                     dragSnap = dragSnap,
                     lazyListState = lazyListState,

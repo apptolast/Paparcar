@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
@@ -20,8 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeMode
@@ -45,7 +45,7 @@ import kotlin.math.absoluteValue
 @Composable
 internal fun HomeBottomSheet(
     state: HomeState,
-    sheetHeightDp: Dp,
+    containerHeightPx: Float,
     sheetOffsetPx: Animatable<Float, AnimationVector1D>,
     dragSnap: HomeSheetSnap,
     lazyListState: LazyListState,
@@ -70,7 +70,16 @@ internal fun HomeBottomSheet(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(sheetHeightDp),
+            .layout { measurable, constraints ->
+                // Height is read in the layout phase so sheet drag never causes
+                // recomposition of HomeContent — only a re-layout of this node.
+                val heightPx = (containerHeightPx - sheetOffsetPx.value)
+                    .coerceAtLeast(0f).roundToInt()
+                val placeable = measurable.measure(
+                    constraints.copy(minHeight = 0, maxHeight = heightPx)
+                )
+                layout(placeable.width, heightPx) { placeable.place(0, 0) }
+            },
         shape = PapShapes.sheet,
         color = MaterialTheme.colorScheme.surfaceContainer,
         // Lift the top edge above the map tiles with the same depth

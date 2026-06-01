@@ -354,7 +354,7 @@ private fun MainAppNavigation(
             // hide overrode that and surprised users who expected tab navigation
             // to stay reachable whenever the modal was at peek.
             AnimatedVisibility(
-                visible = currentRoute in BOTTOM_NAV_ROUTES,
+                visible = (currentRoute ?: startRoute) in BOTTOM_NAV_ROUTES,
                 enter = slideInVertically { it },
                 exit = slideOutVertically { it },
             ) {
