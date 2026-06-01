@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
+import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
@@ -131,9 +132,12 @@ class HomeViewModel(
                 copy(mode = HomeMode.Reporting, selectedItemId = null, pinCameraLat = intent.lat, pinCameraLon = intent.lon)
             }
             is HomeIntent.ExitReportMode -> updateState {
-                copy(mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null, isCameraMoving = false)
+                copy(mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null, isCameraMoving = false, reportingSize = null)
             }
             is HomeIntent.ConfirmReportSpot -> confirmReportSpot()
+            is HomeIntent.SetReportingSize -> updateState {
+                copy(reportingSize = if (reportingSize == intent.size) null else intent.size)
+            }
 
             // Detection confirmation
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
@@ -174,6 +178,7 @@ class HomeViewModel(
                     isCameraMoving = false,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
+                    addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
                     editingZoneId = null,
                 )
             }
@@ -185,12 +190,14 @@ class HomeViewModel(
                     isCameraMoving = false,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
+                    addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
                     editingZoneId = null,
                 )
             }
             is HomeIntent.ConfirmAddZone -> confirmAddZone()
             is HomeIntent.UpdateAddingZoneName -> updateState { copy(addingZoneName = intent.name) }
             is HomeIntent.UpdateAddingZoneIcon -> updateState { copy(addingZoneIconKey = intent.iconKey) }
+            is HomeIntent.SetZoneRadius -> updateState { copy(addingZoneRadius = intent.radius) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DeleteZone -> viewModelScope.launch { deleteZone(intent.zoneId) }
             is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
@@ -377,8 +384,8 @@ class HomeViewModel(
         updateState { copy(isReporting = true) }
         viewModelScope.launch {
             val spotId = "manual_${Clock.System.now().toEpochMilliseconds()}"
-            reportSpotReleased(lat, lon, spotId, SpotType.MANUAL_REPORT, confidence = 1f)
-            updateState { copy(isReporting = false, mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null) }
+            reportSpotReleased(lat, lon, spotId, SpotType.MANUAL_REPORT, confidence = 1f, sizeCategory = current.reportingSize)
+            updateState { copy(isReporting = false, mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null, reportingSize = null) }
             sendEffect(HomeEffect.SpotReported)
         }
     }
@@ -461,10 +468,10 @@ class HomeViewModel(
             val editingId = current.editingZoneId
             if (editingId != null) {
                 current.zones.find { it.id == editingId }?.let { existing ->
-                    updateZone(existing, name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
+                    updateZone(existing, name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius)
                 }
             } else {
-                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
+                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius)
                     .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
             }
             updateState {
@@ -475,6 +482,7 @@ class HomeViewModel(
                     pinCameraLon = null,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
+                    addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
                     editingZoneId = null,
                 )
             }
@@ -491,6 +499,7 @@ class HomeViewModel(
                 pinCameraLon = zone.lon,
                 addingZoneName = zone.name,
                 addingZoneIconKey = zone.iconKey,
+                addingZoneRadius = zone.radiusMeters,
                 editingZoneId = zoneId,
             )
         }

@@ -420,6 +420,7 @@
     <string name="home_manual_park_pill">Markieren</string>
     <string name="home_zones_empty_pill">Hinzufügen</string>
     <string name="home_header_add_zone">Gewohnheitszone hinzufügen</string>
+    <string name="home_header_add_zone_hint">Zuhause, Arbeit, Gym\u2026</string>
 
     <!-- Sheet section headers + Berechtigungen -->
     <string name="home_vehicles_section_header">Deine Fahrzeuge</string>
@@ -471,6 +472,8 @@
     <string name="home_zone_edit_header_label">Zone bearbeiten</string>
     <string name="home_zone_header_label">Neue habituelle Zone</string>
     <string name="home_zone_icon_section">Symbol</string>
+    <string name="home_zone_radius_section">Radius</string>
+    <string name="home_zone_radius_meters">%1$d m</string>
 
     <!-- My Car — delete confirmation + edit -->
     <string name="my_car_delete_vehicle">Löschen</string>

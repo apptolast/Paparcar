@@ -420,6 +420,7 @@
     <string name="home_manual_park_pill">Zaznacz</string>
     <string name="home_zones_empty_pill">Dodaj</string>
     <string name="home_header_add_zone">Dodaj strefę</string>
+    <string name="home_header_add_zone_hint">Dom, praca, siłownia\u2026</string>
 
     <!-- Sheet section headers + uprawnienia -->
     <string name="home_vehicles_section_header">Twoje pojazdy</string>
@@ -471,6 +472,8 @@
     <string name="home_zone_edit_header_label">Edytuj strefę</string>
     <string name="home_zone_header_label">Nowa stała strefa</string>
     <string name="home_zone_icon_section">Ikona</string>
+    <string name="home_zone_radius_section">Promień</string>
+    <string name="home_zone_radius_meters">%1$d m</string>
 
     <!-- My Car — delete confirmation + edit -->
     <string name="my_car_delete_vehicle">Usuń</string>

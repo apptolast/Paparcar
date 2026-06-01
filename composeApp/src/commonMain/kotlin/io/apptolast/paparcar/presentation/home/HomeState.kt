@@ -115,12 +115,15 @@ data class HomeState(
     // ── Reporting mode ────────────────────────────────────────────────────────
 
     val isReporting: Boolean = false,
+    /** Size the user selected for the spot they are manually reporting. Null = unknown. */
+    val reportingSize: VehicleSize? = null,
 
     // ── AddingZone mode ───────────────────────────────────────────────────────
 
     val isSavingZone: Boolean = false,
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
+    val addingZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,
     /** Non-null when editing an existing zone instead of creating a new one. */
     val editingZoneId: String? = null,
 

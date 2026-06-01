@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
@@ -56,6 +55,7 @@ internal fun PeekStateCard(
     title: String,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     accentColor: Color = MaterialTheme.colorScheme.primary,
     showDismiss: Boolean = true,
     leading: @Composable () -> Unit,
@@ -92,6 +92,16 @@ internal fun PeekStateCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (subtitle != null) {
+                    Spacer(Modifier.height(1.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             if (showDismiss) {
                 PeekStateDismissButton(onDismiss = onDismiss)
@@ -121,7 +131,7 @@ internal fun PeekHeaderIconChip(
     Box(
         modifier = Modifier
             .size(CHIP_DP.dp)
-            .clip(RoundedCornerShape(CHIP_CORNER_DP.dp))
+            .clip(CircleShape)
             .background(accentColor),
         contentAlignment = Alignment.Center,
     ) {
@@ -157,8 +167,8 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
 
 private const val HORIZONTAL_DP = 20
 private const val CHIP_DP = 44
-private const val CHIP_CORNER_DP = 12
 private const val DISMISS_HIT_DP = 40
 private const val DISMISS_ICON_DP = 20
 private const val DISMISS_ALPHA = 0.55f
+private const val SUBTITLE_ALPHA = 0.55f
 private const val LABEL_TRACKING_SP = 0.8

@@ -19,8 +19,6 @@ class FakeSpotDao : SpotDao {
         private set
     var deleteCallCount = 0
         private set
-    var deleteInBoundingBoxCallCount = 0
-        private set
     var deleteAllCallCount = 0
         private set
 
@@ -77,15 +75,12 @@ class FakeSpotDao : SpotDao {
         store.value = emptyList()
     }
 
-    override suspend fun deleteInBoundingBox(
+    override suspend fun getIdsInBbox(
         minLat: Double,
         maxLat: Double,
         minLon: Double,
         maxLon: Double,
-    ) {
-        deleteInBoundingBoxCallCount++
-        store.value = store.value.filterNot {
-            it.latitude in minLat..maxLat && it.longitude in minLon..maxLon
-        }
-    }
+    ): List<String> = store.value
+        .filter { it.latitude in minLat..maxLat && it.longitude in minLon..maxLon }
+        .map { it.id }
 }

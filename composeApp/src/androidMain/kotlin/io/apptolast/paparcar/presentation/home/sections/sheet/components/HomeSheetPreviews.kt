@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.preview.FakeData
@@ -30,6 +31,7 @@ internal fun fakeSpot(
     agoMinutes: Long,
     lat: Double = 40.418,
     lon: Double = -3.706,
+    sizeCategory: io.apptolast.paparcar.domain.model.VehicleSize? = VehicleSize.MEDIUM,
 ) = io.apptolast.paparcar.domain.model.Spot(
     id = id,
     location = GpsPoint(
@@ -42,6 +44,7 @@ internal fun fakeSpot(
     reportedBy = "user_preview",
     address = FakeData.addrStreet,
     placeInfo = null,
+    sizeCategory = sizeCategory,
 )
 
 internal fun fakeSpotWithPoi(id: String, agoMinutes: Long) = io.apptolast.paparcar.domain.model.Spot(
@@ -56,6 +59,7 @@ internal fun fakeSpotWithPoi(id: String, agoMinutes: Long) = io.apptolast.paparc
     reportedBy = "user_preview",
     address = FakeData.addrFuel,
     placeInfo = FakeData.placeInfoFuel,
+    sizeCategory = VehicleSize.SMALL,
 )
 
 /** Lista de 3 spots con frescuras verde, ámbar y gris para comparar colores. */

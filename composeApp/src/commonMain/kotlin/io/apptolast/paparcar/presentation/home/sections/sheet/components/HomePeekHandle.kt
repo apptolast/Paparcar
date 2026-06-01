@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -36,17 +35,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.EditLocationAlt
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,6 +67,7 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.HomeMode
@@ -72,16 +76,15 @@ import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.driveTimeString
-import io.apptolast.paparcar.presentation.util.locationDisplayText
-import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
-import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
+import kotlin.math.roundToInt
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.stateColors
+import io.apptolast.paparcar.ui.theme.vehicleStateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_add_parking_cancel_cd
@@ -97,33 +100,45 @@ import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
 import paparcar.composeapp.generated.resources.home_parking_release
-import paparcar.composeapp.generated.resources.home_peek_active_session
-import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
-import paparcar.composeapp.generated.resources.home_peek_parked_label
-import paparcar.composeapp.generated.resources.home_peek_reliability_label
+import paparcar.composeapp.generated.resources.home_peek_car_parked_label
+import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
+import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
+import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
+import paparcar.composeapp.generated.resources.home_peek_spot_age_min
+import paparcar.composeapp.generated.resources.home_peek_spot_compat_large
+import paparcar.composeapp.generated.resources.home_peek_spot_compat_medium
+import paparcar.composeapp.generated.resources.home_peek_spot_compat_moto
+import paparcar.composeapp.generated.resources.home_peek_spot_compat_small
+import paparcar.composeapp.generated.resources.home_peek_spot_compat_van
+import paparcar.composeapp.generated.resources.home_peek_spot_compatible
+import paparcar.composeapp.generated.resources.home_peek_spot_en_route
 import paparcar.composeapp.generated.resources.home_peek_spot_expires
 import paparcar.composeapp.generated.resources.home_peek_spot_high
+import paparcar.composeapp.generated.resources.home_peek_spot_incompatible
 import paparcar.composeapp.generated.resources.home_peek_spot_low
 import paparcar.composeapp.generated.resources.home_peek_spot_manual
 import paparcar.composeapp.generated.resources.home_peek_spot_medium
-import paparcar.composeapp.generated.resources.home_peek_spot_posted_by
-import paparcar.composeapp.generated.resources.home_peek_spot_still_free_hint
+import paparcar.composeapp.generated.resources.home_peek_spot_occupied
+import paparcar.composeapp.generated.resources.home_peek_spot_reliability_label
+import paparcar.composeapp.generated.resources.home_peek_spot_size_unknown
+import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
+import paparcar.composeapp.generated.resources.home_report_confirm_here
+import paparcar.composeapp.generated.resources.home_report_header_label
+import paparcar.composeapp.generated.resources.home_report_helper_primary
+import paparcar.composeapp.generated.resources.home_report_helper_secondary
+import paparcar.composeapp.generated.resources.home_report_size_section
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
 import paparcar.composeapp.generated.resources.vehicle_size_small
 import paparcar.composeapp.generated.resources.vehicle_size_van
-import paparcar.composeapp.generated.resources.home_peek_walk_label
-import paparcar.composeapp.generated.resources.home_report_confirm_here
-import paparcar.composeapp.generated.resources.home_report_header_label
-import paparcar.composeapp.generated.resources.home_report_helper_primary
-import paparcar.composeapp.generated.resources.home_report_helper_secondary
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
-import paparcar.composeapp.generated.resources.spot_indicator_en_route
 import paparcar.composeapp.generated.resources.home_zone_edit_header_label
 import paparcar.composeapp.generated.resources.home_zone_header_label
 import paparcar.composeapp.generated.resources.home_zone_icon_section
 import paparcar.composeapp.generated.resources.home_zone_name_placeholder
+import paparcar.composeapp.generated.resources.home_zone_radius_meters
+import paparcar.composeapp.generated.resources.home_zone_radius_section
 import paparcar.composeapp.generated.resources.home_zone_save_action
 
 @Composable
@@ -131,18 +146,21 @@ internal fun HomePeekHandle(
     state: HomeState,
     onDismiss: () -> Unit = {},
     onRelease: () -> Unit = {},
+    onRejectSpot: () -> Unit = {},
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit = { _, _, _ -> },
     onCancelReport: () -> Unit = {},
     onConfirmReport: () -> Unit = {},
+    onReportSizeSelected: (VehicleSize?) -> Unit = {},
     onCancelAddZone: () -> Unit = {},
     onConfirmAddZone: () -> Unit = {},
     onUpdateZoneName: (String) -> Unit = {},
     onUpdateZoneIcon: (String) -> Unit = {},
+    onZoneRadiusChanged: (Float) -> Unit = {},
     onCancelAddParking: () -> Unit = {},
     onConfirmAddParking: () -> Unit = {},
     onMoveParkingLocation: () -> Unit = {},
 ) {
-    val freeCount = state.nearbySpots.size
+    val freeCount = state.filteredNearbySpots.size
     val isParkingSelected = state.isParkingSelected
     val selectedSpot = state.selectedSpot
     // Under multi-parking pick the *specific* selected session, not just the first active one,
@@ -191,10 +209,12 @@ internal fun HomePeekHandle(
                 is PeekState.SelectedSpot -> SpotPeekRow(
                     spot = target.spot,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                    userVehicleSize = state.vehicles.firstOrNull { it.isDefault }?.sizeCategory,
                     onDismiss = onDismiss,
                     onNavigate = {
                         onNavigateExternal(target.spot.location.latitude, target.spot.location.longitude, false)
                     },
+                    onRejectSpot = onRejectSpot,
                 )
                 is PeekState.SelectedParking -> ParkingPeekRow(
                     parking = target.parking,
@@ -211,6 +231,7 @@ internal fun HomePeekHandle(
                     state = state,
                     onCancel = onCancelReport,
                     onConfirm = onConfirmReport,
+                    onSizeSelected = onReportSizeSelected,
                 )
                 PeekState.AddingZone -> AddingZonePeekRow(
                     state = state,
@@ -218,6 +239,7 @@ internal fun HomePeekHandle(
                     onConfirm = onConfirmAddZone,
                     onNameChange = onUpdateZoneName,
                     onIconChange = onUpdateZoneIcon,
+                    onRadiusChange = onZoneRadiusChanged,
                 )
                 is PeekState.AddingParking -> AddingParkingPeekRow(
                     state = state,
@@ -248,15 +270,17 @@ private sealed class PeekState {
 private fun SpotPeekRow(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
+    userVehicleSize: VehicleSize?,
     onDismiss: () -> Unit,
     onNavigate: () -> Unit,
+    onRejectSpot: () -> Unit,
 ) {
     val palette = spot.toReliabilityUiState().peekPalette()
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
-    // Peek title: place name OR address, NEVER concatenated — the card has
-    // limited horizontal space and the address already shows on the map below.
+    // Auto-switch to walking mode when the spot is close enough to walk.
+    val travelMode = if (distM != null && distM < WALK_DISTANCE_THRESHOLD_M) TravelMode.WALKING else TravelMode.DRIVING
     val title = peekTitle(
         placeName = spot.placeInfo?.name,
         addressLine = spot.address?.displayLine,
@@ -264,6 +288,13 @@ private fun SpotPeekRow(
         lon = spot.location.longitude,
     )
     val ttlMinutes = remainingMinutes(spot.expiresAt)
+    val filledSegments = (palette.fillRatio * FIABILITY_SEGMENTS).roundToInt().coerceIn(1, FIABILITY_SEGMENTS)
+    // Compatible when the spot size >= user's vehicle size (spot is big enough).
+    // If sizeCategory is null, isCompatible is true but CompatibilityRow shows the unknown state.
+    val isCompatible = userVehicleSize == null ||
+        spot.sizeCategory == null ||
+        userVehicleSize.ordinal <= spot.sizeCategory.ordinal
+    val spotAgeMin = ageMinutes(spot.location.timestamp)
 
     PeekStateCard(
         headerLabel = palette.label,
@@ -272,60 +303,35 @@ private fun SpotPeekRow(
         onDismiss = onDismiss,
         leading = { SpotReliabilityBadge(palette) },
         content = {
-            PeekMetaRow(
-                distanceMeters = distM,
-                iconTint = palette.badgeBg,
-                trailingBadge = if (spot.enRouteCount > 0) {
-                    {
-                        PeekInfoPill(
-                            text = stringResource(Res.string.spot_indicator_en_route, spot.enRouteCount),
-                        )
-                    }
-                } else null,
-            )
+            CompatibilityRow(sizeCategory = spot.sizeCategory, isCompatible = isCompatible)
             Spacer(Modifier.height(8.dp))
-            SpotSecondaryMeta(
-                reportedAtMs = spot.location.timestamp,
-                sizeCategory = spot.sizeCategory,
-                reporterName = spot.reportedBy.takeIf { it.isNotBlank() },
-            )
+            DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.badgeBg)
+            if (spotAgeMin != null) {
+                Spacer(Modifier.height(8.dp))
+                SpotAgeRow(ageMinutes = spotAgeMin, accentColor = palette.badgeBg)
+            }
+            if (spot.enRouteCount > 0) {
+                Spacer(Modifier.height(8.dp))
+                SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.badgeBg)
+            }
             Spacer(Modifier.height(12.dp))
-            ReliabilitySection(palette = palette, ttlMinutes = ttlMinutes)
+            FiabilityIndicator(filledSegments = filledSegments, expiresInMin = ttlMinutes)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
-            Row(
+            PapFooterButton(
+                label = stringResource(Res.string.home_navigate_to_spot),
+                leadingIcon = Icons.Outlined.Navigation,
+                onClick = onNavigate,
+                style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PapFooterButton(
-                    label = stringResource(Res.string.home_navigate_to_spot),
-                    leadingIcon = Icons.Outlined.Navigation,
-                    onClick = onNavigate,
-                    style = PapFooterButtonStyle.Filled,
-                    modifier = Modifier.weight(1f),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(BOOKMARK_BOX_DP.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = BOOKMARK_BG_ALPHA)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Outlined.Bookmark,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = BOOKMARK_ALPHA),
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
+            )
             Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(Res.string.home_peek_spot_still_free_hint),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = HINT_ALPHA),
+            PapFooterButton(
+                label = stringResource(Res.string.home_peek_spot_occupied),
+                leadingIcon = Icons.Outlined.Block,
+                onClick = onRejectSpot,
+                style = PapFooterButtonStyle.Outlined,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -342,226 +348,252 @@ private fun SpotReliabilityBadge(palette: SpotPeekPalette) {
     Box(
         modifier = Modifier
             .size(SPOT_BADGE_DP.dp)
-            .clip(RoundedCornerShape(SPOT_BADGE_CORNER_DP.dp))
+            .clip(CircleShape)
             .background(palette.badgeBg),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            "P",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = palette.badgeFg,
+        Icon(
+            imageVector = Icons.Outlined.LocalParking,
+            contentDescription = null,
+            tint = palette.badgeFg,
+            modifier = Modifier.size(SPOT_BADGE_ICON_DP.dp),
         )
     }
 }
 
-/**
- * Secondary metadata row: time since posted · vehicle size chip · reporter name.
- * All three fields are optional/conditional — the row renders nothing if all are absent.
- */
+private enum class TravelMode { WALKING, DRIVING }
+
 @Composable
-private fun SpotSecondaryMeta(
-    reportedAtMs: Long,
-    sizeCategory: VehicleSize?,
-    reporterName: String?,
-) {
-    val timeAgo = compactRelativeTimeText(reportedAtMs)
-    val sizeLabel = sizeCategory?.let {
-        stringResource(
-            when (it) {
-                VehicleSize.MOTO -> Res.string.vehicle_size_moto
-                VehicleSize.SMALL -> Res.string.vehicle_size_small
-                VehicleSize.MEDIUM -> Res.string.vehicle_size_medium
-                VehicleSize.LARGE -> Res.string.vehicle_size_large
-                VehicleSize.VAN -> Res.string.vehicle_size_van
-            }
-        )
-    }
-    val metaAlpha = 0.55f
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Icon(
-            Icons.Outlined.Schedule,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
-            modifier = Modifier.size(13.dp),
-        )
-        Text(
-            text = timeAgo,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
-        )
-        if (sizeLabel != null) {
-            Text(
-                text = "·",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
-            )
+private fun vehicleSummary(vehicle: Vehicle?): String? {
+    if (vehicle == null) return null
+    val fallback = stringResource(Res.string.home_vehicle_fallback_name)
+    return vehicle.displayName(fallback = fallback).takeIf { it.isNotBlank() }
+}
+
+@Composable
+private fun CompatibilityRow(sizeCategory: VehicleSize?, isCompatible: Boolean) {
+    val cs = MaterialTheme.colorScheme
+
+    if (sizeCategory == null) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(COMPAT_CORNER_DP.dp))
+                .background(cs.onSurface.copy(alpha = COMPAT_INCOMPAT_BG_ALPHA))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Icon(
-                Icons.Outlined.DirectionsCar,
+                imageVector = Icons.Outlined.Info,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
-                modifier = Modifier.size(13.dp),
+                tint = cs.onSurface.copy(alpha = COMPAT_UNKNOWN_FG_ALPHA),
+                modifier = Modifier.size(COMPAT_ICON_DP.dp),
             )
             Text(
-                text = sizeLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
-            )
-        }
-        if (reporterName != null) {
-            Text(
-                text = "·",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
-            )
-            Icon(
-                Icons.Outlined.Person,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
-                modifier = Modifier.size(13.dp),
-            )
-            Text(
-                text = stringResource(Res.string.home_peek_spot_posted_by, reporterName),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = metaAlpha),
+                text = stringResource(Res.string.home_peek_spot_size_unknown),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = cs.onSurface.copy(alpha = COMPAT_UNKNOWN_FG_ALPHA),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
             )
         }
+        return
+    }
+
+    val sizeLabel = stringResource(
+        when (sizeCategory) {
+            VehicleSize.MOTO   -> Res.string.home_peek_spot_compat_moto
+            VehicleSize.SMALL  -> Res.string.home_peek_spot_compat_small
+            VehicleSize.MEDIUM -> Res.string.home_peek_spot_compat_medium
+            VehicleSize.LARGE  -> Res.string.home_peek_spot_compat_large
+            VehicleSize.VAN    -> Res.string.home_peek_spot_compat_van
+        }
+    )
+    val bgColor = if (isCompatible) cs.primary.copy(alpha = COMPAT_BG_ALPHA)
+                  else cs.onSurface.copy(alpha = COMPAT_INCOMPAT_BG_ALPHA)
+    val contentColor = if (isCompatible) cs.primary
+                       else cs.onSurface.copy(alpha = COMPAT_INCOMPAT_FG_ALPHA)
+    val icon = if (isCompatible) Icons.Outlined.CheckCircle else Icons.Outlined.Info
+    val label = if (isCompatible)
+        stringResource(Res.string.home_peek_spot_compatible, sizeLabel)
+    else
+        stringResource(Res.string.home_peek_spot_incompatible, sizeLabel)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(COMPAT_CORNER_DP.dp))
+            .background(bgColor)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = contentColor,
+            modifier = Modifier.size(COMPAT_ICON_DP.dp),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
-/**
- * Standard meta row across peek states: navigation arrow + distance · time +
- * optional accent-coloured badge on the right. Reused by every peek that
- * needs to show "how far / how long / extra context".
- *
- * @param iconTint the navigation arrow tint — typically the state's accent
- *                 colour so the icon reads in the same palette as the chip.
- * @param trailingBadge optional Composable to render at the end of the row
- *                      (e.g. "1 en camino" pill, "Hace 12s" chip, etc.).
- */
 @Composable
-private fun PeekMetaRow(
-    distanceMeters: Float?,
-    iconTint: Color,
-    trailingBadge: @Composable (() -> Unit)? = null,
-) {
-    if (distanceMeters == null && trailingBadge == null) return
+private fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color) {
+    if (distanceM == null) return
+    val icon = when (mode) {
+        TravelMode.WALKING -> Icons.AutoMirrored.Outlined.DirectionsWalk
+        TravelMode.DRIVING -> Icons.Outlined.Navigation
+    }
+    val timeText = when (mode) {
+        TravelMode.WALKING -> walkTimeString(distanceM)
+        TravelMode.DRIVING -> driveTimeString(distanceM)
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            Icons.Outlined.Navigation,
+            imageVector = icon,
             contentDescription = null,
-            tint = iconTint,
+            tint = accentColor,
             modifier = Modifier.size(META_ICON_DP.dp),
         )
-        if (distanceMeters != null) {
-            Text(
-                text = "${distanceString(distanceMeters)}  ·  ${driveTimeString(distanceMeters)}",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            Spacer(Modifier.weight(1f))
-        }
-        if (trailingBadge != null) {
-            trailingBadge()
-        }
-    }
-}
-
-/**
- * Highlighted info pill — coloured card-style chip used for accent metadata
- * like "X en camino". Uses [accentContainer] / [accentColor] so the chip
- * visually pops over the neutral peek surface.
- */
-@Composable
-private fun PeekInfoPill(
-    text: String,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    accentContainer: Color = MaterialTheme.colorScheme.primaryContainer,
-) {
-    Surface(
-        shape = RoundedCornerShape(INFO_PILL_RADIUS_DP.dp),
-        color = accentContainer,
-    ) {
         Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = accentColor,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            text = "${distanceString(distanceM)}  ·  $timeText",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
-/**
- * "FIABILIDAD" label + optional "Caduca en X min" on the right, followed by
- * a horizontal gradient bar whose width and color encode the reliability
- * level (HIGH=100% solid green, MEDIUM≈65% green→amber, LOW≈35% green→red,
- * MANUAL≈80% green→blue).
- */
 @Composable
-private fun ReliabilitySection(palette: SpotPeekPalette, ttlMinutes: Int?) {
+private fun FiabilityIndicator(filledSegments: Int, expiresInMin: Int?) {
+    val cs = MaterialTheme.colorScheme
+    val isExpiring = expiresInMin != null && expiresInMin < FIABILITY_EXPIRY_WARN_MIN
+
+    // Label row: section title on the left, TTL text on the right when available.
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(Res.string.home_peek_reliability_label).uppercase(),
+            text = stringResource(Res.string.home_peek_spot_reliability_label).uppercase(),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = SECTION_TRACKING_SP.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
+            color = cs.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
             modifier = Modifier.weight(1f),
         )
-        if (ttlMinutes != null) {
+        if (expiresInMin != null) {
             Text(
-                text = stringResource(Res.string.home_peek_spot_expires, ttlMinutes),
+                text = stringResource(Res.string.home_peek_spot_expires, expiresInMin),
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = TTL_ALPHA),
-                maxLines = 1,
+                fontWeight = FontWeight.Medium,
+                color = if (isExpiring) cs.secondary else cs.onSurface.copy(alpha = 0.55f),
             )
         }
     }
-    Spacer(Modifier.height(6.dp))
-    ReliabilityBar(palette = palette)
+    Spacer(Modifier.height(5.dp))
+
+    val normalColor = cs.primary
+    val warnColor = cs.secondary
+    val emptyColor = cs.onSurface.copy(alpha = FIABILITY_EMPTY_ALPHA)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(FIABILITY_SEG_GAP_DP.dp),
+    ) {
+        for (i in 1..FIABILITY_SEGMENTS) {
+            val filled = i <= filledSegments
+            val isWarnSeg = isExpiring && filled && i > (filledSegments - FIABILITY_EXPIRY_AMBER_SEGS)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(FIABILITY_SEG_HEIGHT_DP.dp)
+                    .clip(RoundedCornerShape(FIABILITY_SEG_RADIUS_DP.dp))
+                    .background(
+                        when {
+                            !filled -> emptyColor
+                            isWarnSeg -> warnColor
+                            else -> normalColor
+                        }
+                    ),
+            )
+        }
+    }
 }
 
 @Composable
-private fun ReliabilityBar(palette: SpotPeekPalette) {
-    val primary = MaterialTheme.colorScheme.primary
-    val brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-        listOf(primary, palette.badgeBg),
-    )
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(RELIABILITY_BAR_HEIGHT_DP.dp)
-            .clip(RoundedCornerShape(RELIABILITY_BAR_HEIGHT_DP.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = RELIABILITY_BAR_BG_ALPHA)),
+private fun SpotAgeRow(ageMinutes: Int, accentColor: Color) {
+    val text = if (ageMinutes < 60)
+        stringResource(Res.string.home_peek_spot_age_min, ageMinutes)
+    else
+        stringResource(Res.string.home_peek_spot_age_hour, ageMinutes / 60)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(palette.fillRatio)
-                .height(RELIABILITY_BAR_HEIGHT_DP.dp)
-                .clip(RoundedCornerShape(RELIABILITY_BAR_HEIGHT_DP.dp))
-                .background(brush),
+        Icon(
+            imageVector = Icons.Outlined.Schedule,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(META_ICON_DP.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+@Composable
+private fun SpotEnRouteRow(count: Int, accentColor: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Group,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(META_ICON_DP.dp),
+        )
+        Text(
+            text = stringResource(Res.string.home_peek_spot_en_route, count),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private fun ageMinutes(timestampMs: Long): Int? {
+    if (timestampMs <= 0L) return null
+    val ageMs = kotlin.time.Clock.System.now().toEpochMilliseconds() - timestampMs
+    if (ageMs < 0L) return null
+    val mins = (ageMs / 60_000L).toInt()
+    return if (mins > 0) mins else null
 }
 
 private data class SpotPeekPalette(
@@ -613,41 +645,26 @@ private fun ParkingPeekRow(
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
     }
-    val timeAgo = relativeTimeText(parking.location.timestamp)
     val title = peekTitle(
         placeName = parking.placeInfo?.name,
         addressLine = parking.address?.displayLine,
         lat = parking.location.latitude,
         lon = parking.location.longitude,
     )
-    // Header label = vehicle name when we can resolve it (multi-parking UX hook),
-    // fallback to the generic "Active session" label otherwise. [MULTI-PARKING-001]
-    val fallbackVehicleName = stringResource(Res.string.home_vehicle_fallback_name)
-    val headerLabel = vehicle?.displayName(fallback = fallbackVehicleName)
-        ?: stringResource(Res.string.home_peek_active_session)
+    val vc = vehicleStateColors()
 
     PeekStateCard(
-        headerLabel = headerLabel,
+        headerLabel = stringResource(Res.string.home_peek_car_parked_label),
         title = title,
+        subtitle = vehicleSummary(vehicle),
+        accentColor = vc.bg,
         onDismiss = onDismiss,
-        leading = { PeekHeaderIconChip(icon = Icons.Filled.DirectionsCar) },
+        leading = { PeekHeaderIconChip(icon = Icons.Filled.DirectionsCar, accentColor = vc.bg, iconTint = vc.on) },
         content = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                StatColumn(
-                    label = stringResource(Res.string.home_peek_parked_label),
-                    value = timeAgo,
-                    modifier = Modifier.weight(1f),
-                )
-                StatColumn(
-                    label = stringResource(Res.string.home_peek_walk_label),
-                    value = if (distM != null) "${distanceString(distM)} · ${walkTimeString(distM)}" else "—",
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Spacer(Modifier.height(12.dp))
+            DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = vc.bg)
+            Spacer(Modifier.height(8.dp))
+            ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = vc.bg)
+            Spacer(Modifier.height(14.dp))
         },
         actions = {
             PapFooterButton(
@@ -680,6 +697,38 @@ private fun ParkingPeekRow(
     )
 }
 
+@Composable
+private fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
+    if (timestampMs <= 0L) return
+    val elapsedMin = ((kotlin.time.Clock.System.now().toEpochMilliseconds() - timestampMs) / 60_000L)
+        .toInt().coerceAtLeast(0)
+    val durationText = if (elapsedMin < 60) {
+        stringResource(Res.string.home_peek_parking_duration_min, elapsedMin)
+    } else {
+        stringResource(Res.string.home_peek_parking_duration_hm, elapsedMin / 60, elapsedMin % 60)
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Schedule,
+            contentDescription = null,
+            tint = accentColor,
+            modifier = Modifier.size(META_ICON_DP.dp),
+        )
+        Text(
+            text = durationText,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingParkingPeekRow — modo "Posicionar aparcamiento" (create + edit)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -691,7 +740,7 @@ private fun AddingParkingPeekRow(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
 ) {
-    val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
+    val primaryText = cameraTitleWhileSettling(state)
 
     // Resolve which vehicle this AddingParking session is FOR so the header
     // shows e.g. "Toyota Corolla" instead of the generic mode label — the user
@@ -754,28 +803,6 @@ private fun AddingParkingPeekRow(
     )
 }
 
-@Composable
-private fun StatColumn(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = SECTION_TRACKING_SP.sp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
 // ═════════════════════════════════════════════════════════════════════════════
 // ReportPeekRow — modo "Avisar plaza libre" (v1)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -785,8 +812,9 @@ private fun ReportPeekRow(
     state: HomeState,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
+    onSizeSelected: (VehicleSize?) -> Unit,
 ) {
-    val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
+    val primaryText = cameraTitleWhileSettling(state)
 
     PeekStateCard(
         headerLabel = stringResource(Res.string.home_report_header_label),
@@ -800,6 +828,16 @@ private fun ReportPeekRow(
                 primary = stringResource(Res.string.home_report_helper_primary),
                 secondary = stringResource(Res.string.home_report_helper_secondary),
             )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(Res.string.home_report_size_section).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = SECTION_TRACKING_SP.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
+            )
+            Spacer(Modifier.height(6.dp))
+            SizeChipRow(selected = state.reportingSize, onSelect = onSizeSelected)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
@@ -815,6 +853,46 @@ private fun ReportPeekRow(
     )
 }
 
+@Composable
+private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit) {
+    val sizes = VehicleSize.entries
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(items = sizes, key = { it.name }) { size ->
+            val isSelected = size == selected
+            val label = stringResource(
+                when (size) {
+                    VehicleSize.MOTO   -> Res.string.vehicle_size_moto
+                    VehicleSize.SMALL  -> Res.string.vehicle_size_small
+                    VehicleSize.MEDIUM -> Res.string.vehicle_size_medium
+                    VehicleSize.LARGE  -> Res.string.vehicle_size_large
+                    VehicleSize.VAN    -> Res.string.vehicle_size_van
+                }
+            )
+            val cs = MaterialTheme.colorScheme
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(SIZE_CHIP_RADIUS_DP.dp))
+                    .background(
+                        if (isSelected) cs.primary else cs.surfaceContainerHigh,
+                    )
+                    .clickable { onSelect(size) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isSelected) cs.onPrimary else cs.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingZonePeekRow — modo "Nueva zona habitual" (v1)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -826,8 +904,9 @@ private fun AddingZonePeekRow(
     onConfirm: () -> Unit,
     onNameChange: (String) -> Unit,
     onIconChange: (String) -> Unit,
+    onRadiusChange: (Float) -> Unit,
 ) {
-    val primaryText = cameraTitleOrFallback(state.cameraLocationInfo)
+    val primaryText = cameraTitleWhileSettling(state)
 
     val headerLabel = if (state.editingZoneId != null) {
         stringResource(Res.string.home_zone_edit_header_label)
@@ -866,6 +945,31 @@ private fun AddingZonePeekRow(
             ZoneIconPickerRow(
                 selectedKey = state.addingZoneIconKey,
                 onSelect = onIconChange,
+            )
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.home_zone_radius_section).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = SECTION_TRACKING_SP.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
+                )
+                Text(
+                    text = stringResource(Res.string.home_zone_radius_meters, state.addingZoneRadius.roundToInt()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Slider(
+                value = state.addingZoneRadius,
+                onValueChange = onRadiusChange,
+                valueRange = Zone.MIN_RADIUS_METERS..Zone.MAX_RADIUS_METERS,
+                modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(14.dp))
         },
@@ -985,8 +1089,7 @@ internal fun peekTitle(
  * Camera-anchored title resolver for the Reporting / AddingZone peek cards.
  * Returns the POI name when the camera sits on a place, the geocoded address
  * line otherwise, and a localized fallback when the camera has no usable
- * location info yet. Avoids the `address?.displayLine!!` smart-cast hack and
- * deduplicates the same `when` block previously copied in both peeks.
+ * location info yet.
  */
 @Composable
 internal fun cameraTitleOrFallback(
@@ -998,6 +1101,22 @@ internal fun cameraTitleOrFallback(
     if (addressLine != null) return addressLine
     return stringResource(Res.string.home_address_unknown)
 }
+
+/**
+ * Like [cameraTitleOrFallback] but returns stale data or "…" while the
+ * camera is moving or geocoding, so pin-mode peek cards never flash
+ * "unknown address" mid-drag.
+ */
+@Composable
+private fun cameraTitleWhileSettling(state: HomeState): String =
+    if (state.isCameraMoving || state.isCameraGeocoding) {
+        state.cameraLocationInfo?.let { info ->
+            info.placeInfo?.name?.takeIf { it.isNotBlank() }
+                ?: info.address?.displayLine?.takeIf { it.isNotBlank() }
+        } ?: "…"
+    } else {
+        cameraTitleOrFallback(state.cameraLocationInfo)
+    }
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Default browse row — location header with libres badge
@@ -1028,7 +1147,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
             Text(
                 text = if (info.placeInfo != null) info.placeInfo.name
                        else info.displayLine ?: stringResource(Res.string.home_address_unknown),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
@@ -1044,7 +1163,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
                 Text(
                     text = secondaryLine,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECONDARY_ALPHA),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1141,21 +1260,29 @@ private fun PeekLocationSkeleton() {
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val SPOT_BADGE_DP = 44
-private const val SPOT_BADGE_CORNER_DP = 12
-private const val BOOKMARK_BOX_DP = 50
+private const val SPOT_BADGE_ICON_DP = 24
 private const val ZONE_ICON_CHIP_DP = 40
+private const val SIZE_CHIP_RADIUS_DP = 20
+private const val WALK_DISTANCE_THRESHOLD_M = 400f
 private const val HELPER_CORNER_DP = 10
-private const val INFO_PILL_RADIUS_DP = 999
 private const val META_ICON_DP = 18
-private const val RELIABILITY_BAR_HEIGHT_DP = 6
+private const val FIABILITY_SEGMENTS = 5
+private const val FIABILITY_SEG_HEIGHT_DP = 4
+private const val FIABILITY_SEG_GAP_DP = 3
+private const val FIABILITY_SEG_RADIUS_DP = 2
+private const val FIABILITY_EXPIRY_WARN_MIN = 5
+private const val FIABILITY_EXPIRY_AMBER_SEGS = 2
+private const val COMPAT_CORNER_DP = 8
+private const val COMPAT_ICON_DP = 16
+private const val COMPAT_INCOMPAT_BG_ALPHA = 0.07f
+private const val COMPAT_INCOMPAT_FG_ALPHA = 0.55f
+private const val COMPAT_UNKNOWN_FG_ALPHA = 0.40f
 
 private const val SECTION_TRACKING_SP = 0.8
 private const val SECTION_LABEL_ALPHA = 0.55f
 private const val META_VALUE_ALPHA = 0.7f
-private const val TTL_ALPHA = 0.55f
-private const val BOOKMARK_BG_ALPHA = 0.6f
-private const val BOOKMARK_ALPHA = 0.85f
-private const val HINT_ALPHA = 0.5f
+private const val FIABILITY_EMPTY_ALPHA = 0.25f
+private const val COMPAT_BG_ALPHA = 0.12f
 private const val HELPER_BG_ALPHA = 0.5f
-private const val HELPER_SECONDARY_ALPHA = 0.6f
-private const val RELIABILITY_BAR_BG_ALPHA = 0.3f
+private const val SECONDARY_ALPHA = 0.55f
+private const val HELPER_SECONDARY_ALPHA = SECONDARY_ALPHA

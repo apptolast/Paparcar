@@ -347,11 +347,14 @@
     <string name="home_zone_header_label">Nueva zona habitual</string>
     <string name="home_zone_edit_header_label">Editar zona</string>
     <string name="home_zone_icon_section">Icono</string>
+    <string name="home_zone_radius_section">Radio</string>
+    <string name="home_zone_radius_meters">%1$d m</string>
     <string name="home_zones_section">Lugares habituales</string>
     <string name="home_zones_empty_title">Guarda un lugar habitual</string>
     <string name="home_zones_empty_subtitle">Casa, trabajo, familia\u2026 navegaci&#xF3;n con un toque</string>
     <string name="home_zones_empty_pill">Añadir</string>
     <string name="home_header_add_zone">Añadir zona habitual</string>
+    <string name="home_header_add_zone_hint">Casa, trabajo, gimnasio\u2026</string>
 
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>

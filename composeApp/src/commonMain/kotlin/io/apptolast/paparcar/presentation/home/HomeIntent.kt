@@ -30,6 +30,8 @@ sealed class HomeIntent {
     data class EnterReportMode(val lat: Double, val lon: Double) : HomeIntent()
     data object ExitReportMode : HomeIntent()
     data object ConfirmReportSpot : HomeIntent()
+    /** Toggle the size selection for a manual spot report; passing null clears it. */
+    data class SetReportingSize(val size: VehicleSize?) : HomeIntent()
 
     // ── Detection lifecycle ───────────────────────────────────────────────────
 
@@ -74,6 +76,7 @@ sealed class HomeIntent {
     data object ConfirmAddZone : HomeIntent()
     data class UpdateAddingZoneName(val name: String) : HomeIntent()
     data class UpdateAddingZoneIcon(val iconKey: String) : HomeIntent()
+    data class SetZoneRadius(val radius: Float) : HomeIntent()
     data class SelectZone(val zoneId: String) : HomeIntent()
     data class DeleteZone(val zoneId: String) : HomeIntent()
     data class EnterEditZoneMode(val zoneId: String) : HomeIntent()

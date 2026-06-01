@@ -420,6 +420,7 @@
     <string name="home_manual_park_pill">Marchează</string>
     <string name="home_zones_empty_pill">Adaugă</string>
     <string name="home_header_add_zone">Adaugă o zonă</string>
+    <string name="home_header_add_zone_hint">Acasă, muncă, sală\u2026</string>
 
     <!-- Sheet section headers + permisiuni -->
     <string name="home_vehicles_section_header">Vehiculele tale</string>
@@ -471,6 +472,8 @@
     <string name="home_zone_edit_header_label">Editare zonă</string>
     <string name="home_zone_header_label">Zonă obișnuită nouă</string>
     <string name="home_zone_icon_section">Pictogramă</string>
+    <string name="home_zone_radius_section">Rază</string>
+    <string name="home_zone_radius_meters">%1$d m</string>
 
     <!-- My Car — delete confirmation + edit -->
     <string name="my_car_delete_vehicle">Șterge</string>

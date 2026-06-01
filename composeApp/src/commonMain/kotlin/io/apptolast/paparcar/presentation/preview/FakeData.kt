@@ -195,27 +195,43 @@ internal object FakeData {
     val nearbySpots = listOf(
         Spot(
             id = "sp_1",
-            location = gps(lat = 40.418, lon = -3.706),
+            location = gps(agoMs = 4 * 60_000L, lat = 40.418, lon = -3.706),
             reportedBy = "user_1",
-
             address = addrStreet,
             placeInfo = null,
+            confidence = 0.92f,
+            enRouteCount = 2,
+            sizeCategory = VehicleSize.MEDIUM,
         ),
         Spot(
             id = "sp_2",
-            location = gps(lat = 40.419, lon = -3.704),
+            location = gps(agoMs = 15 * 60_000L, lat = 40.419, lon = -3.704),
             reportedBy = "user_2",
-
             address = addrFuel,
             placeInfo = placeInfoFuel,
+            confidence = 0.65f,
+            enRouteCount = 1,
+            sizeCategory = VehicleSize.SMALL,
         ),
         Spot(
             id = "sp_3",
-            location = gps(lat = 40.417, lon = -3.708),
+            location = gps(agoMs = 40 * 60_000L, lat = 40.417, lon = -3.708),
             reportedBy = "user_3",
-
             address = addrSupermarket,
             placeInfo = placeInfoSupermarket,
+            confidence = 0.85f,
+            enRouteCount = 0,
+            // intentionally no sizeCategory — exercises the "unknown" CompatibilityRow state
+        ),
+        Spot(
+            id = "sp_4",
+            location = gps(agoMs = 8 * 60_000L, lat = 40.416, lon = -3.705),
+            reportedBy = "user_4",
+            address = addrHighAccuracy,
+            placeInfo = null,
+            confidence = 0.45f,
+            enRouteCount = 0,
+            sizeCategory = VehicleSize.LARGE,
         ),
     )
 

@@ -306,11 +306,14 @@
     <string name="home_zone_header_label">New habitual zone</string>
     <string name="home_zone_edit_header_label">Edit zone</string>
     <string name="home_zone_icon_section">Icon</string>
+    <string name="home_zone_radius_section">Radius</string>
+    <string name="home_zone_radius_meters">%1$d m</string>
     <string name="home_zones_section">Habitual places</string>
     <string name="home_zones_empty_title">Save a habitual place</string>
     <string name="home_zones_empty_subtitle">Home, work, family\u2026 one-tap navigation</string>
     <string name="home_zones_empty_pill">Add</string>
     <string name="home_header_add_zone">Add habitual zone</string>
+    <string name="home_header_add_zone_hint">Home, work, gym\u2026</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -525,6 +528,8 @@
     <string name="gps_disclaimer_confirm">Got it</string>
     <!-- Accessibility content descriptions (QA-006) -->
     <string name="home_peek_dismiss_cd">Dismiss</string>
+    <string name="home_peek_car_parked_label">Your car is parked</string>
+    <string name="home_peek_spot_compatible">Fits %1$s</string>
     <string name="bt_config_cd_back">Back</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
@@ -534,4 +539,20 @@
     <string name="auth_field_name">Name</string>
     <string name="auth_field_confirm_password">Confirm password</string>
     <string name="auth_forgot_password">Forgot password?</string>
+
+    <string name="home_peek_spot_compat_moto">motorbike</string>
+    <string name="home_peek_spot_compat_small">small car</string>
+    <string name="home_peek_spot_compat_medium">medium car</string>
+    <string name="home_peek_spot_compat_large">large car</string>
+    <string name="home_peek_spot_compat_van">van</string>
+    <string name="home_peek_spot_incompatible">Too small for %1$s</string>
+    <string name="home_peek_spot_occupied">Already taken</string>
+    <string name="home_peek_spot_en_route">%1$d on the way</string>
+    <string name="home_peek_spot_age_min">Posted %1$d min ago</string>
+    <string name="home_peek_spot_age_hour">Posted %1$d h ago</string>
+    <string name="home_peek_spot_size_unknown">Size not specified</string>
+    <string name="home_peek_spot_reliability_label">Reliability</string>
+    <string name="home_peek_parking_duration_min">Parked %1$d min ago</string>
+    <string name="home_peek_parking_duration_hm">Parked %1$dh %2$dm ago</string>
+    <string name="home_report_size_section">Space size (optional)</string>
 </resources>

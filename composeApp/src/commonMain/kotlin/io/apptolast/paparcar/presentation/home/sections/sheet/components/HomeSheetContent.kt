@@ -130,7 +130,7 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
         }
         base += 1                       // spots_header (hidden when spot is selected)
     }
-    if (showFilterBar) base += 1        // filter_bar (sticky)
+    if (showFilterBar) base += 1        // filter_bar
     // report_spot_cta sits AFTER the spot list, so it does not shift indices.
     return base + spotIdx
 }
@@ -190,18 +190,12 @@ private fun LazyListScope.spotsSection(
     }
 
     if (showFilterBar) {
-        stickyHeader(key = "filter_bar") {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
-            ) {
-                HomeSizeFilterBar(
-                    selectedSize = state.sizeFilter,
-                    onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            }
+        item(key = "filter_bar") {
+            HomeSizeFilterBar(
+                selectedSize = state.sizeFilter,
+                onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            )
         }
     }
 

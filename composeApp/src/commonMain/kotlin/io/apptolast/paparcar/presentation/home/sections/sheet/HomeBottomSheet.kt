@@ -108,13 +108,21 @@ internal fun HomeBottomSheet(
                     state = state,
                     onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                     onRelease = onRelease,
+                    onRejectSpot = {
+                        state.selectedSpot?.id?.let { id ->
+                            onIntent(HomeIntent.SendSpotSignal(id, accepted = false))
+                        }
+                        onIntent(HomeIntent.SelectItem(null))
+                    },
                     onNavigateExternal = onNavigateExternal,
                     onCancelReport = { onIntent(HomeIntent.ExitReportMode) },
                     onConfirmReport = { onIntent(HomeIntent.ConfirmReportSpot) },
+                    onReportSizeSelected = { onIntent(HomeIntent.SetReportingSize(it)) },
                     onCancelAddZone = { onIntent(HomeIntent.ExitAddZoneMode) },
                     onConfirmAddZone = { onIntent(HomeIntent.ConfirmAddZone) },
                     onUpdateZoneName = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
                     onUpdateZoneIcon = { onIntent(HomeIntent.UpdateAddingZoneIcon(it)) },
+                    onZoneRadiusChanged = { onIntent(HomeIntent.SetZoneRadius(it)) },
                     onCancelAddParking = { onIntent(HomeIntent.ExitAddParkingMode) },
                     onConfirmAddParking = { onIntent(HomeIntent.ConfirmAddParking) },
                     onMoveParkingLocation = onMoveParkingLocation,

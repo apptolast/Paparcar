@@ -420,6 +420,7 @@
     <string name="home_manual_park_pill">Markeren</string>
     <string name="home_zones_empty_pill">Toevoegen</string>
     <string name="home_header_add_zone">Gewone zone toevoegen</string>
+    <string name="home_header_add_zone_hint">Thuis, werk, sportschool\u2026</string>
 
     <!-- Sheet section headers + permissies -->
     <string name="home_vehicles_section_header">Jouw voertuigen</string>
@@ -471,6 +472,8 @@
     <string name="home_zone_edit_header_label">Zone bewerken</string>
     <string name="home_zone_header_label">Nieuwe vaste zone</string>
     <string name="home_zone_icon_section">Icoon</string>
+    <string name="home_zone_radius_section">Straal</string>
+    <string name="home_zone_radius_meters">%1$d m</string>
 
     <!-- My Car — delete confirmation + edit -->
     <string name="my_car_delete_vehicle">Verwijderen</string>
