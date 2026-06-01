@@ -275,14 +275,14 @@ class ParkingDetectionCoordinatorTest {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    fun should_clear_bestStopLocation_after_two_consecutive_reposition_fixes() =
+    fun should_clear_bestStopLocation_after_three_consecutive_reposition_fixes() =
         runTest(UnconfinedTestDispatcher()) {
             // Scenario: wait + maneuver to plaza. The car stops at the waiting position,
             // bestStopLocation is captured there. The brief maneuver to the actual plaza
-            // produces 2 consecutive fixes at 1.7 m/s with good accuracy — below
+            // produces 3 consecutive fixes at 1.7 m/s with good accuracy — below
             // clearBestStopSpeedMps so LOC-002 alone would preserve the stale value, but
-            // PARKING-001 counts the burst and clears it. The eventual confirmed location
-            // must be the plaza, not the waiting position.
+            // PARKING-001 counts the burst (repositionFixCount=3) and clears it. The
+            // eventual confirmed location must be the plaza, not the waiting position.
             val env = setup()
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
@@ -294,11 +294,12 @@ class ParkingDetectionCoordinatorTest {
             // Waiting stop — bestStopLocation = 40.005.
             locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
 
-            // Reposition burst: 2 fixes at 1.7 m/s with good accuracy. Below
+            // Reposition burst: 3 fixes at 1.7 m/s with good accuracy. Below
             // clearBestStopSpeedMps (2.5) — LOC-002 alone would preserve. With PARKING-001
-            // the second fix triggers the reset.
+            // the third fix triggers the reset (repositionFixCount=3). [PARKING-001]
             locations.emit(GpsPoint(40.006, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.7f))
             locations.emit(GpsPoint(40.007, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.7f))
+            locations.emit(GpsPoint(40.008, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.7f))
 
             // Trigger user-confirm at the actual plaza (40.010). With the burst-reset the
             // saved location should be 40.010, not the stale waiting 40.005.
@@ -321,8 +322,8 @@ class ParkingDetectionCoordinatorTest {
     fun should_preserve_bestStopLocation_on_single_reposition_fix() =
         runTest(UnconfinedTestDispatcher()) {
             // A single 1.7 m/s fix must NOT clear bestStopLocation — that would be the
-            // LOC-002 noise-spike scenario lowered to reposition speed. Two consecutive
-            // fixes are required.
+            // LOC-002 noise-spike scenario lowered to reposition speed. Three consecutive
+            // fixes are required (repositionFixCount=3). [PARKING-001]
             val env = setup()
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) }
@@ -333,7 +334,7 @@ class ParkingDetectionCoordinatorTest {
             // Park: bestStopLocation = 40.005.
             locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
 
-            // ONE reposition-speed fix → counter=1 < repositionFixCount(2). bestStopLocation preserved.
+            // ONE reposition-speed fix → counter=1 < repositionFixCount(3). bestStopLocation preserved.
             locations.emit(GpsPoint(40.006, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.7f))
 
             // User confirms at a different stop. Saved location should still be 40.005.

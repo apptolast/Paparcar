@@ -15,12 +15,17 @@ data class ParkingDetectionConfig(
     /** Minimum stopped duration (ms) required to enter the fast path when an activity-exit event is present. */
     val fastPathMinStoppedMs: Long = 30_000L,
     /** Base confidence score granted by the activity-exit signal alone.
-     *  0.50 lets the fast path reach High (0.75) when both speed and GPS-accuracy
-     *  bonuses are present, auto-confirming without requiring user action. */
+     *  0.50 lets the fast path reach High (0.75) when both the speed bonus AND the
+     *  STILL + GPS-accuracy bonus are present, auto-confirming without requiring user
+     *  action. Without a STILL signal the maximum fast-path score is 0.65 (Medium) —
+     *  the user must confirm manually. [BUG-DETECT-310503] */
     val fastPathBaseScore: Float = 0.50f,
     /** Bonus added when speed is below [maxSpeedMps] in the fast path. */
     val fastPathSpeedBonus: Float = 0.15f,
-    /** Bonus added when GPS accuracy is better than [minGpsAccuracyMeters] in the fast path. */
+    /** Bonus added when STILL activity is also detected AND GPS accuracy is better than
+     *  [minGpsAccuracyMeters] in the fast path. Gating this bonus on [activityStill]
+     *  ensures that a brief stop (hospital entrance, drop-off) with an activity-exit
+     *  signal but no STILL confirmation cannot auto-confirm. [BUG-DETECT-310503] */
     val fastPathAccuracyBonus: Float = 0.10f,
 
     // ── SLOW PATH ─────────────────────────────────────────────────────────────
@@ -163,6 +168,15 @@ data class ParkingDetectionConfig(
      *  from package pickups or errand waits. Default 5 minutes. */
     val confirmationObservationWindowMs: Long = 5 * 60_000L,
 
+    // ── LOW/MEDIUM NOTIFICATION FALLBACK ─────────────────────────────────────
+    /** Maximum time (ms) to wait for an activity-exit or STILL signal before showing
+     *  the Low/Medium parking-confirmation notification anyway. On hardware where
+     *  Activity Recognition delivers the IN_VEHICLE→EXIT transition late (or not at all
+     *  before the GPS stop resolves), the coordinator would otherwise suppress the
+     *  notification indefinitely. After this window the notification fires regardless,
+     *  so the user can still confirm manually. Default 90 s. [BUG-DETECT-310502] */
+    val lowNotifTimeoutMs: Long = 90_000L,
+
     // ── DETECTION RELIABILITY ─────────────────────────────────────────────────
     /** Reliability score [0.0, 1.0] assigned when the user manually confirms parking.
      *  Represents near-certain ground truth. */
@@ -294,6 +308,9 @@ data class ParkingDetectionConfig(
         }
         require(mismatchMinSessionDurationMs > 0) {
             "mismatchMinSessionDurationMs must be > 0, was $mismatchMinSessionDurationMs"
+        }
+        require(lowNotifTimeoutMs > 0) {
+            "lowNotifTimeoutMs must be > 0, was $lowNotifTimeoutMs"
         }
     }
 }

@@ -12,6 +12,10 @@ import io.apptolast.paparcar.domain.model.ParkingSignals
  * **FAST PATH** — triggered when an activity-exit event is present AND the vehicle
  * has been stopped for at least [ParkingDetectionConfig.fastPathMinStoppedMs].
  * This quickly rules out traffic lights and short stops with a strong signal.
+ * The GPS-accuracy bonus is gated on `activityStill` — without a STILL confirmation,
+ * the fast path tops out at Medium (0.65) and the user must confirm manually. This
+ * prevents auto-confirmation during brief hospital-entrance or drop-off stops where
+ * the Activity Recognition exit transition arrives before STILL. [BUG-DETECT-310503]
  *
  * **SLOW PATH** — used when no activity-exit event is available. It gates on a
  * minimum stopped duration ([ParkingDetectionConfig.slowPathGateMs]) and then
@@ -24,11 +28,14 @@ class CalculateParkingConfidenceUseCase(private val config: ParkingDetectionConf
 
     operator fun invoke(signals: ParkingSignals): ParkingConfidence {
 
-        // FAST PATH: activityExit signal present + min stop time → traffic lights discarded
+        // FAST PATH: activityExit signal present + min stop time → traffic lights discarded.
+        // GPS-accuracy bonus requires activityStill so that a brief stop (hospital entrance,
+        // drop-off) with no STILL confirmation scores Medium at most and prompts the user
+        // instead of auto-confirming. [BUG-DETECT-310503]
         if (signals.activityExit && signals.stoppedDurationMs >= config.fastPathMinStoppedMs) {
             var score = config.fastPathBaseScore
             if (signals.speed < config.maxSpeedMps) score += config.fastPathSpeedBonus
-            if (signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.fastPathAccuracyBonus
+            if (signals.activityStill && signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.fastPathAccuracyBonus
             return toConfidence(score)
         }
 

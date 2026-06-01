@@ -82,6 +82,12 @@ class ParkingDetectionCoordinator(
         val activityStillDetected: Boolean = false,
         val userConfirmedParking: Boolean = false,
         val mediumNotificationShown: Boolean = false,
+        /** Epoch-ms when [ParkingConfidence.Low] or [ParkingConfidence.Medium] was first reached
+         *  in the current stop. Used to implement a fallback notification timeout: if no
+         *  `vehicleExit` or `activityStill` signal arrives within [ParkingDetectionConfig.lowNotifTimeoutMs],
+         *  the notification fires anyway so the user can confirm manually. Reset together with
+         *  [mediumNotificationShown] whenever the vehicle moves again. [BUG-DETECT-310502] */
+        val lowFirstReachedAt: Long? = null,
         /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] AND
          *  the device has moved at least [ParkingDetectionConfig.minimumTripDistanceMeters] from
          *  [sessionOrigin]. Both conditions must hold simultaneously to prevent a brief GPS-noise
@@ -455,6 +461,7 @@ class ParkingDetectionCoordinator(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),
                     mediumNotificationShown = false,
+                    lowFirstReachedAt = null,
                     bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
                     vehicleExitConfirmed = if (isDriving) false else it.vehicleExitConfirmed,
                     activityStillDetected = if (isDriving) false else it.activityStillDetected,
@@ -494,19 +501,33 @@ class ParkingDetectionCoordinator(
             is ParkingConfidence.NotYet -> Unit
             is ParkingConfidence.Low,
             is ParkingConfidence.Medium -> {
-                // Only show the notification if an activity-exit or STILL signal has
-                // arrived. Without one, this is almost certainly a traffic stop — no
-                // exit transition means the user is still in a moving vehicle. [BUG-3]
-                if (!state.mediumNotificationShown &&
-                    (state.vehicleExitConfirmed || state.activityStillDetected)
-                ) {
-                    PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, exit=${state.vehicleExitConfirmed} still=${state.activityStillDetected})")
+                // Record the first time Low/Medium is reached in this stop (once per stop).
+                // Used to drive the fallback notification timeout. [BUG-DETECT-310502]
+                if (state.lowFirstReachedAt == null) {
+                    _detectionState.update { it.copy(lowFirstReachedAt = now) }
+                }
+
+                val hasExitOrStill = state.vehicleExitConfirmed || state.activityStillDetected
+                // Fall back to showing the notification after lowNotifTimeoutMs even without
+                // an activity-exit or STILL signal. On hardware where AR delivers the EXIT
+                // transition late (or not at all), the user would otherwise never see the
+                // confirmation prompt during the stop. [BUG-DETECT-310502]
+                val timeoutReached = state.lowFirstReachedAt != null &&
+                        (now - state.lowFirstReachedAt) >= config.lowNotifTimeoutMs
+
+                if (!state.mediumNotificationShown && (hasExitOrStill || timeoutReached)) {
+                    val reason = when {
+                        hasExitOrStill -> "exit=${state.vehicleExitConfirmed} still=${state.activityStillDetected}"
+                        else -> "timeout=${now - (state.lowFirstReachedAt ?: now)}ms"
+                    }
+                    PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, $reason)")
                     _detectionState.update { it.copy(mediumNotificationShown = true) }
                     PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
                     notifyParkingConfirmation(confidence)
                     PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
                 } else if (!state.mediumNotificationShown) {
-                    PaparcarLogger.d(DIAG, "  ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]")
+                    val waitMs = config.lowNotifTimeoutMs - (now - (state.lowFirstReachedAt ?: now))
+                    PaparcarLogger.d(DIAG, "  ⊘ Low/Medium notif suppressed — no vehicleExit/STILL, timeout in ~${waitMs}ms [BUG-3]")
                 }
             }
 

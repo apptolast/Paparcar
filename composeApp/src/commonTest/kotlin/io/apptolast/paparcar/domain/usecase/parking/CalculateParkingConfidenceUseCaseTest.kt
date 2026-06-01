@@ -15,15 +15,29 @@ class CalculateParkingConfidenceUseCaseTest {
     // ── Fast path ─────────────────────────────────────────────────────────────
 
     @Test
-    fun `should return High when activityExit and speed and accuracy bonuses all present`() {
+    fun `should return High when activityExit and still and speed and accuracy bonuses all present`() {
         val signals = ParkingSignals(
             activityExit = true,
+            activityStill = true,                // required for accuracy bonus [BUG-DETECT-310503]
             stoppedDurationMs = config.fastPathMinStoppedMs,
             speed = 0.1f,                        // below maxSpeedMps → bonus
             gpsAccuracy = 10f,                   // below minGpsAccuracyMeters → bonus
         )
         // 0.50 + 0.15 + 0.10 = 0.75 → High
         assertIs<ParkingConfidence.High>(useCase(signals))
+    }
+
+    @Test
+    fun `should return Medium when activityExit present with speed bonus but no activityStill for accuracy`() {
+        val signals = ParkingSignals(
+            activityExit = true,
+            activityStill = false,               // no STILL → accuracy bonus blocked [BUG-DETECT-310503]
+            stoppedDurationMs = config.fastPathMinStoppedMs,
+            speed = 0.1f,                        // below maxSpeedMps → speed bonus
+            gpsAccuracy = 10f,                   // good GPS but bonus blocked by !activityStill
+        )
+        // 0.50 + 0.15 = 0.65 → Medium (hospital/drop-off stops require manual confirm)
+        assertIs<ParkingConfidence.Medium>(useCase(signals))
     }
 
     @Test

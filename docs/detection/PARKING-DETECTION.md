@@ -135,7 +135,8 @@ The 2.5 m/s driving ceiling is deliberately above typical walking speed (~1.4 m/
 Two scoring paths feed the same threshold (`highConfidenceThreshold = 0.75`):
 
 **Fast path** — requires `activityExit = true` (an `IN_VEHICLE → EXIT` Activity Recognition transition was observed):
-- Base 0.50 + 0.15 if speed ≤ `maxSpeedMps (0.3)` + 0.10 if accuracy ≤ `minGpsAccuracyMeters (15 m)` = up to 0.75.
+- Base 0.50 + 0.15 if speed ≤ `maxSpeedMps (0.3)` + 0.10 if **`activityStill = true`** AND accuracy ≤ `minGpsAccuracyMeters (15 m)` = up to 0.75.
+- Without `activityStill`, the maximum fast-path score is 0.65 (Medium) — the user must confirm manually. This prevents auto-confirmation at hospital entrances or drop-off stops where the activity-exit transition arrives before a STILL confirmation. [BUG-DETECT-310503]
 - Requires the stop to have lasted `fastPathMinStoppedMs = 30 s`.
 
 **Slow path** — no activity-exit signal, pure time-based:
@@ -644,6 +645,33 @@ On Android 12+ (API 31+), calling `startForegroundService()` from a BroadcastRec
 **Root cause.** `ParkingDetectionCoordinator.evaluateConfidence()` showed the Low/Medium notification whenever `!state.mediumNotificationShown`, with no check for an activity-exit or STILL signal. A traffic stop long enough to pass the `slowPathGateMs` gate (90 s) was sufficient to trigger the notification even when the user was still in a moving vehicle.
 
 **Fix.** Gate the Low/Medium notification on `vehicleExitConfirmed || activityStillDetected`. Without either activity-transition signal, brief stops are treated as traffic/errand stops and no notification is shown. The High-confidence CANDIDATE phase is unaffected — it always notifies.
+
+### BUG-DETECT-310502 — Low/Medium notification suppressed indefinitely without STILL/exit (2026-05-31, Redmi)
+
+**Observed:** 2026-05-31 field test. Redmi Note 11: coordinator scored Low from 19:12:25 but the notification was suppressed for 4+ minutes waiting for `vehicleExit` or `activityStill`. The `vehicleExit` signal arrived at 19:13:50 and the notification appeared at 19:14:10 — but by 19:14:42 the vehicle was already moving at 1.5 m/s and the session was cancelled without confirmation.
+
+**Root cause.** BUG-3's fix (gate on exit/still) is correct for filtering traffic stops, but has no timeout. On hardware where Activity Recognition delivers the `IN_VEHICLE→EXIT` transition late relative to the physical stop, the notification can arrive after the user has already re-entered the vehicle, making confirmation impossible.
+
+**Fix.** Track `lowFirstReachedAt` (epoch-ms when Low/Medium was first reached in the current stop) in `ParkingDetectionState`. After `lowNotifTimeoutMs = 90 s` elapses without an exit or STILL signal, the notification fires anyway. The traffic-stop guard (BUG-3) remains active for the first 90 s; the timeout is only a safety net for sluggish AR delivery. `lowFirstReachedAt` resets whenever the vehicle moves (same lifecycle as `mediumNotificationShown`).
+
+### BUG-DETECT-310503 — Fast-path auto-confirms without STILL at hospital entrance (2026-05-31, Oppo)
+
+**Observed:** 2026-05-31 field test. Oppo CPH2371: coordinator auto-confirmed at 19:14:05 with `activityExit=true, activityStill=false, speed=0.10 m/s, stopped=30 s, acc=3.1 m`. The user had stopped briefly at a hospital entrance — the activity-exit AR transition arrived, GPS was excellent, and 8 pedestrian steps within 4 s confirmed via `hasStepsProof`. Sequence: HIGH(0.75) at 19:14:01 → CANDIDATE → steps ≥ 8 → `confirmParking` at 19:14:05.
+
+**Root cause.** The fast path reached `High` with only `activityExit + speed + accuracy` — `activityStill` was not required. With GPS accuracy < 15 m and speed < 0.3 m/s, the score was 0.50 + 0.15 + 0.10 = 0.75 exactly, opening the CANDIDATE phase. The step detector then fired immediately as the user walked into the hospital, completing confirmation before the STILL signal could arrive or the user could dismiss.
+
+**Fix.** Gate `fastPathAccuracyBonus` on `activityStill` in `CalculateParkingConfidenceUseCase`:
+
+```kotlin
+// Before:
+if (signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.fastPathAccuracyBonus
+// After:
+if (signals.activityStill && signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.fastPathAccuracyBonus
+```
+
+Without STILL, the fast-path maximum is now 0.65 (Medium). A Medium score does NOT open the CANDIDATE phase, so step-based auto-confirmation cannot trigger. The user sees the Medium notification and must confirm manually. With STILL, the score reaches 0.75 (High) and auto-confirmation proceeds as before — STILL is a strong signal that the user is no longer inside a moving vehicle.
+
+**Trade-off.** Real parking sessions where Activity Recognition delivers STILL late (common on some devices) will now show a Medium prompt instead of auto-confirming. The user taps once. Preferred over spurious parking records at hospital entrances or other brief stops with good GPS.
 
 ### REFACTOR-DETECT-001 — Clean-up of service / coordinator / receiver flow
 
