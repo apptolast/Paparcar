@@ -53,3 +53,32 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
         )
     }
 }
+
+/**
+ * v6 → v7: add `sizeCategory TEXT` to `parking_sessions`.
+ *
+ * Stores the vehicle's size at confirmation time so [DepartureDetectionWorker] can
+ * forward it to the published [Spot], letting nearby drivers see whether the space fits
+ * their vehicle. Existing rows default to NULL (unknown size). [COMPAT-ROW-001]
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN sizeCategory TEXT"
+        )
+    }
+}
+
+/**
+ * v7 → v8: add `radiusMeters REAL NOT NULL DEFAULT 150` to `zones`.
+ *
+ * Pre-existing zones default to 150 m. The user can now adjust the radius
+ * (50–300 m) when creating or editing a zone. [ZONE-RADIUS-001]
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE zones ADD COLUMN radiusMeters REAL NOT NULL DEFAULT 150"
+        )
+    }
+}

@@ -20,4 +20,11 @@ data class Zone(
     val lon: Double,
     val iconKey: String,
     val createdAt: Long,
-)
+    val radiusMeters: Float = DEFAULT_RADIUS_METERS,
+) {
+    companion object {
+        const val DEFAULT_RADIUS_METERS = 150f
+        const val MIN_RADIUS_METERS = 50f
+        const val MAX_RADIUS_METERS = 300f
+    }
+}

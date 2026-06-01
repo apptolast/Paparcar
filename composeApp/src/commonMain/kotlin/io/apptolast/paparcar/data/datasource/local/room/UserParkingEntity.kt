@@ -25,4 +25,6 @@ data class UserParkingEntity(
     val placeInfoCategory: String? = null,
     // Detection reliability [0.0, 1.0]: 1.0=user confirmed, ~0.90=vehicle-exit, ~0.75=slow-path
     val detectionReliability: Float? = null,
+    // VehicleSize enum name (e.g. "MEDIUM") — passed to the published Spot so nearby drivers see fit
+    val sizeCategory: String? = null,
 )

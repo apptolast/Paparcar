@@ -11,4 +11,5 @@ data class ZoneDto(
     val lon: Double = 0.0,
     val iconKey: String = "",
     val createdAt: Long = 0L,
+    val radiusMeters: Float = 150f,
 )

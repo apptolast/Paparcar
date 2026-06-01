@@ -12,4 +12,5 @@ data class ZoneEntity(
     val lon: Double,
     val iconKey: String,
     val createdAt: Long,
+    val radiusMeters: Float = 150f,
 )

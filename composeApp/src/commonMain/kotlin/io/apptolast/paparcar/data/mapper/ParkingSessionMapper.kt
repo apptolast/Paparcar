@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.VehicleSize
 
 // ── UserParkingEntity → Domain ────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     address = addressOrNull(),
     placeInfo = placeInfoOrNull(),
     detectionReliability = detectionReliability,
+    sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -68,6 +70,7 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category?.name,
     detectionReliability = detectionReliability,
+    sizeCategory = sizeCategory?.name,
 )
 
 // ── Domain → Spot (when user departs, spot is published for others) ───────────
