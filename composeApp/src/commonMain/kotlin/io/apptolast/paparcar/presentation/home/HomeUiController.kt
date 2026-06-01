@@ -1,12 +1,14 @@
 package io.apptolast.paparcar.presentation.home
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import io.apptolast.paparcar.presentation.map.CameraTarget
 
+@Stable
 class HomeUiController {
 
     var cameraTarget: CameraTarget? by mutableStateOf(null)

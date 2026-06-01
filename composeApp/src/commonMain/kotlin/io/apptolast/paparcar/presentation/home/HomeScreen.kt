@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
@@ -36,6 +37,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -163,9 +165,14 @@ fun HomeScreen(
         }
     }
 
+    // Stable function reference — viewModel instance never changes so this
+    // is safe to remember once. Prevents HomeContent from getting a new
+    // lambda on every state emission, which would defeat skipping in children.
+    val onIntent: (HomeIntent) -> Unit = remember(viewModel) { viewModel::handleIntent }
+
     HomeContent(
         state = state,
-        onIntent = viewModel::handleIntent,
+        onIntent = onIntent,
         effects = viewModel.effect,
         snackbarHostState = snackbarHostState,
         navProgressState = navProgressState,
@@ -384,9 +391,8 @@ private fun HomeContent(
                 // True midpoint between the two expansion extremes — more accurate than
                 // containerHeight/2 when content-aware full snap is in play.
                 val halfOffsetPx = (fullSnapOffsetPx + peekOffsetPx) / 2f
-                // Overlay hide fires at 20% of the peek→half range so components
-                // fully fade out before the sheet reaches its midpoint snap.
-                val overlayHideThresholdPx = peekOffsetPx - (peekOffsetPx - halfOffsetPx) * 0.2f
+                // Overlay hides just before the midpoint snap (15% of the peek→half range).
+                val overlayHideThresholdPx = halfOffsetPx + (peekOffsetPx - halfOffsetPx) * 0.15f
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -399,16 +405,22 @@ private fun HomeContent(
                         state.mode is HomeMode.AddingZone
                     val lockToPeek = isPinning || isParkingSelected
                     if (state.selectedItemId == null || lockToPeek) {
-                        // If the sheet is at rest and the correction is small (layout
-                        // measurement settling after first frame), snap directly so the
-                        // user never sees the 300ms glide from the bootstrap estimate.
                         val correction = kotlin.math.abs(sheetOffsetPx.value - peekOffsetPx)
-                        if (!sheetOffsetPx.isRunning && correction < peekSnapTolerancePx) {
+                        // Snap (not animate) when: small layout correction OR sheet is already at
+                        // or below the new peek. The latter covers selection events where the peek
+                        // handle grows (Browse→SelectedParking/Spot), shifting peekOffsetPx upward.
+                        // Without this guard the LaunchedEffect would fire animateTo and the sheet
+                        // would visibly slide up in slow motion to follow the handle.
+                        val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx
+                        if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {
                             sheetOffsetPx.snapTo(peekOffsetPx)
                         } else {
                             sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
                         }
-                    } else if (sheetOffsetPx.value >= peekOffsetPx) {
+                    } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peekOffsetPx) {
+                        // Guard isRunning so animateSheetToHalf() (launched on spot/car tap)
+                        // is not cancelled by the peekOffsetPx change that occurs when the
+                        // peek handle grows to show the selected-item content.
                         sheetOffsetPx.snapTo(peekOffsetPx)
                     }
                 }
@@ -478,39 +490,53 @@ private fun HomeContent(
                     )
                 }
 
-                // Shared action that selects an item and animates the sheet to its
-                // half-snap to keep the map and the selected card visible at once.
-                val animateSheetToHalf: () -> Unit = {
-                    coroutineScope.launch {
-                        sheetOffsetPx.animateTo(
-                            halfOffsetPx.coerceIn(fullSnapOffsetPx, peekOffsetPx),
-                            SnapSpec,
-                        )
+                // rememberUpdatedState wrappers for floats that change when geometry
+                // changes — used by lambdas that must be stable but always read the
+                // latest snap values at call-time rather than capture-time.
+                val currentHalfOffset = rememberUpdatedState(halfOffsetPx)
+                val currentUserParking = rememberUpdatedState(state.userParking)
+                val currentUserGpsPoint = rememberUpdatedState(state.userGpsPoint)
+
+                // Stable lambda — remember(coroutineScope, sheetOffsetPx) so the
+                // object identity is preserved across recompositions; snap-target
+                // floats are read from rememberUpdatedState at call-time.
+                val animateSheetToHalf: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
+                    {
+                        coroutineScope.launch {
+                            sheetOffsetPx.animateTo(
+                                currentHalfOffset.value.coerceIn(
+                                    currentFullSnap.value,
+                                    currentPeekOffset.value,
+                                ),
+                                SnapSpec,
+                            )
+                        }
                     }
                 }
 
                 // O(1) spot lookup keyed by nearbySpots reference equality.
-                // Saves the O(n) `nearbySpots.find { }` scan that fired on
-                // every map-marker tap. The lambda itself isn't memoized
-                // because it captures `animateSheetToHalf` (a freshly
-                // created lambda each compose) — wrapping it in remember
-                // would freeze a stale snap-target.
                 val spotsById = remember(state.nearbySpots) {
                     state.nearbySpots.associateBy { it.id }
                 }
-                val onSpotMarkerClick: (String) -> Unit = { spotId ->
-                    spotsById[spotId]?.let { spot ->
-                        onIntent(HomeIntent.SelectItem(spotId))
-                        uiController.moveCamera(spot.location.latitude, spot.location.longitude)
-                        animateSheetToHalf()
+                // Stable lambda — only recreated when the spots map changes.
+                val onSpotMarkerClick: (String) -> Unit = remember(spotsById, uiController) {
+                    { spotId ->
+                        spotsById[spotId]?.let { spot ->
+                            onIntent(HomeIntent.SelectItem(spotId))
+                            uiController.moveCamera(spot.location.latitude, spot.location.longitude)
+                            animateSheetToHalf()
+                        }
                     }
                 }
 
-                val onMyCarMarkerClick: () -> Unit = {
-                    state.userParking?.let { p ->
-                        onIntent(HomeIntent.SelectItem(p.id))
-                        uiController.moveCamera(p.location.latitude, p.location.longitude)
-                        animateSheetToHalf()
+                // Stable lambda — userParking read via rememberUpdatedState at call-time.
+                val onMyCarMarkerClick: () -> Unit = remember(uiController) {
+                    {
+                        currentUserParking.value?.let { p ->
+                            onIntent(HomeIntent.SelectItem(p.id))
+                            uiController.moveCamera(p.location.latitude, p.location.longitude)
+                            animateSheetToHalf()
+                        }
                     }
                 }
 
@@ -528,6 +554,19 @@ private fun HomeContent(
                     else -> null
                 }
 
+                // Stable event lambdas for HomeMapSection — extracted so the composable
+                // can skip recomposition when only unrelated state fields change.
+                val onZoneClick: (String) -> Unit = remember {
+                    { zoneId -> onIntent(HomeIntent.SelectZone(zoneId)) }
+                }
+                val onMapCameraMove: (Double, Double) -> Unit = remember(uiController) {
+                    { lat, lon ->
+                        uiController.onCameraMoved(lat, lon)
+                        onIntent(HomeIntent.CameraPositionChanged(lat, lon))
+                        onCameraFrame()
+                    }
+                }
+
                 // ── Map ──────────────────────────────────────────────────────
                 // Height is set via Modifier.layout so sheetOffsetPx is read in
                 // the layout phase only — dragging never triggers recomposition here.
@@ -541,12 +580,8 @@ private fun HomeContent(
                     dimSpots = isPinningMode || state.selectedItemId != null,
                     onSpotClick = onSpotMarkerClick,
                     onMyCarClick = onMyCarMarkerClick,
-                    onZoneClick = { zoneId -> onIntent(HomeIntent.SelectZone(zoneId)) },
-                    onCameraMove = { lat, lon ->
-                        uiController.onCameraMoved(lat, lon)
-                        onIntent(HomeIntent.CameraPositionChanged(lat, lon))
-                        onCameraFrame()
-                    },
+                    onZoneClick = onZoneClick,
+                    onCameraMove = onMapCameraMove,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .layout { measurable, constraints ->
@@ -593,21 +628,19 @@ private fun HomeContent(
                     )
                 }
 
-                // ── Right FAB column (utilities) ─────────────────────────────
-                // Bottom positioning is done in the layout phase via Modifier.offset
-                // so dragging never triggers recomposition of this subtree.
-                HomeMapFabsLayer(
-                    state = state,
-                    visible = overlayVisible,
-                    onMyLocation = {
-                        state.userGpsPoint?.let {
+                // Stable event lambdas for FABs layer and report button.
+                // GPS and parking are read via rememberUpdatedState at call-time.
+                val onMyLocation: () -> Unit = remember(uiController) {
+                    {
+                        currentUserGpsPoint.value?.let {
                             uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
                         }
-                    },
-                    onParkedCar = onMyCarMarkerClick,
-                    onMidpoint = {
-                        val parking = state.userParking
-                        val gps = state.userGpsPoint
+                    }
+                }
+                val onMidpoint: () -> Unit = remember(uiController) {
+                    {
+                        val parking = currentUserParking.value
+                        val gps = currentUserGpsPoint.value
                         if (parking != null && gps != null) {
                             uiController.moveCameraToBounds(
                                 lat1 = parking.location.latitude,
@@ -616,7 +649,28 @@ private fun HomeContent(
                                 lon2 = gps.longitude,
                             )
                         }
-                    },
+                    }
+                }
+                val onReportFabClick: () -> Unit = remember(uiController) {
+                    {
+                        onIntent(
+                            HomeIntent.EnterReportMode(
+                                lat = uiController.cameraLat ?: currentUserGpsPoint.value?.latitude ?: 0.0,
+                                lon = uiController.cameraLon ?: currentUserGpsPoint.value?.longitude ?: 0.0,
+                            )
+                        )
+                    }
+                }
+
+                // ── Right FAB column (utilities) ─────────────────────────────
+                // Bottom positioning is done in the layout phase via Modifier.offset
+                // so dragging never triggers recomposition of this subtree.
+                HomeMapFabsLayer(
+                    state = state,
+                    visible = overlayVisible,
+                    onMyLocation = onMyLocation,
+                    onParkedCar = onMyCarMarkerClick,
+                    onMidpoint = onMidpoint,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset {
@@ -644,16 +698,7 @@ private fun HomeContent(
                             IntOffset(0, -(sheetH + fabGapPx).roundToInt())
                         },
                 ) {
-                    HomeReportFab(
-                        onClick = {
-                            onIntent(
-                                HomeIntent.EnterReportMode(
-                                    lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
-                                    lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
-                                )
-                            )
-                        },
-                    )
+                    HomeReportFab(onClick = onReportFabClick)
                 }
 
                 // ── Bottom sheet ─────────────────────────────────────────────
