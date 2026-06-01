@@ -577,7 +577,7 @@ private fun HomeContent(
                 // ── Right FAB column (utilities) ─────────────────────────────
                 HomeMapFabsLayer(
                     state = state,
-                    visible = true,
+                    visible = sheetOffsetPx.value >= overlayHideThresholdPx,
                     bottomInset = permanentFabBottomDp,
                     onMyLocation = {
                         state.userGpsPoint?.let {
