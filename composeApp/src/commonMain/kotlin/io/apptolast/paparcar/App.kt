@@ -67,7 +67,7 @@ import io.apptolast.paparcar.presentation.app.BootstrapFailure
 import io.apptolast.paparcar.presentation.app.SplashEffect
 import io.apptolast.paparcar.presentation.app.SplashViewModel
 import io.apptolast.paparcar.presentation.home.HomeScreen
-import io.apptolast.paparcar.presentation.map.ParkingLocationScreen
+import io.apptolast.paparcar.presentation.map.HistoryParkingDetailScreen
 import io.apptolast.paparcar.presentation.vehicles.VehiclesScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
@@ -97,7 +97,7 @@ import paparcar.composeapp.generated.resources.nav_tab_vehicles
 
 object Routes {
     const val HOME = "home"
-    const val PARKING_LOCATION = "map"
+    const val PARKING_HISTORY_DETAIL = "parking_detail"
     const val VEHICLES = "vehicles"
     const val SETTINGS = "settings"
     const val ONBOARDING = "onboarding"
@@ -115,6 +115,9 @@ private val BOTTOM_NAV_ROUTES = setOf(
     Routes.VEHICLES,
     Routes.SETTINGS,
 )
+
+// Ordered list used to determine slide direction when switching tabs.
+private val BOTTOM_NAV_TAB_ORDER = listOf(Routes.HOME, Routes.VEHICLES, Routes.SETTINGS)
 
 // Screens where the runtime-permission guard should NOT redirect: either they ARE the
 // permission flow itself, or they are pre-permission setup screens (onboarding, vehicle
@@ -379,8 +382,26 @@ private fun MainAppNavigation(
             navController = navController,
             startDestination = startRoute,
             modifier = Modifier.fillMaxSize(),
-            enterTransition = { fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { it / NAV_SLIDE_FRACTION } },
-            exitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { -it / NAV_SLIDE_FRACTION } },
+            enterTransition = {
+                val fromIdx = BOTTOM_NAV_TAB_ORDER.indexOf(initialState.destination.route)
+                val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.route)
+                if (fromIdx >= 0 && toIdx >= 0) {
+                    val dir = if (toIdx > fromIdx) 1 else -1
+                    fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { dir * it / NAV_SLIDE_FRACTION }
+                } else {
+                    fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { it / NAV_SLIDE_FRACTION }
+                }
+            },
+            exitTransition = {
+                val fromIdx = BOTTOM_NAV_TAB_ORDER.indexOf(initialState.destination.route)
+                val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.route)
+                if (fromIdx >= 0 && toIdx >= 0) {
+                    val dir = if (toIdx > fromIdx) 1 else -1
+                    fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { -dir * it / NAV_SLIDE_FRACTION }
+                } else {
+                    fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { -it / NAV_SLIDE_FRACTION }
+                }
+            },
             popEnterTransition = { fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { -it / NAV_SLIDE_FRACTION } },
             popExitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { it / NAV_SLIDE_FRACTION } },
         ) {
@@ -488,17 +509,20 @@ private fun MainAppNavigation(
                 )
             }
             composable(
-                route = "${Routes.PARKING_LOCATION}?lat={lat}&lon={lon}",
+                route = "${Routes.PARKING_HISTORY_DETAIL}?lat={lat}&lon={lon}&sessionId={sessionId}",
                 arguments = listOf(
                     navArgument("lat") { type = NavType.StringType; defaultValue = "" },
                     navArgument("lon") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("sessionId") { type = NavType.StringType; defaultValue = "" },
                 ),
             ) { backStack ->
                 val lat = backStack.arguments?.getString("lat")?.toDoubleOrNull()
                 val lon = backStack.arguments?.getString("lon")?.toDoubleOrNull()
-                ParkingLocationScreen(
+                val sessionId = backStack.arguments?.getString("sessionId") ?: ""
+                HistoryParkingDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
                     initialFocus = if (lat != null && lon != null) Pair(lat, lon) else null,
+                    sessionId = sessionId,
                 )
             }
             composable(Routes.VEHICLES) {
@@ -517,8 +541,8 @@ private fun MainAppNavigation(
                         onConfigureBluetooth = { vehicleId ->
                             navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
                         },
-                        onNavigateToMap = { lat, lon ->
-                            navController.navigate("${Routes.PARKING_LOCATION}?lat=$lat&lon=$lon")
+                        onNavigateToMap = { lat, lon, sessionId ->
+                            navController.navigate("${Routes.PARKING_HISTORY_DETAIL}?lat=$lat&lon=$lon&sessionId=$sessionId")
                         },
                         onShowExplainer = {
                             navController.navigate(Routes.VEHICLE_SIZE_EXPLAINER)
@@ -594,8 +618,10 @@ private const val NAV_SLIDE_FRACTION = 6
 
 private fun NavController.navigateToTab(route: String) {
     navigate(route) {
-        // Pop back to start so the back stack doesn't grow unbounded when switching tabs.
-        popUpTo(graph.startDestinationId) { saveState = true }
+        // Pop back to HOME by explicit route, not graph.startDestinationId — the graph's
+        // start destination may be an onboarding screen that has already been popped, in
+        // which case popUpTo would find nothing and tabs would stack unboundedly.
+        popUpTo(Routes.HOME) { saveState = true }
         launchSingleTop = true
         restoreState = true
     }

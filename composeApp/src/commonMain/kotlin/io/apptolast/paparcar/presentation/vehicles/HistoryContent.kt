@@ -2,22 +2,36 @@
 
 package io.apptolast.paparcar.presentation.vehicles
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.vehicles.components.ActiveSectionHeader
@@ -108,7 +122,7 @@ internal sealed class TimelineItem {
 internal fun HistoryContent(
     state: HistoryState,
     contentPadding: PaddingValues,
-    onViewOnMap: (Double, Double) -> Unit,
+    onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     onFilterSelected: (HistoryFilter) -> Unit = {},
     modifier: Modifier = Modifier,
     showInternalStats: Boolean = true,
@@ -141,14 +155,8 @@ internal fun HistoryContent(
             headerSlot?.invoke(this)
 
             if (state.isLoading) {
-                item(key = "loading") {
-                    Box(
-                        modifier = if (headerSlot == null) Modifier.fillParentMaxSize()
-                        else Modifier.fillMaxWidth().padding(vertical = 48.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                item(key = "sk_section") {
+                    HistorySkeletonSection(fillMaxSize = headerSlot == null)
                 }
             } else if (state.sessions.isEmpty()) {
                 item(key = "empty") {
@@ -229,6 +237,89 @@ internal fun HistoryContent(
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Skeleton loading section
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition()
+    val skAlpha by transition.animateFloat(
+        initialValue = SKELETON_ALPHA_MIN,
+        targetValue = SKELETON_ALPHA_MAX,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SKELETON_ANIM_MS, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+    )
+    val cs = MaterialTheme.colorScheme
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (fillMaxSize) Modifier.fillMaxSize() else Modifier)
+            .padding(top = 6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(SKELETON_CHART_HEIGHT_DP.dp)
+                .clip(RoundedCornerShape(SKELETON_CORNER_DP.dp))
+                .background(cs.onSurface.copy(alpha = skAlpha)),
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            repeat(SKELETON_FILTER_COUNT) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(SKELETON_CHIP_HEIGHT_DP.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(cs.onSurface.copy(alpha = skAlpha * SKELETON_CHIP_ALPHA_FACTOR)),
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Box(
+            modifier = Modifier
+                .padding(start = 16.dp)
+                .width(SKELETON_HEADER_WIDTH_DP.dp)
+                .height(SKELETON_HEADER_HEIGHT_DP.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(cs.onSurface.copy(alpha = skAlpha * SKELETON_HEADER_ALPHA_FACTOR)),
+        )
+        Spacer(Modifier.height(8.dp))
+        repeat(SKELETON_ROW_COUNT) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .height(SKELETON_SESSION_HEIGHT_DP.dp)
+                    .clip(RoundedCornerShape(SKELETON_CORNER_DP.dp))
+                    .background(cs.onSurface.copy(alpha = skAlpha)),
+            )
+        }
+    }
+}
+
+private const val SKELETON_CHART_HEIGHT_DP = 148
+private const val SKELETON_CHIP_HEIGHT_DP = 32
+private const val SKELETON_SESSION_HEIGHT_DP = 72
+private const val SKELETON_HEADER_WIDTH_DP = 80
+private const val SKELETON_HEADER_HEIGHT_DP = 12
+private const val SKELETON_CORNER_DP = 16
+private const val SKELETON_ANIM_MS = 700
+private const val SKELETON_FILTER_COUNT = 4
+private const val SKELETON_ROW_COUNT = 3
+private const val SKELETON_ALPHA_MIN = 0.06f
+private const val SKELETON_ALPHA_MAX = 0.14f
+private const val SKELETON_CHIP_ALPHA_FACTOR = 0.85f
+private const val SKELETON_HEADER_ALPHA_FACTOR = 0.7f
 
 private const val DAY_MS = 86_400_000L
 

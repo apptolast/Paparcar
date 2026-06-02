@@ -11,8 +11,14 @@ data class VehiclesState(
     val selectedVehicleIndex: Int = 0,
     val pendingDeleteVehicleId: String? = null,
     val bluetoothConnectedVehicleId: String? = null,
-    val historyState: HistoryState = HistoryState(),
+    val historyCache: Map<String, HistoryState> = emptyMap(),
 ) {
+    val currentVehicleId: String?
+        get() = vehicles.getOrNull(selectedVehicleIndex)?.vehicle?.id
+
+    val historyState: HistoryState
+        get() = currentVehicleId?.let { historyCache[it] } ?: HistoryState(isLoading = false)
+
     val activeVehicle: Vehicle?
         get() = vehicles
             .map { it.vehicle }

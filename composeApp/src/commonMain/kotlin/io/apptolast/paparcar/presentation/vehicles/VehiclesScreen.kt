@@ -92,7 +92,7 @@ fun VehiclesScreen(
     onAddVehicle: () -> Unit = {},
     onEditVehicle: (vehicleId: String) -> Unit = {},
     onConfigureBluetooth: (vehicleId: String) -> Unit = {},
-    onNavigateToMap: (lat: Double, lon: Double) -> Unit = { _, _ -> },
+    onNavigateToMap: (lat: Double, lon: Double, sessionId: String) -> Unit = { _, _, _ -> },
     onShowExplainer: () -> Unit = {},
     viewModel: VehiclesViewModel = koinViewModel(),
 ) {
@@ -106,7 +106,7 @@ fun VehiclesScreen(
             when (effect) {
                 is VehiclesEffect.NavigateToAddVehicle -> onAddVehicle()
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
-                is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon)
+                is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon, effect.sessionId)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
                 is VehiclesEffect.ShowCannotDeleteLastVehicle ->
                     snackbarHostState.showSnackbar(cannotDeleteLastMessage)
@@ -199,8 +199,10 @@ private fun VehiclesPager(
     val scope = rememberCoroutineScope()
 
     // Scroll pager when ViewModel changes the selected index (e.g. restore on back-nav).
+    // Skip when the pager is already scrolling — the in-progress animateScrollToPage
+    // (started by a tab click) would be cancelled and replaced with an instant jump.
     LaunchedEffect(state.selectedVehicleIndex) {
-        if (pagerState.currentPage != state.selectedVehicleIndex) {
+        if (pagerState.settledPage != state.selectedVehicleIndex && !pagerState.isScrollInProgress) {
             pagerState.scrollToPage(state.selectedVehicleIndex)
         }
     }
@@ -232,9 +234,16 @@ private fun VehiclesPager(
             // briefly point at an out-of-bounds index. Use the clamped
             // page to read the slot so we never crash with IOOBE.
             val safePage = page.coerceAtMost(vehicles.lastIndex)
+            val vehicleWithStats = vehicles[safePage]
+            // Each page reads its own vehicle's history from the cache directly.
+            // Using the shared state.historyState (derived from selectedVehicleIndex)
+            // would show the SELECTED vehicle's history on ALL visible pages during a
+            // pager slide animation, making the incoming page appear to have the wrong content.
+            val pageHistoryState = state.historyCache[vehicleWithStats.vehicle.id]
+                ?: HistoryState(isLoading = false)
             VehiclePageContent(
-                vehicleWithStats = vehicles[safePage],
-                historyState = state.historyState,
+                vehicleWithStats = vehicleWithStats,
+                historyState = pageHistoryState,
                 onIntent = onIntent,
                 onConfigureBluetooth = onConfigureBluetooth,
                 canDelete = vehicles.size > 1,

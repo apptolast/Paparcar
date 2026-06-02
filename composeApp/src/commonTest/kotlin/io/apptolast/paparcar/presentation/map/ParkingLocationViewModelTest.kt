@@ -6,9 +6,7 @@ import app.cash.turbine.test
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
-import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
-import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -32,7 +30,6 @@ class ParkingLocationViewModelTest {
 
     private lateinit var locationDataSource: FakeLocationDataSource
     private lateinit var parkingRepo: FakeUserParkingRepository
-    private lateinit var spotRepo: FakeSpotRepository
     private lateinit var vm: ParkingLocationViewModel
 
     @BeforeTest
@@ -40,7 +37,6 @@ class ParkingLocationViewModelTest {
         Dispatchers.setMain(testDispatcher)
         locationDataSource = FakeLocationDataSource()
         parkingRepo = FakeUserParkingRepository()
-        spotRepo = FakeSpotRepository()
         vm = buildVm()
     }
 
@@ -56,7 +52,6 @@ class ParkingLocationViewModelTest {
         parkingRepo = repo
         return ParkingLocationViewModel(
             observeAdaptiveLocation = ObserveAdaptiveLocationUseCase(locationDataSource),
-            observeNearbySpots = ObserveNearbySpotsUseCase(spotRepo),
             userParkingRepository = repo,
         )
     }

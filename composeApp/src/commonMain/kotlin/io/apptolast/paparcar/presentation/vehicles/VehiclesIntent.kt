@@ -10,5 +10,5 @@ sealed class VehiclesIntent {
     data class EditVehicle(val vehicleId: String) : VehiclesIntent()
     data object AddVehicle : VehiclesIntent()
     data class SetHistoryFilter(val filter: HistoryFilter) : VehiclesIntent()
-    data class ViewOnMap(val lat: Double, val lon: Double) : VehiclesIntent()
+    data class ViewOnMap(val lat: Double, val lon: Double, val sessionId: String = "") : VehiclesIntent()
 }

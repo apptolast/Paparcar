@@ -76,16 +76,19 @@ class VehiclesViewModel(
             .distinctUntilChanged()
             .flatMapLatest { vehicleId ->
                 if (vehicleId == null) {
-                    flowOf(HistoryState(isLoading = false))
+                    flowOf<Pair<String?, HistoryState>>(null to HistoryState(isLoading = false))
                 } else {
-                    flow {
-                        val currentFilter = state.value.historyState.activeFilter
-                        emit(HistoryState(isLoading = true, activeFilter = currentFilter))
+                    flow<Pair<String?, HistoryState>> {
+                        val cached = state.value.historyCache[vehicleId]
+                        val currentFilter = cached?.activeFilter ?: HistoryFilter.All
+                        if (cached == null) {
+                            emit(vehicleId to HistoryState(isLoading = true, activeFilter = currentFilter))
+                        }
                         userParkingRepository.observeSessionsByVehicle(vehicleId).collect { sessions ->
-                            val filter = state.value.historyState.activeFilter
+                            val filter = state.value.historyCache[vehicleId]?.activeFilter ?: HistoryFilter.All
                             val nowMs = Clock.System.now().toEpochMilliseconds()
                             emit(
-                                HistoryState(
+                                vehicleId to HistoryState(
                                     isLoading = false,
                                     sessions = sessions,
                                     activeFilter = filter,
@@ -97,10 +100,14 @@ class VehiclesViewModel(
                     }
                 }
             }
-            .onEach { newHistoryState -> updateState { copy(historyState = newHistoryState) } }
+            .onEach { (vehicleId, newHistoryState) ->
+                val id = vehicleId ?: return@onEach
+                updateState { copy(historyCache = historyCache + (id to newHistoryState)) }
+            }
             .catch { e ->
                 PaparcarLogger.e(TAG, "Failed to load history", e)
-                updateState { copy(historyState = HistoryState(isLoading = false)) }
+                val vid = state.value.currentVehicleId ?: return@catch
+                updateState { copy(historyCache = historyCache + (vid to HistoryState(isLoading = false))) }
                 sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
             .launchIn(viewModelScope)
@@ -132,13 +139,16 @@ class VehiclesViewModel(
                 sendEffect(VehiclesEffect.NavigateToEditVehicle(intent.vehicleId))
             is VehiclesIntent.AddVehicle -> sendEffect(VehiclesEffect.NavigateToAddVehicle)
             is VehiclesIntent.SetHistoryFilter -> {
-                val filtered = applyHistoryFilter(state.value.historyState.sessions, intent.filter)
+                val vehicleId = state.value.currentVehicleId ?: return
+                val currentHistory = state.value.historyCache[vehicleId] ?: return
+                val filtered = applyHistoryFilter(currentHistory.sessions, intent.filter)
                 updateState {
-                    copy(historyState = historyState.copy(activeFilter = intent.filter, filteredSessions = filtered))
+                    val updated = currentHistory.copy(activeFilter = intent.filter, filteredSessions = filtered)
+                    copy(historyCache = historyCache + (vehicleId to updated))
                 }
             }
             is VehiclesIntent.ViewOnMap ->
-                sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon))
+                sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon, intent.sessionId))
         }
     }
 

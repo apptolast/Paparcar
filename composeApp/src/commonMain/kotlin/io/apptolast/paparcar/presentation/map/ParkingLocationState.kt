@@ -9,4 +9,5 @@ data class ParkingLocationState(
     val userLocation: GpsPoint? = null,
     val spots: List<Spot> = emptyList(),
     val userParking: UserParking? = null,
+    val focusedSession: UserParking? = null,
 )

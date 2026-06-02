@@ -82,7 +82,7 @@ internal fun VehiclePageContent(
     HistoryContent(
         state = historyState,
         contentPadding = PaddingValues(0.dp),
-        onViewOnMap = { lat, lon -> onIntent(VehiclesIntent.ViewOnMap(lat, lon)) },
+        onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
         modifier = Modifier.fillMaxSize(),
         showInternalStats = false,

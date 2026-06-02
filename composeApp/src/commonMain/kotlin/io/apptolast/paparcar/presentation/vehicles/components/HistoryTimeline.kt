@@ -69,7 +69,7 @@ internal fun EndedSessionTimelineNode(
     session: UserParking,
     isLast: Boolean,
     isActive: Boolean = false,
-    onViewOnMap: (Double, Double) -> Unit,
+    onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -122,7 +122,7 @@ internal fun EndedSessionTimelineNode(
 private fun SessionCardContent(
     session: UserParking,
     isActive: Boolean,
-    onViewOnMap: (Double, Double) -> Unit,
+    onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -171,7 +171,7 @@ private fun SessionCardContent(
                 )
             }
             IconButton(
-                onClick = { onViewOnMap(session.location.latitude, session.location.longitude) },
+                onClick = { onViewOnMap(session.location.latitude, session.location.longitude, session.id) },
             ) {
                 Icon(Icons.Filled.Map, contentDescription = stringResource(Res.string.history_view_map), tint = cs.primary)
             }
