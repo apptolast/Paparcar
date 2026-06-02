@@ -84,6 +84,7 @@ class HomeViewModelTest {
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
             vehicleRepository = vehicleRepo,
+            zoneRepository = FakeZoneRepository(),
             geofenceService = FakeGeofenceManager(),
             notificationPort = FakeAppNotificationManager(),
             enrichmentScheduler = FakeParkingEnrichmentScheduler(),

@@ -12,4 +12,6 @@ data class ParkedVehicleView(
     val sizeCategory: VehicleSize?,
     /** Stable index into the vehicle accent palette (0-based, sorted by vehicleId). */
     val paletteIndex: Int,
+    /** Non-null when the session is inside a private zone — map suppresses the vehicle badge marker. */
+    val privateZoneId: String? = null,
 )

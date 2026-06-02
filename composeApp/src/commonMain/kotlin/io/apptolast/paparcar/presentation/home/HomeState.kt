@@ -124,6 +124,8 @@ data class HomeState(
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
     val addingZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,
+    /** When true the zone being created/edited is private — spot publication is suppressed on departure. */
+    val addingZoneIsPrivate: Boolean = false,
     /** Non-null when editing an existing zone instead of creating a new one. */
     val editingZoneId: String? = null,
 

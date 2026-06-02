@@ -77,6 +77,7 @@ sealed class HomeIntent {
     data class UpdateAddingZoneName(val name: String) : HomeIntent()
     data class UpdateAddingZoneIcon(val iconKey: String) : HomeIntent()
     data class SetZoneRadius(val radius: Float) : HomeIntent()
+    data class SetZoneIsPrivate(val isPrivate: Boolean) : HomeIntent()
     data class SelectZone(val zoneId: String) : HomeIntent()
     data class DeleteZone(val zoneId: String) : HomeIntent()
     data class EnterEditZoneMode(val zoneId: String) : HomeIntent()

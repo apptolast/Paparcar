@@ -16,5 +16,7 @@ class FakeZoneRepository : ZoneRepository {
 
     override suspend fun deleteZone(id: String) {}
 
+    override suspend fun getPrivateZonesSnapshot(): List<Zone> = emptyList()
+
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 }

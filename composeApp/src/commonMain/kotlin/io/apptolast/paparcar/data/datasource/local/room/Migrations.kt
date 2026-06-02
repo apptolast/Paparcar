@@ -82,3 +82,22 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
         )
     }
 }
+
+/**
+ * v8 → v9: private zone support.
+ *
+ * - `zones.isPrivate INTEGER NOT NULL DEFAULT 0` — marks the zone as a private
+ *   garage/parking whose spot should never be published to the community.
+ * - `parking_sessions.privateZoneId TEXT` — links a session to its private zone
+ *   so [DepartureDetectionWorker] can skip spot publication on departure.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE zones ADD COLUMN isPrivate INTEGER NOT NULL DEFAULT 0"
+        )
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN privateZoneId TEXT"
+        )
+    }
+}

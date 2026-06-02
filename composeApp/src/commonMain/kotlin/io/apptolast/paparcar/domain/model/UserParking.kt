@@ -32,4 +32,6 @@ data class UserParking(
     val spotType: SpotType = SpotType.AUTO_DETECTED,
     /** Size of the user's vehicle — null until vehicle integration wires it in. */
     val sizeCategory: VehicleSize? = null,
+    /** Non-null when the session was parked inside a private zone — spot publication is suppressed on departure. */
+    val privateZoneId: String? = null,
 )

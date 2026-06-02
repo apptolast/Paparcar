@@ -32,6 +32,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     placeInfo = placeInfoOrNull(),
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
+    privateZoneId = privateZoneId,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -71,6 +72,7 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     placeInfoCategory = placeInfo?.category?.name,
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.name,
+    privateZoneId = privateZoneId,
 )
 
 // ── Domain → Spot (when user departs, spot is published for others) ───────────

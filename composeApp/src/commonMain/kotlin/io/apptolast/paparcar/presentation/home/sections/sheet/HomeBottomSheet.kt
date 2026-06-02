@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home.sections.sheet
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import io.apptolast.paparcar.domain.model.UserParking
@@ -65,6 +67,7 @@ internal fun HomeBottomSheet(
     onEnterReportMode: () -> Unit,
     onRelease: () -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -88,6 +91,12 @@ internal fun HomeBottomSheet(
         shadowElevation = SHEET_SHADOW_ELEVATION_DP.dp,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // In Browse-with-no-selection mode the entire peek handle (drag pill
+            // + content row) is tappable to toggle the sheet. The clickable sits
+            // alongside draggable on the same Box so pointer events reach ONE
+            // composable, avoiding the press-state race that prevents the ripple
+            // from showing when clickable is nested below draggable.
+            val isBrowseTappable = state.mode is HomeMode.Browse && state.selectedItemId == null
             Box(
                 modifier = Modifier
                     .onSizeChanged { size ->
@@ -95,6 +104,7 @@ internal fun HomeBottomSheet(
                         // pass so peekHeightPx never collapses the offset math.
                         if (size.height > 0) onPeekHeightChanged(size.height.toFloat())
                     }
+                    .then(if (isBrowseTappable) Modifier.clickable(onClick = onToggle) else Modifier)
                     .draggable(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->
@@ -115,6 +125,7 @@ internal fun HomeBottomSheet(
             ) {
                 HomePeekHandle(
                     state = state,
+                    onToggle = onToggle,
                     onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                     onRelease = onRelease,
                     onRejectSpot = {
@@ -132,6 +143,7 @@ internal fun HomeBottomSheet(
                     onUpdateZoneName = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
                     onUpdateZoneIcon = { onIntent(HomeIntent.UpdateAddingZoneIcon(it)) },
                     onZoneRadiusChanged = { onIntent(HomeIntent.SetZoneRadius(it)) },
+                    onZoneIsPrivateToggled = { onIntent(HomeIntent.SetZoneIsPrivate(it)) },
                     onCancelAddParking = { onIntent(HomeIntent.ExitAddParkingMode) },
                     onConfirmAddParking = { onIntent(HomeIntent.ConfirmAddParking) },
                     onMoveParkingLocation = onMoveParkingLocation,

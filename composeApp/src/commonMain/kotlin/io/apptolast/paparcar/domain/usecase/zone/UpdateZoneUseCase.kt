@@ -17,9 +17,10 @@ class UpdateZoneUseCase(private val repository: ZoneRepository) {
         lon: Double,
         iconKey: String,
         radiusMeters: Float = existing.radiusMeters,
+        isPrivate: Boolean = existing.isPrivate,
     ) {
         repository.saveZone(
-            existing.copy(name = name.trim(), lat = lat, lon = lon, iconKey = iconKey, radiusMeters = radiusMeters),
+            existing.copy(name = name.trim(), lat = lat, lon = lon, iconKey = iconKey, radiusMeters = radiusMeters, isPrivate = isPrivate),
         )
     }
 }

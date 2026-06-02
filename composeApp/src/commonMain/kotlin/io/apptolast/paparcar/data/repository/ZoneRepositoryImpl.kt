@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
@@ -51,6 +52,9 @@ class ZoneRepositoryImpl(
             firebaseDataSource.saveZone(uid, zone.toDto())
         }
     }
+
+    override suspend fun getPrivateZonesSnapshot(): List<Zone> =
+        observeZones().first().filter { it.isPrivate }
 
     override suspend fun deleteZone(id: String) {
         val uid = currentUserId() ?: return

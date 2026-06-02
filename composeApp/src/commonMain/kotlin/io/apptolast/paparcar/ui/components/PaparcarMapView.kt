@@ -447,12 +447,16 @@ fun PaparcarMapView(
         zones.associate { Coordinates(it.lat, it.lon) to it.id }
     }
 
-    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, dimSpots, isMyCarSelected, zones) {
+    val occupiedPrivateZoneIds = remember(parkedVehicles) {
+        parkedVehicles.mapNotNull { it.privateZoneId }.toSet()
+    }
+    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, dimSpots, isMyCarSelected, zones, occupiedPrivateZoneIds) {
         buildList {
             // Zone markers — added FIRST so spot/parking markers render on top
             // (kmpmaps draws in list order; later entries z-index above earlier).
             // Zones are background context, not actionable like spots.
             zones.forEach { zone ->
+                val isOccupied = zone.isPrivate && zone.id in occupiedPrivateZoneIds
                 add(
                     Marker(
                         coordinates = Coordinates(zone.lat, zone.lon),
@@ -460,14 +464,19 @@ fun PaparcarMapView(
                         // balloon. Zone ID is recovered via zoneIdByCoords in the
                         // click handler instead.
                         title = null,
-                        // Per-iconKey contentId: zones with the same icon share a bitmap.
-                        contentId = "$MARKER_ZONE_PREFIX${zone.iconKey}",
+                        // Occupied private zones use a separate contentId so they get a
+                        // distinct amber+car bitmap without affecting non-occupied zones
+                        // of the same iconKey.
+                        contentId = if (isOccupied) "${MARKER_ZONE_PREFIX}${zone.iconKey}_occupied"
+                                    else "$MARKER_ZONE_PREFIX${zone.iconKey}",
                     ),
                 )
             }
             if (parkedVehicles.isNotEmpty()) {
                 // Name-tag markers: amber plate per active parking session.
-                parkedVehicles.forEach { v ->
+                // Skip vehicles parked inside a private zone — the occupied ZoneMarker
+                // already represents the car at that location.
+                parkedVehicles.filter { it.privateZoneId == null }.forEach { v ->
                     add(
                         Marker(
                             coordinates = Coordinates(v.location.latitude, v.location.longitude),
@@ -526,7 +535,7 @@ fun PaparcarMapView(
     //   - FreeSpotMarker: green teardrop + "P" (unified, no reliability tiers)
     //   - ZoneMarker: blue teardrop + darker-blue disc + zone icon
     // FreeSpot size/en-route overlays are preserved via FreeSpotWithOverlays.
-    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots) {
+    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots, occupiedPrivateZoneIds) {
         val spotContentHandlers: List<Pair<String, @Composable (Marker) -> Unit>> = spotMetaByCoords.values.flatMap { meta ->
             val reliability = meta.reliability
             listOf(
@@ -545,11 +554,11 @@ fun PaparcarMapView(
         }
 
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = mapOf(
-            // ── Legacy fallback teardrop (ParkingLocationScreen) ──
-            MARKER_MY_CAR to { _ -> MyVehicleMarker() },
-            MARKER_MY_CAR_SELECTED to { _ -> MyVehicleMarker(selected = true) },
+            // ── Fallback badge (screens without parkedVehicles context, e.g. HistoryParkingDetailScreen) ──
+            MARKER_MY_CAR to { _ -> VehicleBadgeMarker() },
+            MARKER_MY_CAR_SELECTED to { _ -> VehicleBadgeMarker(selected = true) },
             MARKER_MY_CAR_DIM to { _ ->
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { MyVehicleMarker() }
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { VehicleBadgeMarker() }
             },
             MARKER_CLUSTER to { marker ->
                 FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
@@ -570,12 +579,21 @@ fun PaparcarMapView(
                 },
             )
             entries
-        }.toMap() + zones.associate { zone ->
-            // Zones with the same iconKey share a cached bitmap (identical visual).
-            "$MARKER_ZONE_PREFIX${zone.iconKey}" to { _: Marker ->
-                ZoneMarker(icon = zoneIconFor(zone.iconKey))
-            }
-        }
+        }.toMap() + zones.flatMap { zone ->
+            val icon = zoneIconFor(zone.iconKey)
+            // Explicit type annotation preserves @Composable on each lambda through flatMap.
+            val entries: List<Pair<String, @Composable (Marker) -> Unit>> = listOf(
+                // Default (non-occupied) entry — zones with the same iconKey share a bitmap.
+                "$MARKER_ZONE_PREFIX${zone.iconKey}" to { _: Marker ->
+                    ZoneMarker(icon = icon)
+                },
+                // Occupied private zone — amber + car icon, keyed with _occupied suffix.
+                "${MARKER_ZONE_PREFIX}${zone.iconKey}_occupied" to { _: Marker ->
+                    ZoneMarker(icon = icon, isOccupied = true)
+                },
+            )
+            entries
+        }.toMap()
     }
 
     // ── Track real camera center (set by the map, not by us) ──────────────

@@ -13,6 +13,7 @@ fun Zone.toEntity(): ZoneEntity = ZoneEntity(
     iconKey = iconKey,
     createdAt = createdAt,
     radiusMeters = radiusMeters,
+    isPrivate = isPrivate,
 )
 
 fun ZoneEntity.toDomain(): Zone = Zone(
@@ -24,6 +25,7 @@ fun ZoneEntity.toDomain(): Zone = Zone(
     iconKey = iconKey,
     createdAt = createdAt,
     radiusMeters = radiusMeters,
+    isPrivate = isPrivate,
 )
 
 // ── ZoneDto → Entity (sync from Firestore) ──────────────────────────────────
@@ -37,6 +39,7 @@ fun ZoneDto.toEntity(): ZoneEntity = ZoneEntity(
     iconKey = iconKey,
     createdAt = createdAt,
     radiusMeters = radiusMeters,
+    isPrivate = isPrivate,
 )
 
 // ── Domain → ZoneDto (write to Firestore) ────────────────────────────────────
@@ -50,4 +53,5 @@ fun Zone.toDto(): ZoneDto = ZoneDto(
     iconKey = iconKey,
     createdAt = createdAt,
     radiusMeters = radiusMeters,
+    isPrivate = isPrivate,
 )

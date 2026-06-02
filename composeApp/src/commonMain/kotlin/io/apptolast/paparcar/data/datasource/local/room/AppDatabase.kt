@@ -13,7 +13,7 @@ import androidx.room.RoomDatabaseConstructor
         SpotEntity::class,
         ZoneEntity::class,
     ],
-    version = 8,
+    version = 9,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -10,6 +10,7 @@ import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_4_5
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_5_6
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_6_7
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_7_8
+import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_8_9
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -43,7 +44,7 @@ val androidPlatformModule = module {
             AppDatabase::class.java,
             "paparcar.db"
         ).fallbackToDestructiveMigrationFrom(true, 1, 2)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
     }
 

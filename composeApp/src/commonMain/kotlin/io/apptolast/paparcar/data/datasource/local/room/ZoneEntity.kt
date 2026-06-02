@@ -13,4 +13,5 @@ data class ZoneEntity(
     val iconKey: String,
     val createdAt: Long,
     val radiusMeters: Float = 150f,
+    val isPrivate: Boolean = false,
 )

@@ -12,6 +12,8 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
@@ -33,6 +35,7 @@ import kotlin.uuid.Uuid
 class ConfirmParkingUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
+    private val zoneRepository: ZoneRepository,
     private val geofenceService: GeofenceManager,
     private val notificationPort: AppNotificationManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
@@ -87,6 +90,14 @@ class ConfirmParkingUseCase(
 
         val resolvedSizeCategory = sizeCategory ?: vehicle.sizeCategory
         val resolvedVehicleId = vehicle.id
+
+        // Check if the parking location falls inside one of the user's private zones.
+        // If so, the session is stored locally but the community Spot is never published.
+        val matchedPrivateZoneId = zoneRepository.getPrivateZonesSnapshot().firstOrNull { zone ->
+            haversineMeters(location.latitude, location.longitude, zone.lat, zone.lon) <= zone.radiusMeters
+        }?.id
+        PaparcarLogger.d(DIAG, "  privateZoneId=$matchedPrivateZoneId")
+
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -105,6 +116,7 @@ class ConfirmParkingUseCase(
             detectionReliability = detectionReliability,
             spotType = spotType,
             sizeCategory = resolvedSizeCategory,
+            privateZoneId = matchedPrivateZoneId,
         )
 
         PaparcarLogger.d(DIAG, "  → saveSession BEFORE sessionId=$sessionId")

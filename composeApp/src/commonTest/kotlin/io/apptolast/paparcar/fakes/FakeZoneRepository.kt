@@ -26,6 +26,8 @@ class FakeZoneRepository : ZoneRepository {
 
     override fun observeZones(): Flow<List<Zone>> = _zones
 
+    override suspend fun getPrivateZonesSnapshot(): List<Zone> = _zones.value.filter { it.isPrivate }
+
     override suspend fun syncFromRemote(userId: String): Result<Unit> {
         syncFromRemoteCallCount++
         return syncFromRemoteResult

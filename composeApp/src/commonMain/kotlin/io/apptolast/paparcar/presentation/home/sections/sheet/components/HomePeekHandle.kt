@@ -36,6 +36,7 @@ import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.DirectionsCar
@@ -51,6 +52,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -140,6 +142,8 @@ import paparcar.composeapp.generated.resources.home_zone_name_placeholder
 import paparcar.composeapp.generated.resources.home_zone_radius_meters
 import paparcar.composeapp.generated.resources.home_zone_radius_section
 import paparcar.composeapp.generated.resources.home_zone_save_action
+import paparcar.composeapp.generated.resources.home_zone_private_label
+import paparcar.composeapp.generated.resources.home_zone_private_hint
 
 @Composable
 internal fun HomePeekHandle(
@@ -156,9 +160,11 @@ internal fun HomePeekHandle(
     onUpdateZoneName: (String) -> Unit = {},
     onUpdateZoneIcon: (String) -> Unit = {},
     onZoneRadiusChanged: (Float) -> Unit = {},
+    onZoneIsPrivateToggled: (Boolean) -> Unit = {},
     onCancelAddParking: () -> Unit = {},
     onConfirmAddParking: () -> Unit = {},
     onMoveParkingLocation: () -> Unit = {},
+    onToggle: () -> Unit = {},
 ) {
     val freeCount = state.filteredNearbySpots.size
     val isParkingSelected = state.isParkingSelected
@@ -240,6 +246,7 @@ internal fun HomePeekHandle(
                     onNameChange = onUpdateZoneName,
                     onIconChange = onUpdateZoneIcon,
                     onRadiusChange = onZoneRadiusChanged,
+                    onIsPrivateToggled = onZoneIsPrivateToggled,
                 )
                 is PeekState.AddingParking -> AddingParkingPeekRow(
                     state = state,
@@ -247,7 +254,7 @@ internal fun HomePeekHandle(
                     onCancel = onCancelAddParking,
                     onConfirm = onConfirmAddParking,
                 )
-                PeekState.Browse -> CameraLocationRow(state = state, freeCount = freeCount)
+                PeekState.Browse -> CameraLocationRow(state = state, freeCount = freeCount, onToggle = onToggle)
             }
         }
     }
@@ -905,6 +912,7 @@ private fun AddingZonePeekRow(
     onNameChange: (String) -> Unit,
     onIconChange: (String) -> Unit,
     onRadiusChange: (Float) -> Unit,
+    onIsPrivateToggled: (Boolean) -> Unit = {},
 ) {
     val primaryText = cameraTitleWhileSettling(state)
 
@@ -971,6 +979,39 @@ private fun AddingZonePeekRow(
                 valueRange = Zone.MIN_RADIUS_METERS..Zone.MAX_RADIUS_METERS,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(Res.string.home_zone_private_label),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            text = stringResource(Res.string.home_zone_private_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
+                        )
+                    }
+                }
+                Switch(
+                    checked = state.addingZoneIsPrivate,
+                    onCheckedChange = onIsPrivateToggled,
+                )
+            }
             Spacer(Modifier.height(14.dp))
         },
         actions = {
@@ -1123,10 +1164,10 @@ private fun cameraTitleWhileSettling(state: HomeState): String =
 // ═════════════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun CameraLocationRow(state: HomeState, freeCount: Int) {
+private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> Unit = {}) {
     val info = state.cameraLocationInfo
     if (info == null || (state.isCameraGeocoding && info.displayLine == null && info.placeInfo == null)) {
-        PeekLocationSkeleton()
+        PeekLocationSkeleton(onToggle = onToggle)
         return
     }
     Row(
@@ -1201,7 +1242,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int) {
 }
 
 @Composable
-private fun PeekLocationSkeleton() {
+private fun PeekLocationSkeleton(onToggle: () -> Unit = {}) {
     val transition = rememberInfiniteTransition(label = "peek_skeleton")
     val pulseAlpha by transition.animateFloat(
         initialValue = 0.10f,

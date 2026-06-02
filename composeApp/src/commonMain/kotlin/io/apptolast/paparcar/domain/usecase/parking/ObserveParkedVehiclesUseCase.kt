@@ -36,6 +36,7 @@ class ObserveParkedVehiclesUseCase(
                     location = session.location,
                     sizeCategory = session.sizeCategory,
                     paletteIndex = sortedIds.indexOf(vehicleId).coerceAtLeast(0),
+                    privateZoneId = session.privateZoneId,
                 )
             }
         }

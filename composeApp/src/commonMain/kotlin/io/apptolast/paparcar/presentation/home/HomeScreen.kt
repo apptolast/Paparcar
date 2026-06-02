@@ -468,13 +468,19 @@ private fun HomeContent(
                     derivedStateOf { sheetOffsetPx.value < halfOffsetPx }
                 }
 
-                // overlayHideThresholdPx is a pure Float derived in composition and
-                // therefore a valid derivedStateOf key — the derivation only re-runs
-                // when the Float changes, so the boolean only triggers recomposition
-                // on the two frames when it actually flips, not on every drag frame.
-                val overlayVisible by remember(overlayHideThresholdPx) {
+                // Sheet-position gate: only re-runs on the two frames when the
+                // sheet crosses the threshold, not on every drag frame.
+                val sheetAtPeekLevel by remember(overlayHideThresholdPx) {
                     derivedStateOf { sheetOffsetPx.value >= overlayHideThresholdPx }
                 }
+                // Full overlay gate: hidden whenever the sheet is dragged up OR
+                // any item is selected (spot / parking) OR a non-Browse mode is
+                // active (Reporting / AddingZone / AddingParking). State reads here
+                // are fine — this recomposes only when those fields change, which
+                // is far less frequent than drag frames.
+                val overlayVisible = sheetAtPeekLevel &&
+                    state.selectedItemId == null &&
+                    state.mode is HomeMode.Browse
 
                 // Cache the bleed in pixels for use inside layout-phase lambdas
                 // (Modifier.layout/offset) where toDp() is not available.
@@ -510,6 +516,23 @@ private fun HomeContent(
                                 ),
                                 SnapSpec,
                             )
+                        }
+                    }
+                }
+
+                // Toggles the sheet between peek (collapsed) and half-expanded.
+                // At peek → animate to half; at or above half → collapse to peek.
+                val toggleSheet: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
+                    {
+                        coroutineScope.launch {
+                            // > (strict): when the sheet is exactly at half, the
+                            // next tap must collapse, not re-animate to the same spot.
+                            val target = if (sheetOffsetPx.value > currentHalfOffset.value) {
+                                currentHalfOffset.value.coerceIn(currentFullSnap.value, currentPeekOffset.value)
+                            } else {
+                                currentPeekOffset.value
+                            }
+                            sheetOffsetPx.animateTo(target, SnapSpec)
                         }
                     }
                 }
@@ -756,6 +779,7 @@ private fun HomeContent(
                     },
                     onRelease = { showReleaseDialog = true },
                     onNavigateExternal = openExternalNav,
+                    onToggle = toggleSheet,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }

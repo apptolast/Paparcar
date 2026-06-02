@@ -21,6 +21,9 @@ interface ZoneRepository {
     /** Remove a zone by id — Room first then Firestore. */
     suspend fun deleteZone(id: String)
 
+    /** One-shot read of the current user's private zones. Used by [ConfirmParkingUseCase] to check geofence membership. */
+    suspend fun getPrivateZonesSnapshot(): List<Zone>
+
     /** Deletes all local and remote zones for [userId]. Called during account deletion. */
     suspend fun deleteAllData(userId: String): Result<Unit>
 }

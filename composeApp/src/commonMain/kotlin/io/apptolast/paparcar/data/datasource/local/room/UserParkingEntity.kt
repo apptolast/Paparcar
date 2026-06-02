@@ -27,4 +27,6 @@ data class UserParkingEntity(
     val detectionReliability: Float? = null,
     // VehicleSize enum name (e.g. "MEDIUM") — passed to the published Spot so nearby drivers see fit
     val sizeCategory: String? = null,
+    // Non-null when parked inside a private zone — DepartureDetectionWorker skips Spot publication
+    val privateZoneId: String? = null,
 )

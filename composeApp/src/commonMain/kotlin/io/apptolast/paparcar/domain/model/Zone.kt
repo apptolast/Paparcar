@@ -21,6 +21,8 @@ data class Zone(
     val iconKey: String,
     val createdAt: Long,
     val radiusMeters: Float = DEFAULT_RADIUS_METERS,
+    /** When true the zone is a private garage/parking — spot is never published on departure. */
+    val isPrivate: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_RADIUS_METERS = 150f

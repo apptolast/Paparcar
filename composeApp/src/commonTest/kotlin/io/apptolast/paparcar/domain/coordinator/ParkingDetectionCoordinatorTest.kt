@@ -14,6 +14,7 @@ import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
+import io.apptolast.paparcar.fakes.FakeZoneRepository
 import io.apptolast.paparcar.fakes.FakeStepDetectorSource
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
@@ -64,6 +65,7 @@ class ParkingDetectionCoordinatorTest {
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
             vehicleRepository = vehicleRepo,
+            zoneRepository = FakeZoneRepository(),
             geofenceService = geofence,
             notificationPort = notification,
             enrichmentScheduler = enrichment,

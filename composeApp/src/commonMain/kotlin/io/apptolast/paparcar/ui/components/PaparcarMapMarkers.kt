@@ -278,15 +278,21 @@ private val FREE_SPOT_MARKER_GROUND_GAP = 4.dp
  * static shadow) so multiple zones on the map don't compete with spot markers.
  *
  * @param icon resolved [ImageVector] for the zone's `iconKey`.
+ * @param isOccupied when true the zone contains the user's parked car — the marker
+ *   fuses into an amber vehicle badge, eliminating the need for a separate [VehicleBadgeMarker].
  */
 @Composable
 fun ZoneMarker(
     icon: ImageVector,
     modifier: Modifier = Modifier,
+    isOccupied: Boolean = false,
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
-    val fill = MaterialTheme.colorScheme.surfaceContainer
-    val accent = MaterialTheme.colorScheme.primary
+    val vc = vehicleStateColors()
+    val fill = if (isOccupied) vc.bg else MaterialTheme.colorScheme.surfaceContainer
+    val iconTint = if (isOccupied) vc.on else MaterialTheme.colorScheme.primary
+    val borderColor = if (isOccupied) vc.on.copy(alpha = 0.3f) else ink
+    val displayIcon = if (isOccupied) Icons.Filled.DirectionsCar else icon
     val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
 
     Box(
@@ -306,13 +312,13 @@ fun ZoneMarker(
                 .align(Alignment.TopCenter)
                 .size(ZONE_MARKER_DIAM)
                 .background(color = fill, shape = CircleShape)
-                .border(width = ZONE_MARKER_STROKE, color = ink, shape = CircleShape),
+                .border(width = ZONE_MARKER_STROKE, color = borderColor, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = displayIcon,
                 contentDescription = null,
-                tint = accent,
+                tint = iconTint,
                 modifier = Modifier.size(ZONE_MARKER_ICON),
             )
         }

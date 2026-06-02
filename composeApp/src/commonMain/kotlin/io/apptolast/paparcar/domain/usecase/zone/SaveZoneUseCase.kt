@@ -29,6 +29,7 @@ class SaveZoneUseCase(
         lon: Double,
         iconKey: String = ZoneIcon.DEFAULT,
         radiusMeters: Float = Zone.DEFAULT_RADIUS_METERS,
+        isPrivate: Boolean = false,
     ): Result<Zone> {
         val userId = authRepository.getCurrentSession()?.userId
             ?: return Result.failure(PaparcarError.Auth.NotAuthenticated)
@@ -41,6 +42,7 @@ class SaveZoneUseCase(
             iconKey = iconKey,
             createdAt = Clock.System.now().toEpochMilliseconds(),
             radiusMeters = radiusMeters.coerceIn(Zone.MIN_RADIUS_METERS, Zone.MAX_RADIUS_METERS),
+            isPrivate = isPrivate,
         )
         repository.saveZone(zone)
         return Result.success(zone)

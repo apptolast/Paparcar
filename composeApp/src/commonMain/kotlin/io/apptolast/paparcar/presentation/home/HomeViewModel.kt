@@ -179,6 +179,7 @@ class HomeViewModel(
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
                     addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
+                    addingZoneIsPrivate = false,
                     editingZoneId = null,
                 )
             }
@@ -191,6 +192,7 @@ class HomeViewModel(
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
                     addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
+                    addingZoneIsPrivate = false,
                     editingZoneId = null,
                 )
             }
@@ -198,6 +200,7 @@ class HomeViewModel(
             is HomeIntent.UpdateAddingZoneName -> updateState { copy(addingZoneName = intent.name) }
             is HomeIntent.UpdateAddingZoneIcon -> updateState { copy(addingZoneIconKey = intent.iconKey) }
             is HomeIntent.SetZoneRadius -> updateState { copy(addingZoneRadius = intent.radius) }
+            is HomeIntent.SetZoneIsPrivate -> updateState { copy(addingZoneIsPrivate = intent.isPrivate) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DeleteZone -> viewModelScope.launch { deleteZone(intent.zoneId) }
             is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
@@ -468,10 +471,10 @@ class HomeViewModel(
             val editingId = current.editingZoneId
             if (editingId != null) {
                 current.zones.find { it.id == editingId }?.let { existing ->
-                    updateZone(existing, name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius)
+                    updateZone(existing, name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius, isPrivate = current.addingZoneIsPrivate)
                 }
             } else {
-                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius)
+                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius, isPrivate = current.addingZoneIsPrivate)
                     .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
             }
             updateState {
@@ -483,6 +486,7 @@ class HomeViewModel(
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
                     addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
+                    addingZoneIsPrivate = false,
                     editingZoneId = null,
                 )
             }
@@ -500,6 +504,7 @@ class HomeViewModel(
                 addingZoneName = zone.name,
                 addingZoneIconKey = zone.iconKey,
                 addingZoneRadius = zone.radiusMeters,
+                addingZoneIsPrivate = zone.isPrivate,
                 editingZoneId = zoneId,
             )
         }
@@ -547,10 +552,14 @@ class HomeViewModel(
 
     private fun geocodeCameraLocation(lat: Double, lon: Double) {
         cameraGeocoderJob?.cancel()
+        // Mark geocoding in-progress immediately (before the debounce delay) so
+        // the UI never shows "unknown address" during the gap between a completed
+        // geocode and the start of the next one. Cancellation does NOT clear the
+        // flag — the new job inherits it and clears it only when it truly finishes.
+        updateState { copy(isCameraGeocoding = true) }
         cameraGeocoderJob = viewModelScope.launch {
             delay(GEOCODE_DEBOUNCE_MS)
             getLocationInfo(lat, lon)
-                .onStart { updateState { copy(isCameraGeocoding = true) } }
                 .onCompletion { cause -> if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) } }
                 .catch { }
                 .collect { info -> updateState { copy(cameraLocationInfo = info) } }

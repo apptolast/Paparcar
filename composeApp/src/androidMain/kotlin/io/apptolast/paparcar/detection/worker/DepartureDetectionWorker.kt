@@ -78,10 +78,11 @@ class DepartureDetectionWorker(
         val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
         val lat = session?.location?.latitude
         val lon = session?.location?.longitude
+        // Private-zone sessions never publish the spot — the space belongs to the user.
         // Schedule the report BEFORE clearing so the WorkManager job is durably enqueued
         // even if a retry fires after the session has been deleted. On retry the job is
         // re-enqueued with REPLACE policy — no duplicate publications.
-        if (lat != null && lon != null) {
+        if (lat != null && lon != null && session != null && session.privateZoneId == null) {
             reportSpotReleased(
                 lat = lat,
                 lon = lon,
