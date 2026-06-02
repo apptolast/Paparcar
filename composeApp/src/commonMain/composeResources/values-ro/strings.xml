@@ -186,9 +186,17 @@
     <string name="history_day_full_sat">Sâmbătă</string>
     <string name="history_day_full_sun">Duminică</string>
 
-    <!-- MapScreen -->
+    <!-- MapScreen (legacy keep) -->
     <string name="map_title">Harta locurilor</string>
     <string name="map_cd_back">Înapoi</string>
+
+    <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_section_label">Parcare istorică</string>
+    <string name="parking_detail_active_section_label">Parcare actuală</string>
+    <string name="parking_detail_navigate_action">Navighează la această locație</string>
+    <string name="parking_detail_no_address">Locație necunoscută</string>
+    <string name="parking_detail_detection_auto">Detectat automat</string>
+    <string name="parking_detail_detection_manual">Raport manual</string>
     <string name="map_marker_my_car">Mașina ta parcată</string>
     <string name="map_marker_car_here">Mașină parcată aici</string>
     <string name="map_marker_free">Loc liber</string>
@@ -260,6 +268,8 @@
     <!-- Home Zones — locuri obi&#x219;nuite -->
     <string name="home_zone_name_placeholder">Nume (ex. Acas&#x103;, Munc&#x103;)</string>
     <string name="home_zone_save_action">Salveaz&#x103; zona</string>
+    <string name="home_zone_private_label">Zonă privată</string>
+    <string name="home_zone_private_hint">Locul nu va fi distribuit când pleci</string>
     <string name="home_zone_cancel_cd">Anuleaz&#x103; zona nou&#x103;</string>
     <string name="home_zone_add_chip_cd">Adaug&#x103; o zon&#x103; nou&#x103;</string>
     <string name="home_zone_icon_picker_cd">Alege o pictogram&#x103;</string>
@@ -299,10 +309,17 @@
     <string name="vehicle_registration_name_placeholder">Mașină %1$d</string>
     <string name="vehicle_default_name_format">Mașină %1$d</string>
     <string name="vehicle_registration_other_option">Altul…</string>
-    <string name="vehicle_registration_brand_hint">Marcă (opțional)</string>
-    <string name="vehicle_registration_model_hint">Model (opțional)</string>
+    <string name="vehicle_registration_section_identity">Vehiculul tău</string>
+    <string name="vehicle_registration_section_optional">Poreclă (opțional)</string>
+    <string name="vehicle_registration_brand_hint">Marcă</string>
+    <string name="vehicle_registration_model_hint">Model</string>
+    <string name="vehicle_registration_size_auto_detected">Detectat: %1$s</string>
+    <string name="vehicle_registration_brand_error">Selectează o marcă pentru a continua</string>
+    <string name="vehicle_registration_size_required_hint">Alege o dimensiune pentru a continua</string>
+    <string name="vehicle_registration_saving">Se salvează…</string>
+    <string name="vehicle_registration_bt_new_hint">Salvează vehiculul mai întâi pentru a asocia Bluetooth</string>
     <string name="vehicle_show_on_spot">Afișează marca și modelul pe locurile libere</string>
-    <string name="vehicle_show_on_spot_desc">Alți utilizatori vor vedea tipul vehiculului care a eliberat locul</string>
+    <string name="vehicle_show_on_spot_desc">Marca și modelul sunt private — folosite doar pentru a estima dimensiunea locului. Activează pentru ca alții să vadă ce mașină a eliberat locul.</string>
     <string name="vehicle_size_label">Mărimea vehiculului</string>
     <string name="vehicle_size_moto">Motocicletă</string>
     <string name="vehicle_size_moto_examples">ex. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>

@@ -186,9 +186,17 @@
     <string name="history_day_full_sat">Samstag</string>
     <string name="history_day_full_sun">Sonntag</string>
 
-    <!-- MapScreen -->
+    <!-- MapScreen (legacy keep) -->
     <string name="map_title">Stellplatzkarte</string>
     <string name="map_cd_back">Zurück</string>
+
+    <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_section_label">Historischer Parkplatz</string>
+    <string name="parking_detail_active_section_label">Aktueller Parkplatz</string>
+    <string name="parking_detail_navigate_action">Zu diesem Standort navigieren</string>
+    <string name="parking_detail_no_address">Unbekannter Standort</string>
+    <string name="parking_detail_detection_auto">Automatisch erkannt</string>
+    <string name="parking_detail_detection_manual">Manuell gemeldet</string>
     <string name="map_marker_my_car">Dein geparktes Auto</string>
     <string name="map_marker_car_here">Hier geparktes Auto</string>
     <string name="map_marker_free">Freier Stellplatz</string>
@@ -260,6 +268,8 @@
     <!-- Home Zones — gewohnte Orte -->
     <string name="home_zone_name_placeholder">Name (z. B. Zuhause, Arbeit)</string>
     <string name="home_zone_save_action">Zone speichern</string>
+    <string name="home_zone_private_label">Private Zone</string>
+    <string name="home_zone_private_hint">Platz wird beim Wegfahren nicht geteilt</string>
     <string name="home_zone_cancel_cd">Neue Zone abbrechen</string>
     <string name="home_zone_add_chip_cd">Neue Zone hinzuf&#xFC;gen</string>
     <string name="home_zone_icon_picker_cd">Symbol w&#xE4;hlen</string>
@@ -299,10 +309,17 @@
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
     <string name="vehicle_default_name_format">Auto %1$d</string>
     <string name="vehicle_registration_other_option">Andere…</string>
-    <string name="vehicle_registration_brand_hint">Marke (optional)</string>
-    <string name="vehicle_registration_model_hint">Modell (optional)</string>
+    <string name="vehicle_registration_section_identity">Dein Fahrzeug</string>
+    <string name="vehicle_registration_section_optional">Spitzname (optional)</string>
+    <string name="vehicle_registration_brand_hint">Marke</string>
+    <string name="vehicle_registration_model_hint">Modell</string>
+    <string name="vehicle_registration_size_auto_detected">Erkannt: %1$s</string>
+    <string name="vehicle_registration_brand_error">Wähle eine Marke, um fortzufahren</string>
+    <string name="vehicle_registration_size_required_hint">Wähle eine Größe, um fortzufahren</string>
+    <string name="vehicle_registration_saving">Speichern…</string>
+    <string name="vehicle_registration_bt_new_hint">Speichere das Fahrzeug zuerst, um Bluetooth zu koppeln</string>
     <string name="vehicle_show_on_spot">Marke und Modell auf freien Parkplätzen anzeigen</string>
-    <string name="vehicle_show_on_spot_desc">Andere Nutzer sehen den Fahrzeugtyp, der den Parkplatz freigegeben hat</string>
+    <string name="vehicle_show_on_spot_desc">Marke und Modell sind privat — nur zur Schätzung der Parkplatzgröße verwendet. Aktivieren, damit andere sehen, welches Auto den Platz freigegeben hat.</string>
     <string name="vehicle_size_label">Fahrzeuggröße</string>
     <string name="vehicle_size_moto">Motorrad</string>
     <string name="vehicle_size_moto_examples">z.B. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>

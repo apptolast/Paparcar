@@ -233,9 +233,17 @@
     <string name="history_day_full_sat">Saturday</string>
     <string name="history_day_full_sun">Sunday</string>
 
-    <!-- MapScreen -->
+    <!-- MapScreen (legacy keep) -->
     <string name="map_title">Spots map</string>
     <string name="map_cd_back">Back</string>
+
+    <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_section_label">Historic parking</string>
+    <string name="parking_detail_active_section_label">Current parking</string>
+    <string name="parking_detail_navigate_action">Navigate to this location</string>
+    <string name="parking_detail_no_address">Unknown location</string>
+    <string name="parking_detail_detection_auto">Auto-detected</string>
+    <string name="parking_detail_detection_manual">Manual report</string>
     <string name="map_marker_my_car">Your parked car</string>
     <string name="map_marker_car_here">Car parked here</string>
     <string name="map_marker_free">Free spot</string>
@@ -299,6 +307,8 @@
     <!-- Home Zones — habitual places -->
     <string name="home_zone_name_placeholder">Name (e.g. Home, Work)</string>
     <string name="home_zone_save_action">Save zone</string>
+    <string name="home_zone_private_label">Private zone</string>
+    <string name="home_zone_private_hint">Spot won\'t be shared when you leave</string>
     <string name="home_zone_cancel_cd">Cancel new zone</string>
     <string name="home_zone_add_chip_cd">Add a new zone</string>
     <string name="home_zone_icon_picker_cd">Choose an icon</string>
@@ -400,8 +410,9 @@
 
     <!-- Vehicle Registration screen -->
     <string name="vehicle_registration_title">Register your vehicle</string>
+    <string name="vehicle_registration_section_identity">Your vehicle</string>
     <string name="vehicle_registration_section_size">Vehicle size</string>
-    <string name="vehicle_registration_section_optional">Optional details</string>
+    <string name="vehicle_registration_section_optional">Nickname (optional)</string>
     <string name="vehicle_registration_section_detection">Automatic detection</string>
     <string name="vehicle_registration_section_privacy">Privacy</string>
     <string name="vehicle_registration_size_hint">Tap to select the size</string>
@@ -419,10 +430,16 @@
     <string name="vehicle_registration_name_placeholder">Car %1$d</string>
     <string name="vehicle_default_name_format">Car %1$d</string>
     <string name="vehicle_registration_other_option">Other…</string>
-    <string name="vehicle_registration_brand_hint">Brand (optional)</string>
-    <string name="vehicle_registration_model_hint">Model (optional)</string>
+    <string name="vehicle_registration_brand_hint">Brand</string>
+    <string name="vehicle_registration_model_hint">Model</string>
+    <!-- %1$s = detected size label (e.g. "Medium") -->
+    <string name="vehicle_registration_size_auto_detected">Detected: %1$s</string>
+    <string name="vehicle_registration_brand_error">Select a brand to continue</string>
+    <string name="vehicle_registration_size_required_hint">Choose a size to continue</string>
+    <string name="vehicle_registration_saving">Saving…</string>
+    <string name="vehicle_registration_bt_new_hint">Save the vehicle first to pair Bluetooth</string>
     <string name="vehicle_show_on_spot">Show brand and model on free spots</string>
-    <string name="vehicle_show_on_spot_desc">Other users will see the vehicle type that freed the spot</string>
+    <string name="vehicle_show_on_spot_desc">Brand and model are private — used only to estimate the parking space size. Enable this to show others which car freed the spot.</string>
     <string name="vehicle_size_label">Vehicle size</string>
     <string name="vehicle_size_moto">Motorbike</string>
     <string name="vehicle_size_moto_examples">e.g. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>

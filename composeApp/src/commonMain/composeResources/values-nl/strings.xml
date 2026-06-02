@@ -186,9 +186,17 @@
     <string name="history_day_full_sat">Zaterdag</string>
     <string name="history_day_full_sun">Zondag</string>
 
-    <!-- MapScreen -->
+    <!-- MapScreen (legacy keep) -->
     <string name="map_title">Parkeerplaatsenkaart</string>
     <string name="map_cd_back">Terug</string>
+
+    <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_section_label">Historisch parkeren</string>
+    <string name="parking_detail_active_section_label">Huidig parkeren</string>
+    <string name="parking_detail_navigate_action">Navigeer naar deze locatie</string>
+    <string name="parking_detail_no_address">Onbekende locatie</string>
+    <string name="parking_detail_detection_auto">Automatisch gedetecteerd</string>
+    <string name="parking_detail_detection_manual">Handmatige melding</string>
     <string name="map_marker_my_car">Uw geparkeerde auto</string>
     <string name="map_marker_car_here">Hier geparkeerde auto</string>
     <string name="map_marker_free">Vrije parkeerplaats</string>
@@ -260,6 +268,8 @@
     <!-- Home Zones — vaste plekken -->
     <string name="home_zone_name_placeholder">Naam (bv. Thuis, Werk)</string>
     <string name="home_zone_save_action">Zone opslaan</string>
+    <string name="home_zone_private_label">Privézone</string>
+    <string name="home_zone_private_hint">Plek wordt niet gedeeld als je vertrekt</string>
     <string name="home_zone_cancel_cd">Nieuwe zone annuleren</string>
     <string name="home_zone_add_chip_cd">Nieuwe zone toevoegen</string>
     <string name="home_zone_icon_picker_cd">Kies een pictogram</string>
@@ -299,10 +309,17 @@
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
     <string name="vehicle_default_name_format">Auto %1$d</string>
     <string name="vehicle_registration_other_option">Andere…</string>
-    <string name="vehicle_registration_brand_hint">Merk (optioneel)</string>
-    <string name="vehicle_registration_model_hint">Model (optioneel)</string>
+    <string name="vehicle_registration_section_identity">Jouw voertuig</string>
+    <string name="vehicle_registration_section_optional">Bijnaam (optioneel)</string>
+    <string name="vehicle_registration_brand_hint">Merk</string>
+    <string name="vehicle_registration_model_hint">Model</string>
+    <string name="vehicle_registration_size_auto_detected">Gedetecteerd: %1$s</string>
+    <string name="vehicle_registration_brand_error">Selecteer een merk om door te gaan</string>
+    <string name="vehicle_registration_size_required_hint">Kies een maat om door te gaan</string>
+    <string name="vehicle_registration_saving">Opslaan…</string>
+    <string name="vehicle_registration_bt_new_hint">Sla het voertuig eerst op om Bluetooth te koppelen</string>
     <string name="vehicle_show_on_spot">Merk en model tonen op vrije parkeerplaatsen</string>
-    <string name="vehicle_show_on_spot_desc">Andere gebruikers zien het voertuigtype dat de parkeerplaats heeft vrijgemaakt</string>
+    <string name="vehicle_show_on_spot_desc">Merk en model zijn privé — alleen gebruikt om de parkeerplaatsgrootte te schatten. Schakel in zodat anderen zien welke auto de plek heeft vrijgemaakt.</string>
     <string name="vehicle_size_label">Voertuiggrootte</string>
     <string name="vehicle_size_moto">Motor</string>
     <string name="vehicle_size_moto_examples">bijv. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>

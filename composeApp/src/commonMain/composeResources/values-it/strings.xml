@@ -186,9 +186,17 @@
     <string name="history_day_full_sat">Sabato</string>
     <string name="history_day_full_sun">Domenica</string>
 
-    <!-- MapScreen -->
+    <!-- MapScreen (legacy keep) -->
     <string name="map_title">Mappa dei posti</string>
     <string name="map_cd_back">Indietro</string>
+
+    <!-- HistoryParkingDetailScreen -->
+    <string name="parking_detail_section_label">Parcheggio storico</string>
+    <string name="parking_detail_active_section_label">Parcheggio attuale</string>
+    <string name="parking_detail_navigate_action">Naviga verso questa posizione</string>
+    <string name="parking_detail_no_address">Posizione sconosciuta</string>
+    <string name="parking_detail_detection_auto">Rilevamento automatico</string>
+    <string name="parking_detail_detection_manual">Segnalazione manuale</string>
     <string name="map_marker_my_car">La tua auto parcheggiata</string>
     <string name="map_marker_car_here">Auto parcheggiata qui</string>
     <string name="map_marker_free">Posto libero</string>
@@ -260,6 +268,8 @@
     <!-- Home Zones — luoghi abituali -->
     <string name="home_zone_name_placeholder">Nome (es. Casa, Lavoro)</string>
     <string name="home_zone_save_action">Salva zona</string>
+    <string name="home_zone_private_label">Zona privata</string>
+    <string name="home_zone_private_hint">Il posto non verrà condiviso quando parti</string>
     <string name="home_zone_cancel_cd">Annulla nuova zona</string>
     <string name="home_zone_add_chip_cd">Aggiungi una nuova zona</string>
     <string name="home_zone_icon_picker_cd">Scegli un&apos;icona</string>
@@ -299,10 +309,17 @@
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
     <string name="vehicle_default_name_format">Auto %1$d</string>
     <string name="vehicle_registration_other_option">Altro…</string>
-    <string name="vehicle_registration_brand_hint">Marca (opzionale)</string>
-    <string name="vehicle_registration_model_hint">Modello (opzionale)</string>
+    <string name="vehicle_registration_section_identity">Il tuo veicolo</string>
+    <string name="vehicle_registration_section_optional">Soprannome (opzionale)</string>
+    <string name="vehicle_registration_brand_hint">Marca</string>
+    <string name="vehicle_registration_model_hint">Modello</string>
+    <string name="vehicle_registration_size_auto_detected">Rilevato: %1$s</string>
+    <string name="vehicle_registration_brand_error">Seleziona una marca per continuare</string>
+    <string name="vehicle_registration_size_required_hint">Scegli una dimensione per continuare</string>
+    <string name="vehicle_registration_saving">Salvataggio…</string>
+    <string name="vehicle_registration_bt_new_hint">Salva il veicolo prima di abbinare il Bluetooth</string>
     <string name="vehicle_show_on_spot">Mostra marca e modello sui posti liberi</string>
-    <string name="vehicle_show_on_spot_desc">Gli altri utenti vedranno il tipo di veicolo che ha liberato il posto</string>
+    <string name="vehicle_show_on_spot_desc">Marca e modello sono privati — usati solo per stimare la dimensione del posto. Abilitalo per mostrare agli altri quale auto ha liberato il posto.</string>
     <string name="vehicle_size_label">Dimensione veicolo</string>
     <string name="vehicle_size_moto">Moto</string>
     <string name="vehicle_size_moto_examples">es. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
