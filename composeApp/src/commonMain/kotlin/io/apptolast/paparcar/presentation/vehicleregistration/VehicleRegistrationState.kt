@@ -25,6 +25,8 @@ data class VehicleRegistrationState(
     val showBrandModelOnSpot: Boolean = false,
     val isSaving: Boolean = false,
     val editingVehicleId: String? = null,
+    /** True when sizeCategory was derived automatically from a catalog brand+model pair. */
+    val isSizeAutoDetected: Boolean = false,
     /**
      * UUID generado en el primer intento de guardado de un vehículo nuevo (no edición).
      * Se memoiza aquí para que un reintento tras fallo de red (mismo VM, otro tap) reuse el
@@ -44,11 +46,15 @@ data class VehicleRegistrationState(
     val defaultNamePlaceholderIndex: Int get() = existingVehicleCount + 1
 
     /**
-     * CTA is enabled when type + size are chosen AND at least one of name/brand/model is non-blank.
-     * Prevents saving a vehicle with no identifying information.
+     * CTA is enabled when size is chosen and brand is filled.
+     * For catalog brands, model is also required. For "Other" brand, model is optional.
      */
     val canSubmit: Boolean
-        get() = vehicleType != null &&
-                sizeCategory != null &&
-                (name.isNotBlank() || brand.isNotBlank() || model.isNotBlank())
+        get() = sizeCategory != null &&
+                brand.isNotBlank() &&
+                (isBrandOther || model.isNotBlank())
+
+    /** Drives inline error on the brand field — only after the user has started filling the form. */
+    val brandError: Boolean
+        get() = hasInteractedWithForm && brand.isBlank()
 }

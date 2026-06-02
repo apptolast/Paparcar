@@ -73,6 +73,7 @@ import paparcar.composeapp.generated.resources.veh_bt_recommendation_body
 import paparcar.composeapp.generated.resources.veh_bt_recommendation_configure
 import paparcar.composeapp.generated.resources.veh_bt_recommendation_skip
 import paparcar.composeapp.generated.resources.veh_bt_recommendation_title
+import paparcar.composeapp.generated.resources.vehicle_registration_brand_error
 import paparcar.composeapp.generated.resources.vehicle_registration_brand_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_bt_cta
 import paparcar.composeapp.generated.resources.vehicle_registration_bt_desc
@@ -84,11 +85,15 @@ import paparcar.composeapp.generated.resources.vehicle_registration_name_placeho
 import paparcar.composeapp.generated.resources.vehicle_registration_other_option
 import paparcar.composeapp.generated.resources.vehicle_registration_preview_title
 import paparcar.composeapp.generated.resources.vehicle_registration_save
+import paparcar.composeapp.generated.resources.vehicle_registration_saving
 import paparcar.composeapp.generated.resources.vehicle_registration_section_detection
+import paparcar.composeapp.generated.resources.vehicle_registration_section_identity
 import paparcar.composeapp.generated.resources.vehicle_registration_section_optional
 import paparcar.composeapp.generated.resources.vehicle_registration_section_privacy
 import paparcar.composeapp.generated.resources.vehicle_registration_section_size
+import paparcar.composeapp.generated.resources.vehicle_registration_size_auto_detected
 import paparcar.composeapp.generated.resources.vehicle_registration_size_hint
+import paparcar.composeapp.generated.resources.vehicle_registration_size_required_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_title
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot_desc
@@ -184,6 +189,7 @@ internal fun VehicleRegistrationContent(
 ) {
     val cs = MaterialTheme.colorScheme
     val isEditing = state.editingVehicleId != null
+    val isNewVehicle = state.editingVehicleId == null
     val brands = remember { VehicleCatalog.brands() }
     val otherLabel = stringResource(Res.string.vehicle_registration_other_option)
 
@@ -195,8 +201,13 @@ internal fun VehicleRegistrationContent(
         else emptyList()
     }
 
-    val nameError = state.hasInteractedWithForm &&
-            state.name.isBlank() && state.brand.isBlank() && state.model.isBlank()
+    val bottomHint: String? = when {
+        !state.canSubmit && state.sizeCategory == null ->
+            stringResource(Res.string.vehicle_registration_size_required_hint)
+        !state.canSubmit && state.hasInteractedWithForm ->
+            stringResource(Res.string.vehicle_registration_brand_error)
+        else -> null
+    }
 
     Scaffold(
         containerColor = cs.surfaceContainer,
@@ -227,7 +238,7 @@ internal fun VehicleRegistrationContent(
             VehicleRegistrationBottomBar(
                 isSaving = state.isSaving,
                 canSubmit = state.canSubmit,
-                sizeSelected = state.sizeCategory != null,
+                hint = bottomHint,
                 onSave = { onIntent(VehicleRegistrationIntent.Save) },
             )
         },
@@ -242,47 +253,18 @@ internal fun VehicleRegistrationContent(
         ) {
             Spacer(Modifier.height(CONTENT_TOP_SPACING))
 
-            // ── Hero card ─────────────────────────────────────────────────────
+            // ── Hero preview card ─────────────────────────────────────────────
             VehicleHeroCard(
                 state = state,
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
             )
 
-            // ── Size section ─────────────────────────────────────────────────
-            Column(
-                modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_size))
-                Text(
-                    text = stringResource(Res.string.vehicle_registration_size_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = cs.onSurfaceVariant,
-                )
-                VehicleSizeSelector(
-                    selected = state.sizeCategory,
-                    onSelect = { onIntent(VehicleRegistrationIntent.SetSize(it)) },
-                )
-            }
-
-            // ── Identity section ─────────────────────────────────────────────
+            // ── Identity section — brand + model (required) ───────────────────
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_optional))
-
-                PapTextField(
-                    value = state.name,
-                    onValueChange = { onIntent(VehicleRegistrationIntent.SetName(it)) },
-                    label = stringResource(Res.string.vehicle_registration_name_label),
-                    placeholder = stringResource(
-                        Res.string.vehicle_registration_name_placeholder,
-                        state.defaultNamePlaceholderIndex,
-                    ),
-                    isError = nameError,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_identity))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(modifier = Modifier.weight(1f)) {
@@ -297,6 +279,7 @@ internal fun VehicleRegistrationContent(
                                 },
                                 readOnly = !state.isBrandOther,
                                 label = stringResource(Res.string.vehicle_registration_brand_hint),
+                                isError = state.brandError,
                                 trailingIcon = {
                                     if (!state.isBrandOther) {
                                         IconButton(onClick = { brandExpanded = true }) {
@@ -393,60 +376,111 @@ internal fun VehicleRegistrationContent(
                 }
             }
 
-            // ── Bluetooth section ────────────────────────────────────────────
+            // ── Size section — auto-detected or manual ────────────────────────
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_detection))
-                Surface(
+                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_size))
+                val sizeHint = if (state.isSizeAutoDetected && state.sizeCategory != null) {
+                    val sizeLabel = when (state.sizeCategory) {
+                        VehicleSize.MOTO   -> stringResource(Res.string.vehicle_size_moto)
+                        VehicleSize.SMALL  -> stringResource(Res.string.vehicle_size_small)
+                        VehicleSize.MEDIUM -> stringResource(Res.string.vehicle_size_medium)
+                        VehicleSize.LARGE  -> stringResource(Res.string.vehicle_size_large)
+                        VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
+                    }
+                    stringResource(Res.string.vehicle_registration_size_auto_detected, sizeLabel)
+                } else {
+                    stringResource(Res.string.vehicle_registration_size_hint)
+                }
+                Text(
+                    text = sizeHint,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (state.isSizeAutoDetected) cs.primary.copy(alpha = AUTO_SIZE_LABEL_ALPHA)
+                            else cs.onSurfaceVariant,
+                )
+                VehicleSizeSelector(
+                    selected = state.sizeCategory,
+                    onSelect = { onIntent(VehicleRegistrationIntent.SetSize(it)) },
+                )
+            }
+
+            // ── Nickname section — optional ───────────────────────────────────
+            Column(
+                modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_optional))
+                PapTextField(
+                    value = state.name,
+                    onValueChange = { onIntent(VehicleRegistrationIntent.SetName(it)) },
+                    label = stringResource(Res.string.vehicle_registration_name_label),
+                    placeholder = stringResource(
+                        Res.string.vehicle_registration_name_placeholder,
+                        state.defaultNamePlaceholderIndex,
+                    ),
                     modifier = Modifier.fillMaxWidth(),
-                    shape = PapShapes.card,
-                    color = cs.surfaceContainerHigh,
-                    border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
+                )
+            }
+
+            // ── Bluetooth section — only shown when editing an existing vehicle ──
+            // For new vehicles the post-save BluetoothRecommendationDialog handles BT pairing.
+            if (!isNewVehicle) {
+                Column(
+                    modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_detection))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = PapShapes.card,
+                        color = cs.surfaceContainerHigh,
+                        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(BT_ICON_BOX_SIZE)
-                                .clip(CircleShape)
-                                .background(cs.primaryContainer),
-                            contentAlignment = Alignment.Center,
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Bluetooth,
-                                contentDescription = null,
-                                modifier = Modifier.size(BT_ICON_SIZE),
-                                tint = cs.primary,
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(Res.string.vehicle_registration_bt_title),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = cs.onSurface,
-                            )
-                            Text(
-                                text = stringResource(Res.string.vehicle_registration_bt_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                            )
-                        }
-                        Button(
-                            onClick = onConfigureBluetooth,
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            shape = PapShapes.cardSmall,
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.vehicle_registration_bt_cta),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(BT_ICON_BOX_SIZE)
+                                    .clip(CircleShape)
+                                    .background(cs.primaryContainer),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Bluetooth,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(BT_ICON_SIZE),
+                                    tint = cs.primary,
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(Res.string.vehicle_registration_bt_title),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = cs.onSurface,
+                                )
+                                Text(
+                                    text = stringResource(Res.string.vehicle_registration_bt_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                                )
+                            }
+                            Button(
+                                onClick = onConfigureBluetooth,
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                shape = PapShapes.cardSmall,
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.vehicle_registration_bt_cta),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
                         }
                     }
                 }
@@ -575,11 +609,10 @@ private fun VehicleHeroCard(
 private fun VehicleRegistrationBottomBar(
     isSaving: Boolean,
     canSubmit: Boolean,
-    sizeSelected: Boolean,
+    hint: String?,
     onSave: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    val saveLabel = stringResource(Res.string.vehicle_registration_save)
 
     Surface(
         color = cs.surfaceContainer,
@@ -613,7 +646,7 @@ private fun VehicleRegistrationBottomBar(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Guardando…",
+                        text = stringResource(Res.string.vehicle_registration_saving),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                     )
@@ -625,17 +658,17 @@ private fun VehicleRegistrationBottomBar(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = saveLabel,
+                        text = stringResource(Res.string.vehicle_registration_save),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
 
-            if (!sizeSelected && !isSaving) {
+            if (hint != null && !isSaving) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "Elige un tamaño para continuar",
+                    text = hint,
                     style = MaterialTheme.typography.bodySmall,
                     color = cs.onSurface.copy(alpha = HINT_TEXT_ALPHA),
                     textAlign = TextAlign.Center,
@@ -664,6 +697,7 @@ private val BT_ICON_SIZE                 = 20.dp
 
 // Section items
 private const val SUBTITLE_ALPHA         = 0.55f
+private const val AUTO_SIZE_LABEL_ALPHA  = 0.8f
 
 // Bottom bar / CTA button
 private val SAVE_BUTTON_HEIGHT           = 52.dp

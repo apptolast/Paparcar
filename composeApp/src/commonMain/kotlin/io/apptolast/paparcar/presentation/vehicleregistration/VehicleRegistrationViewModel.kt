@@ -7,8 +7,8 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import io.apptolast.paparcar.presentation.base.BaseViewModel
+import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
@@ -39,26 +39,41 @@ class VehicleRegistrationViewModel(
                 copy(
                     brand = intent.brand,
                     isBrandOther = false,
-                    // Reset model when brand changes
                     model = "",
                     isModelOther = false,
+                    isSizeAutoDetected = false,
+                    vehicleType = VehicleType.CAR,
                     hasInteractedWithForm = true,
                 )
             }
             is VehicleRegistrationIntent.SelectBrandOther -> updateState {
-                copy(brand = "", isBrandOther = true, model = "", isModelOther = false, hasInteractedWithForm = true)
+                copy(
+                    brand = "", isBrandOther = true, model = "", isModelOther = false,
+                    isSizeAutoDetected = false, vehicleType = VehicleType.CAR,
+                    hasInteractedWithForm = true,
+                )
             }
             is VehicleRegistrationIntent.SetCustomBrand ->
-                updateState { copy(brand = intent.value, hasInteractedWithForm = true) }
+                updateState { copy(brand = intent.value, isSizeAutoDetected = false, hasInteractedWithForm = true) }
 
-            is VehicleRegistrationIntent.SelectModel -> updateState {
-                copy(model = intent.model, isModelOther = false, hasInteractedWithForm = true)
+            is VehicleRegistrationIntent.SelectModel -> {
+                val autoSize = VehicleCatalog.sizeFor(state.value.brand, intent.model)
+                updateState {
+                    copy(
+                        model = intent.model,
+                        isModelOther = false,
+                        sizeCategory = autoSize ?: sizeCategory,
+                        isSizeAutoDetected = autoSize != null,
+                        vehicleType = VehicleType.CAR,
+                        hasInteractedWithForm = true,
+                    )
+                }
             }
             is VehicleRegistrationIntent.SelectModelOther -> updateState {
-                copy(model = "", isModelOther = true, hasInteractedWithForm = true)
+                copy(model = "", isModelOther = true, isSizeAutoDetected = false, hasInteractedWithForm = true)
             }
             is VehicleRegistrationIntent.SetCustomModel ->
-                updateState { copy(model = intent.value, hasInteractedWithForm = true) }
+                updateState { copy(model = intent.value, isSizeAutoDetected = false, hasInteractedWithForm = true) }
 
             is VehicleRegistrationIntent.SetSize ->
                 updateState { copy(sizeCategory = intent.size, hasInteractedWithForm = true) }
