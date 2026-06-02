@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
@@ -15,23 +16,26 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * System BroadcastReceiver that translates ACL Bluetooth events into parking-detection signals.
+ * System BroadcastReceiver that translates ACL Bluetooth events into
+ * [BluetoothDetectionService] start commands.
  *
- * Reacts when the ACL event's device matches **any** of the user's vehicles' paired addresses
- * (resolved via [VehicleRepository.getVehicleByBluetoothDeviceId]). Events from unrelated
- * devices are ignored. The resolved vehicleId is forwarded so detection attaches the session
- * to the correct vehicle even when it is not the default one.
+ * **Minimum-work pattern.** This receiver does exactly two things and nothing more:
+ * 1. Resolve the vehicleId paired to the event's BT device address (fast Room read).
+ * 2. Delegate to [BluetoothDetectionService] — all long-running detection work lives there.
  *
- * - [BluetoothDevice.ACTION_ACL_DISCONNECTED] → [BluetoothParkingDetector.onCarDisconnected]
- * - [BluetoothDevice.ACTION_ACL_CONNECTED]    → [BluetoothParkingDetector.onCarConnected]
+ * Events from devices not paired to any user vehicle are ignored before any Service is started,
+ * preventing spurious foreground-service launches from unrelated BT peripherals.
  *
- * Registered in AndroidManifest with the BLUETOOTH_CONNECT permission guard so that the
- * system only delivers events to this receiver when the app holds the permission.
+ * - [BluetoothDevice.ACTION_ACL_DISCONNECTED] → `startForegroundService(ACTION_BT_DISCONNECTED)`
+ * - [BluetoothDevice.ACTION_ACL_CONNECTED]    → `startService(ACTION_BT_CONNECTED)` (instant work,
+ *   no foreground needed — the Service cancels the pending job and stops itself immediately)
+ *
+ * Registered in AndroidManifest with `exported=false` and a BLUETOOTH_CONNECT permission guard
+ * so that the system only delivers events when the app holds the permission.
  */
 class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val vehicleRepository: VehicleRepository by inject()
-    private val detector: BluetoothParkingDetector by inject()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -54,7 +58,6 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
         val pending = goAsync()
 
-        //FIXME: Should be this class in a receiver?
         scope.launch {
             try {
                 val pairedVehicle = vehicleRepository.getVehicleByBluetoothDeviceId(deviceAddress)
@@ -62,13 +65,27 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                     PaparcarLogger.d(TAG, "  no vehicle paired with $deviceAddress — ignoring")
                     return@launch
                 }
-                PaparcarLogger.d(TAG, "  matched vehicle=${pairedVehicle.id} — forwarding $eventLabel")
+                PaparcarLogger.d(TAG, "  matched vehicle=${pairedVehicle.id} — starting BluetoothDetectionService ($eventLabel)")
 
                 when (action) {
-                    BluetoothDevice.ACTION_ACL_DISCONNECTED ->
-                        detector.onCarDisconnected(deviceAddress, pairedVehicle.id)
-                    BluetoothDevice.ACTION_ACL_CONNECTED ->
-                        detector.onCarConnected(deviceAddress)
+                    BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                        val serviceIntent = Intent(context, BluetoothDetectionService::class.java).apply {
+                            this.action = BluetoothDetectionService.ACTION_BT_DISCONNECTED
+                            putExtra(BluetoothDetectionService.EXTRA_DEVICE_ADDRESS, deviceAddress)
+                            putExtra(BluetoothDetectionService.EXTRA_VEHICLE_ID, pairedVehicle.id)
+                        }
+                        ContextCompat.startForegroundService(context, serviceIntent)
+                    }
+                    BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        // startService (not foreground) — work is instant (cancel + stopSelf).
+                        // If the detection Service is already running as FGS, onStartCommand
+                        // is called on the existing instance; no 5-second constraint applies.
+                        val serviceIntent = Intent(context, BluetoothDetectionService::class.java).apply {
+                            this.action = BluetoothDetectionService.ACTION_BT_CONNECTED
+                            putExtra(BluetoothDetectionService.EXTRA_DEVICE_ADDRESS, deviceAddress)
+                        }
+                        context.startService(serviceIntent)
+                    }
                 }
             } finally {
                 pending.finish()

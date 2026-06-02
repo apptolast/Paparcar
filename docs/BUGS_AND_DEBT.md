@@ -165,16 +165,17 @@ Varias pantallas usan `collectAsState()` desde commonMain (porque `collectAsStat
 
 ---
 
-## §13 · ✅ Resuelto (2026-05-25) — `BluetoothParkingDetector` scope no estructurado
+## §13 · ✅ Resuelto completamente (2026-06-02) — `BluetoothParkingDetector` scope huérfano + proceso no protegido [BT-REFACTOR-FGS-001]
 
-**Archivo:** `composeApp/src/androidMain/.../bluetooth/BluetoothParkingDetector.kt:37`
+**Fix parcial 2026-05-25:** Scope movido a Koin single (`btDetectorScope`) en vez de inline en el Receiver. El leak de instancias se reducía, pero el scope seguía sin dueño con ciclo de vida y el proceso podía ser matado durante los ~5 minutos de detección.
 
-`CoroutineScope(Dispatchers.IO)` sin parent. Si el proceso muere, no hay forma de cancelarlo desde fuera. Pero como solo vive lo que vive el proceso, no es leak real — solo poco testeable.
+**Fix completo 2026-06-02:**
+- `BluetoothConnectionReceiver` reducido a trabajo mínimo: lookup vehicleId + disparar Service.
+- Nuevo `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`, `foregroundServiceType="location"`) dueño del scope largo. El proceso no puede ser matado mientras detecta.
+- `BluetoothParkingDetector` → stateless: sin `scope`, sin `detectionJob`. `onCarDisconnected()` → `suspend fun detectParking()`. Abort-on-reconnect via cancelación cooperativa del Service.
+- `btDetectorScope` eliminado de `AndroidDetectionModule`.
 
-**Fix aplicado:**
-- `BluetoothParkingDetector` ahora recibe `scope: CoroutineScope` como constructor param
-- `AndroidDetectionModule`: `single(named("btDetectorScope")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) }` + `single { BluetoothParkingDetector(get(), get(), get(named("btDetectorScope"))) }`
-- En tests se puede inyectar `TestScope` para control total
+Ver: `docs/refactors/BT-REFACTOR-FGS-001-bluetooth-detection-foreground-service.md`
 
 ---
 

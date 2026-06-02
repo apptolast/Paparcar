@@ -55,9 +55,17 @@
             </intent-filter>
         </activity>
 
-        <!-- ParkingDetectionService -->
+        <!-- ParkingDetectionService — Coordinator (Activity Recognition) path -->
         <service
             android:name=".detection.service.ParkingDetectionService"
+            android:foregroundServiceType="location"
+            android:exported="false" />
+
+        <!-- BluetoothDetectionService — BT disconnect path [BT-REFACTOR-FGS-001]
+             foregroundServiceType="location" required for GPS access while running in
+             background (30 s debounce + 60 s GPS sampling + distance watch). -->
+        <service
+            android:name=".bluetooth.BluetoothDetectionService"
             android:foregroundServiceType="location"
             android:exported="false" />
 

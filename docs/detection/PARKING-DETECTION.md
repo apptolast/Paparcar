@@ -42,14 +42,19 @@ The strategies never mix signals. BLUETOOTH and COORDINATOR converge on `Confirm
 
 ### 1.2 BluetoothDetectionStrategy (deterministic)
 
-`BluetoothParkingDetector.onCarDisconnected()`:
+**Runtime owner:** `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`,
+`foregroundServiceType="location"`). The Service keeps the process alive while detection runs.
+`BluetoothConnectionReceiver` does minimum work: resolve vehicleId from DB, then
+`startForegroundService(ACTION_BT_DISCONNECTED)` or `startService(ACTION_BT_CONNECTED)`. [BT-REFACTOR-FGS-001]
 
-1. **Debounce** — wait `BT_DISCONNECT_DEBOUNCE_MS = 30 s` to ignore brief BT oscillation (traffic lights, aftermarket head-units). If BT reconnects during the window, abort.
-2. **GPS fix** — sample the location stream until `accuracy ≤ GPS_ACCURACY_THRESHOLD_M = 50 m`, or `GPS_SAMPLE_TIMEOUT_MS = 60 s` elapses. The first fix that meets the accuracy bar is recorded as the candidate parking location.
-3. **Walking confirmation** — keep watching GPS until the user has moved `≥ DISTANCE_THRESHOLD_M = 30 m` from the candidate fix. This rules out "BT dropped while still in the car" cases (passenger left the car, head-unit died, etc.).
+`BluetoothParkingDetector.detectParking()` (suspend):
+
+1. **Debounce** — `delay(BT_DISCONNECT_DEBOUNCE_MS = 30 s)`. Cancellable — if BT reconnects, the Service cancels the coroutine here before the delay returns (BT-005).
+2. **GPS fix** — sample the location stream until `accuracy ≤ GPS_ACCURACY_THRESHOLD_M = 50 m`, or `GPS_SAMPLE_TIMEOUT_MS = 60 s` elapses. The first fix that meets the accuracy bar is the candidate parking location.
+3. **Walking confirmation** — keep watching GPS until the user has moved `≥ DISTANCE_THRESHOLD_M = 30 m` from the candidate fix. This rules out "BT dropped while still in the car" cases (passenger left, head-unit died, etc.).
 4. **Confirm** — `confirmParking(candidateFix, PARKING_DETECTION_RELIABILITY = 0.95f)`.
 
-`onCarConnected()` cancels any pending detection job — the user re-boarded before walking far enough.
+Abort-on-reconnect (BT-005): when `ACTION_ACL_CONNECTED` arrives, the Receiver starts the Service with `ACTION_BT_CONNECTED`. The Service calls `detectionJob?.cancel()` — the suspend function receives `CancellationException` at the active suspension point (`delay` or `Flow.first`) and exits cooperatively. The detector itself carries no cancellation flag.
 
 This strategy has no scoring and no medium-confidence path: BT disconnect + GPS-anchored walk is treated as ground truth.
 
@@ -595,6 +600,45 @@ After the replacement, `detectionJob` is either `null` (briefly, between cancel 
 ■ Service onDestroy — cancelling job     ← stopSelf kills new job
 ```
 After fix, expect only `■ finally → superseded by newer job, skipping stopSelf()` in the log for any superseded job.
+
+### BT-REFACTOR-FGS-001 — BluetoothConnectionReceiver → ForegroundService pattern (2026-06-02)
+
+**Commit:** to be filled after merge.
+
+**Problem A — orphan scopes in the Receiver.** `BluetoothConnectionReceiver` held a
+`CoroutineScope(SupervisorJob() + Dispatchers.IO)` that launched the long detection job and was
+never cancelled. Android instantiates the Receiver fresh for every ACL event. Each invocation
+created a new scope, accumulating orphan scopes across BT events throughout the day.
+The `single(named("btDetectorScope"))` Koin fix (§13 `BUGS_AND_DEBT.md`) moved the scope to
+app-global lifetime but did not give it a lifecycle owner.
+
+**Problem B — process killed during 5-minute detection window.** The BT detection flow
+(30 s debounce + 60 s GPS + distance watch) ran in an unprotected background process. Android
+can kill background processes in that window. A kill silently discarded the in-flight session
+— no confirmation, no spot published.
+
+**Fix.** Three-part change:
+1. `BluetoothConnectionReceiver` reduced to minimum work: vehicle lookup (ms) + fire Service intent.
+   The Receiver's scope terminates immediately after the `startForegroundService()` call.
+2. New `BluetoothDetectionService` (`LifecycleService`, `START_NOT_STICKY`,
+   `foregroundServiceType="location"`) owns `lifecycleScope`. Launches `detector.detectParking()`
+   and calls `stopSelf()` when it returns or throws.
+3. `BluetoothParkingDetector` made stateless: `scope` constructor param and `detectionJob` removed.
+   `onCarDisconnected()` → `suspend fun detectParking()`. Abort-on-reconnect now handled via
+   cooperative cancellation: the Service cancels `detectionJob` on `ACTION_BT_CONNECTED`; `delay()`
+   and `Flow.first()` inside `detectParking()` are cancellation points.
+
+**Why not `ParkingDetectionService`?** The Coordinator Service uses `START_STICKY` because Play
+Services can re-deliver `IN_VEHICLE_ENTER` to restart detection. BT detection cannot resume
+after a kill (in-memory `parkingFix` coordinates are lost), so `START_NOT_STICKY` is the correct
+contract. Merging two independent trigger sources (AR vs BT ACL) into one Service would also
+break the clean `VehicleState` machine that guards `BUG-DETECT-ENTER-DEBOUNCE-001`.
+
+**Files:** `BluetoothConnectionReceiver`, `BluetoothParkingDetector`, new `BluetoothDetectionService`,
+`AndroidDetectionModule` (btDetectorScope removed), `AndroidManifest.xml` (new service entry),
+`AppNotificationManager` (BT_DETECTION_NOTIFICATION_ID = 1003).
+
+Full design rationale: `docs/refactors/BT-REFACTOR-FGS-001-bluetooth-detection-foreground-service.md`.
 
 ---
 

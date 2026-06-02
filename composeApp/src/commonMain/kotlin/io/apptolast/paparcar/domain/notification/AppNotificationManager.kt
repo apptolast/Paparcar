@@ -72,5 +72,9 @@ interface AppNotificationManager {
 
         /** ID for the permission-revoked notification shown when the service restarts without location access. */
         const val PERMISSION_REVOKED_NOTIFICATION_ID = 2003
+
+        /** ID for the [BluetoothDetectionService] foreground notification — distinct from
+         *  [DETECTION_NOTIFICATION_ID] so both services can coexist without overwriting each other. */
+        const val BT_DETECTION_NOTIFICATION_ID = 1003
     }
 }
