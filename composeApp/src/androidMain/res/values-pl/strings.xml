@@ -9,12 +9,11 @@
     <string name="notif_confirmation_title_vehicle">Czy zaparkowałeś %1$s?</string>
     <string name="notif_confirmation_text">Wygląda na to, że zaparkowałeś. Czy potwierdzić miejsce?</string>
     <string name="notif_action_yes_parked">Tak, zaparkowałem</string>
-    <string name="notif_action_keep_driving">Jadę dalej</string>
+    <string name="notif_action_no_not_parked">Nie, nie zaparkowałem</string>
 
-    <!-- Powiadomienie: miejsce zapisane -->
-    <string name="notif_spot_saved_title">Miejsce zapisane</string>
-    <!-- %1$s = szerokość geograficzna, %2$s = długość geograficzna -->
-    <string name="notif_spot_saved_text">Miejsce zarejestrowane w (%1$s, %2$s)</string>
+    <!-- Powiadomienie: parkowanie zapisane -->
+    <string name="notif_parking_saved_title">Parkowanie zapisane</string>
+    <string name="notif_parking_saved_text">Twój samochód został zaparkowany. Dotknij, aby zobaczyć go na mapie.</string>
 
     <!-- Powiadomienie: przesyłanie miejsca -->
     <string name="notif_uploading_title">Paparcar</string>

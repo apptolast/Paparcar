@@ -9,12 +9,11 @@
     <string name="notif_confirmation_title_vehicle">Heb je jouw %1$s geparkeerd?</string>
     <string name="notif_confirmation_text">Het lijkt erop dat u heeft geparkeerd. Zullen we de parkeerplaats bevestigen?</string>
     <string name="notif_action_yes_parked">Ja, ik heb geparkeerd</string>
-    <string name="notif_action_keep_driving">Ik rijd door</string>
+    <string name="notif_action_no_not_parked">Nee, ik heb niet geparkeerd</string>
 
-    <!-- Melding: parkeerplaats opgeslagen -->
-    <string name="notif_spot_saved_title">Parkeerplaats opgeslagen</string>
-    <!-- %1$s = breedtegraad, %2$s = lengtegraad -->
-    <string name="notif_spot_saved_text">Parkeerplaats geregistreerd bij (%1$s, %2$s)</string>
+    <!-- Melding: parkeren opgeslagen -->
+    <string name="notif_parking_saved_title">Parkeren opgeslagen</string>
+    <string name="notif_parking_saved_text">Uw auto is geparkeerd. Tik om het op de kaart te zien.</string>
 
     <!-- Melding: parkeerplaats uploaden -->
     <string name="notif_uploading_title">Paparcar</string>

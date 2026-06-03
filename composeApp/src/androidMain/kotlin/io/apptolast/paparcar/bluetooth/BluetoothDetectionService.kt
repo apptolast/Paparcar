@@ -6,12 +6,14 @@ import android.os.Build
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
@@ -84,6 +86,14 @@ class BluetoothDetectionService : LifecycleService() {
                 // Must call startForeground() before any suspending work — Android 8+ enforces
                 // the 5-second window from startForegroundService(). [BUG-FGS-001]
                 startForegroundCompat()
+
+                lifecycleScope.launch {
+                    val vehicleName = get<VehicleRepository>().observeActiveVehicle().firstOrNull()
+                        ?.let { listOfNotNull(it.brand, it.model).joinToString(" ").ifBlank { null } }
+                    if (vehicleName != null) {
+                        notificationPort.updateDetectionVehicle(vehicleName, AppNotificationManager.BT_DETECTION_NOTIFICATION_ID)
+                    }
+                }
 
                 PaparcarLogger.d(DIAG, "  → BT_DISCONNECTED device=$deviceAddress vehicle=$vehicleId — launching detector")
                 detectionJob?.cancel()

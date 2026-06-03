@@ -21,18 +21,40 @@ interface AppNotificationManager {
     fun showParkingConfirmation(score: Float, vehicleName: String? = null)
 
     /**
-     * Shows a transient notification confirming that a parking spot was saved.
+     * Shows a transient notification confirming that the user's car is parked.
+     * Tapping opens the map centred on the parking location.
      *
-     * @param latitude  Latitude of the confirmed spot.
-     * @param longitude Longitude of the confirmed spot.
+     * @param latitude  Latitude of the confirmed parking spot.
+     * @param longitude Longitude of the confirmed parking spot.
      */
-    fun showParkingSpotSaved(latitude: Double, longitude: Double)
+    fun showParkingSaved(latitude: Double, longitude: Double)
+
+    @Deprecated("Use showParkingSaved", ReplaceWith("showParkingSaved(latitude, longitude)"))
+    fun showParkingSpotSaved(latitude: Double, longitude: Double) = showParkingSaved(latitude, longitude)
+
+    /**
+     * Shows a transient notification confirming the freed spot is visible to other drivers.
+     * Tapping opens the map centred on the spot location.
+     *
+     * @param latitude  Latitude of the published community spot.
+     * @param longitude Longitude of the published community spot.
+     */
+    fun showSpotPublished(latitude: Double, longitude: Double)
 
     /**
      * Shows an ongoing notification while the spot-released report is being uploaded to Firebase.
      * Replace with [dismiss] using [UPLOAD_NOTIFICATION_ID] once the upload completes.
      */
     fun showSpotUploading()
+
+    /**
+     * Updates the text of the foreground detection notification to show the vehicle being monitored.
+     * Called from a coroutine immediately after the service calls startForeground().
+     *
+     * @param vehicleName Display name of the active vehicle (e.g. "Ford Focus").
+     * @param notifId     [DETECTION_NOTIFICATION_ID] or [BT_DETECTION_NOTIFICATION_ID].
+     */
+    fun updateDetectionVehicle(vehicleName: String, notifId: Int)
 
     /**
      * Shows a notification prompting the user to re-grant location permission.
@@ -61,20 +83,23 @@ interface AppNotificationManager {
         /** ID for the foreground-service detection notification (channel: DETECTION / LOW priority). */
         const val DETECTION_NOTIFICATION_ID = 1001
 
-        /** ID for the spot-uploading notification (channel: UPLOAD / DEFAULT priority). */
+        /** ID for the spot-uploading / parking-saved notification (channel: UPLOAD / DEFAULT priority). */
         const val UPLOAD_NOTIFICATION_ID = 1002
-
-        /** ID for the debug diagnostic notification (channel: DEBUG / HIGH priority). */
-        const val DEBUG_NOTIFICATION_ID = 2001
-
-        /** ID for the parking confirmation notification (channel: DEBUG / HIGH priority). */
-        const val PARKING_CONFIRMATION_NOTIFICATION_ID = 2002
-
-        /** ID for the permission-revoked notification shown when the service restarts without location access. */
-        const val PERMISSION_REVOKED_NOTIFICATION_ID = 2003
 
         /** ID for the [BluetoothDetectionService] foreground notification — distinct from
          *  [DETECTION_NOTIFICATION_ID] so both services can coexist without overwriting each other. */
         const val BT_DETECTION_NOTIFICATION_ID = 1003
+
+        /** ID for the "Spot published" notification shown after a spot release is uploaded. */
+        const val SPOT_PUBLISHED_NOTIFICATION_ID = 1004
+
+        /** ID for the debug diagnostic notification (channel: DEBUG / HIGH priority). */
+        const val DEBUG_NOTIFICATION_ID = 2001
+
+        /** ID for the parking confirmation notification (channel: DETECTION / LOW priority). */
+        const val PARKING_CONFIRMATION_NOTIFICATION_ID = 2002
+
+        /** ID for the permission-revoked notification shown when the service restarts without location access. */
+        const val PERMISSION_REVOKED_NOTIFICATION_ID = 2003
     }
 }

@@ -15,6 +15,7 @@ import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.activityLabel
 import io.apptolast.paparcar.detection.transitionLabel
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
@@ -24,6 +25,7 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
@@ -35,6 +37,7 @@ class ParkingDetectionService : LifecycleService() {
     private val notificationPort: AppNotificationManager by inject()
     private val departureEventBus: DepartureEventBus by inject()
     private val strategyResolver: ParkingStrategyResolver by inject()
+    private val vehicleRepository: VehicleRepository by inject()
     private var detectionJob: Job? = null
 
     // Tracks the last IN_VEHICLE transition seen, independent of detectionJob state. Activity
@@ -169,6 +172,13 @@ class ParkingDetectionService : LifecycleService() {
 
     private fun startParkingDetection() {
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator")
+        lifecycleScope.launch {
+            val vehicleName = vehicleRepository.observeActiveVehicle().firstOrNull()
+                ?.let { listOfNotNull(it.brand, it.model).joinToString(" ").ifBlank { null } }
+            if (vehicleName != null) {
+                notificationPort.updateDetectionVehicle(vehicleName, AppNotificationManager.DETECTION_NOTIFICATION_ID)
+            }
+        }
         detectionJob = lifecycleScope.launch {
             val thisJob = coroutineContext[Job]
             try {

@@ -85,7 +85,8 @@ class ReportSpotWorker(
         return spotRepository.reportSpotReleased(spot).fold(
             onSuccess = {
                 notificationPort.dismiss(AppNotificationManager.UPLOAD_NOTIFICATION_ID)
-                if (BuildConfig.DEBUG) notificationPort.showDebug("Plaza publicada como libre")
+                notificationPort.showSpotPublished(lat, lon)
+                if (BuildConfig.DEBUG) notificationPort.showDebug("Spot published as free")
                 Result.success()
             },
             onFailure = {

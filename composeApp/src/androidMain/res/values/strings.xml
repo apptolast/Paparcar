@@ -3,22 +3,27 @@
     <!-- Notification: detection foreground service -->
     <string name="notif_detection_title">Detection active</string>
     <string name="notif_detection_text">Looking for parking signals…</string>
+    <!-- %1$s = vehicle name (e.g. "Ford Focus") -->
+    <string name="notif_detection_text_vehicle">Monitoring %1$s</string>
 
     <!-- Notification: parking confirmation prompt -->
     <string name="notif_confirmation_title">Did you park?</string>
     <string name="notif_confirmation_title_vehicle">Did you park your %1$s?</string>
     <string name="notif_confirmation_text">Looks like you parked. Shall we confirm the spot?</string>
     <string name="notif_action_yes_parked">Yes, I parked</string>
-    <string name="notif_action_keep_driving">Keep driving</string>
+    <string name="notif_action_no_not_parked">No, I haven\'t parked</string>
 
-    <!-- Notification: spot saved -->
-    <string name="notif_spot_saved_title">Spot saved</string>
-    <!-- %1$s = latitude, %2$s = longitude -->
-    <string name="notif_spot_saved_text">Spot registered at (%1$s, %2$s)</string>
+    <!-- Notification: parking saved (user's own car) -->
+    <string name="notif_parking_saved_title">Parking saved</string>
+    <string name="notif_parking_saved_text">Your car has been parked. Tap to see it on the map.</string>
+
+    <!-- Notification: community spot published after user departs -->
+    <string name="notif_spot_published_title">Spot available for others</string>
+    <string name="notif_spot_published_text">Your parking spot is now visible to nearby drivers.</string>
 
     <!-- Notification: uploading spot -->
     <string name="notif_uploading_title">Paparcar</string>
-    <string name="notif_uploading_text">Uploading new spot…</string>
+    <string name="notif_uploading_text">Uploading spot…</string>
 
     <!-- Notification: permission revoked while service was running -->
     <string name="notif_permission_revoked_title">Paparcar needs permissions</string>
@@ -33,8 +38,8 @@
     <!-- Notification channel names and descriptions -->
     <string name="channel_detection_name">Spot Detection</string>
     <string name="channel_detection_desc">Persistent notification while parking detection is active</string>
-    <string name="channel_upload_name">Spot Upload</string>
-    <string name="channel_upload_desc">Spot saved and cloud upload confirmations</string>
+    <string name="channel_upload_name">Parking &amp; Spots</string>
+    <string name="channel_upload_desc">Parking saved and spot upload confirmations</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Debug messages — development builds only</string>
 </resources>

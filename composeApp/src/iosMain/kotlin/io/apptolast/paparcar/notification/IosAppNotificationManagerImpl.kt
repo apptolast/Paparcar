@@ -49,13 +49,26 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         post(PARKING_CONFIRMATION_NOTIFICATION_ID, content)
     }
 
-    override fun showParkingSpotSaved(latitude: Double, longitude: Double) {
+    override fun showParkingSaved(latitude: Double, longitude: Double) {
         val content = UNMutableNotificationContent().apply {
-            setTitle("Spot saved")
-            setBody("Spot registered at (${formatCoord(latitude)}, ${formatCoord(longitude)})")
+            setTitle("Parking saved")
+            setBody("Your car has been parked. Tap to see it on the map.")
             setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
         }
         post(UPLOAD_NOTIFICATION_ID, content)
+    }
+
+    override fun showSpotPublished(latitude: Double, longitude: Double) {
+        val content = UNMutableNotificationContent().apply {
+            setTitle("Spot available for others")
+            setBody("Your parking spot is now visible to nearby drivers.")
+            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
+        }
+        post(SPOT_PUBLISHED_NOTIFICATION_ID, content)
+    }
+
+    override fun updateDetectionVehicle(vehicleName: String, notifId: Int) {
+        // iOS foreground service notifications are not applicable — no-op.
     }
 
     override fun showSpotUploading() {
@@ -99,7 +112,7 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         )
         val deniedAction = UNNotificationAction.actionWithIdentifier(
             identifier = ACTION_DENIED,
-            title = "Keep driving",
+            title = "No, I haven't parked",
             options = UNNotificationActionOptionForeground,
         )
         val parkingCategory = UNNotificationCategory.categoryWithIdentifier(
@@ -113,17 +126,10 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
 
     private fun identifierFor(notificationId: Int): String = "$ID_PREFIX$notificationId"
 
-    private fun formatCoord(value: Double): String {
-        // Android uses "%.5f"; replicate the rounding without depending on String.format on K/N.
-        val rounded = kotlin.math.round(value * COORD_SCALE) / COORD_SCALE
-        return rounded.toString()
-    }
-
     private companion object {
         const val ID_PREFIX = "paparcar_"
         const val CATEGORY_PARKING_CONFIRMATION = "paparcar_parking_confirmation"
         const val ACTION_CONFIRMED = "paparcar_action_confirmed"
         const val ACTION_DENIED = "paparcar_action_denied"
-        const val COORD_SCALE = 100_000.0
     }
 }

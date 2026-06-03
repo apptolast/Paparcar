@@ -9,12 +9,11 @@
     <string name="notif_confirmation_title_vehicle">Avez-vous garé votre %1$s ?</string>
     <string name="notif_confirmation_text">Il semble que vous vous soyez garé. Voulez-vous confirmer la place ?</string>
     <string name="notif_action_yes_parked">Oui, je suis garé</string>
-    <string name="notif_action_keep_driving">Je continue à conduire</string>
+    <string name="notif_action_no_not_parked">Non, je ne me suis pas garé</string>
 
-    <!-- Notification : place enregistrée -->
-    <string name="notif_spot_saved_title">Place enregistrée</string>
-    <!-- %1$s = latitude, %2$s = longitude -->
-    <string name="notif_spot_saved_text">Place enregistrée à (%1$s, %2$s)</string>
+    <!-- Notification : stationnement enregistré -->
+    <string name="notif_parking_saved_title">Stationnement enregistré</string>
+    <string name="notif_parking_saved_text">Votre voiture a été garée. Appuyez pour la voir sur la carte.</string>
 
     <!-- Notification : chargement de la place -->
     <string name="notif_uploading_title">Paparcar</string>

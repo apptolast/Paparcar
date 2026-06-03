@@ -9,12 +9,11 @@
     <string name="notif_confirmation_title_vehicle">Hai parcheggiato il %1$s?</string>
     <string name="notif_confirmation_text">Sembra che tu abbia parcheggiato. Vuoi confermare il posto?</string>
     <string name="notif_action_yes_parked">Sì, ho parcheggiato</string>
-    <string name="notif_action_keep_driving">Continuo a guidare</string>
+    <string name="notif_action_no_not_parked">No, non ho parcheggiato</string>
 
-    <!-- Notifica: posto salvato -->
-    <string name="notif_spot_saved_title">Posto salvato</string>
-    <!-- %1$s = latitudine, %2$s = longitudine -->
-    <string name="notif_spot_saved_text">Posto registrato in (%1$s, %2$s)</string>
+    <!-- Notifica: parcheggio salvato -->
+    <string name="notif_parking_saved_title">Parcheggio salvato</string>
+    <string name="notif_parking_saved_text">La tua auto è stata parcheggiata. Tocca per vederla sulla mappa.</string>
 
     <!-- Notifica: caricamento posto -->
     <string name="notif_uploading_title">Paparcar</string>

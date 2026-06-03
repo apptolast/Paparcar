@@ -18,6 +18,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.presentation.app.SplashViewModel
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private val activityRecognitionManager: ActivityRecognitionManager by inject()
     private val connectivityObserver: ConnectivityObserver by inject()
     private val appPreferences: AppPreferences by inject()
+    private val mapFocusEventBus: MapFocusEventBus by inject()
 
     // Detects GPS toggled on/off from the quick-settings panel without leaving the app.
     // Registered dynamically (not in manifest) so it is scoped to the Activity lifecycle.
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
 
         ActivityHolder.setActivity(this)
         enableEdgeToEdge()
+        handleNotificationFocusIntent(intent)
         val splashScreen = installSplashScreen()
 
         // Keep splash screen visible until auth check completes
@@ -123,8 +126,24 @@ class MainActivity : ComponentActivity() {
         ActivityHolder.clearActivity(this)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNotificationFocusIntent(intent)
+    }
+
     override fun onResume() {
         super.onResume()
         permissionManager.refreshPermissions()
+    }
+
+    private fun handleNotificationFocusIntent(intent: Intent?) {
+        val lat = intent?.getDoubleExtra(EXTRA_FOCUS_LAT, Double.NaN)?.takeIf { !it.isNaN() }
+        val lon = intent?.getDoubleExtra(EXTRA_FOCUS_LON, Double.NaN)?.takeIf { !it.isNaN() }
+        if (lat != null && lon != null) mapFocusEventBus.focusAt(lat, lon)
+    }
+
+    companion object {
+        const val EXTRA_FOCUS_LAT = "extra_focus_lat"
+        const val EXTRA_FOCUS_LON = "extra_focus_lon"
     }
 }

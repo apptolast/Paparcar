@@ -24,33 +24,26 @@ class AppNotificationManagerImpl(
 
     // region ForegroundNotificationProvider
 
-    override fun buildDetectionNotification(): Notification {
-        return NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_detection_title))
-            .setContentText(context.getString(R.string.notif_detection_text))
-            .setSmallIcon(R.drawable.ic_notification_detection)
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .setContentIntent(buildOpenAppIntent(RC_DETECTION))
-            .setOngoing(true)
-            .setProgress(0, 0, true)
-            .setColor(COLOR_DETECTION)
-            .build()
-    }
+    override fun buildDetectionNotification(): Notification = buildDetectionNotificationWith(null)
 
     // endregion
 
     // region AppNotificationManager
 
+    override fun updateDetectionVehicle(vehicleName: String, notifId: Int) {
+        notificationManager.notify(notifId, buildDetectionNotificationWith(vehicleName))
+    }
+
     override fun showParkingConfirmation(score: Float, vehicleName: String?) {
         val confirmedPi = PendingIntent.getBroadcast(
-            context, 200,
+            context, RC_CONFIRM_YES,
             Intent(ParkingConfirmationReceiver.ACTION_CONFIRMED).apply {
                 setClass(context, ParkingConfirmationReceiver::class.java)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val deniedPi = PendingIntent.getBroadcast(
-            context, 201,
+            context, RC_CONFIRM_NO,
             Intent(ParkingConfirmationReceiver.ACTION_DENIED).apply {
                 setClass(context, ParkingConfirmationReceiver::class.java)
             },
@@ -69,29 +62,36 @@ class AppNotificationManagerImpl(
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(buildOpenAppIntent(RC_CONFIRMATION))
             .addAction(0, context.getString(R.string.notif_action_yes_parked), confirmedPi)
-            .addAction(0, context.getString(R.string.notif_action_keep_driving), deniedPi)
+            .addAction(0, context.getString(R.string.notif_action_no_not_parked), deniedPi)
             .setAutoCancel(true)
             .build()
         notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
     }
 
-    override fun showParkingSpotSaved(latitude: Double, longitude: Double) {
+    override fun showParkingSaved(latitude: Double, longitude: Double) {
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_spot_saved_title))
-            .setContentText(
-                context.getString(
-                    R.string.notif_spot_saved_text,
-                    "%.5f".format(latitude),
-                    "%.5f".format(longitude),
-                )
-            )
+            .setContentTitle(context.getString(R.string.notif_parking_saved_title))
+            .setContentText(context.getString(R.string.notif_parking_saved_text))
             .setSmallIcon(R.drawable.ic_notification_parking_saved)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
-            .setContentIntent(buildOpenAppIntent(RC_SPOT_SAVED))
+            .setContentIntent(buildFocusIntent(RC_PARKING_SAVED, latitude, longitude))
             .setAutoCancel(true)
             .build()
         notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
+    }
+
+    override fun showSpotPublished(latitude: Double, longitude: Double) {
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_spot_published_title))
+            .setContentText(context.getString(R.string.notif_spot_published_text))
+            .setSmallIcon(R.drawable.ic_notification_parking_saved)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildFocusIntent(RC_SPOT_PUBLISHED, latitude, longitude))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.SPOT_PUBLISHED_NOTIFICATION_ID, notification)
     }
 
     override fun showSpotUploading() {
@@ -139,6 +139,24 @@ class AppNotificationManagerImpl(
 
     // endregion
 
+    private fun buildDetectionNotificationWith(vehicleName: String?): Notification {
+        val bodyText = if (vehicleName != null) {
+            context.getString(R.string.notif_detection_text_vehicle, vehicleName)
+        } else {
+            context.getString(R.string.notif_detection_text)
+        }
+        return NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_detection_title))
+            .setContentText(bodyText)
+            .setSmallIcon(R.drawable.ic_notification_detection)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .setContentIntent(buildOpenAppIntent(RC_DETECTION))
+            .setOngoing(true)
+            .setProgress(0, 0, true)
+            .setColor(COLOR_DETECTION)
+            .build()
+    }
+
     /**
      * PendingIntent that brings MainActivity to the foreground.
      * Uses SINGLE_TOP + CLEAR_TOP so the existing instance is reused,
@@ -150,6 +168,22 @@ class AppNotificationManagerImpl(
             requestCode,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
+    /**
+     * PendingIntent that opens MainActivity and requests a map focus on (lat, lon).
+     * The coordinates are passed as extras and consumed by [MainActivity.onNewIntent].
+     */
+    private fun buildFocusIntent(requestCode: Int, lat: Double, lon: Double): PendingIntent =
+        PendingIntent.getActivity(
+            context,
+            requestCode,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(MainActivity.EXTRA_FOCUS_LAT, lat)
+                putExtra(MainActivity.EXTRA_FOCUS_LON, lon)
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
@@ -191,10 +225,13 @@ class AppNotificationManagerImpl(
         // PendingIntent request codes — must be unique across the app
         private const val RC_DETECTION = 10
         private const val RC_CONFIRMATION = 11
-        private const val RC_SPOT_SAVED = 12
+        private const val RC_PARKING_SAVED = 12
         private const val RC_UPLOADING = 13
         private const val RC_DEBUG = 14
         private const val RC_PERMISSION_REVOKED = 15
+        private const val RC_SPOT_PUBLISHED = 16
+        private const val RC_CONFIRM_YES = 200
+        private const val RC_CONFIRM_NO = 201
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active
