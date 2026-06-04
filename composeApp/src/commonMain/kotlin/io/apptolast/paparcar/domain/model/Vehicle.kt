@@ -8,7 +8,7 @@ package io.apptolast.paparcar.domain.model
  * - [bluetoothDeviceId] stays on-device and is never sent to Firestore.
  * - No license plate is stored — [sizeCategory] is enough for community use.
  *
- * Each user may have multiple vehicles; exactly one is [isDefault] at a time.
+ * Each user may have multiple vehicles; exactly one is [isActive] at a time.
  */
 data class Vehicle(
     val id: String,
@@ -32,6 +32,6 @@ data class Vehicle(
     val bluetoothDeviceId: String? = null,
     /** Whether this vehicle's brand/model should appear on the public Spot. */
     val showBrandModelOnSpot: Boolean = false,
-    /** The currently active vehicle used for detection and spot reporting. */
-    val isDefault: Boolean = false,
+    /** The vehicle currently used for detection and spot reporting. Only one is active at a time. */
+    val isActive: Boolean = false,
 )

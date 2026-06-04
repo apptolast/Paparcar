@@ -48,25 +48,25 @@ class VehicleRepositoryImpl(
         }
     }
 
-    override fun observeDefaultVehicle(): Flow<Vehicle?> = flow {
+    override fun observeActiveVehicle(): Flow<Vehicle?> = flow {
         val uid = currentUserId()
         if (uid == null) {
             emit(null)
         } else {
-            emitAll(dao.observeDefault(uid).map { it?.toDomain() })
+            emitAll(dao.observeActive(uid).map { it?.toDomain() })
         }
     }
 
     /**
-     * Suspending one-shot read of the default vehicle for [userId], with fallback
+     * Suspending one-shot read of the active vehicle for [userId], with fallback
      * via `user_profile.defaultVehicleId` if the `vehicles` table lost its
-     * `isDefault=1` flag for any reason. Returning null here means **neither**
-     * the vehicles table nor the user profile cache could resolve a default —
+     * `isActive=1` flag for any reason. Returning null here means **neither**
+     * the vehicles table nor the user profile cache could resolve an active vehicle —
      * the caller (typically [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase])
      * should treat that as a fatal precondition and refuse to save. [AUTH-001]
      */
-    override suspend fun getDefaultVehicle(userId: String): Vehicle? {
-        dao.getDefault(userId)?.let { return it.toDomain() }
+    override suspend fun getActiveVehicle(userId: String): Vehicle? {
+        dao.getActive(userId)?.let { return it.toDomain() }
         val profileDefaultId = profileDao.getProfile(userId)?.defaultVehicleId ?: return null
         return dao.getById(profileDefaultId, userId)?.toDomain()
     }
@@ -90,15 +90,15 @@ class VehicleRepositoryImpl(
             .map { it.toEntity() }
         PaparcarLogger.d(DIAG, "  ← Firestore returned ${remoteEntities.size} vehicle(s)")
         remoteEntities.forEach { v ->
-            PaparcarLogger.d(DIAG, "    vehicle id=${v.id} isDefault=${v.isDefault} name=${v.brand} ${v.model}")
+            PaparcarLogger.d(DIAG, "    vehicle id=${v.id} isActive=${v.isActive} name=${v.brand} ${v.model}")
         }
         if (remoteEntities.isEmpty()) {
             PaparcarLogger.e(DIAG, "  ✗ no vehicles from Firestore — upsert skipped")
             return@runCatching
         }
-        val normalized = enforceAtMostOneDefault(remoteEntities)
-        if (normalized.count { it.isDefault } != remoteEntities.count { it.isDefault }) {
-            PaparcarLogger.w(DIAG, "  ⚠ multiple isDefault=true in remote data — normalized to single default")
+        val normalized = enforceAtMostOneActive(remoteEntities)
+        if (normalized.count { it.isActive } != remoteEntities.count { it.isActive }) {
+            PaparcarLogger.w(DIAG, "  ⚠ multiple isActive=true in remote data — normalized to single active")
         }
         dao.deleteByUser(userId)
         dao.upsertAll(normalized)
@@ -107,18 +107,18 @@ class VehicleRepositoryImpl(
 
     override suspend fun saveVehicle(vehicle: Vehicle) {
         currentUserId()?.let { uid ->
-            if (vehicle.isDefault) {
-                // Enforce single-default invariant before inserting: clear the flag on
+            if (vehicle.isActive) {
+                // Enforce single-active invariant before inserting: clear the flag on
                 // all sibling vehicles in Room and Firestore so we never end up with two
-                // rows where isDefault=1.
-                dao.clearDefault(uid)
+                // rows where isActive=1.
+                dao.clearActive(uid)
                 dao.getByUser(uid)
                     .filter { it.id != vehicle.id }
-                    .forEach { userProfileDataSource.updateVehicleDefaultFlag(uid, it.id, false) }
+                    .forEach { userProfileDataSource.updateVehicleActiveFlag(uid, it.id, false) }
             }
             dao.insert(vehicle.toEntity())
             userProfileDataSource.saveVehicle(uid, vehicle.toDto())
-            if (vehicle.isDefault) {
+            if (vehicle.isActive) {
                 profileDao.updateDefaultVehicleId(uid, vehicle.id)
                 userProfileDataSource.updateDefaultVehicleId(uid, vehicle.id)
             }
@@ -130,30 +130,30 @@ class VehicleRepositoryImpl(
         dao.deleteById(id)
         if (uid != null) {
             userProfileDataSource.deleteVehicle(uid, id)
-            // If we just deleted the default vehicle, promote another (if any) to
+            // If we just deleted the active vehicle, promote another (if any) to
             // keep the UserProfile.defaultVehicleId pointer valid — or clear it.
             // (The Vehicles screen blocks deleting the last vehicle, so in practice
             // there is always another candidate when this branch fires.)
             val cached = profileDao.getProfile(uid)
             if (cached?.defaultVehicleId == id) {
                 val remaining = dao.getByUser(uid)
-                val newDefault = remaining.firstOrNull()
-                profileDao.updateDefaultVehicleId(uid, newDefault?.id)
-                userProfileDataSource.updateDefaultVehicleId(uid, newDefault?.id)
-                if (newDefault != null) dao.setDefault(newDefault.id)
+                val newActive = remaining.firstOrNull()
+                profileDao.updateDefaultVehicleId(uid, newActive?.id)
+                userProfileDataSource.updateDefaultVehicleId(uid, newActive?.id)
+                if (newActive != null) dao.setActive(newActive.id)
             }
         }
     }
 
-    override suspend fun setDefaultVehicle(id: String) {
+    override suspend fun setActiveVehicle(id: String) {
         val uid = currentUserId() ?: return
-        dao.clearDefault(uid)
-        dao.setDefault(id)
+        dao.clearActive(uid)
+        dao.setActive(id)
 
-        // Mirror isDefault flag in Firestore for all user's vehicles
+        // Mirror isActive flag in Firestore for all user's vehicles
         val vehicles = dao.getByUser(uid)
         vehicles.forEach { entity ->
-            userProfileDataSource.updateVehicleDefaultFlag(uid, entity.id, entity.id == id)
+            userProfileDataSource.updateVehicleActiveFlag(uid, entity.id, entity.id == id)
         }
 
         // And on the user profile cache (local + remote).
@@ -174,14 +174,14 @@ class VehicleRepositoryImpl(
     override suspend fun hasVehicles(userId: String): Boolean =
         dao.countByUser(userId) > 0
 
-    private fun enforceAtMostOneDefault(entities: List<VehicleEntity>): List<VehicleEntity> {
-        if (entities.count { it.isDefault } <= 1) return entities
+    private fun enforceAtMostOneActive(entities: List<VehicleEntity>): List<VehicleEntity> {
+        if (entities.count { it.isActive } <= 1) return entities
         var kept = false
         return entities.map { entity ->
             when {
-                !entity.isDefault -> entity
+                !entity.isActive -> entity
                 !kept -> entity.also { kept = true }
-                else -> entity.copy(isDefault = false)
+                else -> entity.copy(isActive = false)
             }
         }
     }

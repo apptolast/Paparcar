@@ -12,14 +12,14 @@ interface VehicleDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(vehicle: VehicleEntity)
 
-    @Query("SELECT * FROM vehicles WHERE userId = :userId ORDER BY isDefault DESC")
+    @Query("SELECT * FROM vehicles WHERE userId = :userId ORDER BY isActive DESC")
     fun observeByUser(userId: String): Flow<List<VehicleEntity>>
 
-    @Query("SELECT * FROM vehicles WHERE userId = :userId AND isDefault = 1 LIMIT 1")
-    fun observeDefault(userId: String): Flow<VehicleEntity?>
+    @Query("SELECT * FROM vehicles WHERE userId = :userId AND isActive = 1 LIMIT 1")
+    fun observeActive(userId: String): Flow<VehicleEntity?>
 
-    @Query("SELECT * FROM vehicles WHERE userId = :userId AND isDefault = 1 LIMIT 1")
-    suspend fun getDefault(userId: String): VehicleEntity?
+    @Query("SELECT * FROM vehicles WHERE userId = :userId AND isActive = 1 LIMIT 1")
+    suspend fun getActive(userId: String): VehicleEntity?
 
     @Query("SELECT * FROM vehicles WHERE id = :id AND userId = :userId LIMIT 1")
     suspend fun getById(id: String, userId: String): VehicleEntity?
@@ -27,17 +27,17 @@ interface VehicleDao {
     @Query("SELECT * FROM vehicles WHERE userId = :userId AND bluetoothDeviceId = :address LIMIT 1")
     suspend fun getByBluetoothDevice(userId: String, address: String): VehicleEntity?
 
-    @Query("SELECT * FROM vehicles WHERE userId = :userId ORDER BY isDefault DESC")
+    @Query("SELECT * FROM vehicles WHERE userId = :userId ORDER BY isActive DESC")
     suspend fun getByUser(userId: String): List<VehicleEntity>
 
     @Query("DELETE FROM vehicles WHERE id = :id")
     suspend fun deleteById(id: String)
 
-    @Query("UPDATE vehicles SET isDefault = 0 WHERE userId = :userId")
-    suspend fun clearDefault(userId: String)
+    @Query("UPDATE vehicles SET isActive = 0 WHERE userId = :userId")
+    suspend fun clearActive(userId: String)
 
-    @Query("UPDATE vehicles SET isDefault = 1 WHERE id = :id")
-    suspend fun setDefault(id: String)
+    @Query("UPDATE vehicles SET isActive = 1 WHERE id = :id")
+    suspend fun setActive(id: String)
 
     @Query("UPDATE vehicles SET bluetoothDeviceId = :address WHERE id = :vehicleId")
     suspend fun updateBluetoothDevice(vehicleId: String, address: String?)
@@ -47,7 +47,7 @@ interface VehicleDao {
 
     /**
      * REPLACE-conflict bulk insert used by [VehicleRepository.syncFromRemote]. Required so a
-     * change to `isDefault` on another device actually lands in this Room when re-synced —
+     * change to `isActive` on another device actually lands in this Room when re-synced —
      * the previous IGNORE policy left local rows frozen at their first-sync state. Callers
      * MUST merge any local-only fields (currently [VehicleEntity.bluetoothDeviceId]) into
      * the entities they pass here before invoking, or those values will be wiped. [VEHICLES-001]

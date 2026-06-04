@@ -78,9 +78,9 @@ class ConfirmParkingUseCase(
                 PaparcarLogger.d(DIAG, "  ← getVehicleById AFTER vehicleId=${it?.id}")
             }
         } else {
-            PaparcarLogger.d(DIAG, "  → getDefaultVehicle(userId) BEFORE")
-            vehicleRepository.getDefaultVehicle(userId).also {
-                PaparcarLogger.d(DIAG, "  ← getDefaultVehicle AFTER vehicleId=${it?.id}")
+            PaparcarLogger.d(DIAG, "  → getActiveVehicle(userId) BEFORE")
+            vehicleRepository.getActiveVehicle(userId).also {
+                PaparcarLogger.d(DIAG, "  ← getActiveVehicle AFTER vehicleId=${it?.id}")
             }
         }
         if (vehicle == null) {
@@ -148,9 +148,9 @@ class ConfirmParkingUseCase(
         )
         PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
 
-        PaparcarLogger.d(DIAG, "  → notificationPort.showParkingSpotSaved BEFORE")
-        notificationPort.showParkingSpotSaved(gpsPoint.latitude, gpsPoint.longitude)
-        PaparcarLogger.d(DIAG, "  ← showParkingSpotSaved AFTER")
+        PaparcarLogger.d(DIAG, "  → notificationPort.showParkingSaved BEFORE")
+        notificationPort.showParkingSaved(gpsPoint.latitude, gpsPoint.longitude)
+        PaparcarLogger.d(DIAG, "  ← showParkingSaved AFTER")
 
         PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS")
         return Result.success(session)

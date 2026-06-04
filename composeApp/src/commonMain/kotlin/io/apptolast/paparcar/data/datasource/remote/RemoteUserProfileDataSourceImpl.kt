@@ -81,8 +81,8 @@ class RemoteUserProfileDataSourceImpl(
         vehiclesCollection(userId).document(vehicleId).delete()
     }
 
-    override suspend fun updateVehicleDefaultFlag(userId: String, vehicleId: String, isDefault: Boolean) {
-        vehiclesCollection(userId).document(vehicleId).update(mapOf(FIELD_IS_DEFAULT to isDefault))
+    override suspend fun updateVehicleActiveFlag(userId: String, vehicleId: String, isActive: Boolean) {
+        vehiclesCollection(userId).document(vehicleId).update(mapOf(FIELD_IS_ACTIVE to isActive))
     }
 
     override suspend fun deleteUserData(userId: String) {
@@ -120,7 +120,7 @@ class RemoteUserProfileDataSourceImpl(
                 sizeCategory = get<String?>("sizeCategory") ?: "",
                 bluetoothDeviceId = get<String?>("bluetoothDeviceId"),
                 showBrandModelOnSpot = get<Boolean?>("showBrandModelOnSpot") ?: false,
-                isDefault = get<Boolean?>(FIELD_IS_DEFAULT) ?: false,
+                isActive = get<Boolean?>(FIELD_IS_ACTIVE) ?: false,
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toVehicleDto failed — doc=$id", e)
@@ -185,7 +185,5 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ADDRESS = "address"
         const val FIELD_PLACE_INFO = "placeInfo"
         const val FIELD_DETECTION_RELIABILITY = "detectionReliability"
-
-        const val FIELD_IS_DEFAULT = "isDefault"
     }
 }

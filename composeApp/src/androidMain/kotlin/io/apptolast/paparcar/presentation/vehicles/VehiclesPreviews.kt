@@ -93,20 +93,6 @@ private fun VehiclesLoadingPreview() {
     }
 }
 
-@Preview(name = "Vehicles — diálogo borrar · Claro", showBackground = true)
-@Composable
-private fun VehiclesDeleteDialogPreview() {
-    PaparcarTheme(darkTheme = false) {
-        VehiclesContent(
-            state = VehiclesState(
-                vehicles = FakeData.vehiclesWithStats,
-                isLoading = false,
-                pendingDeleteVehicleId = FakeData.vehiclesWithStats.first().vehicle.id,
-            ),
-        )
-    }
-}
-
 // ─── Option A vs B header comparison (UI-002) ────────────────────────────────
 //
 // Option A is what ships. These previews exist so the user can compare visually
@@ -163,7 +149,7 @@ private fun HeaderOptionB(vehicle: Vehicle) {
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
-            if (vehicle.isDefault) {
+            if (vehicle.isActive) {
                 Box(
                     modifier = Modifier
                         .width(3.dp)
@@ -181,7 +167,7 @@ private fun HeaderBody(vehicle: Vehicle, modifier: Modifier = Modifier) {
     val sizeLabel = vehicleSizeLabelPreview(vehicle.sizeCategory)
     val activeLabel = "Activo"  // preview only
     val primaryColor = MaterialTheme.colorScheme.primary
-    val subtitle = if (vehicle.isDefault) {
+    val subtitle = if (vehicle.isActive) {
         buildAnnotatedString {
             append("$sizeLabel · ")
             withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Medium)) {

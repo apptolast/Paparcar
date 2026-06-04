@@ -18,5 +18,5 @@ data class VehicleEntity(
     /** BT device address — on-device only, never synced to Firestore. */
     val bluetoothDeviceId: String? = null,
     val showBrandModelOnSpot: Boolean = false,
-    val isDefault: Boolean = false,
+    val isActive: Boolean = false,
 )

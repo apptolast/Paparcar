@@ -9,16 +9,25 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
+/**
+ * Fake repository for tests and debug DI.
+ * Covers the main vehicle config variants:
+ *   vehicle_001 — no BT, isActive (detection via Coordinator)
+ *   vehicle_002 — BT configured (detection via BluetoothStrategy), has active session
+ *   vehicle_003 — motorcycle, no BT, rarely used
+ *   vehicle_004 — van + BT configured, moderate use
+ */
 class FakeVehicleRepository : VehicleRepository {
     private val mockVehicles = listOf(
         Vehicle(
             id = "mock_vehicle_001",
             userId = "mock_user_001",
+            name = "Mi Seat",
             brand = "Seat",
             model = "León",
             sizeCategory = VehicleSize.MEDIUM,
             vehicleType = VehicleType.CAR,
-            isDefault = true
+            isActive = true,
         ),
         Vehicle(
             id = "mock_vehicle_002",
@@ -27,42 +36,57 @@ class FakeVehicleRepository : VehicleRepository {
             model = "Corolla",
             sizeCategory = VehicleSize.MEDIUM,
             vehicleType = VehicleType.CAR,
-            isDefault = false
-        )
+            bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+            isActive = false,
+        ),
+        Vehicle(
+            id = "mock_vehicle_003",
+            userId = "mock_user_001",
+            name = "La Moto",
+            brand = "Honda",
+            model = "CBR 600",
+            sizeCategory = VehicleSize.MOTO,
+            vehicleType = VehicleType.MOTORCYCLE,
+            isActive = false,
+        ),
+        Vehicle(
+            id = "mock_vehicle_004",
+            userId = "mock_user_001",
+            name = "Furgoneta",
+            brand = "Ford",
+            model = "Transit",
+            sizeCategory = VehicleSize.VAN,
+            vehicleType = VehicleType.CAR,
+            bluetoothDeviceId = "11:22:33:44:55:66",
+            isActive = false,
+        ),
     )
 
     private val _vehiclesFlow = MutableStateFlow(mockVehicles)
 
     override fun observeVehicles(): Flow<List<Vehicle>> = _vehiclesFlow.asStateFlow()
 
-    override fun observeDefaultVehicle(): Flow<Vehicle?> =
-        _vehiclesFlow.map { list -> list.find { it.isDefault } }
+    override fun observeActiveVehicle(): Flow<Vehicle?> =
+        _vehiclesFlow.map { list -> list.find { it.isActive } }
 
-    override suspend fun getDefaultVehicle(userId: String): Vehicle? =
-        mockVehicles.find { it.isDefault }
+    override suspend fun getActiveVehicle(userId: String): Vehicle? =
+        mockVehicles.find { it.isActive }
 
     override suspend fun getVehicleById(userId: String, vehicleId: String): Vehicle? =
         mockVehicles.find { it.id == vehicleId }
 
-    override suspend fun getVehicleByBluetoothDeviceId(deviceAddress: String): Vehicle? = null
+    override suspend fun getVehicleByBluetoothDeviceId(deviceAddress: String): Vehicle? =
+        mockVehicles.find { it.bluetoothDeviceId == deviceAddress }
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun saveVehicle(vehicle: Vehicle) {
-        // no-op
-    }
+    override suspend fun saveVehicle(vehicle: Vehicle) { /* no-op */ }
 
-    override suspend fun deleteVehicle(id: String) {
-        // no-op
-    }
+    override suspend fun deleteVehicle(id: String) { /* no-op */ }
 
-    override suspend fun setDefaultVehicle(id: String) {
-        // no-op
-    }
+    override suspend fun setActiveVehicle(id: String) { /* no-op */ }
 
-    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {
-        // no-op
-    }
+    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) { /* no-op */ }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 

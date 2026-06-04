@@ -16,7 +16,7 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     vehicleType = runCatching { VehicleType.valueOf(vehicleType) }.getOrDefault(VehicleType.CAR),
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
-    isDefault = isDefault,
+    isActive = isActive,
 )
 
 fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
@@ -29,7 +29,7 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     vehicleType = vehicleType.name,
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
-    isDefault = isDefault,
+    isActive = isActive,
 )
 
 // ── VehicleDto → Entity (sync from Firestore) ──────────────────────────────
@@ -46,7 +46,7 @@ fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     vehicleType = vehicleType.ifBlank { VehicleType.CAR.name },
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
-    isDefault = isDefault,
+    isActive = isActive,
 )
 
 // ── Domain → VehicleDto (write to Firestore) ────────────────────────────────
@@ -61,5 +61,5 @@ fun Vehicle.toDto(): VehicleDto = VehicleDto(
     vehicleType = vehicleType.name,
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
-    isDefault = isDefault,
+    isActive = isActive,
 )

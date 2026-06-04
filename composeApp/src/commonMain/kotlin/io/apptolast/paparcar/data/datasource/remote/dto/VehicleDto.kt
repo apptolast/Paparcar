@@ -15,5 +15,5 @@ data class VehicleDto(
     val vehicleType: String = "",
     val bluetoothDeviceId: String? = null,
     val showBrandModelOnSpot: Boolean = false,
-    val isDefault: Boolean = false,
+    val isActive: Boolean = false,
 )

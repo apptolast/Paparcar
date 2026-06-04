@@ -13,8 +13,8 @@ class NotifyParkingConfirmationUseCase(
 ) {
     suspend operator fun invoke(confidence: ParkingConfidence) {
         PaparcarLogger.d(DIAG, "▶ NotifyParkingConfirmation.invoke confidence=$confidence")
-        val vehicleName = vehicleRepository.observeDefaultVehicle().firstOrNull()?.displayName()
-        PaparcarLogger.d(DIAG, "  observeDefaultVehicle resolved vehicleName=$vehicleName")
+        val vehicleName = vehicleRepository.observeActiveVehicle().firstOrNull()?.displayName()
+        PaparcarLogger.d(DIAG, "  observeActiveVehicle resolved vehicleName=$vehicleName")
         when (confidence) {
             is ParkingConfidence.Low -> notificationPort.showParkingConfirmation(0f, vehicleName)
             is ParkingConfidence.Medium -> notificationPort.showParkingConfirmation(confidence.score, vehicleName)

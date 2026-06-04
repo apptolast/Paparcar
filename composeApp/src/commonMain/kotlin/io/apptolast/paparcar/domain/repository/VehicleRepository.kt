@@ -3,21 +3,21 @@ package io.apptolast.paparcar.domain.repository
 import io.apptolast.paparcar.domain.model.Vehicle
 import kotlinx.coroutines.flow.Flow
 
-interface VehicleRepository {
-    /** Observe all vehicles for the current user, ordered by [Vehicle.isDefault] desc. */
+interface VehicleRepository : UserScopedRepository, RemoteSyncable {
+    /** Observe all vehicles for the current user, ordered by [Vehicle.isActive] desc. */
     fun observeVehicles(): Flow<List<Vehicle>>
 
-    /** Observe the active (default) vehicle, or null if none registered. */
-    fun observeDefaultVehicle(): Flow<Vehicle?>
+    /** Observe the active vehicle, or null if none registered. */
+    fun observeActiveVehicle(): Flow<Vehicle?>
 
     /**
-     * One-shot fetch of the user's default vehicle. Designed for save-path callers like
+     * One-shot fetch of the user's active vehicle. Designed for save-path callers like
      * [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase] that already
      * know the userId and need a synchronous answer, not a long-lived subscription. Falls
      * back to `user_profile.defaultVehicleId` if the vehicles table somehow lost the
-     * `isDefault=1` flag but the profile still points to a valid id. [AUTH-001]
+     * `isActive=1` flag but the profile still points to a valid id. [AUTH-001]
      */
-    suspend fun getDefaultVehicle(userId: String): Vehicle?
+    suspend fun getActiveVehicle(userId: String): Vehicle?
 
     /**
      * One-shot fetch of a specific vehicle by id. Used when the caller already knows which
@@ -43,7 +43,7 @@ interface VehicleRepository {
      * the app decides which screen to land on. Failures are returned, not thrown —
      * the caller decides whether to surface or ignore them.
      */
-    suspend fun syncFromRemote(userId: String): Result<Unit>
+    override suspend fun syncFromRemote(userId: String): Result<Unit>
 
     /** Save a new vehicle or update an existing one. */
     suspend fun saveVehicle(vehicle: Vehicle)
@@ -52,10 +52,10 @@ interface VehicleRepository {
     suspend fun deleteVehicle(id: String)
 
     /**
-     * Set the given vehicle as the active (default) one.
-     * Clears isDefault on all others for this user.
+     * Set the given vehicle as the active one.
+     * Clears isActive on all others for this user.
      */
-    suspend fun setDefaultVehicle(id: String)
+    suspend fun setActiveVehicle(id: String)
 
     /**
      * Pairs a Bluetooth device MAC address with a vehicle.
@@ -65,7 +65,7 @@ interface VehicleRepository {
     suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?)
 
     /** Deletes all local and remote vehicles for [userId]. Called during account deletion. */
-    suspend fun deleteAllData(userId: String): Result<Unit>
+    override suspend fun deleteAllData(userId: String): Result<Unit>
 
     /** Returns true if the user has at least one vehicle cached in Room. */
     suspend fun hasVehicles(userId: String): Boolean

@@ -24,7 +24,7 @@ interface RemoteUserProfileDataSource {
     suspend fun getVehicles(userId: String): List<VehicleDto>
     suspend fun saveVehicle(userId: String, vehicle: VehicleDto)
     suspend fun deleteVehicle(userId: String, vehicleId: String)
-    suspend fun updateVehicleDefaultFlag(userId: String, vehicleId: String, isDefault: Boolean)
+    suspend fun updateVehicleActiveFlag(userId: String, vehicleId: String, isActive: Boolean)
 
     suspend fun deleteUserData(userId: String)
 }
