@@ -29,7 +29,7 @@
     <string name="home_peek_spot_expires">Caduca en %1$d min</string>
     <string name="home_peek_spot_posted_by">de %1$s</string>
     <string name="home_peek_spot_still_free_hint">¿Sigue libre? Toca para confirmar al llegar</string>
-    <string name="home_peek_spot_high">Plaza fiable</string>
+    <string name="home_peek_spot_high">Plaza libre fiable</string>
     <string name="home_peek_spot_medium">Plaza media</string>
     <string name="home_peek_spot_low">Plaza baja</string>
     <string name="home_peek_spot_manual">Plaza manual</string>
@@ -468,6 +468,9 @@
     <string name="bt_config_title">Bluetooth del coche</string>
     <string name="bt_config_subtitle">Selecciona el dispositivo Bluetooth ya emparejado con tu coche. La app lo usará para detectar cuándo aparcas o sales.</string>
     <string name="bt_config_bt_off">El Bluetooth está desactivado. Actívalo para ver tus dispositivos emparejados.</string>
+    <string name="bt_config_open_bt_settings">Abrir ajustes de Bluetooth</string>
+    <string name="bt_config_permission_rationale">Paparcar necesita acceso a Bluetooth para leer tus dispositivos emparejados. Concede el permiso para continuar.</string>
+    <string name="bt_config_grant_permission">Conceder permiso</string>
     <string name="bt_config_no_devices">No se encontraron dispositivos Bluetooth emparejados. Empareja primero el Bluetooth de tu coche desde los ajustes del sistema.</string>
     <string name="bt_config_save">Guardar</string>
     <string name="bt_config_none">Sin Bluetooth de coche</string>
@@ -513,9 +516,9 @@
     <string name="settings_distance_metric">Métrico</string>
     <string name="settings_map_type">Tipo de mapa</string>
     <string name="settings_map_type_desc">Vista predeterminada al abrir el mapa</string>
-    <string name="settings_map_type_normal">Normal</string>
     <string name="settings_map_type_satellite">Satélite</string>
     <string name="settings_map_type_terrain">Terreno</string>
+    <string name="settings_map_type_hybrid">Híbrido</string>
     <string name="home_filter_empty_title">Sin plazas para este tamaño</string>
     <string name="home_filter_empty_subtitle">Prueba otro filtro o vuelve más tarde</string>
     <string name="home_filter_empty_clear">Quitar filtro</string>
@@ -529,6 +532,7 @@
     <string name="gps_disclaimer_body">La precisión del GPS varía entre 5 y 30 metros según el entorno. Para mejores resultados, usa la app en exteriores con cielo despejado. En interiores o zonas subterráneas la precisión puede reducirse.</string>
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Descartar</string>
+    <string name="home_peek_vehicle_parked_label">%1$s aparcado</string>
     <string name="bt_config_cd_back">Atrás</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
@@ -538,4 +542,11 @@
     <string name="auth_field_name">Nombre</string>
     <string name="auth_field_confirm_password">Confirmar contraseña</string>
     <string name="auth_forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="home_zone_saved_message">Zona guardada</string>
+    <string name="home_zone_action_edit">Editar zona</string>
+    <string name="home_zone_action_delete">Eliminar zona</string>
+    <string name="home_zone_private_badge">Zona privada</string>
+    <string name="home_spot_peek_show_list">Plazas cercanas</string>
+    <string name="home_spot_peek_hide_list">Ocultar lista</string>
+    <string name="history_load_more">Cargar más</string>
 </resources>

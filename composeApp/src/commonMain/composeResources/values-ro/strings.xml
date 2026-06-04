@@ -364,6 +364,9 @@
     <string name="bt_config_title">Cheie Bluetooth auto</string>
     <string name="bt_config_subtitle">Selectează dispozitivul Bluetooth deja asociat cu mașina ta. Aplicația îl va folosi pentru a detecta când parchezi sau pleci.</string>
     <string name="bt_config_bt_off">Bluetooth-ul este dezactivat. Activează-l pentru a vedea dispozitivele asociate.</string>
+    <string name="bt_config_open_bt_settings">Deschide setările Bluetooth</string>
+    <string name="bt_config_permission_rationale">Paparcar are nevoie de acces la Bluetooth pentru a citi dispozitivele asociate. Acordă permisiunea pentru a continua.</string>
+    <string name="bt_config_grant_permission">Acordă permisiunea</string>
     <string name="bt_config_no_devices">Nu s-au găsit dispozitive Bluetooth asociate. Asociază mai întâi Bluetooth-ul mașinii din setările de sistem.</string>
     <string name="bt_config_save">Salvează</string>
     <string name="bt_config_none">Fără Bluetooth auto</string>
@@ -402,9 +405,9 @@
     <string name="settings_distance_metric">Metric</string>
     <string name="settings_map_type">Tip hartă</string>
     <string name="settings_map_type_desc">Vedere implicită la deschiderea hărții</string>
-    <string name="settings_map_type_normal">Normal</string>
     <string name="settings_map_type_satellite">Satelit</string>
     <string name="settings_map_type_terrain">Teren</string>
+    <string name="settings_map_type_hybrid">Hibrid</string>
     <string name="home_filter_empty_title">Niciun loc pentru această dimensiune</string>
     <string name="home_filter_empty_subtitle">Încearcă alt filtru sau revino mai târziu</string>
     <string name="home_filter_empty_clear">Șterge filtrul</string>
@@ -414,6 +417,7 @@
     <string name="gps_disclaimer_body">Precizia GPS variază între 5 și 30 de metri în funcție de mediu. Pentru cele mai bune rezultate, utilizați aplicația în aer liber cu cer liber. În interior sau subteran, precizia poate fi redusă.</string>
     <string name="gps_disclaimer_confirm">Am înțeles</string>
     <string name="home_peek_dismiss_cd">Închide</string>
+    <string name="home_peek_vehicle_parked_label">%1$s parcat</string>
     <string name="bt_config_cd_back">Înapoi</string>
 
     <!-- ───────────────────────────────────────────────────────────────── -->
@@ -456,7 +460,7 @@
     <string name="home_peek_spot_expires">Expiră în %1$d min</string>
     <string name="home_peek_spot_posted_by">de %1$s</string>
     <string name="home_peek_spot_still_free_hint">Încă liber? Atinge pentru a confirma la sosire</string>
-    <string name="home_peek_spot_high">Loc de încredere</string>
+    <string name="home_peek_spot_high">Loc liber de încredere</string>
     <string name="home_peek_spot_medium">Loc cu fiabilitate medie</string>
     <string name="home_peek_spot_low">Loc cu fiabilitate scăzută</string>
     <string name="home_peek_spot_manual">Loc manual</string>
@@ -547,4 +551,11 @@
     <string name="auth_field_name">Nume</string>
     <string name="auth_field_confirm_password">Confirmați parola</string>
     <string name="auth_forgot_password">Ai uitat parola?</string>
+    <string name="home_zone_saved_message">Zonă salvată</string>
+    <string name="home_zone_action_edit">Editează zona</string>
+    <string name="home_zone_action_delete">Șterge zona</string>
+    <string name="home_zone_private_badge">Zonă privată</string>
+    <string name="home_spot_peek_show_list">Locuri din apropiere</string>
+    <string name="home_spot_peek_hide_list">Ascunde lista</string>
+    <string name="history_load_more">Încarcă mai mult</string>
 </resources>

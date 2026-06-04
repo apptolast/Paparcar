@@ -364,6 +364,9 @@
     <string name="bt_config_title">Chave Bluetooth do carro</string>
     <string name="bt_config_subtitle">Seleciona o dispositivo Bluetooth já emparelhado com o teu carro. A app vai usá-lo para detetar quando estacionas ou partes.</string>
     <string name="bt_config_bt_off">O Bluetooth está desligado. Ativa-o para ver os teus dispositivos emparelhados.</string>
+    <string name="bt_config_open_bt_settings">Abrir definições de Bluetooth</string>
+    <string name="bt_config_permission_rationale">O Paparcar precisa de acesso ao Bluetooth para ler os teus dispositivos emparelhados. Concede a permissão para continuar.</string>
+    <string name="bt_config_grant_permission">Conceder permissão</string>
     <string name="bt_config_no_devices">Nenhum dispositivo Bluetooth emparelhado encontrado. Emparelha primeiro o Bluetooth do carro nas definições do sistema.</string>
     <string name="bt_config_save">Guardar</string>
     <string name="bt_config_none">Sem Bluetooth do carro</string>
@@ -402,9 +405,9 @@
     <string name="settings_distance_metric">Métrico</string>
     <string name="settings_map_type">Tipo de mapa</string>
     <string name="settings_map_type_desc">Vista predefinida ao abrir o mapa</string>
-    <string name="settings_map_type_normal">Normal</string>
     <string name="settings_map_type_satellite">Satélite</string>
     <string name="settings_map_type_terrain">Terreno</string>
+    <string name="settings_map_type_hybrid">Híbrido</string>
     <string name="home_filter_empty_title">Nenhuma vaga para este tamanho</string>
     <string name="home_filter_empty_subtitle">Tente outro filtro ou volte mais tarde</string>
     <string name="home_filter_empty_clear">Limpar filtro</string>
@@ -414,6 +417,7 @@
     <string name="gps_disclaimer_body">A precisão do GPS varia entre 5 e 30 metros dependendo do ambiente. Para melhores resultados, use a app ao ar livre com céu limpo. Em interiores ou subterrâneos a precisão pode ser reduzida.</string>
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Fechar</string>
+    <string name="home_peek_vehicle_parked_label">%1$s estacionado</string>
     <string name="bt_config_cd_back">Voltar</string>
 
     <!-- ───────────────────────────────────────────────────────────────── -->
@@ -456,7 +460,7 @@
     <string name="home_peek_spot_expires">Expira em %1$d min</string>
     <string name="home_peek_spot_posted_by">de %1$s</string>
     <string name="home_peek_spot_still_free_hint">Ainda livre? Toca para confirmar ao chegar</string>
-    <string name="home_peek_spot_high">Lugar fiável</string>
+    <string name="home_peek_spot_high">Lugar livre fiável</string>
     <string name="home_peek_spot_medium">Lugar médio</string>
     <string name="home_peek_spot_low">Lugar baixo</string>
     <string name="home_peek_spot_manual">Lugar manual</string>
@@ -547,4 +551,11 @@
     <string name="auth_field_name">Nome</string>
     <string name="auth_field_confirm_password">Confirmar senha</string>
     <string name="auth_forgot_password">Esqueceu a senha?</string>
+    <string name="home_zone_saved_message">Zona guardada</string>
+    <string name="home_zone_action_edit">Editar zona</string>
+    <string name="home_zone_action_delete">Eliminar zona</string>
+    <string name="home_zone_private_badge">Zona privada</string>
+    <string name="home_spot_peek_show_list">Vagas próximas</string>
+    <string name="home_spot_peek_hide_list">Ocultar lista</string>
+    <string name="history_load_more">Carregar mais</string>
 </resources>

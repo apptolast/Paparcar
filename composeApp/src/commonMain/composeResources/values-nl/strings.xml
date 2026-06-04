@@ -364,6 +364,9 @@
     <string name="bt_config_title">Auto Bluetooth-sleutel</string>
     <string name="bt_config_subtitle">Selecteer het Bluetooth-apparaat dat al gekoppeld is aan je auto. De app gebruikt dit om te detecteren wanneer je parkeert of vertrekt.</string>
     <string name="bt_config_bt_off">Bluetooth is uitgeschakeld. Schakel het in om je gekoppelde apparaten te zien.</string>
+    <string name="bt_config_open_bt_settings">Bluetooth-instellingen openen</string>
+    <string name="bt_config_permission_rationale">Paparcar heeft Bluetooth-toegang nodig om je gekoppelde apparaten te lezen. Verleen de toestemming om door te gaan.</string>
+    <string name="bt_config_grant_permission">Toestemming verlenen</string>
     <string name="bt_config_no_devices">Geen gekoppelde Bluetooth-apparaten gevonden. Koppel eerst het Bluetooth van je auto via de systeeminstellingen.</string>
     <string name="bt_config_save">Opslaan</string>
     <string name="bt_config_none">Geen auto Bluetooth</string>
@@ -402,9 +405,9 @@
     <string name="settings_distance_metric">Metrisch</string>
     <string name="settings_map_type">Kaarttype</string>
     <string name="settings_map_type_desc">Standaardweergave bij het openen van de kaart</string>
-    <string name="settings_map_type_normal">Normaal</string>
     <string name="settings_map_type_satellite">Satelliet</string>
     <string name="settings_map_type_terrain">Terrein</string>
+    <string name="settings_map_type_hybrid">Hybride</string>
     <string name="home_filter_empty_title">Geen plekken voor dit formaat</string>
     <string name="home_filter_empty_subtitle">Probeer een ander filter of kom later terug</string>
     <string name="home_filter_empty_clear">Filter verwijderen</string>
@@ -414,6 +417,7 @@
     <string name="gps_disclaimer_body">De GPS-nauwkeurigheid varieert tussen 5 en 30 meter afhankelijk van de omgeving. Gebruik de app buiten met vrij zicht op de lucht voor de beste resultaten. Binnen of ondergronds kan de nauwkeurigheid verminderd zijn.</string>
     <string name="gps_disclaimer_confirm">Begrepen</string>
     <string name="home_peek_dismiss_cd">Sluiten</string>
+    <string name="home_peek_vehicle_parked_label">%1$s geparkeerd</string>
     <string name="bt_config_cd_back">Terug</string>
 
     <!-- ───────────────────────────────────────────────────────────────── -->
@@ -456,7 +460,7 @@
     <string name="home_peek_spot_expires">Verloopt over %1$d min</string>
     <string name="home_peek_spot_posted_by">door %1$s</string>
     <string name="home_peek_spot_still_free_hint">Nog vrij? Tik om te bevestigen bij aankomst</string>
-    <string name="home_peek_spot_high">Betrouwbare plek</string>
+    <string name="home_peek_spot_high">Vrije betrouwbare plek</string>
     <string name="home_peek_spot_medium">Gemiddelde plek</string>
     <string name="home_peek_spot_low">Lage plek</string>
     <string name="home_peek_spot_manual">Handmatige plek</string>
@@ -547,4 +551,11 @@
     <string name="auth_field_name">Naam</string>
     <string name="auth_field_confirm_password">Wachtwoord bevestigen</string>
     <string name="auth_forgot_password">Wachtwoord vergeten?</string>
+    <string name="home_zone_saved_message">Zone opgeslagen</string>
+    <string name="home_zone_action_edit">Zone bewerken</string>
+    <string name="home_zone_action_delete">Zone verwijderen</string>
+    <string name="home_zone_private_badge">Privézone</string>
+    <string name="home_spot_peek_show_list">Nabijgelegen plekken</string>
+    <string name="home_spot_peek_hide_list">Lijst verbergen</string>
+    <string name="history_load_more">Meer laden</string>
 </resources>
