@@ -23,5 +23,6 @@ sealed class VehicleRegistrationIntent {
     data class SetShowOnSpot(val enabled: Boolean) : VehicleRegistrationIntent()
     data class LoadVehicle(val vehicleId: String) : VehicleRegistrationIntent()
     data object Save : VehicleRegistrationIntent()
+    data object DeleteVehicle : VehicleRegistrationIntent()
     data object NavigateBack : VehicleRegistrationIntent()
 }

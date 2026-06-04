@@ -83,6 +83,7 @@ class VehicleRegistrationViewModel(
                 updateState { copy(showBrandModelOnSpot = intent.enabled) }
             is VehicleRegistrationIntent.LoadVehicle -> loadVehicle(intent.vehicleId)
             is VehicleRegistrationIntent.Save -> saveVehicle()
+            is VehicleRegistrationIntent.DeleteVehicle -> deleteVehicle()
             is VehicleRegistrationIntent.NavigateBack ->
                 sendEffect(VehicleRegistrationEffect.NavigateBack)
         }
@@ -144,6 +145,13 @@ class VehicleRegistrationViewModel(
         viewModelScope.launch {
             runCatching {
                 val userId = authRepository.getCurrentSession()?.userId ?: ""
+                // New vehicles only become default when they are the first vehicle ever
+                // registered. Editing preserves the original flag so the user's existing
+                // default is never silently replaced mid-session. [BUG-NEW-VEHICLE-DEFAULT]
+                val shouldBeDefault = when {
+                    isEditing -> vehicleRepository.getVehicleById(userId, vehicleId)?.isActive ?: false
+                    else -> !vehicleRepository.hasVehicles(userId)
+                }
                 val vehicle = Vehicle(
                     id = vehicleId,
                     userId = userId,
@@ -153,10 +161,10 @@ class VehicleRegistrationViewModel(
                     sizeCategory = size,
                     vehicleType = type,
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
-                    isDefault = true,
+                    isActive = shouldBeDefault,
                 )
                 vehicleRepository.saveVehicle(vehicle)
-                if (!isEditing) vehicleRepository.setDefaultVehicle(vehicle.id)
+                if (!isEditing && shouldBeDefault) vehicleRepository.setActiveVehicle(vehicle.id)
             }.onSuccess {
                 updateState { copy(isSaving = false, pendingNewVehicleId = null) }
                 sendEffect(
@@ -170,6 +178,18 @@ class VehicleRegistrationViewModel(
                 updateState { copy(isSaving = false) }
                 sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
+        }
+    }
+
+    private fun deleteVehicle() {
+        val vehicleId = state.value.editingVehicleId ?: return
+        viewModelScope.launch {
+            runCatching { vehicleRepository.deleteVehicle(vehicleId) }
+                .onSuccess { sendEffect(VehicleRegistrationEffect.NavigateBack) }
+                .onFailure { e ->
+                    PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
+                    sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                }
         }
     }
 

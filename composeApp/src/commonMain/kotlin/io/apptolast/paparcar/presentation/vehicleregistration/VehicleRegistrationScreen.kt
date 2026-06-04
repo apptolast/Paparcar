@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Bluetooth
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.PapTextField
 import io.apptolast.paparcar.ui.components.VehicleSizeSelector
@@ -69,6 +72,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
+import paparcar.composeapp.generated.resources.my_car_delete_cancel
+import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
+import paparcar.composeapp.generated.resources.my_car_delete_confirm_message
+import paparcar.composeapp.generated.resources.my_car_delete_confirm_title
+import paparcar.composeapp.generated.resources.my_car_delete_vehicle
 import paparcar.composeapp.generated.resources.veh_bt_recommendation_body
 import paparcar.composeapp.generated.resources.veh_bt_recommendation_configure
 import paparcar.composeapp.generated.resources.veh_bt_recommendation_skip
@@ -195,6 +203,7 @@ internal fun VehicleRegistrationContent(
 
     var brandExpanded by remember { mutableStateOf(false) }
     var modelExpanded by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val models = remember(state.brand, state.isBrandOther) {
         if (!state.isBrandOther && state.brand.isNotBlank()) VehicleCatalog.modelsFor(state.brand)
@@ -526,6 +535,55 @@ internal fun VehicleRegistrationContent(
                 }
             }
 
+            // ── Delete section — only shown when editing and more than one vehicle ──
+            if (!isNewVehicle && state.canDelete) {
+                Surface(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = SCREEN_H_PADDING),
+                    shape = PapShapes.card,
+                    color = cs.errorContainer.copy(alpha = DELETE_SECTION_BG_ALPHA),
+                    border = BorderStroke(PapBorders.thin, cs.error.copy(alpha = DELETE_SECTION_BORDER_ALPHA)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = null,
+                            tint = cs.error,
+                            modifier = Modifier.size(DELETE_ICON_SIZE),
+                        )
+                        Text(
+                            text = stringResource(Res.string.my_car_delete_vehicle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cs.error,
+                        )
+                    }
+                }
+            }
+
+            if (showDeleteDialog) {
+                PapAlertDialog(
+                    onDismiss = { showDeleteDialog = false },
+                    icon = Icons.Outlined.Delete,
+                    title = stringResource(Res.string.my_car_delete_confirm_title),
+                    body = stringResource(Res.string.my_car_delete_confirm_message),
+                    primaryLabel = stringResource(Res.string.my_car_delete_confirm_action),
+                    primaryLeadingIcon = Icons.Outlined.Delete,
+                    onPrimary = {
+                        showDeleteDialog = false
+                        onIntent(VehicleRegistrationIntent.DeleteVehicle)
+                    },
+                    cancelLabel = stringResource(Res.string.my_car_delete_cancel),
+                    accent = PapDialogAccent.Destructive,
+                )
+            }
+
             Spacer(Modifier.height(SECTION_SPACING))
         }
     }
@@ -621,6 +679,7 @@ private fun VehicleRegistrationBottomBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(horizontal = SCREEN_H_PADDING, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -708,3 +767,8 @@ private val BOTTOM_BAR_SHADOW_ELEVATION  = 8.dp
 private const val BUTTON_DISABLED_BG_ALPHA  = 0.38f
 private const val BUTTON_DISABLED_FG_ALPHA  = 0.6f
 private const val HINT_TEXT_ALPHA        = 0.5f
+
+// Delete section
+private val DELETE_ICON_SIZE             = 20.dp
+private const val DELETE_SECTION_BG_ALPHA     = 0.3f
+private const val DELETE_SECTION_BORDER_ALPHA = 0.4f

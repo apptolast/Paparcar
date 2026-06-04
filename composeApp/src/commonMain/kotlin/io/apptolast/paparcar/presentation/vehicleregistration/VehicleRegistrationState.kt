@@ -45,6 +45,9 @@ data class VehicleRegistrationState(
      */
     val defaultNamePlaceholderIndex: Int get() = existingVehicleCount + 1
 
+    /** True when there is more than one vehicle — prevents deleting the last one. */
+    val canDelete: Boolean get() = existingVehicleCount > 1
+
     /**
      * CTA is enabled when size is chosen and brand is filled.
      * For catalog brands, model is also required. For "Other" brand, model is optional.
