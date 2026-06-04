@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.swmansion.kmpmaps.core.AndroidMapProperties
+import com.swmansion.kmpmaps.core.AndroidMarkerOptions
 import com.swmansion.kmpmaps.core.AndroidUISettings
 import com.swmansion.kmpmaps.core.CameraPosition
 import com.swmansion.kmpmaps.core.Coordinates
@@ -57,7 +59,7 @@ import com.swmansion.kmpmaps.core.MapType
 import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.model.ParkedVehicleView
+import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
@@ -111,7 +113,7 @@ data class PaparcarMapConfig(
     val showFreeSpotOverlays: Boolean = true,
     val centerPin: CenterPinKind? = null,
     val initialCamera: CameraTarget? = null,
-    val mapType: MapType = MapType.NORMAL,
+    val mapType: MapType = MapType.TERRAIN,
     val styleMode: MapStyleMode = MapStyleMode.AUTO,
 )
 
@@ -188,6 +190,14 @@ private const val LOADING_GRADIENT_TAIL_START = 0.716f
 private const val LOADING_GRADIENT_HEAD       = 0.721f
 private const val LOADING_GRADIENT_CUTOFF     = 0.726f
 
+// ── Zone radius circle overlay ───────────────────────────────────────────────
+private const val ZONE_CIRCLE_FILL_ALPHA    = 0.07f
+private const val ZONE_CIRCLE_STROKE_ALPHA  = 0.30f
+private const val ZONE_CIRCLE_STROKE_DP    = 2f
+private const val ZONE_PREVIEW_FILL_ALPHA   = 0.12f
+private const val ZONE_PREVIEW_STROKE_ALPHA = 0.55f
+private const val ZONE_PREVIEW_STROKE_DP   = 2.5f
+
 // ── Clustering degree thresholds ─────────────────────────────────────────────
 private const val CLUSTER_ZOOM_LEVEL_13   = 13f
 private const val CLUSTER_ZOOM_LEVEL_12   = 12f
@@ -232,18 +242,27 @@ private data class SpotMeta(
 // ── Marker content IDs ──────────────────────────────────────────────────────
 // Badge markers: contentId encodes vehicleId + state suffix so the bitmap
 // cache stores one entry per vehicle×state.
-private fun vehicleBadgeContentId(v: ParkedVehicleView, selected: Boolean, dim: Boolean): String {
+private fun vehicleBadgeContentId(v: ParkedVehicleSummary, selected: Boolean, dim: Boolean): String {
     val suffix = when {
         selected -> "sel"
         dim      -> "dim"
         else     -> "nrm"
     }
-    return "vehicle_badge_${v.vehicleId.take(8)}_$suffix"
+    val sizePart = v.sizeCategory?.name?.lowercase() ?: "car"
+    return "vehicle_badge_${v.vehicleId.take(8)}_${sizePart}_$suffix"
 }
 
 private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
+
+// Google Maps renders billboard markers by screen-Y when zIndex is equal,
+// so the selected marker must carry an explicit higher zIndex to always
+// render on top regardless of geographic position.
+private const val MARKER_Z_INDEX_SELECTED = 1f
+private const val MARKER_Z_INDEX_NORMAL   = 0f
+private val SELECTED_MARKER_OPTIONS = AndroidMarkerOptions(zIndex = MARKER_Z_INDEX_SELECTED)
+private val NORMAL_MARKER_OPTIONS   = AndroidMarkerOptions(zIndex = MARKER_Z_INDEX_NORMAL)
 
 // Free-spot markers — various variants (reliability / selected / dimmed).
 private fun spotContentId(spot: Spot, selected: Boolean, dim: Boolean): String {
@@ -369,10 +388,19 @@ fun PaparcarMapView(
      * teardrop for the home screen. [parkingLocation] still drives
      * ParkingLocationScreen which does not have vehicle context.
      */
-    parkedVehicles: List<ParkedVehicleView> = emptyList(),
+    parkedVehicles: List<ParkedVehicleSummary> = emptyList(),
+    /** Vehicle size for the fallback single-parking marker (used by ParkingLocationScreen). */
+    parkingVehicleSize: VehicleSize? = null,
+    /** When false the fallback parking marker renders in the inactive/history palette. */
+    parkingIsActive: Boolean = true,
     cameraTarget: CameraTarget? = null,
     /** User's saved habitual places. Rendered as circular markers with the chosen icon. */
     zones: List<Zone> = emptyList(),
+    /** Camera lat/lon of the zone being added/edited — for the live radius preview circle. */
+    previewZoneLat: Double? = null,
+    previewZoneLon: Double? = null,
+    previewZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,
+    previewZoneIsPrivate: Boolean = false,
     selectedSpotId: String? = null,
     /** When true, the parked-car marker bypasses the [dimSpots] pass and renders at full opacity. */
     isMyCarSelected: Boolean = false,
@@ -393,7 +421,7 @@ fun PaparcarMapView(
      */
     dimSpots: Boolean = false,
     onSpotClick: (String) -> Unit = {},
-    onMyCarClick: () -> Unit = {},
+    onMyCarClick: (sessionId: String) -> Unit = {},
     onZoneClick: (zoneId: String) -> Unit = {},
     onCameraMove: (lat: Double, lon: Double) -> Unit = { _, _ -> },
     onMapReady: () -> Unit = {},
@@ -446,17 +474,15 @@ fun PaparcarMapView(
     val zoneIdByCoords: Map<Coordinates, String> = remember(zones) {
         zones.associate { Coordinates(it.lat, it.lon) to it.id }
     }
-
-    val occupiedPrivateZoneIds = remember(parkedVehicles) {
-        parkedVehicles.mapNotNull { it.privateZoneId }.toSet()
+    val sessionIdByCoords: Map<Coordinates, String> = remember(parkedVehicles) {
+        parkedVehicles.associate { Coordinates(it.location.latitude, it.location.longitude) to it.sessionId }
     }
-    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, dimSpots, isMyCarSelected, zones, occupiedPrivateZoneIds) {
+
+    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, dimSpots, isMyCarSelected, zones) {
         buildList {
-            // Zone markers — added FIRST so spot/parking markers render on top
-            // (kmpmaps draws in list order; later entries z-index above earlier).
-            // Zones are background context, not actionable like spots.
+            // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
+            // always render on top.
             zones.forEach { zone ->
-                val isOccupied = zone.isPrivate && zone.id in occupiedPrivateZoneIds
                 add(
                     Marker(
                         coordinates = Coordinates(zone.lat, zone.lon),
@@ -464,24 +490,22 @@ fun PaparcarMapView(
                         // balloon. Zone ID is recovered via zoneIdByCoords in the
                         // click handler instead.
                         title = null,
-                        // Occupied private zones use a separate contentId so they get a
-                        // distinct amber+car bitmap without affecting non-occupied zones
-                        // of the same iconKey.
-                        contentId = if (isOccupied) "${MARKER_ZONE_PREFIX}${zone.iconKey}_occupied"
-                                    else "$MARKER_ZONE_PREFIX${zone.iconKey}",
+                        // Per-iconKey contentId: zones with the same icon share a bitmap.
+                        contentId = "$MARKER_ZONE_PREFIX${zone.iconKey}_${if (zone.isPrivate) "prv" else "pub"}",
+                        androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
                 )
             }
+            // Non-selected parking markers first; selected parking appended last so it renders on top.
             if (parkedVehicles.isNotEmpty()) {
-                // Name-tag markers: amber plate per active parking session.
-                // Skip vehicles parked inside a private zone — the occupied ZoneMarker
-                // already represents the car at that location.
-                parkedVehicles.filter { it.privateZoneId == null }.forEach { v ->
+                parkedVehicles.forEach { v ->
+                    val selected = isMyCarSelected
                     add(
                         Marker(
                             coordinates = Coordinates(v.location.latitude, v.location.longitude),
                             title = null,
-                            contentId = vehicleBadgeContentId(v, selected = isMyCarSelected, dim = dimSpots && !isMyCarSelected),
+                            contentId = vehicleBadgeContentId(v, selected = selected, dim = !selected && dimSpots),
+                            androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
                 }
@@ -495,9 +519,10 @@ fun PaparcarMapView(
                             title = null,
                             contentId = when {
                                 isMyCarSelected -> MARKER_MY_CAR_SELECTED
-                                dimSpots -> MARKER_MY_CAR_DIM
-                                else -> MARKER_MY_CAR
+                                dimSpots        -> MARKER_MY_CAR_DIM
+                                else            -> MARKER_MY_CAR
                             },
+                            androidMarkerOptions = if (isMyCarSelected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
                 }
@@ -505,15 +530,13 @@ fun PaparcarMapView(
             clusters.forEach { cluster ->
                 if (cluster.spots.size == 1) {
                     val spot = cluster.spots.first()
+                    val selected = spot.id == selectedSpotId
                     add(
                         Marker(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
                             title = null,
-                            contentId = spotContentId(
-                                spot = spot,
-                                selected = spot.id == selectedSpotId,
-                                dim = dimSpots && spot.id != selectedSpotId
-                            ),
+                            contentId = spotContentId(spot = spot, selected = selected, dim = !selected && dimSpots),
+                            androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
                 } else {
@@ -522,6 +545,7 @@ fun PaparcarMapView(
                             coordinates = Coordinates(cluster.lat, cluster.lon),
                             title = null,
                             contentId = MARKER_CLUSTER,
+                            androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                         ),
                     )
                 }
@@ -535,7 +559,7 @@ fun PaparcarMapView(
     //   - FreeSpotMarker: green teardrop + "P" (unified, no reliability tiers)
     //   - ZoneMarker: blue teardrop + darker-blue disc + zone icon
     // FreeSpot size/en-route overlays are preserved via FreeSpotWithOverlays.
-    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots, occupiedPrivateZoneIds) {
+    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots, parkingVehicleSize, parkingIsActive) {
         val spotContentHandlers: List<Pair<String, @Composable (Marker) -> Unit>> = spotMetaByCoords.values.flatMap { meta ->
             val reliability = meta.reliability
             listOf(
@@ -554,11 +578,17 @@ fun PaparcarMapView(
         }
 
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = mapOf(
-            // ── Fallback badge (screens without parkedVehicles context, e.g. HistoryParkingDetailScreen) ──
-            MARKER_MY_CAR to { _ -> VehicleBadgeMarker() },
-            MARKER_MY_CAR_SELECTED to { _ -> VehicleBadgeMarker(selected = true) },
+            // ── Fallback single-parking marker (ParkingLocationScreen) ──
+            MARKER_MY_CAR to { _ ->
+                VehicleBadgeMarker(sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
+            },
+            MARKER_MY_CAR_SELECTED to { _ ->
+                VehicleBadgeMarker(selected = true, sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
+            },
             MARKER_MY_CAR_DIM to { _ ->
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { VehicleBadgeMarker() }
+                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
+                    VehicleBadgeMarker(sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
+                }
             },
             MARKER_CLUSTER to { marker ->
                 FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
@@ -569,31 +599,23 @@ fun PaparcarMapView(
             // Explicit type annotation preserves @Composable on each lambda through flatMap.
             val entries: List<Pair<String, @Composable (Marker) -> Unit>> = listOf(
                 vehicleBadgeContentId(v, selected = false, dim = false) to { _: Marker ->
-                    VehicleBadgeMarker()
+                    VehicleBadgeMarker(sizeCategory = v.sizeCategory)
                 },
                 vehicleBadgeContentId(v, selected = true, dim = false) to { _: Marker ->
-                    VehicleBadgeMarker(selected = true)
+                    VehicleBadgeMarker(selected = true, sizeCategory = v.sizeCategory)
                 },
                 vehicleBadgeContentId(v, selected = false, dim = true) to { _: Marker ->
-                    Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { VehicleBadgeMarker() }
+                    Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { VehicleBadgeMarker(sizeCategory = v.sizeCategory) }
                 },
             )
             entries
-        }.toMap() + zones.flatMap { zone ->
-            val icon = zoneIconFor(zone.iconKey)
-            // Explicit type annotation preserves @Composable on each lambda through flatMap.
-            val entries: List<Pair<String, @Composable (Marker) -> Unit>> = listOf(
-                // Default (non-occupied) entry — zones with the same iconKey share a bitmap.
-                "$MARKER_ZONE_PREFIX${zone.iconKey}" to { _: Marker ->
-                    ZoneMarker(icon = icon)
-                },
-                // Occupied private zone — amber + car icon, keyed with _occupied suffix.
-                "${MARKER_ZONE_PREFIX}${zone.iconKey}_occupied" to { _: Marker ->
-                    ZoneMarker(icon = icon, isOccupied = true)
-                },
-            )
-            entries
-        }.toMap()
+        }.toMap() + zones.associate { zone ->
+            // isPrivate is included in the contentId so private and non-private zones
+            // of the same iconKey get separate cached bitmaps (different visual).
+            "$MARKER_ZONE_PREFIX${zone.iconKey}_${if (zone.isPrivate) "prv" else "pub"}" to { _: Marker ->
+                ZoneMarker(icon = zoneIconFor(zone.iconKey), isPrivate = zone.isPrivate)
+            }
+        }
     }
 
     // ── Track real camera center (set by the map, not by us) ──────────────
@@ -684,7 +706,7 @@ fun PaparcarMapView(
             properties = MapProperties(
                 isMyLocationEnabled = true,
                 isTrafficEnabled = false,
-                mapTheme = MapTheme.SYSTEM,
+                mapTheme = if (resolvedDark) MapTheme.DARK else MapTheme.LIGHT,
                 mapType = config.mapType,
                 androidMapProperties = AndroidMapProperties(
                     mapStyleOptions = GoogleMapsMapStyleOptions(
@@ -723,7 +745,8 @@ fun PaparcarMapView(
                     cid == MARKER_MY_CAR ||
                         cid == MARKER_MY_CAR_SELECTED ||
                         cid == MARKER_MY_CAR_DIM ||
-                        cid?.startsWith("vehicle_badge_") == true -> onMyCarClick()
+                        cid?.startsWith("vehicle_badge_") == true ->
+                        sessionIdByCoords[marker.coordinates]?.let(onMyCarClick)
                     cid?.startsWith(MARKER_ZONE_PREFIX) == true ->
                         zoneIdByCoords[marker.coordinates]?.let(onZoneClick)
                     cid == MARKER_CLUSTER -> Unit // cluster taps are inert
@@ -738,6 +761,82 @@ fun PaparcarMapView(
                 }
             },
         )
+
+        // ── Zone radius circles canvas overlay ──────────────────────────────
+        if (actualCamLat != null && actualCamLon != null) {
+            val camLat = actualCamLat!!.toDouble()
+            val camLon = actualCamLon!!.toDouble()
+            val primaryColor = MaterialTheme.colorScheme.primary
+            val tertiaryColor = MaterialTheme.colorScheme.tertiary
+            val zoneSnapshot = zones
+            val previewLat = previewZoneLat
+            val previewLon = previewZoneLon
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                // Web Mercator projection helpers
+                val worldSize = 256.0 * Math.pow(2.0, currentZoom.toDouble())
+                fun worldX(lon: Double) = ((lon + 180.0) / 360.0) * worldSize
+                fun worldY(lat: Double): Double {
+                    val sinLat = Math.sin(lat * Math.PI / 180.0).coerceIn(-0.9999, 0.9999)
+                    return (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * worldSize
+                }
+                val camWx = worldX(camLon)
+                val camWy = worldY(camLat)
+
+                fun toScreen(lat: Double, lon: Double): Offset {
+                    val dx = worldX(lon) - camWx
+                    val dy = worldY(lat) - camWy
+                    return Offset((size.width / 2f + dx).toFloat(), (size.height / 2f + dy).toFloat())
+                }
+
+                fun metersToPixels(lat: Double, meters: Float): Float {
+                    val cosLat = Math.cos(lat * Math.PI / 180.0)
+                    val metersPerPx = (156_543.03392 * cosLat) / Math.pow(2.0, currentZoom.toDouble())
+                    return (meters / metersPerPx).toFloat()
+                }
+
+                val strokeWidthPx = ZONE_CIRCLE_STROKE_DP.dp.toPx()
+
+                // Draw saved zones
+                zoneSnapshot.forEach { zone ->
+                    val center = toScreen(zone.lat, zone.lon)
+                    val radiusPx = metersToPixels(zone.lat, zone.radiusMeters)
+                    val baseColor = if (zone.isPrivate) tertiaryColor else primaryColor
+                    drawCircle(
+                        color = baseColor.copy(alpha = ZONE_CIRCLE_FILL_ALPHA),
+                        radius = radiusPx,
+                        center = center,
+                    )
+                    drawCircle(
+                        color = baseColor.copy(alpha = ZONE_CIRCLE_STROKE_ALPHA),
+                        radius = radiusPx,
+                        center = center,
+                        style = Stroke(width = strokeWidthPx),
+                    )
+                }
+
+                // Draw preview zone (AddingZone mode)
+                if (previewLat != null && previewLon != null) {
+                    val center = toScreen(previewLat, previewLon)
+                    val radiusPx = metersToPixels(previewLat, previewZoneRadius)
+                    val baseColor = if (previewZoneIsPrivate) tertiaryColor else primaryColor
+                    drawCircle(
+                        color = baseColor.copy(alpha = ZONE_PREVIEW_FILL_ALPHA),
+                        radius = radiusPx,
+                        center = center,
+                    )
+                    drawCircle(
+                        color = baseColor.copy(alpha = ZONE_PREVIEW_STROKE_ALPHA),
+                        radius = radiusPx,
+                        center = center,
+                        style = Stroke(
+                            width = ZONE_PREVIEW_STROKE_DP.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 8f), 0f),
+                        ),
+                    )
+                }
+            }
+        }
 
         // ── Loading overlay — hides partial map tiles; central pointer is the indicator ──
         AnimatedVisibility(

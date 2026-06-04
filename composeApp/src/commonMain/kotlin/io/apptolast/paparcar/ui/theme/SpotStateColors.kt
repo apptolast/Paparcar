@@ -15,28 +15,28 @@ private val isDark: Boolean
 @Composable
 fun SpotReliabilityLevel.stateColors(): SpotStateColors = when (this) {
     SpotReliabilityLevel.HIGH   -> if (isDark) SpotStateColors(PapGreen,     PapInk)
-                                   else        SpotStateColors(PapGreenLight, PapOnGreenLight)
+                                   else        SpotStateColors(PapGreenLight, Color.White)
     SpotReliabilityLevel.MEDIUM -> if (isDark) SpotStateColors(PapAmber,     PapInk)
-                                   else        SpotStateColors(PapAmberLight, PapOnGreenLight)
+                                   else        SpotStateColors(PapAmberLight, Color.White)
     SpotReliabilityLevel.LOW    -> if (isDark) SpotStateColors(PapRed,       PapOnRed)
-                                   else        SpotStateColors(PapRedLight,   PapOnGreenLight)
+                                   else        SpotStateColors(PapRedLight,   Color.White)
     SpotReliabilityLevel.MANUAL -> if (isDark) SpotStateColors(PapBlue,      PapOnBlue)
-                                   else        SpotStateColors(PapBlueLight,  PapOnGreenLight)
+                                   else        SpotStateColors(PapBlueLight,  Color.White)
 }
 
 @Composable
 fun SpotReliabilityUiState.stateColors(): SpotStateColors = when (this) {
     SpotReliabilityUiState.HIGH   -> if (isDark) SpotStateColors(PapGreen,     PapInk)
-                                     else        SpotStateColors(PapGreenLight, PapOnGreenLight)
+                                     else        SpotStateColors(PapGreenLight, Color.White)
     SpotReliabilityUiState.MEDIUM -> if (isDark) SpotStateColors(PapAmber,     PapInk)
-                                     else        SpotStateColors(PapAmberLight, PapOnGreenLight)
+                                     else        SpotStateColors(PapAmberLight, Color.White)
     SpotReliabilityUiState.LOW    -> if (isDark) SpotStateColors(PapRed,       PapOnRed)
-                                     else        SpotStateColors(PapRedLight,   PapOnGreenLight)
+                                     else        SpotStateColors(PapRedLight,   Color.White)
     SpotReliabilityUiState.MANUAL -> if (isDark) SpotStateColors(PapBlue,      PapOnBlue)
-                                     else        SpotStateColors(PapBlueLight,  PapOnGreenLight)
+                                     else        SpotStateColors(PapBlueLight,  Color.White)
 }
 
 @Composable
 fun vehicleStateColors(): SpotStateColors =
     if (isDark) SpotStateColors(PapAmber, PapInk)
-    else        SpotStateColors(PapAmberLight, PapOnGreenLight)
+    else        SpotStateColors(PapAmberLight, Color.White)

@@ -98,8 +98,7 @@ fun PapAlertDialog(
     BasicAlertDialog(onDismissRequest = onDismiss, modifier = modifier) {
         Surface(
             shape = PapShapes.dialog,
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
         ) {
             Column(
                 modifier = Modifier

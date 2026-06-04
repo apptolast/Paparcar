@@ -2,7 +2,6 @@ package io.apptolast.paparcar.ui.icons
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalance
-import androidx.compose.material.icons.outlined.AirportShuttle
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.ElectricScooter
@@ -76,14 +75,13 @@ object PaparcarIcons {
     val PlaceGeneric: ImageVector get() = Icons.Outlined.Place
 
     // ── Vehicle sizes ────────────────────────────────────────────────────────
-    // MOTO and VAN reuse Material outlined glyphs that already differ enough
-    // from the cars to read at a glance. The three car sizes are drawn from
-    // scratch since Material only ships a single generic "DirectionsCar".
-    val VehicleMoto: ImageVector get() = Icons.Outlined.TwoWheeler
-    val VehicleVan: ImageVector get() = Icons.Outlined.AirportShuttle
+    // All five vehicle sizes are custom vectors matching the casa-rodante.svg visual
+    // language (flat filled silhouette, bezier wheel ovals, EvenOdd window cut-outs).
+    val VehicleMoto: ImageVector by lazy { vehicleMotoVector() }
     val VehicleSmall: ImageVector by lazy { vehicleSmallVector() }
     val VehicleMedium: ImageVector by lazy { vehicleMediumVector() }
     val VehicleLarge: ImageVector by lazy { vehicleLargeVector() }
+    val VehicleVan: ImageVector by lazy { vehicleVanVector() }
 
     // ── Vehicle types (high-level taxonomy, independent of size) ─────────────
     // Used in registration/edit to pick the user's vehicle category. Drives
@@ -212,10 +210,10 @@ object PaparcarIcons {
 }
 
 // ─── Custom vehicle silhouettes ──────────────────────────────────────────────
-// Side-view silhouettes sharing one visual language: rounded body, two
-// circular wheel hubs cut out with even-odd, a window band carved out of the
-// cabin. Differences are size and proportion — Small is shorter, Medium is
-// the canonical sedan, Large sits taller with bigger wheels (SUV / crossover).
+// Side-view silhouettes (right-facing) sharing one visual language: flat filled
+// body polygon + rectangular EvenOdd window cut-outs + oval bezier wheel bumps
+// that dip below the body floor. VAN is a direct conversion of casa-rodante.svg
+// (same icon set); SMALL/MEDIUM/LARGE/MOTO follow the same visual language.
 
 private const val VEHICLE_VIEWPORT = 24f
 private val VEHICLE_DEFAULT_SIZE = 24.dp
@@ -238,126 +236,197 @@ private fun buildVehicleVector(name: String, build: PathBuilder.() -> Unit): Ima
         }
     }.build()
 
+// Wheel helper — produces a downward oval bezier matching the casa-rodante style.
+// The oval spans [x, x+width] at y=floor and dips ~3.5 dp below the viewport.
+// Call once per wheel; EvenOdd fill is positive when it doesn't overlap the body.
+private fun PathBuilder.wheelOval(x: Float, floor: Float, width: Float) {
+    moveTo(x, floor)
+    curveTo(x - 0.5f, floor + 3.5f, x + width + 0.5f, floor + 3.5f, x + width, floor)
+    close()
+}
+
 /**
- * Small / compact car (e.g. hatchback). Lower body height, short cabin
- * compartment, wheels at (5, 18) and (19, 18).
+ * Small / compact hatchback. Steep C-pillar (rear left), short hood (front
+ * right), single undivided cabin window. Wheels cx≈7 and cx≈18 at y=17.
  */
 private fun vehicleSmallVector(): ImageVector = buildVehicleVector("PapVehicleSmall") {
-    // Outer outline — rounded silhouette with one short cabin.
-    moveTo(4f, 18f)
-    lineTo(4f, 14f)
-    curveTo(4f, 13.4f, 4.3f, 12.8f, 4.7f, 12.5f)
-    lineTo(7.5f, 10.2f)
-    curveTo(7.9f, 9.9f, 8.4f, 9.7f, 8.9f, 9.7f)
-    lineTo(15.1f, 9.7f)
-    curveTo(15.6f, 9.7f, 16.1f, 9.9f, 16.5f, 10.2f)
-    lineTo(19.3f, 12.5f)
-    curveTo(19.7f, 12.8f, 20f, 13.4f, 20f, 14f)
-    lineTo(20f, 18f)
+    // Rear wheel (left, cx=7, width=5)
+    wheelOval(x = 4.5f, floor = 17f, width = 5f)
+    // Front wheel (right, cx=18, width=5)
+    wheelOval(x = 15.5f, floor = 17f, width = 5f)
+    // Cabin window — single pane (EvenOdd hole)
+    moveTo(8f, 10f)
+    lineTo(18f, 10f)
+    lineTo(18f, 13.5f)
+    lineTo(8f, 13.5f)
     close()
-    // Cabin window cut-out (single, since this is a compact 2-door).
-    moveTo(9f, 11.2f)
-    lineTo(15f, 11.2f)
-    lineTo(17f, 13.4f)
-    lineTo(7f, 13.4f)
-    close()
-    // Wheel hub cut-outs — even-odd makes them transparent inside the body.
-    moveTo(7f, 18f)
-    curveTo(7f, 16.9f, 6.1f, 16f, 5f, 16f)
-    curveTo(3.9f, 16f, 3f, 16.9f, 3f, 18f)
-    curveTo(3f, 19.1f, 3.9f, 20f, 5f, 20f)
-    curveTo(6.1f, 20f, 7f, 19.1f, 7f, 18f)
-    close()
-    moveTo(21f, 18f)
-    curveTo(21f, 16.9f, 20.1f, 16f, 19f, 16f)
-    curveTo(17.9f, 16f, 17f, 16.9f, 17f, 18f)
-    curveTo(17f, 19.1f, 17.9f, 20f, 19f, 20f)
-    curveTo(20.1f, 20f, 21f, 19.1f, 21f, 18f)
+    // Body — steep rear hatch, flat roof, short hood
+    moveTo(3f, 17f)
+    lineTo(3f, 14f)
+    lineTo(5f, 11f)
+    lineTo(8f, 9f)
+    lineTo(17f, 9f)
+    lineTo(20f, 11f)
+    lineTo(22f, 14f)
+    lineTo(22f, 17f)
     close()
 }
 
 /**
- * Medium / sedan — canonical 4-door car silhouette. Slightly longer body
- * than the compact with a window divider hinting at the second row.
+ * Medium / sedan. 3-box notchback: trunk step at rear left, longer hood at
+ * front right. Two-pane window divided by a B-pillar at x≈12–14.
+ * Wheels cx≈7 and cx≈18 at y=17.
  */
 private fun vehicleMediumVector(): ImageVector = buildVehicleVector("PapVehicleMedium") {
-    moveTo(3f, 18f)
-    lineTo(3f, 13.5f)
-    curveTo(3f, 12.9f, 3.3f, 12.3f, 3.7f, 12f)
-    lineTo(6.5f, 9.5f)
-    curveTo(6.9f, 9.2f, 7.4f, 9f, 7.9f, 9f)
-    lineTo(16.1f, 9f)
-    curveTo(16.6f, 9f, 17.1f, 9.2f, 17.5f, 9.5f)
-    lineTo(20.3f, 12f)
-    curveTo(20.7f, 12.3f, 21f, 12.9f, 21f, 13.5f)
-    lineTo(21f, 18f)
+    // Rear wheel (left, cx=7, width=5)
+    wheelOval(x = 4.5f, floor = 17f, width = 5f)
+    // Front wheel (right, cx=18, width=5)
+    wheelOval(x = 15.5f, floor = 17f, width = 5f)
+    // Rear window pane (EvenOdd hole)
+    moveTo(6f, 10f)
+    lineTo(11f, 10f)
+    lineTo(11f, 13.5f)
+    lineTo(6f, 13.5f)
     close()
-    // Cabin glass — left half (front passenger).
-    moveTo(8f, 10.5f)
-    lineTo(11.5f, 10.5f)
-    lineTo(11.5f, 12.8f)
-    lineTo(5.6f, 12.8f)
+    // Front window pane — B-pillar gap at x=11..13 (EvenOdd hole)
+    moveTo(13f, 10f)
+    lineTo(19f, 10f)
+    lineTo(19f, 13.5f)
+    lineTo(13f, 13.5f)
     close()
-    // Cabin glass — right half (rear passenger).
-    moveTo(12.5f, 10.5f)
-    lineTo(16f, 10.5f)
-    lineTo(18.4f, 12.8f)
-    lineTo(12.5f, 12.8f)
-    close()
-    // Wheels (r = 2).
-    moveTo(8f, 18f)
-    curveTo(8f, 16.9f, 7.1f, 16f, 6f, 16f)
-    curveTo(4.9f, 16f, 4f, 16.9f, 4f, 18f)
-    curveTo(4f, 19.1f, 4.9f, 20f, 6f, 20f)
-    curveTo(7.1f, 20f, 8f, 19.1f, 8f, 18f)
-    close()
-    moveTo(20f, 18f)
-    curveTo(20f, 16.9f, 19.1f, 16f, 18f, 16f)
-    curveTo(16.9f, 16f, 16f, 16.9f, 16f, 18f)
-    curveTo(16f, 19.1f, 16.9f, 20f, 18f, 20f)
-    curveTo(19.1f, 20f, 20f, 19.1f, 20f, 18f)
+    // Body — 3-box sedan with trunk step at rear, longer hood at front
+    moveTo(2f, 17f)
+    lineTo(2f, 14f)
+    lineTo(3f, 12f)
+    lineTo(5f, 10f)
+    lineTo(6f, 9f)
+    lineTo(17f, 9f)
+    lineTo(19f, 10f)
+    lineTo(21f, 13f)
+    lineTo(22f, 15f)
+    lineTo(22f, 17f)
     close()
 }
 
 /**
- * Large / SUV — taller body and slightly larger wheels. Same overall length
- * as the sedan but the cabin sits higher and the window line runs straighter.
+ * Large / SUV-crossover. Taller cabin (roof at y=7), near-vertical A and C
+ * pillars, boxier proportions. Two-pane window. Wider wheels (width=6)
+ * with cx≈7 and cx≈18 at y=18.
  */
 private fun vehicleLargeVector(): ImageVector = buildVehicleVector("PapVehicleLarge") {
-    moveTo(3f, 18f)
-    lineTo(3f, 12.5f)
-    curveTo(3f, 11.9f, 3.3f, 11.3f, 3.7f, 11f)
-    lineTo(5.5f, 9.5f)
-    curveTo(5.9f, 9.2f, 6.4f, 9f, 6.9f, 9f)
-    lineTo(17.1f, 9f)
-    curveTo(17.6f, 9f, 18.1f, 9.2f, 18.5f, 9.5f)
-    lineTo(20.3f, 11f)
-    curveTo(20.7f, 11.3f, 21f, 11.9f, 21f, 12.5f)
-    lineTo(21f, 18f)
+    // Rear wheel (left, cx=7, width=6 — larger than car sizes)
+    wheelOval(x = 4f, floor = 18f, width = 6f)
+    // Front wheel (right, cx=18, width=6)
+    wheelOval(x = 15f, floor = 18f, width = 6f)
+    // Rear window pane (EvenOdd hole)
+    moveTo(5f, 9f)
+    lineTo(11f, 9f)
+    lineTo(11f, 14f)
+    lineTo(5f, 14f)
     close()
-    // Cabin glass band — taller and straighter than the sedan.
-    moveTo(7f, 10.4f)
-    lineTo(11.5f, 10.4f)
-    lineTo(11.5f, 12.5f)
-    lineTo(5.4f, 12.5f)
+    // Front window pane — B-pillar at x=11..13 (EvenOdd hole)
+    moveTo(13f, 9f)
+    lineTo(20f, 9f)
+    lineTo(20f, 14f)
+    lineTo(13f, 14f)
     close()
-    moveTo(12.5f, 10.4f)
-    lineTo(17f, 10.4f)
-    lineTo(18.6f, 12.5f)
-    lineTo(12.5f, 12.5f)
+    // Body — tall boxy SUV, near-vertical pillars, short overhangs
+    moveTo(2f, 18f)
+    lineTo(2f, 12f)
+    lineTo(3f, 9f)
+    lineTo(5f, 7f)
+    lineTo(17f, 7f)
+    lineTo(20f, 9f)
+    lineTo(21f, 12f)
+    lineTo(22f, 15f)
+    lineTo(22f, 18f)
     close()
-    // Wheels (r = 2.2).
-    moveTo(8.2f, 18f)
-    curveTo(8.2f, 16.78f, 7.22f, 15.8f, 6f, 15.8f)
-    curveTo(4.78f, 15.8f, 3.8f, 16.78f, 3.8f, 18f)
-    curveTo(3.8f, 19.22f, 4.78f, 20.2f, 6f, 20.2f)
-    curveTo(7.22f, 20.2f, 8.2f, 19.22f, 8.2f, 18f)
+}
+
+/**
+ * Motorcycle. Two large wheels (width=7, cx≈7 rear and cx≈18 front) with a
+ * minimal frame + tank hump between them. Rear wheel at left, front at right
+ * (same right-facing orientation as the other silhouettes).
+ */
+private fun vehicleMotoVector(): ImageVector = buildVehicleVector("PapVehicleMoto") {
+    // Rear wheel (left, cx≈7, width=7 — prominent, moto-scale)
+    wheelOval(x = 3.5f, floor = 17f, width = 7f)
+    // Front wheel (right, cx≈18, width=7)
+    wheelOval(x = 14.5f, floor = 17f, width = 7f)
+    // Frame + tank — fits in the gap between wheels (x≈10.5..14.5)
+    // EvenOdd overlap at wheel edges creates subtle fork/swingarm detail
+    moveTo(10.5f, 17f)
+    lineTo(10f, 14f)
+    lineTo(9f, 11f)
+    lineTo(9f, 9f)
+    lineTo(12f, 8f)
+    lineTo(15f, 9f)
+    lineTo(16f, 11f)
+    lineTo(15.5f, 14f)
+    lineTo(14.5f, 17f)
     close()
-    moveTo(20.2f, 18f)
-    curveTo(20.2f, 16.78f, 19.22f, 15.8f, 18f, 15.8f)
-    curveTo(16.78f, 15.8f, 15.8f, 16.78f, 15.8f, 18f)
-    curveTo(15.8f, 19.22f, 16.78f, 20.2f, 18f, 20.2f)
-    curveTo(19.22f, 20.2f, 20.2f, 19.22f, 20.2f, 18f)
+}
+
+/**
+ * VAN / motorhome. Direct pixel-exact conversion of casa-rodante.svg (24×24).
+ * Two-section body: tall living-quarters coach (left) + shorter cab (right).
+ * Coach window + cab windshield are EvenOdd cut-outs. Wheels dip below y=21.
+ *
+ * SVG path breakdown:
+ *  – Sub-paths 1–2  : rear and front wheel ovals at y=21 (extend past viewport)
+ *  – Sub-path 3     : cab windshield (angled pane, right side)
+ *  – Sub-path 4     : coach window detail (small rect, fills back via EvenOdd)
+ *  – Sub-path 5     : rear cab lower panel (EvenOdd hole)
+ *  – Sub-path 6     : main body (coach tall left + cab step right, rounded corners)
+ *  – Sub-path 7     : large coach side window (EvenOdd hole, x=2..10, y=5..11)
+ */
+private fun vehicleVanVector(): ImageVector = buildVehicleVector("PapVehicleVan") {
+    // Rear wheel (left, x=3.058..7.942 at y=21, dips to y≈25 — partially clipped)
+    moveTo(3.058f, 21f)
+    curveTo(2.471f, 24.954f, 8.530f, 24.952f, 7.942f, 21f)
+    close()
+    // Front wheel (right, x=16.058..20.942 at y=21)
+    moveTo(20.942f, 21f)
+    curveTo(21.529f, 24.954f, 15.470f, 24.952f, 16.058f, 21f)
+    close()
+    // Cab windshield (EvenOdd hole) — angled pane on the right side of cab
+    moveTo(16f, 7f)
+    lineTo(20.723f, 7f)
+    lineTo(23.341f, 11.582f)
+    curveTo(23.419f, 11.717f, 23.481f, 11.859f, 23.541f, 12f)
+    lineTo(15f, 12f)
+    lineTo(15f, 8f)
+    arcTo(1f, 1f, 0f, false, true, 16f, 7f)
+    close()
+    // Coach window detail (EvenOdd fills back) — small rect at x=4..8, y=7..9
+    moveTo(4f, 7f)
+    lineTo(8f, 7f)
+    lineTo(8f, 9f)
+    lineTo(4f, 9f)
+    close()
+    // Rear cab lower panel (EvenOdd hole) — x=15..24, y=14..19
+    moveTo(24f, 14f)
+    curveTo(24f, 14.021f, 24f, 14.042f, 24f, 14.062f)
+    lineTo(24f, 19f)
+    lineTo(15f, 19f)
+    lineTo(15f, 14f)
+    close()
+    // Main body — coach (tall, left x=0..13) + cab step (shorter, right x=13..24)
+    moveTo(13f, 8f)
+    arcTo(3f, 3f, 0f, false, true, 16f, 5f)
+    lineTo(24f, 5f)
+    arcTo(4f, 4f, 0f, false, false, 20f, 1f)
+    lineTo(4f, 1f)
+    arcTo(4f, 4f, 0f, false, false, 0f, 5f)
+    lineTo(0f, 15.414f)
+    lineTo(3.586f, 19f)
+    lineTo(13f, 19f)
+    close()
+    // Coach side window (EvenOdd hole) — x=2..10, y=5..11
+    moveTo(2f, 11f)
+    lineTo(2f, 5f)
+    lineTo(10f, 5f)
+    lineTo(10f, 11f)
     close()
 }
 

@@ -1,6 +1,5 @@
 package io.apptolast.paparcar.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,9 +29,9 @@ data class AppBottomNavItem(
  * root Scaffold in App.kt — no screen should declare its own NavigationBar.
  *
  * Style: icon always visible (filled / outlined based on selection), label
- * only visible on the selected item. Matches the visual language of the
- * bottom sheet above it (`surfaceContainer` token, no tonal elevation,
- * hairline divider at the top).
+ * always visible on all items. Selected item highlighted with a translucent
+ * primary pill indicator. Matches the visual language of the bottom sheet
+ * above it (`surfaceContainer` token, no tonal elevation, hairline divider).
  */
 @Composable
 fun AppBottomNavigation(
@@ -50,6 +49,7 @@ fun AppBottomNavigation(
             items.forEach { item ->
                 val selected = currentRoute == item.route
                 val label = item.label()
+                val cs = MaterialTheme.colorScheme
                 NavigationBarItem(
                     selected = selected,
                     onClick = { onNavigate(item.route) },
@@ -60,23 +60,20 @@ fun AppBottomNavigation(
                         )
                     },
                     label = {
-                        AnimatedVisibility(visible = selected) {
-                            Text(
-                                text = label,
-                                fontSize = LABEL_FONT_SIZE_SP.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                        Text(
+                            text = label,
+                            fontSize = LABEL_FONT_SIZE_SP.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     },
-                    alwaysShowLabel = false,
+                    alwaysShowLabel = true,
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            .copy(alpha = UNSELECTED_ICON_ALPHA),
-                        indicatorColor = MaterialTheme.colorScheme.primary
-                            .copy(alpha = SELECTED_INDICATOR_ALPHA),
+                        selectedIconColor = cs.primary,
+                        selectedTextColor = cs.primary,
+                        unselectedIconColor = cs.onSurfaceVariant.copy(alpha = UNSELECTED_ICON_ALPHA),
+                        unselectedTextColor = cs.onSurfaceVariant.copy(alpha = UNSELECTED_ICON_ALPHA),
+                        indicatorColor = cs.primary.copy(alpha = SELECTED_INDICATOR_ALPHA),
                     ),
                 )
             }

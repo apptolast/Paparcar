@@ -133,7 +133,7 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     }
 
     private companion object {
-        const val DEFAULT_MAP_TYPE = "NORMAL"
+        const val DEFAULT_MAP_TYPE = "TERRAIN"
         const val LANGUAGE_AUTO    = "auto"
     }
 }

@@ -4,7 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Icon
@@ -17,18 +17,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PapBorders
 
-private const val ADD_BORDER_ALPHA = 0.6f
-
 /**
- * "Add" action chip — icon-only, always a circle that adapts to the icon size
- * + padding (no fixed-size mode). Primary-tinted border keeps it readable as
- * an action affordance vs the neutral outline used by [PaparcarFilterChip].
- *
- * Sizing model: the circle's diameter is driven by [iconSize] + [contentPad]
- * on each side, so callers control the visual weight just by changing
- * [iconSize]. Callers that need a specific size match other chips in a row
- * (e.g. the vehicle tab pill's 32dp height) should pass an [iconSize] /
- * [contentPad] pair whose sum equals that height.
+ * "Add" action chip — icon-only pill. Matches the visual contract of
+ * VehicleTabPill (same border style, same pill shape) with a compact
+ * icon-only footprint.
  */
 @Composable
 fun PaparcarAddChip(
@@ -36,28 +28,31 @@ fun PaparcarAddChip(
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
     iconSize: Dp = 16.dp,
-    contentPad: Dp = 8.dp,
+    horizontalPad: Dp = 12.dp,
+    verticalPad: Dp = 10.dp,
 ) {
     Surface(
         onClick = onClick,
         modifier = modifier,
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(
             width = PapBorders.thin,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = ADD_BORDER_ALPHA),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
         ),
     ) {
         Box(
-            modifier = Modifier.padding(contentPad),
+            modifier = Modifier.padding(horizontal = horizontalPad, vertical = verticalPad),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = contentDescription,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = ADD_ICON_ALPHA),
                 modifier = Modifier.size(iconSize),
             )
         }
     }
 }
+
+private const val ADD_ICON_ALPHA = 0.65f

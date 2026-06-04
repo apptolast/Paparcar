@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.LocalParking
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -40,7 +40,10 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
+import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
 import io.apptolast.paparcar.ui.theme.stateColors
 import io.apptolast.paparcar.ui.theme.vehicleStateColors
@@ -51,7 +54,7 @@ import kotlinx.coroutines.launch
  *
  * | Marker             | Shape  | Colour          | Content            |
  * |--------------------|--------|-----------------|--------------------|
- * | Parked vehicle     | Circle | Amber           | DirectionsCar icon |
+ * | Parked vehicle     | Circle | Amber           | VehicleCar icon    |
  * | Free spot          | Circle | Green           | LocalParking icon  |
  * | Zone (saved place) | Circle | surfaceContainer| Zone preset icon   |
  *
@@ -62,6 +65,23 @@ import kotlinx.coroutines.launch
 // ─── Shared palette ──────────────────────────────────────────────────────────
 
 private object MarkerColors {
+    // Free spot — classic parking green
+    val SpotGreen     = Color(0xFF22C55E)
+    val SpotOnGreen   = Color(0xFF052E16)
+
+    // Reliability palette
+    val SpotHigh      = Color(0xFF22C55E) // Green
+    val SpotMedium    = Color(0xFFF59E0B) // Amber
+    val SpotLow       = Color(0xFFEF4444) // Red
+    val SpotManual    = Color(0xFF3B82F6) // Blue
+    val SpotOnDark    = Color(0xFFFFFFFF)
+    val SpotOnLight   = Color(0xFF052E16)
+
+    // Parked vehicle — amber/orange ("mine, active")
+    val PlateAmber    = Color(0xFFF59E0B)
+    val PlateAmberDk  = Color(0xFFD97706)
+    val PlateOnAmber  = Color(0xFF451A03)
+
     // MyVehicle fallback teardrop (ParkingLocationScreen) — kept separate
     val LegacyGreen   = Color(0xFF25F48C)
     val LegacyForest  = Color(0xFF0D1C14)
@@ -95,9 +115,14 @@ private const val GROUND_SHADOW_ALPHA = 0.35f
 fun VehicleBadgeMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    sizeCategory: VehicleSize? = null,
+    isActive: Boolean = true,
 ) {
     val vc = vehicleStateColors()
-    val shadowColor = MaterialTheme.colorScheme.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
+    val cs = MaterialTheme.colorScheme
+    val bg   = if (isActive) vc.bg  else cs.surfaceVariant
+    val on   = if (isActive) vc.on  else cs.onSurfaceVariant
+    val shadowColor = cs.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
 
     Box(
         modifier = modifier.size(
@@ -115,18 +140,18 @@ fun VehicleBadgeMarker(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .size(BADGE_DIAM)
-                .background(color = vc.bg, shape = CircleShape)
+                .background(color = bg, shape = CircleShape)
                 .border(
                     width = if (selected) BADGE_SEL_STROKE else BADGE_STROKE,
-                    color = if (selected) Color.White else vc.on.copy(alpha = 0.3f),
+                    color = if (selected) Color.White else on.copy(alpha = 0.3f),
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.DirectionsCar,
+                imageVector = sizeCategory?.icon ?: PaparcarIcons.VehicleCar,
                 contentDescription = null,
-                tint = vc.on,
+                tint = on,
                 modifier = Modifier.size(BADGE_ICON_SIZE),
             )
         }
@@ -134,7 +159,7 @@ fun VehicleBadgeMarker(
 }
 
 private val BADGE_DIAM       = 46.dp
-private val BADGE_ICON_SIZE  = 26.dp
+private val BADGE_ICON_SIZE  = 34.dp
 private val BADGE_STROKE     = 2.dp
 private val BADGE_SEL_STROKE = 3.dp
 private val BADGE_SHADOW_W   = 22.dp
@@ -145,7 +170,7 @@ private val BADGE_GROUND_GAP = 4.dp
 
 /**
  * Fallback teardrop marker used by screens that have a parking location but no
- * [io.apptolast.paparcar.domain.model.ParkedVehicleView] context (e.g.
+ * [io.apptolast.paparcar.domain.model.ParkedVehicleSummary] context (e.g.
  * ParkingLocationScreen). Home screen uses [VehicleBadgeMarker] instead.
  */
 @Composable
@@ -278,21 +303,17 @@ private val FREE_SPOT_MARKER_GROUND_GAP = 4.dp
  * static shadow) so multiple zones on the map don't compete with spot markers.
  *
  * @param icon resolved [ImageVector] for the zone's `iconKey`.
- * @param isOccupied when true the zone contains the user's parked car — the marker
- *   fuses into an amber vehicle badge, eliminating the need for a separate [VehicleBadgeMarker].
  */
 @Composable
 fun ZoneMarker(
     icon: ImageVector,
     modifier: Modifier = Modifier,
+    isPrivate: Boolean = false,
     isOccupied: Boolean = false,
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
-    val vc = vehicleStateColors()
-    val fill = if (isOccupied) vc.bg else MaterialTheme.colorScheme.surfaceContainer
-    val iconTint = if (isOccupied) vc.on else MaterialTheme.colorScheme.primary
-    val borderColor = if (isOccupied) vc.on.copy(alpha = 0.3f) else ink
-    val displayIcon = if (isOccupied) Icons.Filled.DirectionsCar else icon
+    val fill = MaterialTheme.colorScheme.surfaceContainer
+    val accent = if (isPrivate) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
     val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
 
     Box(
@@ -312,15 +333,34 @@ fun ZoneMarker(
                 .align(Alignment.TopCenter)
                 .size(ZONE_MARKER_DIAM)
                 .background(color = fill, shape = CircleShape)
-                .border(width = ZONE_MARKER_STROKE, color = borderColor, shape = CircleShape),
+                .border(width = ZONE_MARKER_STROKE, color = ink, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = displayIcon,
+                imageVector = icon,
                 contentDescription = null,
-                tint = iconTint,
+                tint = accent,
                 modifier = Modifier.size(ZONE_MARKER_ICON),
             )
+            if (isPrivate && !isOccupied) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(ZONE_LOCK_BADGE_DP)
+                        .background(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onTertiary,
+                        modifier = Modifier.size(ZONE_LOCK_ICON_DP),
+                    )
+                }
+            }
         }
     }
 }
@@ -331,6 +371,8 @@ private val ZONE_MARKER_STROKE     = 2.dp
 private val ZONE_MARKER_SHADOW_W   = 20.dp
 private val ZONE_MARKER_SHADOW_H   = 5.dp
 private val ZONE_MARKER_GROUND_GAP = 4.dp
+private val ZONE_LOCK_BADGE_DP     = 16.dp
+private val ZONE_LOCK_ICON_DP      = 12.dp
 
 // ─── Centre-pin family ───────────────────────────────────────────────────────
 
@@ -515,7 +557,6 @@ private const val ZONE_ICON_HALO_ALPHA     = 0.95f
 
 @Composable
 fun FreeSpotClusterMarker(count: Int, modifier: Modifier = Modifier) {
-    val sc = SpotReliabilityLevel.HIGH.stateColors()
     val outfit = rememberOutfitFontFamily()
     val measurer = rememberTextMeasurer()
     val style = remember(outfit) {
@@ -528,16 +569,16 @@ fun FreeSpotClusterMarker(count: Int, modifier: Modifier = Modifier) {
     }
     Canvas(modifier.size(CLUSTER_SIZE)) {
         val s = size.minDimension / 68f
-        drawCircle(sc.bg, radius = 30f * s, center = Offset(34f * s, 34f * s))
+        drawCircle(MarkerColors.SpotGreen, radius = 30f * s, center = Offset(34f * s, 34f * s))
         drawCircle(
-            sc.on,
+            MarkerColors.SpotOnGreen,
             radius = 30f * s,
             center = Offset(34f * s, 34f * s),
             style = Stroke(width = 3f * s),
         )
         val result = measurer.measure(text = AnnotatedString(count.toString()), style = style)
         translate(34f * s - result.size.width / 2f, 34f * s - result.size.height / 2f) {
-            drawText(result, color = sc.on)
+            drawText(result, color = MarkerColors.SpotOnGreen)
         }
     }
 }

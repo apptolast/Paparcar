@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -51,44 +54,57 @@ fun PapFooterButton(
     leadingIcon: ImageVector? = null,
     style: PapFooterButtonStyle = PapFooterButtonStyle.Filled,
     enabled: Boolean = true,
+    isLoading: Boolean = false,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
 ) {
+    val cs = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(FOOTER_BUTTON_RADIUS)
     val combinedModifier = modifier
         .fillMaxWidth()
         .height(FOOTER_BUTTON_HEIGHT)
+    val safeOnClick: () -> Unit = { if (!isLoading) onClick() }
+    val effectiveContainer = containerColor ?: cs.primary
 
     when (style) {
         PapFooterButtonStyle.Filled -> Button(
-            onClick = onClick,
+            onClick = safeOnClick,
             modifier = combinedModifier,
             enabled = enabled,
             shape = shape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = effectiveContainer,
+                contentColor = contentColor ?: cs.onPrimary,
             ),
         ) {
-            FooterButtonContent(label = label, leadingIcon = leadingIcon)
+            FooterButtonContent(label = label, leadingIcon = leadingIcon, isLoading = isLoading)
         }
 
         PapFooterButtonStyle.Outlined -> OutlinedButton(
-            onClick = onClick,
+            onClick = safeOnClick,
             modifier = combinedModifier,
             enabled = enabled,
             shape = shape,
-            border = BorderStroke(OUTLINED_BORDER_WIDTH, MaterialTheme.colorScheme.primary),
+            border = BorderStroke(OUTLINED_BORDER_WIDTH, effectiveContainer),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.primary,
+                contentColor = contentColor ?: effectiveContainer,
             ),
         ) {
-            FooterButtonContent(label = label, leadingIcon = leadingIcon)
+            FooterButtonContent(label = label, leadingIcon = leadingIcon, isLoading = isLoading)
         }
     }
 }
 
 @Composable
-private fun FooterButtonContent(label: String, leadingIcon: ImageVector?) {
-    if (leadingIcon != null) {
+private fun FooterButtonContent(label: String, leadingIcon: ImageVector?, isLoading: Boolean) {
+    if (isLoading) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE),
+            strokeWidth = 2.dp,
+            color = LocalContentColor.current,
+        )
+        Spacer(Modifier.width(10.dp))
+    } else if (leadingIcon != null) {
         Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE))
         Spacer(Modifier.width(10.dp))
     }

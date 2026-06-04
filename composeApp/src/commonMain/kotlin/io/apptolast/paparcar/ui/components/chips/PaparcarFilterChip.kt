@@ -63,7 +63,6 @@ fun PaparcarFilterChip(
     }
     val borderColor = when {
         !enabled -> cs.outlineVariant.copy(alpha = DISABLED_BORDER_ALPHA)
-        selected -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA + 0.2f)
         else -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     }
     val contentColor = when {
