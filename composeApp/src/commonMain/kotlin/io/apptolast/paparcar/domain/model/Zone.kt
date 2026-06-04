@@ -25,8 +25,8 @@ data class Zone(
     val isPrivate: Boolean = false,
 ) {
     companion object {
-        const val DEFAULT_RADIUS_METERS = 150f
+        const val DEFAULT_RADIUS_METERS = 250f
         const val MIN_RADIUS_METERS = 50f
-        const val MAX_RADIUS_METERS = 300f
+        const val MAX_RADIUS_METERS = 500f
     }
 }

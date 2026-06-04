@@ -16,10 +16,10 @@ interface ZoneRepository : UserScopedRepository, RemoteSyncable {
     override suspend fun syncFromRemote(userId: String): Result<Unit>
 
     /** Insert or update a zone — writes to Room then Firestore. */
-    suspend fun saveZone(zone: Zone)
+    suspend fun saveZone(zone: Zone): Result<Unit>
 
     /** Remove a zone by id — Room first then Firestore. */
-    suspend fun deleteZone(id: String)
+    suspend fun deleteZone(id: String): Result<Unit>
 
     /** One-shot read of the current user's private zones. Used by [ConfirmParkingUseCase] to check geofence membership. */
     suspend fun getPrivateZonesSnapshot(): List<Zone>

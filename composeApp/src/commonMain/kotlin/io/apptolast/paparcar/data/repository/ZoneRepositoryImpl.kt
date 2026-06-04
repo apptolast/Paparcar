@@ -3,7 +3,6 @@ package io.apptolast.paparcar.data.repository
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.local.room.ZoneDao
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
-import io.apptolast.paparcar.data.datasource.remote.dto.ZoneDto
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toDto
 import io.apptolast.paparcar.data.mapper.toEntity
@@ -46,7 +45,7 @@ class ZoneRepositoryImpl(
         dao.upsertAll(remoteEntities)
     }
 
-    override suspend fun saveZone(zone: Zone) {
+    override suspend fun saveZone(zone: Zone): Result<Unit> = runCatching {
         dao.insert(zone.toEntity())
         currentUserId()?.let { uid ->
             firebaseDataSource.saveZone(uid, zone.toDto())
@@ -56,8 +55,8 @@ class ZoneRepositoryImpl(
     override suspend fun getPrivateZonesSnapshot(): List<Zone> =
         observeZones().first().filter { it.isPrivate }
 
-    override suspend fun deleteZone(id: String) {
-        val uid = currentUserId() ?: return
+    override suspend fun deleteZone(id: String): Result<Unit> = runCatching {
+        val uid = currentUserId() ?: return@runCatching
         dao.deleteById(id, uid)
         firebaseDataSource.deleteZone(uid, id)
     }

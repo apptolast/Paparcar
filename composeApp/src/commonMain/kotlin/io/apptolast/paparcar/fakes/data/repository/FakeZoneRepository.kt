@@ -12,9 +12,9 @@ class FakeZoneRepository : ZoneRepository {
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun saveZone(zone: Zone) {}
+    override suspend fun saveZone(zone: Zone): Result<Unit> = Result.success(Unit)
 
-    override suspend fun deleteZone(id: String) {}
+    override suspend fun deleteZone(id: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun getPrivateZonesSnapshot(): List<Zone> = emptyList()
 

@@ -44,7 +44,7 @@ class SaveZoneUseCase(
             radiusMeters = radiusMeters.coerceIn(Zone.MIN_RADIUS_METERS, Zone.MAX_RADIUS_METERS),
             isPrivate = isPrivate,
         )
-        repository.saveZone(zone)
+        repository.saveZone(zone).getOrElse { return Result.failure(it) }
         return Result.success(zone)
     }
 }
