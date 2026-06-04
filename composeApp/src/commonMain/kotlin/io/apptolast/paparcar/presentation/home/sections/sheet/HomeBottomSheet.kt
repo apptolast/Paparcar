@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -167,6 +168,9 @@ internal fun HomeBottomSheet(
                 state.selectedZoneId == null &&
                 (!isSpotSelected || spotListExpanded)
             if (showList) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = PEEK_LIST_DIVIDER_ALPHA),
+                )
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier
@@ -235,3 +239,4 @@ internal data class HomeSheetSnap(
 private const val FLING_SNAP_VELOCITY = 1200f
 
 private const val SHEET_SHADOW_ELEVATION_DP = 12
+private const val PEEK_LIST_DIVIDER_ALPHA = 0.08f

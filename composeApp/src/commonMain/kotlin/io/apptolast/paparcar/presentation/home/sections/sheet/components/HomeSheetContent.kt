@@ -39,6 +39,7 @@ import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_feed_nearby
@@ -181,7 +182,7 @@ private fun LazyListScope.spotsSection(
         item("spots_header") {
             PapSectionHeader(
                 title = if (filteredSpots.isNotEmpty())
-                    stringResource(Res.string.home_feed_nearby_with_count, filteredSpots.size)
+                    pluralStringResource(Res.plurals.home_feed_nearby_with_count, filteredSpots.size, filteredSpots.size)
                 else
                     stringResource(Res.string.home_feed_nearby),
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),

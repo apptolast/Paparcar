@@ -108,9 +108,9 @@ internal fun HomeVehicleCard(
         border = BorderStroke(1.dp, borderColor),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -123,7 +123,7 @@ internal fun HomeVehicleCard(
                     card.vehicle.sizeCategory.icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
@@ -171,15 +171,15 @@ private fun ParkPill() {
         color = MaterialTheme.colorScheme.primary,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Icon(
                 Icons.Outlined.Add,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(12.dp),
             )
             Text(
                 stringResource(Res.string.home_vehicle_card_park_cta),
@@ -219,7 +219,7 @@ private fun parkedSubtitle(
     }
 }
 
-private const val ICON_BOX_DP = 44
+private const val ICON_BOX_DP = 36
 private const val PILL_RADIUS_DP = 999
 private const val SELECTED_BG_ALPHA = 0.35f
 private const val OUTLINE_ALPHA = 0.4f

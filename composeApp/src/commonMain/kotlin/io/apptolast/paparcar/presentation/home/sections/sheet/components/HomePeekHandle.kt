@@ -21,36 +21,36 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EditLocationAlt
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocalParking
-import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.RadioButtonChecked
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -67,8 +67,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,7 +92,6 @@ import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
-import kotlin.math.roundToInt
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.stateColors
@@ -112,7 +112,6 @@ import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
-import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
 import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
@@ -133,32 +132,33 @@ import paparcar.composeapp.generated.resources.home_peek_spot_medium
 import paparcar.composeapp.generated.resources.home_peek_spot_occupied
 import paparcar.composeapp.generated.resources.home_peek_spot_reliability_label
 import paparcar.composeapp.generated.resources.home_peek_spot_size_unknown
-import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
+import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_report_confirm_here
 import paparcar.composeapp.generated.resources.home_report_header_label
 import paparcar.composeapp.generated.resources.home_report_helper_primary
 import paparcar.composeapp.generated.resources.home_report_helper_secondary
 import paparcar.composeapp.generated.resources.home_report_size_section
+import paparcar.composeapp.generated.resources.home_spot_peek_show_list
+import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
+import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
+import paparcar.composeapp.generated.resources.home_zone_action_delete
+import paparcar.composeapp.generated.resources.home_zone_action_edit
+import paparcar.composeapp.generated.resources.home_zone_edit_header_label
+import paparcar.composeapp.generated.resources.home_zone_header_label
+import paparcar.composeapp.generated.resources.home_zone_icon_section
+import paparcar.composeapp.generated.resources.home_zone_name_placeholder
+import paparcar.composeapp.generated.resources.home_zone_private_badge
+import paparcar.composeapp.generated.resources.home_zone_private_hint
+import paparcar.composeapp.generated.resources.home_zone_private_label
+import paparcar.composeapp.generated.resources.home_zone_radius_meters
+import paparcar.composeapp.generated.resources.home_zone_radius_section
+import paparcar.composeapp.generated.resources.home_zone_save_action
 import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
 import paparcar.composeapp.generated.resources.vehicle_size_small
 import paparcar.composeapp.generated.resources.vehicle_size_van
-import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
-import paparcar.composeapp.generated.resources.home_zone_edit_header_label
-import paparcar.composeapp.generated.resources.home_zone_header_label
-import paparcar.composeapp.generated.resources.home_zone_icon_section
-import paparcar.composeapp.generated.resources.home_zone_name_placeholder
-import paparcar.composeapp.generated.resources.home_zone_radius_meters
-import paparcar.composeapp.generated.resources.home_zone_radius_section
-import paparcar.composeapp.generated.resources.home_spot_peek_hide_list
-import paparcar.composeapp.generated.resources.home_spot_peek_show_list
-import paparcar.composeapp.generated.resources.home_zone_save_action
-import paparcar.composeapp.generated.resources.home_zone_private_label
-import paparcar.composeapp.generated.resources.home_zone_private_hint
-import paparcar.composeapp.generated.resources.home_zone_action_delete
-import paparcar.composeapp.generated.resources.home_zone_action_edit
-import paparcar.composeapp.generated.resources.home_zone_private_badge
+import kotlin.math.roundToInt
 
 @Composable
 internal fun HomePeekHandle(
@@ -848,25 +848,7 @@ private fun ZonePeekRow(
             )
         },
         content = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.RadioButtonChecked,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(META_ICON_DP.dp),
-                )
-                Text(
-                    text = stringResource(Res.string.home_zone_radius_meters, zone.radiusMeters.roundToInt()),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
-                )
-            }
             if (isPrivate) {
-                Spacer(Modifier.height(8.dp))
                 HelperRow(
                     icon = Icons.Outlined.Lock,
                     iconTint = MaterialTheme.colorScheme.tertiary,
@@ -1084,18 +1066,24 @@ private fun AddingZonePeekRow(
     } else {
         stringResource(Res.string.home_zone_header_label)
     }
+    val focusManager = LocalFocusManager.current
     PeekStateCard(
         headerLabel = headerLabel,
         title = primaryText,
         onDismiss = onCancel,
-        leading = { PeekHeaderIconChip(icon = Icons.Outlined.Bookmark) },
+        contentScrollable = true,
+        leading = { PeekHeaderIconChip(icon = zoneIconFor(state.addingZoneIconKey)) },
         content = {
             androidx.compose.material3.OutlinedTextField(
                 value = state.addingZoneName,
                 onValueChange = onNameChange,
                 placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 leadingIcon = {
                     Icon(
                         imageVector = zoneIconFor(state.addingZoneIconKey),
@@ -1330,10 +1318,29 @@ private fun cameraTitleWhileSettling(state: HomeState): String =
 @Composable
 private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> Unit = {}) {
     val info = state.cameraLocationInfo
-    if (info == null || (state.isCameraGeocoding && info.displayLine == null && info.placeInfo == null)) {
+    // Show skeleton when there is no displayable content — covers:
+    //  • info still null (initial load before first geocode)
+    //  • geocoding in flight with no previous content
+    //  • geocoding finished but address + POI both empty (prevents "unknown address" flash)
+    val hasContent = info != null && (!info.displayLine.isNullOrBlank() || info.placeInfo != null)
+    if (!hasContent) {
         PeekLocationSkeleton(onToggle = onToggle)
         return
     }
+
+    // info is non-null and has at least one displayable field from here on.
+    // Shimmer bars are declared unconditionally to satisfy Compose composition rules.
+    val shimmerTransition = rememberInfiniteTransition(label = "addr_shimmer")
+    val shimmerAlpha by shimmerTransition.animateFloat(
+        initialValue = SHIMMER_ALPHA_MIN,
+        targetValue = SHIMMER_ALPHA_MAX,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SHIMMER_DURATION_MS, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "addr_shimmer_alpha",
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1341,20 +1348,20 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        val cameraPlaceIcon = info.placeInfo?.category?.icon
         Icon(
-            imageVector = cameraPlaceIcon ?: Icons.Outlined.LocationOn,
+            imageVector = info.placeInfo?.category?.icon ?: Icons.Filled.LocationOn,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(26.dp),
+            modifier = Modifier.size(30.dp),
         )
         Column(modifier = Modifier.weight(1f)) {
+            val textAlpha = if (state.isCameraGeocoding) shimmerAlpha else 1f
             Text(
                 text = if (info.placeInfo != null) info.placeInfo.name
                        else info.displayLine ?: stringResource(Res.string.home_address_unknown),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha),
                 maxLines = 1,
                 modifier = Modifier.basicMarquee(),
             )
@@ -1368,7 +1375,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
                 Text(
                     text = secondaryLine,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECONDARY_ALPHA),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECONDARY_ALPHA * textAlpha),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -1409,10 +1416,10 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
 private fun PeekLocationSkeleton(onToggle: () -> Unit = {}) {
     val transition = rememberInfiniteTransition(label = "peek_skeleton")
     val pulseAlpha by transition.animateFloat(
-        initialValue = 0.10f,
-        targetValue = 0.25f,
+        initialValue = 0.15f,
+        targetValue = 0.40f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "skeleton_pulse",
@@ -1492,3 +1499,7 @@ private const val HELPER_BG_ALPHA = 0.5f
 private const val SECONDARY_ALPHA = 0.55f
 private const val HELPER_SECONDARY_ALPHA = SECONDARY_ALPHA
 private const val TOGGLE_ROW_ALPHA = 0.55f
+
+private const val SHIMMER_ALPHA_MIN = 0.10f
+private const val SHIMMER_ALPHA_MAX = 0.80f
+private const val SHIMMER_DURATION_MS = 550

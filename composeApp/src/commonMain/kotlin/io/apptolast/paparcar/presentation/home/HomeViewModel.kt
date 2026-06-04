@@ -83,9 +83,13 @@ class HomeViewModel(
     // user pans the map past SPOT_CAMERA_PAN_THRESHOLD_METERS in Browse mode.
     private val spotQueryCenter = MutableStateFlow<GpsPoint?>(null)
 
-    // ── Geocode jobs (cancelled on new request to debounce rapid changes) ─────
+    // ── Geocode jobs ──────────────────────────────────────────────────────────
+    // cameraDebounceJob: cancelled on every camera move (drops rapid-pan spam).
+    // cameraGeocoderJob: only cancelled when the debounce fires for a NEW location,
+    //   so Phase 2 (slow Overpass call) survives brief camera animations.
 
     private var userGeocoderJob: Job? = null
+    private var cameraDebounceJob: Job? = null
     private var cameraGeocoderJob: Job? = null
     private var cameraSettledJob: Job? = null
 
@@ -199,7 +203,10 @@ class HomeViewModel(
             is HomeIntent.SetZoneIsPrivate -> updateState { copy(addingZoneIsPrivate = intent.isPrivate) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DismissZone -> updateState { copy(selectedZoneId = null) }
-            is HomeIntent.DeleteZone -> viewModelScope.launch { zoneRepository.deleteZone(intent.zoneId) }
+            is HomeIntent.DeleteZone -> viewModelScope.launch {
+                zoneRepository.deleteZone(intent.zoneId)
+                    .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
+            }
             is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
 
             // Search
@@ -241,7 +248,7 @@ class HomeViewModel(
                     .onSuccess { results -> updateState { copy(searchResults = results, isSearching = false) } }
                     .onFailure { updateState { copy(searchResults = emptyList(), isSearching = false) } }
             }
-            .catch { }
+            .catch { e -> PaparcarLogger.w(TAG, "Search query flow error", e) }
             .launchIn(viewModelScope)
     }
 
@@ -255,21 +262,21 @@ class HomeViewModel(
     private fun subscribeParkedVehicles() {
         observeParkedVehicles()
             .onEach { views -> updateState { copy(parkedVehicles = views) } }
-            .catch { }
+            .catch { e -> PaparcarLogger.e(TAG, "subscribeParkedVehicles error", e) }
             .launchIn(viewModelScope)
     }
 
     private fun subscribeZones() {
         zoneRepository.observeZones()
             .onEach { zones -> updateState { copy(zones = zones) } }
-            .catch { }
+            .catch { e -> PaparcarLogger.e(TAG, "subscribeZones error", e) }
             .launchIn(viewModelScope)
     }
 
     private fun subscribeVehicles() {
         vehicleRepository.observeVehicles()
             .onEach { vehicles -> updateState { copy(vehicles = vehicles) } }
-            .catch { }
+            .catch { e -> PaparcarLogger.e(TAG, "subscribeVehicles error", e) }
             .launchIn(viewModelScope)
     }
 
@@ -401,13 +408,15 @@ class HomeViewModel(
 
     private fun releaseParking(lat: Double, lon: Double, publishSpot: Boolean) {
         val target = state.value.selectedSession ?: state.value.userParking
+        updateState { copy(isReleasingParking = true) }
         viewModelScope.launch {
             releaseSession(lat, lon, target, publishSpot)
                 .onFailure { e ->
+                    updateState { copy(isReleasingParking = false) }
                     sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
                     return@launch
                 }
-            updateState { copy(selectedItemId = null) }
+            updateState { copy(selectedItemId = null, isReleasingParking = false) }
             if (publishSpot) sendEffect(HomeEffect.SpotReported)
         }
     }
@@ -469,6 +478,7 @@ class HomeViewModel(
             if (editingId != null) {
                 current.zones.find { it.id == editingId }?.let { existing ->
                     zoneRepository.saveZone(existing.copy(name = name.trim(), lat = lat, lon = lon, iconKey = current.addingZoneIconKey))
+                        .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
                 }
             } else {
                 saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
@@ -541,20 +551,35 @@ class HomeViewModel(
         userGeocoderJob?.cancel()
         userGeocoderJob = viewModelScope.launch {
             getLocationInfo(lat, lon)
-                .catch { }
+                .catch { e -> PaparcarLogger.w(TAG, "geocodeUserLocation error", e) }
                 .collect { info -> updateState { copy(userLocationInfo = info) } }
         }
     }
 
     private fun geocodeCameraLocation(lat: Double, lon: Double) {
-        cameraGeocoderJob?.cancel()
-        cameraGeocoderJob = viewModelScope.launch {
+        // Cancel only the debounce — NOT the geocoding job — so Phase 2 (Overpass)
+        // survives rapid camera animations and is only killed when the camera truly
+        // settles at a different location.
+        cameraDebounceJob?.cancel()
+        updateState { copy(isCameraGeocoding = true) }
+        cameraDebounceJob = viewModelScope.launch {
             delay(GEOCODE_DEBOUNCE_MS)
-            getLocationInfo(lat, lon)
-                .onStart { updateState { copy(isCameraGeocoding = true) } }
-                .onCompletion { cause -> if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) } }
-                .catch { }
-                .collect { info -> updateState { copy(cameraLocationInfo = info) } }
+            cameraGeocoderJob?.cancel()
+            cameraGeocoderJob = viewModelScope.launch {
+                var addressReceived = false
+                getLocationInfo(lat, lon)
+                    .onCompletion { cause -> if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) } }
+                    .catch { updateState { copy(isCameraGeocoding = false) } }
+                    .collect { info ->
+                        updateState { copy(cameraLocationInfo = info) }
+                        // Stop shimmer as soon as Phase 1 address arrives — Phase 2 (POI)
+                        // will quietly update cameraLocationInfo when it finishes.
+                        if (!addressReceived) {
+                            addressReceived = true
+                            updateState { copy(isCameraGeocoding = false) }
+                        }
+                    }
+            }
         }
     }
 

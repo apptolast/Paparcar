@@ -197,6 +197,7 @@ private const val ZONE_CIRCLE_STROKE_DP    = 2f
 private const val ZONE_PREVIEW_FILL_ALPHA   = 0.12f
 private const val ZONE_PREVIEW_STROKE_ALPHA = 0.55f
 private const val ZONE_PREVIEW_STROKE_DP   = 2.5f
+private const val ZONE_PREVIEW_DRAG_SCALE  = 1.08f
 
 // ── Clustering degree thresholds ─────────────────────────────────────────────
 private const val CLUSTER_ZOOM_LEVEL_13   = 13f
@@ -762,6 +763,16 @@ fun PaparcarMapView(
             },
         )
 
+        // Scale up the preview circle while the user is dragging; spring back on release.
+        val previewCircleScale by animateFloatAsState(
+            targetValue = if (cameraMoving && previewZoneLat != null) ZONE_PREVIEW_DRAG_SCALE else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            ),
+            label = "zone_preview_scale",
+        )
+
         // ── Zone radius circles canvas overlay ──────────────────────────────
         if (actualCamLat != null && actualCamLon != null) {
             val camLat = actualCamLat!!.toDouble()
@@ -818,7 +829,7 @@ fun PaparcarMapView(
                 // Draw preview zone (AddingZone mode)
                 if (previewLat != null && previewLon != null) {
                     val center = toScreen(previewLat, previewLon)
-                    val radiusPx = metersToPixels(previewLat, previewZoneRadius)
+                    val radiusPx = metersToPixels(previewLat, previewZoneRadius) * previewCircleScale
                     val baseColor = if (previewZoneIsPrivate) tertiaryColor else primaryColor
                     drawCircle(
                         color = baseColor.copy(alpha = ZONE_PREVIEW_FILL_ALPHA),

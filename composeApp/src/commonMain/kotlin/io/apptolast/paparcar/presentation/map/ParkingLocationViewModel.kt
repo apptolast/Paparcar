@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.map
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -45,9 +46,13 @@ class ParkingLocationViewModel(
                 userParkingRepository.observeAllSessions()
                     .map { sessions -> sessions.find { it.id == intent.sessionId } }
                     .onEach { session -> updateState { copy(focusedSession = session) } }
-                    .catch { /* silently ignore — initialFocus coordinates are still shown on map */ }
+                    .catch { e -> PaparcarLogger.w(TAG, "SetFocusedSession failed — map shows raw coordinates", e) }
                     .launchIn(viewModelScope)
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "ParkingLocationVM"
     }
 }

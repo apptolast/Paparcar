@@ -297,10 +297,11 @@ private val FREE_SPOT_MARKER_GROUND_GAP = 4.dp
 
 /**
  * On-map marker for a saved [io.apptolast.paparcar.domain.model.Zone]. Same
- * visual language as [ZoneCenterPin] (circle + chosen icon) so the user
- * recognises the placed marker as the locked-in counterpart of the pin they
- * dragged in AddingZone mode. Lighter weight (smaller diameter, no bounce,
- * static shadow) so multiple zones on the map don't compete with spot markers.
+ * visual language as [ZoneCenterPin] (chosen icon) so the user recognises the
+ * placed marker as the locked-in counterpart of the pin they dragged in
+ * AddingZone mode. The area itself is drawn as a canvas circle overlay.
+ * Lighter weight (smaller diameter, no bounce, static shadow) so multiple
+ * zones on the map don't compete with spot markers.
  *
  * @param icon resolved [ImageVector] for the zone's `iconKey`.
  */
@@ -502,37 +503,14 @@ fun ParkingCenterPin(
 @Composable
 fun ZoneCenterPin(
     icon: ImageVector,
-    cameraMoving: Boolean,
+    @Suppress("UNUSED_PARAMETER") cameraMoving: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val accent = MaterialTheme.colorScheme.primary
-    val iconOnInk = MaterialTheme.colorScheme.surface
-    TeardropPinScaffold(
-        cameraMoving = cameraMoving,
-        modifier = modifier,
-        pinDraw = { scale, _ ->
-            drawCircle(
-                color = ink,
-                radius = TEARDROP_INNER_DISC_RADIUS * scale,
-                center = Offset(34f * scale, 32f * scale),
-            )
-        },
-        discOverlay = {
-            Box(
-                modifier = Modifier
-                    .size(TEARDROP_ICON_HALO_DIAM)
-                    .background(iconOnInk.copy(alpha = ZONE_ICON_HALO_ALPHA), shape = CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(TEARDROP_ICON_SIZE),
-                )
-            }
-        },
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = modifier.size(ZONE_AREA_ICON_SIZE),
     )
 }
 
@@ -542,8 +520,6 @@ private val TEARDROP_SHADOW_W          = 22.dp
 private val TEARDROP_SHADOW_H          = 5.dp
 private val TEARDROP_DISC_DIAM         = 28.dp
 private val TEARDROP_DISC_TOP_PADDING  = 8.dp
-private val TEARDROP_ICON_HALO_DIAM    = 26.dp
-private val TEARDROP_ICON_SIZE         = 18.dp
 private const val TEARDROP_INNER_DISC_RADIUS = 16f
 private const val TEARDROP_PIN_REST_DP   = 0f
 private const val TEARDROP_PIN_LIFT_DP   = -10f
@@ -551,7 +527,7 @@ private const val TEARDROP_PIN_REST_SCALE  = 1.0f
 private const val TEARDROP_PIN_LIFT_SCALE  = 1.04f
 private const val TEARDROP_STROKE_WIDTH    = 3.5f
 private const val TEARDROP_SHADOW_ALPHA    = 0.32f
-private const val ZONE_ICON_HALO_ALPHA     = 0.95f
+private val ZONE_AREA_ICON_SIZE = 22.dp
 
 // ─── Cluster marker ───────────────────────────────────────────────────────────
 

@@ -52,6 +52,7 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeRel
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetSpotItemIndex
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.presentation.util.zoneIconOutlinedFor
 import io.apptolast.paparcar.ui.components.CenterPinKind
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
@@ -262,6 +263,10 @@ private fun HomeContent(
     var showReleaseDialog by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
+    LaunchedEffect(state.userParking, state.isReleasingParking) {
+        if (state.userParking == null && !state.isReleasingParking) showReleaseDialog = false
+    }
+
     LaunchedEffect(state.userGpsPoint) {
         val gps = state.userGpsPoint ?: return@LaunchedEffect
         val parking = state.userParking
@@ -298,9 +303,9 @@ private fun HomeContent(
 
             if (showReleaseDialog) {
                 HomeReleaseDialog(
-                    onDismiss = { showReleaseDialog = false },
+                    isLoading = state.isReleasingParking,
+                    onDismiss = { if (!state.isReleasingParking) showReleaseDialog = false },
                     onPublishSpot = {
-                        showReleaseDialog = false
                         state.userParking?.let { p ->
                             onIntent(
                                 HomeIntent.ReleaseParking(
@@ -312,7 +317,6 @@ private fun HomeContent(
                         }
                     },
                     onDeleteOnly = {
-                        showReleaseDialog = false
                         state.userParking?.let { p ->
                             onIntent(
                                 HomeIntent.ReleaseParking(
@@ -596,7 +600,7 @@ private fun HomeContent(
                 // glyph / zone icon). Null in Browse → default crosshair.
                 val centerPinKind: CenterPinKind? = when (state.mode) {
                     is HomeMode.Reporting -> CenterPinKind.Report
-                    is HomeMode.AddingZone -> CenterPinKind.Zone(zoneIconFor(state.addingZoneIconKey))
+                    is HomeMode.AddingZone -> CenterPinKind.Zone(zoneIconOutlinedFor(state.addingZoneIconKey))
                     is HomeMode.AddingParking -> CenterPinKind.Parking
                     else -> null
                 }

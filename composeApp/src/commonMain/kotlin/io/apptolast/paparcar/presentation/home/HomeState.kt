@@ -133,6 +133,7 @@ data class HomeState(
     // ── AddingParking mode ────────────────────────────────────────────────────
 
     val isSavingParking: Boolean = false,
+    val isReleasingParking: Boolean = false,
     /**
      * Non-null when moving an existing session; null when creating a new one.
      * When set, [addingParkingVehicleId] is ignored. [MULTI-PARKING-001]

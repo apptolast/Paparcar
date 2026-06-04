@@ -26,9 +26,11 @@ internal fun HomeReleaseDialog(
     onDismiss: () -> Unit,
     onPublishSpot: () -> Unit,
     onDeleteOnly: () -> Unit,
+    isLoading: Boolean = false,
 ) {
     PapAlertDialog(
         onDismiss = onDismiss,
+        isLoading = isLoading,
         icon = Icons.Outlined.Campaign,
         title = stringResource(Res.string.home_release_dialog_title),
         body = stringResource(Res.string.home_release_dialog_message),
