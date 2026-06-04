@@ -38,7 +38,7 @@ class ParkingStrategyResolver(
      * time so toggling Bluetooth between sessions flips ownership cleanly.
      */
     suspend fun resolve(): ParkingStrategy {
-        val vehicle = vehicleRepository.observeDefaultVehicle().first()
+        val vehicle = vehicleRepository.observeActiveVehicle().first()
         if (vehicle != null && vehicle.vehicleType in NON_PARKING_TYPES) {
             return ParkingStrategy.NONE
         }

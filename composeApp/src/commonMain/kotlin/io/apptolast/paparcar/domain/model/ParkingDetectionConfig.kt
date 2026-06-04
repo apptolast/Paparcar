@@ -176,6 +176,14 @@ data class ParkingDetectionConfig(
      *  notification indefinitely. After this window the notification fires regardless,
      *  so the user can still confirm manually. Default 90 s. [BUG-DETECT-310502] */
     val lowNotifTimeoutMs: Long = 90_000L,
+    /** Maximum time (ms) the coordinator waits for a user response after showing the
+     *  confirmation notification (any confidence level) before aborting the session
+     *  silently. Without this guard, a session started on a short trip that returned to
+     *  the same spot would run indefinitely: the user parks, walks home, the coordinator
+     *  follows the phone's GPS to home, eventually re-fires the notification there, and
+     *  keeps the detection foreground service alive for hours. Default 15 minutes.
+     *  [BUG-STUCK-SESSION] */
+    val confirmationResponseTimeoutMs: Long = 15 * 60_000L,
 
     // ── DETECTION RELIABILITY ─────────────────────────────────────────────────
     /** Reliability score [0.0, 1.0] assigned when the user manually confirms parking.
@@ -311,6 +319,9 @@ data class ParkingDetectionConfig(
         }
         require(lowNotifTimeoutMs > 0) {
             "lowNotifTimeoutMs must be > 0, was $lowNotifTimeoutMs"
+        }
+        require(confirmationResponseTimeoutMs > lowNotifTimeoutMs) {
+            "confirmationResponseTimeoutMs ($confirmationResponseTimeoutMs) must be > lowNotifTimeoutMs ($lowNotifTimeoutMs)"
         }
     }
 }

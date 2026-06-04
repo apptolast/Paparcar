@@ -796,3 +796,29 @@ val confirmNow = when {
 **Trade-off accepted.** A real car trip in extreme bumper-to-bumper traffic that never exceeds 28 km/h for 8+ min triggers the same gate. The notification still fires, so the user can override — we prefer "ask the user" over "publish a wrong spot." Thresholds live in `ParkingDetectionConfig.mismatchMaxSpeedKmh` / `mismatchMinSessionDurationMs` for future tuning once telemetry is available.
 
 **Tests.** `ParkingStrategyResolverTest` covers all enum branches: SCOOTER → NONE (even with BT config), BIKE → NONE, MOTORCYCLE without BT → COORDINATOR, CAR with BT → BLUETOOTH, no default vehicle → COORDINATOR. Mismatch-guard unit tests deferred to a future integration ticket — they need `now` mocking + a CANDIDATE-phase fixture which the current test setup does not yet support.
+
+### BUG-STUCK-SESSION — Confirmation notification re-fires at home, service runs for hours (2026-06-03)
+
+**Observed:** User took the car for a short trip (~5 min), could not find an alternative spot, and returned to the same parking location. After walking home, the detection foreground notification remained visible for 1+ hour and the confirmation notification ("¿Acabas de aparcar?") fired again.
+
+**Root cause (2 bugs).**
+
+1. `mediumNotificationShown = false` was unconditionally written to state on every non-stopped GPS fix (speed > 1 m/s), including ordinary walking pace. After the user walked home and stopped for 90 s (`lowNotifTimeoutMs`), the flag had been cleared by an intermediate walking fix, so the notification re-fired at home. The fix: clear the flag only when `isDriving` (speed ≥ 2.5 m/s + accuracy ≤ 50 m), i.e. when the car actually drove away.
+
+2. There was no upper bound on session duration once `hasEverMoved = true`. The `maxNoMovementMs` guard only applies before movement is detected. A session where the car drove out and back remained active forever, running the coordinator loop against the user's home GPS position indefinitely.
+
+3. High-confidence notifications had no deduplication: each time `highConfidenceReachedAt` was reset (candidate phase expired) and high confidence was reached again at home, `notifyParkingConfirmation` fired again.
+
+**Fix.**
+
+- Replace `mediumNotificationShown: Boolean` with `confirmationNotificationShownAt: Long?`. Set to `now` on first notification (Low, Medium, or High). Cleared only on `isDriving`. A single flag covers all confidence levels.
+- Add `confirmationResponseTimeoutMs = 15 min` to `ParkingDetectionConfig`. After the notification has been shown, if no user response arrives within this window, the coordinator aborts the session silently (dismisses notification + sets `completed = true`).
+- High-confidence notification is gated on `confirmationNotificationShownAt == null`, same as Low/Medium.
+
+### BUG-SHORT-TRIP — No parking detection on short trips within 150 m of original spot (2026-06-04)
+
+**Observed:** User parks at spot A, drives out looking for a new spot, returns to within ~100 m of A (either same spot or very nearby). `hasEverMoved` (requires speed ≥ 18 km/h AND displacement ≥ 150 m simultaneously) never becomes `true` on a short radius trip. The session aborts via `maxNoMovementMs` after 4 min with no detection. The original parking session at A remains active even if the car is now at B.
+
+**Root cause.** `hasEverMoved` served double duty: (1) "did the user really drive?" and (2) "gate confidence evaluation". The distance requirement (150 m) was added for duty 1 to filter GPS-noise speed spikes while stationary, but it inadvertently blocks duty 2 for genuine short trips.
+
+**Fix.** Introduce `hasEverReachedDrivingSpeed: Boolean` — activated by speed alone (`speed >= minimumTripSpeedMps`), no distance requirement. All logic gates that previously used `hasEverMoved` now use `hasEverReachedDrivingSpeed`: the `maxNoMovementMs` abort guard, the vehicleId lock, the confidence-evaluator skip, and `hasDetectedMovement` exposed to the Service. `hasEverMoved` (speed + distance) is retained purely as a state data field. A genuine GPS-noise spike while stationary cannot sustain driving speed across multiple GPS fixes, so `hasEverReachedDrivingSpeed` alone is sufficient to confirm real driving intent.

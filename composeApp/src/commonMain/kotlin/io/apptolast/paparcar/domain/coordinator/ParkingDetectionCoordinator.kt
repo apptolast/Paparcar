@@ -81,17 +81,33 @@ class ParkingDetectionCoordinator(
         val vehicleExitConfirmed: Boolean = false,
         val activityStillDetected: Boolean = false,
         val userConfirmedParking: Boolean = false,
-        val mediumNotificationShown: Boolean = false,
+        /** Epoch-ms when the confirmation notification was first shown in this stop (Low, Medium, or High).
+         *  `null` means not shown yet. Once set, prevents duplicate confirmations from firing when
+         *  the user walks home and stops there after a short trip. Cleared only on `isDriving` (car
+         *  drove away), NOT on ordinary walking, so the notification never re-fires at home.
+         *  Also used to implement the [ParkingDetectionConfig.confirmationResponseTimeoutMs] guard:
+         *  if the user hasn't responded within that window the session is aborted. [BUG-STUCK-SESSION] */
+        val confirmationNotificationShownAt: Long? = null,
         /** Epoch-ms when [ParkingConfidence.Low] or [ParkingConfidence.Medium] was first reached
          *  in the current stop. Used to implement a fallback notification timeout: if no
          *  `vehicleExit` or `activityStill` signal arrives within [ParkingDetectionConfig.lowNotifTimeoutMs],
          *  the notification fires anyway so the user can confirm manually. Reset together with
-         *  [mediumNotificationShown] whenever the vehicle moves again. [BUG-DETECT-310502] */
+         *  [confirmationNotificationShownAt] whenever the vehicle moves again. [BUG-DETECT-310502] */
         val lowFirstReachedAt: Long? = null,
+        /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] at least
+         *  once, regardless of displacement from [sessionOrigin]. Set as soon as the car accelerates
+         *  to driving speed, even on short trips that never leave a 150 m radius. This enables parking
+         *  detection for the "circled the block" scenario where the user parks within [minimumTripDistanceMeters]
+         *  of their previous spot. Used to gate the confidence evaluator and vehicleId lock.
+         *  Contrast with [hasEverMoved] which additionally requires displacement. [BUG-SHORT-TRIP] */
+        val hasEverReachedDrivingSpeed: Boolean = false,
         /** `true` once GPS speed has reached [ParkingDetectionConfig.minimumTripSpeedMps] AND
          *  the device has moved at least [ParkingDetectionConfig.minimumTripDistanceMeters] from
          *  [sessionOrigin]. Both conditions must hold simultaneously to prevent a brief GPS-noise
-         *  spike from being mistaken for real driving. */
+         *  spike from being mistaken for real driving. Used exclusively for the [maxNoMovementMs]
+         *  guard — a spurious IN_VEHICLE_ENTER event will never cross the speed threshold without
+         *  real driving, so [hasEverReachedDrivingSpeed] alone is sufficient for detection.
+         *  [hasEverMoved] remains the stricter guard for aborting truly idle sessions. */
         val hasEverMoved: Boolean = false,
         /** First GPS fix received in this session. Captured once and never overwritten. Used as
          *  the displacement reference for the [hasEverMoved] distance check. */
@@ -153,7 +169,7 @@ class ParkingDetectionCoordinator(
      * Used by [ParkingDetectionService] to decide whether a new [ACTION_START_TRACKING]
      * command should restart the session or be treated as a spurious/duplicate event.
      */
-    val hasDetectedMovement: Boolean get() = _detectionState.value.hasEverMoved
+    val hasDetectedMovement: Boolean get() = _detectionState.value.hasEverReachedDrivingSpeed
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -167,14 +183,12 @@ class ParkingDetectionCoordinator(
         PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry — calling reset()")
         reset()
 
-        val activeVehicle = vehicleRepository.observeDefaultVehicle().first()
-        if (activeVehicle == null) {
-            PaparcarLogger.w(DIAG, "  ✗ no default vehicle — aborting coordinator session")
-            return@coroutineScope
-        }
-        val activeVehicleId = activeVehicle.id
-        val activeVehicleType = activeVehicle.vehicleType
-        PaparcarLogger.d(DIAG, "  ✓ active vehicleId=$activeVehicleId type=$activeVehicleType")
+        // vehicleId is captured lazily when hasEverReachedDrivingSpeed first becomes true — i.e.
+        // when GPS confirms the user is actually driving (speed ≥ minimumTripSpeedMps). Capturing
+        // at session start (on IN_VEHICLE_ENTER) was a race: a new vehicle registered between the
+        // AR signal and real movement would hijack the active slot. [BUG-NEW-VEHICLE-DEFAULT]
+        var activeVehicleId: String? = null
+        var activeVehicleType: VehicleType? = null
 
         var completed = false
         val sessionStartMs = Clock.System.now().toEpochMilliseconds()
@@ -221,14 +235,20 @@ class ParkingDetectionCoordinator(
                         origin.latitude, origin.longitude,
                         location.latitude, location.longitude,
                     )
+                    val hasJustReachedSpeed = !s.hasEverReachedDrivingSpeed &&
+                            location.speed >= config.minimumTripSpeedMps
                     val hasJustMoved = !s.hasEverMoved &&
                             location.speed >= config.minimumTripSpeedMps &&
                             distFromOrigin >= config.minimumTripDistanceMeters
+                    if (hasJustReachedSpeed) {
+                        PaparcarLogger.d(DIAG, "  ✓ hasEverReachedDrivingSpeed → true (speed=${location.speed}≥${config.minimumTripSpeedMps}) dist=${distFromOrigin}m [BUG-SHORT-TRIP]")
+                    }
                     if (hasJustMoved) {
                         PaparcarLogger.d(DIAG, "  ✓ hasEverMoved → true (speed≥${config.minimumTripSpeedMps}, dist≥${config.minimumTripDistanceMeters}m, actual=${distFromOrigin}m)")
                     }
                     s.copy(
                         sessionOrigin = s.sessionOrigin ?: location,
+                        hasEverReachedDrivingSpeed = s.hasEverReachedDrivingSpeed || hasJustReachedSpeed,
                         hasEverMoved = s.hasEverMoved || hasJustMoved,
                         sessionStartMs = s.sessionStartMs ?: now,
                         maxSpeedMps = if (location.speed > s.maxSpeedMps) location.speed else s.maxSpeedMps,
@@ -236,16 +256,36 @@ class ParkingDetectionCoordinator(
                 }
                 PaparcarLogger.d(
                     DIAG,
-                    "  state hasEverMoved=${state.hasEverMoved} userConfirmed=${state.userConfirmedParking} " +
+                    "  state hasEverMoved=${state.hasEverMoved} hasEverReachedDrivingSpeed=${state.hasEverReachedDrivingSpeed} " +
+                            "userConfirmed=${state.userConfirmedParking} " +
                             "vehicleExit=${state.vehicleExitConfirmed} stoppedSince=${state.stoppedSince} " +
                             "stoppedDur=${stoppedDuration}ms highReachedAt=${state.highConfidenceReachedAt} " +
-                            "mediumShown=${state.mediumNotificationShown}"
+                            "confirmNotifAt=${state.confirmationNotificationShownAt}"
                 )
 
-                if (!state.hasEverMoved && (now - sessionStartMs) > config.maxNoMovementMs) {
+                // A spurious IN_VEHICLE_ENTER (user stationary, delayed AR delivery) will never
+                // cross the driving-speed threshold. If neither speed condition is met within
+                // maxNoMovementMs, treat the session as idle and abort. [BUG-NEW-VEHICLE-DEFAULT]
+                if (!state.hasEverReachedDrivingSpeed && (now - sessionStartMs) > config.maxNoMovementMs) {
                     PaparcarLogger.d(DIAG, "  ⚑ maxNoMovementMs guard hit → completed=true (spurious IN_VEHICLE_ENTER)")
                     completed = true
                     return@collect
+                }
+
+                // Lock vehicleId the first time driving speed is confirmed — never before.
+                // Uses hasEverReachedDrivingSpeed (speed-only) so short trips that never exceed
+                // minimumTripDistanceMeters still lock a vehicleId and allow parking detection.
+                // [BUG-NEW-VEHICLE-DEFAULT] [BUG-SHORT-TRIP]
+                if (state.hasEverReachedDrivingSpeed && activeVehicleId == null) {
+                    val v = vehicleRepository.observeActiveVehicle().first()
+                    if (v == null) {
+                        PaparcarLogger.w(DIAG, "  ✗ hasEverReachedDrivingSpeed but no active vehicle — abort session")
+                        completed = true
+                        return@collect
+                    }
+                    activeVehicleId = v.id
+                    activeVehicleType = v.vehicleType
+                    PaparcarLogger.d(DIAG, "  ✓ vehicleId locked: $activeVehicleId type=$activeVehicleType")
                 }
 
                 if (state.userConfirmedParking) {
@@ -262,8 +302,23 @@ class ParkingDetectionCoordinator(
                     return@collect
                 }
 
-                if (!state.hasEverMoved) {
-                    PaparcarLogger.d(DIAG, "  ⏸ skipping: !hasEverMoved")
+                if (!state.hasEverReachedDrivingSpeed) {
+                    PaparcarLogger.d(DIAG, "  ⏸ skipping: !hasEverReachedDrivingSpeed")
+                    return@collect
+                }
+
+                // Abort if the user has not responded to the confirmation notification within the
+                // timeout. Prevents the session from running indefinitely when the user parks,
+                // walks home, and the notification silently re-fires at home (where speed dips
+                // below the stopped threshold and confidence builds up again). [BUG-STUCK-SESSION]
+                val notifShownAt = state.confirmationNotificationShownAt
+                if (notifShownAt != null && (now - notifShownAt) > config.confirmationResponseTimeoutMs) {
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⑊ no user response after ${now - notifShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — aborting session [BUG-STUCK-SESSION]"
+                    )
+                    notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                    completed = true
                     return@collect
                 }
 
@@ -368,7 +423,12 @@ class ParkingDetectionCoordinator(
     fun onUserDeniedParking() {
         PaparcarLogger.d(DIAG, "✱ onUserDeniedParking() called")
         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-        _detectionState.update { ParkingDetectionState(hasEverMoved = it.hasEverMoved) }
+        _detectionState.update {
+            ParkingDetectionState(
+                hasEverReachedDrivingSpeed = it.hasEverReachedDrivingSpeed,
+                hasEverMoved = it.hasEverMoved,
+            )
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -460,7 +520,12 @@ class ParkingDetectionCoordinator(
                 it.copy(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),
-                    mediumNotificationShown = false,
+                    // Only reset when the car drove away (isDriving), NOT on every non-stopped fix.
+                    // Clearing on walking pace was the root cause of BUG-STUCK-SESSION: after the
+                    // user parked, walked home, and stopped, the coordinator would re-fire the
+                    // confirmation notification 90 s later because the flag had been cleared by
+                    // an intermediate walking fix. [BUG-STUCK-SESSION]
+                    confirmationNotificationShownAt = if (isDriving) null else it.confirmationNotificationShownAt,
                     lowFirstReachedAt = null,
                     bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
                     vehicleExitConfirmed = if (isDriving) false else it.vehicleExitConfirmed,
@@ -515,17 +580,17 @@ class ParkingDetectionCoordinator(
                 val timeoutReached = state.lowFirstReachedAt != null &&
                         (now - state.lowFirstReachedAt) >= config.lowNotifTimeoutMs
 
-                if (!state.mediumNotificationShown && (hasExitOrStill || timeoutReached)) {
+                if (state.confirmationNotificationShownAt == null && (hasExitOrStill || timeoutReached)) {
                     val reason = when {
                         hasExitOrStill -> "exit=${state.vehicleExitConfirmed} still=${state.activityStillDetected}"
                         else -> "timeout=${now - (state.lowFirstReachedAt ?: now)}ms"
                     }
                     PaparcarLogger.d(DIAG, "  → showing parking-confirmation notif (Low/Medium, $reason)")
-                    _detectionState.update { it.copy(mediumNotificationShown = true) }
+                    _detectionState.update { it.copy(confirmationNotificationShownAt = now) }
                     PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
                     notifyParkingConfirmation(confidence)
                     PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
-                } else if (!state.mediumNotificationShown) {
+                } else if (state.confirmationNotificationShownAt == null) {
                     val waitMs = config.lowNotifTimeoutMs - (now - (state.lowFirstReachedAt ?: now))
                     PaparcarLogger.d(DIAG, "  ⊘ Low/Medium notif suppressed — no vehicleExit/STILL, timeout in ~${waitMs}ms [BUG-3]")
                 }
@@ -533,15 +598,21 @@ class ParkingDetectionCoordinator(
 
             is ParkingConfidence.High -> {
                 PaparcarLogger.d(DIAG, "  ▶ HIGH reached — entering CANDIDATE phase, vehicleExit=${state.vehicleExitConfirmed}")
+                val shouldNotify = state.confirmationNotificationShownAt == null
                 _detectionState.update { s ->
                     s.copy(
                         highConfidenceReachedAt = now,
                         highCandidateHadVehicleExit = s.vehicleExitConfirmed,
+                        confirmationNotificationShownAt = if (shouldNotify) now else s.confirmationNotificationShownAt,
                     )
                 }
-                PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
-                notifyParkingConfirmation(confidence)
-                PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
+                if (shouldNotify) {
+                    PaparcarLogger.d(DIAG, "    ↳ calling notifyParkingConfirmation BEFORE")
+                    notifyParkingConfirmation(confidence)
+                    PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation AFTER")
+                } else {
+                    PaparcarLogger.d(DIAG, "    ↳ notifyParkingConfirmation suppressed (already shown at ${state.confirmationNotificationShownAt}ms) [BUG-STUCK-SESSION]")
+                }
             }
         }
     }
