@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.ui.icons
 
 import androidx.compose.material.icons.Icons
-/modelimport androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
 import androidx.compose.material.icons.filled.AccountBalance
