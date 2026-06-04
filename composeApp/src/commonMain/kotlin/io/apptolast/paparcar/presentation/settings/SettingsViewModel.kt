@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.presentation.settings
 
 import com.apptolast.customlogin.domain.AuthRepository
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.appVersion as platformAppVersion
 import io.apptolast.paparcar.core.crash.CrashReporter
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
@@ -50,7 +50,6 @@ class SettingsViewModel(
                 autoDetectParking = prefs.autoDetectParking,
                 notifyParkingDetected = prefs.notifyParkingDetected,
                 notifySpotFreed = prefs.notifySpotFreed,
-                mapType = prefs.defaultMapType.toMapType(),
                 appVersion = platformAppVersion,
             )
         }
@@ -85,12 +84,6 @@ class SettingsViewModel(
                     )
                 }
             }
-            is SettingsIntent.SetMapType -> {
-                prefs.setDefaultMapType(intent.type.toPreferenceString())
-                updateState { copy(mapType = intent.type) }
-            }
-            is SettingsIntent.NavigateBack ->
-                sendEffect(SettingsEffect.NavigateBack)
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)
             is SettingsIntent.OpenPrivacyPolicy ->
@@ -122,27 +115,12 @@ class SettingsViewModel(
                 .onFailure { e ->
                     updateState { copy(isDeletingAccount = false) }
                     PaparcarLogger.e(TAG, "Failed to delete account", e)
+                    sendEffect(SettingsEffect.ShowError(PaparcarError.Auth.DeleteFailed))
                 }
         }
     }
 
     private companion object {
         const val TAG = "SettingsViewModel"
-        const val MAP_TYPE_SATELLITE = "SATELLITE"
-        const val MAP_TYPE_TERRAIN = "TERRAIN"
-        const val MAP_TYPE_HYBRID = "HYBRID"
-    }
-
-    private fun String.toMapType(): MapType = when (this) {
-        MAP_TYPE_SATELLITE -> MapType.SATELLITE
-        MAP_TYPE_HYBRID -> MapType.HYBRID
-        MAP_TYPE_TERRAIN -> MapType.TERRAIN
-        else -> MapType.TERRAIN
-    }
-
-    private fun MapType.toPreferenceString(): String = when (this) {
-        MapType.SATELLITE -> MAP_TYPE_SATELLITE
-        MapType.HYBRID -> MAP_TYPE_HYBRID
-        else -> MAP_TYPE_TERRAIN
     }
 }

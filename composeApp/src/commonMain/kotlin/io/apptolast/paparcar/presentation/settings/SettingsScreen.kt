@@ -149,7 +149,7 @@ import paparcar.composeapp.generated.resources.settings_version
  */
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit,
+    onNavigateBack: () -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
@@ -173,10 +173,10 @@ fun SettingsScreen(
     LaunchedEffect(viewModel.effect) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is SettingsEffect.NavigateBack -> onNavigateBack()
                 is SettingsEffect.NavigateToVehicles -> onNavigateToVehicles()
                 is SettingsEffect.NavigateToAuth -> onNavigateToAuth()
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
+                is SettingsEffect.ShowError -> { /* error handled via state */ }
             }
         }
     }
@@ -287,12 +287,6 @@ internal fun SettingsContent(
 
             // ── Map ──────────────────────────────────────────────────────
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_map)) }
-            item {
-                MapTypePickerCard(
-                    selected = state.mapType,
-                    onSelect = { onIntent(SettingsIntent.SetMapType(it)) },
-                )
-            }
             item {
                 SettingsSwitchItem(
                     icon = Icons.Outlined.Map,

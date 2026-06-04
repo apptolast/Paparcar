@@ -3,7 +3,6 @@ package io.apptolast.paparcar.presentation.settings
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.UserProfile
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
@@ -55,7 +54,6 @@ private fun SettingsSatelliteImperialPreview() {
         SettingsContent(
             state = SettingsState(
                 userProfile = loggedInProfile,
-                mapType = MapType.SATELLITE,
                 autoDetectParking = false,
                 notifyParkingDetected = false,
             ),

@@ -14,7 +14,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import com.swmansion.kmpmaps.core.MapType
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -118,22 +117,6 @@ class SettingsViewModelTest {
         vm.handleIntent(SettingsIntent.ToggleSpotFreedNotif(false))
         assertFalse(vm.state.value.notifySpotFreed)
         assertFalse(prefs.notifySpotFreed)
-    }
-
-    // ── Map type ──────────────────────────────────────────────────────────────
-
-    @Test
-    fun `should_loadMapType_from_prefs_on_init`() = runTest {
-        val customPrefs = FakeAppPreferences(initialDefaultMapType = "SATELLITE")
-        val vm = buildVm(customPrefs)
-        assertEquals(MapType.SATELLITE, vm.state.value.mapType)
-    }
-
-    @Test
-    fun `should_updateMapType_state_and_prefs`() = runTest {
-        vm.handleIntent(SettingsIntent.SetMapType(MapType.TERRAIN))
-        assertEquals(MapType.TERRAIN, vm.state.value.mapType)
-        assertEquals("TERRAIN", prefs.defaultMapType)
     }
 
     // ── Master notifications ───────────────────────────────────────────────────
