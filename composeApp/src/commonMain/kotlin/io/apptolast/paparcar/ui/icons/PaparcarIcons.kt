@@ -1,8 +1,25 @@
 package io.apptolast.paparcar.ui.icons
 
 import androidx.compose.material.icons.Icons
+/modelimport androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.ElectricScooter
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.LocalCafe
+import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.LocalMall
+import androidx.compose.material.icons.filled.LocalParking
+import androidx.compose.material.icons.filled.LocalPharmacy
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.ElectricScooter
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -60,19 +77,19 @@ import io.apptolast.paparcar.domain.model.VehicleType
 object PaparcarIcons {
 
     // ── Place categories (Material wrappers) ─────────────────────────────────
-    val Fuel: ImageVector get() = Icons.Outlined.LocalGasStation
-    val Supermarket: ImageVector get() = Icons.Outlined.ShoppingCart
-    val Mall: ImageVector get() = Icons.Outlined.LocalMall
-    val Restaurant: ImageVector get() = Icons.Outlined.Restaurant
-    val Cafe: ImageVector get() = Icons.Outlined.LocalCafe
-    val Pharmacy: ImageVector get() = Icons.Outlined.LocalPharmacy
-    val Hospital: ImageVector get() = Icons.Outlined.LocalHospital
-    val ParkingPlace: ImageVector get() = Icons.Outlined.LocalParking
-    val Bank: ImageVector get() = Icons.Outlined.AccountBalance
-    val Hotel: ImageVector get() = Icons.Outlined.Hotel
-    val School: ImageVector get() = Icons.Outlined.School
-    val Gym: ImageVector get() = Icons.Outlined.FitnessCenter
-    val PlaceGeneric: ImageVector get() = Icons.Outlined.Place
+    val Fuel: ImageVector get() = Icons.Filled.LocalGasStation
+    val Supermarket: ImageVector get() = Icons.Filled.ShoppingCart
+    val Mall: ImageVector get() = Icons.Filled.LocalMall
+    val Restaurant: ImageVector get() = Icons.Filled.Restaurant
+    val Cafe: ImageVector get() = Icons.Filled.LocalCafe
+    val Pharmacy: ImageVector get() = Icons.Filled.LocalPharmacy
+    val Hospital: ImageVector get() = Icons.Filled.LocalHospital
+    val ParkingPlace: ImageVector get() = Icons.Filled.LocalParking
+    val Bank: ImageVector get() = Icons.Filled.AccountBalance
+    val Hotel: ImageVector get() = Icons.Filled.Hotel
+    val School: ImageVector get() = Icons.Filled.School
+    val Gym: ImageVector get() = Icons.Filled.FitnessCenter
+    val PlaceGeneric: ImageVector get() = Icons.Filled.Place
 
     // ── Vehicle sizes ────────────────────────────────────────────────────────
     // All five vehicle sizes are custom vectors matching the casa-rodante.svg visual
@@ -86,10 +103,10 @@ object PaparcarIcons {
     // ── Vehicle types (high-level taxonomy, independent of size) ─────────────
     // Used in registration/edit to pick the user's vehicle category. Drives
     // detection strategy: SCOOTER / BIKE never enter the Coordinator algorithm.
-    val VehicleCar: ImageVector get() = Icons.Outlined.DirectionsCar
-    val VehicleMotorcycle: ImageVector get() = Icons.Outlined.TwoWheeler
-    val VehicleScooter: ImageVector get() = Icons.Outlined.ElectricScooter
-    val VehicleBike: ImageVector get() = Icons.AutoMirrored.Outlined.DirectionsBike
+    val VehicleCar: ImageVector get() = Icons.Filled.DirectionsCar
+    val VehicleMotorcycle: ImageVector get() = Icons.Filled.TwoWheeler
+    val VehicleScooter: ImageVector get() = Icons.Filled.ElectricScooter
+    val VehicleBike: ImageVector get() = Icons.AutoMirrored.Filled.DirectionsBike
 
 
     /**

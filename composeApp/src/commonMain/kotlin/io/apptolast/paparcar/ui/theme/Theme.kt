@@ -65,13 +65,16 @@ private val LightColorScheme = lightColorScheme(
     onSurface = PapOnSurfaceLight,
     surfaceVariant = PapVariantLight,
     onSurfaceVariant = PapOnVariantLight,
-    // Explicit surfaceContainer* ramp — overrides Material3's default rose-tinted
-    // light palette with the neutral cool-grey PapMist ramp.
-    surfaceContainerLowest = PapMistLowest,
-    surfaceContainerLow = PapMistLow,
-    surfaceContainer = PapMist,
-    surfaceContainerHigh = PapMistHigh,
-    surfaceContainerHighest = PapMistHighest,
+    // surfaceContainer ramp mirrors the dark-theme elevation principle:
+    //   scaffold (tinted) → cards (white) → inner chips (white + border).
+    // surfaceContainer (#ECF0F9) acts as the colored scaffold backdrop; High/Highest
+    // are both pure white so cards pop clearly — the same jump as PapInk→PapInkHigh in dark.
+    // Inner-chip differentiation comes from their PapBorders.thin outline, not fill color.
+    surfaceContainerLowest = PapAzureLowest,    // #FFFFFF
+    surfaceContainerLow = PapAzureLow,          // #F4F6FC
+    surfaceContainer = PapAzure,                // #ECF0F9 — scaffold / nav backdrop
+    surfaceContainerHigh = PapAzureLow,         // #F4F6FC — outer cards, tinted toward background ✓
+    surfaceContainerHighest = PapCardLight,     // #FFFFFF — metric chips, pure white ✓
     outline = PapNeutralOutlineLight,
     outlineVariant = PapOutlineVariantLight, // subtle dividers
     inverseSurface = PapInverseSurfaceLight,

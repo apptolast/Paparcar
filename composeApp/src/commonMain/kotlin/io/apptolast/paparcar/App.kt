@@ -87,6 +87,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
+import paparcar.composeapp.generated.resources.error_bootstrap_fatal_body
+import paparcar.composeapp.generated.resources.error_bootstrap_fatal_dismiss
+import paparcar.composeapp.generated.resources.error_bootstrap_fatal_title
 import paparcar.composeapp.generated.resources.error_bootstrap_offline_body
 import paparcar.composeapp.generated.resources.error_bootstrap_offline_title
 import paparcar.composeapp.generated.resources.error_bootstrap_retry

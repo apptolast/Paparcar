@@ -54,16 +54,14 @@ val PapOnBlue        = Color(0xFF061021)
 
 // ── Light theme counterparts ──────────────────────────────────────────────────
 
-// ── Mist ramp — cool grey surfaces for light theme ──────────────────────────
-// Material3's default light surfaceContainer* family inherits a faint rose/pink
-// tonal palette. This ramp replaces it with a neutral grey that has a very
-// subtle cool (blue-grey) bias, matching the app's intended "crisp and cool"
-// light feel.
-val PapMistLowest    = Color(0xFFFFFFFF)   // surfaceContainerLowest
-val PapMistLow       = Color(0xFFF8FAFB)   // surfaceContainerLow
-val PapMist          = Color(0xFFF1F4F5)   // surfaceContainer — sheet, nav
-val PapMistHigh      = Color(0xFFE8EDEF)   // surfaceContainerHigh — cards, chips
-val PapMistHighest   = Color(0xFFDEE4E6)   // surfaceContainerHighest — modals
+// ── Azure ramp — blue-navy surfaces for light theme (H≈217°, mirrors PapInk DNA) ─
+// Same hue family as the dark PapInk ramp but at the opposite luminosity pole,
+// so light and dark themes share the same cool blue character at both extremes.
+val PapAzureLowest   = Color(0xFFFFFFFF)   // surfaceContainerLowest
+val PapAzureLow      = Color(0xFFF4F6FC)   // surfaceContainerLow
+val PapAzure         = Color(0xFFECF0F9)   // surfaceContainer — sheet, nav
+val PapAzureHigh     = Color(0xFFE0E6F4)   // surfaceContainerHigh — cards, chips
+val PapAzureHighest  = Color(0xFFD4DCF0)   // surfaceContainerHighest — modals
 
 // Teal-shifted emerald ramp — same hue DNA as PapGreen (#25F48C ≈ H150°).
 // #009F5E → H152°, L31% — electric/vibrant. onPrimary = Color.White in light theme
@@ -72,15 +70,15 @@ val PapGreenLight            = Color(0xFF009F5E)
 val PapOnGreenLight          = Color(0xFF001E12)
 val PapGreenContainerLight   = Color(0xFFA8F5D0)
 val PapOnGreenContainerLight = Color(0xFF002819)
-val PapSurfaceLight          = Color(0xFFF0FBF7)  // page background (teal-tinted)
+val PapSurfaceLight          = Color(0xFFF0F4FB)  // page background — blue-tinted (H217°)
 val PapCardLight             = Color(0xFFFFFFFF)  // card / sheet surface — white
-val PapOnSurfaceLight        = Color(0xFF00311F)
-val PapVariantLight          = Color(0xFFD8E8E2)
-val PapOnVariantLight        = Color(0xFF364A43)
+val PapOnSurfaceLight        = Color(0xFF0E1A2E)  // primary text — deep navy
+val PapVariantLight          = Color(0xFFD8E0EE)  // surfaceVariant — blue-grey
+val PapOnVariantLight        = Color(0xFF374460)  // onSurfaceVariant — blue-dark
 val PapOutlineLight          = Color(0xFF226D49)
-val PapOutlineVariantLight   = Color(0xFFBECBC0)  // subtle dividers
-val PapInverseSurfaceLight   = Color(0xFF0F2218)  // dark surface for Snackbar/Toast
-val PapInverseOnSurfaceLight = Color(0xFFE8F5EC)  // text on inverse surface
+val PapOutlineVariantLight   = Color(0xFFBDC8DF)  // subtle dividers — blue-grey
+val PapInverseSurfaceLight   = Color(0xFF0D1B33)  // dark navy for Snackbar/Toast
+val PapInverseOnSurfaceLight = Color(0xFFE8EDF8)  // text on inverse surface
 val PapAmberLight            = Color(0xFFB56000)
 val PapAmberContainerLight   = Color(0xFFFFDDB3)
 val PapOnAmberContainerLight = Color(0xFF3D2A10)
