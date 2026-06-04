@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -55,8 +54,6 @@ import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
-import io.apptolast.paparcar.ui.components.PapAlertDialog
-import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.appBarTitle
@@ -67,11 +64,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.my_car_add_vehicle
-import paparcar.composeapp.generated.resources.my_car_cannot_delete_last_vehicle
-import paparcar.composeapp.generated.resources.my_car_delete_cancel
-import paparcar.composeapp.generated.resources.my_car_delete_confirm_action
-import paparcar.composeapp.generated.resources.my_car_delete_confirm_message
-import paparcar.composeapp.generated.resources.my_car_delete_confirm_title
 import paparcar.composeapp.generated.resources.my_car_empty_subtitle
 import paparcar.composeapp.generated.resources.my_car_empty_why_link
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
@@ -91,7 +83,6 @@ import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
 fun VehiclesScreen(
     onAddVehicle: () -> Unit = {},
     onEditVehicle: (vehicleId: String) -> Unit = {},
-    onConfigureBluetooth: (vehicleId: String) -> Unit = {},
     onNavigateToMap: (lat: Double, lon: Double, sessionId: String) -> Unit = { _, _, _ -> },
     onShowExplainer: () -> Unit = {},
     viewModel: VehiclesViewModel = koinViewModel(),
@@ -99,7 +90,6 @@ fun VehiclesScreen(
     val state by viewModel.state.collectAsStateLifecycleAware()
     val snackbarHostState = remember { SnackbarHostState() }
     val errorFallback = stringResource(Res.string.error_unknown)
-    val cannotDeleteLastMessage = stringResource(Res.string.my_car_cannot_delete_last_vehicle)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -108,8 +98,6 @@ fun VehiclesScreen(
                 is VehiclesEffect.NavigateToEditVehicle -> onEditVehicle(effect.vehicleId)
                 is VehiclesEffect.NavigateToMap -> onNavigateToMap(effect.lat, effect.lon, effect.sessionId)
                 is VehiclesEffect.ShowError -> snackbarHostState.showSnackbar(errorFallback)
-                is VehiclesEffect.ShowCannotDeleteLastVehicle ->
-                    snackbarHostState.showSnackbar(cannotDeleteLastMessage)
             }
         }
     }
@@ -118,7 +106,6 @@ fun VehiclesScreen(
         state = state,
         snackbarHostState = snackbarHostState,
         onIntent = viewModel::handleIntent,
-        onConfigureBluetooth = onConfigureBluetooth,
         onShowExplainer = onShowExplainer,
     )
 }
@@ -129,16 +116,8 @@ internal fun VehiclesContent(
     state: VehiclesState,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onIntent: (VehiclesIntent) -> Unit = {},
-    onConfigureBluetooth: (vehicleId: String) -> Unit = {},
     onShowExplainer: () -> Unit = {},
 ) {
-    state.pendingDeleteVehicleId?.let { pendingId ->
-        DeleteVehicleConfirmDialog(
-            onConfirm = { onIntent(VehiclesIntent.ConfirmDeleteVehicle(pendingId)) },
-            onDismiss = { onIntent(VehiclesIntent.DismissDeleteConfirmation) },
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -173,7 +152,6 @@ internal fun VehiclesContent(
                 else -> VehiclesPager(
                     state = state,
                     onIntent = onIntent,
-                    onConfigureBluetooth = onConfigureBluetooth,
                 )
             }
         }
@@ -189,7 +167,6 @@ internal fun VehiclesContent(
 private fun VehiclesPager(
     state: VehiclesState,
     onIntent: (VehiclesIntent) -> Unit,
-    onConfigureBluetooth: (vehicleId: String) -> Unit,
 ) {
     val vehicles = state.vehicles
     val pagerState = rememberPagerState(
@@ -245,8 +222,6 @@ private fun VehiclesPager(
                 vehicleWithStats = vehicleWithStats,
                 historyState = pageHistoryState,
                 onIntent = onIntent,
-                onConfigureBluetooth = onConfigureBluetooth,
-                canDelete = vehicles.size > 1,
             )
         }
     }
@@ -264,7 +239,7 @@ private fun VehicleTabRow(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(scrollState)
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -275,12 +250,9 @@ private fun VehicleTabRow(
                 onClick = { onTabClick(index) },
             )
         }
-        // 32dp diameter: iconSize 16 + contentPad 8 per side = 32dp total to
-        // align vertically with adjacent VehicleTabPills.
         PaparcarAddChip(
             onClick = onAddVehicle,
-            iconSize = 16.dp,
-            contentPad = 8.dp,
+            modifier = Modifier.height(TAB_HEIGHT_DP.dp),
             contentDescription = stringResource(Res.string.my_car_add_vehicle),
         )
     }
@@ -291,7 +263,7 @@ private fun VehicleTabRow(
  * Vehicle pager tab — aligned with [PaparcarFilterChip] visual contract:
  * neutral [PapBorders] outline (no neon-primary border on selected), primary-
  * tinted leading icon, and label colours that follow the selected state.
- * Adds an `isDefault` dot suffix that the base chip doesn't need.
+ * Adds an `isActive` dot suffix that the base chip doesn't need.
  */
 @Composable
 private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> Unit) {
@@ -299,20 +271,17 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
     val tabName = vehicle.displayName(
         fallback = stringResource(Res.string.my_car_unnamed_vehicle),
     )
-    val bg = if (selected) cs.primaryContainer else cs.surfaceContainerHigh
-    val borderColor = if (selected) {
-        cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA + 0.2f)
-    } else {
-        cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
-    }
-    val fg = if (selected) cs.onPrimaryContainer else cs.onSurface
+    val bg = if (selected) cs.primary.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
+    val fg = if (selected) cs.primary else cs.onSurface
+    val iconTint = cs.primary
+    val dotColor = cs.primary
 
     Surface(
         onClick = onClick,
         modifier = Modifier.height(TAB_HEIGHT_DP.dp),
         shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
         color = bg,
-        border = BorderStroke(PapBorders.thin, borderColor),
+        border = if (selected) BorderStroke(PapBorders.strong, cs.primary) else BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp),
@@ -322,48 +291,26 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
             Icon(
                 imageVector = vehicle.sizeCategory.icon,
                 contentDescription = null,
-                tint = cs.primary,
+                tint = iconTint,
                 modifier = Modifier.size(14.dp),
             )
             Text(
                 text = tabName,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = fg,
                 maxLines = 1,
             )
-            if (vehicle.isDefault) {
+            if (vehicle.isActive) {
                 Box(
                     modifier = Modifier
                         .size(ACTIVE_DOT_DP.dp)
                         .clip(CircleShape)
-                        .background(cs.primary),
+                        .background(dotColor),
                 )
             }
         }
     }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Delete confirmation dialog
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun DeleteVehicleConfirmDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    PapAlertDialog(
-        onDismiss = onDismiss,
-        icon = Icons.Outlined.Delete,
-        title = stringResource(Res.string.my_car_delete_confirm_title),
-        body = stringResource(Res.string.my_car_delete_confirm_message),
-        primaryLabel = stringResource(Res.string.my_car_delete_confirm_action),
-        primaryLeadingIcon = Icons.Outlined.Delete,
-        onPrimary = onConfirm,
-        cancelLabel = stringResource(Res.string.my_car_delete_cancel),
-        accent = PapDialogAccent.Destructive,
-    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -453,8 +400,9 @@ private fun EmptyVehicleState(
 }
 
 private const val PILL_RADIUS_DP = 999
-private const val TAB_HEIGHT_DP = 32
+private const val TAB_HEIGHT_DP = 36
 private const val ACTIVE_DOT_DP = 6
+private const val SELECTED_FILL_ALPHA = 0.14f
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private const val EMPTY_BODY_ALPHA = 0.65f
 private const val EMPTY_CTA_HEIGHT_DP = 50

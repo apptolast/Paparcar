@@ -538,9 +538,6 @@ private fun MainAppNavigation(
                         onEditVehicle = { vehicleId ->
                             navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=vehicles&vehicleId=$vehicleId")
                         },
-                        onConfigureBluetooth = { vehicleId ->
-                            navController.navigate("${Routes.BT_CONFIG}/$vehicleId")
-                        },
                         onNavigateToMap = { lat, lon, sessionId ->
                             navController.navigate("${Routes.PARKING_HISTORY_DETAIL}?lat=$lat&lon=$lon&sessionId=$sessionId")
                         },

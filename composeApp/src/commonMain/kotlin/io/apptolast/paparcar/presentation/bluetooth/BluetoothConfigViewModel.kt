@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.bluetooth
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -15,26 +16,27 @@ class BluetoothConfigViewModel(
     private val vehicleId: String,
     private val bluetoothScanner: BluetoothScanner,
     private val vehicleRepository: VehicleRepository,
+    private val permissionManager: PermissionManager,
 ) : BaseViewModel<BluetoothConfigState, BluetoothConfigIntent, BluetoothConfigEffect>() {
 
     override fun initState() = BluetoothConfigState()
 
     init {
-        // vehicleId is available here (subclass init runs after super()).
-        // Capture in local val: inside updateState { } the receiver is BluetoothConfigState,
-        // so a bare 'vehicleId' reference would resolve to the state property (empty string).
         val id = vehicleId
         updateState { copy(vehicleId = id) }
+
         vehicleRepository.observeVehicles()
             .onEach { vehicles ->
                 val vehicle = vehicles.find { it.id == vehicleId }
+                val hasBtPermission = permissionManager.permissionState.value.hasBluetoothConnectPermission
                 updateState {
                     copy(
                         vehicleName = vehicle?.displayName(fallback = vehicleId) ?: vehicleId,
                         currentDeviceAddress = vehicle?.bluetoothDeviceId,
                         selectedAddress = vehicle?.bluetoothDeviceId,
-                        bondedDevices = bluetoothScanner.getBondedDevices(),
+                        bondedDevices = if (hasBtPermission) bluetoothScanner.getBondedDevices() else emptyList(),
                         isBluetoothEnabled = bluetoothScanner.isBluetoothEnabled(),
+                        hasBluetoothPermission = hasBtPermission,
                         isLoading = false,
                     )
                 }
@@ -44,6 +46,20 @@ class BluetoothConfigViewModel(
                 updateState { copy(isLoading = false) }
             }
             .launchIn(viewModelScope)
+
+        // React to permission changes (e.g., user grants BLUETOOTH_CONNECT from app settings)
+        permissionManager.permissionState
+            .onEach { perms ->
+                val hasBtPermission = perms.hasBluetoothConnectPermission
+                updateState {
+                    copy(
+                        hasBluetoothPermission = hasBtPermission,
+                        bondedDevices = if (hasBtPermission) bluetoothScanner.getBondedDevices() else emptyList(),
+                        isBluetoothEnabled = bluetoothScanner.isBluetoothEnabled(),
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     override fun handleIntent(intent: BluetoothConfigIntent) {
@@ -51,6 +67,19 @@ class BluetoothConfigViewModel(
             is BluetoothConfigIntent.SelectDevice -> updateState { copy(selectedAddress = intent.address) }
             is BluetoothConfigIntent.Save -> save()
             is BluetoothConfigIntent.NavigateBack -> sendEffect(BluetoothConfigEffect.NavigateBack)
+            is BluetoothConfigIntent.RefreshState -> refreshScannerState()
+        }
+    }
+
+    private fun refreshScannerState() {
+        permissionManager.refreshPermissions()
+        val hasBtPermission = permissionManager.permissionState.value.hasBluetoothConnectPermission
+        updateState {
+            copy(
+                hasBluetoothPermission = hasBtPermission,
+                bondedDevices = if (hasBtPermission) bluetoothScanner.getBondedDevices() else emptyList(),
+                isBluetoothEnabled = bluetoothScanner.isBluetoothEnabled(),
+            )
         }
     }
 

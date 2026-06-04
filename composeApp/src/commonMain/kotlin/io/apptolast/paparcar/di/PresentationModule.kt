@@ -23,5 +23,5 @@ val presentationModule = module {
     viewModelOf(::VehicleRegistrationViewModel)
     viewModelOf(::VehiclesViewModel)
     // vehicleId parameter passed via koinViewModel(parameters = { parametersOf(vehicleId) })
-    viewModel { params -> BluetoothConfigViewModel(params.get(), get(), get()) }
+    viewModel { params -> BluetoothConfigViewModel(params.get(), get(), get(), get()) }
 }

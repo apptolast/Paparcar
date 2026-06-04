@@ -9,6 +9,7 @@ data class BluetoothConfigState(
     val currentDeviceAddress: String? = null,
     val selectedAddress: String? = null,
     val isBluetoothEnabled: Boolean = true,
+    val hasBluetoothPermission: Boolean = true,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
 ) {
