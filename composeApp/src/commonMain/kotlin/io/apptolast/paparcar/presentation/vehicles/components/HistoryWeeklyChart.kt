@@ -36,6 +36,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.vehicles.WeekDayStats
 import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_weekly_subtitle
@@ -92,7 +93,7 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
                     withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
                         append("$total ")
                     }
-                    append(stringResource(Res.string.history_weekly_subtitle))
+                    append(pluralStringResource(Res.plurals.history_weekly_subtitle, total))
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),

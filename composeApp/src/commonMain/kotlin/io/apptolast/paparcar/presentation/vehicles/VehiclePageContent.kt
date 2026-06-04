@@ -75,7 +75,6 @@ internal fun VehiclePageContent(
         contentPadding = PaddingValues(0.dp),
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
-        onLoadMore = { onIntent(VehiclesIntent.LoadNextHistoryPage) },
         modifier = Modifier.fillMaxSize(),
         showInternalStats = false,
         headerSlot = {

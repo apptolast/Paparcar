@@ -115,6 +115,7 @@ class VehicleRegistrationViewModel(
                 }
             }.onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to load vehicle", e)
+                sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
         }
     }
@@ -127,7 +128,7 @@ class VehicleRegistrationViewModel(
             return
         }
         val size = current.sizeCategory ?: run {
-            sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown("size_required")))
+            sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Vehicle.SaveFailed))
             return
         }
         // Silent CAR default for safety — UI requires a pick (canSubmit gate),
@@ -163,8 +164,8 @@ class VehicleRegistrationViewModel(
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
                     isActive = shouldBeDefault,
                 )
-                vehicleRepository.saveVehicle(vehicle)
-                if (!isEditing && shouldBeDefault) vehicleRepository.setActiveVehicle(vehicle.id)
+                vehicleRepository.saveVehicle(vehicle).getOrThrow()
+                if (!isEditing && shouldBeDefault) vehicleRepository.setActiveVehicle(vehicle.id).getOrThrow()
             }.onSuccess {
                 updateState { copy(isSaving = false, pendingNewVehicleId = null) }
                 sendEffect(
@@ -176,7 +177,7 @@ class VehicleRegistrationViewModel(
             }.onFailure { e ->
                 PaparcarLogger.e(TAG, "Failed to save vehicle", e)
                 updateState { copy(isSaving = false) }
-                sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Vehicle.SaveFailed))
             }
         }
     }
@@ -184,11 +185,11 @@ class VehicleRegistrationViewModel(
     private fun deleteVehicle() {
         val vehicleId = state.value.editingVehicleId ?: return
         viewModelScope.launch {
-            runCatching { vehicleRepository.deleteVehicle(vehicleId) }
+            vehicleRepository.deleteVehicle(vehicleId)
                 .onSuccess { sendEffect(VehicleRegistrationEffect.NavigateBack) }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
-                    sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
+                    sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Vehicle.DeleteFailed))
                 }
         }
     }

@@ -105,7 +105,7 @@ class VehicleRepositoryImpl(
         PaparcarLogger.d(DIAG, "■ syncFromRemote replaced local with ${normalized.size} remote vehicle(s) in Room")
     }
 
-    override suspend fun saveVehicle(vehicle: Vehicle) {
+    override suspend fun saveVehicle(vehicle: Vehicle): Result<Unit> = runCatching {
         currentUserId()?.let { uid ->
             if (vehicle.isActive) {
                 // Enforce single-active invariant before inserting: clear the flag on
@@ -125,7 +125,7 @@ class VehicleRepositoryImpl(
         }
     }
 
-    override suspend fun deleteVehicle(id: String) {
+    override suspend fun deleteVehicle(id: String): Result<Unit> = runCatching {
         val uid = currentUserId()
         dao.deleteById(id)
         if (uid != null) {
@@ -145,8 +145,8 @@ class VehicleRepositoryImpl(
         }
     }
 
-    override suspend fun setActiveVehicle(id: String) {
-        val uid = currentUserId() ?: return
+    override suspend fun setActiveVehicle(id: String): Result<Unit> = runCatching {
+        val uid = currentUserId() ?: return@runCatching
         dao.clearActive(uid)
         dao.setActive(id)
 
@@ -161,7 +161,7 @@ class VehicleRepositoryImpl(
         userProfileDataSource.updateDefaultVehicleId(uid, id)
     }
 
-    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {
+    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?): Result<Unit> = runCatching {
         // On-device only — intentionally never synced to Firestore
         dao.updateBluetoothDevice(vehicleId, deviceAddress)
     }

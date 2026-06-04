@@ -46,23 +46,23 @@ interface VehicleRepository : UserScopedRepository, RemoteSyncable {
     override suspend fun syncFromRemote(userId: String): Result<Unit>
 
     /** Save a new vehicle or update an existing one. */
-    suspend fun saveVehicle(vehicle: Vehicle)
+    suspend fun saveVehicle(vehicle: Vehicle): Result<Unit>
 
     /** Delete a vehicle by id. If it was the default, the remaining list has no default. */
-    suspend fun deleteVehicle(id: String)
+    suspend fun deleteVehicle(id: String): Result<Unit>
 
     /**
      * Set the given vehicle as the active one.
      * Clears isActive on all others for this user.
      */
-    suspend fun setActiveVehicle(id: String)
+    suspend fun setActiveVehicle(id: String): Result<Unit>
 
     /**
      * Pairs a Bluetooth device MAC address with a vehicle.
      * Pass null to remove the pairing.
      * Stored on-device only — never synced to Firestore.
      */
-    suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?)
+    suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?): Result<Unit>
 
     /** Deletes all local and remote vehicles for [userId]. Called during account deletion. */
     override suspend fun deleteAllData(userId: String): Result<Unit>

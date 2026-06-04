@@ -80,13 +80,13 @@ class FakeVehicleRepository : VehicleRepository {
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun saveVehicle(vehicle: Vehicle) { /* no-op */ }
+    override suspend fun saveVehicle(vehicle: Vehicle): Result<Unit> = Result.success(Unit)
 
-    override suspend fun deleteVehicle(id: String) { /* no-op */ }
+    override suspend fun deleteVehicle(id: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun setActiveVehicle(id: String) { /* no-op */ }
+    override suspend fun setActiveVehicle(id: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) { /* no-op */ }
+    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?): Result<Unit> = Result.success(Unit)
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 

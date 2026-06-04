@@ -30,6 +30,7 @@ sealed class PaparcarError : Exception() {
         data object ProfileSyncFailed : Auth()
         /** The operation requires an authenticated user but no active session was found. */
         data object NotAuthenticated : Auth()
+        data object DeleteFailed : Auth()
     }
 
     sealed class Parking : PaparcarError() {
@@ -38,5 +39,10 @@ sealed class PaparcarError : Exception() {
         /** The user has no resolvable default vehicle. Saving a parking with vehicleId=null would
          *  produce a row unreachable in the per-vehicle history UI; better to fail loud. [AUTH-001] */
         data object NoDefaultVehicle : Parking()
+    }
+
+    sealed class Vehicle : PaparcarError() {
+        data object SaveFailed : Vehicle()
+        data object DeleteFailed : Vehicle()
     }
 }

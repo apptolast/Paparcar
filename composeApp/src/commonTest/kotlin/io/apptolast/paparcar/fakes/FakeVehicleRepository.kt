@@ -40,23 +40,25 @@ class FakeVehicleRepository(
      *  an in-flight save so concurrent intents can be observed by the caller. */
     var saveVehicleAwait: CompletableDeferred<Unit>? = null
 
-    override suspend fun saveVehicle(vehicle: Vehicle) {
+    override suspend fun saveVehicle(vehicle: Vehicle): Result<Unit> {
         saveVehicleCallCount++
         savedVehicleIds += vehicle.id
-        saveVehicleThrows?.let { saveVehicleThrows = null; throw it }
+        saveVehicleThrows?.let { err -> saveVehicleThrows = null; return Result.failure(err) }
         saveVehicleAwait?.await()
         _vehicles.value = _vehicles.value.filter { it.id != vehicle.id } + vehicle
         _defaultVehicle.value = vehicle
+        return Result.success(Unit)
     }
 
-    override suspend fun deleteVehicle(id: String) {
+    override suspend fun deleteVehicle(id: String): Result<Unit> {
         _vehicles.value = _vehicles.value.filter { it.id != id }
         if (_defaultVehicle.value?.id == id) _defaultVehicle.value = null
+        return Result.success(Unit)
     }
 
-    override suspend fun setActiveVehicle(id: String) {}
+    override suspend fun setActiveVehicle(id: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {}
+    override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?): Result<Unit> = Result.success(Unit)
 
     var syncFromRemoteCallCount = 0
         private set

@@ -87,7 +87,7 @@ class BluetoothConfigViewModel(
         val address = state.value.selectedAddress
         updateState { copy(isSaving = true) }
         viewModelScope.launch {
-            runCatching { vehicleRepository.updateBluetoothDevice(vehicleId, address) }
+            vehicleRepository.updateBluetoothDevice(vehicleId, address)
                 .onSuccess {
                     updateState { copy(isSaving = false, currentDeviceAddress = address) }
                     sendEffect(BluetoothConfigEffect.SavedSuccessfully)
