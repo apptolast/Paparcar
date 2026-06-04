@@ -1,0 +1,413 @@
+05-31 19:01:34.305 D PARKDIAG/Bootstrap: ▶ Bootstrap.invoke userId=bzJ07wjtRDhDKQXUYik0A70TTc83
+05-31 19:01:34.310 D PARKDIAG/Bootstrap:   → syncVehicles START
+05-31 19:01:34.311 D PARKDIAG/VehicleSync: ▶ syncFromRemote userId=bzJ07wjtRDhDKQXUYik0A70TTc83
+05-31 19:01:34.314 D PARKDIAG/Bootstrap:   → syncParkingHistory START
+05-31 19:01:34.316 D PARKDIAG/Bootstrap:   → syncZones START
+05-31 19:01:34.502 D PARKDIAG/VehicleSync:   ← Firestore returned 3 vehicle(s)
+05-31 19:01:34.503 D PARKDIAG/VehicleSync:     vehicle id=bff5c760-f922-4988-a9b3-d2d5ebc18708 isDefault=true name=Cupra Born
+05-31 19:01:34.504 D PARKDIAG/VehicleSync:     vehicle id=e7afa6ed-b988-4dea-a58c-1c22c7578066 isDefault=false name=Open Corsa
+05-31 19:01:34.504 D PARKDIAG/VehicleSync:     vehicle id=fd378178-f19f-43d5-ab69-ba395bdb2980 isDefault=false name=Ford Focus
+05-31 19:01:34.510 D PARKDIAG/VehicleSync: ■ syncFromRemote replaced local with 3 remote vehicle(s) in Room
+05-31 19:01:34.511 D PARKDIAG/Bootstrap:   ← syncVehicles END isSuccess=true
+05-31 19:01:34.664 D PARKDIAG/Bootstrap:   ← syncZones END isSuccess=true
+05-31 19:01:34.674 D PARKDIAG/Bootstrap:   ← syncParkingHistory END isSuccess=true
+05-31 19:01:34.675 D PARKDIAG/Bootstrap: ■ Bootstrap.invoke SUCCESS
+05-31 19:09:51.034 D PARKDIAG/Service: ▶ Service onCreate
+05-31 19:09:51.041 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=1
+05-31 19:09:51.066 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 19:09:51.068 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE ENTER
+05-31 19:09:51.104 D PARKDIAG/Service:   → IN_VEHICLE_ENTER — starting Coordinator
+05-31 19:09:51.105 D PARKDIAG/Service:   ▶ startParkingDetection — launching coordinator
+05-31 19:09:51.108 D PARKDIAG/Service:     ▶ detection coroutine entered, invoking coordinator
+05-31 19:09:51.137 D PARKDIAG/Coord: ▶ coordinator.invoke() entry — calling reset()
+05-31 19:09:51.152 D PARKDIAG/Coord:   ✓ active vehicleId=bff5c760-f922-4988-a9b3-d2d5ebc18708 type=CAR
+05-31 19:09:54.502 D PARKDIAG/Coord: ─ loc#1 speed=0.0m/s acc=25.126m sessionAge=3349ms
+05-31 19:09:54.504 D PARKDIAG/Coord:   state hasEverMoved=false userConfirmed=false vehicleExit=false stoppedSince=1780247394501 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:09:54.505 D PARKDIAG/Coord:   ⏸ skipping: !hasEverMoved
+05-31 19:10:03.567 D PARKDIAG/Coord: ─ loc#2 speed=0.0m/s acc=126.632m sessionAge=12415ms
+05-31 19:10:03.570 D PARKDIAG/Coord:   state hasEverMoved=false userConfirmed=false vehicleExit=false stoppedSince=1780247394501 stoppedDur=9066ms highReachedAt=null mediumShown=false
+05-31 19:10:03.570 D PARKDIAG/Coord:   ⏸ skipping: !hasEverMoved
+05-31 19:10:16.584 D PARKDIAG/Coord: ─ loc#3 speed=2.85m/s acc=62.96m sessionAge=25431ms
+05-31 19:10:16.587 D PARKDIAG/Coord:   ⊘ ignoring driving-speed fix with poor accuracy (speed=2.85 acc=62.96 > minGpsAccuracyForDriving=50.0)
+05-31 19:10:16.594 D PARKDIAG/Coord:   state hasEverMoved=false userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:10:16.597 D PARKDIAG/Coord:   ⏸ skipping: !hasEverMoved
+05-31 19:10:22.076 D PARKDIAG/Coord: ─ loc#4 speed=3.7m/s acc=71.01m sessionAge=30923ms
+05-31 19:10:22.079 D PARKDIAG/Coord:   ⊘ ignoring driving-speed fix with poor accuracy (speed=3.7 acc=71.01 > minGpsAccuracyForDriving=50.0)
+05-31 19:10:22.084 D PARKDIAG/Coord:   state hasEverMoved=false userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:10:22.087 D PARKDIAG/Coord:   ⏸ skipping: !hasEverMoved
+05-31 19:10:28.055 D PARKDIAG/Coord: ─ loc#5 speed=9.65m/s acc=107.556m sessionAge=36903ms
+05-31 19:10:28.057 D PARKDIAG/Coord:   ⊘ ignoring driving-speed fix with poor accuracy (speed=9.65 acc=107.556 > minGpsAccuracyForDriving=50.0)
+05-31 19:10:28.059 D PARKDIAG/Coord:   ✓ hasEverMoved → true (speed≥5.0, dist≥150.0m, actual=150.16191624061727m)
+05-31 19:10:28.061 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:10:28.063 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=9.65 stopped=0ms accuracy=107.556 exit=false still=false)
+05-31 19:10:28.089 D PARKDIAG/Coord: ─ loc#6 speed=9.65m/s acc=107.556m sessionAge=36936ms
+05-31 19:10:28.090 D PARKDIAG/Coord:   ⊘ ignoring driving-speed fix with poor accuracy (speed=9.65 acc=107.556 > minGpsAccuracyForDriving=50.0)
+05-31 19:10:28.091 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:10:28.092 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=9.65 stopped=0ms accuracy=107.556 exit=false still=false)
+05-31 19:10:52.109 D PARKDIAG/Coord: ─ loc#7 speed=0.0m/s acc=35.618m sessionAge=60956ms
+05-31 19:10:52.111 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:10:52.112 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=0ms accuracy=35.618 exit=false still=false)
+05-31 19:11:22.687 D PARKDIAG/Coord: ─ loc#8 speed=0.0m/s acc=44.213m sessionAge=91534ms
+05-31 19:11:22.693 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=30578ms highReachedAt=null mediumShown=false
+05-31 19:11:22.697 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=30578ms accuracy=44.213 exit=false still=false)
+05-31 19:11:39.088 D PARKDIAG/Coord: ─ loc#9 speed=0.0m/s acc=157.206m sessionAge=107935ms
+05-31 19:11:39.091 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=46979ms highReachedAt=null mediumShown=false
+05-31 19:11:39.094 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=46979ms accuracy=157.206 exit=false still=false)
+05-31 19:11:45.104 D PARKDIAG/Coord: ─ loc#10 speed=0.0m/s acc=96.464m sessionAge=113951ms
+05-31 19:11:45.109 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=52995ms highReachedAt=null mediumShown=false
+05-31 19:11:45.113 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=52995ms accuracy=96.464 exit=false still=false)
+05-31 19:11:50.073 D PARKDIAG/Coord: ─ loc#11 speed=0.0m/s acc=155.598m sessionAge=118920ms
+05-31 19:11:50.077 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=57964ms highReachedAt=null mediumShown=false
+05-31 19:11:50.078 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=57964ms accuracy=155.598 exit=false still=false)
+05-31 19:11:55.062 D PARKDIAG/Coord: ─ loc#12 speed=0.0m/s acc=236.846m sessionAge=123909ms
+05-31 19:11:55.065 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=62953ms highReachedAt=null mediumShown=false
+05-31 19:11:55.068 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=62953ms accuracy=236.846 exit=false still=false)
+05-31 19:12:00.051 D PARKDIAG/Coord: ─ loc#13 speed=0.0m/s acc=232.201m sessionAge=128898ms
+05-31 19:12:00.054 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=67942ms highReachedAt=null mediumShown=false
+05-31 19:12:00.056 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=67942ms accuracy=232.201 exit=false still=false)
+05-31 19:12:05.062 D PARKDIAG/Coord: ─ loc#14 speed=0.0m/s acc=245.981m sessionAge=133910ms
+05-31 19:12:05.065 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=72954ms highReachedAt=null mediumShown=false
+05-31 19:12:05.067 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=72954ms accuracy=245.981 exit=false still=false)
+05-31 19:12:14.090 D PARKDIAG/Coord: ─ loc#15 speed=0.0m/s acc=162.287m sessionAge=142937ms
+05-31 19:12:14.093 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=81981ms highReachedAt=null mediumShown=false
+05-31 19:12:14.094 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=81981ms accuracy=162.287 exit=false still=false)
+05-31 19:12:19.112 D PARKDIAG/Coord:   ✦ step #1 (stopped)
+05-31 19:12:20.053 D PARKDIAG/Coord: ─ loc#16 speed=0.0m/s acc=105.515m sessionAge=148900ms
+05-31 19:12:20.056 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=87944ms highReachedAt=null mediumShown=false
+05-31 19:12:20.057 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=87944ms accuracy=105.515 exit=false still=false)
+05-31 19:12:21.007 D PARKDIAG/Coord:   ✦ step #2 (stopped)
+05-31 19:12:21.012 D PARKDIAG/Coord:   ✦ step #3 (stopped)
+05-31 19:12:25.064 D PARKDIAG/Coord: ─ loc#17 speed=0.0m/s acc=157.445m sessionAge=153911ms
+05-31 19:12:25.068 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=92955ms highReachedAt=null mediumShown=false
+05-31 19:12:25.070 D PARKDIAG/Coord:   ⚖ scoring=Low (signals: speed=0.0 stopped=92955ms accuracy=157.445 exit=false still=false)
+05-31 19:12:25.075 D PARKDIAG/Coord:   ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]
+05-31 19:12:32.060 D PARKDIAG/Coord: ─ loc#18 speed=0.0m/s acc=188.559m sessionAge=160907ms
+05-31 19:12:32.065 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=99951ms highReachedAt=null mediumShown=false
+05-31 19:12:32.067 D PARKDIAG/Coord:   ⚖ scoring=Low (signals: speed=0.0 stopped=99951ms accuracy=188.559 exit=false still=false)
+05-31 19:12:32.068 D PARKDIAG/Coord:   ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]
+05-31 19:12:35.062 D PARKDIAG/Coord: ─ loc#19 speed=0.0m/s acc=177.528m sessionAge=163909ms
+05-31 19:12:35.065 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=102953ms highReachedAt=null mediumShown=false
+05-31 19:12:35.067 D PARKDIAG/Coord:   ⚖ scoring=Low (signals: speed=0.0 stopped=102953ms accuracy=177.528 exit=false still=false)
+05-31 19:12:35.069 D PARKDIAG/Coord:   ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]
+05-31 19:12:41.048 D PARKDIAG/Coord: ─ loc#20 speed=0.0m/s acc=182.74m sessionAge=169895ms
+05-31 19:12:41.051 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=108939ms highReachedAt=null mediumShown=false
+05-31 19:12:41.054 D PARKDIAG/Coord:   ⚖ scoring=Low (signals: speed=0.0 stopped=108939ms accuracy=182.74 exit=false still=false)
+05-31 19:12:41.055 D PARKDIAG/Coord:   ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]
+05-31 19:12:45.092 D PARKDIAG/Coord: ─ loc#21 speed=0.0m/s acc=132.69m sessionAge=173939ms
+05-31 19:12:45.095 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=112983ms highReachedAt=null mediumShown=false
+05-31 19:12:45.098 D PARKDIAG/Coord:   ⚖ scoring=Low (signals: speed=0.0 stopped=112983ms accuracy=132.69 exit=false still=false)
+05-31 19:12:45.101 D PARKDIAG/Coord:   ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]
+05-31 19:12:50.078 D PARKDIAG/Coord: ─ loc#22 speed=0.0m/s acc=122.699m sessionAge=178926ms
+05-31 19:12:50.081 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247452108 stoppedDur=117970ms highReachedAt=null mediumShown=false
+05-31 19:12:50.085 D PARKDIAG/Coord:   ⚖ scoring=Low (signals: speed=0.0 stopped=117970ms accuracy=122.699 exit=false still=false)
+05-31 19:12:50.086 D PARKDIAG/Coord:   ⊘ Low/Medium notif suppressed — no vehicleExit/STILL signal yet [BUG-3]
+05-31 19:12:55.053 D PARKDIAG/Coord: ─ loc#23 speed=3.3m/s acc=51.632m sessionAge=183900ms
+05-31 19:12:55.055 D PARKDIAG/Coord:   ⊘ ignoring driving-speed fix with poor accuracy (speed=3.3 acc=51.632 > minGpsAccuracyForDriving=50.0)
+05-31 19:12:55.057 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:12:55.061 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=3.3 stopped=0ms accuracy=51.632 exit=false still=false)
+05-31 19:13:01.041 D PARKDIAG/Coord: ─ loc#24 speed=2.34m/s acc=53.915m sessionAge=189888ms
+05-31 19:13:01.043 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:13:01.044 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=2.34 stopped=0ms accuracy=53.915 exit=false still=false)
+05-31 19:13:05.077 D PARKDIAG/Coord: ─ loc#25 speed=1.06m/s acc=46.812m sessionAge=193924ms
+05-31 19:13:05.079 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:13:05.080 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.06 stopped=0ms accuracy=46.812 exit=false still=false)
+05-31 19:13:11.037 D PARKDIAG/Coord: ─ loc#26 speed=0.28m/s acc=33.722m sessionAge=199883ms
+05-31 19:13:11.040 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247591035 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:13:11.042 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.28 stopped=0ms accuracy=33.722 exit=false still=false)
+05-31 19:13:14.029 D PARKDIAG/Coord:   ✦ step #4 (stopped)
+05-31 19:13:14.069 D PARKDIAG/Coord:   ✦ step #5 (stopped)
+05-31 19:13:14.080 D PARKDIAG/Coord:   ✦ step #6 (stopped)
+05-31 19:13:15.062 D PARKDIAG/Coord: ─ loc#27 speed=0.46m/s acc=20.752m sessionAge=203910ms
+05-31 19:13:15.067 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247591035 stoppedDur=4027ms highReachedAt=null mediumShown=false
+05-31 19:13:15.069 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.46 stopped=4027ms accuracy=20.752 exit=false still=false)
+05-31 19:13:15.073 D PARKDIAG/Coord:   ✦ step #7 (stopped)
+05-31 19:13:16.057 D PARKDIAG/Coord:   ✦ step #8 (stopped)
+05-31 19:13:16.071 D PARKDIAG/Coord:   ✦ step #9 (stopped)
+05-31 19:13:17.175 D PARKDIAG/Coord:   ✦ step #10 (stopped)
+05-31 19:13:18.063 D PARKDIAG/Coord:   ✦ step #11 (stopped)
+05-31 19:13:18.083 D PARKDIAG/Coord:   ✦ step #12 (stopped)
+05-31 19:13:19.071 D PARKDIAG/Coord:   ✦ step #13 (stopped)
+05-31 19:13:19.077 D PARKDIAG/Coord:   ✦ step #14 (stopped)
+05-31 19:13:20.066 D PARKDIAG/Coord:   ✦ step #15 (stopped)
+05-31 19:13:20.071 D PARKDIAG/Coord:   ✦ step #16 (stopped)
+05-31 19:13:20.074 D PARKDIAG/Coord: ─ loc#28 speed=0.92m/s acc=11.074m sessionAge=208921ms
+05-31 19:13:20.075 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247591035 stoppedDur=9038ms highReachedAt=null mediumShown=false
+05-31 19:13:20.076 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.92 stopped=9038ms accuracy=11.074 exit=false still=false)
+05-31 19:13:21.065 D PARKDIAG/Coord:   ✦ step #17 (stopped)
+05-31 19:13:21.067 D PARKDIAG/Coord:   ✦ step #18 (stopped)
+05-31 19:13:22.391 D PARKDIAG/Coord:   ✦ step #19 (stopped)
+05-31 19:13:22.393 D PARKDIAG/Coord:   ✦ step #20 (stopped)
+05-31 19:13:24.032 D PARKDIAG/Coord:   ✦ step #21 (stopped)
+05-31 19:13:24.034 D PARKDIAG/Coord:   ✦ step #22 (stopped)
+05-31 19:13:25.042 D PARKDIAG/Coord:   ✦ step #23 (stopped)
+05-31 19:13:25.058 D PARKDIAG/Coord:   ✦ step #24 (stopped)
+05-31 19:13:25.071 D PARKDIAG/Coord:   ✦ step #25 (stopped)
+05-31 19:13:25.078 D PARKDIAG/Coord: ─ loc#29 speed=1.13m/s acc=10.831m sessionAge=213925ms
+05-31 19:13:25.081 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:13:25.084 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.13 stopped=0ms accuracy=10.831 exit=false still=false)
+05-31 19:13:30.071 D PARKDIAG/Coord: ─ loc#30 speed=1.73m/s acc=11.597m sessionAge=218918ms
+05-31 19:13:30.072 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:13:30.072 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.73 stopped=0ms accuracy=11.597 exit=false still=false)
+05-31 19:13:36.039 D PARKDIAG/Coord: ─ loc#31 speed=0.6m/s acc=12.119m sessionAge=224887ms
+05-31 19:13:36.041 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247616039 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:13:36.042 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.6 stopped=0ms accuracy=12.119 exit=false still=false)
+05-31 19:13:41.039 D PARKDIAG/Coord: ─ loc#32 speed=0.38m/s acc=12.213m sessionAge=229887ms
+05-31 19:13:41.041 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247616039 stoppedDur=5000ms highReachedAt=null mediumShown=false
+05-31 19:13:41.042 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.38 stopped=5000ms accuracy=12.213 exit=false still=false)
+05-31 19:13:45.036 D PARKDIAG/Coord:   ✦ step #26 (stopped)
+05-31 19:13:45.039 D PARKDIAG/Coord:   ✦ step #27 (stopped)
+05-31 19:13:45.056 D PARKDIAG/Coord: ─ loc#33 speed=0.47m/s acc=12.776m sessionAge=233903ms
+05-31 19:13:45.058 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247616039 stoppedDur=9016ms highReachedAt=null mediumShown=false
+05-31 19:13:45.061 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.47 stopped=9016ms accuracy=12.776 exit=false still=false)
+05-31 19:13:46.022 D PARKDIAG/Coord:   ✦ step #28 (stopped)
+05-31 19:13:47.025 D PARKDIAG/Coord:   ✦ step #29 (stopped)
+05-31 19:13:47.029 D PARKDIAG/Coord:   ✦ step #30 (stopped)
+05-31 19:13:48.020 D PARKDIAG/Coord:   ✦ step #31 (stopped)
+05-31 19:13:48.195 D PARKDIAG/Coord:   ✦ step #32 (stopped)
+05-31 19:13:49.573 D PARKDIAG/Coord:   ✦ step #33 (stopped)
+05-31 19:13:49.580 D PARKDIAG/Coord:   ✦ step #34 (stopped)
+05-31 19:13:49.588 D PARKDIAG/Coord:   ✦ step #35 (stopped)
+05-31 19:13:50.064 D PARKDIAG/Coord: ─ loc#34 speed=0.57m/s acc=13.605m sessionAge=238910ms
+05-31 19:13:50.067 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247616039 stoppedDur=14023ms highReachedAt=null mediumShown=false
+05-31 19:13:50.068 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.57 stopped=14023ms accuracy=13.605 exit=false still=false)
+05-31 19:13:50.242 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=2
+05-31 19:13:50.247 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 19:13:50.250 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE EXIT
+05-31 19:13:50.251 D PARKDIAG/Coord: ✱ onVehicleExit() called
+05-31 19:13:51.083 D PARKDIAG/Coord:   ✦ step #36 (stopped)
+05-31 19:13:55.061 D PARKDIAG/Coord: ─ loc#35 speed=0.55289984m/s acc=13.965m sessionAge=243908ms
+05-31 19:13:55.064 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=1780247616039 stoppedDur=19021ms highReachedAt=null mediumShown=false
+05-31 19:13:55.066 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.55289984 stopped=19021ms accuracy=13.965 exit=true still=false)
+05-31 19:13:56.216 D PARKDIAG/Coord:   ✦ step #37 (stopped)
+05-31 19:13:57.092 D PARKDIAG/Coord:   ✦ step #38 (stopped)
+05-31 19:13:57.104 D PARKDIAG/Coord:   ✦ step #39 (stopped)
+05-31 19:13:57.109 D PARKDIAG/Coord:   ✦ step #40 (stopped)
+05-31 19:13:59.102 D PARKDIAG/Coord:   ✦ step #41 (stopped)
+05-31 19:13:59.109 D PARKDIAG/Coord:   ✦ step #42 (stopped)
+05-31 19:13:59.114 D PARKDIAG/Coord:   ✦ step #43 (stopped)
+05-31 19:14:00.062 D PARKDIAG/Coord: ─ loc#36 speed=0.44197968m/s acc=14.456m sessionAge=248908ms
+05-31 19:14:00.065 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=1780247616039 stoppedDur=24021ms highReachedAt=null mediumShown=false
+05-31 19:14:00.068 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.44197968 stopped=24021ms accuracy=14.456 exit=true still=false)
+05-31 19:14:05.072 D PARKDIAG/Coord: ─ loc#37 speed=0.5274775m/s acc=18.417m sessionAge=253919ms
+05-31 19:14:05.075 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=1780247616039 stoppedDur=29032ms highReachedAt=null mediumShown=false
+05-31 19:14:05.078 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.5274775 stopped=29032ms accuracy=18.417 exit=true still=false)
+05-31 19:14:10.068 D PARKDIAG/Coord: ─ loc#38 speed=0.5846179m/s acc=21.226m sessionAge=258915ms
+05-31 19:14:10.071 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=1780247616039 stoppedDur=34028ms highReachedAt=null mediumShown=false
+05-31 19:14:10.072 D PARKDIAG/Coord:   ⚖ scoring=Low (signals: speed=0.5846179 stopped=34028ms accuracy=21.226 exit=true still=false)
+05-31 19:14:10.074 D PARKDIAG/Coord:   → showing parking-confirmation notif (Low/Medium, exit=true still=false)
+05-31 19:14:10.076 D PARKDIAG/Coord:     ↳ calling notifyParkingConfirmation BEFORE
+05-31 19:14:10.079 D PARKDIAG/Notify: ▶ NotifyParkingConfirmation.invoke confidence=Low
+05-31 19:14:10.095 D PARKDIAG/Notify:   observeDefaultVehicle resolved vehicleName=Cupra Born
+05-31 19:14:10.122 D PARKDIAG/Notify: ■ NotifyParkingConfirmation.invoke DONE
+05-31 19:14:10.127 D PARKDIAG/Coord:     ↳ notifyParkingConfirmation AFTER
+05-31 19:14:12.734 D PARKDIAG/Coord:   ✦ step #44 (stopped)
+05-31 19:14:13.731 D PARKDIAG/Coord:   ✦ step #45 (stopped)
+05-31 19:14:24.082 D PARKDIAG/Coord:   ✦ step #46 (stopped)
+05-31 19:14:26.757 D PARKDIAG/Coord:   ✦ step #47 (stopped)
+05-31 19:14:26.763 D PARKDIAG/Coord:   ✦ step #48 (stopped)
+05-31 19:14:27.759 D PARKDIAG/Coord:   ✦ step #49 (stopped)
+05-31 19:14:27.764 D PARKDIAG/Coord:   ✦ step #50 (stopped)
+05-31 19:14:28.760 D PARKDIAG/Coord:   ✦ step #51 (stopped)
+05-31 19:14:28.766 D PARKDIAG/Coord:   ✦ step #52 (stopped)
+05-31 19:14:30.091 D PARKDIAG/Coord:   ✦ step #53 (stopped)
+05-31 19:14:30.097 D PARKDIAG/Coord:   ✦ step #54 (stopped)
+05-31 19:14:30.758 D PARKDIAG/Coord:   ✦ step #55 (stopped)
+05-31 19:14:35.090 D PARKDIAG/Coord: ─ loc#39 speed=0.0m/s acc=56.091m sessionAge=283937ms
+05-31 19:14:35.092 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=1780247616039 stoppedDur=59050ms highReachedAt=null mediumShown=true
+05-31 19:14:35.093 D PARKDIAG/Coord:   ⚖ scoring=Medium(score=0.65) (signals: speed=0.0 stopped=59050ms accuracy=56.091 exit=true still=false)
+05-31 19:14:39.735 D PARKDIAG/Coord:   ✦ step #56 (stopped)
+05-31 19:14:40.736 D PARKDIAG/Coord:   ✦ step #57 (stopped)
+05-31 19:14:40.741 D PARKDIAG/Coord:   ✦ step #58 (stopped)
+05-31 19:14:41.735 D PARKDIAG/Coord:   ✦ step #59 (stopped)
+05-31 19:14:42.073 D PARKDIAG/Coord: ─ loc#40 speed=1.5218791m/s acc=81.42m sessionAge=290920ms
+05-31 19:14:42.076 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:14:42.079 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.5218791 stopped=0ms accuracy=81.42 exit=true still=false)
+05-31 19:14:46.074 D PARKDIAG/Coord: ─ loc#41 speed=2.1654272m/s acc=84.664m sessionAge=294922ms
+05-31 19:14:46.076 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:14:46.077 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=2.1654272 stopped=0ms accuracy=84.664 exit=true still=false)
+05-31 19:14:53.084 D PARKDIAG/Coord: ─ loc#42 speed=1.9880344m/s acc=107.106m sessionAge=301932ms
+05-31 19:14:53.089 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:14:53.091 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.9880344 stopped=0ms accuracy=107.106 exit=true still=false)
+05-31 19:14:55.470 D PARKDIAG/ARReceiver: ▶ onReceive hasResult=true
+05-31 19:14:55.473 D PARKDIAG/ARReceiver:   events=1
+05-31 19:14:55.476 D PARKDIAG/ARReceiver:   → STILL ENTER
+05-31 19:14:55.479 D PARKDIAG/ARReceiver:   ✓ STILL ENTER — forwarding to coordinator
+05-31 19:14:55.482 D PARKDIAG/Coord: ✱ onStillDetected() called
+05-31 19:14:56.064 D PARKDIAG/Coord: ─ loc#43 speed=2.0212188m/s acc=115.895m sessionAge=304912ms
+05-31 19:14:56.066 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:14:56.067 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=2.0212188 stopped=0ms accuracy=115.895 exit=true still=true)
+05-31 19:15:12.081 D PARKDIAG/Coord: ─ loc#44 speed=0.0m/s acc=128.705m sessionAge=320928ms
+05-31 19:15:12.083 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=1780247712080 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:12.084 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.0 stopped=0ms accuracy=128.705 exit=true still=true)
+05-31 19:15:17.036 D PARKDIAG/Coord:   ✦ step #60 (stopped)
+05-31 19:15:18.085 D PARKDIAG/Coord:   ✦ step #61 (stopped)
+05-31 19:15:18.204 D PARKDIAG/Coord:   ✦ step #62 (stopped)
+05-31 19:15:18.933 D PARKDIAG/Coord:   ✦ step #63 (stopped)
+05-31 19:15:18.939 D PARKDIAG/Coord:   ✦ step #64 (stopped)
+05-31 19:15:19.935 D PARKDIAG/Coord:   ✦ step #65 (stopped)
+05-31 19:15:19.941 D PARKDIAG/Coord:   ✦ step #66 (stopped)
+05-31 19:15:20.082 D PARKDIAG/Coord: ─ loc#45 speed=0.16266552m/s acc=75.47m sessionAge=328928ms
+05-31 19:15:20.086 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=true stoppedSince=1780247712080 stoppedDur=8000ms highReachedAt=null mediumShown=false
+05-31 19:15:20.089 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.16266552 stopped=8000ms accuracy=75.47 exit=true still=true)
+05-31 19:15:20.934 D PARKDIAG/Coord:   ✦ step #67 (stopped)
+05-31 19:15:20.940 D PARKDIAG/Coord:   ✦ step #68 (stopped)
+05-31 19:15:21.935 D PARKDIAG/Coord:   ✦ step #69 (stopped)
+05-31 19:15:21.940 D PARKDIAG/Coord:   ✦ step #70 (stopped)
+05-31 19:15:22.937 D PARKDIAG/Coord:   ✦ step #71 (stopped)
+05-31 19:15:22.942 D PARKDIAG/Coord:   ✦ step #72 (stopped)
+05-31 19:15:23.075 D PARKDIAG/Coord: ─ loc#46 speed=2.565978m/s acc=15.54m sessionAge=331922ms
+05-31 19:15:23.078 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:23.082 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=2.565978 stopped=0ms accuracy=15.54 exit=false still=false)
+05-31 19:15:28.082 D PARKDIAG/Coord: ─ loc#47 speed=1.2627288m/s acc=9.005m sessionAge=336928ms
+05-31 19:15:28.085 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:28.087 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.2627288 stopped=0ms accuracy=9.005 exit=false still=false)
+05-31 19:15:30.084 D PARKDIAG/Coord: ─ loc#48 speed=1.3976208m/s acc=6.395m sessionAge=338931ms
+05-31 19:15:30.089 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:30.092 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.3976208 stopped=0ms accuracy=6.395 exit=false still=false)
+05-31 19:15:32.065 D PARKDIAG/Coord: ─ loc#49 speed=1.4033153m/s acc=5.754m sessionAge=340912ms
+05-31 19:15:32.071 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:32.073 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.4033153 stopped=0ms accuracy=5.754 exit=false still=false)
+05-31 19:15:38.069 D PARKDIAG/Coord: ─ loc#50 speed=0.26603922m/s acc=4.416m sessionAge=346916ms
+05-31 19:15:38.077 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247738068 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:38.078 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.26603922 stopped=0ms accuracy=4.416 exit=false still=false)
+05-31 19:15:43.063 D PARKDIAG/Coord: ─ loc#51 speed=0.15133946m/s acc=4.294m sessionAge=351911ms
+05-31 19:15:43.065 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247738068 stoppedDur=4995ms highReachedAt=null mediumShown=false
+05-31 19:15:43.066 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.15133946 stopped=4995ms accuracy=4.294 exit=false still=false)
+05-31 19:15:48.052 D PARKDIAG/Coord: ─ loc#52 speed=1.0027033m/s acc=4.532m sessionAge=356900ms
+05-31 19:15:48.055 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:48.059 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=1.0027033 stopped=0ms accuracy=4.532 exit=false still=false)
+05-31 19:15:52.249 D PARKDIAG/Coord: ─ loc#53 speed=0.4565152m/s acc=7.231m sessionAge=361096ms
+05-31 19:15:52.257 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=1780247752248 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:52.259 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=0.4565152 stopped=0ms accuracy=7.231 exit=false still=false)
+05-31 19:15:58.066 D PARKDIAG/Coord: ─ loc#54 speed=4.6025405m/s acc=16.303m sessionAge=366913ms
+05-31 19:15:58.069 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:15:58.071 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=4.6025405 stopped=0ms accuracy=16.303 exit=false still=false)
+05-31 19:16:04.048 D PARKDIAG/Coord: ─ loc#55 speed=3.4869478m/s acc=17.728m sessionAge=372895ms
+05-31 19:16:04.052 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:16:04.056 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=3.4869478 stopped=0ms accuracy=17.728 exit=false still=false)
+05-31 19:16:08.112 D PARKDIAG/Coord: ─ loc#56 speed=4.8921695m/s acc=17.88m sessionAge=376959ms
+05-31 19:16:08.115 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:16:08.118 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=4.8921695 stopped=0ms accuracy=17.88 exit=false still=false)
+05-31 19:16:13.091 D PARKDIAG/Coord: ─ loc#57 speed=3.5907857m/s acc=16.1m sessionAge=381939ms
+05-31 19:16:13.992 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:16:13.996 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=3.5907857 stopped=0ms accuracy=16.1 exit=false still=false)
+05-31 19:16:19.043 D PARKDIAG/Coord: ─ loc#58 speed=5.983042m/s acc=28.279m sessionAge=387890ms
+05-31 19:16:19.046 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:16:19.048 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=5.983042 stopped=0ms accuracy=28.279 exit=false still=false)
+05-31 19:16:20.015 D PARKDIAG/Coord: ─ loc#59 speed=5.983042m/s acc=28.279m sessionAge=388862ms
+05-31 19:16:20.022 D PARKDIAG/Coord:   state hasEverMoved=true userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 19:16:20.026 D PARKDIAG/Coord:   ⚖ scoring=NotYet (signals: speed=5.983042 stopped=0ms accuracy=28.279 exit=false still=false)
+05-31 19:16:46.858 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=3
+05-31 19:16:46.881 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 19:16:46.888 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE ENTER
+05-31 19:16:46.912 D PARKDIAG/Service:   → IN_VEHICLE_ENTER — starting Coordinator
+05-31 19:16:46.927 D PARKDIAG/Service:     ✗ detection cancelled: StandaloneCoroutine was cancelled
+05-31 19:16:46.928 D PARKDIAG/Service:     ■ finally → calling stopSelf()
+05-31 19:16:46.936 D PARKDIAG/Service:   ▶ startParkingDetection — launching coordinator
+05-31 19:16:46.938 D PARKDIAG/Service:     ▶ detection coroutine entered, invoking coordinator
+05-31 19:16:46.954 D PARKDIAG/Coord: ▶ coordinator.invoke() entry — calling reset()
+05-31 19:16:46.984 D PARKDIAG/Service: ■ Service onDestroy — cancelling detectionJob
+05-31 19:16:46.994 D PARKDIAG/Service: ■ Service onDestroy DONE
+05-31 19:16:47.001 D PARKDIAG/Service:     ✗ detection cancelled: StandaloneCoroutine was cancelled
+05-31 19:16:47.002 D PARKDIAG/Service:     ■ finally → calling stopSelf()
+05-31 19:21:40.670 D PARKDIAG/Service: ▶ Service onCreate
+05-31 19:21:40.673 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=1
+05-31 19:21:51.163 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 19:21:51.166 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE EXIT
+05-31 19:21:51.168 D PARKDIAG/Coord: ✱ onVehicleExit() called
+05-31 19:21:58.093 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE ENTER
+05-31 19:21:58.105 D PARKDIAG/Service: ■ Service onDestroy — cancelling detectionJob
+05-31 19:21:58.106 D PARKDIAG/Service: ■ Service onDestroy DONE
+05-31 19:23:21.171 D PARKDIAG/Service: ▶ Service onCreate
+05-31 19:23:47.876 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=1
+05-31 19:23:47.908 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 19:23:47.910 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE EXIT
+05-31 19:23:47.911 D PARKDIAG/Coord: ✱ onVehicleExit() called
+05-31 19:23:48.010 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE ENTER
+05-31 19:23:48.024 D PARKDIAG/Service: ■ Service onDestroy — cancelling detectionJob
+05-31 19:23:48.026 D PARKDIAG/Service: ■ Service onDestroy DONE
+05-31 19:37:33.695 D PARKDIAG/Service: ▶ Service onCreate
+05-31 19:37:33.726 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=1
+05-31 19:37:33.750 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 19:37:33.753 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE EXIT
+05-31 19:37:33.755 D PARKDIAG/Coord: ✱ onVehicleExit() called
+05-31 19:37:33.766 D PARKDIAG/Service: ■ Service onDestroy — cancelling detectionJob
+05-31 19:37:33.767 D PARKDIAG/Service: ■ Service onDestroy DONE
+05-31 19:46:54.296 D PARKDIAG/ARReceiver: ▶ onReceive hasResult=true
+05-31 19:46:54.304 D PARKDIAG/ARReceiver:   events=1
+05-31 19:46:54.307 D PARKDIAG/ARReceiver:   → STILL ENTER
+05-31 19:46:54.309 D PARKDIAG/ARReceiver:   ✓ STILL ENTER — forwarding to coordinator
+05-31 19:46:54.312 D PARKDIAG/Coord: ✱ onStillDetected() called
+05-31 20:28:50.171 D PARKDIAG/ARReceiver: ▶ onReceive hasResult=true
+05-31 20:28:50.187 D PARKDIAG/ARReceiver:   events=1
+05-31 20:28:50.189 D PARKDIAG/ARReceiver:   → STILL ENTER
+05-31 20:28:50.192 D PARKDIAG/ARReceiver:   ✓ STILL ENTER — forwarding to coordinator
+05-31 20:28:50.195 D PARKDIAG/Coord: ✱ onStillDetected() called
+05-31 20:34:41.040 D PARKDIAG/Service: ▶ Service onCreate
+05-31 20:34:41.048 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=1
+05-31 20:34:41.087 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 20:34:41.096 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE ENTER
+05-31 20:34:41.175 D PARKDIAG/Service:   → IN_VEHICLE_ENTER — starting Coordinator
+05-31 20:34:41.176 D PARKDIAG/Service:   ▶ startParkingDetection — launching coordinator
+05-31 20:34:41.176 D PARKDIAG/Service:     ▶ detection coroutine entered, invoking coordinator
+05-31 20:34:41.178 D PARKDIAG/Coord: ▶ coordinator.invoke() entry — calling reset()
+05-31 20:34:41.187 D PARKDIAG/Coord:   ✓ active vehicleId=bff5c760-f922-4988-a9b3-d2d5ebc18708 type=CAR
+05-31 20:34:48.635 D PARKDIAG/Coord: ─ loc#1 speed=15.04m/s acc=48.012m sessionAge=7447ms
+05-31 20:34:48.637 D PARKDIAG/Coord:   state hasEverMoved=false userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 20:34:48.638 D PARKDIAG/Coord:   ⏸ skipping: !hasEverMoved
+05-31 20:34:48.650 D PARKDIAG/Coord: ─ loc#2 speed=15.04m/s acc=48.012m sessionAge=7462ms
+05-31 20:34:48.651 D PARKDIAG/Coord:   state hasEverMoved=false userConfirmed=false vehicleExit=false stoppedSince=null stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 20:34:48.652 D PARKDIAG/Coord:   ⏸ skipping: !hasEverMoved
+05-31 20:43:35.130 D PARKDIAG/Coord: ─ loc#3 speed=0.0m/s acc=156.9m sessionAge=533941ms
+05-31 20:43:35.136 D PARKDIAG/Coord:   state hasEverMoved=false userConfirmed=false vehicleExit=false stoppedSince=1780253015129 stoppedDur=0ms highReachedAt=null mediumShown=false
+05-31 20:43:35.139 D PARKDIAG/Coord:   ⚑ maxNoMovementMs guard hit → completed=true (spurious IN_VEHICLE_ENTER)
+05-31 20:43:40.066 D PARKDIAG/Coord:   ✦ step #1 (stopped)
+05-31 20:43:40.069 D PARKDIAG/Coord:   ✦ step #2 (stopped)
+05-31 20:43:40.072 D PARKDIAG/Coord:   ✦ step #3 (stopped)
+05-31 20:43:48.623 D PARKDIAG/Coord:   takeWhile=false — flow will end
+05-31 20:43:48.633 D PARKDIAG/Coord: ■ coordinator.invoke() EXITED — locationCount=3 completed=true
+05-31 20:43:48.641 D PARKDIAG/Service:     ✓ coordinator returned NORMALLY
+05-31 20:43:48.642 D PARKDIAG/Service:     ■ finally → calling stopSelf()
+05-31 20:43:48.689 D PARKDIAG/Service: ■ Service onDestroy — cancelling detectionJob
+05-31 20:43:48.694 D PARKDIAG/Service: ■ Service onDestroy DONE
+05-31 20:51:11.939 D PARKDIAG/Service: ▶ Service onCreate
+05-31 20:51:11.946 D PARKDIAG/Service: ▶ onStartCommand action=io.apptolast.paparcar.ACTION_VEHICLE_TRANSITION flags=0 startId=1
+05-31 20:51:11.963 D PARKDIAG/Service:   ✓ startForeground done (notif 1001)
+05-31 20:51:11.969 D PARKDIAG/Service:   → VEHICLE_TRANSITION IN_VEHICLE EXIT
+05-31 20:51:11.970 D PARKDIAG/Coord: ✱ onVehicleExit() called
+05-31 20:51:49.386 D PARKDIAG/Service: ■ Service onDestroy — cancelling detectionJob
+05-31 20:51:49.387 D PARKDIAG/Service: ■ Service onDestroy DONE
+05-31 20:53:01.569 D PARKDIAG/ARReceiver: ▶ onReceive hasResult=true
+05-31 20:53:01.593 D PARKDIAG/ARReceiver:   events=1
+05-31 20:53:01.598 D PARKDIAG/ARReceiver:   → STILL ENTER
+05-31 20:53:01.603 D PARKDIAG/ARReceiver:   ✓ STILL ENTER — forwarding to coordinator
+05-31 20:53:02.535 D PARKDIAG/Coord: ✱ onStillDetected() called
+06-01 02:18:45.812 D PARKDIAG/ARReceiver: ▶ onReceive hasResult=true
+06-01 02:18:45.820 D PARKDIAG/ARReceiver:   events=1
+06-01 02:18:45.822 D PARKDIAG/ARReceiver:   → STILL ENTER
+06-01 02:18:45.823 D PARKDIAG/ARReceiver:   ✓ STILL ENTER — forwarding to coordinator
+06-01 02:18:45.880 D PARKDIAG/Coord: ✱ onStillDetected() called
+06-01 02:18:52.156 D PARKDIAG/Bootstrap: ▶ Bootstrap.invoke userId=bzJ07wjtRDhDKQXUYik0A70TTc83
+06-01 02:18:52.157 D PARKDIAG/Bootstrap:   → syncVehicles START
+06-01 02:18:52.158 D PARKDIAG/VehicleSync: ▶ syncFromRemote userId=bzJ07wjtRDhDKQXUYik0A70TTc83
+06-01 02:18:52.160 D PARKDIAG/Bootstrap:   → syncParkingHistory START
+06-01 02:18:52.161 D PARKDIAG/Bootstrap:   → syncZones START
+06-01 02:18:52.436 D PARKDIAG/VehicleSync:   ← Firestore returned 3 vehicle(s)
+06-01 02:18:52.438 D PARKDIAG/VehicleSync:     vehicle id=bff5c760-f922-4988-a9b3-d2d5ebc18708 isDefault=true name=Cupra Born
+06-01 02:18:52.438 D PARKDIAG/VehicleSync:     vehicle id=e7afa6ed-b988-4dea-a58c-1c22c7578066 isDefault=false name=Open Corsa
+06-01 02:18:52.439 D PARKDIAG/VehicleSync:     vehicle id=fd378178-f19f-43d5-ab69-ba395bdb2980 isDefault=false name=Ford Focus
+06-01 02:18:52.447 D PARKDIAG/VehicleSync: ■ syncFromRemote replaced local with 3 remote vehicle(s) in Room
+06-01 02:18:52.448 D PARKDIAG/Bootstrap:   ← syncVehicles END isSuccess=true
+06-01 02:18:52.555 D PARKDIAG/Bootstrap:   ← syncZones END isSuccess=true
+06-01 02:18:52.561 D PARKDIAG/Bootstrap:   ← syncParkingHistory END isSuccess=true
+06-01 02:18:52.562 D PARKDIAG/Bootstrap: ■ Bootstrap.invoke SUCCESS
+06-01 02:18:54.150 D PARKDIAG/ARReceiver: ▶ onReceive hasResult=true
+06-01 02:18:54.151 D PARKDIAG/ARReceiver:   events=1
+06-01 02:18:54.152 D PARKDIAG/ARReceiver:   → STILL ENTER
+06-01 02:18:54.153 D PARKDIAG/ARReceiver:   ✓ STILL ENTER — forwarding to coordinator
+06-01 02:18:54.153 D PARKDIAG/Coord: ✱ onStillDetected() called
+06-01 02:19:11.783 D PARKDIAG/ARReceiver: ▶ onReceive hasResult=true
+06-01 02:19:11.785 D PARKDIAG/ARReceiver:   events=1
+06-01 02:19:11.786 D PARKDIAG/ARReceiver:   → STILL ENTER
+06-01 02:19:11.786 D PARKDIAG/ARReceiver:   ✓ STILL ENTER — forwarding to coordinator
+06-01 02:19:11.787 D PARKDIAG/Coord: ✱ onStillDetected() called
