@@ -120,6 +120,19 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.PERMISSION_REVOKED_NOTIFICATION_ID, notification)
     }
 
+    override fun showConfirmationFailed() {
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_confirmation_failed_title))
+            .setContentText(context.getString(R.string.notif_confirmation_failed_text))
+            .setSmallIcon(R.drawable.ic_notification_parking_question)
+            .setColor(COLOR_CONFIRMATION)
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
+            .setContentIntent(buildOpenAppIntent(RC_CONFIRMATION_FAILED))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.CONFIRMATION_FAILED_NOTIFICATION_ID, notification)
+    }
+
     override fun showDebug(message: String) {
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_debug_title))
@@ -230,6 +243,7 @@ class AppNotificationManagerImpl(
         private const val RC_DEBUG = 14
         private const val RC_PERMISSION_REVOKED = 15
         private const val RC_SPOT_PUBLISHED = 16
+        private const val RC_CONFIRMATION_FAILED = 17
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
 

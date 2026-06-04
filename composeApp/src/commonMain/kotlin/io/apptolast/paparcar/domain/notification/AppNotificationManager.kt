@@ -72,6 +72,15 @@ interface AppNotificationManager {
     fun showDebug(message: String)
 
     /**
+     * Shows a transient error notification when automatic parking confirmation
+     * fails (e.g. Room write error or geofence registration failure). The user
+     * can then open the app and confirm manually.
+     *
+     * Has a default no-op so existing fakes and test doubles don't need changes.
+     */
+    fun showConfirmationFailed() {}
+
+    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -101,5 +110,8 @@ interface AppNotificationManager {
 
         /** ID for the permission-revoked notification shown when the service restarts without location access. */
         const val PERMISSION_REVOKED_NOTIFICATION_ID = 2003
+
+        /** ID for the "parking confirmation failed" error notification. */
+        const val CONFIRMATION_FAILED_NOTIFICATION_ID = 2004
     }
 }

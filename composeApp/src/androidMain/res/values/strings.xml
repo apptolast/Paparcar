@@ -29,6 +29,10 @@
     <string name="notif_permission_revoked_title">Paparcar needs permissions</string>
     <string name="notif_permission_revoked_text">Location permission revoked — tap to restore</string>
 
+    <!-- Notification: confirmation failed (exceptional error path) -->
+    <string name="notif_confirmation_failed_title">Parking not saved</string>
+    <string name="notif_confirmation_failed_text">Could not save your parking spot. Open Paparcar to try again.</string>
+
     <!-- Notification: debug (dev builds only) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

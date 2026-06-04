@@ -29,6 +29,10 @@
     <string name="notif_permission_revoked_title">Paparcar are nevoie de permisiuni</string>
     <string name="notif_permission_revoked_text">Permisiunea de localizare a fost revocată — apasă pentru a restaura</string>
 
+    <!-- Notificare: eroare la salvarea parcării -->
+    <string name="notif_confirmation_failed_title">Parcare nesalvată</string>
+    <string name="notif_confirmation_failed_text">Nu s-a putut salva locul de parcare. Deschide Paparcar pentru a încerca din nou.</string>
+
     <!-- Notificare: debug (doar build-uri de dezvoltare) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

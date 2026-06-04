@@ -209,6 +209,7 @@ class ParkingDetectionCoordinator(
             }
         }
 
+        try {
         locations
             .takeWhile {
                 val keep = !completed
@@ -295,7 +296,10 @@ class ParkingDetectionCoordinator(
                     withContext(NonCancellable) {
                         PaparcarLogger.d(DIAG, "    → confirmParking(reliability=user) START")
                         confirmParking(locationToConfirm, config.reliabilityUserConfirmed, vehicleId = activeVehicleId)
-                            .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
+                            .onFailure { e ->
+                                PaparcarLogger.e(TAG, "Failed to confirm parking (user path)", e)
+                                notificationPort.showConfirmationFailed()
+                            }
                         PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=user) END")
                     }
                     PaparcarLogger.d(DIAG, "  ◀ USER-CONFIRMED path done — returning from collect")
@@ -378,7 +382,10 @@ class ParkingDetectionCoordinator(
                         withContext(NonCancellable) {
                             PaparcarLogger.d(DIAG, "    → confirmParking(reliability=$reliability) START")
                             confirmParking(locationToConfirm, reliability, vehicleId = activeVehicleId)
-                                .onFailure { PaparcarLogger.e(TAG, "Failed to confirm parking", it) }
+                                .onFailure { e ->
+                                    PaparcarLogger.e(TAG, "Failed to confirm parking (candidate path)", e)
+                                    notificationPort.showConfirmationFailed()
+                                }
                             PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=$reliability) END")
                         }
                         PaparcarLogger.d(DIAG, "  ◀ CANDIDATE confirm done — returning from collect")
@@ -396,7 +403,9 @@ class ParkingDetectionCoordinator(
 
                 evaluateConfidence(location, stoppedDuration, state, now)
             }
-        stepJob.cancel()
+        } finally {
+            stepJob.cancel()
+        }
         PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=$locationCount completed=$completed")
     }
 
@@ -454,7 +463,7 @@ class ParkingDetectionCoordinator(
      *   vehicle drives away before the observation window expires.
      */
     private fun updateStopTracking(location: GpsPoint, now: Long): Long {
-        return if (location.speed < STOPPED_SPEED_THRESHOLD_MPS) {
+        return if (location.speed < config.stoppedSpeedThresholdMps) {
             _detectionState.update { s ->
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
@@ -470,7 +479,7 @@ class ParkingDetectionCoordinator(
                 }
                 s.copy(
                     stoppedSince = startedAt,
-                    stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < MAX_STOPPED_FIXES)
+                    stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < config.maxStoppedFixes)
                         s.stoppedFixes + location else s.stoppedFixes,
                     bestStopLocation = newBestStop,
                     // Reset the reposition counter on every stopped fix so a counter built up
@@ -620,7 +629,5 @@ class ParkingDetectionCoordinator(
     private companion object {
         const val TAG = "ParkingDetectionCoordinator"
         const val DIAG = "PARKDIAG/Coord"
-        const val MAX_STOPPED_FIXES = 20
-        const val STOPPED_SPEED_THRESHOLD_MPS = 1f
     }
 }

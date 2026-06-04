@@ -29,6 +29,10 @@
     <string name="notif_permission_revoked_title">Paparcar a besoin d\'autorisations</string>
     <string name="notif_permission_revoked_text">Permission de localisation révoquée — appuyez pour restaurer</string>
 
+    <!-- Notification : erreur lors de la sauvegarde du stationnement -->
+    <string name="notif_confirmation_failed_title">Stationnement non sauvegardé</string>
+    <string name="notif_confirmation_failed_text">Impossible de sauvegarder votre place. Ouvrez Paparcar pour réessayer.</string>
+
     <!-- Notification : debug (builds de développement uniquement) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

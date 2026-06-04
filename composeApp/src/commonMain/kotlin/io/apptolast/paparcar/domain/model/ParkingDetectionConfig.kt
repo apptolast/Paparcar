@@ -88,6 +88,15 @@ data class ParkingDetectionConfig(
      *  as the saved parking spot. At HIGH_ACCURACY (2 s interval) a 30 s window
      *  yields ~15 candidate fixes — enough to select the best accuracy. */
     val initialStopWindowMs: Long = 30_000L,
+    /** Maximum number of GPS fixes retained during [initialStopWindowMs] for
+     *  best-accuracy selection. At the 2 s HIGH_ACCURACY cadence, 20 fixes
+     *  span 40 s — more than the default window needs. */
+    val maxStoppedFixes: Int = 20,
+    /** Speed (m/s) at or below which the vehicle is considered fully stopped.
+     *  1 m/s ≈ 3.6 km/h — above pure GPS noise, below the slowest real
+     *  creep speed that would produce a false-negative. Must be strictly
+     *  less than [repositionSpeedMps]. */
+    val stoppedSpeedThresholdMps: Float = 1f,
 
     // ── FALSE-POSITIVE GUARD ──────────────────────────────────────────────────
     /** Minimum GPS speed (m/s) that must be reached at least once during a driving session
@@ -278,14 +287,20 @@ data class ParkingDetectionConfig(
         require(initialStopWindowMs > 0) {
             "initialStopWindowMs must be > 0, was $initialStopWindowMs"
         }
-        require(clearBestStopSpeedMps > 0) {
-            "clearBestStopSpeedMps must be > 0, was $clearBestStopSpeedMps"
+        require(maxStoppedFixes >= 1) {
+            "maxStoppedFixes must be >= 1, was $maxStoppedFixes"
+        }
+        require(stoppedSpeedThresholdMps > 0f) {
+            "stoppedSpeedThresholdMps must be > 0, was $stoppedSpeedThresholdMps"
+        }
+        require(clearBestStopSpeedMps > stoppedSpeedThresholdMps) {
+            "clearBestStopSpeedMps ($clearBestStopSpeedMps) must be > stoppedSpeedThresholdMps ($stoppedSpeedThresholdMps)"
         }
         require(minGpsAccuracyForDriving > 0) {
             "minGpsAccuracyForDriving must be > 0, was $minGpsAccuracyForDriving"
         }
-        require(repositionSpeedMps > 0 && repositionSpeedMps <= clearBestStopSpeedMps) {
-            "repositionSpeedMps ($repositionSpeedMps) must be in (0, clearBestStopSpeedMps=$clearBestStopSpeedMps]"
+        require(repositionSpeedMps > stoppedSpeedThresholdMps && repositionSpeedMps <= clearBestStopSpeedMps) {
+            "repositionSpeedMps ($repositionSpeedMps) must be in (stoppedSpeedThresholdMps=$stoppedSpeedThresholdMps, clearBestStopSpeedMps=$clearBestStopSpeedMps]"
         }
         require(repositionFixCount >= 1) {
             "repositionFixCount must be >= 1, was $repositionFixCount"

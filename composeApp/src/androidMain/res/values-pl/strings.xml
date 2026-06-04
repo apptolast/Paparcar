@@ -29,6 +29,10 @@
     <string name="notif_permission_revoked_title">Paparcar potrzebuje uprawnień</string>
     <string name="notif_permission_revoked_text">Uprawnienie do lokalizacji zostało odwołane — dotknij, aby przywrócić</string>
 
+    <!-- Powiadomienie: błąd zapisywania parkowania -->
+    <string name="notif_confirmation_failed_title">Parkowanie nie zostało zapisane</string>
+    <string name="notif_confirmation_failed_text">Nie udało się zapisać miejsca parkingowego. Otwórz Paparcar, aby spróbować ponownie.</string>
+
     <!-- Powiadomienie: debug (tylko buildy deweloperskie) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

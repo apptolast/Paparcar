@@ -29,6 +29,10 @@
     <string name="notif_permission_revoked_title">Paparcar heeft toestemmingen nodig</string>
     <string name="notif_permission_revoked_text">Locatietoestemming ingetrokken — tik om te herstellen</string>
 
+    <!-- Melding: fout bij het opslaan van de parkeerplaats -->
+    <string name="notif_confirmation_failed_title">Parkeren niet opgeslagen</string>
+    <string name="notif_confirmation_failed_text">Parkeerplaats kon niet worden opgeslagen. Open Paparcar om het opnieuw te proberen.</string>
+
     <!-- Melding: debug (alleen ontwikkelingsbuilds) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

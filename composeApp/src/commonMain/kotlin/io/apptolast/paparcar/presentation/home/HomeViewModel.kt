@@ -539,8 +539,8 @@ class HomeViewModel(
     private fun reportTestSpot() {
         if (!isDebugBuild) return
         viewModelScope.launch {
-            val spotId = "${DEBUG_USER_ID}_${Clock.System.now().toEpochMilliseconds()}"
-            reportSpotReleased(DEBUG_LATITUDE, DEBUG_LONGITUDE, spotId)
+            val spotId = "user-123_${Clock.System.now().toEpochMilliseconds()}"
+            reportSpotReleased(40.416775, -3.703790, spotId)
             sendEffect(HomeEffect.TestSpotSent)
         }
     }
@@ -644,9 +644,5 @@ class HomeViewModel(
         const val MAP_TYPE_SATELLITE = "SATELLITE"
         const val MAP_TYPE_HYBRID = "HYBRID"
 
-        // Debug
-        const val DEBUG_USER_ID = "user-123"
-        const val DEBUG_LATITUDE = 40.416775
-        const val DEBUG_LONGITUDE = -3.703790
     }
 }

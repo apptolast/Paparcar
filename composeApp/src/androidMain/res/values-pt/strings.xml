@@ -29,6 +29,10 @@
     <string name="notif_permission_revoked_title">Paparcar precisa de permissões</string>
     <string name="notif_permission_revoked_text">Permissão de localização revogada — toque para restaurar</string>
 
+    <!-- Notificação: erro ao salvar o estacionamento -->
+    <string name="notif_confirmation_failed_title">Estacionamento não salvo</string>
+    <string name="notif_confirmation_failed_text">Não foi possível salvar a vaga. Abra o Paparcar para tentar novamente.</string>
+
     <!-- Notificação: debug (apenas builds de desenvolvimento) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

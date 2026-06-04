@@ -17,6 +17,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionU
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.usecase.detection.HandleVehicleTransitionUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
@@ -110,4 +111,7 @@ val domainModule = module {
 
     // Strategy Resolution
     factory { ParkingStrategyResolver(get(), get()) }
+
+    // Vehicle transition (singleton — tracks isVehicleIn state across events)
+    single { HandleVehicleTransitionUseCase(get(), get(), get()) }
 }

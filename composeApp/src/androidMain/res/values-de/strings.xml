@@ -29,6 +29,10 @@
     <string name="notif_permission_revoked_title">Paparcar benötigt Berechtigungen</string>
     <string name="notif_permission_revoked_text">Standortberechtigung widerrufen — tippen zum Wiederherstellen</string>
 
+    <!-- Benachrichtigung: Fehler beim Speichern des Parkplatzes -->
+    <string name="notif_confirmation_failed_title">Parken nicht gespeichert</string>
+    <string name="notif_confirmation_failed_text">Parkplatz konnte nicht gespeichert werden. Öffne Paparcar, um es erneut zu versuchen.</string>
+
     <!-- Benachrichtigung: Debug (nur Entwicklungs-Builds) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 
