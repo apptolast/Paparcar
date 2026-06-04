@@ -19,6 +19,7 @@ import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
+import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
@@ -27,11 +28,11 @@ import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeConnectivityObserver
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
+import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakePermissionManager
-import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -70,10 +71,9 @@ class HomeViewModelTest {
 
     private fun buildVm(initialMapType: String = "TERRAIN"): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
-        val geocoder = FakeGeocoderDataSource()
-        val places = FakePlacesDataSource()
-        val getLocationInfo = GetLocationInfoUseCase(geocoder, places)
-        val searchAddress = SearchAddressUseCase(geocoder)
+        val locationInfoRepo = FakeLocationInfoRepository()
+        val getLocationInfo = GetLocationInfoUseCase(repository = locationInfoRepo)
+        val searchAddress = SearchAddressUseCase(FakeGeocoderDataSource())
         val observeNearbySpots = ObserveNearbySpotsUseCase(spotRepo)
         val sendSpotSignal = SendSpotSignalUseCase(spotRepo)
         val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getLocationInfo, FakeAuthRepository(initialSession = null))
@@ -116,6 +116,7 @@ class HomeViewModelTest {
             zoneRepository = zoneRepo,
             saveZone = SaveZoneUseCase(zoneRepo, authRepo),
             vehicleRepository = vehicleRepo,
+            mapFocusEventBus = MapFocusEventBus(),
         )
     }
 

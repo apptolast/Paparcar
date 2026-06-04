@@ -159,7 +159,7 @@ class ParkingDetectionCoordinatorTest {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    fun should_not_flag_movement_when_speed_meets_threshold_but_distance_does_not() =
+    fun should_flag_movement_when_speed_meets_threshold_even_without_displacement() =
         runTest(UnconfinedTestDispatcher()) {
             val env = setup()
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
@@ -167,12 +167,12 @@ class ParkingDetectionCoordinatorTest {
 
             // Session origin.
             locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
-            // Same location, speed above threshold — distance is 0.
+            // Same location, speed above threshold — hasEverReachedDrivingSpeed triggers on speed alone.
             locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
 
-            assertFalse(
+            assertTrue(
                 env.coordinator.hasDetectedMovement,
-                "speed alone without displacement must not trip hasEverMoved",
+                "hasDetectedMovement (hasEverReachedDrivingSpeed) triggers on speed, not on distance",
             )
 
             job.cancelAndJoin()

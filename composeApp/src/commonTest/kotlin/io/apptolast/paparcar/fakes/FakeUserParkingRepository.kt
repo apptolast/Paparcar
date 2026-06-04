@@ -69,6 +69,9 @@ class FakeUserParkingRepository(
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
         sessions.drop(offset).take(limit)
 
+    override suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking> =
+        sessions.filter { it.vehicleId == vehicleId }.drop(offset).take(limit)
+
     override suspend fun clearActiveById(sessionId: String): Result<Unit> {
         sessions.replaceAll { if (it.id == sessionId) it.copy(isActive = false) else it }
         _sessionsFlow.value = sessions.toList()

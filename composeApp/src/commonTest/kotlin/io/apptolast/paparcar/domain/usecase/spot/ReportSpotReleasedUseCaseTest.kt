@@ -8,8 +8,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import com.apptolast.customlogin.domain.model.UserSession
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.fakes.FakeAuthRepository
-import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
-import io.apptolast.paparcar.fakes.FakePlacesDataSource
+import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -18,8 +17,7 @@ import kotlin.test.assertNull
 
 class ReportSpotReleasedUseCaseTest {
 
-    private val geocoder = FakeGeocoderDataSource()
-    private val places = FakePlacesDataSource()
+    private val locationInfoRepo = FakeLocationInfoRepository()
     private val scheduler = FakeReportSpotScheduler()
     private val auth = FakeAuthRepository(
         initialSession = UserSession(
@@ -31,7 +29,7 @@ class ReportSpotReleasedUseCaseTest {
     )
     private val useCase = ReportSpotReleasedUseCase(
         reportSpotScheduler = scheduler,
-        getLocationInfo = GetLocationInfoUseCase(geocoder, places),
+        getLocationInfo = GetLocationInfoUseCase(locationInfoRepo),
         authRepository = auth,
     )
 
@@ -64,7 +62,7 @@ class ReportSpotReleasedUseCaseTest {
     @Test
     fun `should_passAddress_when_geocodingSucceeds`() = runTest {
         val address = AddressInfo(street = "Calle Mayor", city = "Madrid", region = null, country = "ES")
-        geocoder.addressResult = Result.success(address)
+        locationInfoRepo.addressResult = Result.success(address)
 
         useCase(40.416775, -3.703790, "spot-1")
 
@@ -73,7 +71,7 @@ class ReportSpotReleasedUseCaseTest {
 
     @Test
     fun `should_passEmptyAddress_when_geocodingFails`() = runTest {
-        geocoder.addressResult = Result.failure(RuntimeException("Geocoder unavailable"))
+        locationInfoRepo.addressResult = Result.failure(RuntimeException("Geocoder unavailable"))
 
         useCase(40.416775, -3.703790, "spot-1")
 
@@ -85,7 +83,7 @@ class ReportSpotReleasedUseCaseTest {
     @Test
     fun `should_passPlaceInfo_when_placeFound`() = runTest {
         val place = PlaceInfo(name = "El Corte Inglés", category = PlaceCategory.MALL)
-        places.placeResult = Result.success(place)
+        locationInfoRepo.placeInfo = place
 
         useCase(40.416775, -3.703790, "spot-1")
 
@@ -130,7 +128,7 @@ class ReportSpotReleasedUseCaseTest {
         auth.emitState(com.apptolast.customlogin.domain.model.AuthState.Unauthenticated)
         val ucNoAuth = ReportSpotReleasedUseCase(
             reportSpotScheduler = scheduler,
-            getLocationInfo = GetLocationInfoUseCase(geocoder, places),
+            getLocationInfo = GetLocationInfoUseCase(locationInfoRepo),
             authRepository = auth,
         )
 

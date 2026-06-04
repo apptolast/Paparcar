@@ -8,6 +8,7 @@ import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeUserProfileRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
+import io.apptolast.paparcar.fakes.FakeZoneRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -54,7 +55,11 @@ class SettingsViewModelTest {
     }
 
     private fun buildVm(customPrefs: FakeAppPreferences = prefs): SettingsViewModel {
-        val useCase = DeleteAccountUseCase(auth, parking, vehicles, profile, spots)
+        val useCase = DeleteAccountUseCase(
+            authRepository = auth,
+            userScopedRepos = listOf(parking, vehicles, profile, FakeZoneRepository()),
+            spotRepository = spots,
+        )
         return SettingsViewModel(customPrefs, auth, profile, useCase)
     }
 
@@ -193,25 +198,16 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `should_notEmitNavigateToAuth_on_deleteAccount_failure`() = runTest {
+    fun `should_emitShowError_on_deleteAccount_failure`() = runTest {
         auth.deleteAccountResult = Result.failure(Exception("network error"))
         vm.effect.test {
             vm.handleIntent(SettingsIntent.ConfirmDeleteAccount)
-            expectNoEvents()
+            assertIs<SettingsEffect.ShowError>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     // ── Navigation intents ────────────────────────────────────────────────────
-
-    @Test
-    fun `should_emitNavigateBack_on_navigateBack`() = runTest {
-        vm.effect.test {
-            vm.handleIntent(SettingsIntent.NavigateBack)
-            assertIs<SettingsEffect.NavigateBack>(awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 
     @Test
     fun `should_emitNavigateToVehicles_on_navigateToVehicles`() = runTest {

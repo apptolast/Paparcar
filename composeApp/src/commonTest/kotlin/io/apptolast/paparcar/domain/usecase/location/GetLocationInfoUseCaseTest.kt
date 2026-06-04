@@ -1,86 +1,43 @@
 package io.apptolast.paparcar.domain.usecase.location
 
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.LocationInfo
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
-import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
-import io.apptolast.paparcar.fakes.FakePlacesDataSource
+import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 class GetLocationInfoUseCaseTest {
 
-    private val geocoder = FakeGeocoderDataSource()
-    private val places = FakePlacesDataSource()
-    private val useCase = GetLocationInfoUseCase(geocoder, places)
-
-    // ── First emission — address ───────────────────────────────────────────────
+    private val address = AddressInfo(street = "Calle Mayor", city = "Madrid", region = null, country = "ES")
+    private val place = PlaceInfo(name = "El Corte Inglés", category = PlaceCategory.MALL)
 
     @Test
-    fun `should_emitAddressInFirstEmission`() = runTest {
-        val address = AddressInfo(street = "Calle Mayor", city = "Madrid", region = null, country = "ES")
-        geocoder.addressResult = Result.success(address)
+    fun `should_forward_repository_flow_to_caller`() = runTest {
+        val info = LocationInfo(address, null)
+        val repo = FakeLocationInfoRepository(info)
+        val useCase = GetLocationInfoUseCase(repo)
 
-        val emissions = useCase(40.416775, -3.703790).toList()
+        val result = useCase(40.416775, -3.703790).toList()
 
-        assertEquals(address, emissions.first().address)
-        assertNull(emissions.first().placeInfo)
+        assertEquals(listOf(info), result)
     }
 
     @Test
-    fun `should_useEmptyAddress_when_geocoderFails`() = runTest {
-        geocoder.addressResult = Result.failure(RuntimeException("Geocoder error"))
+    fun `should_forward_multi_emission_flow`() = runTest {
+        val addressOnly = LocationInfo(address, null)
+        val withPlace = LocationInfo(address, place)
+        val repo = object : io.apptolast.paparcar.domain.repository.LocationInfoRepository {
+            override fun getLocationInfo(lat: Double, lon: Double) = flowOf(addressOnly, withPlace)
+        }
+        val useCase = GetLocationInfoUseCase(repo)
 
-        val emissions = useCase(40.416775, -3.703790).toList()
+        val result = useCase(40.416775, -3.703790).toList()
 
-        val firstEmission = emissions.first()
-        assertNull(firstEmission.address.street)
-        assertNull(firstEmission.address.city)
-    }
-
-    // ── Second emission — place ───────────────────────────────────────────────
-
-    @Test
-    fun `should_emitSecondTime_with_placeInfo_when_placeFound`() = runTest {
-        val place = PlaceInfo(name = "El Corte Inglés", category = PlaceCategory.MALL)
-        places.placeResult = Result.success(place)
-
-        val emissions = useCase(40.416775, -3.703790).toList()
-
-        assertEquals(2, emissions.size)
-        assertEquals(place, emissions.last().placeInfo)
-    }
-
-    @Test
-    fun `should_emitOnlyOnce_when_noPlaceFound`() = runTest {
-        places.placeResult = Result.success(null)
-
-        val emissions = useCase(40.416775, -3.703790).toList()
-
-        assertEquals(1, emissions.size)
-        assertNull(emissions.first().placeInfo)
-    }
-
-    @Test
-    fun `should_emitOnlyOnce_when_placesFails`() = runTest {
-        places.placeResult = Result.failure(RuntimeException("Network error"))
-
-        val emissions = useCase(40.416775, -3.703790).toList()
-
-        assertEquals(1, emissions.size)
-    }
-
-    @Test
-    fun `should_preserveAddress_in_secondEmission`() = runTest {
-        val address = AddressInfo(street = "Gran Vía", city = "Madrid", region = null, country = "ES")
-        geocoder.addressResult = Result.success(address)
-        places.placeResult = Result.success(PlaceInfo("Cines Callao", PlaceCategory.OTHER))
-
-        val emissions = useCase(40.416775, -3.703790).toList()
-
-        assertEquals(address, emissions.last().address)
+        assertEquals(listOf(addressOnly, withPlace), result)
     }
 }

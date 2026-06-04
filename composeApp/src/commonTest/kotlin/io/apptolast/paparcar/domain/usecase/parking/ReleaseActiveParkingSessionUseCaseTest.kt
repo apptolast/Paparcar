@@ -7,8 +7,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeAuthRepository
-import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
-import io.apptolast.paparcar.fakes.FakePlacesDataSource
+import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.test.runTest
@@ -25,7 +24,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     private val reportSpotReleased = ReportSpotReleasedUseCase(
         reportSpotScheduler = scheduler,
-        getLocationInfo = GetLocationInfoUseCase(FakeGeocoderDataSource(), FakePlacesDataSource()),
+        getLocationInfo = GetLocationInfoUseCase(FakeLocationInfoRepository()),
         authRepository = FakeAuthRepository(initialSession = null),
     )
     private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)

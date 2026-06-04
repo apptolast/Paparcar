@@ -12,12 +12,11 @@ import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
-import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
+import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeZoneRepository
-import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
@@ -55,8 +54,7 @@ class ParkingFlowIntegrationTest {
     private val vehicleRepo = FakeVehicleRepository(
         defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM),
     )
-    private val geocoder = FakeGeocoderDataSource()
-    private val places = FakePlacesDataSource()
+    private val locationInfoRepo = FakeLocationInfoRepository()
     private val spotScheduler = FakeReportSpotScheduler()
     private val geofence = FakeGeofenceManager()
     private val notification = FakeAppNotificationManager()
@@ -79,7 +77,7 @@ class ParkingFlowIntegrationTest {
     private val releaseParking = ReleaseActiveParkingSessionUseCase(
         reportSpotReleased = ReportSpotReleasedUseCase(
             reportSpotScheduler = spotScheduler,
-            getLocationInfo = GetLocationInfoUseCase(geocoder, places),
+            getLocationInfo = GetLocationInfoUseCase(locationInfoRepo),
             authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = parkingRepo,
@@ -165,7 +163,7 @@ class ParkingFlowIntegrationTest {
     @Test
     fun `should include geocoded address in spot report when geocoder succeeds`() = runTest {
         val address = AddressInfo(street = "Calle Mayor", city = "Madrid", region = null, country = "ES")
-        geocoder.addressResult = Result.success(address)
+        locationInfoRepo.addressResult = Result.success(address)
 
         confirmParking(location, detectionReliability = 0.9f)
         val confirmedSession = parkingRepo.getActiveSession()
@@ -176,7 +174,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should still schedule spot report when geocoding fails during release`() = runTest {
-        geocoder.addressResult = Result.failure(RuntimeException("Geocoder unavailable"))
+        locationInfoRepo.addressResult = Result.failure(RuntimeException("Geocoder unavailable"))
 
         confirmParking(location, detectionReliability = 0.9f)
         val confirmedSession = parkingRepo.getActiveSession()

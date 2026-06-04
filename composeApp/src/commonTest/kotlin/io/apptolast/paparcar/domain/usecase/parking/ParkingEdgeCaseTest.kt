@@ -11,12 +11,11 @@ import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
-import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
+import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeZoneRepository
-import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
@@ -185,11 +184,11 @@ class ParkingEdgeCaseTest {
     fun `should schedule spot report even when geocoder is offline`() = runTest {
         val repo = FakeUserParkingRepository()
         val scheduler = FakeReportSpotScheduler()
-        val geocoder = FakeGeocoderDataSource().apply {
+        val fakeRepo = FakeLocationInfoRepository().apply {
             addressResult = Result.failure(RuntimeException("Network unavailable"))
         }
         val confirm = buildConfirm(repo = repo)
-        val release = buildRelease(repo = repo, scheduler = scheduler, geocoder = geocoder)
+        val release = buildRelease(repo = repo, scheduler = scheduler, locationInfoRepo = fakeRepo)
 
         confirm(goodLocation, detectionReliability = 0.9f)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
@@ -201,11 +200,11 @@ class ParkingEdgeCaseTest {
     fun `should preserve spot coordinates even when geocoding fails`() = runTest {
         val repo = FakeUserParkingRepository()
         val scheduler = FakeReportSpotScheduler()
-        val geocoder = FakeGeocoderDataSource().apply {
+        val fakeRepo = FakeLocationInfoRepository().apply {
             addressResult = Result.failure(RuntimeException("DNS failure"))
         }
         val confirm = buildConfirm(repo = repo)
-        val release = buildRelease(repo = repo, scheduler = scheduler, geocoder = geocoder)
+        val release = buildRelease(repo = repo, scheduler = scheduler, locationInfoRepo = fakeRepo)
 
         confirm(goodLocation, detectionReliability = 0.9f)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
@@ -257,11 +256,11 @@ class ParkingEdgeCaseTest {
     private fun buildRelease(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
         scheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
-        geocoder: FakeGeocoderDataSource = FakeGeocoderDataSource(),
+        locationInfoRepo: FakeLocationInfoRepository = FakeLocationInfoRepository(),
     ) = ReleaseActiveParkingSessionUseCase(
         reportSpotReleased = ReportSpotReleasedUseCase(
             reportSpotScheduler = scheduler,
-            getLocationInfo = GetLocationInfoUseCase(geocoder, FakePlacesDataSource()),
+            getLocationInfo = GetLocationInfoUseCase(locationInfoRepo),
             authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = repo,

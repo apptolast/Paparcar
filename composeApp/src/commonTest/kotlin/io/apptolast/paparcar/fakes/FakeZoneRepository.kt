@@ -33,14 +33,16 @@ class FakeZoneRepository : ZoneRepository {
         return syncFromRemoteResult
     }
 
-    override suspend fun saveZone(zone: Zone) {
+    override suspend fun saveZone(zone: Zone): Result<Unit> {
         savedZone = zone
         _zones.value = _zones.value + zone
+        return Result.success(Unit)
     }
 
-    override suspend fun deleteZone(id: String) {
+    override suspend fun deleteZone(id: String): Result<Unit> {
         deletedZoneId = id
         _zones.value = _zones.value.filterNot { it.id == id }
+        return Result.success(Unit)
     }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> {

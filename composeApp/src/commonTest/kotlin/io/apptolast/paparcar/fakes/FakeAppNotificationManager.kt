@@ -12,11 +12,15 @@ open class FakeAppNotificationManager : AppNotificationManager {
         parkingConfirmationCallCount++
     }
 
-    override fun showParkingSpotSaved(latitude: Double, longitude: Double) {
+    override fun showParkingSaved(latitude: Double, longitude: Double) {
         parkingSpotSavedCallCount++
     }
 
+    override fun showSpotPublished(latitude: Double, longitude: Double) = Unit
+
     override fun showSpotUploading() = Unit
+
+    override fun updateDetectionVehicle(vehicleName: String, notifId: Int) = Unit
 
     override fun showPermissionRevoked() = Unit
 
