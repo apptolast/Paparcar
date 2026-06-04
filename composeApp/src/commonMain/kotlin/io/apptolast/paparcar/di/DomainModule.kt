@@ -20,18 +20,28 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
-import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
-import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.repository.UserProfileRepository
+import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
-import io.apptolast.paparcar.domain.usecase.zone.UpdateZoneUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
 
+    single { MapFocusEventBus() }
+
     // User UseCases
     factory { GetOrCreateUserProfileUseCase(get(), get()) }
     factory { BootstrapUserDataUseCase(get(), get(), get()) }
-    factory { DeleteAccountUseCase(get(), get(), get(), get(), get()) }
+    factory {
+        DeleteAccountUseCase(
+            authRepository = get(),
+            userScopedRepos = listOf(get<UserParkingRepository>(), get<VehicleRepository>(), get<UserProfileRepository>(), get<ZoneRepository>()),
+            spotRepository = get(),
+        )
+    }
 
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }
@@ -39,10 +49,7 @@ val domainModule = module {
     factory { SendSpotSignalUseCase(get()) }
 
     // Zone UseCases
-    factory { ObserveZonesUseCase(get()) }
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
-    factory { UpdateZoneUseCase(get()) }
-    factory { DeleteZoneUseCase(get()) }
 
     // Location UseCases
     factory { GetLocationInfoUseCase(geocoder = get(), placesPort = get()) }
