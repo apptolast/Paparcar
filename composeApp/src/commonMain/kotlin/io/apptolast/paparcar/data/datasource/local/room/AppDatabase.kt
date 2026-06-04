@@ -12,8 +12,9 @@ import androidx.room.RoomDatabaseConstructor
         VehicleEntity::class,
         SpotEntity::class,
         ZoneEntity::class,
+        GeocoderCacheEntity::class,
     ],
-    version = 1,
+    version = 3,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -22,6 +23,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun vehicleDao(): VehicleDao
     abstract fun spotDao(): SpotDao
     abstract fun zoneDao(): ZoneDao
+    abstract fun geocoderCacheDao(): GeocoderCacheDao
 }
 
 @Suppress("NO_ACTUAL_FOR_EXPECT")

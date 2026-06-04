@@ -52,7 +52,7 @@ val domainModule = module {
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
 
     // Location UseCases
-    factory { GetLocationInfoUseCase(geocoder = get(), placesPort = get()) }
+    factory { GetLocationInfoUseCase(repository = get()) }
     factory { GetOneLocationUseCase(get()) }
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SearchAddressUseCase(get()) }

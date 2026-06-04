@@ -4,16 +4,20 @@ import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.firestore.firestore
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.local.room.SpotDao
+import io.apptolast.paparcar.data.geocoder.RoomLocalLocationInfoDataSource
+import io.apptolast.paparcar.domain.geocoder.LocalLocationInfoDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSourceImpl
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
+import io.apptolast.paparcar.data.repository.LocationInfoRepositoryImpl
 import io.apptolast.paparcar.data.repository.SpotRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserParkingRepositoryImpl
 import io.apptolast.paparcar.data.repository.UserProfileRepositoryImpl
 import io.apptolast.paparcar.data.repository.VehicleRepositoryImpl
 import io.apptolast.paparcar.data.repository.ZoneRepositoryImpl
 import io.apptolast.paparcar.data.session.RoomLocalSessionCache
+import io.apptolast.paparcar.domain.repository.LocationInfoRepository
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
@@ -37,6 +41,7 @@ val dataModule = module {
     single<UserProfileRepository> { UserProfileRepositoryImpl(get(), get()) }
     single<VehicleRepository> { VehicleRepositoryImpl(get(), get(), get(), get()) }
     single<ZoneRepository> { ZoneRepositoryImpl(get(), get(), get()) }
+    single<LocationInfoRepository> { LocationInfoRepositoryImpl(get(), get(), get()) }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }
@@ -47,6 +52,10 @@ val dataModule = module {
     single { get<AppDatabase>().vehicleDao() }
     single<SpotDao> { get<AppDatabase>().spotDao() }
     single { get<AppDatabase>().zoneDao() }
+    single { get<AppDatabase>().geocoderCacheDao() }
+
+    // Local datasources
+    single<LocalLocationInfoDataSource> { RoomLocalLocationInfoDataSource(get()) }
 
     // NOTA: LocationDataSource se provee en los módulos de plataforma.
 }

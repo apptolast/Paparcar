@@ -35,9 +35,15 @@ class OverpassPlacesDataSourceImpl : PlacesDataSource {
     override suspend fun getNearbyPlace(lat: Double, lon: Double): Result<PlaceInfo?> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val body = postOverpass(buildQuery(lat, lon)) ?: return@runCatching null
-                parseResponse(body, lat, lon)
-            }
+                val query = buildQuery(lat, lon)
+                android.util.Log.d("OverpassDS", "POST query: $query")
+                val body = postOverpass(query)
+                android.util.Log.d("OverpassDS", "Response body (${body?.length ?: 0} chars): ${body?.take(300)}")
+                if (body == null) return@runCatching null
+                val result = parseResponse(body, lat, lon)
+                android.util.Log.d("OverpassDS", "Parsed POI: $result")
+                result
+            }.also { r -> if (r.isFailure) android.util.Log.w("OverpassDS", "Exception", r.exceptionOrNull()) }
         }
 
     // ── Query ────────────────────────────────────────────────────────────────

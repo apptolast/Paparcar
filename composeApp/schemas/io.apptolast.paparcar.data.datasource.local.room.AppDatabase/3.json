@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "ba4d841aeacb332af5034a0c15f292a7",
+    "identityHash": "c333d150a28ea58559d6321fff1d718d",
     "entities": [
       {
         "tableName": "parking_sessions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `vehicleId` TEXT, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `spotId` TEXT, `geofenceId` TEXT, `isActive` INTEGER NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `detectionReliability` REAL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `vehicleId` TEXT, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `spotId` TEXT, `geofenceId` TEXT, `isActive` INTEGER NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `detectionReliability` REAL, `sizeCategory` TEXT, `privateZoneId` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -99,6 +99,16 @@
             "fieldPath": "detectionReliability",
             "columnName": "detectionReliability",
             "affinity": "REAL"
+          },
+          {
+            "fieldPath": "sizeCategory",
+            "columnName": "sizeCategory",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "privateZoneId",
+            "columnName": "privateZoneId",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -160,7 +170,7 @@
       },
       {
         "tableName": "vehicles",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `name` TEXT, `brand` TEXT, `model` TEXT, `sizeCategory` TEXT NOT NULL, `bluetoothDeviceId` TEXT, `showBrandModelOnSpot` INTEGER NOT NULL, `isDefault` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `name` TEXT, `brand` TEXT, `model` TEXT, `sizeCategory` TEXT NOT NULL, `vehicleType` TEXT NOT NULL, `bluetoothDeviceId` TEXT, `showBrandModelOnSpot` INTEGER NOT NULL, `isActive` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -196,6 +206,12 @@
             "notNull": true
           },
           {
+            "fieldPath": "vehicleType",
+            "columnName": "vehicleType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
             "fieldPath": "bluetoothDeviceId",
             "columnName": "bluetoothDeviceId",
             "affinity": "TEXT"
@@ -207,8 +223,8 @@
             "notNull": true
           },
           {
-            "fieldPath": "isDefault",
-            "columnName": "isDefault",
+            "fieldPath": "isActive",
+            "columnName": "isActive",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -222,7 +238,7 @@
       },
       {
         "tableName": "cached_spots",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `reportedAt` INTEGER NOT NULL, `reportedBy` TEXT NOT NULL, `speed` REAL NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `type` TEXT NOT NULL, `confidence` REAL NOT NULL, `sizeCategory` TEXT, `enRouteCount` INTEGER NOT NULL, `expiresAt` INTEGER NOT NULL, `acceptCount` INTEGER NOT NULL, `rejectCount` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `reportedAt` INTEGER NOT NULL, `reportedBy` TEXT NOT NULL, `speed` REAL NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `addressCountryCode` TEXT, `geohash` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `type` TEXT NOT NULL, `confidence` REAL NOT NULL, `sizeCategory` TEXT, `enRouteCount` INTEGER NOT NULL, `expiresAt` INTEGER NOT NULL, `acceptCount` INTEGER NOT NULL, `rejectCount` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -287,6 +303,16 @@
             "affinity": "TEXT"
           },
           {
+            "fieldPath": "addressCountryCode",
+            "columnName": "addressCountryCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "geohash",
+            "columnName": "geohash",
+            "affinity": "TEXT"
+          },
+          {
             "fieldPath": "placeInfoName",
             "columnName": "placeInfoName",
             "affinity": "TEXT"
@@ -347,7 +373,7 @@
       },
       {
         "tableName": "zones",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `iconKey` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `name` TEXT NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `iconKey` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `radiusMeters` REAL NOT NULL, `isPrivate` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -390,6 +416,18 @@
             "columnName": "createdAt",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "radiusMeters",
+            "columnName": "radiusMeters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPrivate",
+            "columnName": "isPrivate",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -398,11 +436,76 @@
             "id"
           ]
         }
+      },
+      {
+        "tableName": "geocoder_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`locationKey` TEXT NOT NULL, `addressStreet` TEXT, `addressCity` TEXT, `addressRegion` TEXT, `addressCountry` TEXT, `addressCountryCode` TEXT, `placeInfoName` TEXT, `placeInfoCategory` TEXT, `cachedAt` INTEGER NOT NULL, `poiChecked` INTEGER NOT NULL, PRIMARY KEY(`locationKey`))",
+        "fields": [
+          {
+            "fieldPath": "locationKey",
+            "columnName": "locationKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "addressStreet",
+            "columnName": "addressStreet",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressCity",
+            "columnName": "addressCity",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressRegion",
+            "columnName": "addressRegion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressCountry",
+            "columnName": "addressCountry",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "addressCountryCode",
+            "columnName": "addressCountryCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "placeInfoName",
+            "columnName": "placeInfoName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "placeInfoCategory",
+            "columnName": "placeInfoCategory",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cachedAt",
+            "columnName": "cachedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "poiChecked",
+            "columnName": "poiChecked",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "locationKey"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ba4d841aeacb332af5034a0c15f292a7')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c333d150a28ea58559d6321fff1d718d')"
     ]
   }
 }
