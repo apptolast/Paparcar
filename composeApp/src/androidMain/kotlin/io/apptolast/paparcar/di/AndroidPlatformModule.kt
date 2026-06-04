@@ -5,12 +5,6 @@ import android.content.Context
 import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_3_4
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_4_5
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_5_6
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_6_7
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_7_8
-import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_8_9
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -34,17 +28,13 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val androidPlatformModule = module {
-    // Database
-    // Destructive migration is gated to legacy versions (1, 2) only — pre-beta installs
-    // with no real user data. From v3 onward, schema bumps MUST ship an explicit
-    // Migration; otherwise Room will throw at startup. See AppDatabase doc. [DB-001]
+    // Database — destructive migration on any version mismatch (internal pre-beta, no real users).
     single<AppDatabase> {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).fallbackToDestructiveMigrationFrom(true, 1, 2)
-            .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+        ).fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 
