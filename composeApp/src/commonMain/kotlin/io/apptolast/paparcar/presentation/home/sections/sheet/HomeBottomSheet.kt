@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.home.sections.sheet
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.clickable
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -62,11 +63,16 @@ internal fun HomeBottomSheet(
     onParkVehicle: (vehicleId: String) -> Unit,
     /** Tap on the "Mover ubicación" button on the active-parking peek — opens the AddingParking edit flow. */
     onMoveParkingLocation: () -> Unit,
+    spotListExpanded: Boolean,
+    onToggleSpotList: () -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     onEnterReportMode: () -> Unit,
     onRelease: () -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
+    onZoneDismiss: () -> Unit = {},
+    onEditZone: (zoneId: String) -> Unit = {},
+    onDeleteZone: (zoneId: String) -> Unit = {},
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -126,6 +132,8 @@ internal fun HomeBottomSheet(
                 HomePeekHandle(
                     state = state,
                     onToggle = onToggle,
+                    spotListExpanded = spotListExpanded,
+                    onToggleSpotList = onToggleSpotList,
                     onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                     onRelease = onRelease,
                     onRejectSpot = {
@@ -147,17 +155,17 @@ internal fun HomeBottomSheet(
                     onCancelAddParking = { onIntent(HomeIntent.ExitAddParkingMode) },
                     onConfirmAddParking = { onIntent(HomeIntent.ConfirmAddParking) },
                     onMoveParkingLocation = onMoveParkingLocation,
+                    onZoneDismiss = onZoneDismiss,
+                    onEditZone = onEditZone,
+                    onDeleteZone = onDeleteZone,
                 )
             }
 
-            // The peek handle owns the whole sheet in any "engaged" state
-            // (Reporting / AddingZone / selected vehicle): the user shouldn't
-            // be able to drag past the state card to expose the browse list
-            // below. Only Browse + nothing-selected OR Browse + spot-selected
-            // renders the list (selected spot is the exception — the user may
-            // want to compare with nearby alternatives).
+            val isSpotSelected = state.selectedSpot != null
             val showList = state.mode is HomeMode.Browse &&
-                !state.isParkingSelected
+                !state.isParkingSelected &&
+                state.selectedZoneId == null &&
+                (!isSpotSelected || spotListExpanded)
             if (showList) {
                 LazyColumn(
                     state = lazyListState,

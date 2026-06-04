@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.LocationInfo
-import io.apptolast.paparcar.domain.model.ParkedVehicleView
+import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
@@ -55,7 +55,7 @@ data class HomeState(
     /** Raw active parking sessions — source of truth for behavioural logic. [MULTI-PARKING-001] */
     val activeSessions: List<UserParking> = emptyList(),
     /** Enriched display projection of active sessions (one row per vehicle). [MULTI-PARKING-001] */
-    val parkedVehicles: List<ParkedVehicleView> = emptyList(),
+    val parkedVehicles: List<ParkedVehicleSummary> = emptyList(),
     val vehicles: List<Vehicle> = emptyList(),
     val zones: List<Zone> = emptyList(),
 
@@ -73,10 +73,12 @@ data class HomeState(
      * Both share the same UUID space so equality resolves the type. [MULTI-PARKING-001]
      */
     val selectedItemId: String? = null,
+    /** ID of the zone currently shown in the peek card. Null when no zone is selected. */
+    val selectedZoneId: String? = null,
 
     // ── Map / camera ──────────────────────────────────────────────────────────
 
-    val mapType: MapType = MapType.NORMAL,
+    val mapType: MapType = MapType.TERRAIN,
     /** Geocoded address of the map camera centre (updated as the user pans). */
     val cameraLocationInfo: LocationInfo? = null,
     /** True while camera geocoding is in flight — drives a skeleton placeholder. */
@@ -124,7 +126,6 @@ data class HomeState(
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
     val addingZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,
-    /** When true the zone being created/edited is private — spot publication is suppressed on departure. */
     val addingZoneIsPrivate: Boolean = false,
     /** Non-null when editing an existing zone instead of creating a new one. */
     val editingZoneId: String? = null,
@@ -154,6 +155,10 @@ data class HomeState(
     /** First active session — convenience for code that predates multi-parking. [MULTI-PARKING-001] */
     val userParking: UserParking?
         get() = activeSessions.firstOrNull()
+
+    /** The zone matching [selectedZoneId], or null if no zone is selected. */
+    val selectedZone: Zone?
+        get() = selectedZoneId?.let { id -> zones.find { it.id == id } }
 
     /** The session matching [selectedItemId], or null if the selection is a spot. [MULTI-PARKING-001] */
     val selectedSession: UserParking?

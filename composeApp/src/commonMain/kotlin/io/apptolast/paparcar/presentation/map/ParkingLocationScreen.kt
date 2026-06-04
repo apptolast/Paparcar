@@ -19,7 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.DirectionsCar
+import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.Navigation
@@ -110,6 +111,8 @@ fun HistoryParkingDetailScreen(
             spots = emptyList(),
             userLocation = state.userLocation,
             parkingLocation = parkingGpsPoint ?: state.userParking?.location,
+            parkingVehicleSize = state.focusedSession?.sizeCategory,
+            parkingIsActive = state.focusedSession?.isActive == true,
             onSpotClick = {},
             cameraTarget = cameraTarget.value,
             modifier = Modifier
@@ -206,13 +209,13 @@ private fun HistoryDetailSheet(
 
             Spacer(Modifier.height(SECTION_GAP.dp))
 
-            AddressHeroRow(session = session)
+            AddressHeroRow(session = session, isActive = isActive)
 
             if (session != null) {
                 Spacer(Modifier.height(META_ROW_GAP.dp))
-                DateTimeRow(timestampMs = session.location.timestamp)
+                DateTimeRow(timestampMs = session.location.timestamp, isActive = isActive)
                 Spacer(Modifier.height(META_ROW_GAP.dp))
-                DetectionRow(spotType = session.spotType)
+                DetectionRow(spotType = session.spotType, isActive = isActive)
             }
 
             Spacer(Modifier.height(ACTION_TOP_GAP.dp))
@@ -251,7 +254,7 @@ private fun DragPill(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AddressHeroRow(session: UserParking?) {
+private fun AddressHeroRow(session: UserParking?, isActive: Boolean) {
     val cs = MaterialTheme.colorScheme
     val noAddress = stringResource(Res.string.parking_detail_no_address)
 
@@ -271,8 +274,9 @@ private fun AddressHeroRow(session: UserParking?) {
                 ?.let { "$city, $it" } ?: city
         }
 
-    val iconBg = cs.primaryContainer
-    val iconTint = cs.primary
+    val iconBg = if (isActive) cs.primaryContainer else cs.surfaceVariant
+    val iconTint = if (isActive) cs.primary else cs.onSurfaceVariant
+    val vehicleIcon = (session?.sizeCategory ?: VehicleSize.MEDIUM).icon
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -287,7 +291,7 @@ private fun AddressHeroRow(session: UserParking?) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.Filled.DirectionsCar,
+                imageVector = vehicleIcon,
                 contentDescription = null,
                 tint = iconTint,
                 modifier = Modifier.size(HERO_ICON_DP.dp),
@@ -317,7 +321,7 @@ private fun AddressHeroRow(session: UserParking?) {
 }
 
 @Composable
-private fun DateTimeRow(timestampMs: Long) {
+private fun DateTimeRow(timestampMs: Long, isActive: Boolean) {
     if (timestampMs <= 0L) return
     val cs = MaterialTheme.colorScheme
     val dateTime = remember(timestampMs) {
@@ -331,24 +335,24 @@ private fun DateTimeRow(timestampMs: Long) {
 
     MetaRow(
         icon = Icons.Outlined.Schedule,
-        tint = cs.primary,
+        tint = if (isActive) cs.primary else cs.onSurfaceVariant,
         text = "$dateStr · $timeStr",
     )
 }
 
 @Composable
-private fun DetectionRow(spotType: SpotType) {
+private fun DetectionRow(spotType: SpotType, isActive: Boolean) {
     val cs = MaterialTheme.colorScheme
     val (icon, label, tint) = when (spotType) {
         SpotType.AUTO_DETECTED -> Triple(
             Icons.Outlined.Bolt,
             stringResource(Res.string.parking_detail_detection_auto),
-            cs.primary,
+            if (isActive) cs.primary else cs.onSurfaceVariant,
         )
         SpotType.MANUAL_REPORT -> Triple(
             Icons.Outlined.EditLocationAlt,
             stringResource(Res.string.parking_detail_detection_manual),
-            cs.secondary,
+            if (isActive) cs.secondary else cs.onSurfaceVariant,
         )
     }
     MetaRow(icon = icon, tint = tint, text = label)

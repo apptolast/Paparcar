@@ -83,7 +83,8 @@ internal fun HomeZoneChips(
             PaparcarAddChip(
                 onClick = onAddZone,
                 iconSize = CHIP_ICON_DP.dp,
-                contentPad = 8.dp,
+                horizontalPad = 8.dp,
+                verticalPad = 8.dp,
             )
         }
     }

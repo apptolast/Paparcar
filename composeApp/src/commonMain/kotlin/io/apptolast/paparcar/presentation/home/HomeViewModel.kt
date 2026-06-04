@@ -9,12 +9,12 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
-import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -24,10 +24,8 @@ import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
-import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
-import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
+import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
-import io.apptolast.paparcar.domain.usecase.zone.UpdateZoneUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -67,11 +65,10 @@ class HomeViewModel(
     private val vehicleRepository: VehicleRepository,
     private val getLocationInfo: GetLocationInfoUseCase,
     private val searchAddress: SearchAddressUseCase,
-    private val observeZones: ObserveZonesUseCase,
+    private val zoneRepository: ZoneRepository,
     private val saveZone: SaveZoneUseCase,
-    private val updateZone: UpdateZoneUseCase,
-    private val deleteZone: DeleteZoneUseCase,
     private val appPreferences: AppPreferences,
+    private val mapFocusEventBus: MapFocusEventBus,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     // ── Private flows ─────────────────────────────────────────────────────────
@@ -104,6 +101,7 @@ class HomeViewModel(
         subscribeVehicles()
         subscribeGpsLocation()
         subscribeNearbySpots()
+        subscribeMapFocusEvents()
     }
 
     override fun initState(): HomeState = HomeState()
@@ -123,7 +121,7 @@ class HomeViewModel(
                     sendEffect(HomeEffect.RequestLocationPermission)
                 }
             }
-            is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId) }
+            is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId, selectedZoneId = null) }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
 
@@ -173,26 +171,24 @@ class HomeViewModel(
                 copy(
                     mode = HomeMode.AddingZone,
                     selectedItemId = null,
+                    selectedZoneId = null,
                     pinCameraLat = intent.lat,
                     pinCameraLon = intent.lon,
                     isCameraMoving = false,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
-                    addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
-                    addingZoneIsPrivate = false,
                     editingZoneId = null,
                 )
             }
             is HomeIntent.ExitAddZoneMode -> updateState {
                 copy(
                     mode = HomeMode.Browse,
+                    selectedZoneId = null,
                     pinCameraLat = null,
                     pinCameraLon = null,
                     isCameraMoving = false,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
-                    addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
-                    addingZoneIsPrivate = false,
                     editingZoneId = null,
                 )
             }
@@ -202,7 +198,8 @@ class HomeViewModel(
             is HomeIntent.SetZoneRadius -> updateState { copy(addingZoneRadius = intent.radius) }
             is HomeIntent.SetZoneIsPrivate -> updateState { copy(addingZoneIsPrivate = intent.isPrivate) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
-            is HomeIntent.DeleteZone -> viewModelScope.launch { deleteZone(intent.zoneId) }
+            is HomeIntent.DismissZone -> updateState { copy(selectedZoneId = null) }
+            is HomeIntent.DeleteZone -> viewModelScope.launch { zoneRepository.deleteZone(intent.zoneId) }
             is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
 
             // Search
@@ -263,7 +260,7 @@ class HomeViewModel(
     }
 
     private fun subscribeZones() {
-        observeZones()
+        zoneRepository.observeZones()
             .onEach { zones -> updateState { copy(zones = zones) } }
             .catch { }
             .launchIn(viewModelScope)
@@ -471,10 +468,10 @@ class HomeViewModel(
             val editingId = current.editingZoneId
             if (editingId != null) {
                 current.zones.find { it.id == editingId }?.let { existing ->
-                    updateZone(existing, name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius, isPrivate = current.addingZoneIsPrivate)
+                    zoneRepository.saveZone(existing.copy(name = name.trim(), lat = lat, lon = lon, iconKey = current.addingZoneIconKey))
                 }
             } else {
-                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey, radiusMeters = current.addingZoneRadius, isPrivate = current.addingZoneIsPrivate)
+                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
                     .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
             }
             updateState {
@@ -485,11 +482,10 @@ class HomeViewModel(
                     pinCameraLon = null,
                     addingZoneName = "",
                     addingZoneIconKey = ZoneIcon.DEFAULT,
-                    addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
-                    addingZoneIsPrivate = false,
                     editingZoneId = null,
                 )
             }
+            sendEffect(HomeEffect.ZoneSaved)
         }
     }
 
@@ -499,12 +495,11 @@ class HomeViewModel(
             copy(
                 mode = HomeMode.AddingZone,
                 selectedItemId = null,
+                selectedZoneId = null,
                 pinCameraLat = zone.lat,
                 pinCameraLon = zone.lon,
                 addingZoneName = zone.name,
                 addingZoneIconKey = zone.iconKey,
-                addingZoneRadius = zone.radiusMeters,
-                addingZoneIsPrivate = zone.isPrivate,
                 editingZoneId = zoneId,
             )
         }
@@ -513,6 +508,7 @@ class HomeViewModel(
 
     private fun selectZone(zoneId: String) {
         val zone = state.value.zones.find { it.id == zoneId } ?: return
+        updateState { copy(selectedZoneId = zoneId, selectedItemId = null) }
         sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
     }
 
@@ -552,14 +548,10 @@ class HomeViewModel(
 
     private fun geocodeCameraLocation(lat: Double, lon: Double) {
         cameraGeocoderJob?.cancel()
-        // Mark geocoding in-progress immediately (before the debounce delay) so
-        // the UI never shows "unknown address" during the gap between a completed
-        // geocode and the start of the next one. Cancellation does NOT clear the
-        // flag — the new job inherits it and clears it only when it truly finishes.
-        updateState { copy(isCameraGeocoding = true) }
         cameraGeocoderJob = viewModelScope.launch {
             delay(GEOCODE_DEBOUNCE_MS)
             getLocationInfo(lat, lon)
+                .onStart { updateState { copy(isCameraGeocoding = true) } }
                 .onCompletion { cause -> if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) } }
                 .catch { }
                 .collect { info -> updateState { copy(cameraLocationInfo = info) } }
@@ -587,14 +579,23 @@ class HomeViewModel(
 
     private fun String.toMapType(): MapType = when (this) {
         MAP_TYPE_SATELLITE -> MapType.SATELLITE
+        MAP_TYPE_HYBRID -> MapType.HYBRID
         MAP_TYPE_TERRAIN -> MapType.TERRAIN
-        else -> MapType.NORMAL
+        else -> MapType.TERRAIN
     }
 
     private fun MapType.toPreferenceString(): String = when (this) {
         MapType.SATELLITE -> MAP_TYPE_SATELLITE
-        MapType.TERRAIN -> MAP_TYPE_TERRAIN
-        else -> MAP_TYPE_NORMAL
+        MapType.HYBRID -> MAP_TYPE_HYBRID
+        else -> MAP_TYPE_TERRAIN
+    }
+
+    // ── Notification focus ────────────────────────────────────────────────────
+
+    private fun subscribeMapFocusEvents() {
+        mapFocusEventBus.events
+            .onEach { (lat, lon) -> sendEffect(HomeEffect.MoveCameraTo(lat, lon)) }
+            .launchIn(viewModelScope)
     }
 
     // ── Constants ─────────────────────────────────────────────────────────────
@@ -614,9 +615,9 @@ class HomeViewModel(
         const val SPOT_CAMERA_PAN_THRESHOLD_METERS = 300.0
 
         // Map type preference strings
-        const val MAP_TYPE_NORMAL = "NORMAL"
-        const val MAP_TYPE_SATELLITE = "SATELLITE"
         const val MAP_TYPE_TERRAIN = "TERRAIN"
+        const val MAP_TYPE_SATELLITE = "SATELLITE"
+        const val MAP_TYPE_HYBRID = "HYBRID"
 
         // Debug
         const val DEBUG_USER_ID = "user-123"

@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.ui.components.CenterPinKind
@@ -19,9 +20,9 @@ import io.apptolast.paparcar.ui.components.PaparcarMapConfig
 import io.apptolast.paparcar.ui.components.PaparcarMapView
 
 /**
- * The map tile layer. Height is supplied entirely through [modifier] by the
- * parent using a layout-phase modifier (Modifier.layout) so that dragging the
- * sheet never triggers a composition of this tree — only a re-layout.
+ * The map tile layer with its right-side floating FAB column (location,
+ * parked car, midpoint). Strictly presentational — receives the camera
+ * target and all action lambdas from the parent, never owns sheet state.
  */
 @Composable
 internal fun HomeMapSection(
@@ -32,8 +33,12 @@ internal fun HomeMapSection(
     cameraTarget: CameraTarget?,
     centerPin: CenterPinKind? = null,
     dimSpots: Boolean = false,
+    previewZoneLat: Double? = null,
+    previewZoneLon: Double? = null,
+    previewZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,
+    previewZoneIsPrivate: Boolean = false,
     onSpotClick: (String) -> Unit,
-    onMyCarClick: () -> Unit,
+    onMyCarClick: (sessionId: String) -> Unit,
     onZoneClick: (String) -> Unit,
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
@@ -48,6 +53,10 @@ internal fun HomeMapSection(
         parkingLocation = state.userParking?.location,
         parkedVehicles = state.parkedVehicles,
         zones = state.zones,
+        previewZoneLat = previewZoneLat,
+        previewZoneLon = previewZoneLon,
+        previewZoneRadius = previewZoneRadius,
+        previewZoneIsPrivate = previewZoneIsPrivate,
         selectedSpotId = selectedSpotId,
         isMyCarSelected = isMyCarSelected,
         reportMode = reportMode,
@@ -64,9 +73,10 @@ internal fun HomeMapSection(
 }
 
 /**
- * Right-side FAB column. Positioning (bottom inset) is supplied entirely
- * through [modifier] by the parent using a layout-phase offset modifier so
- * that dragging the sheet never triggers a composition of this tree.
+ * Right-side FAB column anchored to the bottom of the map. Visibility is
+ * driven by the sheet's expansion fraction — hides once the user starts
+ * scrolling the sheet past its midpoint so the FABs don't collide with
+ * sheet content.
  */
 @Composable
 internal fun HomeMapFabsLayer(

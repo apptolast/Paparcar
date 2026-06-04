@@ -71,6 +71,7 @@ import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
+import paparcar.composeapp.generated.resources.home_zone_saved_message
 
 // Initial/fallback peek size used before the handle has been measured.
 // After first layout, peekHeightPx tracks the handle's real measured height
@@ -137,6 +138,7 @@ fun HomeScreen(
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
     val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
     val msgOfflineBlocked = stringResource(Res.string.connectivity_action_blocked_offline)
+    val msgZoneSaved = stringResource(Res.string.home_zone_saved_message)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -157,6 +159,7 @@ fun HomeScreen(
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
                 HomeEffect.OfflineActionBlocked -> snackbarHostState.showSnackbar(msgOfflineBlocked)
+                HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
                 HomeEffect.RequestLocationPermission -> {}
                 // MoveCameraTo needs the HomeUiController which lives inside
                 // HomeContent; a dedicated collector down there handles it.
@@ -255,6 +258,7 @@ private fun HomeContent(
 
     val isParkingSelected = state.isParkingSelected
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
+    var spotListExpanded by remember(selectedSpotId) { mutableStateOf(false) }
     var showReleaseDialog by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
@@ -376,10 +380,14 @@ private fun HomeContent(
                     // Pin-positioning modes (Reporting / AddingZone) AND
                     // vehicle-selected lock the sheet to peek height because
                     // the peek handle owns the whole surface — no list to
-                    // expose below. Spot-selected is intentionally NOT
-                    // locked: the user may want to compare with the list.
+                    // expose below.
                     state.mode !is HomeMode.Browse -> peekOffsetPx
                     isParkingSelected -> peekOffsetPx
+                    // Zone selected: peek shows zone detail card, no list below.
+                    state.selectedZoneId != null -> peekOffsetPx
+                    // Spot selected with list hidden: no content below the peek
+                    // card, so the sheet must not expand above peek height.
+                    selectedSpotId != null && !spotListExpanded -> peekOffsetPx
                     // Browse with all items already visible: stop at content
                     // height so the sheet doesn't expose empty space above
                     // the last row when the list is short.
@@ -396,14 +404,14 @@ private fun HomeContent(
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
-                LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
+                LaunchedEffect(peekOffsetPx, state.selectedItemId, state.selectedZoneId, state.mode) {
                     // Pin-positioning modes (Reporting / AddingZone) and the
                     // selected-vehicle state both lock the sheet to peek height
                     // because the peek handle hosts the entire state surface.
                     // Browse-with-no-selection also rests at peek.
                     val isPinning = state.mode is HomeMode.Reporting ||
                         state.mode is HomeMode.AddingZone
-                    val lockToPeek = isPinning || isParkingSelected
+                    val lockToPeek = isPinning || isParkingSelected || state.selectedZoneId != null
                     if (state.selectedItemId == null || lockToPeek) {
                         val correction = kotlin.math.abs(sheetOffsetPx.value - peekOffsetPx)
                         // Snap (not animate) when: small layout correction OR sheet is already at
@@ -422,6 +430,17 @@ private fun HomeContent(
                         // is not cancelled by the peekOffsetPx change that occurs when the
                         // peek handle grows to show the selected-item content.
                         sheetOffsetPx.snapTo(peekOffsetPx)
+                    }
+                }
+
+                // Keep sheet position in sync with spot list expand/collapse.
+                LaunchedEffect(spotListExpanded) {
+                    if (spotListExpanded) {
+                        // Auto-open the sheet so the list is visible immediately.
+                        sheetOffsetPx.animateTo(fullSnapOffsetPx, SnapSpec)
+                    } else if (sheetOffsetPx.value < peekOffsetPx) {
+                        // List collapsed while sheet was expanded — snap back to peek.
+                        sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
                     }
                 }
 
@@ -481,6 +500,10 @@ private fun HomeContent(
                 val overlayVisible = sheetAtPeekLevel &&
                     state.selectedItemId == null &&
                     state.mode is HomeMode.Browse
+                // Camera FABs (location / car / midpoint) remain reachable in any
+                // modal state — the user may want to jump to their car while reviewing
+                // a selected spot or confirming a parking pin.
+                val fabsVisible = sheetAtPeekLevel
 
                 // Cache the bleed in pixels for use inside layout-phase lambdas
                 // (Modifier.layout/offset) where toDp() is not available.
@@ -501,6 +524,7 @@ private fun HomeContent(
                 // latest snap values at call-time rather than capture-time.
                 val currentHalfOffset = rememberUpdatedState(halfOffsetPx)
                 val currentUserParking = rememberUpdatedState(state.userParking)
+                val currentActiveSessions = rememberUpdatedState(state.activeSessions)
                 val currentUserGpsPoint = rememberUpdatedState(state.userGpsPoint)
 
                 // Stable lambda — remember(coroutineScope, sheetOffsetPx) so the
@@ -552,10 +576,10 @@ private fun HomeContent(
                     }
                 }
 
-                // Stable lambda — userParking read via rememberUpdatedState at call-time.
-                val onMyCarMarkerClick: () -> Unit = remember(uiController) {
-                    {
-                        currentUserParking.value?.let { p ->
+                // Stable lambda — activeSessions read via rememberUpdatedState at call-time.
+                val onMyCarMarkerClick: (sessionId: String) -> Unit = remember(uiController) {
+                    { sessionId ->
+                        currentActiveSessions.value.firstOrNull { it.id == sessionId }?.let { p ->
                             onIntent(HomeIntent.SelectItem(p.id))
                             uiController.moveCamera(p.location.latitude, p.location.longitude)
                             animateSheetToHalf()
@@ -593,6 +617,7 @@ private fun HomeContent(
                 // ── Map ──────────────────────────────────────────────────────
                 // Height is set via Modifier.layout so sheetOffsetPx is read in
                 // the layout phase only — dragging never triggers recomposition here.
+                val isAddingZone = state.mode is HomeMode.AddingZone
                 HomeMapSection(
                     state = state,
                     selectedSpotId = selectedSpotId,
@@ -605,6 +630,10 @@ private fun HomeContent(
                     onMyCarClick = onMyCarMarkerClick,
                     onZoneClick = onZoneClick,
                     onCameraMove = onMapCameraMove,
+                    previewZoneLat = if (isAddingZone) uiController.cameraLat else null,
+                    previewZoneLon = if (isAddingZone) uiController.cameraLon else null,
+                    previewZoneRadius = state.addingZoneRadius,
+                    previewZoneIsPrivate = state.addingZoneIsPrivate,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .layout { measurable, constraints ->
@@ -690,9 +719,21 @@ private fun HomeContent(
                 // so dragging never triggers recomposition of this subtree.
                 HomeMapFabsLayer(
                     state = state,
-                    visible = overlayVisible,
+                    visible = fabsVisible,
                     onMyLocation = onMyLocation,
-                    onParkedCar = onMyCarMarkerClick,
+                    onParkedCar = {
+                        val sessions = state.activeSessions
+                        if (sessions.isNotEmpty()) {
+                            val currentSelected = state.selectedSession
+                            val target = if (currentSelected != null) {
+                                val idx = sessions.indexOfFirst { it.id == currentSelected.id }
+                                sessions[(idx + 1) % sessions.size]
+                            } else {
+                                sessions.first()
+                            }
+                            onMyCarMarkerClick(target.id)
+                        }
+                    },
                     onMidpoint = onMidpoint,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -767,6 +808,8 @@ private fun HomeContent(
                             )
                         }
                     },
+                    spotListExpanded = spotListExpanded,
+                    onToggleSpotList = { spotListExpanded = !spotListExpanded },
                     onSpotSelect = { _, _, spotId -> onIntent(HomeIntent.SelectItem(spotId)) },
                     onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
                     onEnterReportMode = {
@@ -779,6 +822,9 @@ private fun HomeContent(
                     },
                     onRelease = { showReleaseDialog = true },
                     onNavigateExternal = openExternalNav,
+                    onZoneDismiss = { onIntent(HomeIntent.DismissZone) },
+                    onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
+                    onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
                     onToggle = toggleSheet,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )

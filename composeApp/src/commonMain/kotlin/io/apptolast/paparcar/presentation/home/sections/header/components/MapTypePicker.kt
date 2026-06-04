@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.home.sections.header.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,11 +15,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.SatelliteAlt
 import androidx.compose.material.icons.outlined.Terrain
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,26 +35,25 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.presentation.util.MapCircleFab
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_cd_map_type
-import paparcar.composeapp.generated.resources.settings_map_type_normal
+import paparcar.composeapp.generated.resources.settings_map_type_hybrid
 import paparcar.composeapp.generated.resources.settings_map_type_satellite
 import paparcar.composeapp.generated.resources.settings_map_type_terrain
 
 /**
- * Replaces the legacy [androidx.compose.material3.DropdownMenu] map-type picker
- * with a vertical stack of circular FABs that visually echo the trigger.
+ * Vertical stack of circular FABs for picking the active map style.
  *
- * The trigger is a [MapCircleFab] with the Layers icon — same diameter as the
- * picker entries so the stack reads as a coherent column of equally-weighted
- * affordances. Tapping the trigger expands the column below; tapping outside
- * dismisses (the [Popup] is focusable).
+ * Tapping the trigger (Layers icon) slides the column down into view;
+ * tapping again or outside slides it back up. The exit animation completes
+ * before the Popup is removed, so the collapse is always visible.
  *
- * Currently the entries use the existing Material outlined icons (Map /
- * SatelliteAlt / Terrain) as placeholders. The Design System's circular
- * thumbnails for each map style will land via [ICONS-001] once assets are
- * ready — only the icon swap is needed; the surrounding structure stays.
+ * Options (in order):
+ *  1. Normal   — standard road map        (Map icon)
+ *  2. Satellite — raw aerial imagery       (SatelliteAlt icon)
+ *  3. Hybrid   — aerial + road labels      (Public/globe icon)
  */
 @Composable
 internal fun MapTypePicker(
@@ -61,6 +62,21 @@ internal fun MapTypePicker(
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    // Keep the Popup alive during the exit animation so shrinkVertically plays fully.
+    var popupVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(expanded) {
+        if (expanded) {
+            popupVisible = true
+            // popupVisible and expanded flip in the same frame → AnimatedVisibility would
+            // start already-visible and skip the enter animation. We keep popupVisible
+            // separate and let the inner LaunchedEffect(Unit) trigger entry on the next frame.
+        } else {
+            delay(EXIT_ANIM_DURATION_MS)
+            popupVisible = false
+        }
+    }
+
     val triggerContentDescription = stringResource(Res.string.home_cd_map_type)
     val popupYOffsetPx = with(LocalDensity.current) {
         (FAB_SIZE + FAB_GAP).roundToPx()
@@ -75,35 +91,39 @@ internal fun MapTypePicker(
             iconSize = FAB_ICON_SIZE,
         )
 
-        if (expanded) {
+        if (popupVisible) {
             Popup(
                 alignment = Alignment.TopStart,
                 offset = IntOffset(x = 0, y = popupYOffsetPx),
                 onDismissRequest = { expanded = false },
                 properties = PopupProperties(focusable = true),
             ) {
-                // AnimatedVisibility around the column gives an expandVertically + fade
-                // entry. The column is always laid out inside the popup; the popup itself
-                // appears/disappears with the expanded flag, but the animation happens
-                // within it so the user perceives the stack "growing out of" the trigger.
+                // animVisible starts false so the Popup composes in the hidden state.
+                // LaunchedEffect(Unit) fires on the next frame and flips it to true,
+                // letting AnimatedVisibility play the full enter animation.
+                var animVisible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) { animVisible = true }
+
                 AnimatedVisibility(
-                    visible = true,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut(),
+                    visible = animVisible && expanded,
+                    enter = expandVertically(
+                        expandFrom = Alignment.Top,
+                        animationSpec = tween(ENTER_ANIM_DURATION_MS),
+                    ) + fadeIn(animationSpec = tween(ENTER_ANIM_DURATION_MS)),
+                    exit = shrinkVertically(
+                        shrinkTowards = Alignment.Top,
+                        animationSpec = tween(EXIT_ANIM_DURATION_MS.toInt()),
+                    ) + fadeOut(animationSpec = tween(EXIT_ANIM_DURATION_MS.toInt())),
                 ) {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(FAB_GAP),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        // Selections do NOT auto-close the popup so the user can A/B
-                        // between styles without having to reopen the picker each time.
-                        // The popup dismisses on any outside tap (focusable Popup +
-                        // onDismissRequest above).
                         MapTypeStackEntry(
-                            icon = Icons.Outlined.Map,
-                            contentDescription = stringResource(Res.string.settings_map_type_normal),
-                            selected = currentType == MapType.NORMAL,
-                            onClick = { onTypeSelected(MapType.NORMAL) },
+                            icon = Icons.Outlined.Terrain,
+                            contentDescription = stringResource(Res.string.settings_map_type_terrain),
+                            selected = currentType == MapType.TERRAIN,
+                            onClick = { onTypeSelected(MapType.TERRAIN) },
                         )
                         MapTypeStackEntry(
                             icon = Icons.Outlined.SatelliteAlt,
@@ -112,10 +132,10 @@ internal fun MapTypePicker(
                             onClick = { onTypeSelected(MapType.SATELLITE) },
                         )
                         MapTypeStackEntry(
-                            icon = Icons.Outlined.Terrain,
-                            contentDescription = stringResource(Res.string.settings_map_type_terrain),
-                            selected = currentType == MapType.TERRAIN,
-                            onClick = { onTypeSelected(MapType.TERRAIN) },
+                            icon = Icons.Outlined.Public,
+                            contentDescription = stringResource(Res.string.settings_map_type_hybrid),
+                            selected = currentType == MapType.HYBRID,
+                            onClick = { onTypeSelected(MapType.HYBRID) },
                         )
                     }
                 }
@@ -131,10 +151,6 @@ private fun MapTypeStackEntry(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    // The selection ring sits OUTSIDE the FAB so the FAB's own glass surface is
-    // not visually pierced. The outer Box is FAB_SIZE + SELECTION_RING_GAP * 2
-    // and renders the primary-coloured ring only when selected; the inner
-    // MapCircleFab keeps its standard 56dp diameter.
     Box(
         modifier = Modifier
             .size(FAB_SIZE + SELECTION_RING_GAP * 2)
@@ -162,4 +178,6 @@ private val FAB_SIZE             = 56.dp
 private val FAB_ICON_SIZE        = 24.dp
 private val FAB_GAP              = 8.dp
 private val SELECTION_RING_GAP   = 3.dp
-private val SELECTION_RING_WIDTH = 2.dp
+private val SELECTION_RING_WIDTH = 1.5.dp
+private const val ENTER_ANIM_DURATION_MS = 240
+private const val EXIT_ANIM_DURATION_MS  = 200L

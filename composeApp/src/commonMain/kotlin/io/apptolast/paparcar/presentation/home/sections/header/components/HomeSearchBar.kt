@@ -22,8 +22,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import io.apptolast.paparcar.ui.components.GlassDefaults
 import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
@@ -80,9 +82,9 @@ internal fun HomeSearchBar(
     Column(modifier = modifier) {
         GlassSurface(
             shape = RoundedCornerShape(
-                topStart = 16.dp, topEnd = 16.dp,
-                bottomStart = if (results.isEmpty()) 16.dp else 0.dp,
-                bottomEnd = if (results.isEmpty()) 16.dp else 0.dp,
+                topStart = 28.dp, topEnd = 28.dp,
+                bottomStart = if (results.isEmpty()) 28.dp else 0.dp,
+                bottomEnd = if (results.isEmpty()) 28.dp else 0.dp,
             ),
             shadowElevation = FLOATING_SHADOW_ELEVATION,
             modifier = Modifier.fillMaxWidth(),
@@ -91,6 +93,7 @@ internal fun HomeSearchBar(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 placeholder = {
                     Text(stringResource(Res.string.home_search_placeholder), style = MaterialTheme.typography.bodyMedium)
                 },

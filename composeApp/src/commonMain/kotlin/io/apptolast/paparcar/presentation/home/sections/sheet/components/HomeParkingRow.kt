@@ -18,7 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChevronRight
-import androidx.compose.material.icons.outlined.DirectionsCar
+import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -120,10 +120,10 @@ internal fun HomeVehicleCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Outlined.DirectionsCar,
+                    card.vehicle.sizeCategory.icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(28.dp),
                 )
             }
 

@@ -140,7 +140,8 @@ private fun HeaderZoneChips(
             PaparcarAddChip(
                 onClick = onAddZone,
                 iconSize = CHIP_ICON_DP.dp,
-                contentPad = 8.dp,
+                horizontalPad = 8.dp,
+                verticalPad = 8.dp,
             )
         }
     }
@@ -149,7 +150,7 @@ private fun HeaderZoneChips(
 @Composable
 private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
     GlassSurface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(28.dp),
         shadowElevation = FLOATING_SHADOW_ELEVATION,
         onClick = onAddZone,
         modifier = Modifier.padding(start = 14.dp, top = 6.dp),

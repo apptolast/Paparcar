@@ -80,7 +80,7 @@ class FakeAppPreferences : AppPreferences {
     override val useImperialUnits: Boolean get() = _useImperialUnits.value
     override fun setUseImperialUnits(enabled: Boolean) { _useImperialUnits.value = enabled }
 
-    private val _defaultMapType = MutableStateFlow("NORMAL")
+    private val _defaultMapType = MutableStateFlow("TERRAIN")
     override val defaultMapType: String get() = _defaultMapType.value
     override fun setDefaultMapType(type: String) { _defaultMapType.value = type }
 

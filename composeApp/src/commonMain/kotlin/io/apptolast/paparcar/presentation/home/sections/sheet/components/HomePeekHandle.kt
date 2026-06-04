@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,20 +36,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material.icons.outlined.Campaign
-import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -59,9 +64,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,6 +92,7 @@ import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import kotlin.math.roundToInt
+import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.stateColors
 import io.apptolast.paparcar.ui.theme.vehicleStateColors
@@ -103,6 +112,7 @@ import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
 import paparcar.composeapp.generated.resources.home_parking_release
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
+import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
 import paparcar.composeapp.generated.resources.home_peek_spot_age_hour
@@ -141,9 +151,14 @@ import paparcar.composeapp.generated.resources.home_zone_icon_section
 import paparcar.composeapp.generated.resources.home_zone_name_placeholder
 import paparcar.composeapp.generated.resources.home_zone_radius_meters
 import paparcar.composeapp.generated.resources.home_zone_radius_section
+import paparcar.composeapp.generated.resources.home_spot_peek_hide_list
+import paparcar.composeapp.generated.resources.home_spot_peek_show_list
 import paparcar.composeapp.generated.resources.home_zone_save_action
 import paparcar.composeapp.generated.resources.home_zone_private_label
 import paparcar.composeapp.generated.resources.home_zone_private_hint
+import paparcar.composeapp.generated.resources.home_zone_action_delete
+import paparcar.composeapp.generated.resources.home_zone_action_edit
+import paparcar.composeapp.generated.resources.home_zone_private_badge
 
 @Composable
 internal fun HomePeekHandle(
@@ -165,6 +180,11 @@ internal fun HomePeekHandle(
     onConfirmAddParking: () -> Unit = {},
     onMoveParkingLocation: () -> Unit = {},
     onToggle: () -> Unit = {},
+    spotListExpanded: Boolean = false,
+    onToggleSpotList: () -> Unit = {},
+    onZoneDismiss: () -> Unit = {},
+    onEditZone: (zoneId: String) -> Unit = {},
+    onDeleteZone: (zoneId: String) -> Unit = {},
 ) {
     val freeCount = state.filteredNearbySpots.size
     val isParkingSelected = state.isParkingSelected
@@ -180,6 +200,7 @@ internal fun HomePeekHandle(
         state.mode is HomeMode.AddingZone -> PeekState.AddingZone
         selectedSpot != null -> PeekState.SelectedSpot(selectedSpot)
         parkingToShow != null -> PeekState.SelectedParking(parkingToShow)
+        state.selectedZone != null -> PeekState.SelectedZone(state.selectedZone!!)
         else -> PeekState.Browse
     }
 
@@ -215,12 +236,14 @@ internal fun HomePeekHandle(
                 is PeekState.SelectedSpot -> SpotPeekRow(
                     spot = target.spot,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                    userVehicleSize = state.vehicles.firstOrNull { it.isDefault }?.sizeCategory,
+                    userVehicleSize = state.vehicles.firstOrNull { it.isActive }?.sizeCategory,
                     onDismiss = onDismiss,
                     onNavigate = {
                         onNavigateExternal(target.spot.location.latitude, target.spot.location.longitude, false)
                     },
                     onRejectSpot = onRejectSpot,
+                    spotListExpanded = spotListExpanded,
+                    onToggleSpotList = onToggleSpotList,
                 )
                 is PeekState.SelectedParking -> ParkingPeekRow(
                     parking = target.parking,
@@ -232,6 +255,12 @@ internal fun HomePeekHandle(
                         onNavigateExternal(target.parking.location.latitude, target.parking.location.longitude, true)
                     },
                     onMoveLocation = onMoveParkingLocation,
+                )
+                is PeekState.SelectedZone -> ZonePeekRow(
+                    zone = target.zone,
+                    onDismiss = onZoneDismiss,
+                    onEdit = { onEditZone(target.zone.id) },
+                    onDelete = { onDeleteZone(target.zone.id) },
                 )
                 PeekState.Reporting -> ReportPeekRow(
                     state = state,
@@ -263,6 +292,7 @@ internal fun HomePeekHandle(
 private sealed class PeekState {
     data class SelectedSpot(val spot: Spot) : PeekState()
     data class SelectedParking(val parking: UserParking) : PeekState()
+    data class SelectedZone(val zone: Zone) : PeekState()
     data object Reporting : PeekState()
     data object AddingZone : PeekState()
     data class AddingParking(val isEditing: Boolean) : PeekState()
@@ -281,6 +311,8 @@ private fun SpotPeekRow(
     onDismiss: () -> Unit,
     onNavigate: () -> Unit,
     onRejectSpot: () -> Unit,
+    spotListExpanded: Boolean = false,
+    onToggleSpotList: () -> Unit = {},
 ) {
     val palette = spot.toReliabilityUiState().peekPalette()
     val distM = userLocation?.let { (uLat, uLon) ->
@@ -341,8 +373,50 @@ private fun SpotPeekRow(
                 style = PapFooterButtonStyle.Outlined,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            SpotListToggleRow(
+                expanded = spotListExpanded,
+                label = stringResource(Res.string.home_spot_peek_show_list),
+                onClick = onToggleSpotList,
+            )
         },
     )
+}
+
+@Composable
+private fun SpotListToggleRow(
+    expanded: Boolean,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(200),
+        label = "spot_list_chevron",
+    )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = TOGGLE_ROW_ALPHA),
+        )
+        Spacer(Modifier.width(4.dp))
+        Icon(
+            imageVector = Icons.Outlined.ExpandMore,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = TOGGLE_ROW_ALPHA),
+            modifier = Modifier.size(18.dp).rotate(rotation),
+        )
+    }
 }
 
 /**
@@ -351,7 +425,9 @@ private fun SpotPeekRow(
  * and the chip background tinted by reliability palette.
  */
 @Composable
-private fun SpotReliabilityBadge(palette: SpotPeekPalette) {
+private fun SpotReliabilityBadge(
+    palette: SpotPeekPalette,
+) {
     Box(
         modifier = Modifier
             .size(SPOT_BADGE_DP.dp)
@@ -659,14 +735,19 @@ private fun ParkingPeekRow(
         lon = parking.location.longitude,
     )
     val vc = vehicleStateColors()
+    val vehicleName = vehicleSummary(vehicle)
+    val headerLabel = if (vehicleName != null) {
+        stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
+    } else {
+        stringResource(Res.string.home_peek_car_parked_label)
+    }
 
     PeekStateCard(
-        headerLabel = stringResource(Res.string.home_peek_car_parked_label),
+        headerLabel = headerLabel,
         title = title,
-        subtitle = vehicleSummary(vehicle),
         accentColor = vc.bg,
         onDismiss = onDismiss,
-        leading = { PeekHeaderIconChip(icon = Icons.Filled.DirectionsCar, accentColor = vc.bg, iconTint = vc.on) },
+        leading = { PeekHeaderIconChip(icon = vehicle?.sizeCategory?.icon ?: PaparcarIcons.VehicleCar, accentColor = vc.bg, iconTint = vc.on) },
         content = {
             DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = vc.bg)
             Spacer(Modifier.height(8.dp))
@@ -679,17 +760,18 @@ private fun ParkingPeekRow(
                 leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk,
                 onClick = onWalkToCar,
                 style = PapFooterButtonStyle.Filled,
+                containerColor = vc.bg,
+                contentColor = vc.on,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
-            // "Mover ubicación" — enters AddingParking with editingParkingId
-            // so the user can re-position the parked car if auto-detection
-            // landed it wrong (or if they moved the car a tiny bit).
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_action_move_location),
                 leadingIcon = Icons.Outlined.EditLocationAlt,
                 onClick = onMoveLocation,
                 style = PapFooterButtonStyle.Outlined,
+                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
@@ -697,7 +779,7 @@ private fun ParkingPeekRow(
                 label = stringResource(Res.string.home_parking_release),
                 leadingIcon = Icons.AutoMirrored.Outlined.Logout,
                 onClick = onRelease,
-                style = PapFooterButtonStyle.Outlined,
+                style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -734,6 +816,87 @@ private fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ZonePeekRow — saved zone selected (view)
+// ═════════════════════════════════════════════════════════════════════════════
+
+@Composable
+private fun ZonePeekRow(
+    zone: Zone,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val isPrivate = zone.isPrivate
+    val accentColor = if (isPrivate) MaterialTheme.colorScheme.tertiary
+                      else MaterialTheme.colorScheme.primary
+    val accentOnColor = if (isPrivate) MaterialTheme.colorScheme.onTertiary
+                        else MaterialTheme.colorScheme.onPrimary
+
+    PeekStateCard(
+        headerLabel = zone.name,
+        title = stringResource(Res.string.home_zone_radius_meters, zone.radiusMeters.roundToInt()),
+        accentColor = accentColor,
+        onDismiss = onDismiss,
+        leading = {
+            PeekHeaderIconChip(
+                icon = zoneIconFor(zone.iconKey),
+                accentColor = accentColor,
+                iconTint = accentOnColor,
+            )
+        },
+        content = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.RadioButtonChecked,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(META_ICON_DP.dp),
+                )
+                Text(
+                    text = stringResource(Res.string.home_zone_radius_meters, zone.radiusMeters.roundToInt()),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+                )
+            }
+            if (isPrivate) {
+                Spacer(Modifier.height(8.dp))
+                HelperRow(
+                    icon = Icons.Outlined.Lock,
+                    iconTint = MaterialTheme.colorScheme.tertiary,
+                    primary = stringResource(Res.string.home_zone_private_badge),
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+        },
+        actions = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PapFooterButton(
+                    label = stringResource(Res.string.home_zone_action_edit),
+                    leadingIcon = Icons.Outlined.Edit,
+                    onClick = onEdit,
+                    style = PapFooterButtonStyle.Outlined,
+                    modifier = Modifier.weight(1f),
+                )
+                PapFooterButton(
+                    label = stringResource(Res.string.home_zone_action_delete),
+                    leadingIcon = Icons.Outlined.Delete,
+                    onClick = onDelete,
+                    style = PapFooterButtonStyle.Outlined,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        },
+    )
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -786,7 +949,7 @@ private fun AddingParkingPeekRow(
         headerLabel = headerLabel,
         title = primaryText,
         onDismiss = onCancel,
-        leading = { PeekHeaderIconChip(icon = Icons.Filled.DirectionsCar) },
+        leading = { PeekHeaderIconChip(icon = PaparcarIcons.VehicleCar) },
         content = {
             HelperRow(
                 icon = Icons.Outlined.Info,
@@ -800,7 +963,7 @@ private fun AddingParkingPeekRow(
             PapFooterButton(
                 label = ctaLabel,
                 leadingIcon = if (isEditing) Icons.Outlined.EditLocationAlt
-                              else Icons.Filled.DirectionsCar,
+                              else PaparcarIcons.VehicleCar,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
                 enabled = !state.isSavingParking && !state.isCameraMoving,
@@ -932,6 +1095,7 @@ private fun AddingZonePeekRow(
                 onValueChange = onNameChange,
                 placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 leadingIcon = {
                     Icon(
                         imageVector = zoneIconFor(state.addingZoneIconKey),
@@ -1301,7 +1465,7 @@ private fun PeekLocationSkeleton(onToggle: () -> Unit = {}) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 private const val SPOT_BADGE_DP = 44
-private const val SPOT_BADGE_ICON_DP = 24
+private const val SPOT_BADGE_ICON_DP = 30
 private const val ZONE_ICON_CHIP_DP = 40
 private const val SIZE_CHIP_RADIUS_DP = 20
 private const val WALK_DISTANCE_THRESHOLD_M = 400f
@@ -1327,3 +1491,4 @@ private const val COMPAT_BG_ALPHA = 0.12f
 private const val HELPER_BG_ALPHA = 0.5f
 private const val SECONDARY_ALPHA = 0.55f
 private const val HELPER_SECONDARY_ALPHA = SECONDARY_ALPHA
+private const val TOGGLE_ROW_ALPHA = 0.55f

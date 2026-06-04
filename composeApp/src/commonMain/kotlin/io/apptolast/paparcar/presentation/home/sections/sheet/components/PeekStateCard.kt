@@ -139,7 +139,7 @@ internal fun PeekHeaderIconChip(
             imageVector = icon,
             contentDescription = null,
             tint = iconTint,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(30.dp),
         )
     }
 }
