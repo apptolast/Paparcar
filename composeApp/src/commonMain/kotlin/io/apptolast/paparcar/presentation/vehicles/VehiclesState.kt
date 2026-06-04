@@ -9,7 +9,6 @@ data class VehiclesState(
     val vehicles: List<VehicleWithStats> = emptyList(),
     val isLoading: Boolean = true,
     val selectedVehicleIndex: Int = 0,
-    val pendingDeleteVehicleId: String? = null,
     val bluetoothConnectedVehicleId: String? = null,
     val historyCache: Map<String, HistoryState> = emptyMap(),
 ) {
@@ -24,6 +23,6 @@ data class VehiclesState(
             .map { it.vehicle }
             .let { list ->
                 list.firstOrNull { it.id == bluetoothConnectedVehicleId }
-                    ?: list.firstOrNull { it.isDefault }
+                    ?: list.firstOrNull { it.isActive }
             }
 }

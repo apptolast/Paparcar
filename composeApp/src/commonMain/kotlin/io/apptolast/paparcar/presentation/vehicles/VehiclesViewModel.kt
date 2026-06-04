@@ -12,9 +12,7 @@ import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -71,46 +69,86 @@ class VehiclesViewModel(
     }
 
     private fun observeHistory() {
+        // Load first page when selected vehicle changes (skip if already cached)
         state
             .map { it.vehicles.getOrNull(it.selectedVehicleIndex)?.vehicle?.id }
             .distinctUntilChanged()
-            .flatMapLatest { vehicleId ->
-                if (vehicleId == null) {
-                    flowOf<Pair<String?, HistoryState>>(null to HistoryState(isLoading = false))
-                } else {
-                    flow<Pair<String?, HistoryState>> {
-                        val cached = state.value.historyCache[vehicleId]
-                        val currentFilter = cached?.activeFilter ?: HistoryFilter.All
-                        if (cached == null) {
-                            emit(vehicleId to HistoryState(isLoading = true, activeFilter = currentFilter))
-                        }
-                        userParkingRepository.observeSessionsByVehicle(vehicleId).collect { sessions ->
-                            val filter = state.value.historyCache[vehicleId]?.activeFilter ?: HistoryFilter.All
-                            val nowMs = Clock.System.now().toEpochMilliseconds()
-                            emit(
-                                vehicleId to HistoryState(
-                                    isLoading = false,
-                                    sessions = sessions,
-                                    activeFilter = filter,
-                                    filteredSessions = applyHistoryFilter(sessions, filter, nowMs),
-                                    statsData = computeHistoryStats(sessions, nowMs),
-                                )
-                            )
-                        }
-                    }
+            .onEach { vehicleId ->
+                if (vehicleId == null) return@onEach
+                if (state.value.historyCache.containsKey(vehicleId)) return@onEach
+                updateState {
+                    copy(historyCache = historyCache + (vehicleId to HistoryState(isLoading = true)))
                 }
+                loadHistoryPage(vehicleId, page = 0, append = false)
             }
-            .onEach { (vehicleId, newHistoryState) ->
-                val id = vehicleId ?: return@onEach
-                updateState { copy(historyCache = historyCache + (id to newHistoryState)) }
+            .catch { e -> PaparcarLogger.e(TAG, "observeHistory vehicle switch failed", e) }
+            .launchIn(viewModelScope)
+
+        // Keep active session in sync reactively — only ended sessions are paginated
+        userParkingRepository.observeActiveSessions()
+            .onEach { allActive ->
+                val vehicleId = state.value.currentVehicleId ?: return@onEach
+                mergeActiveIntoHistory(vehicleId, allActive.filter { it.vehicleId == vehicleId })
             }
-            .catch { e ->
-                PaparcarLogger.e(TAG, "Failed to load history", e)
-                val vid = state.value.currentVehicleId ?: return@catch
-                updateState { copy(historyCache = historyCache + (vid to HistoryState(isLoading = false))) }
+            .catch { e -> PaparcarLogger.e(TAG, "observeActiveSessions failed", e) }
+            .launchIn(viewModelScope)
+    }
+
+    private fun mergeActiveIntoHistory(vehicleId: String, activeSessions: List<UserParking>) {
+        val current = state.value.historyCache[vehicleId] ?: return
+        val ended = current.sessions.filter { !it.isActive }
+        val merged = activeSessions + ended
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        updateState {
+            val updated = current.copy(
+                sessions = merged,
+                filteredSessions = applyHistoryFilter(merged, current.activeFilter, nowMs),
+                statsData = computeHistoryStats(merged, nowMs),
+            )
+            copy(historyCache = historyCache + (vehicleId to updated))
+        }
+    }
+
+    private fun loadHistoryPage(vehicleId: String, page: Int, append: Boolean) {
+        viewModelScope.launch {
+            try {
+                val offset = page * PAGE_SIZE
+                val raw = userParkingRepository.getSessionsByVehiclePaged(vehicleId, PAGE_SIZE + 1, offset)
+                val hasMore = raw.size > PAGE_SIZE
+                val newEnded = raw.take(PAGE_SIZE)
+                val current = state.value.historyCache[vehicleId] ?: HistoryState()
+                val activeSessions = userParkingRepository.observeActiveSessions().first()
+                    .filter { it.vehicleId == vehicleId }
+                val prevEnded = if (append) current.sessions.filter { !it.isActive } else emptyList()
+                val allEnded = prevEnded + newEnded
+                val merged = activeSessions + allEnded
+                val filter = current.activeFilter
+                val nowMs = Clock.System.now().toEpochMilliseconds()
+                updateState {
+                    val updated = HistoryState(
+                        isLoading = false,
+                        isLoadingNextPage = false,
+                        sessions = merged,
+                        activeFilter = filter,
+                        filteredSessions = applyHistoryFilter(merged, filter, nowMs),
+                        statsData = computeHistoryStats(merged, nowMs),
+                        hasMorePages = hasMore,
+                        currentPage = page,
+                    )
+                    copy(historyCache = historyCache + (vehicleId to updated))
+                }
+            } catch (e: Exception) {
+                PaparcarLogger.e(TAG, "Failed to load history page $page for $vehicleId", e)
+                val current = state.value.historyCache[vehicleId] ?: return@launch
+                updateState {
+                    copy(historyCache = historyCache + (vehicleId to current.copy(
+                        isLoading = false,
+                        isLoadingNextPage = false,
+                    )))
+                }
                 sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
             }
-            .launchIn(viewModelScope)
+        }
     }
 
     override fun handleIntent(intent: VehiclesIntent) {
@@ -118,19 +156,6 @@ class VehiclesViewModel(
             is VehiclesIntent.SetActiveVehicle -> setActiveVehicle(intent.vehicleId)
             is VehiclesIntent.BluetoothVehicleConnected ->
                 updateState { copy(bluetoothConnectedVehicleId = intent.vehicleId) }
-            is VehiclesIntent.RequestDeleteVehicle -> {
-                if (state.value.vehicles.size <= 1) {
-                    sendEffect(VehiclesEffect.ShowCannotDeleteLastVehicle)
-                } else {
-                    updateState { copy(pendingDeleteVehicleId = intent.vehicleId) }
-                }
-            }
-            is VehiclesIntent.DismissDeleteConfirmation ->
-                updateState { copy(pendingDeleteVehicleId = null) }
-            is VehiclesIntent.ConfirmDeleteVehicle -> {
-                updateState { copy(pendingDeleteVehicleId = null) }
-                deleteVehicle(intent.vehicleId)
-            }
             is VehiclesIntent.SelectVehicle -> updateState {
                 val clamped = intent.index.coerceIn(0, (vehicles.size - 1).coerceAtLeast(0))
                 copy(selectedVehicleIndex = clamped)
@@ -149,24 +174,24 @@ class VehiclesViewModel(
             }
             is VehiclesIntent.ViewOnMap ->
                 sendEffect(VehiclesEffect.NavigateToMap(intent.lat, intent.lon, intent.sessionId))
+            is VehiclesIntent.LoadNextHistoryPage -> {
+                val vehicleId = state.value.currentVehicleId ?: return
+                val h = state.value.historyCache[vehicleId] ?: return
+                if (!h.hasMorePages || h.isLoadingNextPage || h.isLoading) return
+                updateState {
+                    val updated = h.copy(isLoadingNextPage = true)
+                    copy(historyCache = historyCache + (vehicleId to updated))
+                }
+                loadHistoryPage(vehicleId, h.currentPage + 1, append = true)
+            }
         }
     }
 
     private fun setActiveVehicle(vehicleId: String) {
         viewModelScope.launch {
-            runCatching { vehicleRepository.setDefaultVehicle(vehicleId) }
+            runCatching { vehicleRepository.setActiveVehicle(vehicleId) }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to set default vehicle", e)
-                    sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
-                }
-        }
-    }
-
-    private fun deleteVehicle(vehicleId: String) {
-        viewModelScope.launch {
-            runCatching { vehicleRepository.deleteVehicle(vehicleId) }
-                .onFailure { e ->
-                    PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
                     sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
                 }
         }
@@ -247,6 +272,7 @@ class VehiclesViewModel(
 
     private companion object {
         const val TAG = "VehiclesViewModel"
+        const val PAGE_SIZE = 30
         const val WEEK_MS = 7L * 24 * 60 * 60 * 1000
         const val MONTHS_3_MS = 90L * 24 * 60 * 60 * 1000
         const val MIN_WEEKS_FOR_AVG = 2f

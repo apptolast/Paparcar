@@ -7,5 +7,4 @@ sealed class VehiclesEffect {
     data class NavigateToEditVehicle(val vehicleId: String) : VehiclesEffect()
     data class NavigateToMap(val lat: Double, val lon: Double, val sessionId: String = "") : VehiclesEffect()
     data class ShowError(val error: PaparcarError) : VehiclesEffect()
-    data object ShowCannotDeleteLastVehicle : VehiclesEffect()
 }

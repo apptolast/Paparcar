@@ -20,12 +20,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -76,6 +80,7 @@ import paparcar.composeapp.generated.resources.history_month_short_6
 import paparcar.composeapp.generated.resources.history_month_short_7
 import paparcar.composeapp.generated.resources.history_month_short_8
 import paparcar.composeapp.generated.resources.history_month_short_9
+import paparcar.composeapp.generated.resources.history_load_more
 import paparcar.composeapp.generated.resources.history_today
 import paparcar.composeapp.generated.resources.history_yesterday
 import kotlin.time.Instant
@@ -124,6 +129,7 @@ internal fun HistoryContent(
     contentPadding: PaddingValues,
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     onFilterSelected: (HistoryFilter) -> Unit = {},
+    onLoadMore: () -> Unit = {},
     modifier: Modifier = Modifier,
     showInternalStats: Boolean = true,
     headerSlot: (LazyListScope.() -> Unit)? = null,
@@ -135,7 +141,7 @@ internal fun HistoryContent(
     val dayFullLabels = DAY_FULL_RES.map { stringResource(it) }
 
     val allEnded = remember(state.sessions) { state.sessions.filter { !it.isActive } }
-    val weeklyStats = remember(allEnded, dayLabels) { buildWeeklyStats(allEnded, dayLabels) }
+    val weeklyStats = remember(state.sessions, dayLabels) { buildWeeklyStats(state.sessions, dayLabels) }
     val activeSession =
         remember(state.filteredSessions) { state.filteredSessions.firstOrNull { it.isActive } }
     val ended = remember(state.filteredSessions) { state.filteredSessions.filter { !it.isActive } }
@@ -166,6 +172,7 @@ internal fun HistoryContent(
                     )
                 }
             } else {
+                item(key = "chart_spacer") { Spacer(Modifier.height(8.dp)) }
                 item(key = "chart") {
                     Box(Modifier.padding(horizontal = 16.dp)) {
                         WeeklyActivityCard(data = weeklyStats)
@@ -188,6 +195,10 @@ internal fun HistoryContent(
                             )
                         }
                     }
+                }
+
+                if (!showInternalStats) {
+                    item(key = "chart_filter_gap") { Spacer(Modifier.height(8.dp)) }
                 }
 
                 stickyHeader(key = "filter_bar") {
@@ -226,10 +237,35 @@ internal fun HistoryContent(
                             is TimelineItem.Header -> DayHeaderRow(label = timelineItem.label)
                             is TimelineItem.Session -> EndedSessionTimelineNode(
                                 session = timelineItem.parking,
-                                isLast = timelineItem.isLast,
+                                isLast = timelineItem.isLast && !state.hasMorePages,
                                 isActive = false,
                                 onViewOnMap = onViewOnMap,
                             )
+                        }
+                    }
+                }
+
+                if (state.hasMorePages || state.isLoadingNextPage) {
+                    item(key = "load_more") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (state.isLoadingNextPage) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                TextButton(onClick = onLoadMore) {
+                                    Text(
+                                        text = stringResource(Res.string.history_load_more),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            }
                         }
                     }
                 }

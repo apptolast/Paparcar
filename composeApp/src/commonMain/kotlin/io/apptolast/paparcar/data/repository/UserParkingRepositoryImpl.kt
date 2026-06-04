@@ -53,6 +53,9 @@ class UserParkingRepositoryImpl(
     override suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking> =
         dao.getSessionsPaged(limit, offset).map { it.toDomain() }
 
+    override suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking> =
+        dao.getEndedSessionsByVehiclePaged(vehicleId, limit, offset).map { it.toDomain() }
+
     /**
      * Room-only clear of a specific session. Firestore reconciliation is scheduled via
      * [ParkingSyncScheduler] so this never suspends on network I/O. [PIPE-002]
@@ -62,7 +65,7 @@ class UserParkingRepositoryImpl(
         parkingSyncScheduler.scheduleClearActive(sessionId)
     }
 
-    override suspend fun syncParkingHistoryFromRemote(userId: String): Result<Unit> =
+    override suspend fun syncFromRemote(userId: String): Result<Unit> =
         runCatching {
             val remoteEntities = userProfileDataSource.getParkingHistory(userId)
                 .map { it.toEntity() }

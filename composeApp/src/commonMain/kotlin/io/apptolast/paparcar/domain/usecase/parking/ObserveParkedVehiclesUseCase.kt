@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
-import io.apptolast.paparcar.domain.model.ParkedVehicleView
+import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -13,14 +13,14 @@ import kotlinx.coroutines.flow.combine
  * session. Sessions whose [vehicleId] no longer resolves to a known vehicle are skipped
  * (e.g., user deleted the vehicle while it was parked). [MULTI-PARKING-001]
  *
- * paletteIndex is assigned by sorting vehicleIds lexicographically so the colour
- * is stable across restarts regardless of insertion order.
+ * [stableRank] is assigned by sorting vehicleIds lexicographically so the accent
+ * colour is stable across restarts regardless of insertion order.
  */
 class ObserveParkedVehiclesUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val vehicleRepository: VehicleRepository,
 ) {
-    operator fun invoke(): Flow<List<ParkedVehicleView>> =
+    operator fun invoke(): Flow<List<ParkedVehicleSummary>> =
         combine(
             userParkingRepository.observeActiveSessions(),
             vehicleRepository.observeVehicles(),
@@ -29,13 +29,13 @@ class ObserveParkedVehiclesUseCase(
             activeSessions.mapNotNull { session ->
                 val vehicleId = session.vehicleId ?: return@mapNotNull null
                 val vehicle = vehicles.find { it.id == vehicleId } ?: return@mapNotNull null
-                ParkedVehicleView(
+                ParkedVehicleSummary(
                     sessionId = session.id,
                     vehicleId = vehicleId,
                     displayName = vehicle.displayName(),
                     location = session.location,
-                    sizeCategory = session.sizeCategory,
-                    paletteIndex = sortedIds.indexOf(vehicleId).coerceAtLeast(0),
+                    sizeCategory = session.sizeCategory ?: vehicle.sizeCategory,
+                    stableRank = sortedIds.indexOf(vehicleId).coerceAtLeast(0),
                     privateZoneId = session.privateZoneId,
                 )
             }

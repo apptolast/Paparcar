@@ -12,7 +12,7 @@ interface UserParkingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(session: UserParkingEntity)
 
-    /** REPLACE-conflict bulk insert used by [UserParkingRepository.syncParkingHistoryFromRemote]. */
+    /** REPLACE-conflict bulk insert used by [UserParkingRepository.syncFromRemote]. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(sessions: List<UserParkingEntity>)
 
@@ -24,6 +24,9 @@ interface UserParkingDao {
 
     @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParkingEntity>
+
+    @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId AND isActive = 0 ORDER BY timestamp DESC LIMIT :limit OFFSET :offset")
+    suspend fun getEndedSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParkingEntity>
 
     @Query("SELECT * FROM parking_sessions ORDER BY timestamp DESC")
     fun observeAll(): Flow<List<UserParkingEntity>>
