@@ -245,6 +245,9 @@
     <string name="error_bootstrap_offline_title">Pas de connexion internet</string>
     <string name="error_bootstrap_offline_body">Paparcar a besoin d\'une connexion pour charger tes données. Vérifie ton réseau et réessaie.</string>
     <string name="error_bootstrap_retry">Réessayer</string>
+    <string name="error_bootstrap_fatal_title">Impossible de charger ton compte</string>
+    <string name="error_bootstrap_fatal_body">Une erreur est survenue lors du chargement de tes données. Reconnecte-toi.</string>
+    <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Impossible d\'enregistrer votre place de parking. Veuillez réessayer.</string>
 
     <!-- Emplacement inconnu -->

@@ -57,13 +57,8 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         firestore.collection("users").document(userId).collection("zones")
 
     override suspend fun getZones(userId: String): List<ZoneDto> =
-        runCatching {
-            zonesCollection(userId).get().documents.mapNotNull { doc ->
-                doc.toZoneDto()
-            }
-        }.getOrElse { e ->
-            PaparcarLogger.e(TAG, "getZones failed for userId=$userId", e)
-            emptyList()
+        zonesCollection(userId).get().documents.mapNotNull { doc ->
+            doc.toZoneDto()
         }
 
     override suspend fun saveZone(userId: String, zone: ZoneDto) {

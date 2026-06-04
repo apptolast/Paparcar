@@ -38,7 +38,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -170,13 +172,14 @@ fun App(
                     }
                 }
             }
-            // SplashEffect: fatal errors just redirect via auth state (sign-out is already done).
-            // Offline errors surface a dialog with a retry button.
+            // SplashEffect: offline errors surface a dialog with retry; fatal errors show a
+            // one-shot dismissible dialog (sign-out is already done, auth state drives nav).
+            var showBootstrapFatalDialog by remember { mutableStateOf(false) }
             LaunchedEffect(Unit) {
                 splashViewModel.effect.collect { effect ->
                     when (effect) {
                         is SplashEffect.ShowOfflineError -> { /* handled by BootstrapOfflineDialog below */ }
-                        is SplashEffect.ShowError -> { /* sign-out already triggered; AuthState change drives nav */ }
+                        is SplashEffect.ShowError -> showBootstrapFatalDialog = true
                     }
                 }
             }
@@ -249,6 +252,11 @@ fun App(
             if (splashState.bootstrapFailure == BootstrapFailure.Offline) {
                 BootstrapOfflineDialog(onRetry = { splashViewModel.retry() })
             }
+            // Fatal bootstrap dialog: shown when profile or data sync failed unrecoverably.
+            // The user was already signed out — dismissing navigates to login via auth state.
+            if (showBootstrapFatalDialog) {
+                BootstrapFatalDialog(onDismiss = { showBootstrapFatalDialog = false })
+            }
         }
         }
     }
@@ -263,6 +271,20 @@ private fun BootstrapOfflineDialog(onRetry: () -> Unit) {
         confirmButton = {
             TextButton(onClick = onRetry) {
                 Text(stringResource(Res.string.error_bootstrap_retry))
+            }
+        },
+    )
+}
+
+@Composable
+private fun BootstrapFatalDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(Res.string.error_bootstrap_fatal_title)) },
+        text = { Text(stringResource(Res.string.error_bootstrap_fatal_body)) },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(Res.string.error_bootstrap_fatal_dismiss))
             }
         },
     )
@@ -554,7 +576,6 @@ private fun MainAppNavigation(
                         .consumeWindowInsets(scaffoldPadding),
                 ) {
                     SettingsScreen(
-                        onNavigateBack = { navController.popBackStack() },
                         onNavigateToVehicles = { navController.navigateToTab(Routes.VEHICLES) },
                         onNavigateToAuth = { /* AuthState change triggers auth nav automatically */ },
                         themeMode = themeMode,

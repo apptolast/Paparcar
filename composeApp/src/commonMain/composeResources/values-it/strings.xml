@@ -245,6 +245,9 @@
     <string name="error_bootstrap_offline_title">Nessuna connessione internet</string>
     <string name="error_bootstrap_offline_body">Paparcar ha bisogno di una connessione per caricare i tuoi dati. Controlla la rete e riprova.</string>
     <string name="error_bootstrap_retry">Riprova</string>
+    <string name="error_bootstrap_fatal_title">Impossibile caricare il tuo account</string>
+    <string name="error_bootstrap_fatal_body">Qualcosa è andato storto durante il caricamento dei dati. Accedi di nuovo.</string>
+    <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Impossibile salvare il tuo posto auto. Riprova.</string>
 
     <!-- Indirizzo sconosciuto -->

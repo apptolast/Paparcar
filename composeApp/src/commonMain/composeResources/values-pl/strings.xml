@@ -245,6 +245,9 @@
     <string name="error_bootstrap_offline_title">Brak połączenia z internetem</string>
     <string name="error_bootstrap_offline_body">Paparcar potrzebuje połączenia, aby załadować Twoje dane. Sprawdź sieć i spróbuj ponownie.</string>
     <string name="error_bootstrap_retry">Spróbuj ponownie</string>
+    <string name="error_bootstrap_fatal_title">Nie udało się załadować konta</string>
+    <string name="error_bootstrap_fatal_body">Wystąpił błąd podczas ładowania danych. Zaloguj się ponownie.</string>
+    <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Nie udało się zapisać miejsca parkingowego. Spróbuj ponownie.</string>
 
     <!-- Address fallback -->

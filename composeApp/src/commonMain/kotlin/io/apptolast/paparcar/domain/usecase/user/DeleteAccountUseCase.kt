@@ -8,10 +8,11 @@ import io.apptolast.paparcar.domain.repository.UserScopedRepository
  * Cascading account deletion. Clears all user-scoped repositories in order,
  * then wipes the community spot cache, then deletes the auth account.
  *
- * [userScopedRepos] is an ordered list — currently:
+ * [userScopedRepos] is an ordered list — currently wired in DomainModule as:
  * UserParkingRepository, VehicleRepository, UserProfileRepository, ZoneRepository.
- * Adding a new user-scoped repository only requires registering it in the Koin
- * binding list; this use case does not need to change. [GDPR right-to-erasure]
+ * Order matters: [getOrThrow] is fail-fast, so a failure stops the remaining repos.
+ * Adding a new user-scoped repository requires both implementing [UserScopedRepository]
+ * AND adding it to the list in DomainModule. [GDPR right-to-erasure]
  */
 class DeleteAccountUseCase(
     private val authRepository: AuthRepository,

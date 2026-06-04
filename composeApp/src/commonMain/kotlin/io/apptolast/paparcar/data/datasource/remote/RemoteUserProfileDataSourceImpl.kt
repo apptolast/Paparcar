@@ -56,21 +56,14 @@ class RemoteUserProfileDataSourceImpl(
     }
 
     override suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto> =
-        runCatching {
-            parkingHistoryCollection(userId)
-                .get()
-                .documents
-                .mapNotNull { it.toParkingHistoryDto() }
-        }.getOrElse { emptyList() }
+        parkingHistoryCollection(userId)
+            .get()
+            .documents
+            .mapNotNull { it.toParkingHistoryDto() }
 
     override suspend fun getVehicles(userId: String): List<VehicleDto> =
-        runCatching {
-            vehiclesCollection(userId).get().documents.mapNotNull { doc ->
-                doc.toVehicleDto()
-            }
-        }.getOrElse { e ->
-            PaparcarLogger.e(TAG, "getVehicles failed — userId=$userId", e)
-            emptyList()
+        vehiclesCollection(userId).get().documents.mapNotNull { doc ->
+            doc.toVehicleDto()
         }
 
     override suspend fun saveVehicle(userId: String, vehicle: VehicleDto) {

@@ -245,6 +245,9 @@
     <string name="error_bootstrap_offline_title">Sem ligação à internet</string>
     <string name="error_bootstrap_offline_body">O Paparcar precisa de ligação para carregar os teus dados. Verifica a rede e tenta novamente.</string>
     <string name="error_bootstrap_retry">Tentar novamente</string>
+    <string name="error_bootstrap_fatal_title">Não foi possível carregar a tua conta</string>
+    <string name="error_bootstrap_fatal_body">Ocorreu um erro ao carregar os teus dados. Por favor, inicia sessão novamente.</string>
+    <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Não foi possível guardar o teu lugar de estacionamento. Tenta novamente.</string>
 
     <!-- Localização desconhecida -->
