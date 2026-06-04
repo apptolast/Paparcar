@@ -75,7 +75,7 @@ class FakeUserParkingRepository(
         return Result.success(Unit)
     }
 
-    override suspend fun syncParkingHistoryFromRemote(userId: String): Result<Unit> {
+    override suspend fun syncFromRemote(userId: String): Result<Unit> {
         syncCallCount++
         return syncResult
     }

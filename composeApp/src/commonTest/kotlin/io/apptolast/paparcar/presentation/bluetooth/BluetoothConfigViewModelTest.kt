@@ -7,7 +7,9 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
+import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.fakes.FakeBluetoothScanner
+import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -37,11 +39,12 @@ class BluetoothConfigViewModelTest {
         model = "Yaris",
         sizeCategory = VehicleSize.SMALL,
         bluetoothDeviceId = btDeviceId,
-        isDefault = true,
+        isActive = true,
     )
 
     private lateinit var vehicleRepo: FakeVehicleRepository
     private lateinit var scanner: FakeBluetoothScanner
+    private lateinit var permissionManager: FakePermissionManager
     private lateinit var vm: BluetoothConfigViewModel
 
     @BeforeTest
@@ -49,7 +52,10 @@ class BluetoothConfigViewModelTest {
         Dispatchers.setMain(testDispatcher)
         scanner = FakeBluetoothScanner(pairedDevices = listOf(btDevice))
         vehicleRepo = FakeVehicleRepository(defaultVehicle = vehicle())
-        vm = BluetoothConfigViewModel(vehicleId, scanner, vehicleRepo)
+        permissionManager = FakePermissionManager().also {
+            it.emit(AppPermissionState(hasBluetoothConnectPermission = true))
+        }
+        vm = BluetoothConfigViewModel(vehicleId, scanner, vehicleRepo, permissionManager)
     }
 
     @AfterTest
@@ -73,7 +79,7 @@ class BluetoothConfigViewModelTest {
     @Test
     fun `should_set_currentDeviceAddress_from_vehicle_on_init`() = runTest {
         val repoWithBt = FakeVehicleRepository(defaultVehicle = vehicle(btDeviceId = btDevice.address))
-        val vmWithBt = BluetoothConfigViewModel(vehicleId, scanner, repoWithBt)
+        val vmWithBt = BluetoothConfigViewModel(vehicleId, scanner, repoWithBt, permissionManager)
         assertEquals(btDevice.address, vmWithBt.state.value.currentDeviceAddress)
     }
 
@@ -85,7 +91,7 @@ class BluetoothConfigViewModelTest {
             sizeCategory = VehicleSize.MEDIUM,
         )
         val repo = FakeVehicleRepository(defaultVehicle = noNameVehicle)
-        val vmNoName = BluetoothConfigViewModel(vehicleId, scanner, repo)
+        val vmNoName = BluetoothConfigViewModel(vehicleId, scanner, repo, permissionManager)
         assertEquals(vehicleId, vmNoName.state.value.vehicleName)
     }
 
@@ -113,7 +119,7 @@ class BluetoothConfigViewModelTest {
     @Test
     fun `hasChanges_false_when_selected_equals_current`() = runTest {
         val repoWithBt = FakeVehicleRepository(defaultVehicle = vehicle(btDeviceId = btDevice.address))
-        val vmWithBt = BluetoothConfigViewModel(vehicleId, scanner, repoWithBt)
+        val vmWithBt = BluetoothConfigViewModel(vehicleId, scanner, repoWithBt, permissionManager)
         vmWithBt.handleIntent(BluetoothConfigIntent.SelectDevice(btDevice.address))
         assertFalse(vmWithBt.state.value.hasChanges)
     }

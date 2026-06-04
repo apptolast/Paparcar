@@ -95,7 +95,7 @@ class SplashViewModelTest {
         id = "v-1",
         userId = "user-1",
         sizeCategory = VehicleSize.MEDIUM,
-        isDefault = true,
+        isActive = true,
     )
 
     // ── isReady ───────────────────────────────────────────────────────────────

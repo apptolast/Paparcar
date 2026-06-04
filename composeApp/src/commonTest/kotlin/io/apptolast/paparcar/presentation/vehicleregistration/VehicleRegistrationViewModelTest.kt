@@ -37,7 +37,7 @@ class VehicleRegistrationViewModelTest {
         brand = "Toyota",
         model = "Corolla",
         sizeCategory = VehicleSize.MEDIUM,
-        isDefault = true,
+        isActive = true,
     )
 
     @BeforeTest
@@ -101,7 +101,7 @@ class VehicleRegistrationViewModelTest {
         vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
         vm.handleIntent(VehicleRegistrationIntent.Save)
 
-        val saved = vehicleRepo.observeDefaultVehicle().first()
+        val saved = vehicleRepo.observeActiveVehicle().first()
         assertEquals("Ibiza", saved?.model)
     }
 
@@ -111,7 +111,7 @@ class VehicleRegistrationViewModelTest {
         vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.MEDIUM))
         vm.handleIntent(VehicleRegistrationIntent.Save)
 
-        assertNull(vehicleRepo.observeDefaultVehicle().first()?.brand)
+        assertNull(vehicleRepo.observeActiveVehicle().first()?.brand)
     }
 
     // ── Save — validation failure ─────────────────────────────────────────────

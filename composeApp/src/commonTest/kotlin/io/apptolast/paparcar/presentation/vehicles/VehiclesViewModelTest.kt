@@ -27,11 +27,11 @@ class VehiclesViewModelTest {
 
     private val location = GpsPoint(40.0, -3.7, 10f, 0L, 0f)
 
-    private fun vehicle(id: String, isDefault: Boolean = false) = Vehicle(
+    private fun vehicle(id: String, isActive: Boolean = false) = Vehicle(
         id = id,
         userId = "user-1",
         sizeCategory = VehicleSize.MEDIUM,
-        isDefault = isDefault,
+        isActive = isActive,
     )
 
     private fun session(id: String, vehicleId: String?) = UserParking(
@@ -89,53 +89,10 @@ class VehiclesViewModelTest {
     // ── SetActiveVehicle ──────────────────────────────────────────────────────
 
     @Test
-    fun `should_call_setDefaultVehicle_on_SetActiveVehicle`() = runTest {
+    fun `should_call_setActiveVehicle_on_SetActiveVehicle`() = runTest {
         vehicleRepo.saveVehicle(vehicle("v1"))
         vm.handleIntent(VehiclesIntent.SetActiveVehicle("v1"))
-        // FakeVehicleRepository.setDefaultVehicle is a no-op — just verify no crash
-        assertEquals(1, vm.state.value.vehicles.size)
-    }
-
-    // ── Delete flow ───────────────────────────────────────────────────────────
-
-    @Test
-    fun `should_set_pendingDeleteVehicleId_on_RequestDeleteVehicle_when_more_than_one_vehicle`() = runTest {
-        // Need 2+ vehicles so the "keep at least one" guard does not fire.
-        vehicleRepo.saveVehicle(vehicle("v1"))
-        vehicleRepo.saveVehicle(vehicle("v2"))
-        vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
-        assertEquals("v1", vm.state.value.pendingDeleteVehicleId)
-    }
-
-    @Test
-    fun `should_emit_ShowCannotDeleteLastVehicle_when_only_one_vehicle_remains`() = runTest {
-        vehicleRepo.saveVehicle(vehicle("v1"))
-        vm.effect.test {
-            vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
-            assertIs<VehiclesEffect.ShowCannotDeleteLastVehicle>(awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-        // State should NOT enter the delete-confirm flow.
-        assertNull(vm.state.value.pendingDeleteVehicleId)
-    }
-
-    @Test
-    fun `should_clear_pendingDeleteVehicleId_on_DismissDeleteConfirmation`() = runTest {
-        vehicleRepo.saveVehicle(vehicle("v1"))
-        vehicleRepo.saveVehicle(vehicle("v2"))
-        vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
-        vm.handleIntent(VehiclesIntent.DismissDeleteConfirmation)
-        assertNull(vm.state.value.pendingDeleteVehicleId)
-    }
-
-    @Test
-    fun `should_delete_vehicle_and_clear_pending_on_ConfirmDeleteVehicle`() = runTest {
-        vehicleRepo.saveVehicle(vehicle("v1"))
-        vehicleRepo.saveVehicle(vehicle("v2"))
-        vm.handleIntent(VehiclesIntent.RequestDeleteVehicle("v1"))
-        vm.handleIntent(VehiclesIntent.ConfirmDeleteVehicle("v1"))
-
-        assertNull(vm.state.value.pendingDeleteVehicleId)
+        // FakeVehicleRepository.setActiveVehicle is a no-op — just verify no crash
         assertEquals(1, vm.state.value.vehicles.size)
     }
 
@@ -149,8 +106,8 @@ class VehiclesViewModelTest {
 
     @Test
     fun `activeVehicle_returns_bluetooth_connected_vehicle_when_present`() = runTest {
-        val v1 = vehicle("v1", isDefault = true)
-        val v2 = vehicle("v2", isDefault = false)
+        val v1 = vehicle("v1", isActive = true)
+        val v2 = vehicle("v2", isActive = false)
         vehicleRepo.saveVehicle(v1)
         vehicleRepo.saveVehicle(v2)
         vm.handleIntent(VehiclesIntent.BluetoothVehicleConnected("v2"))

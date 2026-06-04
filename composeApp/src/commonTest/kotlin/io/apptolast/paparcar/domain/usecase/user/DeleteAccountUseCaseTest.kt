@@ -5,6 +5,7 @@ import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeUserProfileRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
+import io.apptolast.paparcar.fakes.FakeZoneRepository
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,8 +20,13 @@ class DeleteAccountUseCaseTest {
         val parking = FakeUserParkingRepository()
         val vehicles = FakeVehicleRepository()
         val profile = FakeUserProfileRepository()
+        val zones = FakeZoneRepository()
         val spots = FakeSpotRepository()
-        val useCase get() = DeleteAccountUseCase(auth, parking, vehicles, profile, spots)
+        val useCase get() = DeleteAccountUseCase(
+            authRepository = auth,
+            userScopedRepos = listOf(parking, vehicles, profile, zones),
+            spotRepository = spots,
+        )
     }
 
     // ── Happy path ────────────────────────────────────────────────────────────

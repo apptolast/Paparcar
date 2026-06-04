@@ -1,14 +1,10 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package io.apptolast.paparcar.presentation.settings
 
 import com.apptolast.customlogin.domain.AuthRepository
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.appVersion as platformAppVersion
 import io.apptolast.paparcar.core.crash.CrashReporter
-import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.preferences.AppPreferences
-import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -17,16 +13,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
-import kotlin.time.Instant
 
 class SettingsViewModel(
     private val prefs: AppPreferences,
     private val authRepository: AuthRepository,
     private val userProfileRepository: UserProfileRepository,
-    private val userParkingRepository: UserParkingRepository,
     private val deleteAccountUseCase: DeleteAccountUseCase,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
@@ -43,34 +34,6 @@ class SettingsViewModel(
                     .launchIn(viewModelScope)
             }
         }
-        // Aggregate stats across every vehicle for the profile card. Computed
-        // here (not in a separate use case) because the rule is tiny and only
-        // used by Settings — extracting now would be premature.
-        userParkingRepository.observeAllSessions()
-            .onEach { sessions -> updateState { copy(profileStats = computeProfileStats(sessions)) } }
-            .catch { e -> PaparcarLogger.w(TAG, "Failed to observe all sessions", e) }
-            .launchIn(viewModelScope)
-    }
-
-    private fun computeProfileStats(sessions: List<UserParking>): ProfileStats? {
-        if (sessions.isEmpty()) return null
-        val nowLocal = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds())
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-        val thisMonth = sessions.count { s ->
-            val dt = Instant.fromEpochMilliseconds(s.location.timestamp)
-                .toLocalDateTime(TimeZone.currentSystemDefault())
-            dt.year == nowLocal.year && dt.month == nowLocal.month
-        }
-        val reliabilityValues = sessions
-            .filter { !it.isActive }
-            .mapNotNull { it.detectionReliability }
-        val avgReliabilityPct = if (reliabilityValues.isEmpty()) null
-            else (reliabilityValues.sum() / reliabilityValues.size * PERCENT).toInt()
-        return ProfileStats(
-            totalSessions = sessions.size,
-            thisMonthSessions = thisMonth,
-            avgReliabilityPct = avgReliabilityPct,
-        )
     }
 
     /**
@@ -167,18 +130,19 @@ class SettingsViewModel(
         const val TAG = "SettingsViewModel"
         const val MAP_TYPE_SATELLITE = "SATELLITE"
         const val MAP_TYPE_TERRAIN = "TERRAIN"
-        const val PERCENT = 100f
+        const val MAP_TYPE_HYBRID = "HYBRID"
     }
 
     private fun String.toMapType(): MapType = when (this) {
         MAP_TYPE_SATELLITE -> MapType.SATELLITE
+        MAP_TYPE_HYBRID -> MapType.HYBRID
         MAP_TYPE_TERRAIN -> MapType.TERRAIN
-        else -> MapType.NORMAL
+        else -> MapType.TERRAIN
     }
 
     private fun MapType.toPreferenceString(): String = when (this) {
         MapType.SATELLITE -> MAP_TYPE_SATELLITE
-        MapType.TERRAIN -> MAP_TYPE_TERRAIN
-        else -> "NORMAL"
+        MapType.HYBRID -> MAP_TYPE_HYBRID
+        else -> MAP_TYPE_TERRAIN
     }
 }

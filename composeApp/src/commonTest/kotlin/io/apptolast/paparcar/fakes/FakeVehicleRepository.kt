@@ -18,9 +18,9 @@ class FakeVehicleRepository(
 
     override fun observeVehicles(): Flow<List<Vehicle>> = _vehicles
 
-    override fun observeDefaultVehicle(): Flow<Vehicle?> = _defaultVehicle
+    override fun observeActiveVehicle(): Flow<Vehicle?> = _defaultVehicle
 
-    override suspend fun getDefaultVehicle(userId: String): Vehicle? = _defaultVehicle.value
+    override suspend fun getActiveVehicle(userId: String): Vehicle? = _defaultVehicle.value
 
     override suspend fun getVehicleById(userId: String, vehicleId: String): Vehicle? =
         _vehicles.value.firstOrNull { it.id == vehicleId && it.userId == userId }
@@ -54,7 +54,7 @@ class FakeVehicleRepository(
         if (_defaultVehicle.value?.id == id) _defaultVehicle.value = null
     }
 
-    override suspend fun setDefaultVehicle(id: String) {}
+    override suspend fun setActiveVehicle(id: String) {}
 
     override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?) {}
 

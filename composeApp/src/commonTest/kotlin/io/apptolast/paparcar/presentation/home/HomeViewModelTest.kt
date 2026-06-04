@@ -19,10 +19,7 @@ import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
-import io.apptolast.paparcar.domain.usecase.zone.DeleteZoneUseCase
-import io.apptolast.paparcar.domain.usecase.zone.ObserveZonesUseCase
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
-import io.apptolast.paparcar.domain.usecase.zone.UpdateZoneUseCase
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAppPreferences
@@ -71,7 +68,7 @@ class HomeViewModelTest {
     private lateinit var reportScheduler: FakeReportSpotScheduler
     private lateinit var vm: HomeViewModel
 
-    private fun buildVm(initialMapType: String = "NORMAL"): HomeViewModel {
+    private fun buildVm(initialMapType: String = "TERRAIN"): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
         val geocoder = FakeGeocoderDataSource()
         val places = FakePlacesDataSource()
@@ -116,10 +113,8 @@ class HomeViewModelTest {
             appPreferences = prefs,
             sendSpotSignal = sendSpotSignal,
             connectivityObserver = connectivity,
-            observeZones = ObserveZonesUseCase(zoneRepo),
+            zoneRepository = zoneRepo,
             saveZone = SaveZoneUseCase(zoneRepo, authRepo),
-            updateZone = UpdateZoneUseCase(zoneRepo),
-            deleteZone = DeleteZoneUseCase(zoneRepo),
             vehicleRepository = vehicleRepo,
         )
     }
@@ -147,8 +142,8 @@ class HomeViewModelTest {
     // ── Init — map type from preferences ─────────────────────────────────────
 
     @Test
-    fun `should_apply_normal_mapType_from_preferences_by_default`() = runTest {
-        assertEquals(MapType.NORMAL, vm.state.value.mapType)
+    fun `should_apply_terrain_mapType_from_preferences_by_default`() = runTest {
+        assertEquals(MapType.TERRAIN, vm.state.value.mapType)
     }
 
     @Test
@@ -364,9 +359,9 @@ class HomeViewModelTest {
 
     @Test
     fun `should_not_update_preferences_when_same_mapType_set`() = runTest {
-        vm.handleIntent(HomeIntent.SetMapType(MapType.NORMAL))
+        vm.handleIntent(HomeIntent.SetMapType(MapType.TERRAIN))
         // First SetMapType with same value as init — prefs should remain untouched
-        assertEquals("NORMAL", prefs.defaultMapType)
+        assertEquals("TERRAIN", prefs.defaultMapType)
         // Verify by switching and switching back
         vm.handleIntent(HomeIntent.SetMapType(MapType.SATELLITE))
         val countAfterFirst = prefs.defaultMapType

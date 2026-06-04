@@ -27,7 +27,7 @@ class NotifyParkingConfirmationUseCaseTest {
         model = model,
         sizeCategory = VehicleSize.MEDIUM,
         bluetoothDeviceId = null,
-        isDefault = true,
+        isActive = true,
     )
 
     // ── Confidence routing ────────────────────────────────────────────────────

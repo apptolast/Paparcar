@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.presentation.settings
 
 import androidx.compose.foundation.BorderStroke
+import io.apptolast.paparcar.ui.theme.PapBorders
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +24,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Email
@@ -96,7 +96,6 @@ import paparcar.composeapp.generated.resources.settings_delete_account_cancel
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_action
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_message
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_title
-import paparcar.composeapp.generated.resources.history_stat_this_month
 import paparcar.composeapp.generated.resources.settings_distance_unit
 import paparcar.composeapp.generated.resources.settings_distance_unit_desc
 import paparcar.composeapp.generated.resources.settings_language
@@ -104,11 +103,10 @@ import paparcar.composeapp.generated.resources.settings_language_auto
 import paparcar.composeapp.generated.resources.settings_language_desc
 import paparcar.composeapp.generated.resources.settings_licenses
 import paparcar.composeapp.generated.resources.settings_map_type
-import paparcar.composeapp.generated.resources.settings_map_type_normal
+import paparcar.composeapp.generated.resources.settings_map_type_desc
+import paparcar.composeapp.generated.resources.settings_map_type_hybrid
 import paparcar.composeapp.generated.resources.settings_map_type_satellite
 import paparcar.composeapp.generated.resources.settings_map_type_terrain
-import paparcar.composeapp.generated.resources.settings_nav_my_car
-import paparcar.composeapp.generated.resources.settings_nav_my_car_desc
 import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_notif_parking_desc
 import paparcar.composeapp.generated.resources.settings_notif_spot
@@ -132,8 +130,6 @@ import paparcar.composeapp.generated.resources.settings_theme_mode_light
 import paparcar.composeapp.generated.resources.settings_theme_mode_system
 import paparcar.composeapp.generated.resources.settings_title
 import paparcar.composeapp.generated.resources.settings_version
-import paparcar.composeapp.generated.resources.vehicle_stats_reliability
-import paparcar.composeapp.generated.resources.vehicle_stats_sessions
 
 /**
  * Settings v2 — visual refresh (Phase A).
@@ -262,7 +258,6 @@ internal fun SettingsContent(
                         ?: stringResource(Res.string.settings_profile_name_placeholder),
                     email = state.userProfile?.email,
                     createdAtMs = state.userProfile?.createdAt,
-                    stats = state.profileStats,
                     onLogout = { onIntent(SettingsIntent.Logout) },
                 )
             }
@@ -317,14 +312,6 @@ internal fun SettingsContent(
                     description = stringResource(Res.string.settings_auto_detect_desc),
                     checked = state.autoDetectParking,
                     onCheckedChange = { onIntent(SettingsIntent.ToggleAutoDetect(it)) },
-                )
-            }
-            item {
-                SettingsNavItem(
-                    icon = Icons.Outlined.Bluetooth,
-                    label = stringResource(Res.string.settings_nav_my_car),
-                    description = stringResource(Res.string.settings_nav_my_car_desc),
-                    onClick = { onIntent(SettingsIntent.NavigateToVehicles) },
                 )
             }
 
@@ -425,7 +412,6 @@ private fun ProfileCardV2(
     displayName: String,
     email: String?,
     createdAtMs: Long?,
-    stats: ProfileStats?,
     onLogout: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -433,7 +419,7 @@ private fun ProfileCardV2(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -480,13 +466,6 @@ private fun ProfileCardV2(
                 }
             }
 
-            // Aggregated stats row. Only rendered when there's at least one
-            // session across every vehicle — hides cleanly on first launch.
-            if (stats != null) {
-                Spacer(Modifier.size(14.dp))
-                ProfileStatsRow(stats)
-            }
-
             // Logout outlined
             Spacer(Modifier.size(16.dp))
             OutlinedButton(
@@ -504,54 +483,6 @@ private fun ProfileCardV2(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ProfileStatsRow(stats: ProfileStats) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ProfileStatTile(
-            value = stats.totalSessions.toString(),
-            label = stringResource(Res.string.vehicle_stats_sessions),
-            modifier = Modifier.weight(1f),
-        )
-        ProfileStatTile(
-            value = stats.thisMonthSessions.toString(),
-            label = stringResource(Res.string.history_stat_this_month),
-            modifier = Modifier.weight(1f),
-        )
-        ProfileStatTile(
-            value = stats.avgReliabilityPct?.let { "$it%" } ?: "—",
-            label = stringResource(Res.string.vehicle_stats_reliability),
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun ProfileStatTile(value: String, label: String, modifier: Modifier = Modifier) {
-    val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(PROFILE_STAT_CORNER_DP.dp),
-        color = cs.primaryContainer,
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                value,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = cs.onPrimaryContainer,
-            )
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall,
-                color = cs.onPrimaryContainer.copy(alpha = PROFILE_STAT_LABEL_ALPHA),
-            )
         }
     }
 }
@@ -590,7 +521,7 @@ private fun ThemePickerCard(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) 
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -659,7 +590,7 @@ private fun ThemePreview(
                 .aspectRatio(THEME_PREVIEW_RATIO),
             shape = RoundedCornerShape(10.dp),
             color = bg,
-            border = BorderStroke(if (selected) 2.dp else 1.dp, borderColor),
+            border = BorderStroke(if (selected) PapBorders.strong else PapBorders.thin, borderColor),
         ) {
             if (mode == ThemeMode.SYSTEM) {
                 // diagonal split light/dark
@@ -709,7 +640,7 @@ private fun MapTypePickerCard(selected: MapType, onSelect: (MapType) -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -718,14 +649,19 @@ private fun MapTypePickerCard(selected: MapType, onSelect: (MapType) -> Unit) {
                 fontWeight = FontWeight.SemiBold,
                 color = cs.onSurface,
             )
+            Text(
+                stringResource(Res.string.settings_map_type_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+            )
             Spacer(Modifier.size(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MapTypeThumb(
-                    selected = selected == MapType.NORMAL,
-                    label = stringResource(Res.string.settings_map_type_normal),
-                    onClick = { onSelect(MapType.NORMAL) },
-                    gradient = Brush.linearGradient(listOf(MAP_NORMAL_A, MAP_NORMAL_B)),
-                    stripeColor = Color.White,
+                    selected = selected == MapType.TERRAIN,
+                    label = stringResource(Res.string.settings_map_type_terrain),
+                    onClick = { onSelect(MapType.TERRAIN) },
+                    gradient = Brush.linearGradient(listOf(MAP_TERRAIN_A, MAP_TERRAIN_B)),
+                    stripeColor = MAP_TERRAIN_STRIPE,
                     modifier = Modifier.weight(1f),
                 )
                 MapTypeThumb(
@@ -737,11 +673,11 @@ private fun MapTypePickerCard(selected: MapType, onSelect: (MapType) -> Unit) {
                     modifier = Modifier.weight(1f),
                 )
                 MapTypeThumb(
-                    selected = selected == MapType.TERRAIN,
-                    label = stringResource(Res.string.settings_map_type_terrain),
-                    onClick = { onSelect(MapType.TERRAIN) },
-                    gradient = Brush.linearGradient(listOf(MAP_TERRAIN_A, MAP_TERRAIN_B)),
-                    stripeColor = MAP_TERRAIN_STRIPE,
+                    selected = selected == MapType.HYBRID,
+                    label = stringResource(Res.string.settings_map_type_hybrid),
+                    onClick = { onSelect(MapType.HYBRID) },
+                    gradient = Brush.linearGradient(listOf(MAP_SAT_A, MAP_SAT_B, MAP_SAT_C)),
+                    stripeColor = Color.White,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -831,7 +767,7 @@ private fun NotificationsGroupCard(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column {
             Row(
@@ -972,7 +908,7 @@ private fun SettingsSwitchItem(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -996,7 +932,7 @@ private fun SettingsInfoItem(icon: ImageVector, label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -1023,7 +959,7 @@ private fun SettingsNavItem(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -1082,14 +1018,14 @@ private fun SettingsDropdownItem(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
             Row(
                 modifier = Modifier
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.Top,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 SettingsIconBox(icon = icon)
@@ -1128,11 +1064,8 @@ private fun SettingsDropdownItem(
 // Tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
-private const val TITLE_LETTER_SPACING_SP = -0.5
 private const val SECTION_LABEL_TRACKING_SP = 1.2
 private const val AVATAR_DP = 56
-private const val PROFILE_STAT_CORNER_DP = 10
-private const val PROFILE_STAT_LABEL_ALPHA = 0.7f
 
 private const val THEME_PREVIEW_RATIO = 0.85f
 
@@ -1152,8 +1085,6 @@ private val THEME_LIGHT_SURFACE = Color(0xFFFFFFFF)
 private val THEME_DARK_BG = Color(0xFF0D1C14)
 private val THEME_DARK_SURFACE = Color(0xFF0F2218)
 
-private val MAP_NORMAL_A = Color(0xFFE8EEE6)
-private val MAP_NORMAL_B = Color(0xFFCEE3CB)
 private val MAP_SAT_A = Color(0xFF2D3B2D)
 private val MAP_SAT_B = Color(0xFF4A5942)
 private val MAP_SAT_C = Color(0xFF6B7B5C)

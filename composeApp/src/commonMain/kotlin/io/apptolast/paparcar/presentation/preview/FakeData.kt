@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
@@ -237,33 +238,61 @@ internal object FakeData {
 
     // ── Vehicles ──────────────────────────────────────────────────────────────
 
+    /** Default vehicle — no BT, Coordinator detection. Most-used. */
     val vehicleSedan = Vehicle(
         id = "v1",
+        userId = "user-1",
+        name = "Mi Seat",
+        brand = "Seat",
+        model = "León",
+        sizeCategory = VehicleSize.MEDIUM,
+        vehicleType = VehicleType.CAR,
+        isActive = true,
+    )
+
+    /** BT-configured vehicle — BluetoothDetectionStrategy. Currently parked (has active session). */
+    val vehicleCorolla = Vehicle(
+        id = "v2",
         userId = "user-1",
         brand = "Toyota",
         model = "Corolla",
         sizeCategory = VehicleSize.MEDIUM,
-        isDefault = true,
+        vehicleType = VehicleType.CAR,
+        bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+        showBrandModelOnSpot = true,
     )
 
-    val vehicleVan = Vehicle(
-        id = "v2",
+    /** Motorcycle — no BT, manual detection only. Rarely used. */
+    val vehicleMoto = Vehicle(
+        id = "v3",
         userId = "user-1",
+        name = "La Moto",
+        brand = "Honda",
+        model = "CBR 600",
+        sizeCategory = VehicleSize.MOTO,
+        vehicleType = VehicleType.MOTORCYCLE,
+    )
+
+    /** Van with BT — BluetoothDetectionStrategy. Moderate use. */
+    val vehicleVan = Vehicle(
+        id = "v4",
+        userId = "user-1",
+        name = "Furgoneta",
         brand = "Ford",
         model = "Transit",
         sizeCategory = VehicleSize.VAN,
-        bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+        vehicleType = VehicleType.CAR,
+        bluetoothDeviceId = "11:22:33:44:55:66",
     )
 
-    val vehicleNoName = Vehicle(
-        id = "v3",
-        userId = "user-1",
-        sizeCategory = VehicleSize.MOTO,
-    )
+    /** Kept for backwards-compat with previews that reference this name. */
+    val vehicleNoName = vehicleMoto
 
     val vehiclesWithStats = listOf(
-        VehicleWithStats(vehicle = vehicleSedan, sessionCount = 5, lastSession = null),
-        VehicleWithStats(vehicle = vehicleVan, sessionCount = 2, lastSession = null),
+        VehicleWithStats(vehicle = vehicleSedan, sessionCount = 65, lastSession = endedSessions.firstOrNull()),
+        VehicleWithStats(vehicle = vehicleCorolla, sessionCount = 46, lastSession = activeSession),
+        VehicleWithStats(vehicle = vehicleMoto, sessionCount = 12, lastSession = endedSessions.lastOrNull()),
+        VehicleWithStats(vehicle = vehicleVan, sessionCount = 18, lastSession = endedSessions.getOrNull(2)),
     )
 
     // ── Bluetooth devices ─────────────────────────────────────────────────────

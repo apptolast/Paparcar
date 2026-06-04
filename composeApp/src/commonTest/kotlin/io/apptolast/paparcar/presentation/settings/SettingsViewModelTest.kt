@@ -56,7 +56,7 @@ class SettingsViewModelTest {
 
     private fun buildVm(customPrefs: FakeAppPreferences = prefs): SettingsViewModel {
         val useCase = DeleteAccountUseCase(auth, parking, vehicles, profile, spots)
-        return SettingsViewModel(customPrefs, auth, profile, parking, useCase)
+        return SettingsViewModel(customPrefs, auth, profile, useCase)
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
