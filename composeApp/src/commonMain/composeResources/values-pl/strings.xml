@@ -19,7 +19,12 @@
     <string name="home_nav_your_car">Twój samochód</string>
     <string name="home_nav_free_spot">Wolne miejsce</string>
     <string name="home_feed_nearby">W pobliżu</string>
-    <string name="home_feed_nearby_with_count">%1$d wolnych miejsc w pobliżu</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d wolne miejsce w pobliżu</item>
+        <item quantity="few">%1$d wolne miejsca w pobliżu</item>
+        <item quantity="many">%1$d wolnych miejsc w pobliżu</item>
+        <item quantity="other">%1$d wolnych miejsc w pobliżu</item>
+    </plurals>
     <string name="home_feed_activity">Ostatnia aktywność</string>
     <string name="home_permissions_message">Włącz lokalizację, aby zobaczyć miejsca w pobliżu</string>
     <string name="home_permissions_button">Włącz uprawnienia</string>
@@ -108,7 +113,12 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Aktywność tygodniowa</string>
-    <string name="history_weekly_subtitle">parkowań w tym tygodniu</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">parkowanie w tym tygodniu</item>
+        <item quantity="few">parkowania w tym tygodniu</item>
+        <item quantity="many">parkowań w tym tygodniu</item>
+        <item quantity="other">parkowań w tym tygodniu</item>
+    </plurals>
     <string name="history_minutes_suffix">min</string>
     <string name="history_today">Dziś</string>
     <string name="history_yesterday">Wczoraj</string>
@@ -249,6 +259,9 @@
     <string name="error_bootstrap_fatal_body">Wystąpił błąd podczas ładowania danych. Zaloguj się ponownie.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Nie udało się zapisać miejsca parkingowego. Spróbuj ponownie.</string>
+    <string name="error_vehicle_save_failed">Nie udało się zapisać pojazdu. Spróbuj ponownie.</string>
+    <string name="error_vehicle_delete_failed">Nie udało się usunąć pojazdu. Spróbuj ponownie.</string>
+    <string name="error_delete_account_failed">Nie udało się usunąć konta. Spróbuj ponownie.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Nieznana lokalizacja</string>

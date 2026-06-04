@@ -19,7 +19,10 @@
     <string name="home_nav_your_car">Uw auto</string>
     <string name="home_nav_free_spot">Vrije parkeerplaats</string>
     <string name="home_feed_nearby">In uw buurt</string>
-    <string name="home_feed_nearby_with_count">%1$d vrije parkeerplaatsen in uw buurt</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d vrije parkeerplaats in uw buurt</item>
+        <item quantity="other">%1$d vrije parkeerplaatsen in uw buurt</item>
+    </plurals>
     <string name="home_feed_activity">Recente activiteit</string>
     <string name="home_permissions_message">Schakel locatie in om parkeerplaatsen in de buurt te zien</string>
     <string name="home_permissions_button">Machtigingen inschakelen</string>
@@ -108,7 +111,10 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Wekelijkse activiteit</string>
-    <string name="history_weekly_subtitle">parkeerders deze week</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">parkeerder deze week</item>
+        <item quantity="other">parkeerders deze week</item>
+    </plurals>
     <string name="history_minutes_suffix">min</string>
     <string name="history_today">Vandaag</string>
     <string name="history_yesterday">Gisteren</string>
@@ -249,6 +255,9 @@
     <string name="error_bootstrap_fatal_body">Er is iets misgegaan bij het laden van je gegevens. Meld je opnieuw aan.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Kon je parkeerplaats niet opslaan. Probeer het opnieuw.</string>
+    <string name="error_vehicle_save_failed">Kon het voertuig niet opslaan. Probeer het opnieuw.</string>
+    <string name="error_vehicle_delete_failed">Kon het voertuig niet verwijderen. Probeer het opnieuw.</string>
+    <string name="error_delete_account_failed">Kon het account niet verwijderen. Probeer het opnieuw.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Onbekende locatie</string>

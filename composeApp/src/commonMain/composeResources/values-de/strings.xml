@@ -19,7 +19,10 @@
     <string name="home_nav_your_car">Dein Auto</string>
     <string name="home_nav_free_spot">Freier Stellplatz</string>
     <string name="home_feed_nearby">In deiner Nähe</string>
-    <string name="home_feed_nearby_with_count">%1$d freie Stellplätze in deiner Nähe</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d freier Stellplatz in deiner Nähe</item>
+        <item quantity="other">%1$d freie Stellplätze in deiner Nähe</item>
+    </plurals>
     <string name="home_feed_activity">Letzte Aktivität</string>
     <string name="home_permissions_message">Aktiviere den Standort, um Stellplätze in der Nähe zu sehen</string>
     <string name="home_permissions_button">Berechtigungen aktivieren</string>
@@ -108,7 +111,10 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Wöchentliche Aktivität</string>
-    <string name="history_weekly_subtitle">Parkings diese Woche</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">Parking diese Woche</item>
+        <item quantity="other">Parkings diese Woche</item>
+    </plurals>
     <string name="history_minutes_suffix">Min.</string>
     <string name="history_today">Heute</string>
     <string name="history_yesterday">Gestern</string>
@@ -249,6 +255,9 @@
     <string name="error_bootstrap_fatal_body">Beim Laden deiner Daten ist ein Fehler aufgetreten. Bitte melde dich erneut an.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Parkplatz konnte nicht gespeichert werden. Bitte versuche es erneut.</string>
+    <string name="error_vehicle_save_failed">Fahrzeug konnte nicht gespeichert werden. Bitte versuche es erneut.</string>
+    <string name="error_vehicle_delete_failed">Fahrzeug konnte nicht gelöscht werden. Bitte versuche es erneut.</string>
+    <string name="error_delete_account_failed">Konto konnte nicht gelöscht werden. Bitte versuche es erneut.</string>
 
     <!-- Unbekannter Standort -->
     <string name="address_unknown">Unbekannter Standort</string>

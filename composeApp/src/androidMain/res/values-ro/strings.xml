@@ -3,6 +3,8 @@
     <!-- Notificare: serviciu foreground de detecție -->
     <string name="notif_detection_title">Detecție activă</string>
     <string name="notif_detection_text">Caut semnale de parcare…</string>
+    <!-- %1$s = numele vehiculului (ex. "Ford Focus") -->
+    <string name="notif_detection_text_vehicle">Monitorizare %1$s</string>
 
     <!-- Notificare: confirmare parcare -->
     <string name="notif_confirmation_title">Ai parcat?</string>
@@ -15,9 +17,17 @@
     <string name="notif_parking_saved_title">Parcare salvată</string>
     <string name="notif_parking_saved_text">Mașina ta a fost parcată. Apasă pentru a o vedea pe hartă.</string>
 
+    <!-- Notificare: loc comunitar publicat -->
+    <string name="notif_spot_published_title">Loc disponibil pentru alții</string>
+    <string name="notif_spot_published_text">Locul tău de parcare este acum vizibil pentru șoferii din apropiere.</string>
+
     <!-- Notificare: se încarcă locul -->
     <string name="notif_uploading_title">Paparcar</string>
     <string name="notif_uploading_text">Se încarcă noul loc…</string>
+
+    <!-- Notificare: permisiune revocată în timp ce serviciul era activ -->
+    <string name="notif_permission_revoked_title">Paparcar are nevoie de permisiuni</string>
+    <string name="notif_permission_revoked_text">Permisiunea de localizare a fost revocată — apasă pentru a restaura</string>
 
     <!-- Notificare: debug (doar build-uri de dezvoltare) -->
     <string name="notif_debug_title">Paparcar Debug</string>

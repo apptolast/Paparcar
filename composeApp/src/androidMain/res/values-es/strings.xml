@@ -3,6 +3,8 @@
     <!-- Notificación: servicio foreground de detección -->
     <string name="notif_detection_title">Detección en curso</string>
     <string name="notif_detection_text">Buscando señales de aparcamiento…</string>
+    <!-- %1$s = nombre del vehículo (ej. "Ford Focus") -->
+    <string name="notif_detection_text_vehicle">Monitorizando %1$s</string>
 
     <!-- Notificación: confirmación de aparcamiento -->
     <string name="notif_confirmation_title">¿Has aparcado?</string>
@@ -15,9 +17,17 @@
     <string name="notif_parking_saved_title">Aparcamiento guardado</string>
     <string name="notif_parking_saved_text">Tu coche ha sido aparcado. Toca para verlo en el mapa.</string>
 
+    <!-- Notificación: plaza comunitaria publicada -->
+    <string name="notif_spot_published_title">Plaza disponible para otros</string>
+    <string name="notif_spot_published_text">Tu plaza de aparcamiento ya es visible para los conductores cercanos.</string>
+
     <!-- Notificación: subiendo spot -->
     <string name="notif_uploading_title">Paparcar</string>
     <string name="notif_uploading_text">Subiendo nuevo spot…</string>
+
+    <!-- Notificación: permiso revocado mientras el servicio estaba activo -->
+    <string name="notif_permission_revoked_title">Paparcar necesita permisos</string>
+    <string name="notif_permission_revoked_text">Permiso de ubicación revocado — toca para restaurar</string>
 
     <!-- Notificación: debug (solo builds de desarrollo) -->
     <string name="notif_debug_title">Paparcar Debug</string>

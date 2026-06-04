@@ -19,7 +19,10 @@
     <string name="home_nav_your_car">Votre voiture</string>
     <string name="home_nav_free_spot">Place libre</string>
     <string name="home_feed_nearby">Près de vous</string>
-    <string name="home_feed_nearby_with_count">%1$d places libres près de vous</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d place libre près de vous</item>
+        <item quantity="other">%1$d places libres près de vous</item>
+    </plurals>
     <string name="home_feed_activity">Activité récente</string>
     <string name="home_permissions_message">Activez la localisation pour voir les places à proximité</string>
     <string name="home_permissions_button">Activer les permissions</string>
@@ -108,7 +111,10 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Activité hebdomadaire</string>
-    <string name="history_weekly_subtitle">stationnements cette semaine</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">stationnement cette semaine</item>
+        <item quantity="other">stationnements cette semaine</item>
+    </plurals>
     <string name="history_minutes_suffix">min</string>
     <string name="history_today">Aujourd\'hui</string>
     <string name="history_yesterday">Hier</string>
@@ -249,6 +255,9 @@
     <string name="error_bootstrap_fatal_body">Une erreur est survenue lors du chargement de tes données. Reconnecte-toi.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Impossible d\'enregistrer votre place de parking. Veuillez réessayer.</string>
+    <string name="error_vehicle_save_failed">Impossible d\'enregistrer le véhicule. Veuillez réessayer.</string>
+    <string name="error_vehicle_delete_failed">Impossible de supprimer le véhicule. Veuillez réessayer.</string>
+    <string name="error_delete_account_failed">Impossible de supprimer le compte. Veuillez réessayer.</string>
 
     <!-- Emplacement inconnu -->
     <string name="address_unknown">Emplacement inconnu</string>

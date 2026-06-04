@@ -19,7 +19,10 @@
     <string name="home_nav_your_car">O seu carro</string>
     <string name="home_nav_free_spot">Lugar livre</string>
     <string name="home_feed_nearby">Perto de si</string>
-    <string name="home_feed_nearby_with_count">%1$d lugares livres perto de si</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d lugar livre perto de si</item>
+        <item quantity="other">%1$d lugares livres perto de si</item>
+    </plurals>
     <string name="home_feed_activity">Atividade recente</string>
     <string name="home_permissions_message">Ative a localização para ver lugares próximos</string>
     <string name="home_permissions_button">Ativar permissões</string>
@@ -108,7 +111,10 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Atividade semanal</string>
-    <string name="history_weekly_subtitle">estacionamentos esta semana</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">estacionamento esta semana</item>
+        <item quantity="other">estacionamentos esta semana</item>
+    </plurals>
     <string name="history_minutes_suffix">min</string>
     <string name="history_today">Hoje</string>
     <string name="history_yesterday">Ontem</string>
@@ -249,6 +255,9 @@
     <string name="error_bootstrap_fatal_body">Ocorreu um erro ao carregar os teus dados. Por favor, inicia sessão novamente.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Não foi possível guardar o teu lugar de estacionamento. Tenta novamente.</string>
+    <string name="error_vehicle_save_failed">Não foi possível guardar o veículo. Tenta novamente.</string>
+    <string name="error_vehicle_delete_failed">Não foi possível eliminar o veículo. Tenta novamente.</string>
+    <string name="error_delete_account_failed">Não foi possível eliminar a conta. Tenta novamente.</string>
 
     <!-- Localização desconhecida -->
     <string name="address_unknown">Localização desconhecida</string>

@@ -41,7 +41,10 @@
     <string name="home_nav_your_car">Your car</string>
     <string name="home_nav_free_spot">Free spot</string>
     <string name="home_feed_nearby">Near you</string>
-    <string name="home_feed_nearby_with_count">%1$d free spots near you</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d free spot near you</item>
+        <item quantity="other">%1$d free spots near you</item>
+    </plurals>
     <string name="home_feed_activity">Recent activity</string>
     <string name="home_permissions_title">Enable location</string>
     <string name="home_permissions_message">Enable location to see nearby spots</string>
@@ -147,7 +150,10 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Weekly activity</string>
-    <string name="history_weekly_subtitle">parkings this week</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">parking this week</item>
+        <item quantity="other">parkings this week</item>
+    </plurals>
     <string name="history_minutes_suffix">min</string>
     <string name="history_today">Today</string>
     <string name="history_yesterday">Yesterday</string>
@@ -269,6 +275,9 @@
     <string name="error_bootstrap_fatal_body">Something went wrong while loading your data. Please sign in again.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Could not save your parking spot. Please try again.</string>
+    <string name="error_vehicle_save_failed">Could not save vehicle. Please try again.</string>
+    <string name="error_vehicle_delete_failed">Could not delete vehicle. Please try again.</string>
+    <string name="error_delete_account_failed">Could not delete account. Please try again.</string>
 
     <!-- Address fallback -->
     <string name="address_unknown">Unknown location</string>

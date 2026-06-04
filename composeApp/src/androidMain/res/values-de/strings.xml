@@ -3,6 +3,8 @@
     <!-- Benachrichtigung: Erkennungs-Vordergrunddienst -->
     <string name="notif_detection_title">Erkennung aktiv</string>
     <string name="notif_detection_text">Suche nach Parksignalen…</string>
+    <!-- %1$s = Fahrzeugname (z. B. "Ford Focus") -->
+    <string name="notif_detection_text_vehicle">Überwache %1$s</string>
 
     <!-- Benachrichtigung: Parkbestätigung -->
     <string name="notif_confirmation_title">Haben Sie geparkt?</string>
@@ -15,9 +17,17 @@
     <string name="notif_parking_saved_title">Parken gespeichert</string>
     <string name="notif_parking_saved_text">Ihr Auto wurde geparkt. Tippen Sie, um es auf der Karte zu sehen.</string>
 
+    <!-- Benachrichtigung: Gemeinschaftsstellplatz veröffentlicht -->
+    <string name="notif_spot_published_title">Stellplatz für andere verfügbar</string>
+    <string name="notif_spot_published_text">Ihr Parkplatz ist jetzt für Fahrer in der Nähe sichtbar.</string>
+
     <!-- Benachrichtigung: Stellplatz wird hochgeladen -->
     <string name="notif_uploading_title">Paparcar</string>
     <string name="notif_uploading_text">Neuen Stellplatz hochladen…</string>
+
+    <!-- Benachrichtigung: Berechtigung während des laufenden Dienstes widerrufen -->
+    <string name="notif_permission_revoked_title">Paparcar benötigt Berechtigungen</string>
+    <string name="notif_permission_revoked_text">Standortberechtigung widerrufen — tippen zum Wiederherstellen</string>
 
     <!-- Benachrichtigung: Debug (nur Entwicklungs-Builds) -->
     <string name="notif_debug_title">Paparcar Debug</string>

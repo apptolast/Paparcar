@@ -41,7 +41,10 @@
     <string name="home_nav_your_car">Tu coche</string>
     <string name="home_nav_free_spot">Spot libre</string>
     <string name="home_feed_nearby">Cerca de ti</string>
-    <string name="home_feed_nearby_with_count">%1$d plazas libres cerca de ti</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d plaza libre cerca de ti</item>
+        <item quantity="other">%1$d plazas libres cerca de ti</item>
+    </plurals>
     <string name="home_feed_activity">Actividad reciente</string>
     <string name="home_permissions_title">Activa la ubicación</string>
     <string name="home_permissions_message">Activa la ubicación para ver spots cerca de ti</string>
@@ -147,7 +150,10 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Actividad semanal</string>
-    <string name="history_weekly_subtitle">aparcamientos esta semana</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">aparcamiento esta semana</item>
+        <item quantity="other">aparcamientos esta semana</item>
+    </plurals>
     <string name="history_minutes_suffix">min</string>
     <string name="history_today">Hoy</string>
     <string name="history_yesterday">Ayer</string>
@@ -312,6 +318,9 @@
     <string name="error_bootstrap_fatal_body">Algo salió mal al cargar tus datos. Por favor, vuelve a iniciar sesión.</string>
     <string name="error_bootstrap_fatal_dismiss">Aceptar</string>
     <string name="error_parking_save_failed">No se pudo guardar tu plaza de aparcamiento. Inténtalo de nuevo.</string>
+    <string name="error_vehicle_save_failed">No se pudo guardar el vehículo. Inténtalo de nuevo.</string>
+    <string name="error_vehicle_delete_failed">No se pudo eliminar el vehículo. Inténtalo de nuevo.</string>
+    <string name="error_delete_account_failed">No se pudo eliminar la cuenta. Inténtalo de nuevo.</string>
 
     <!-- Dirección desconocida -->
     <string name="address_unknown">Ubicación desconocida</string>

@@ -19,7 +19,10 @@
     <string name="home_nav_your_car">La tua auto</string>
     <string name="home_nav_free_spot">Posto libero</string>
     <string name="home_feed_nearby">Vicino a te</string>
-    <string name="home_feed_nearby_with_count">%1$d posti liberi vicino a te</string>
+    <plurals name="home_feed_nearby_with_count">
+        <item quantity="one">%1$d posto libero vicino a te</item>
+        <item quantity="other">%1$d posti liberi vicino a te</item>
+    </plurals>
     <string name="home_feed_activity">Attività recente</string>
     <string name="home_permissions_message">Attiva la posizione per vedere i posti vicini</string>
     <string name="home_permissions_button">Attiva permessi</string>
@@ -108,7 +111,10 @@
 
     <!-- HistoryScreen -->
     <string name="history_weekly_title">Attività settimanale</string>
-    <string name="history_weekly_subtitle">parcheggi questa settimana</string>
+    <plurals name="history_weekly_subtitle">
+        <item quantity="one">parcheggio questa settimana</item>
+        <item quantity="other">parcheggi questa settimana</item>
+    </plurals>
     <string name="history_minutes_suffix">min</string>
     <string name="history_today">Oggi</string>
     <string name="history_yesterday">Ieri</string>
@@ -249,6 +255,9 @@
     <string name="error_bootstrap_fatal_body">Qualcosa è andato storto durante il caricamento dei dati. Accedi di nuovo.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Impossibile salvare il tuo posto auto. Riprova.</string>
+    <string name="error_vehicle_save_failed">Impossibile salvare il veicolo. Riprova.</string>
+    <string name="error_vehicle_delete_failed">Impossibile eliminare il veicolo. Riprova.</string>
+    <string name="error_delete_account_failed">Impossibile eliminare l\'account. Riprova.</string>
 
     <!-- Indirizzo sconosciuto -->
     <string name="address_unknown">Posizione sconosciuta</string>
