@@ -42,7 +42,7 @@ class BootstrapUserDataUseCase(
                 }
                 val parkingJob = async {
                     PaparcarLogger.d(DIAG, "  → syncParkingHistory START")
-                    userParkingRepository.syncParkingHistoryFromRemote(userId)
+                    userParkingRepository.syncFromRemote(userId)
                         .also { r -> PaparcarLogger.d(DIAG, "  ← syncParkingHistory END isSuccess=${r.isSuccess}") }
                         .getOrThrow()
                 }

@@ -4,7 +4,7 @@ import com.apptolast.customlogin.domain.model.UserSession
 import io.apptolast.paparcar.domain.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 
-interface UserProfileRepository {
+interface UserProfileRepository : UserScopedRepository {
     /** Returns the cached profile or creates a new one in Firestore + Room on first login. */
     suspend fun getOrCreateProfile(session: UserSession): Result<UserProfile>
 
@@ -12,5 +12,5 @@ interface UserProfileRepository {
     fun observeProfile(userId: String): Flow<UserProfile?>
 
     /** Deletes all Firestore and local data for [userId]. Called during account deletion. */
-    suspend fun deleteAllData(userId: String): Result<Unit>
+    override suspend fun deleteAllData(userId: String): Result<Unit>
 }

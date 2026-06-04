@@ -8,12 +8,12 @@ import kotlinx.coroutines.flow.Flow
  * VehicleRepository pattern: auth-reactive observe + idempotent
  * syncFromRemote + suspending CRUD that updates Room then Firestore.
  */
-interface ZoneRepository {
+interface ZoneRepository : UserScopedRepository, RemoteSyncable {
     /** Stream the current user's zones, ordered by createdAt asc (oldest first). */
     fun observeZones(): Flow<List<Zone>>
 
     /** Idempotent one-shot pull of remote zones into Room. Called during splash bootstrap. */
-    suspend fun syncFromRemote(userId: String): Result<Unit>
+    override suspend fun syncFromRemote(userId: String): Result<Unit>
 
     /** Insert or update a zone — writes to Room then Firestore. */
     suspend fun saveZone(zone: Zone)
@@ -25,5 +25,5 @@ interface ZoneRepository {
     suspend fun getPrivateZonesSnapshot(): List<Zone>
 
     /** Deletes all local and remote zones for [userId]. Called during account deletion. */
-    suspend fun deleteAllData(userId: String): Result<Unit>
+    override suspend fun deleteAllData(userId: String): Result<Unit>
 }

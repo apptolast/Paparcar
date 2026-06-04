@@ -6,7 +6,7 @@ import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import kotlinx.coroutines.flow.Flow
 
-interface UserParkingRepository {
+interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     /**
      * Inserts [session] into Room as the new active session. Clears the previously-active
      * row **scoped to the same vehicleId** so concurrent sessions for *different* vehicles
@@ -23,13 +23,14 @@ interface UserParkingRepository {
     fun observeAllSessions(): Flow<List<UserParking>>
     fun observeSessionsByVehicle(vehicleId: String): Flow<List<UserParking>>
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking>
+    suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking>
     /** Clears the active flag of the session with [sessionId] and schedules Firestore reconciliation. */
     suspend fun clearActiveById(sessionId: String): Result<Unit>
     /**
      * Downloads parking history from Firestore and populates Room.
      * No-op if Room already has data — covers new installs and device switches.
      */
-    suspend fun syncParkingHistoryFromRemote(userId: String): Result<Unit>
+    override suspend fun syncFromRemote(userId: String): Result<Unit>
     /** In-place update of address+POI for an existing session. Does not affect [isActive]. */
     suspend fun updateLocationInfo(
         id: String,
@@ -49,5 +50,5 @@ interface UserParkingRepository {
     ): Result<UserParking>
 
     /** Deletes all local parking sessions for [userId]. Called during account deletion. */
-    suspend fun deleteAllData(userId: String): Result<Unit>
+    override suspend fun deleteAllData(userId: String): Result<Unit>
 }
