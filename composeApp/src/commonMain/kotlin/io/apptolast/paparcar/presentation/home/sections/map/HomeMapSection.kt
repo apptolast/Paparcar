@@ -91,9 +91,12 @@ internal fun HomeMapFabsLayer(
         visible = visible,
         enter = fadeIn(),
         exit = fadeOut(),
-        modifier = modifier.padding(end = 14.dp),
+        modifier = modifier,
     ) {
-        Column(horizontalAlignment = Alignment.End) {
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier.padding(end = 14.dp),
+        ) {
             HomeMapFabColumn(
                 userParking = state.userParking,
                 userGpsPoint = state.userGpsPoint,
