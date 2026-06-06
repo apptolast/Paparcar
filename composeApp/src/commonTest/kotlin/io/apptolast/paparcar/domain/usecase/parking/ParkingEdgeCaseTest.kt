@@ -7,14 +7,14 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
+import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
-import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
+import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
-import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeZoneRepository
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -184,11 +184,11 @@ class ParkingEdgeCaseTest {
     fun `should schedule spot report even when geocoder is offline`() = runTest {
         val repo = FakeUserParkingRepository()
         val scheduler = FakeReportSpotScheduler()
-        val fakeRepo = FakeLocationInfoRepository().apply {
+        val fakeRepo = FakeAddressAndPlaceRepository().apply {
             addressResult = Result.failure(RuntimeException("Network unavailable"))
         }
         val confirm = buildConfirm(repo = repo)
-        val release = buildRelease(repo = repo, scheduler = scheduler, locationInfoRepo = fakeRepo)
+        val release = buildRelease(repo = repo, scheduler = scheduler, addressAndPlaceRepo = fakeRepo)
 
         confirm(goodLocation, detectionReliability = 0.9f)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
@@ -200,11 +200,11 @@ class ParkingEdgeCaseTest {
     fun `should preserve spot coordinates even when geocoding fails`() = runTest {
         val repo = FakeUserParkingRepository()
         val scheduler = FakeReportSpotScheduler()
-        val fakeRepo = FakeLocationInfoRepository().apply {
+        val fakeRepo = FakeAddressAndPlaceRepository().apply {
             addressResult = Result.failure(RuntimeException("DNS failure"))
         }
         val confirm = buildConfirm(repo = repo)
-        val release = buildRelease(repo = repo, scheduler = scheduler, locationInfoRepo = fakeRepo)
+        val release = buildRelease(repo = repo, scheduler = scheduler, addressAndPlaceRepo = fakeRepo)
 
         confirm(goodLocation, detectionReliability = 0.9f)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
@@ -240,7 +240,6 @@ class ParkingEdgeCaseTest {
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),
-        parkingSync: FakeParkingSyncScheduler = FakeParkingSyncScheduler(),
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -248,19 +247,19 @@ class ParkingEdgeCaseTest {
         geofenceService = geofence,
         notificationPort = notification,
         enrichmentScheduler = enrichment,
-        parkingSyncScheduler = parkingSync,
         authRepository = FakeAuthRepository(initialSession = session),
         config = config,
+        departureEventBus = FakeDepartureEventBus(),
     )
 
     private fun buildRelease(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
         scheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
-        locationInfoRepo: FakeLocationInfoRepository = FakeLocationInfoRepository(),
+        addressAndPlaceRepo: FakeAddressAndPlaceRepository = FakeAddressAndPlaceRepository(),
     ) = ReleaseActiveParkingSessionUseCase(
         reportSpotReleased = ReportSpotReleasedUseCase(
             reportSpotScheduler = scheduler,
-            getLocationInfo = GetLocationInfoUseCase(locationInfoRepo),
+            getAddressAndPlace = GetAddressAndPlaceUseCase(addressAndPlaceRepo),
             authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = repo,

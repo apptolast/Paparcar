@@ -10,10 +10,10 @@ import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmati
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
+import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
-import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeZoneRepository
 import io.apptolast.paparcar.fakes.FakeStepDetectorSource
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -61,7 +61,6 @@ class ParkingDetectionCoordinatorTest {
         val geofence = FakeGeofenceManager()
         val notification = FakeAppNotificationManager()
         val enrichment = FakeParkingEnrichmentScheduler()
-        val parkingSync = FakeParkingSyncScheduler()
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
             vehicleRepository = vehicleRepo,
@@ -69,9 +68,9 @@ class ParkingDetectionCoordinatorTest {
             geofenceService = geofence,
             notificationPort = notification,
             enrichmentScheduler = enrichment,
-            parkingSyncScheduler = parkingSync,
             authRepository = auth,
             config = config,
+            departureEventBus = FakeDepartureEventBus(),
         )
         val notifyParking = NotifyParkingConfirmationUseCase(
             notificationPort = notification,
@@ -115,7 +114,7 @@ class ParkingDetectionCoordinatorTest {
 
             job.cancelAndJoin()
 
-            assertEquals(1, env.parkingRepo.saveSessionCallCount, "ConfirmParking should run exactly once")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "ConfirmParking should run exactly once")
             val saved = env.parkingRepo.getActiveSession()
             assertNotNull(saved, "active session should be persisted")
             assertEquals(

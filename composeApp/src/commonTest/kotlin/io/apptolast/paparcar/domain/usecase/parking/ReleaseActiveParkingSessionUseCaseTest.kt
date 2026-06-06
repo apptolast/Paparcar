@@ -4,10 +4,10 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeAuthRepository
-import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
+import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.test.runTest
@@ -24,7 +24,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     private val reportSpotReleased = ReportSpotReleasedUseCase(
         reportSpotScheduler = scheduler,
-        getLocationInfo = GetLocationInfoUseCase(FakeLocationInfoRepository()),
+        getAddressAndPlace = GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()),
         authRepository = FakeAuthRepository(initialSession = null),
     )
     private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)
@@ -134,7 +134,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     @Test
     fun `should_clearActiveSession_after_reporting`() = runTest {
-        parkingRepo.saveSession(session())
+        parkingRepo.saveNewParkingSession(session())
 
         useCase(40.0, -3.0, parkingRepo.getActiveSession())
 

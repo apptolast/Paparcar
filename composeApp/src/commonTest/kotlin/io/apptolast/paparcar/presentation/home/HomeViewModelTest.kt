@@ -10,7 +10,7 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
@@ -22,16 +22,16 @@ import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
+import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeConnectivityObserver
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
-import io.apptolast.paparcar.fakes.FakeLocationInfoRepository
+import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
-import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeSpotRepository
@@ -71,12 +71,12 @@ class HomeViewModelTest {
 
     private fun buildVm(initialMapType: String = "TERRAIN"): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
-        val locationInfoRepo = FakeLocationInfoRepository()
-        val getLocationInfo = GetLocationInfoUseCase(repository = locationInfoRepo)
+        val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
+        val getAddressAndPlace = GetAddressAndPlaceUseCase(repository = addressAndPlaceRepo)
         val searchAddress = SearchAddressUseCase(FakeGeocoderDataSource())
         val observeNearbySpots = ObserveNearbySpotsUseCase(spotRepo)
         val sendSpotSignal = SendSpotSignalUseCase(spotRepo)
-        val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getLocationInfo, FakeAuthRepository(initialSession = null))
+        val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getAddressAndPlace, FakeAuthRepository(initialSession = null))
         val releaseSession = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
@@ -85,15 +85,16 @@ class HomeViewModelTest {
             geofenceService = FakeGeofenceManager(),
             notificationPort = FakeAppNotificationManager(),
             enrichmentScheduler = FakeParkingEnrichmentScheduler(),
-            parkingSyncScheduler = FakeParkingSyncScheduler(),
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
+            departureEventBus = FakeDepartureEventBus(),
         )
         val updateParkingLocation = UpdateParkingLocationUseCase(
             userParkingRepository = parkingRepo,
             geofenceService = FakeGeofenceManager(),
             enrichmentScheduler = FakeParkingEnrichmentScheduler(),
             config = ParkingDetectionConfig(),
+            departureEventBus = FakeDepartureEventBus(),
         )
         val observeParkedVehicles = ObserveParkedVehiclesUseCase(parkingRepo, vehicleRepo)
         val zoneRepo = FakeZoneRepository()
@@ -105,7 +106,7 @@ class HomeViewModelTest {
             activityRecognitionManager = activityRecognition,
             userParkingRepository = parkingRepo,
             releaseSession = releaseSession,
-            getLocationInfo = getLocationInfo,
+            getAddressAndPlace = getAddressAndPlace,
             confirmParking = confirmParking,
             observeParkedVehicles = observeParkedVehicles,
             updateParkingLocation = updateParkingLocation,

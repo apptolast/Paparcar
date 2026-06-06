@@ -70,8 +70,8 @@ class VehiclesViewModelTest {
     fun `should_combine_vehicles_and_sessions_into_vehicleWithStats`() = runTest {
         val v1 = vehicle("v1")
         vehicleRepo.saveVehicle(v1)
-        parkingRepo.saveSession(session("s1", vehicleId = "v1"))
-        parkingRepo.saveSession(session("s2", vehicleId = "v1"))
+        parkingRepo.saveNewParkingSession(session("s1", vehicleId = "v1"))
+        parkingRepo.saveNewParkingSession(session("s2", vehicleId = "v1"))
 
         val stats = vm.state.value.vehicles
         assertEquals(1, stats.size)

@@ -126,7 +126,7 @@ class FakeUserParkingRepository : UserParkingRepository {
 
     private val _sessionsFlow = MutableStateFlow(mockSessions)
 
-    override suspend fun saveSession(session: UserParking): Result<String?> = Result.success(null)
+    override suspend fun saveNewParkingSession(session: UserParking): Result<String?> = Result.success(null)
 
     override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
         mockSessions.find { it.isActive && it.geofenceId == geofenceId }
@@ -149,17 +149,17 @@ class FakeUserParkingRepository : UserParkingRepository {
             .drop(offset)
             .take(limit)
 
-    override suspend fun clearActiveById(sessionId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun updateLocationInfo(
+    override suspend fun updateParkingSessionAddressAndPlace(
         id: String,
         address: AddressInfo?,
         placeInfo: PlaceInfo?,
     ): Result<Unit> = Result.success(Unit)
 
-    override suspend fun updateLocation(id: String, location: GpsPoint): Result<UserParking> {
+    override suspend fun updateParkingSessionPosition(id: String, location: GpsPoint): Result<UserParking> {
         val session = mockSessions.find { it.id == id } ?: return Result.failure(Exception("Not found"))
         return Result.success(session.copy(location = location))
     }

@@ -4,7 +4,7 @@ import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
-import io.apptolast.paparcar.fakes.FakeLocalLocationInfoDataSource
+import io.apptolast.paparcar.fakes.FakeLocalAddressAndPlaceDataSource
 import io.apptolast.paparcar.fakes.FakePlacesDataSource
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -12,18 +12,18 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-class LocationInfoRepositoryImplTest {
+class AddressAndPlaceRepositoryImplTest {
 
     private val geocoder = FakeGeocoderDataSource()
     private val places = FakePlacesDataSource()
-    private val repo = LocationInfoRepositoryImpl(FakeLocalLocationInfoDataSource(), geocoder, places)
+    private val repo = AddressAndPlaceRepositoryImpl(FakeLocalAddressAndPlaceDataSource(), geocoder, places)
 
     @Test
     fun `should emit address-only in first emission`() = runTest {
         val address = AddressInfo(street = "Calle Mayor", city = "Madrid", region = null, country = "ES")
         geocoder.addressResult = Result.success(address)
 
-        val emissions = repo.getLocationInfo(40.416775, -3.703790).toList()
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertEquals(address, emissions.first().address)
         assertNull(emissions.first().placeInfo)
@@ -33,7 +33,7 @@ class LocationInfoRepositoryImplTest {
     fun `should use empty address when geocoder fails`() = runTest {
         geocoder.addressResult = Result.failure(RuntimeException("Geocoder error"))
 
-        val emissions = repo.getLocationInfo(40.416775, -3.703790).toList()
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertNull(emissions.first().address.street)
         assertNull(emissions.first().address.city)
@@ -44,7 +44,7 @@ class LocationInfoRepositoryImplTest {
         val place = PlaceInfo(name = "El Corte Inglés", category = PlaceCategory.MALL)
         places.placeResult = Result.success(place)
 
-        val emissions = repo.getLocationInfo(40.416775, -3.703790).toList()
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertEquals(2, emissions.size)
         assertEquals(place, emissions.last().placeInfo)
@@ -54,7 +54,7 @@ class LocationInfoRepositoryImplTest {
     fun `should emit only once when no place found`() = runTest {
         places.placeResult = Result.success(null)
 
-        val emissions = repo.getLocationInfo(40.416775, -3.703790).toList()
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertEquals(1, emissions.size)
         assertNull(emissions.first().placeInfo)
@@ -64,7 +64,7 @@ class LocationInfoRepositoryImplTest {
     fun `should emit only once when places call fails`() = runTest {
         places.placeResult = Result.failure(RuntimeException("Network error"))
 
-        val emissions = repo.getLocationInfo(40.416775, -3.703790).toList()
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertEquals(1, emissions.size)
     }
@@ -75,7 +75,7 @@ class LocationInfoRepositoryImplTest {
         geocoder.addressResult = Result.success(address)
         places.placeResult = Result.success(PlaceInfo("Cines Callao", PlaceCategory.OTHER))
 
-        val emissions = repo.getLocationInfo(40.416775, -3.703790).toList()
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertEquals(address, emissions.last().address)
     }

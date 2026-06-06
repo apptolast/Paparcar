@@ -7,10 +7,10 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
+import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
-import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeZoneRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
@@ -20,7 +20,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ConfirmParkingUseCaseTest {
@@ -50,7 +49,7 @@ class ConfirmParkingUseCaseTest {
         val result = useCase(location, detectionReliability = 0.9f)
 
         assertTrue(result.isSuccess)
-        assertEquals(1, repo.saveSessionCallCount)
+        assertEquals(1, repo.saveNewParkingSessionCallCount)
     }
 
     @Test
@@ -62,54 +61,6 @@ class ConfirmParkingUseCaseTest {
 
         assertTrue(result.isSuccess)
         assertEquals(1, enrichment.scheduleCallCount)
-    }
-
-    @Test
-    fun `should schedule parking sync after successful save with null previous when none existed`() = runTest {
-        val parkingSync = FakeParkingSyncScheduler()
-        val useCase = buildUseCase(parkingSync = parkingSync)
-
-        val result = useCase(location, detectionReliability = 0.9f)
-
-        assertTrue(result.isSuccess)
-        assertEquals(1, parkingSync.scheduleCallCount)
-        assertNull(parkingSync.scheduleCalls.first().previousSessionId)
-    }
-
-    @Test
-    fun `should pass previous session id to parking sync when a session was already active`() = runTest {
-        // FakeUserParkingRepository scopes "previous active" by vehicleId since MULTI-PARKING-001 —
-        // mirror the default vehicle so the fake's match logic fires.
-        val previousSession = io.apptolast.paparcar.domain.model.UserParking(
-            id = "previous-session-id",
-            userId = "user-42",
-            vehicleId = defaultVehicle.id,
-            location = location,
-            isActive = true,
-        )
-        val repo = FakeUserParkingRepository(initialSession = previousSession)
-        val parkingSync = FakeParkingSyncScheduler()
-        val useCase = buildUseCase(repo = repo, parkingSync = parkingSync)
-
-        val result = useCase(location, detectionReliability = 0.9f)
-
-        assertTrue(result.isSuccess)
-        assertEquals(1, parkingSync.scheduleCallCount)
-        assertEquals("previous-session-id", parkingSync.scheduleCalls.first().previousSessionId)
-    }
-
-    @Test
-    fun `should NOT schedule parking sync when save fails`() = runTest {
-        val parkingSync = FakeParkingSyncScheduler()
-        val repo = FakeUserParkingRepository().apply {
-            saveSessionResult = Result.failure(RuntimeException("DB error"))
-        }
-        val useCase = buildUseCase(repo = repo, parkingSync = parkingSync)
-
-        val result = useCase(location, detectionReliability = 0.9f)
-
-        assertTrue(result.isFailure)
-        assertEquals(0, parkingSync.scheduleCallCount)
     }
 
     @Test
@@ -167,7 +118,7 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should not schedule enrichment when save fails`() = runTest {
         val repo = FakeUserParkingRepository().apply {
-            saveSessionResult = Result.failure(RuntimeException("DB error"))
+            saveNewParkingSessionResult = Result.failure(RuntimeException("DB error"))
         }
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(repo = repo, enrichment = enrichment)
@@ -182,7 +133,7 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should not create geofence when save fails`() = runTest {
         val repo = FakeUserParkingRepository().apply {
-            saveSessionResult = Result.failure(RuntimeException("DB error"))
+            saveNewParkingSessionResult = Result.failure(RuntimeException("DB error"))
         }
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
@@ -197,7 +148,7 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should not show notification when save fails`() = runTest {
         val repo = FakeUserParkingRepository().apply {
-            saveSessionResult = Result.failure(RuntimeException("DB error"))
+            saveNewParkingSessionResult = Result.failure(RuntimeException("DB error"))
         }
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(repo = repo, notification = notification)
@@ -249,7 +200,7 @@ class ConfirmParkingUseCaseTest {
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.NoDefaultVehicle>(result.exceptionOrNull())
-        assertEquals(0, repo.saveSessionCallCount)
+        assertEquals(0, repo.saveNewParkingSessionCallCount)
     }
 
     // ── Explicit vehicleId (BT-strategy path) ─────────────────────────────────
@@ -316,7 +267,7 @@ class ConfirmParkingUseCaseTest {
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.NoDefaultVehicle>(result.exceptionOrNull())
-        assertEquals(0, repo.saveSessionCallCount)
+        assertEquals(0, repo.saveNewParkingSessionCallCount)
     }
 
     @Test
@@ -410,6 +361,31 @@ class ConfirmParkingUseCaseTest {
         assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
     }
 
+    // ── DepartureEventBus reset [BUG-WALK-DEPART-001] ────────────────────────
+
+    @Test
+    fun `should reset departure event bus after successful parking confirmation`() = runTest {
+        val bus = FakeDepartureEventBus(initialTimestamp = System.currentTimeMillis() - 60_000L)
+        val useCase = buildUseCase(bus = bus)
+
+        useCase(location, detectionReliability = 0.9f)
+
+        assertEquals(1, bus.resetCount)
+    }
+
+    @Test
+    fun `should not reset departure event bus when parking save fails`() = runTest {
+        val bus = FakeDepartureEventBus(initialTimestamp = System.currentTimeMillis() - 60_000L)
+        val failingRepo = FakeUserParkingRepository().apply {
+            saveNewParkingSessionResult = Result.failure(RuntimeException("db error"))
+        }
+        val useCase = buildUseCase(repo = failingRepo, bus = bus)
+
+        useCase(location, detectionReliability = 0.9f)
+
+        assertEquals(0, bus.resetCount)
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(
@@ -418,9 +394,9 @@ class ConfirmParkingUseCaseTest {
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),
         enrichment: FakeParkingEnrichmentScheduler = FakeParkingEnrichmentScheduler(),
-        parkingSync: FakeParkingSyncScheduler = FakeParkingSyncScheduler(),
         auth: FakeAuthRepository = FakeAuthRepository(initialSession = session),
         config: ParkingDetectionConfig = ParkingDetectionConfig(),
+        bus: FakeDepartureEventBus = FakeDepartureEventBus(),
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -428,8 +404,8 @@ class ConfirmParkingUseCaseTest {
         geofenceService = geofence,
         notificationPort = notification,
         enrichmentScheduler = enrichment,
-        parkingSyncScheduler = parkingSync,
         authRepository = auth,
         config = config,
+        departureEventBus = bus,
     )
 }

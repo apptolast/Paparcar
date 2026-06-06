@@ -4,15 +4,17 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
+import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.UserProfileDto
 import io.apptolast.paparcar.data.datasource.remote.dto.VehicleDto
-import io.apptolast.paparcar.detection.worker.ClearActiveSyncWorker
-import io.apptolast.paparcar.detection.worker.LocationUpdateSyncWorker
-import io.apptolast.paparcar.detection.worker.ParkingSyncWorker
+import io.apptolast.paparcar.fakes.FakeAuthRepository
+import io.apptolast.paparcar.detection.worker.ClearActiveParkingSessionWorker
+import io.apptolast.paparcar.detection.worker.SaveNewParkingSessionWorker
+import io.apptolast.paparcar.detection.worker.UpdateParkingSessionAddressAndPlaceWorker
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import kotlinx.coroutines.test.runTest
@@ -29,15 +31,19 @@ import kotlin.test.assertEquals
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class ParkingSyncWorkerTest {
+class SaveNewParkingSessionWorkerTest {
 
     private val fakeDataSource = FakeUserProfileDataSource()
+    private val fakeAuth = FakeAuthRepository(
+        initialSession = FakeAuthRepository.authenticatedSession(userId = "user-1"),
+    )
 
     @Before
     fun setUp() {
         startKoin {
             modules(module {
                 single<RemoteUserProfileDataSource> { fakeDataSource }
+                single<AuthRepository> { fakeAuth }
             })
         }
     }
@@ -45,14 +51,14 @@ class ParkingSyncWorkerTest {
     @After
     fun tearDown() = stopKoin()
 
-    // ── ParkingSyncWorker ─────────────────────────────────────────────────────
+    // ── SaveNewParkingSessionWorker ─────────────────────────────────────────────────────
 
     @Test
-    fun `ParkingSyncWorker success — saves new session and marks previous as inactive`() = runTest {
+    fun `SaveNewParkingSessionWorker success — saves new session and marks previous as inactive`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("new-session")
-        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = "old-session")
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+        val request = SaveNewParkingSessionWorker.buildRequest(session,previousSessionId = "old-session")
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -66,11 +72,11 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ParkingSyncWorker propagates vehicleId through the Data payload`() = runTest {
+    fun `SaveNewParkingSessionWorker propagates vehicleId through the Data payload`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("new-session").copy(vehicleId = "vehicle-99")
-        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = null)
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+        val request = SaveNewParkingSessionWorker.buildRequest(session,previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -80,13 +86,13 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ParkingSyncWorker propagates detectionReliability through the Data payload`() = runTest {
+    fun `SaveNewParkingSessionWorker propagates detectionReliability through the Data payload`() = runTest {
         // Regression: previously the DTO reconstructed inside doWork() dropped this field, so every
         // Firestore doc ended up with detectionReliability=null even when the coordinator passed 0.90. [MAPPER-003]
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("rel-session").copy(detectionReliability = 0.90f)
-        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = null)
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+        val request = SaveNewParkingSessionWorker.buildRequest(session,previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -96,11 +102,11 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ParkingSyncWorker preserves null detectionReliability for manual reports`() = runTest {
+    fun `SaveNewParkingSessionWorker preserves null detectionReliability for manual reports`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("manual-session").copy(detectionReliability = null)
-        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = null)
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+        val request = SaveNewParkingSessionWorker.buildRequest(session,previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -110,11 +116,11 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ParkingSyncWorker success — no previous session id skips active-flag update`() = runTest {
+    fun `SaveNewParkingSessionWorker success — no previous session id skips active-flag update`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("solo-session")
-        val request = ParkingSyncWorker.buildRequest("user-1", session, previousSessionId = null)
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+        val request = SaveNewParkingSessionWorker.buildRequest(session,previousSessionId = null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -126,12 +132,12 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ParkingSyncWorker retries on Firestore failure`() = runTest {
+    fun `SaveNewParkingSessionWorker retries on Firestore failure`() = runTest {
         fakeDataSource.saveParkingSessionThrows = RuntimeException("network error")
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("retry-session")
-        val request = ParkingSyncWorker.buildRequest("user-1", session, null)
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+        val request = SaveNewParkingSessionWorker.buildRequest(session,null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -141,12 +147,12 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ParkingSyncWorker fails permanently after max attempts`() = runTest {
+    fun `SaveNewParkingSessionWorker fails permanently after max attempts`() = runTest {
         fakeDataSource.saveParkingSessionThrows = RuntimeException("persistent failure")
         val context: Context = ApplicationProvider.getApplicationContext()
         val session = userParking("fail-session")
-        val request = ParkingSyncWorker.buildRequest("user-1", session, null)
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context)
+        val request = SaveNewParkingSessionWorker.buildRequest(session,null)
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .setRunAttemptCount(5)
             .build()
@@ -157,22 +163,23 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ParkingSyncWorker fails immediately when userId missing`() = runTest {
+    fun `SaveNewParkingSessionWorker fails immediately when userId missing`() = runTest {
+        fakeAuth.emitState(com.apptolast.customlogin.domain.model.AuthState.Unauthenticated)
         val context: Context = ApplicationProvider.getApplicationContext()
-        val worker = TestListenableWorkerBuilder<ParkingSyncWorker>(context).build()
+        val worker = TestListenableWorkerBuilder<SaveNewParkingSessionWorker>(context).build()
 
         val result = worker.doWork()
 
         assertEquals(ListenableWorker.Result.failure(), result)
     }
 
-    // ── ClearActiveSyncWorker ─────────────────────────────────────────────────
+    // ── ClearActiveParkingSessionWorker ─────────────────────────────────────────────────
 
     @Test
-    fun `ClearActiveSyncWorker success — marks session inactive via update()`() = runTest {
+    fun `ClearActiveParkingSessionWorker success — marks session inactive via update()`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
-        val request = ClearActiveSyncWorker.buildRequest("user-1", "session-abc")
-        val worker = TestListenableWorkerBuilder<ClearActiveSyncWorker>(context)
+        val request = ClearActiveParkingSessionWorker.buildRequest("session-abc")
+        val worker = TestListenableWorkerBuilder<ClearActiveParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -184,11 +191,11 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `ClearActiveSyncWorker retries on failure`() = runTest {
+    fun `ClearActiveParkingSessionWorker retries on failure`() = runTest {
         fakeDataSource.updateActiveFlagThrows = RuntimeException("Firestore timeout")
         val context: Context = ApplicationProvider.getApplicationContext()
-        val request = ClearActiveSyncWorker.buildRequest("user-1", "session-abc")
-        val worker = TestListenableWorkerBuilder<ClearActiveSyncWorker>(context)
+        val request = ClearActiveParkingSessionWorker.buildRequest("session-abc")
+        val worker = TestListenableWorkerBuilder<ClearActiveParkingSessionWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -197,18 +204,17 @@ class ParkingSyncWorkerTest {
         assertEquals(ListenableWorker.Result.retry(), result)
     }
 
-    // ── LocationUpdateSyncWorker ──────────────────────────────────────────────
+    // ── UpdateParkingSessionAddressAndPlaceWorker ──────────────────────────────────────────────
 
     @Test
-    fun `LocationUpdateSyncWorker success — calls updateParkingSessionLocation`() = runTest {
+    fun `UpdateParkingSessionAddressAndPlaceWorker success — calls updateParkingSessionAddressAndPlace`() = runTest {
         val context: Context = ApplicationProvider.getApplicationContext()
-        val request = LocationUpdateSyncWorker.buildRequest(
-            userId = "user-1",
+        val request = UpdateParkingSessionAddressAndPlaceWorker.buildRequest(
             sessionId = "session-xyz",
             address = io.apptolast.paparcar.domain.model.AddressInfo("Calle Mayor", "Madrid", "Madrid", "Spain"),
             placeInfo = null,
         )
-        val worker = TestListenableWorkerBuilder<LocationUpdateSyncWorker>(context)
+        val worker = TestListenableWorkerBuilder<UpdateParkingSessionAddressAndPlaceWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -221,11 +227,11 @@ class ParkingSyncWorkerTest {
     }
 
     @Test
-    fun `LocationUpdateSyncWorker retries on failure`() = runTest {
+    fun `UpdateParkingSessionAddressAndPlaceWorker retries on failure`() = runTest {
         fakeDataSource.updateLocationThrows = RuntimeException("offline")
         val context: Context = ApplicationProvider.getApplicationContext()
-        val request = LocationUpdateSyncWorker.buildRequest("user-1", "session-xyz", null, null)
-        val worker = TestListenableWorkerBuilder<LocationUpdateSyncWorker>(context)
+        val request = UpdateParkingSessionAddressAndPlaceWorker.buildRequest("session-xyz", null, null)
+        val worker = TestListenableWorkerBuilder<UpdateParkingSessionAddressAndPlaceWorker>(context)
             .setInputData(request.workSpec.input)
             .build()
 
@@ -278,13 +284,13 @@ private class FakeUserProfileDataSource : RemoteUserProfileDataSource {
         lastSavedSession = session
     }
 
-    override suspend fun updateParkingSessionActiveFlag(userId: String, sessionId: String, isActive: Boolean) {
+    override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) {
         updateActiveFlagThrows?.let { throw it }
         updateActiveFlagCallCount++
-        lastActiveFlagUpdate = sessionId to isActive
+        lastActiveFlagUpdate = sessionId to false
     }
 
-    override suspend fun updateParkingSessionLocation(
+    override suspend fun updateParkingSessionAddressAndPlace(
         userId: String,
         sessionId: String,
         address: AddressDto?,

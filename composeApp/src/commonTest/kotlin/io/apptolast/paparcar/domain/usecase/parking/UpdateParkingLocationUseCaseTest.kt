@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -51,7 +52,7 @@ class UpdateParkingLocationUseCaseTest {
 
         useCase(session.id, newLocation)
 
-        assertEquals(1, repo.updateLocationCallCount)
+        assertEquals(1, repo.updateParkingSessionPositionCallCount)
     }
 
     @Test
@@ -127,7 +128,7 @@ class UpdateParkingLocationUseCaseTest {
     @Test
     fun `should return failure when repository updateLocation fails`() = runTest {
         val repo = FakeUserParkingRepository().apply {
-            updateLocationResult = Result.failure(RuntimeException("DB error"))
+            updateParkingSessionPositionResult = Result.failure(RuntimeException("DB error"))
         }
         val useCase = buildUseCase(repo = repo)
 
@@ -139,7 +140,7 @@ class UpdateParkingLocationUseCaseTest {
     @Test
     fun `should not schedule enrichment when location update fails`() = runTest {
         val repo = FakeUserParkingRepository().apply {
-            updateLocationResult = Result.failure(RuntimeException("DB error"))
+            updateParkingSessionPositionResult = Result.failure(RuntimeException("DB error"))
         }
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(repo = repo, enrichment = enrichment)
@@ -152,7 +153,7 @@ class UpdateParkingLocationUseCaseTest {
     @Test
     fun `should not create geofence when location update fails`() = runTest {
         val repo = FakeUserParkingRepository().apply {
-            updateLocationResult = Result.failure(RuntimeException("DB error"))
+            updateParkingSessionPositionResult = Result.failure(RuntimeException("DB error"))
         }
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
@@ -174,5 +175,6 @@ class UpdateParkingLocationUseCaseTest {
         geofenceService = geofence,
         enrichmentScheduler = enrichment,
         config = config,
+        departureEventBus = FakeDepartureEventBus(),
     )
 }

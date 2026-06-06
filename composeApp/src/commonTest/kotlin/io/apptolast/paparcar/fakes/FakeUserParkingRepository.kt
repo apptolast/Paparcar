@@ -24,14 +24,14 @@ class FakeUserParkingRepository(
         private set
     var syncResult: Result<Unit> = Result.success(Unit)
 
-    var saveSessionCallCount = 0
+    var saveNewParkingSessionCallCount = 0
         private set
     /** Failure override for tests. On success, the fake returns the previously-active session id. */
-    var saveSessionResult: Result<String?>? = null
+    var saveNewParkingSessionResult: Result<String?>? = null
 
-    override suspend fun saveSession(session: UserParking): Result<String?> {
-        saveSessionCallCount++
-        saveSessionResult?.let { override ->
+    override suspend fun saveNewParkingSession(session: UserParking): Result<String?> {
+        saveNewParkingSessionCallCount++
+        saveNewParkingSessionResult?.let { override ->
             if (override.isFailure) return override
         }
         val vehicleId = session.vehicleId
@@ -72,7 +72,7 @@ class FakeUserParkingRepository(
     override suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking> =
         sessions.filter { it.vehicleId == vehicleId }.drop(offset).take(limit)
 
-    override suspend fun clearActiveById(sessionId: String): Result<Unit> {
+    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> {
         sessions.replaceAll { if (it.id == sessionId) it.copy(isActive = false) else it }
         _sessionsFlow.value = sessions.toList()
         return Result.success(Unit)
@@ -96,7 +96,7 @@ class FakeUserParkingRepository(
         return deleteAllDataResult
     }
 
-    override suspend fun updateLocationInfo(
+    override suspend fun updateParkingSessionAddressAndPlace(
         id: String,
         address: AddressInfo?,
         placeInfo: PlaceInfo?,
@@ -109,13 +109,13 @@ class FakeUserParkingRepository(
         return Result.success(Unit)
     }
 
-    var updateLocationCallCount = 0
+    var updateParkingSessionPositionCallCount = 0
         private set
-    var updateLocationResult: Result<UserParking>? = null
+    var updateParkingSessionPositionResult: Result<UserParking>? = null
 
-    override suspend fun updateLocation(id: String, location: GpsPoint): Result<UserParking> {
-        updateLocationCallCount++
-        updateLocationResult?.let { return it }
+    override suspend fun updateParkingSessionPosition(id: String, location: GpsPoint): Result<UserParking> {
+        updateParkingSessionPositionCallCount++
+        updateParkingSessionPositionResult?.let { return it }
         val idx = sessions.indexOfFirst { it.id == id }
         if (idx < 0) return Result.failure(IllegalStateException("No session $id"))
         val updated = sessions[idx].copy(

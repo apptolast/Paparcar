@@ -43,15 +43,15 @@ class FakeGeofenceEventBus : GeofenceEventBus {
 }
 
 class FakeParkingEnrichmentScheduler : ParkingEnrichmentScheduler {
-    override fun schedule(sessionId: String, lat: Double, lon: Double) {}
+    override fun enqueueEnrichSession(sessionId: String, lat: Double, lon: Double) {}
 }
 
 class FakeParkingSyncScheduler : ParkingSyncScheduler {
-    override fun schedule(session: UserParking, previousSessionId: String?) {}
-    override fun scheduleClearActive(sessionId: String) {}
-    override fun scheduleLocationUpdate(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {}
+    override fun enqueueSaveNewParkingSession(session: UserParking, previousSessionId: String?) {}
+    override fun enqueueClearActiveParkingSession(sessionId: String) {}
+    override fun enqueueUpdateParkingSessionAddressAndPlace(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {}
 }
 
 class FakeReportSpotScheduler : ReportSpotScheduler {
-    override fun schedule(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, reporterName: String?) {}
+    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, reporterName: String?) {}
 }
