@@ -20,6 +20,7 @@ sealed class VehicleRegistrationIntent {
     data class SetSize(val size: VehicleSize) : VehicleRegistrationIntent()
     /** Pick a high-level vehicle category (CAR / MOTORCYCLE / SCOOTER / BIKE). [BUG-SCOOTER-001] */
     data class SetVehicleType(val type: VehicleType) : VehicleRegistrationIntent()
+    data class SetLicensePlate(val value: String) : VehicleRegistrationIntent()
     data class SetShowOnSpot(val enabled: Boolean) : VehicleRegistrationIntent()
     data class LoadVehicle(val vehicleId: String) : VehicleRegistrationIntent()
     data object Save : VehicleRegistrationIntent()

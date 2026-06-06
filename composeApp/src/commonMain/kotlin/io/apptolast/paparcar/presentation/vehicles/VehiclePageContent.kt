@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
@@ -102,9 +103,7 @@ private fun VehicleHeroCard(
     onEdit: () -> Unit,
 ) {
     val vehicle = vehicleWithStats.vehicle
-    val displayName = listOfNotNull(vehicle.brand, vehicle.model)
-        .joinToString(" ")
-        .ifBlank { stringResource(Res.string.my_car_unnamed_vehicle) }
+    val displayName = vehicle.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle))
     val sizeLabel = vehicleSizeLabel(vehicle.sizeCategory)
     val isActive = vehicle.isActive
     val cs = MaterialTheme.colorScheme

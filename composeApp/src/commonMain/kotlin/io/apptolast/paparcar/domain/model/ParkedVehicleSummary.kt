@@ -16,4 +16,6 @@ data class ParkedVehicleSummary(
     val sizeCategory: VehicleSize?,
     val stableRank: Int,
     val privateZoneId: String? = null,
+    /** On-device license plate — used to label the map marker. Never synced to Firestore. */
+    val licensePlate: String? = null,
 )

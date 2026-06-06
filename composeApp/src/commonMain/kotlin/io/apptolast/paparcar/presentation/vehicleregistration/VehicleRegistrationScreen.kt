@@ -87,6 +87,7 @@ import paparcar.composeapp.generated.resources.vehicle_registration_bt_cta
 import paparcar.composeapp.generated.resources.vehicle_registration_bt_desc
 import paparcar.composeapp.generated.resources.vehicle_registration_bt_title
 import paparcar.composeapp.generated.resources.vehicle_registration_edit_title
+import paparcar.composeapp.generated.resources.vehicle_registration_license_plate_label
 import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_name_label
 import paparcar.composeapp.generated.resources.vehicle_registration_name_placeholder
@@ -429,6 +430,12 @@ internal fun VehicleRegistrationContent(
                         Res.string.vehicle_registration_name_placeholder,
                         state.defaultNamePlaceholderIndex,
                     ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                PapTextField(
+                    value = state.licensePlate,
+                    onValueChange = { onIntent(VehicleRegistrationIntent.SetLicensePlate(it)) },
+                    label = stringResource(Res.string.vehicle_registration_license_plate_label),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

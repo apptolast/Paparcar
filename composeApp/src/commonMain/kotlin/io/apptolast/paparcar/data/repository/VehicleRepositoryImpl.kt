@@ -150,15 +150,18 @@ class VehicleRepositoryImpl(
         dao.clearActive(uid)
         dao.setActive(id)
 
-        // Mirror isActive flag in Firestore for all user's vehicles
+        // Mirror isActive flag in Firestore for all user's vehicles. Each call is isolated
+        // so a transient failure for one vehicle doesn't prevent the others from being updated.
         val vehicles = dao.getByUser(uid)
         vehicles.forEach { entity ->
-            userProfileDataSource.updateVehicleActiveFlag(uid, entity.id, entity.id == id)
+            runCatching { userProfileDataSource.updateVehicleActiveFlag(uid, entity.id, entity.id == id) }
+                .onFailure { e -> PaparcarLogger.w(DIAG, "setActiveVehicle: Firestore flag update failed for vehicle=${entity.id}", e) }
         }
 
         // And on the user profile cache (local + remote).
         profileDao.updateDefaultVehicleId(uid, id)
-        userProfileDataSource.updateDefaultVehicleId(uid, id)
+        runCatching { userProfileDataSource.updateDefaultVehicleId(uid, id) }
+            .onFailure { e -> PaparcarLogger.w(DIAG, "setActiveVehicle: Firestore defaultVehicleId update failed for vehicle=$id", e) }
     }
 
     override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?): Result<Unit> = runCatching {

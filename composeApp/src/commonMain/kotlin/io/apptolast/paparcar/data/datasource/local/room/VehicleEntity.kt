@@ -19,4 +19,6 @@ data class VehicleEntity(
     val bluetoothDeviceId: String? = null,
     val showBrandModelOnSpot: Boolean = false,
     val isActive: Boolean = false,
+    /** On-device only — never synced to Firestore. Used for map marker display. */
+    val licensePlate: String? = null,
 )

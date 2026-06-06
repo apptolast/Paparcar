@@ -6,7 +6,7 @@ package io.apptolast.paparcar.domain.model
  * Privacy rules:
  * - [brand] and [model] are shared on [Spot] only when [showBrandModelOnSpot] = true.
  * - [bluetoothDeviceId] stays on-device and is never sent to Firestore.
- * - No license plate is stored — [sizeCategory] is enough for community use.
+ * - [licensePlate] is on-device only and is never sent to Firestore or shared on Spot.
  *
  * Each user may have multiple vehicles; exactly one is [isActive] at a time.
  */
@@ -34,4 +34,9 @@ data class Vehicle(
     val showBrandModelOnSpot: Boolean = false,
     /** The vehicle currently used for detection and spot reporting. Only one is active at a time. */
     val isActive: Boolean = false,
+    /**
+     * Optional license plate (e.g. "1234 ABC"). On-device only — never sent to Firestore or
+     * shared on Spot. Displayed on the map marker so the user recognises their car at a glance.
+     */
+    val licensePlate: String? = null,
 )

@@ -38,6 +38,8 @@ data class VehicleRegistrationState(
     val existingVehicleCount: Int = 0,
     /** True after the user first interacts with the form — gates error-state display. */
     val hasInteractedWithForm: Boolean = false,
+    /** Optional license plate (e.g. "1234 ABC"). On-device only — never sent to Firestore. */
+    val licensePlate: String = "",
 ) {
     /**
      * The "Car N" placeholder shown in the name field and used as the default name when

@@ -17,6 +17,7 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
+    licensePlate = licensePlate,
 )
 
 fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
@@ -30,11 +31,13 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
+    licensePlate = licensePlate,
 )
 
 // ── VehicleDto → Entity (sync from Firestore) ──────────────────────────────
 // Older Firestore rows may not have the vehicleType field — fall back to "CAR"
 // so the entity's NOT NULL column always holds a valid enum name.
+// licensePlate is on-device only — never synced from Firestore, default null.
 
 fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     id = id,
@@ -47,9 +50,11 @@ fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
+    licensePlate = null,
 )
 
 // ── Domain → VehicleDto (write to Firestore) ────────────────────────────────
+// licensePlate is on-device only — intentionally omitted from Firestore writes.
 
 fun Vehicle.toDto(): VehicleDto = VehicleDto(
     id = id,

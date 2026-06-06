@@ -79,6 +79,8 @@ class VehicleRegistrationViewModel(
                 updateState { copy(sizeCategory = intent.size, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetVehicleType ->
                 updateState { copy(vehicleType = intent.type, hasInteractedWithForm = true) }
+            is VehicleRegistrationIntent.SetLicensePlate ->
+                updateState { copy(licensePlate = intent.value) }
             is VehicleRegistrationIntent.SetShowOnSpot ->
                 updateState { copy(showBrandModelOnSpot = intent.enabled) }
             is VehicleRegistrationIntent.LoadVehicle -> loadVehicle(intent.vehicleId)
@@ -111,6 +113,7 @@ class VehicleRegistrationViewModel(
                         sizeCategory = vehicle.sizeCategory,
                         vehicleType = vehicle.vehicleType,
                         showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
+                        licensePlate = vehicle.licensePlate ?: "",
                     )
                 }
             }.onFailure { e ->
@@ -163,6 +166,7 @@ class VehicleRegistrationViewModel(
                     vehicleType = type,
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
                     isActive = shouldBeDefault,
+                    licensePlate = current.licensePlate.trim().ifBlank { null },
                 )
                 vehicleRepository.saveVehicle(vehicle).getOrThrow()
                 if (!isEditing && shouldBeDefault) vehicleRepository.setActiveVehicle(vehicle.id).getOrThrow()
