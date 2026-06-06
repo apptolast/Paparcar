@@ -67,14 +67,14 @@ private fun HomeSheetSample() {
     val userLoc = Pair(40.4165, -3.7030)
     Column(Modifier.padding(vertical = 8.dp)) {
         // Sin sesión activa → surfaceContainerHigh (aquí A/B/C difieren visualmente)
-        HomeVehicleCard(
+        HomeVehicleChip(
             card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
             userLocation = userLoc,
             isSelected = false,
             onClick = {},
         )
         // Con sesión activa → primaryContainer (referencia fija, no varía entre opciones)
-        HomeVehicleCard(
+        HomeVehicleChip(
             card = VehicleCard(vehicle = FakeData.vehicleVan, session = FakeData.activeSession),
             userLocation = userLoc,
             isSelected = false,

@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +28,6 @@ private const val DISABLED_BG_ALPHA = 0.5f
 private const val DISABLED_BORDER_ALPHA = 0.3f
 private const val DISABLED_FG_ALPHA = 0.38f
 private val CHIP_ICON_SIZE = 18.dp
-private val TRAILING_SLOT_SIZE = 20.dp
 private val TRAILING_ICON_SIZE = 12.dp
 private const val TRAILING_ICON_ALPHA = 0.5f
 
@@ -52,6 +52,7 @@ fun PaparcarFilterChip(
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
     trailingIcon: ImageVector? = null,
+    trailingContentDescription: String? = null,
     onTrailingClick: (() -> Unit)? = null,
     enabled: Boolean = true,
 ) {
@@ -107,14 +108,14 @@ fun PaparcarFilterChip(
             if (trailingIcon != null && onTrailingClick != null) {
                 Box(
                     modifier = Modifier
-                        .size(TRAILING_SLOT_SIZE)
+                        .minimumInteractiveComponentSize()
                         .clip(CircleShape)
                         .clickable(onClick = onTrailingClick),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = trailingIcon,
-                        contentDescription = null,
+                        contentDescription = trailingContentDescription,
                         tint = contentColor.copy(alpha = TRAILING_ICON_ALPHA),
                         modifier = Modifier.size(TRAILING_ICON_SIZE),
                     )

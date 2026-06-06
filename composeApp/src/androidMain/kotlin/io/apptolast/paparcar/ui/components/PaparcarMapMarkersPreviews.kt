@@ -16,9 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.domain.model.ZoneIcon
-import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 @Preview(name = "Markers · Claro", showBackground = true, widthDp = 360)
@@ -43,10 +43,11 @@ private fun MarkersShowcase() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        SectionLabel("VehicleBadge — default · selected (amber, DirectionsCar)")
+        SectionLabel("LicensePlate — no plate · with plate · selected")
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            VehicleBadgeMarker()
-            VehicleBadgeMarker(selected = true)
+            LicensePlateMarker()
+            LicensePlateMarker(plateText = "1234ABC")
+            LicensePlateMarker(plateText = "1234ABC", selected = true)
         }
 
         SectionLabel("MyVehicle — default · selected (legacy teardrop)")
@@ -68,12 +69,12 @@ private fun MarkersShowcase() {
             FreeSpotClusterMarker(count = 250)
         }
 
-        SectionLabel("Zone marker — 8 presets (surfaceContainer + primary icon)")
+        SectionLabel("Zone marker — hex blue (normal · private · occupied)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ZoneIcon.PRESETS.take(4).forEach { key -> ZoneMarker(icon = zoneIconFor(key)) }
-        }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ZoneIcon.PRESETS.drop(4).forEach { key -> ZoneMarker(icon = zoneIconFor(key)) }
+            ZoneMarker(zoneCode = "P1")
+            ZoneMarker(zoneCode = "RES", isPrivate = true)
+            ZoneMarker(zoneCode = "MAX", isOccupied = true)
+            ZoneMarker(zoneCode = "VIP", isPrivate = true, isOccupied = true)
         }
 
         SectionLabel("Centre pin · Report (rest · lifted)")
@@ -88,22 +89,10 @@ private fun MarkersShowcase() {
             CenterPinSlot { ParkingCenterPin(cameraMoving = true) }
         }
 
-        SectionLabel("Centre pin · Zone — 8 presets")
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ZoneIcon.PRESETS.take(4).forEach { key ->
-                CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(key), cameraMoving = false) }
-            }
-        }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ZoneIcon.PRESETS.drop(4).forEach { key ->
-                CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(key), cameraMoving = false) }
-            }
-        }
-
-        SectionLabel("Centre pin · Zone (Home · rest vs lifted)")
+        SectionLabel("Centre pin · Zone (rest · lifted)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = false) }
-            CenterPinSlot { ZoneCenterPin(icon = zoneIconFor(ZoneIcon.HOME), cameraMoving = true) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Outlined.LocalParking, cameraMoving = false) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Outlined.LocalParking, cameraMoving = true) }
         }
     }
 }

@@ -1,8 +1,7 @@
-# VEH-ADD-PILL-001 — Botón "añadir vehículo" invisible con 1 solo vehículo
+# VEH-ADD-PILL-001 — Botón "añadir vehículo" invisible con 1 solo vehículo ✅ CLOSED
 
-**Fecha:** 2026-05-19
-**Prioridad:** Media — UX bloqueante para quién quiera añadir un segundo vehículo.
-**Esfuerzo:** Trivial.
+**Fecha:** 2026-05-19 | **Cerrado:** 2026-06-05
+**Resolución:** Ya resuelto — el `size == 1` branch fue eliminado en un sprint anterior. `VehiclesPager` (con `VehicleTabRow` + `PaparcarAddChip`) se usa para todos los casos no vacíos.
 
 ## Problema
 

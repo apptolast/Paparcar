@@ -40,6 +40,7 @@ import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_zone_action_delete
 import paparcar.composeapp.generated.resources.home_zones_empty_pill
 import paparcar.composeapp.generated.resources.home_zones_empty_subtitle
 import paparcar.composeapp.generated.resources.home_zones_empty_title
@@ -105,6 +106,7 @@ internal fun ZoneChip(
         onClick = onClick,
         leadingIcon = zoneIconFor(iconKey),
         trailingIcon = Icons.Outlined.Close,
+        trailingContentDescription = stringResource(Res.string.home_zone_action_delete),
         onTrailingClick = onDelete,
         modifier = modifier.pointerInput(onLongPress) {
             detectTapGestures(onLongPress = { onLongPress() })

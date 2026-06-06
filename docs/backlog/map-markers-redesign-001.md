@@ -1,6 +1,7 @@
 # MAP-MARKERS-REDESIGN-001 — Sistema visual de markers coherente
 
 **Fecha:** 2026-05-19
+**Estado:** ✅ Done 2026-06-05 — pendiente commit
 **Prioridad:** Alta — los markers son la UI principal del mapa.
 **Esfuerzo:** Medio (modelo + composables + rewire PaparcarMapView).
 

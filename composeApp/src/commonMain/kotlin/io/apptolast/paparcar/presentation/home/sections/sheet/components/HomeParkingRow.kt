@@ -1,5 +1,3 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.BorderStroke
@@ -9,16 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ChevronRight
-import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -35,195 +28,179 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.VehicleCard
+import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
-import io.apptolast.paparcar.presentation.util.locationDisplayText
-import io.apptolast.paparcar.presentation.util.relativeTimeText
-import io.apptolast.paparcar.presentation.util.walkTimeString
+import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.stateColors
 import io.apptolast.paparcar.ui.theme.vehicleStateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.home_vehicle_card_park_cta
+import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_vehicle_card_status_empty
+import paparcar.composeapp.generated.resources.home_vehicle_chip_badge_active
+import paparcar.composeapp.generated.resources.home_vehicle_chip_status_parked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
 /**
- * Unified per-vehicle row used by the "TUS VEHÍCULOS" section. Renders one of
- * two variants based on whether [card] holds an active session:
+ * Compact chip used in the vehicles LazyRow. Surfaces two orthogonal dimensions:
  *
- *  - **Parked** (`card.session != null`): vehicle name as title, location +
- *    "distance · walk · timeAgo" as subtitle, trailing ChevronRight; tap →
- *    select that session.
- *  - **Empty** (`card.session == null`): vehicle name as title, "Sin aparcar"
- *    subtitle, trailing "Aparcar" pill; tap → enter AddingParking pre-bound
- *    to this vehicle. [MULTI-PARKING-001]
+ *  - **Detection badge**: how the vehicle is tracked — "BT" pill, "Active" pill, or nothing.
+ *  - **Session status**: "Parked · Xm" in green when [card.session] is non-null;
+ *    "Not parked" (muted) otherwise.
  *
- * Single composable so the icon-box molde, padding, and selection palette are
- * defined once across both states. The row is tappable as a whole — the pill
- * is purely visual and the parent click handler reads [card.session] to
- * decide the right action.
+ * Border is PapGreen-toned when parked, neutral otherwise.
+ * Tap always fires [onClick]; the caller routes to session peek or AddingParking mode.
  */
 @Composable
-internal fun HomeVehicleCard(
+internal fun HomeVehicleChip(
     card: VehicleCard,
     userLocation: Pair<Double, Double>?,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val vehicleName = card.vehicle.displayName(
-        fallback = stringResource(Res.string.home_vehicle_fallback_name),
-    )
+    val vehicle = card.vehicle
     val session = card.session
+    val isParked = session != null
+    val badge = vehicle.detectionBadge()
 
-    val vc = vehicleStateColors()
-    val cardBg = when {
+    val vehicleName = vehicle.displayName(fallback = stringResource(Res.string.home_vehicle_fallback_name))
+    val badgeLabel = if (badge == DetectionBadge.ACTIVE) stringResource(Res.string.home_vehicle_chip_badge_active) else null
+    val statusText = chipStatusText(session, userLocation)
+
+    val parkedAccent = SpotReliabilityLevel.HIGH.stateColors().bg
+    val borderColor = when {
         isSelected -> MaterialTheme.colorScheme.primary
-        session != null -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = SELECTED_BG_ALPHA)
-        else -> MaterialTheme.colorScheme.surfaceContainerHigh
+        isParked   -> parkedAccent
+        else       -> MaterialTheme.colorScheme.outline.copy(alpha = OUTLINE_ALPHA)
     }
-    val borderColor = if (isSelected) Color.Transparent
-                      else MaterialTheme.colorScheme.outline.copy(alpha = OUTLINE_ALPHA)
-    val titleColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                     else MaterialTheme.colorScheme.onSurface
-    val subtitleColor = if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = SUBTITLE_ALPHA_ON_PRIMARY)
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA_DEFAULT)
+    val cardBg = if (isSelected) MaterialTheme.colorScheme.primary
+                 else MaterialTheme.colorScheme.surfaceContainerHigh
+    val nameColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                   else MaterialTheme.colorScheme.onSurface
+    val mutedColor = if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = MUTED_ALPHA)
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = MUTED_ALPHA)
+    val statusColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = MUTED_ALPHA)
+        isParked   -> parkedAccent
+        else       -> mutedColor
+    }
+    val vc = vehicleStateColors()
     val iconBg = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = ICON_BG_ALPHA_ON_PRIMARY)
-        session != null -> vc.bg
-        else -> MaterialTheme.colorScheme.surfaceContainer
+        isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = ICON_BG_ALPHA)
+        isParked   -> vc.bg
+        else       -> MaterialTheme.colorScheme.surfaceContainer
     }
     val iconTint = when {
         isSelected -> MaterialTheme.colorScheme.onPrimary
-        session != null -> vc.on
-        else -> MaterialTheme.colorScheme.primary
+        isParked   -> vc.on
+        else       -> MaterialTheme.colorScheme.primary
     }
 
     Surface(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.width(CHIP_WIDTH_DP.dp),
         shape = PapShapes.cardSmall,
         color = cardBg,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(BORDER_DP.dp, borderColor),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(ICON_BOX_DP.dp)
-                    .clip(CircleShape)
-                    .background(iconBg),
-                contentAlignment = Alignment.Center,
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(
-                    card.vehicle.sizeCategory.icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier
+                        .size(ICON_BOX_DP.dp)
+                        .clip(CircleShape)
+                        .background(iconBg),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        vehicle.sizeCategory.icon,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
                 Text(
-                    text = vehicleName,
+                    vehicleName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = titleColor,
+                    color = nameColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(2.dp))
+            }
+
+            Spacer(Modifier.height(3.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                when (badge) {
+                    DetectionBadge.BLUETOOTH -> DetectionLabel(text = "BT", textColor = mutedColor)
+                    DetectionBadge.ACTIVE    -> if (badgeLabel != null) DetectionLabel(text = badgeLabel, textColor = mutedColor)
+                    DetectionBadge.NONE      -> Unit
+                }
+                if (badge != DetectionBadge.NONE) {
+                    Text(BULLET, style = MaterialTheme.typography.labelSmall, color = mutedColor)
+                }
                 Text(
-                    text = if (session != null)
-                        parkedSubtitle(session, userLocation)
-                    else
-                        stringResource(Res.string.home_vehicle_card_status_empty),
+                    statusText,
                     style = MaterialTheme.typography.labelSmall,
-                    color = subtitleColor,
+                    color = statusColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-
-            if (session != null) {
-                Icon(
-                    Icons.Outlined.ChevronRight,
-                    contentDescription = null,
-                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = CHEVRON_ALPHA),
-                    modifier = Modifier.size(22.dp),
-                )
-            } else {
-                ParkPill()
-            }
         }
     }
 }
 
 @Composable
-private fun ParkPill() {
+private fun DetectionLabel(text: String, textColor: Color) {
     Surface(
-        shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
-        color = MaterialTheme.colorScheme.primary,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Icon(
-                Icons.Outlined.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(12.dp),
-            )
-            Text(
-                stringResource(Res.string.home_vehicle_card_park_cta),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
-        }
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            color = textColor,
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+        )
     }
 }
 
 @Composable
-private fun parkedSubtitle(
-    parking: UserParking,
-    userLocation: Pair<Double, Double>?,
-): String {
-    val locationText = locationDisplayText(
-        placeInfo = parking.placeInfo,
-        address = parking.address,
-        lat = parking.location.latitude,
-        lon = parking.location.longitude,
-    )
+private fun chipStatusText(session: UserParking?, userLocation: Pair<Double, Double>?): String {
+    if (session == null) return stringResource(Res.string.home_vehicle_card_status_empty)
     val distanceM = userLocation?.let { (uLat, uLon) ->
-        distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
+        distanceMeters(uLat, uLon, session.location.latitude, session.location.longitude)
     }
-    val timeAgo = relativeTimeText(parking.location.timestamp)
-    return buildString {
-        append(locationText)
-        if (distanceM != null) {
-            append("  ·  ")
-            append(distanceString(distanceM))
-            append(" · ")
-            append(walkTimeString(distanceM))
-        }
-        append("  ·  ")
-        append(timeAgo)
+    return if (distanceM != null) {
+        stringResource(Res.string.home_vehicle_chip_status_parked, distanceString(distanceM))
+    } else {
+        stringResource(Res.string.home_peek_parked_label)
     }
 }
 
-private const val ICON_BOX_DP = 36
-private const val PILL_RADIUS_DP = 999
-private const val SELECTED_BG_ALPHA = 0.35f
+private enum class DetectionBadge { BLUETOOTH, ACTIVE, NONE }
+
+private fun Vehicle.detectionBadge(): DetectionBadge = when {
+    bluetoothDeviceId != null -> DetectionBadge.BLUETOOTH
+    isActive                  -> DetectionBadge.ACTIVE
+    else                      -> DetectionBadge.NONE
+}
+
+private const val CHIP_WIDTH_DP = 148
+private const val ICON_BOX_DP = 28
+private const val BORDER_DP = 1
 private const val OUTLINE_ALPHA = 0.4f
-private const val SUBTITLE_ALPHA_ON_PRIMARY = 0.8f
-private const val SUBTITLE_ALPHA_DEFAULT = 0.6f
-private const val ICON_BG_ALPHA_ON_PRIMARY = 0.18f
-private const val CHEVRON_ALPHA = 0.6f
+private const val MUTED_ALPHA = 0.6f
+private const val ICON_BG_ALPHA = 0.18f
+private const val BULLET = "·"

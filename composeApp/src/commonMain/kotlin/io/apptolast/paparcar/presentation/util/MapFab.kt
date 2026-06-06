@@ -27,7 +27,7 @@ fun MapCircleFab(
     contentDescription: String? = null,
     iconTint: Color = Color.Unspecified,
     containerColor: Color = Color.Unspecified,
-    size: Dp = 44.dp,
+    size: Dp = 48.dp,
     iconSize: Dp = 20.dp,
     shadowElevation: Dp = 6.dp,
 ) {

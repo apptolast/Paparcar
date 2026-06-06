@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
@@ -126,8 +129,8 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     var base = 1 // offset carried from original layout
     if (!isSpotSelected) {
         if (showPersonalBlocks) {
-            base += 1                   // vehicles_header
-            base += vehicleCards.size   // one vehicle_card item per registered vehicle
+            base += 1   // vehicles_header
+            base += 1   // vehicles_row (single LazyRow item)
         }
         base += 1                       // spots_header (hidden when spot is selected)
     }
@@ -147,22 +150,32 @@ private fun LazyListScope.vehiclesSection(
     onParkVehicle: (vehicleId: String) -> Unit,
 ) {
     val userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
-    vehicleCards.forEach { card ->
-        item("vehicle_${card.vehicle.id}") {
-            val onCardClick = remember(card.session?.id, card.vehicle.id, onParkingClick, onParkVehicle) {
-                {
-                    val session = card.session
-                    if (session != null) onParkingClick(session)
-                    else onParkVehicle(card.vehicle.id)
+    val sorted = vehicleCards.sortedWith(
+        compareByDescending<VehicleCard> { it.session != null }
+            .thenByDescending { it.vehicle.bluetoothDeviceId != null }
+            .thenByDescending { it.vehicle.isActive }
+    )
+    item("vehicles_row") {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(sorted, key = { it.vehicle.id }) { card ->
+                val onCardClick = remember(card.session?.id, card.vehicle.id, onParkingClick, onParkVehicle) {
+                    {
+                        val session = card.session
+                        if (session != null) onParkingClick(session)
+                        else onParkVehicle(card.vehicle.id)
+                    }
                 }
+                HomeVehicleChip(
+                    card = card,
+                    userLocation = userLocation,
+                    isSelected = card.session != null && state.selectedItemId == card.session.id,
+                    onClick = onCardClick,
+                )
             }
-            HomeVehicleCard(
-                card = card,
-                userLocation = userLocation,
-                isSelected = card.session != null && state.selectedItemId == card.session.id,
-                onClick = onCardClick,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
         }
     }
 }

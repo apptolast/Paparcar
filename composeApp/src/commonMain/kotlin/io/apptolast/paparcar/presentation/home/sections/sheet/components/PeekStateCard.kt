@@ -180,7 +180,7 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
 
 private const val HORIZONTAL_DP = 20
 private const val CHIP_DP = 44
-private const val DISMISS_HIT_DP = 40
+private const val DISMISS_HIT_DP = 48
 private const val DISMISS_ICON_DP = 20
 private const val DISMISS_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA = 0.55f

@@ -9,7 +9,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +29,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
@@ -41,22 +41,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
-import io.apptolast.paparcar.ui.theme.stateColors
 import io.apptolast.paparcar.ui.theme.vehicleStateColors
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlinx.coroutines.launch
 
 /**
- * Paparcar map markers — three-marker family sharing a coherent circle visual language.
+ * Paparcar map markers — three-marker family with distinct shapes per role.
  *
- * | Marker             | Shape  | Colour          | Content            |
- * |--------------------|--------|-----------------|--------------------|
- * | Parked vehicle     | Circle | Amber           | VehicleCar icon    |
- * | Free spot          | Circle | Green           | LocalParking icon  |
- * | Zone (saved place) | Circle | surfaceContainer| Zone preset icon   |
+ * | Marker             | Shape             | Colour | Content              |
+ * |--------------------|-------------------|--------|----------------------|
+ * | Parked vehicle     | Amber rect + tip  | Amber  | License plate text   |
+ * | Free spot          | Circle            | Green  | "P" parking icon     |
+ * | Zone (saved place) | Hexagon           | Blue   | 3-char zone code     |
  *
  * Rendered as bitmaps by the kmpmaps library via `customMarkerContent` in [PaparcarMapView].
  * Marker anchor = (0.5f, 1f): the bottom-centre of each bitmap pins the geographic coordinate.
@@ -65,22 +65,18 @@ import kotlinx.coroutines.launch
 // ─── Shared palette ──────────────────────────────────────────────────────────
 
 private object MarkerColors {
-    // Free spot — classic parking green
+    // Free spot — classic parking green (unified, no reliability tiers)
     val SpotGreen     = Color(0xFF22C55E)
     val SpotOnGreen   = Color(0xFF052E16)
 
-    // Reliability palette
-    val SpotHigh      = Color(0xFF22C55E) // Green
-    val SpotMedium    = Color(0xFFF59E0B) // Amber
-    val SpotLow       = Color(0xFFEF4444) // Red
-    val SpotManual    = Color(0xFF3B82F6) // Blue
-    val SpotOnDark    = Color(0xFFFFFFFF)
-    val SpotOnLight   = Color(0xFF052E16)
-
-    // Parked vehicle — amber/orange ("mine, active")
+    // License-plate marker — amber rectangle
     val PlateAmber    = Color(0xFFF59E0B)
     val PlateAmberDk  = Color(0xFFD97706)
-    val PlateOnAmber  = Color(0xFF451A03)
+    val PlateOnAmber  = Color(0xFF1C0900)
+
+    // Zone hexagon — blue
+    val ZoneBlue      = Color(0xFF3B82F6)
+    val ZoneOnBlue    = Color(0xFFFFFFFF)
 
     // MyVehicle fallback teardrop (ParkingLocationScreen) — kept separate
     val LegacyGreen   = Color(0xFF25F48C)
@@ -166,6 +162,106 @@ private val BADGE_SHADOW_W   = 22.dp
 private val BADGE_SHADOW_H   = 5.dp
 private val BADGE_GROUND_GAP = 4.dp
 
+// ─── Marker 1b — License plate marker (LicensePlateMarker) ───────────────────
+
+/**
+ * Amber rectangular badge with a downward-pointing tip — used as the parked-vehicle
+ * marker on the Home map so users can identify their car by plate number.
+ *
+ * Viewport 80×50: rect body (4,4)-(76,32) + triangle (34,32)-(46,32)-(40,42).
+ *
+ * @param plateText optional license plate — shows up to 7 chars uppercase. Falls back
+ *   to "—" when null or blank so the marker is never empty.
+ * @param selected when true, a two-pass halo rings the body for selection state.
+ */
+@Composable
+fun LicensePlateMarker(
+    plateText: String? = null,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+) {
+    val outfit = rememberOutfitFontFamily()
+    val measurer = rememberTextMeasurer()
+    val textStyle = remember(outfit) {
+        TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            textAlign = TextAlign.Center,
+            letterSpacing = 1.5.sp,
+        )
+    }
+    val display = plateText?.trim()?.take(7)?.uppercase()?.ifBlank { "—" } ?: "—"
+
+    Canvas(modifier = modifier.size(PLATE_W, PLATE_H)) {
+        val s = size.width / PLATE_VIEWPORT_W
+
+        // Selection halo — two-pass (outer dark shadow, inner white ring) on body rect
+        if (selected) {
+            drawRoundRect(
+                color = MarkerColors.SelectionShadow.copy(alpha = HALO_OUTER_ALPHA),
+                topLeft = Offset((4f - HALO_OUTER_EXPAND) * s, (4f - HALO_OUTER_EXPAND) * s),
+                size = Size((72f + HALO_OUTER_EXPAND * 2f) * s, (28f + HALO_OUTER_EXPAND * 2f) * s),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * s),
+                style = Stroke(width = HALO_OUTER_STROKE * s),
+            )
+            drawRoundRect(
+                color = MarkerColors.SelectionRing.copy(alpha = HALO_INNER_ALPHA),
+                topLeft = Offset((4f - HALO_INNER_EXPAND) * s, (4f - HALO_INNER_EXPAND) * s),
+                size = Size((72f + HALO_INNER_EXPAND * 2f) * s, (28f + HALO_INNER_EXPAND * 2f) * s),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f * s),
+                style = Stroke(width = HALO_INNER_STROKE * s),
+            )
+        }
+
+        // Ground shadow
+        drawOval(
+            color = Color.Black.copy(alpha = GROUND_SHADOW_ALPHA),
+            topLeft = Offset(30f * s, 43f * s),
+            size = Size(20f * s, 3f * s),
+        )
+
+        // Body + tip path
+        val plate = plateBodyPath(s)
+        drawPath(plate, color = MarkerColors.PlateAmber)
+        drawPath(plate, color = MarkerColors.PlateAmberDk, style = Stroke(width = PLATE_STROKE * s))
+
+        // Plate text
+        val result = measurer.measure(text = AnnotatedString(display), style = textStyle)
+        drawText(
+            result,
+            color = MarkerColors.PlateOnAmber,
+            topLeft = Offset(
+                x = PLATE_BODY_CX * s - result.size.width / 2f,
+                y = PLATE_BODY_CY * s - result.size.height / 2f,
+            ),
+        )
+    }
+}
+
+private fun plateBodyPath(s: Float): Path = Path().apply {
+    val cornerR = 4f * s
+    val l = 4f * s; val t = 4f * s; val r = 76f * s; val b = 32f * s
+    moveTo(l + cornerR, t)
+    lineTo(r - cornerR, t)
+    cubicTo(r, t, r, t, r, t + cornerR)
+    lineTo(r, b)
+    lineTo(46f * s, b)
+    lineTo(40f * s, 42f * s)
+    lineTo(34f * s, b)
+    lineTo(l, b)
+    lineTo(l, t + cornerR)
+    cubicTo(l, t, l, t, l + cornerR, t)
+    close()
+}
+
+private val PLATE_W              = 80.dp
+private val PLATE_H              = 50.dp
+private const val PLATE_VIEWPORT_W = 80f
+private const val PLATE_BODY_CX    = 40f
+private const val PLATE_BODY_CY    = 18f
+private const val PLATE_STROKE     = 1.5f
+
 // ─── MyVehicle marker — legacy fallback (ParkingLocationScreen) ──────────────
 
 /**
@@ -235,20 +331,16 @@ private val MY_VEHICLE_H = 55.dp
 // ─── Marker 2 — Free spot (FreeSpotMarker) ───────────────────────────────────
 
 /**
- * Free-spot marker. Circle with a parking "P" icon — same circle pattern
- * as [ZoneMarker] and [VehicleBadgeMarker] for a coherent three-marker family.
- * Color signals reliability level.
+ * Free-spot marker. Green circle with a parking "P" icon — unified single style,
+ * no reliability tiers. [MAP-MARKERS-REDESIGN-001]
  *
  * @param selected when true the border turns white to indicate selection.
- * @param reliability reliability tier determining the marker color.
  */
 @Composable
 fun FreeSpotMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
-    reliability: SpotReliabilityLevel = SpotReliabilityLevel.HIGH,
 ) {
-    val sc = reliability.stateColors()
     val shadowColor = MaterialTheme.colorScheme.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
 
     Box(
@@ -267,18 +359,19 @@ fun FreeSpotMarker(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .size(FREE_SPOT_MARKER_DIAM)
-                .background(color = sc.bg, shape = CircleShape)
+                .background(color = MarkerColors.SpotGreen, shape = CircleShape)
                 .border(
                     width = if (selected) FREE_SPOT_SEL_STROKE else FREE_SPOT_MARKER_STROKE,
-                    color = if (selected) Color.White else sc.on.copy(alpha = 0.3f),
+                    color = if (selected) Color.White else MarkerColors.SpotOnGreen.copy(alpha = 0.3f),
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
         ) {
+            val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
             Icon(
                 imageVector = Icons.Outlined.LocalParking,
                 contentDescription = null,
-                tint = sc.on,
+                tint = if (isDark) MarkerColors.SpotOnGreen else Color.White,
                 modifier = Modifier.size(FREE_SPOT_MARKER_ICON),
             )
         }
@@ -296,26 +389,33 @@ private val FREE_SPOT_MARKER_GROUND_GAP = 4.dp
 // ─── Marker 3 — Zone (ZoneMarker) ────────────────────────────────────────────
 
 /**
- * On-map marker for a saved [io.apptolast.paparcar.domain.model.Zone]. Same
- * visual language as [ZoneCenterPin] (chosen icon) so the user recognises the
- * placed marker as the locked-in counterpart of the pin they dragged in
- * AddingZone mode. The area itself is drawn as a canvas circle overlay.
- * Lighter weight (smaller diameter, no bounce, static shadow) so multiple
- * zones on the map don't compete with spot markers.
+ * On-map marker for a saved [io.apptolast.paparcar.domain.model.Zone].
+ * Blue flat-top hexagon with the first 3 chars of the zone name — shape and
+ * colour distinguish it from spot markers (green circle) and vehicle markers
+ * (amber rectangle). [MAP-MARKERS-REDESIGN-001]
  *
- * @param icon resolved [ImageVector] for the zone's `iconKey`.
+ * @param zoneCode 1–3 char label — usually `zone.name.take(3).uppercase()`.
+ * @param isPrivate when true a white-outlined lock badge appears at the bottom-end.
  */
 @Composable
 fun ZoneMarker(
-    icon: ImageVector,
+    zoneCode: String,
     modifier: Modifier = Modifier,
     isPrivate: Boolean = false,
     isOccupied: Boolean = false,
 ) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val fill = MaterialTheme.colorScheme.surfaceContainer
-    val accent = if (isPrivate) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    val shadowColor = ink.copy(alpha = GROUND_SHADOW_ALPHA)
+    val outfit = rememberOutfitFontFamily()
+    val measurer = rememberTextMeasurer()
+    val textStyle = remember(outfit) {
+        TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            color = MarkerColors.ZoneOnBlue,
+        )
+    }
+    val code = zoneCode.take(3).uppercase()
 
     Box(
         modifier = modifier.size(
@@ -325,124 +425,106 @@ fun ZoneMarker(
     ) {
         Canvas(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .size(width = ZONE_MARKER_SHADOW_W, height = ZONE_MARKER_SHADOW_H),
-        ) { drawOval(color = shadowColor) }
-
-        Box(
-            modifier = Modifier
                 .align(Alignment.TopCenter)
-                .size(ZONE_MARKER_DIAM)
-                .background(color = fill, shape = CircleShape)
-                .border(width = ZONE_MARKER_STROKE, color = ink, shape = CircleShape),
-            contentAlignment = Alignment.Center,
+                .size(ZONE_MARKER_DIAM),
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(ZONE_MARKER_ICON),
-            )
-            if (isPrivate && !isOccupied) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(ZONE_LOCK_BADGE_DP)
-                        .background(
-                            color = MaterialTheme.colorScheme.tertiary,
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiary,
-                        modifier = Modifier.size(ZONE_LOCK_ICON_DP),
-                    )
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val R = size.minDimension * 0.42f
+
+            // Flat-top hexagon (vertices at 30°, 90°, 150°, 210°, 270°, 330°)
+            val hex = Path().apply {
+                for (i in 0 until 6) {
+                    val angle = Math.PI / 6.0 + Math.PI / 3.0 * i
+                    val x = (cx + R * cos(angle)).toFloat()
+                    val y = (cy + R * sin(angle)).toFloat()
+                    if (i == 0) moveTo(x, y) else lineTo(x, y)
                 }
+                close()
+            }
+            drawPath(hex, color = MarkerColors.ZoneBlue)
+            drawPath(hex, color = MarkerColors.ZoneOnBlue, style = Stroke(width = ZONE_HEX_STROKE))
+
+            // Zone code text centred in hexagon
+            val result = measurer.measure(text = AnnotatedString(code), style = textStyle)
+            drawText(
+                result,
+                color = MarkerColors.ZoneOnBlue,
+                topLeft = Offset(cx - result.size.width / 2f, cy - result.size.height / 2f),
+            )
+        }
+
+        if (isPrivate && !isOccupied) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(ZONE_LOCK_BADGE_DP)
+                    .background(color = MarkerColors.ZoneBlue, shape = CircleShape)
+                    .border(width = 1.dp, color = Color.White, shape = CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(ZONE_LOCK_ICON_DP),
+                )
             }
         }
     }
 }
 
 private val ZONE_MARKER_DIAM       = 42.dp
-private val ZONE_MARKER_ICON       = 22.dp
-private val ZONE_MARKER_STROKE     = 2.dp
-private val ZONE_MARKER_SHADOW_W   = 20.dp
-private val ZONE_MARKER_SHADOW_H   = 5.dp
 private val ZONE_MARKER_GROUND_GAP = 4.dp
 private val ZONE_LOCK_BADGE_DP     = 16.dp
 private val ZONE_LOCK_ICON_DP      = 12.dp
+private const val ZONE_HEX_STROKE  = 1.5f
 
 // ─── Centre-pin family ───────────────────────────────────────────────────────
 
+/**
+ * Animated circle scaffold shared by [ReportCenterPin] and [ParkingCenterPin].
+ * Renders a borderOnly circle (no fill) with a ground shadow. Lifts and
+ * scales slightly when [cameraMoving] to signal the pin is floating.
+ */
 @Composable
-private fun TeardropPinScaffold(
+private fun RoundCenterPinScaffold(
     cameraMoving: Boolean,
     modifier: Modifier = Modifier,
-    pinDraw: DrawScope.(scale: Float, ink: Color) -> Unit = { _, _ -> },
-    discOverlay: @Composable BoxScope.() -> Unit = {},
+    content: @Composable BoxScope.() -> Unit,
 ) {
     val offsetY = remember { Animatable(0f) }
     val pinScale = remember { Animatable(1f) }
     LaunchedEffect(cameraMoving) {
-        val (target, scaleTarget) = if (cameraMoving) {
-            TEARDROP_PIN_LIFT_DP to TEARDROP_PIN_LIFT_SCALE
-        } else {
-            TEARDROP_PIN_REST_DP to TEARDROP_PIN_REST_SCALE
-        }
-        launch {
-            offsetY.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-        }
-        launch {
-            pinScale.animateTo(scaleTarget, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-        }
+        val (target, scaleTarget) = if (cameraMoving) ROUND_PIN_LIFT_DP to ROUND_PIN_LIFT_SCALE
+                                    else              ROUND_PIN_REST_DP  to ROUND_PIN_REST_SCALE
+        launch { offsetY.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+        launch { pinScale.animateTo(scaleTarget, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
     }
 
     val ink = MaterialTheme.colorScheme.onSurface
-    val shadowColor = ink.copy(alpha = TEARDROP_SHADOW_ALPHA)
+    val shadowColor = ink.copy(alpha = ROUND_PIN_SHADOW_ALPHA)
 
     Box(
-        modifier = modifier.size(
-            width = TEARDROP_PIN_W,
-            height = TEARDROP_PIN_H * 2,
-        ),
+        modifier = modifier.size(width = ROUND_PIN_TOTAL_W, height = ROUND_PIN_TOTAL_H),
+        contentAlignment = Alignment.Center,
     ) {
         Canvas(
             modifier = Modifier
-                .align(Alignment.Center)
-                .size(width = TEARDROP_SHADOW_W, height = TEARDROP_SHADOW_H),
-        ) {
-            drawOval(color = shadowColor)
-        }
+                .align(Alignment.BottomCenter)
+                .size(width = ROUND_PIN_SHADOW_W, height = ROUND_PIN_SHADOW_H),
+        ) { drawOval(color = shadowColor) }
 
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .offset(y = offsetY.value.dp)
                 .scale(pinScale.value)
-                .size(width = TEARDROP_PIN_W, height = TEARDROP_PIN_H),
-        ) {
-            Canvas(modifier = Modifier.matchParentSize()) {
-                val scale = size.width / 68f
-                val pin = teardropPath(
-                    cx = 34f, w = 68f, h = 84f, expand = 0f, scale = scale,
-                    top = 4f, bottom = 78f,
-                )
-                drawPath(pin, color = ink, style = Stroke(width = TEARDROP_STROKE_WIDTH * scale))
-                pinDraw(scale, ink)
-            }
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = TEARDROP_DISC_TOP_PADDING)
-                    .size(TEARDROP_DISC_DIAM),
-                contentAlignment = Alignment.Center,
-                content = discOverlay,
-            )
-        }
+                .size(ROUND_PIN_DIAM)
+                .border(width = ROUND_PIN_BORDER, color = ink, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+            content = content,
+        )
     }
 }
 
@@ -451,30 +533,14 @@ fun ReportCenterPin(
     cameraMoving: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val outfit = rememberOutfitFontFamily()
-    val measurer = rememberTextMeasurer()
-    val pStyle = remember(outfit, ink) {
-        TextStyle(
-            fontFamily = outfit,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 26.sp,
-            textAlign = TextAlign.Center,
-            color = ink,
+    RoundCenterPinScaffold(cameraMoving, modifier) {
+        Icon(
+            imageVector = Icons.Outlined.LocalParking,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(ROUND_PIN_ICON_SIZE),
         )
     }
-    TeardropPinScaffold(
-        cameraMoving = cameraMoving,
-        modifier = modifier,
-        pinDraw = { scale, _ ->
-            val result = measurer.measure(text = AnnotatedString("P"), style = pStyle)
-            val tx = 34f * scale - result.size.width / 2f
-            val ty = 32f * scale - result.size.height / 2f
-            translate(left = tx, top = ty) {
-                drawText(result, color = ink)
-            }
-        },
-    )
 }
 
 @Composable
@@ -482,22 +548,14 @@ fun ParkingCenterPin(
     cameraMoving: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val ink = MaterialTheme.colorScheme.onSurface
-    val carBody = MaterialTheme.colorScheme.surface
-    TeardropPinScaffold(
-        cameraMoving = cameraMoving,
-        modifier = modifier,
-        pinDraw = { scale, _ ->
-            drawCircle(
-                color = ink,
-                radius = TEARDROP_INNER_DISC_RADIUS * scale,
-                center = Offset(34f * scale, 32f * scale),
-            )
-            translate(left = 22f * scale, top = 20f * scale) {
-                drawCarIcon(scale = scale, color = carBody, windshieldColor = ink)
-            }
-        },
-    )
+    RoundCenterPinScaffold(cameraMoving, modifier) {
+        Icon(
+            imageVector = PaparcarIcons.VehicleCar,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(ROUND_PIN_ICON_SIZE),
+        )
+    }
 }
 
 @Composable
@@ -514,19 +572,18 @@ fun ZoneCenterPin(
     )
 }
 
-private val TEARDROP_PIN_W             = 46.dp
-private val TEARDROP_PIN_H             = 57.dp
-private val TEARDROP_SHADOW_W          = 22.dp
-private val TEARDROP_SHADOW_H          = 5.dp
-private val TEARDROP_DISC_DIAM         = 28.dp
-private val TEARDROP_DISC_TOP_PADDING  = 8.dp
-private const val TEARDROP_INNER_DISC_RADIUS = 16f
-private const val TEARDROP_PIN_REST_DP   = 0f
-private const val TEARDROP_PIN_LIFT_DP   = -10f
-private const val TEARDROP_PIN_REST_SCALE  = 1.0f
-private const val TEARDROP_PIN_LIFT_SCALE  = 1.04f
-private const val TEARDROP_STROKE_WIDTH    = 3.5f
-private const val TEARDROP_SHADOW_ALPHA    = 0.32f
+private val ROUND_PIN_DIAM      = 48.dp
+private val ROUND_PIN_ICON_SIZE = 26.dp
+private val ROUND_PIN_TOTAL_W   = 56.dp
+private val ROUND_PIN_TOTAL_H   = 60.dp
+private val ROUND_PIN_SHADOW_W  = 22.dp
+private val ROUND_PIN_SHADOW_H  = 5.dp
+private val ROUND_PIN_BORDER    = 2.5.dp
+private const val ROUND_PIN_SHADOW_ALPHA = 0.32f
+private const val ROUND_PIN_REST_DP      = 0f
+private const val ROUND_PIN_LIFT_DP      = -10f
+private const val ROUND_PIN_REST_SCALE   = 1.0f
+private const val ROUND_PIN_LIFT_SCALE   = 1.04f
 private val ZONE_AREA_ICON_SIZE = 22.dp
 
 // ─── Cluster marker ───────────────────────────────────────────────────────────
@@ -543,6 +600,8 @@ fun FreeSpotClusterMarker(count: Int, modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
         )
     }
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val textColor = if (isDark) MarkerColors.SpotOnGreen else Color.White
     Canvas(modifier.size(CLUSTER_SIZE)) {
         val s = size.minDimension / 68f
         drawCircle(MarkerColors.SpotGreen, radius = 30f * s, center = Offset(34f * s, 34f * s))
@@ -554,7 +613,7 @@ fun FreeSpotClusterMarker(count: Int, modifier: Modifier = Modifier) {
         )
         val result = measurer.measure(text = AnnotatedString(count.toString()), style = style)
         translate(34f * s - result.size.width / 2f, 34f * s - result.size.height / 2f) {
-            drawText(result, color = MarkerColors.SpotOnGreen)
+            drawText(result, color = textColor)
         }
     }
 }

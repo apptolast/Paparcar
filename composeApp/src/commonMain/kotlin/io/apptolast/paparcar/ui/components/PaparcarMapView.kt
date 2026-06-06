@@ -66,16 +66,13 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 
 import io.apptolast.paparcar.presentation.map.CameraTarget
-
-import io.apptolast.paparcar.presentation.util.zoneIconFor
-import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
-import io.apptolast.paparcar.presentation.util.toSpotReliabilityLevel
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.time.Duration.Companion.milliseconds
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PaparcarMapView — reusable map surface
@@ -221,13 +218,6 @@ private const val ZOOM_NEIGHBORHOOD  = 14f
 private const val ZOOM_DISTRICT      = 13f
 private const val ZOOM_WIDE          = 12f
 
-// ── Size badge (corner overlay on spot marker, preserved from legacy) ────────
-private val   BADGE_SIZE          = 14.dp
-private val   BADGE_BORDER_WIDTH  = 1.5.dp
-private val   BADGE_OFFSET        = 2.dp   // overflow beyond marker corner
-private val   BADGE_FONT_SIZE     = 7.sp
-private val   BADGE_LINE_HEIGHT   = 9.sp
-
 // Per-marker metadata that travelled in Marker.title before — we now hold it
 // off-marker so we can set Marker.title = null on every marker and suppress
 // Google Maps' default info window (the "title + snippet" balloon shown on
@@ -237,25 +227,16 @@ private data class SpotMeta(
     val spotId: String,
     val sizeCategory: VehicleSize?,
     val enRouteCount: Int,
-    val reliability: SpotReliabilityLevel,
 )
 
 // ── Marker content IDs ──────────────────────────────────────────────────────
-// Badge markers: contentId encodes vehicleId + state suffix so the bitmap
-// cache stores one entry per vehicle×state.
-private fun vehicleBadgeContentId(v: ParkedVehicleSummary, selected: Boolean, dim: Boolean): String {
-    val suffix = when {
-        selected -> "sel"
-        dim      -> "dim"
-        else     -> "nrm"
-    }
-    val sizePart = v.sizeCategory?.name?.lowercase() ?: "car"
-    return "vehicle_badge_${v.vehicleId.take(8)}_${sizePart}_$suffix"
-}
+// Badge markers: contentId encodes vehicleId + sizeCategory + state so the
+// bitmap cache stores one entry per vehicle×state. [MAP-MARKERS-REDESIGN-001]
+private fun vehicleBadgeContentId(v: ParkedVehicleSummary, selected: Boolean): String =
+    "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_${if (selected) "sel" else "nrm"}"
 
 private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
-private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 
 // Google Maps renders billboard markers by screen-Y when zIndex is equal,
 // so the selected marker must carry an explicit higher zIndex to always
@@ -265,16 +246,11 @@ private const val MARKER_Z_INDEX_NORMAL   = 0f
 private val SELECTED_MARKER_OPTIONS = AndroidMarkerOptions(zIndex = MARKER_Z_INDEX_SELECTED)
 private val NORMAL_MARKER_OPTIONS   = AndroidMarkerOptions(zIndex = MARKER_Z_INDEX_NORMAL)
 
-// Free-spot markers — various variants (reliability / selected / dimmed).
-private fun spotContentId(spot: Spot, selected: Boolean, dim: Boolean): String {
-    val reliability = spot.toSpotReliabilityLevel().name.lowercase()
-    val suffix = when {
-        selected -> "sel"
-        dim      -> "dim"
-        else     -> "nrm"
-    }
-    return "free_spot_${reliability}_$suffix"
-}
+// Free-spot markers — unified green style, no reliability tiers. [MAP-MARKERS-REDESIGN-001]
+// Dim state is no longer encoded in contentId; it is applied via Modifier.alpha in
+// customMarkerContent composables so the markers list stays stable during sheet drag. [COMPOSE-PERF-001]
+private const val MARKER_FREE_SPOT_NRM = "free_spot_nrm"
+private const val MARKER_FREE_SPOT_SEL = "free_spot_sel"
 
 // Alpha applied to dimmed markers — visible enough to deter duplicate
 // reports, subordinate enough that the centre pin dominates.
@@ -333,20 +309,6 @@ private fun clusterSpots(spots: List<Spot>, thresholdDeg: Double): List<SpotClus
         )
     }
     return clusters
-}
-
-// ── Marker badge helpers ──────────────────────────────────────────────────────
-
-/**
- * Single-character label shown on the size badge.
- * MEDIUM returns null → no badge (it is the most common size, no annotation needed).
- */
-private fun VehicleSize.badgeLabel(): String? = when (this) {
-    VehicleSize.MOTO   -> "M"
-    VehicleSize.SMALL  -> "S"
-    VehicleSize.MEDIUM -> null
-    VehicleSize.LARGE  -> "L"
-    VehicleSize.VAN    -> "V"
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -461,7 +423,6 @@ fun PaparcarMapView(
                             spot.id,
                             spot.sizeCategory,
                             spot.enRouteCount,
-                            spot.toSpotReliabilityLevel()
                         ),
                     )
                 }
@@ -479,7 +440,11 @@ fun PaparcarMapView(
         parkedVehicles.associate { Coordinates(it.location.latitude, it.location.longitude) to it.sessionId }
     }
 
-    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, dimSpots, isMyCarSelected, zones) {
+    // dimSpots intentionally excluded from this remember key — dim is visual-only and
+    // changes on every sheet-drag frame. The marker list only encodes geometry and
+    // selection (which affect zIndex/ordering); opacity is applied inside customMarkerContent
+    // composable lambdas which rebuild independently on dimSpots changes. [COMPOSE-PERF-001]
+    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, isMyCarSelected, zones) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
             // always render on top.
@@ -491,8 +456,8 @@ fun PaparcarMapView(
                         // balloon. Zone ID is recovered via zoneIdByCoords in the
                         // click handler instead.
                         title = null,
-                        // Per-iconKey contentId: zones with the same icon share a bitmap.
-                        contentId = "$MARKER_ZONE_PREFIX${zone.iconKey}_${if (zone.isPrivate) "prv" else "pub"}",
+                        // Per-zone contentId: each zone instance gets its own bitmap. [MAP-MARKERS-REDESIGN-001]
+                        contentId = "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}",
                         androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
                 )
@@ -505,7 +470,8 @@ fun PaparcarMapView(
                         Marker(
                             coordinates = Coordinates(v.location.latitude, v.location.longitude),
                             title = null,
-                            contentId = vehicleBadgeContentId(v, selected = selected, dim = !selected && dimSpots),
+                            // dim=false: opacity applied in customMarkerContent lambda
+                            contentId = vehicleBadgeContentId(v, selected = selected),
                             androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
@@ -518,11 +484,8 @@ fun PaparcarMapView(
                         Marker(
                             coordinates = Coordinates(it.latitude, it.longitude),
                             title = null,
-                            contentId = when {
-                                isMyCarSelected -> MARKER_MY_CAR_SELECTED
-                                dimSpots        -> MARKER_MY_CAR_DIM
-                                else            -> MARKER_MY_CAR
-                            },
+                            // dim handled in customMarkerContent; only selected affects zIndex here
+                            contentId = if (isMyCarSelected) MARKER_MY_CAR_SELECTED else MARKER_MY_CAR,
                             androidMarkerOptions = if (isMyCarSelected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
@@ -536,7 +499,8 @@ fun PaparcarMapView(
                         Marker(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
                             title = null,
-                            contentId = spotContentId(spot = spot, selected = selected, dim = !selected && dimSpots),
+                            // dim=false: opacity applied in customMarkerContent lambda
+                            contentId = if (selected) MARKER_FREE_SPOT_SEL else MARKER_FREE_SPOT_NRM,
                             androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
@@ -554,67 +518,55 @@ fun PaparcarMapView(
         }
     }
 
-    // ── Custom marker composables ────────────────────────────────────────────
-    // Three-marker system (MAP-MARKERS-REDESIGN-001):
-    //   - VehicleBadgeMarker: amber round badge + car icon (larger than spot)
-    //   - FreeSpotMarker: green teardrop + "P" (unified, no reliability tiers)
-    //   - ZoneMarker: blue teardrop + darker-blue disc + zone icon
-    // FreeSpot size/en-route overlays are preserved via FreeSpotWithOverlays.
-    val customMarkerContent = remember(spotMetaByCoords, clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots, parkingVehicleSize, parkingIsActive) {
-        val spotContentHandlers: List<Pair<String, @Composable (Marker) -> Unit>> = spotMetaByCoords.values.flatMap { meta ->
-            val reliability = meta.reliability
-            listOf(
-                "free_spot_${reliability.name.lowercase()}_nrm" to { _: Marker ->
-                    FreeSpotWithOverlays(meta)
-                },
-                "free_spot_${reliability.name.lowercase()}_sel" to { _: Marker ->
-                    FreeSpotWithOverlays(meta, selected = true)
-                },
-                "free_spot_${reliability.name.lowercase()}_dim" to { _: Marker ->
-                    Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                        FreeSpotWithOverlays(meta)
-                    }
-                }
-            )
-        }
-
+    // ── Custom marker composables ─────────────────────────────────────────────
+    // Three-marker system [MAP-MARKERS-REDESIGN-001]:
+    //   - VehicleBadgeMarker: amber circle + vehicle icon (one bitmap per vehicle×state)
+    //   - FreeSpotMarker: unified green circle + "P" (3 shared bitmaps, no reliability tiers)
+    //   - ZoneMarker: blue hexagon + 3-char zone code (one bitmap per zone×state)
+    val customMarkerContent = remember(clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots, parkingVehicleSize, parkingIsActive) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = mapOf(
             // ── Fallback single-parking marker (ParkingLocationScreen) ──
+            // Dim applied via alpha when dimSpots=true and car is not selected. [COMPOSE-PERF-001]
             MARKER_MY_CAR to { _ ->
-                VehicleBadgeMarker(sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
+                val alpha = if (!isMyCarSelected && dimSpots) DIM_MARKER_ALPHA else 1f
+                Box(modifier = Modifier.alpha(alpha)) {
+                    VehicleBadgeMarker(sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
+                }
             },
             MARKER_MY_CAR_SELECTED to { _ ->
                 VehicleBadgeMarker(selected = true, sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
             },
-            MARKER_MY_CAR_DIM to { _ ->
-                Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
-                    VehicleBadgeMarker(sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
-                }
+            // ── Free-spot bitmaps — 2 shared bitmaps (sel/nrm); dim applied via alpha ──
+            // [COMPOSE-PERF-001]: dim no longer encoded in contentId so markers list is
+            // stable during sheet drag; only customMarkerContent rebuild triggers on dimSpots.
+            MARKER_FREE_SPOT_NRM to { _ ->
+                val alpha = if (dimSpots) DIM_MARKER_ALPHA else 1f
+                Box(modifier = Modifier.alpha(alpha)) { FreeSpotWithOverlays(selected = false) }
             },
+            MARKER_FREE_SPOT_SEL to { _ -> FreeSpotWithOverlays(selected = true) },
             MARKER_CLUSTER to { marker ->
                 FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
             },
         )
 
-        baseHandlers + spotContentHandlers.toMap() + parkedVehicles.flatMap { v ->
-            // Explicit type annotation preserves @Composable on each lambda through flatMap.
+        baseHandlers + parkedVehicles.flatMap { v ->
+            // One bitmap per vehicle×selected — dim applied via alpha. [COMPOSE-PERF-001]
             val entries: List<Pair<String, @Composable (Marker) -> Unit>> = listOf(
-                vehicleBadgeContentId(v, selected = false, dim = false) to { _: Marker ->
-                    VehicleBadgeMarker(sizeCategory = v.sizeCategory)
+                vehicleBadgeContentId(v, selected = false) to { _: Marker ->
+                    val alpha = if (!isMyCarSelected && dimSpots) DIM_MARKER_ALPHA else 1f
+                    Box(modifier = Modifier.alpha(alpha)) {
+                        VehicleBadgeMarker(sizeCategory = v.sizeCategory, isActive = true)
+                    }
                 },
-                vehicleBadgeContentId(v, selected = true, dim = false) to { _: Marker ->
-                    VehicleBadgeMarker(selected = true, sizeCategory = v.sizeCategory)
-                },
-                vehicleBadgeContentId(v, selected = false, dim = true) to { _: Marker ->
-                    Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) { VehicleBadgeMarker(sizeCategory = v.sizeCategory) }
+                vehicleBadgeContentId(v, selected = true) to { _: Marker ->
+                    VehicleBadgeMarker(selected = true, sizeCategory = v.sizeCategory, isActive = true)
                 },
             )
             entries
         }.toMap() + zones.associate { zone ->
-            // isPrivate is included in the contentId so private and non-private zones
-            // of the same iconKey get separate cached bitmaps (different visual).
-            "$MARKER_ZONE_PREFIX${zone.iconKey}_${if (zone.isPrivate) "prv" else "pub"}" to { _: Marker ->
-                ZoneMarker(icon = zoneIconFor(zone.iconKey), isPrivate = zone.isPrivate)
+            // Per-zone contentId: each zone gets its own cached bitmap (zone code is zone-specific).
+            "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}" to { _: Marker ->
+                ZoneMarker(zoneCode = zone.name.take(3).uppercase(), isPrivate = zone.isPrivate)
             }
         }
     }
@@ -628,7 +580,7 @@ fun PaparcarMapView(
     LaunchedEffect(actualCamLat, actualCamLon) {
         if (actualCamLat != null) {
             cameraMoving = true
-            delay(CAMERA_MOVING_DEBOUNCE_MS)
+            delay(CAMERA_MOVING_DEBOUNCE_MS.milliseconds)
             cameraMoving = false
         }
     }
@@ -745,7 +697,6 @@ fun PaparcarMapView(
                 when {
                     cid == MARKER_MY_CAR ||
                         cid == MARKER_MY_CAR_SELECTED ||
-                        cid == MARKER_MY_CAR_DIM ||
                         cid?.startsWith("vehicle_badge_") == true ->
                         sessionIdByCoords[marker.coordinates]?.let(onMyCarClick)
                     cid?.startsWith(MARKER_ZONE_PREFIX) == true ->
@@ -1044,87 +995,12 @@ private fun rememberCameraAnimationState(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Wraps [FreeSpotMarker] with the legacy overlays that the new Design System
- * pin does not include by itself:
- *  - corner [SpotSizeBadge] when the spot has a non-MEDIUM vehicle size
- *  - top-left [SpotEnRouteDot] when other users are currently driving toward it
- *
- * Metadata (size + en-route count) arrives via [meta], looked up by the caller
- * from the coords-keyed side map (spotMetaByCoords). Keeping the overlays here
- * lets [FreeSpotMarker] stay generic (reliability + ttl + selected only) while
- * preserving the existing product affordances.
+ * Wraps [FreeSpotMarker] — spot markers now share 3 global bitmaps (no per-spot
+ * overlays) so this simply delegates to [FreeSpotMarker]. [MAP-MARKERS-REDESIGN-001]
  */
 @Composable
-private fun FreeSpotWithOverlays(
-    meta: SpotMeta?,
-    selected: Boolean = false,
-) {
-    val sizeCategory = meta?.sizeCategory
-    val enRouteCount = meta?.enRouteCount ?: 0
-    val reliability = meta?.reliability ?: SpotReliabilityLevel.HIGH
-    Box {
-        FreeSpotMarker(selected = selected, reliability = reliability)
-        val label = sizeCategory?.badgeLabel()
-        if (label != null) {
-            SpotSizeBadge(
-                label = label,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = BADGE_OFFSET, y = BADGE_OFFSET),
-            )
-        }
-        if (enRouteCount > 0) {
-            SpotEnRouteDot(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .offset(x = -BADGE_OFFSET, y = -BADGE_OFFSET),
-            )
-        }
-    }
+private fun FreeSpotWithOverlays(selected: Boolean = false) {
+    FreeSpotMarker(selected = selected)
 }
 
-/**
- * Small circular badge overlaid on the bottom-end corner of the free-spot
- * marker. Shows a single letter for the [VehicleSize] that freed the spot.
- * Forest-on-green styling reads consistently across all four reliability
- * pin colours — the previous variant-coupled colouring was lost in the swap
- * but the badge itself remains a useful product affordance.
- */
-@Composable
-private fun SpotSizeBadge(
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .size(BADGE_SIZE)
-            .background(PapForestDark, CircleShape)
-            .border(BADGE_BORDER_WIDTH, PapGreen, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            fontSize = BADGE_FONT_SIZE,
-            lineHeight = BADGE_LINE_HEIGHT,
-            fontWeight = FontWeight.ExtraBold,
-            color = PapGreen,
-        )
-    }
-}
-
-// ── en-route dot (top-left corner of spot marker) ────────────────────────────
-private val EN_ROUTE_DOT_SIZE = 8.dp
-
-/**
- * Small blue dot shown on the top-left corner of a free-spot marker when at
- * least one user is currently navigating to the spot.
- */
-@Composable
-private fun SpotEnRouteDot(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(EN_ROUTE_DOT_SIZE)
-            .background(PapBlue, CircleShape),
-    )
-}
 

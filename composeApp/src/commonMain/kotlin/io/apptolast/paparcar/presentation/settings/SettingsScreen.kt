@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Notifications
@@ -308,7 +309,6 @@ internal fun SettingsContent(
                     onCheckedChange = { onIntent(SettingsIntent.ToggleAutoDetect(it)) },
                 )
             }
-
             // ── Notifications (master + grouped subs) ───────────────────
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_notifications)) }
             item {

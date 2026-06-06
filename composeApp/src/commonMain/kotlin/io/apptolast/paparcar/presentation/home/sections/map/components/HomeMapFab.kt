@@ -18,6 +18,11 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.MapCircleFab
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.map_cd_go_to_car
+import paparcar.composeapp.generated.resources.map_cd_midpoint
+import paparcar.composeapp.generated.resources.map_cd_my_location
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Right-side map control column — strictly "where am I" affordances:
@@ -49,6 +54,7 @@ internal fun HomeMapFabColumn(
                 icon = Icons.Outlined.DirectionsCar,
                 tint = MaterialTheme.colorScheme.primary,
                 onClick = onParkedCar,
+                contentDescription = stringResource(Res.string.map_cd_go_to_car),
             )
         }
         AnimatedVisibility(
@@ -56,9 +62,17 @@ internal fun HomeMapFabColumn(
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
-            HomeMapFab(icon = Icons.Outlined.Route, onClick = onMidpoint)
+            HomeMapFab(
+                icon = Icons.Outlined.Route,
+                onClick = onMidpoint,
+                contentDescription = stringResource(Res.string.map_cd_midpoint),
+            )
         }
-        HomeMapFab(icon = Icons.Outlined.MyLocation, onClick = onMyLocation)
+        HomeMapFab(
+            icon = Icons.Outlined.MyLocation,
+            onClick = onMyLocation,
+            contentDescription = stringResource(Res.string.map_cd_my_location),
+        )
     }
 }
 

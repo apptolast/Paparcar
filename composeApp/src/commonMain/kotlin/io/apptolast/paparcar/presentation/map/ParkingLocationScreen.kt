@@ -23,6 +23,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.EditLocationAlt
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
@@ -67,6 +68,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.map_cd_back
 import paparcar.composeapp.generated.resources.parking_detail_active_section_label
 import paparcar.composeapp.generated.resources.parking_detail_detection_auto
+import paparcar.composeapp.generated.resources.parking_detail_detection_home
 import paparcar.composeapp.generated.resources.parking_detail_detection_manual
 import paparcar.composeapp.generated.resources.parking_detail_navigate_action
 import paparcar.composeapp.generated.resources.parking_detail_no_address
@@ -353,6 +355,11 @@ private fun DetectionRow(spotType: SpotType, isActive: Boolean) {
             Icons.Outlined.EditLocationAlt,
             stringResource(Res.string.parking_detail_detection_manual),
             if (isActive) cs.secondary else cs.onSurfaceVariant,
+        )
+        SpotType.HOME_GEOFENCE -> Triple(
+            Icons.Outlined.Home,
+            stringResource(Res.string.parking_detail_detection_home),
+            if (isActive) cs.primary else cs.onSurfaceVariant,
         )
     }
     MetaRow(icon = icon, tint = tint, text = label)

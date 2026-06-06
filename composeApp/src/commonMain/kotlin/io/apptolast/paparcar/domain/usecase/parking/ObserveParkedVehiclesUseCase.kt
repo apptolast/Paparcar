@@ -37,6 +37,7 @@ class ObserveParkedVehiclesUseCase(
                     sizeCategory = session.sizeCategory ?: vehicle.sizeCategory,
                     stableRank = sortedIds.indexOf(vehicleId).coerceAtLeast(0),
                     privateZoneId = session.privateZoneId,
+                    licensePlate = vehicle.licensePlate,
                 )
             }
         }

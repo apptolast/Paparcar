@@ -31,6 +31,7 @@ import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 class HomeViewModel(
@@ -238,9 +240,10 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
+    @OptIn(FlowPreview::class)
     private fun subscribeSearchQuery() {
         searchQueryFlow
-            .debounce(SEARCH_DEBOUNCE_MS)
+            .debounce(SEARCH_DEBOUNCE_MS.milliseconds)
             .filter { it.isNotBlank() }
             .onEach { query ->
                 updateState { copy(isSearching = true) }
