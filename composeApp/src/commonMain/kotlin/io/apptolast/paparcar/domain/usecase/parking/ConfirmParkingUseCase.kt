@@ -14,9 +14,9 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.util.haversineMeters
+import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
-import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -26,7 +26,7 @@ import kotlin.uuid.Uuid
  * Persists a confirmed parking spot, registers a geofence, notifies the user,
  * and schedules background enrichment with geocoder address + POI data.
  *
- * All steps after [UserParkingRepository.saveSession] are non-blocking:
+ * All steps after [UserParkingRepository.saveNewParkingSession] are non-blocking:
  * - Enrichment is dispatched to [ParkingEnrichmentScheduler] (WorkManager on Android)
  *   and runs when network is available, with automatic retry.
  * - Geofence and notification fire immediately after the session is saved.
@@ -39,10 +39,11 @@ class ConfirmParkingUseCase(
     private val geofenceService: GeofenceManager,
     private val notificationPort: AppNotificationManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
-    private val parkingSyncScheduler: ParkingSyncScheduler,
     private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
+    private val departureEventBus: DepartureEventBus,
 ) {
+
     suspend operator fun invoke(
         location: GpsPoint,
         detectionReliability: Float,
@@ -98,6 +99,19 @@ class ConfirmParkingUseCase(
         }?.id
         PaparcarLogger.d(DIAG, "  privateZoneId=$matchedPrivateZoneId")
 
+        // Private zone → HOME_GEOFENCE: the user is parking in their own saved private spot.
+        // Only applies to AUTO_DETECTED — manual reports and explicit callers keep their type.
+        val resolvedSpotType = if (spotType == SpotType.AUTO_DETECTED) {
+            if (matchedPrivateZoneId != null) {
+                PaparcarLogger.d(DIAG, "  private zone match zoneId=$matchedPrivateZoneId → HOME_GEOFENCE")
+                SpotType.HOME_GEOFENCE
+            } else {
+                SpotType.AUTO_DETECTED
+            }
+        } else {
+            spotType
+        }
+
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -106,6 +120,9 @@ class ConfirmParkingUseCase(
             timestamp = Clock.System.now().toEpochMilliseconds(),
             speed = location.speed,
         )
+        if (location.accuracy > POOR_ACCURACY_WARN_METERS) {
+            PaparcarLogger.w(DIAG, "  ⚠ poor GPS accuracy=${location.accuracy}m (threshold=${POOR_ACCURACY_WARN_METERS}m) — spot position may be imprecise, geofence will be padded")
+        }
         val session = UserParking(
             id = sessionId,
             userId = userId,
@@ -114,29 +131,27 @@ class ConfirmParkingUseCase(
             geofenceId = sessionId,
             isActive = true,
             detectionReliability = detectionReliability,
-            spotType = spotType,
+            spotType = resolvedSpotType,
             sizeCategory = resolvedSizeCategory,
             privateZoneId = matchedPrivateZoneId,
         )
 
-        PaparcarLogger.d(DIAG, "  → saveSession BEFORE sessionId=$sessionId")
-        val saved = userParkingRepository.saveSession(session)
-        PaparcarLogger.d(DIAG, "  ← saveSession AFTER isSuccess=${saved.isSuccess}")
+        PaparcarLogger.d(DIAG, "  → saveNewParkingSession BEFORE sessionId=$sessionId")
+        val saved = userParkingRepository.saveNewParkingSession(session)
+        PaparcarLogger.d(DIAG, "  ← saveNewParkingSession AFTER isSuccess=${saved.isSuccess}")
         if (saved.isFailure) {
-            PaparcarLogger.e(DIAG, "  ✗ saveSession failed", saved.exceptionOrNull())
+            PaparcarLogger.e(DIAG, "  ✗ saveNewParkingSession failed", saved.exceptionOrNull())
             return Result.failure(PaparcarError.Parking.SaveFailed)
         }
-        val previousSessionId = saved.getOrNull()
 
-        // Worker
-        parkingSyncScheduler.schedule(session, previousSessionId)
-        PaparcarLogger.d(
-            DIAG,
-            "  ↳ parkingSyncScheduler.schedule scheduled (previousSessionId=$previousSessionId)"
-        )
+        // Clear the IN_VEHICLE_ENTER timestamp from the arrival trip so that departure
+        // detection only triggers on a *new* IN_VEHICLE_ENTER that happens after parking
+        // is saved. Without this reset, walking away from the car within the 30-min
+        // vehicleEnterWindowMs would falsely confirm a departure. [BUG-WALK-DEPART-001]
+        departureEventBus.reset()
 
         PaparcarLogger.d(DIAG, "  → enrichmentScheduler.schedule BEFORE")
-        enrichmentScheduler.schedule(sessionId, gpsPoint.latitude, gpsPoint.longitude)
+        enrichmentScheduler.enqueueEnrichSession(sessionId, gpsPoint.latitude, gpsPoint.longitude)
         PaparcarLogger.d(DIAG, "  ← enrichmentScheduler.schedule AFTER")
 
         PaparcarLogger.d(DIAG, "  → geofenceService.createGeofence BEFORE")
@@ -158,6 +173,7 @@ class ConfirmParkingUseCase(
 
     private companion object {
         const val DIAG = "PARKDIAG/Confirm"
+        const val POOR_ACCURACY_WARN_METERS = 50f
     }
 
     private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {

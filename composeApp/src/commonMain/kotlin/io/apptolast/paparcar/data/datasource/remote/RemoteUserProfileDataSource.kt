@@ -15,8 +15,8 @@ interface RemoteUserProfileDataSource {
     // ─── Parking History ──────────────────────────────────────────────────────
 
     suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto)
-    suspend fun updateParkingSessionActiveFlag(userId: String, sessionId: String, isActive: Boolean)
-    suspend fun updateParkingSessionLocation(userId: String, sessionId: String, address: AddressDto?, placeInfo: PlaceInfoDto?)
+    suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String)
+    suspend fun updateParkingSessionAddressAndPlace(userId: String, sessionId: String, address: AddressDto?, placeInfo: PlaceInfoDto?)
     suspend fun getParkingHistory(userId: String): List<ParkingHistoryDto>
 
     // ─── Vehicles ─────────────────────────────────────────────────────────────

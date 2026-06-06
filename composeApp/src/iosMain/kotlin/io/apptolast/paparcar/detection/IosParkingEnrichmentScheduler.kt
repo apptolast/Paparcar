@@ -2,7 +2,7 @@ package io.apptolast.paparcar.detection
 
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,17 +27,17 @@ import kotlinx.coroutines.launch
  * - **No system-managed retry-on-network.** We retry up to [MAX_RETRIES] times with
  *   exponential backoff, but the app has to be alive to consume them.
  *
- * The work itself is portable — both [GetLocationInfoUseCase] and
+ * The work itself is portable — both [GetAddressAndPlaceUseCase] and
  * [UserParkingRepository] live in commonMain.
  */
 class IosParkingEnrichmentScheduler(
-    private val getLocationInfo: GetLocationInfoUseCase,
+    private val getAddressAndPlace: GetAddressAndPlaceUseCase,
     private val userParkingRepository: UserParkingRepository,
 ) : ParkingEnrichmentScheduler {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    override fun schedule(sessionId: String, lat: Double, lon: Double) {
+    override fun enqueueEnrichSession(sessionId: String, lat: Double, lon: Double) {
         scope.launch { runWithRetry(sessionId, lat, lon) }
     }
 
@@ -55,11 +55,11 @@ class IosParkingEnrichmentScheduler(
 
     private suspend fun runEnrichment(sessionId: String, lat: Double, lon: Double): Boolean {
         var addressSaved = false
-        getLocationInfo(lat, lon)
+        getAddressAndPlace(lat, lon)
             .catch { PaparcarLogger.w(TAG, "Geocoder failure for $sessionId", it) }
             .collect { info ->
                 userParkingRepository
-                    .updateLocationInfo(sessionId, info.address, info.placeInfo)
+                    .updateParkingSessionAddressAndPlace(sessionId, info.address, info.placeInfo)
                     .onSuccess { addressSaved = true }
             }
         return addressSaved

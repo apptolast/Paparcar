@@ -9,6 +9,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent
@@ -19,32 +20,36 @@ import java.util.concurrent.TimeUnit
  * Marks a parking session as inactive in Firestore via a targeted update()
  * (only flips the `isActive` field — no other fields overwritten).
  *
- * Enqueued by [WorkManagerParkingSyncScheduler.scheduleClearActive] when
+ * Enqueued by [WorkManagerParkingSyncScheduler.enqueueClearActiveParkingSession] when
  * [UserParkingRepositoryImpl.clearActive] clears the active session from Room.
  * The repository call is Room-only; this worker handles the Firestore side
  * asynchronously so the release path is never blocked on network I/O. [PIPE-002]
  *
- * Input data: [KEY_USER_ID], [KEY_SESSION_ID].
+ * The userId is resolved inside [doWork] via [AuthRepository] injected through Koin.
+ *
+ * Input data: [KEY_SESSION_ID].
  * Constraints: NETWORK_CONNECTED. Backoff: exponential 30 s base.
  */
-class ClearActiveSyncWorker(
+class ClearActiveParkingSessionWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val userProfileDataSource: RemoteUserProfileDataSource by inject()
+    private val authRepository: AuthRepository by inject()
 
     override suspend fun doWork(): Result {
-        val userId = inputData.getString(KEY_USER_ID) ?: return Result.failure()
+        val userId = authRepository.getCurrentSession()?.userId
+            ?: return Result.failure()
         val sessionId = inputData.getString(KEY_SESSION_ID) ?: return Result.failure()
 
-        PaparcarLogger.d(TAG, "▶ ClearActiveSyncWorker.doWork session=$sessionId attempt=$runAttemptCount")
+        PaparcarLogger.d(TAG, "▶ ClearActiveParkingSessionWorker.doWork session=$sessionId attempt=$runAttemptCount")
 
         return runCatching {
-            userProfileDataSource.updateParkingSessionActiveFlag(userId, sessionId, false)
+            userProfileDataSource.clearParkingSessionActiveFlag(userId, sessionId)
         }.fold(
             onSuccess = {
-                PaparcarLogger.d(TAG, "■ ClearActiveSyncWorker SUCCESS session=$sessionId")
+                PaparcarLogger.d(TAG, "■ ClearActiveParkingSessionWorker SUCCESS session=$sessionId")
                 Result.success()
             },
             onFailure = { e ->
@@ -60,16 +65,15 @@ class ClearActiveSyncWorker(
     }
 
     companion object {
-        const val TAG = "PARKDIAG/ClearActiveSyncWorker"
+        const val TAG = "PARKDIAG/ClearActiveParkingSessionWorker"
         private const val MAX_RETRY_ATTEMPTS = 3
         private const val INITIAL_BACKOFF_SECONDS = 30L
 
-        private const val KEY_USER_ID = "userId"
         private const val KEY_SESSION_ID = "sessionId"
 
-        fun buildRequest(userId: String, sessionId: String): OneTimeWorkRequest =
-            OneTimeWorkRequestBuilder<ClearActiveSyncWorker>()
-                .setInputData(workDataOf(KEY_USER_ID to userId, KEY_SESSION_ID to sessionId))
+        fun buildRequest(sessionId: String): OneTimeWorkRequest =
+            OneTimeWorkRequestBuilder<ClearActiveParkingSessionWorker>()
+                .setInputData(workDataOf(KEY_SESSION_ID to sessionId))
                 .setConstraints(
                     Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)

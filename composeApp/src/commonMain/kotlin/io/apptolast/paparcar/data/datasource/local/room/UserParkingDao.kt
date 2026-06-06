@@ -59,7 +59,7 @@ interface UserParkingDao {
             placeInfoCategory  = :placeInfoCategory
         WHERE id = :id
     """)
-    suspend fun updateLocationInfo(
+    suspend fun updateAddressAndPlace(
         id: String,
         street: String?,
         city: String?,

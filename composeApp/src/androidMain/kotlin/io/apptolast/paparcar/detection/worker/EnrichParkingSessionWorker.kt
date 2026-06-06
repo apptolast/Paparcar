@@ -8,7 +8,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.catch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Enriches a saved [UserParking] session with geocoder address + POI data.
  *
- * Uses [GetLocationInfoUseCase] which emits in two steps:
+ * Uses [GetAddressAndPlaceUseCase] which emits in two steps:
  *  1. Address (local geocoder, instant) — written to DB immediately.
  *  2. Place info (network, best-effort) — written to DB if available.
  *
@@ -32,7 +33,7 @@ class EnrichParkingSessionWorker(
     params: WorkerParameters,
 ) : CoroutineWorker(context, params), KoinComponent {
 
-    private val getLocationInfo: GetLocationInfoUseCase by inject()
+    private val getAddressAndPlace: GetAddressAndPlaceUseCase by inject()
     private val userParkingRepository: UserParkingRepository by inject()
 
     override suspend fun doWork(): Result {
@@ -42,11 +43,11 @@ class EnrichParkingSessionWorker(
 
         var addressSaved = false
 
-        getLocationInfo(lat, lon)
-            .catch { /* geocoder failure — will retry below */ }
+        getAddressAndPlace(lat, lon)
+            .catch { e -> PaparcarLogger.e(TAG, "getAddressAndPlace failed (attempt $runAttemptCount) lat=$lat lon=$lon", e) }
             .collect { info ->
                 userParkingRepository
-                    .updateLocationInfo(sessionId, info.address, info.placeInfo)
+                    .updateParkingSessionAddressAndPlace(sessionId, info.address, info.placeInfo)
                     .onSuccess { addressSaved = true }
             }
 

@@ -38,11 +38,18 @@ class RemoteUserProfileDataSourceImpl(
         parkingHistoryCollection(userId).document(session.id).set(session)
     }
 
-    override suspend fun updateParkingSessionActiveFlag(userId: String, sessionId: String, isActive: Boolean) {
-        parkingHistoryCollection(userId).document(sessionId).update(mapOf(FIELD_IS_ACTIVE to isActive))
+    override suspend fun clearParkingSessionActiveFlag(userId: String, sessionId: String) {
+        runCatching {
+            parkingHistoryCollection(userId).document(sessionId).update(mapOf(FIELD_IS_ACTIVE to false))
+        }.onFailure {
+            // NOT_FOUND: the previous session was never synced to Firestore (offline when
+            // parking was confirmed). The isActive flag is non-critical for a document that
+            // doesn't exist remotely — no point reporting this as a non-fatal.
+            PaparcarLogger.w(TAG, "clearParkingSessionActiveFlag skipped — session not in Firestore: $sessionId")
+        }
     }
 
-    override suspend fun updateParkingSessionLocation(
+    override suspend fun updateParkingSessionAddressAndPlace(
         userId: String,
         sessionId: String,
         address: AddressDto?,

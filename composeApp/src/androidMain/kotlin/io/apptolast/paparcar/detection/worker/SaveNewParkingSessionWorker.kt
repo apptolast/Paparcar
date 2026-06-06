@@ -11,6 +11,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.domain.model.UserParking
@@ -29,31 +30,37 @@ import java.util.concurrent.TimeUnit
  * network outages, and OEM-aggressive background management because WorkManager
  * persists the request and retries with exponential backoff.
  *
+ * The userId is resolved inside [doWork] via [AuthRepository] injected through Koin —
+ * this removes the need for a coroutine scope in the scheduler and makes the enqueue
+ * path fully synchronous. If the user has logged out between enqueue and execution
+ * the worker returns [Result.failure] (data-less retry would be meaningless).
+ *
  * Inputs (passed via [androidx.work.Data]):
- * - [KEY_USER_ID] — Firebase auth uid the session belongs to.
  * - [KEY_NEW_SESSION_*] — every field of the new session, since the worker is
  *   self-contained (no Room reads — same pattern as [ReportSpotWorker]).
  * - [KEY_PREVIOUS_SESSION_ID] — id of the previous active session to mark as
  *   `isActive=false` in Firestore (mirrors `dao.clearActive()`). Optional.
  *
  * Constraints: `NETWORK_CONNECTED`. Backoff: exponential 30 s base.
- * Unique work name: `parking_sync_$sessionId`, policy `REPLACE`.
+ * Unique work name: `parking_chain_$sessionId`, policy `REPLACE`.
  *
  * @see io.apptolast.paparcar.domain.service.ParkingSyncScheduler
  */
-class ParkingSyncWorker(
+class SaveNewParkingSessionWorker(
     context: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val userProfileDataSource: RemoteUserProfileDataSource by inject()
+    private val authRepository: AuthRepository by inject()
 
     override suspend fun doWork(): Result {
-        val userId = inputData.getString(KEY_USER_ID) ?: return Result.failure()
-        val newSession = inputData.toParkingHistoryDto() ?: return Result.failure()
+        val userId = authRepository.getCurrentSession()?.userId
+            ?: return Result.failure()
+        val newSession = inputData.toParkingHistoryDto(userId) ?: return Result.failure()
         val previousSessionId = inputData.getString(KEY_PREVIOUS_SESSION_ID)
 
-        PaparcarLogger.d(TAG, "▶ ParkingSyncWorker.doWork session=${newSession.id} previous=$previousSessionId attempt=$runAttemptCount")
+        PaparcarLogger.d(TAG, "▶ SaveNewParkingSessionWorker.doWork session=${newSession.id} previous=$previousSessionId attempt=$runAttemptCount")
 
         return runCatching {
             // NonCancellable: if the OEM kills the WorkManager Job mid-flight, the Firestore
@@ -63,13 +70,13 @@ class ParkingSyncWorker(
                 // update() not set() — only flip the isActive flag without overwriting
                 // existing coordinates or other fields. [PIPE-001 bugfix in PIPE-002]
                 previousSessionId?.let { prevId ->
-                    userProfileDataSource.updateParkingSessionActiveFlag(userId, prevId, false)
+                    userProfileDataSource.clearParkingSessionActiveFlag(userId, prevId)
                 }
                 userProfileDataSource.saveParkingSession(userId, newSession)
             }
         }.fold(
             onSuccess = {
-                PaparcarLogger.d(TAG, "■ ParkingSyncWorker SUCCESS session=${newSession.id}")
+                PaparcarLogger.d(TAG, "■ SaveNewParkingSessionWorker SUCCESS session=${newSession.id}")
                 Result.success()
             },
             onFailure = { e ->
@@ -85,11 +92,10 @@ class ParkingSyncWorker(
     }
 
     companion object {
-        const val TAG = "PARKDIAG/SyncWorker"
+        const val TAG = "PARKDIAG/SaveNewParkingSessionWorker"
         private const val MAX_RETRY_ATTEMPTS = 5
         private const val INITIAL_BACKOFF_SECONDS = 30L
 
-        private const val KEY_USER_ID = "userId"
         private const val KEY_PREVIOUS_SESSION_ID = "previousSessionId"
 
         // New-session payload — keep in lockstep with [ParkingHistoryDto].
@@ -105,12 +111,10 @@ class ParkingSyncWorker(
         private const val KEY_NEW_SESSION_DETECTION_RELIABILITY = "session_detection_reliability"
 
         fun buildRequest(
-            userId: String,
             session: UserParking,
             previousSessionId: String?,
         ): OneTimeWorkRequest {
             val data = workDataOf(
-                KEY_USER_ID to userId,
                 KEY_PREVIOUS_SESSION_ID to previousSessionId,
                 KEY_NEW_SESSION_ID to session.id,
                 KEY_NEW_SESSION_VEHICLE_ID to session.vehicleId,
@@ -125,7 +129,7 @@ class ParkingSyncWorker(
                 // and `detectionReliability` may legitimately be null for manually-reported spots. [MAPPER-003]
                 KEY_NEW_SESSION_DETECTION_RELIABILITY to (session.detectionReliability?.toDouble() ?: Double.NaN),
             )
-            return OneTimeWorkRequestBuilder<ParkingSyncWorker>()
+            return OneTimeWorkRequestBuilder<SaveNewParkingSessionWorker>()
                 .setInputData(data)
                 .setConstraints(
                     Constraints.Builder()
@@ -137,11 +141,11 @@ class ParkingSyncWorker(
                 .build()
         }
 
-        private fun androidx.work.Data.toParkingHistoryDto(): ParkingHistoryDto? {
+        private fun androidx.work.Data.toParkingHistoryDto(userId: String): ParkingHistoryDto? {
             val id = getString(KEY_NEW_SESSION_ID) ?: return null
             return ParkingHistoryDto(
                 id = id,
-                userId = getString(KEY_USER_ID) ?: "",
+                userId = userId,
                 vehicleId = getString(KEY_NEW_SESSION_VEHICLE_ID),
                 latitude = getDouble(KEY_NEW_SESSION_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return null,
                 longitude = getDouble(KEY_NEW_SESSION_LON, Double.NaN).takeIf { !it.isNaN() } ?: return null,

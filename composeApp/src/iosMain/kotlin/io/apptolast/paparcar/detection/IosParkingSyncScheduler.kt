@@ -35,44 +35,44 @@ class IosParkingSyncScheduler(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    override fun schedule(session: UserParking, previousSessionId: String?) {
+    override fun enqueueSaveNewParkingSession(session: UserParking, previousSessionId: String?) {
         scope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId == null) {
-                PaparcarLogger.w(TAG, "schedule() skipped — no auth session for ${session.id}")
+                PaparcarLogger.w(TAG, "enqueueSaveNewParkingSession() skipped — no auth session for ${session.id}")
                 return@launch
             }
-            retrying("schedule:${session.id}") {
+            retrying("saveNewParkingSession:${session.id}") {
                 previousSessionId?.let { prevId ->
-                    remoteDataSource.updateParkingSessionActiveFlag(userId, prevId, false)
+                    remoteDataSource.clearParkingSessionActiveFlag(userId, prevId)
                 }
                 remoteDataSource.saveParkingSession(userId, session.toParkingHistoryDto())
             }
         }
     }
 
-    override fun scheduleClearActive(sessionId: String) {
+    override fun enqueueClearActiveParkingSession(sessionId: String) {
         scope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId == null) {
-                PaparcarLogger.w(TAG, "scheduleClearActive() skipped — no auth session for $sessionId")
+                PaparcarLogger.w(TAG, "enqueueClearActiveParkingSession() skipped — no auth session for $sessionId")
                 return@launch
             }
-            retrying("clearActive:$sessionId") {
-                remoteDataSource.updateParkingSessionActiveFlag(userId, sessionId, false)
+            retrying("clearActiveParkingSession:$sessionId") {
+                remoteDataSource.clearParkingSessionActiveFlag(userId, sessionId)
             }
         }
     }
 
-    override fun scheduleLocationUpdate(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {
+    override fun enqueueUpdateParkingSessionAddressAndPlace(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?) {
         scope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId == null) {
-                PaparcarLogger.w(TAG, "scheduleLocationUpdate() skipped — no auth session for $sessionId")
+                PaparcarLogger.w(TAG, "enqueueUpdateParkingSessionAddressAndPlace() skipped — no auth session for $sessionId")
                 return@launch
             }
-            retrying("locationUpdate:$sessionId") {
-                remoteDataSource.updateParkingSessionLocation(
+            retrying("updateParkingSessionAddressAndPlace:$sessionId") {
+                remoteDataSource.updateParkingSessionAddressAndPlace(
                     userId,
                     sessionId,
                     address?.toAddressDto(),

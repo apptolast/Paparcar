@@ -8,14 +8,12 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     /**
-     * Inserts [session] into Room as the new active session. Clears the previously-active
-     * row **scoped to the same vehicleId** so concurrent sessions for *different* vehicles
-     * remain active in parallel. Returns the id of the previous session that was cleared
-     * (if any) wrapped in a [Result] so the caller can hand it to
-     * [io.apptolast.paparcar.domain.service.ParkingSyncScheduler] for remote backfill —
-     * Firestore writes happen off the critical path.
+     * Inserts [session] into Room as the new active session, then enqueues a Firestore
+     * sync worker in the same logical step. Clears the previously-active row **scoped
+     * to the same vehicleId** so concurrent sessions for *different* vehicles remain active
+     * in parallel. Returns the id of the previous session that was cleared (if any).
      */
-    suspend fun saveSession(session: UserParking): Result<String?>
+    suspend fun saveNewParkingSession(session: UserParking): Result<String?>
     /** Returns the currently-active session whose geofenceId matches [geofenceId], or null. */
     suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking?
     /** Reactive stream of all currently-active sessions (0..N, one per parked vehicle). */
@@ -25,26 +23,33 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     suspend fun getSessionsPaged(limit: Int, offset: Int): List<UserParking>
     suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking>
     /** Clears the active flag of the session with [sessionId] and schedules Firestore reconciliation. */
-    suspend fun clearActiveById(sessionId: String): Result<Unit>
+    suspend fun clearActiveParkingSession(sessionId: String): Result<Unit>
     /**
      * Downloads parking history from Firestore and populates Room.
      * No-op if Room already has data — covers new installs and device switches.
      */
     override suspend fun syncFromRemote(userId: String): Result<Unit>
-    /** In-place update of address+POI for an existing session. Does not affect [isActive]. */
-    suspend fun updateLocationInfo(
+    /**
+     * Writes geocoder-resolved address and POI fields for an existing session.
+     *
+     * Only the address/POI columns are touched — lat/lon remain unchanged.
+     * Called by background enrichment workers after a successful reverse-geocode.
+     * Schedules [ParkingSyncScheduler.enqueueUpdateParkingSessionAddressAndPlace] to propagate to Firestore.
+     */
+    suspend fun updateParkingSessionAddressAndPlace(
         id: String,
         address: AddressInfo?,
         placeInfo: PlaceInfo?,
     ): Result<Unit>
 
     /**
-     * In-place update of lat/lon for an existing session. Used by the manual
-     * "Move location" flow when the user re-positions an already-parked
-     * vehicle. Clears the cached address+POI fields so the next enrichment
-     * pass overwrites them with the new location's geocode.
+     * Overwrites the GPS coordinates of an existing session and clears the cached
+     * address/POI so the next enrichment pass re-geocodes the new position.
+     *
+     * Used by the manual "Move location" flow when the user re-positions an already-parked
+     * vehicle on the map. Schedules a full Firestore set() via [ParkingSyncScheduler.enqueueSaveNewParkingSession].
      */
-    suspend fun updateLocation(
+    suspend fun updateParkingSessionPosition(
         id: String,
         location: GpsPoint,
     ): Result<UserParking>

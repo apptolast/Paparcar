@@ -47,6 +47,6 @@ class ReleaseActiveParkingSessionUseCase(
         // by id leaves other vehicles' active sessions intact. If the caller did
         // not supply a session (legacy / manual delete), nothing to clear locally.
         val sessionId = currentSession?.id ?: return Result.success(Unit)
-        return userParkingRepository.clearActiveById(sessionId)
+        return userParkingRepository.clearActiveParkingSession(sessionId)
     }
 }

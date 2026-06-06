@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -37,6 +38,7 @@ class UpdateParkingLocationUseCase(
     private val geofenceService: GeofenceManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
     private val config: ParkingDetectionConfig,
+    private val departureEventBus: DepartureEventBus,
 ) {
     suspend operator fun invoke(
         parkingId: String,
@@ -57,13 +59,18 @@ class UpdateParkingLocationUseCase(
         // time.
         val stamped = newLocation.copy(timestamp = Clock.System.now().toEpochMilliseconds())
 
-        val updated = userParkingRepository.updateLocation(parkingId, stamped)
+        val updated = userParkingRepository.updateParkingSessionPosition(parkingId, stamped)
             .getOrElse { e ->
                 PaparcarLogger.e(DIAG, "updateLocation failed", e)
                 return Result.failure(PaparcarError.Parking.SaveFailed)
             }
 
-        enrichmentScheduler.schedule(parkingId, stamped.latitude, stamped.longitude)
+        enrichmentScheduler.enqueueEnrichSession(parkingId, stamped.latitude, stamped.longitude)
+
+        // The geofence is being re-created at a new location. Reset the arrival
+        // IN_VEHICLE_ENTER so the old driving timestamp cannot trigger a false
+        // departure when the user walks near the new position. [BUG-WALK-DEPART-001]
+        departureEventBus.reset()
 
         geofenceService.createGeofence(
             geofenceId = parkingId,

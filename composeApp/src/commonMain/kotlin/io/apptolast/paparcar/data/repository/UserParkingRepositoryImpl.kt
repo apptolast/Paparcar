@@ -1,6 +1,5 @@
 package io.apptolast.paparcar.data.repository
 
-import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.local.room.UserParkingDao
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.mapper.toDomain
@@ -11,32 +10,43 @@ import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class UserParkingRepositoryImpl(
     private val dao: UserParkingDao,
     private val userProfileDataSource: RemoteUserProfileDataSource,
-    private val authRepository: AuthRepository,
     private val parkingSyncScheduler: ParkingSyncScheduler,
 ) : UserParkingRepository {
 
     /**
-     * Room-only. Firestore propagation lives in [ParkingSyncWorker], scheduled by
-     * [ConfirmParkingUseCase] using the [previousActive] id returned here.
-     * Keeps the confirm-parking critical path bounded by local I/O only. [PIPE-001]
+     * Writes [session] to Room and atomically enqueues the Firestore sync worker. [PIPE-001]
+     *
+     * Both operations are co-located so that a process death after [dao.insert] but
+     * before [parkingSyncScheduler.enqueueSaveNewParkingSession] cannot leave the session orphaned
+     * in Room without a pending WorkManager job. If enqueue throws (WorkManager unavailable)
+     * the failure is logged but does not fail the save — the session is already durable
+     * in Room and will sync on the next manual enrichment or app restart.
      *
      * Multi-parking semantics: clears the previously-active session **only for the
      * same vehicleId** so each vehicle keeps its own independent active session.
      * Sessions saved without a vehicleId (legacy / unidentified) clear no rows. [MULTI-PARKING-001]
      */
-    override suspend fun saveSession(session: UserParking): Result<String?> =
+    override suspend fun saveNewParkingSession(session: UserParking): Result<String?> =
         runCatching {
             val previousActive = session.vehicleId?.let { dao.getActiveByVehicle(it) }
             session.vehicleId?.let { dao.clearActiveByVehicle(it) }
             dao.insert(session.toEntity())
-            previousActive?.id
+            val previousId = previousActive?.id
+            runCatching { parkingSyncScheduler.enqueueSaveNewParkingSession(session, previousId) }
+                .onFailure { e -> PaparcarLogger.e(TAG, "enqueueSaveNewParkingSession failed for session ${session.id} — may miss Firestore sync", e) }
+            previousId
         }
+
+    private companion object {
+        const val TAG = "UserParkingRepository"
+    }
 
     override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
         dao.getActiveByGeofence(geofenceId)?.toDomain()
@@ -58,11 +68,11 @@ class UserParkingRepositoryImpl(
 
     /**
      * Room-only clear of a specific session. Firestore reconciliation is scheduled via
-     * [ParkingSyncScheduler] so this never suspends on network I/O. [PIPE-002]
+     * [ParkingSyncScheduler.enqueueClearActiveParkingSession] so this never suspends on network I/O. [PIPE-002]
      */
-    override suspend fun clearActiveById(sessionId: String): Result<Unit> = runCatching {
+    override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> = runCatching {
         dao.clearActiveById(sessionId)
-        parkingSyncScheduler.scheduleClearActive(sessionId)
+        parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
     }
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> =
@@ -77,14 +87,15 @@ class UserParkingRepositoryImpl(
         runCatching { dao.deleteByUser(userId) }
 
     /**
-     * Room-only update. Firestore reconciliation is scheduled via [ParkingSyncScheduler]. [PIPE-002]
+     * Room-only update of geocoder fields. Firestore reconciliation is scheduled via
+     * [ParkingSyncScheduler.enqueueUpdateParkingSessionAddressAndPlace]. [PIPE-002]
      */
-    override suspend fun updateLocationInfo(
+    override suspend fun updateParkingSessionAddressAndPlace(
         id: String,
         address: AddressInfo?,
         placeInfo: PlaceInfo?,
     ): Result<Unit> = runCatching {
-        dao.updateLocationInfo(
+        dao.updateAddressAndPlace(
             id = id,
             street = address?.street,
             city = address?.city,
@@ -93,17 +104,20 @@ class UserParkingRepositoryImpl(
             placeInfoName = placeInfo?.name,
             placeInfoCategory = placeInfo?.category?.name,
         )
-        parkingSyncScheduler.scheduleLocationUpdate(id, address, placeInfo)
+        parkingSyncScheduler.enqueueUpdateParkingSessionAddressAndPlace(id, address, placeInfo)
     }
 
     /**
      * Manual-edit path for the parked-car pin. Overwrites lat/lon in Room +
      * clears the cached address/POI so the re-scheduled enrichment fills them
-     * with the new spot's geocode. Firestore reconciliation rides on top via
-     * [ParkingSyncScheduler.schedule] with `previousSessionId = null` (we're
-     * not transitioning between sessions, just mutating the active one).
+     * with the new spot's geocode. Firestore reconciliation via a full
+     * [ParkingSyncScheduler.enqueueSaveNewParkingSession] with `previousSessionId = null`
+     * (we're mutating the active session in place, not transitioning).
+     *
+     * TODO[Phase 2]: replace with dedicated `enqueueUpdateParkingSessionPosition` to
+     * avoid full set() — see refactor plan.
      */
-    override suspend fun updateLocation(
+    override suspend fun updateParkingSessionPosition(
         id: String,
         location: GpsPoint,
     ): Result<UserParking> = runCatching {
@@ -116,7 +130,7 @@ class UserParkingRepositoryImpl(
         )
         val updated = dao.getById(id)?.toDomain()
             ?: error("No parking session with id=$id")
-        parkingSyncScheduler.schedule(updated, previousSessionId = null)
+        parkingSyncScheduler.enqueueSaveNewParkingSession(updated, previousSessionId = null)
         updated
     }
 }
