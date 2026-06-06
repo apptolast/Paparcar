@@ -3,6 +3,16 @@
 Origen: análisis de logs en `diagnostics/2026-05-14/` y `diagnostics/2026-05-18/`.
 Ambos bugs son P0 — bloquean parking sessions en remoto. Reproducibles en todos los dispositivos.
 
+> **Nota 2026-06-05 — Rename Fase 1.5:** los nombres de workers/métodos referenciados aquí han sido renombrados. Equivalencia para encontrar el código actual:
+> - `ParkingSyncWorker` → `SaveNewParkingSessionWorker`
+> - `LocationUpdateSyncWorker` → `UpdateParkingSessionAddressAndPlaceWorker`
+> - `ClearActiveSyncWorker` → `ClearActiveParkingSessionWorker`
+> - `updateParkingSessionActiveFlag(_,_,false)` → `clearParkingSessionActiveFlag(_,_)` (boolean eliminado)
+> - `updateParkingSessionLocation` (datasource) → `updateParkingSessionAddressAndPlace`
+> - `LocationInfo` (modelo) → `AddressAndPlace`
+> - `scheduleLocationUpdate()` → `enqueueUpdateParkingSessionAddressAndPlace()`
+> - `schedule()` (sync) → `enqueueSaveNewParkingSession()`
+
 ## Status legend
 ✅ **Done** — merged to master
 🔵 **Branch ready** — work complete, awaiting merge

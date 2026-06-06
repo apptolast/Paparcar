@@ -183,8 +183,8 @@ Both strategies call `confirmParking(location, reliability, spotType?, sizeCateg
 1. Resolve the current user (`authRepository.getCurrentSession()`).
 2. Resolve the default vehicle (`vehicleRepository.observeDefaultVehicle().first()`) — used to populate `UserParking.vehicleId` and to default `sizeCategory` for the geofence.
 3. Build a `UserParking` domain object with the new `sessionId`, the chosen location, reliability score, spot type, and resolved size.
-4. **Room write only** — `userParkingRepository.saveSession(session)` clears any previously active row and inserts the new one. Returns the previous session's id (if any) so it can be reconciled remotely.
-5. **Schedule Firestore sync** — `parkingSyncScheduler.schedule(session, previousSessionId)` enqueues a `ParkingSyncWorker` job. The coordinator does **not** await network IO. See PIPE-001 in §2 for why.
+4. **Room write only** — `userParkingRepository.saveNewParkingSession(session)` clears any previously active row and inserts the new one. Returns the previous session's id (if any) so it can be reconciled remotely.
+5. **Schedule Firestore sync** — `parkingSyncScheduler.enqueueSaveNewParkingSession(session, previousSessionId)` enqueues a `SaveNewParkingSessionWorker` job. The coordinator does **not** await network IO. See PIPE-001 in §2 for why.
 6. **Schedule background enrichment** — `enrichmentScheduler.schedule(sessionId, lat, lon)` enqueues the geocoder + POI lookup worker.
 7. **Register geofence** — adaptive radius based on vehicle size and current GPS accuracy (see §1.6).
 8. **Show notification** — "Saved your parking spot" with deep-link to the map.
@@ -196,20 +196,20 @@ Step 4 is the only suspending operation that can fail in a way the caller cares 
 ```
 ConfirmParkingUseCase
      │
-     ├── Room (saveSession)                     ◄── synchronous, local
+     ├── Room (saveNewParkingSession)                                   ◄── synchronous, local
      │
-     ├── ParkingSyncScheduler.schedule()        ◄── WorkManager
-     │      └── ParkingSyncWorker.doWork()
+     ├── ParkingSyncScheduler.enqueueSaveNewParkingSession()             ◄── WorkManager
+     │      └── SaveNewParkingSessionWorker.doWork()
      │             ├── Firestore set(newSession DTO)
      │             └── Firestore update(prev.isActive = false)
      │
-     ├── ParkingEnrichmentScheduler.schedule()  ◄── WorkManager
+     ├── ParkingEnrichmentScheduler.enqueueEnrichSession()               ◄── WorkManager
      │      └── EnrichParkingSessionWorker.doWork()
      │             ├── reverseGeocode(lat, lon)
      │             ├── lookupPoi(lat, lon)
-     │             └── userParkingRepository.updateLocationInfo()
-     │                    ├── Room update
-     │                    └── LocationUpdateSyncWorker (Firestore reconcile)
+     │             └── userParkingRepository.updateParkingSessionAddressAndPlace()
+     │                    ├── Room update (address + placeInfo)
+     │                    └── UpdateParkingSessionAddressAndPlaceWorker (Firestore reconcile)
      │
      ├── GeofenceManager.createGeofence()       ◄── GMS Geofencing API
      │
@@ -226,9 +226,9 @@ GeofenceExitReceiver
             │      └── ReportSpotWorker.doWork()
             │             └── Firestore set(spot)
             │
-            └── userParkingRepository.clearActive()
+            └── userParkingRepository.clearActiveParkingSession(sessionId)
                    ├── Room update (isActive=0)
-                   └── ClearActiveSyncWorker (Firestore reconcile)
+                   └── ClearActiveParkingSessionWorker (Firestore reconcile)
 ```
 
 Every Firestore write lives in a WorkManager job. The foreground service path is bounded by local IO + GMS Geofencing only; no Firestore call can hang `confirmParking`.
@@ -272,7 +272,9 @@ Independently, `ActivityRecognitionManagerImpl` is subscribed to `IN_VEHICLE_ENT
 2. **IN_VEHICLE_ENTER window** — `departureEventBus.lastVehicleEnteredAt` must be within `vehicleEnterWindowMs = 30 min` of the exit timestamp. Stale signals (yesterday's drive) are ignored. Returns `Inconclusive` if no recent signal.
 3. **GPS speed** — if a fresh fix is available, speed must exceed `minimumDepartureSpeedKmh = 10 km/h`. Returns `Inconclusive` if below threshold.
 
-If any check is `Inconclusive` (AR not yet delivered, user still slow), the worker retries with exponential backoff up to `MAX_INCONCLUSIVE_RETRIES = 3` times (total ~2 min window). After exhausting retries, a geofence exit alone is treated as ground truth (`Confirmed`).
+If any check is `Inconclusive` (AR not yet delivered, user still slow), the worker retries with exponential backoff up to `MAX_INCONCLUSIVE_RETRIES = 3` times (total ~2 min window). After exhausting retries the fallthrough behaviour depends on whether `departureEventBus.lastVehicleEnteredAt` is set:
+- **Non-null** (IN_VEHICLE_ENTER was recorded after parking, but speed stayed low throughout retries): `Confirmed`. Covers slow garage exit where the vehicle never exceeds the departure threshold.
+- **Null** (no vehicle signal at all): `Result.success()` is returned without confirming — the user was likely walking near the car. [BUG-WALK-DEPART-001]
 
 #### Step 4 — Session clear + spot release
 
@@ -280,15 +282,19 @@ On `Confirmed`:
 
 1. `userParkingRepository.getActiveSessionByGeofence(geofenceId)` — resolves the exact session from Room.
 2. `reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)` — geocodes and enqueues `ReportSpotWorker` to publish the freed spot to Firestore.
-3. `userParkingRepository.clearActiveById(session.id)` — removes the active session from Room and enqueues `ClearActiveSyncWorker` for Firestore reconciliation.
+3. `userParkingRepository.clearActiveParkingSession(session.id)` — removes the active session from Room and enqueues `ClearActiveParkingSessionWorker` for Firestore reconciliation.
 4. `departureEventBus.reset()` — clears the in-memory `lastVehicleEnteredAt` state.
 5. `geofenceService.removeGeofence(geofenceId)` — deregisters the GMS geofence so Play Services stops monitoring it.
 
 Note: `reportSpotReleased` is called **before** `clearActive` — the WorkManager job is durably enqueued even if the worker is killed before the clear, and `REPLACE` policy on retries prevents duplicate publications.
 
-#### Caveat: in-memory AR state
+#### DepartureEventBus lifecycle [BUG-WALK-DEPART-001]
 
-`DepartureEventBus.lastVehicleEnteredAt` is in-memory only. If the process is killed between parking confirmation and the geofence exit, the timestamp is lost. `DetectParkingDepartureUseCase` then returns `Inconclusive` for steps 2 and 3. After `MAX_INCONCLUSIVE_RETRIES`, the worker falls through to `Confirmed` anyway — geofence exit is strong enough evidence on its own for an established parking session.
+`DepartureEventBus.lastVehicleEnteredAt` is reset in **two** places:
+1. `ConfirmParkingUseCase` — immediately after a parking session is successfully saved. This erases the IN_VEHICLE_ENTER from the arrival trip so that departure detection cannot confuse "user just parked and walked away" with "user drove off". Without this reset, any geofence exit within the 30-minute `vehicleEnterWindowMs` would appear to be a valid departure.
+2. `DepartureDetectionWorker` — after a confirmed departure is fully processed.
+
+If the process is killed between parking confirmation and the geofence exit, the bus is null. `DetectParkingDepartureUseCase` returns `Inconclusive` (no vehicle signal). After `MAX_INCONCLUSIVE_RETRIES` without a vehicle signal, the worker silently returns `success` rather than confirming departure — a missed departure is preferable to falsely releasing the spot. The user can release the spot manually.
 
 ### 1.8 Diagnostic logging — `PARKDIAG`
 
@@ -298,7 +304,7 @@ Debug builds enable `FileAntilog` (`composeApp/src/androidMain/.../logging/FileA
 - `PARKDIAG/Coord` — `ParkingDetectionCoordinator` state transitions.
 - `PARKDIAG/Confirm` — `ConfirmParkingUseCase` steps.
 - `PARKDIAG/Notify` — `NotifyParkingConfirmationUseCase`.
-- `PARKDIAG/SyncScheduler`, `PARKDIAG/SyncWorker`, `PARKDIAG/LocationUpdateSyncWorker` — WorkManager pipeline.
+- `PARKDIAG/SyncScheduler`, `PARKDIAG/SaveNewParkingSessionWorker`, `PARKDIAG/ClearActiveParkingSessionWorker`, `PARKDIAG/UpdateParkingSessionAddressAndPlaceWorker` — WorkManager pipeline.
 
 Pulling logs from the device:
 
@@ -351,7 +357,7 @@ The 80 m geofence radius, 15 m accuracy bonus threshold, 30 s initial stop windo
 
 Same omission class as MAPPER-001, but on the Firestore write/read path. `ParkingHistoryDto` had no `vehicleId` field, neither `toParkingHistoryDto()` nor `dto.toEntity()` mapped it, and the manual Firestore deserialization in `RemoteUserProfileDataSourceImpl` did not read it either. New sessions started life with `vehicleId` set in Room, but `GetOrCreateUserProfileUseCase.invoke()` runs `syncParkingHistoryFromRemote(userId)` at every splash bootstrap and re-inserts every Firestore row via `REPLACE` conflict — wiping the local `vehicleId`. Then `VehiclePageContent`'s per-vehicle history tab (introduced in HIST-001) showed empty under every tab.
 
-**Fix.** Five surface points needed updating: `ParkingHistoryDto` field, the two mappers, the `ParkingSyncWorker` payload (`KEY_NEW_SESSION_VEHICLE_ID`), and `RemoteUserProfileDataSourceImpl.toParkingHistoryDto()`. Also fixed the latent `detectionReliability` write-path omission in `toParkingHistoryDto()`. No data backfill — pre-release state, user wiped Firestore manually.
+**Fix.** Five surface points needed updating: `ParkingHistoryDto` field, the two mappers, the `SaveNewParkingSessionWorker` payload (`KEY_NEW_SESSION_VEHICLE_ID`), and `RemoteUserProfileDataSourceImpl.toParkingHistoryDto()`. Also fixed the latent `detectionReliability` write-path omission in `toParkingHistoryDto()`. No data backfill — pre-release state, user wiped Firestore manually.
 
 ### FND-009 — `runBlocking` removed from `NotifyParkingConfirmationUseCase`
 
@@ -367,15 +373,15 @@ The notify use case was non-suspend and wrapped `vehicleRepository.observeDefaul
 
 The original `confirmParking` did Room save + Firestore set + geofence registration + notification, all in a `withContext(NonCancellable)` block inside `ParkingDetectionCoordinator.evaluateConfidence`. Firestore writes can hang for tens of seconds on bad networks; the foreground service can hang with them. PARKDIAG captures during the "blue notification stays forever" bug pointed to Firestore as the long pole.
 
-**Fix.** Introduce `ParkingSyncScheduler` + `ParkingSyncWorker`. `confirmParking` now does Room write only and enqueues the Firestore reconciliation in WorkManager. The critical path is bounded by Room + Geofence + Notification, none of which can hang indefinitely. Full plan in `docs/refactors/PIPE-001-confirm-parking-pipeline.md`.
+**Fix.** Introduce `ParkingSyncScheduler` + `SaveNewParkingSessionWorker`. `confirmParking` now does Room write only and enqueues the Firestore reconciliation in WorkManager. The critical path is bounded by Room + Geofence + Notification, none of which can hang indefinitely. Full plan in `docs/refactors/PIPE-001-confirm-parking-pipeline.md`.
 
-### PIPE-002 — `clearActive` and `updateLocationInfo` also use workers
+### PIPE-002 — `clearActiveParkingSession` and `updateParkingSessionAddressAndPlace` also use workers
 
 **Commit:** `ec89592`.
 
-Same hang-on-Firestore risk on departure and enrichment paths. `UserParkingRepositoryImpl.clearActive()` and `updateLocationInfo()` were calling the remote data source inside `runCatching` — fine for the user-departure case (already off the foreground service), worse for the enrichment worker (could be killed mid-Firestore-write, leaving Room and Firestore inconsistent).
+Same hang-on-Firestore risk on departure and enrichment paths. `UserParkingRepositoryImpl.clearActiveParkingSession()` and `updateParkingSessionAddressAndPlace()` were calling the remote data source inside `runCatching` — fine for the user-departure case (already off the foreground service), worse for the enrichment worker (could be killed mid-Firestore-write, leaving Room and Firestore inconsistent).
 
-**Fix.** Both methods are Room-only; `ClearActiveSyncWorker` and `LocationUpdateSyncWorker` handle Firestore. Also fixed a PIPE-001 follow-up: previously a partial DTO with `lat=0.0` could overwrite coordinates via `set()` — the workers now use `update()` for partial field changes.
+**Fix.** Both methods are Room-only; `ClearActiveParkingSessionWorker` and `UpdateParkingSessionAddressAndPlaceWorker` handle Firestore. Also fixed a PIPE-001 follow-up: previously a partial DTO with `lat=0.0` could overwrite coordinates via `set()` — the workers now use `update()` for partial field changes.
 
 ### PIPE-003 — Sync worker tests
 

@@ -3,6 +3,11 @@
 > **Status**: pending — open `feature/PIPE-001-confirm-parking-pipeline` from master when ready.
 > **Do not start until**: the foreground-service-hang bug (current `debug/parking-hang-diag` work) is resolved and merged. This refactor must not be entangled with the bugfix; mixing them obscures blame.
 
+> **Nota 2026-06-05 — Rename Fase 1.5:** los nombres en este documento histórico han sido renombrados en el código actual. Equivalencia:
+> - `ParkingSyncWorker` → `SaveNewParkingSessionWorker`
+> - `saveSession` (repository) → `saveNewParkingSession`
+> - `ParkingSyncScheduler.schedule()` → `ParkingSyncScheduler.enqueueSaveNewParkingSession()`
+
 ## 1. Why
 
 The `ParkingDetectionService` foreground service today does two unrelated things:

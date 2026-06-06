@@ -32,8 +32,8 @@ Strategy → ConfirmParkingUseCase
             ├→ UserParkingRepository.insertActive(...)       (Room, sync)
             ├→ GeofenceManager.register(...)                  (Play Services / CLLocationManager)
             ├→ AppNotificationManager.notifyConfirmed()
-            └→ ParkingSyncScheduler.schedule(sessionId)
-                  └→ ParkingSyncWorker → Firestore
+            └→ ParkingSyncScheduler.enqueueSaveNewParkingSession(session, previousSessionId)
+                  └→ SaveNewParkingSessionWorker → Firestore set() + (opcional) update({isActive:false}) en previa
 ```
 
 ---
@@ -166,10 +166,10 @@ Configurados en `ParkingDetectionConfig` (singleton inyectable):
 |--------|-----------|------------|-----------|
 | `EnrichParkingSessionWorker` | tras `ConfirmParkingUseCase` | ninguna | exp backoff, 3 reintentos |
 | `DepartureDetectionWorker` | exit de geofence | ninguna | 3 reintentos; tras max, confirma departure de todas formas (geofence es señal fuerte) |
-| `ParkingSyncWorker` | tras confirm o release | `NetworkType.CONNECTED` | exp 30s, hasta 5 |
+| `SaveNewParkingSessionWorker` | tras confirm de sesión (o move pin, ver Fase 2) | `NetworkType.CONNECTED` | exp 30s, hasta 5 |
 | `ReportSpotWorker` | tras departure | CONNECTED | exp |
-| `LocationUpdateSyncWorker` | `UpdateParkingLocationUseCase` (move pin) | CONNECTED | exp |
-| `ClearActiveSyncWorker` | tras release de sesión | CONNECTED | exp |
+| `UpdateParkingSessionAddressAndPlaceWorker` | tras enrichment (geocoder OK) | CONNECTED | exp |
+| `ClearActiveParkingSessionWorker` | tras release de sesión | CONNECTED | exp |
 
 ---
 
@@ -244,7 +244,7 @@ El usuario tiene como device principal de QA un Redmi Note 11 (MIUI). MIUI es el
 
 ### 6.3 Test bench Redmi
 - Capturar logs PARKDIAG durante una sesión real (ver `diagnostics/README.md`)
-- Verificar que `EnrichParkingSessionWorker` y `ParkingSyncWorker` ejecutan tras el kill
+- Verificar que `EnrichParkingSessionWorker` y `SaveNewParkingSessionWorker` ejecutan tras el kill
 - Documentar tiempos de muerte del service en MIUI con app en background sin whitelist
 
 ---

@@ -89,11 +89,11 @@ ConfirmParkingUseCase
   ├→ UserParkingRepository.insertActive(...)   (Room, sync)
   ├→ GeofenceManager.register(...)             (Play Services / CLLocationManager)
   ├→ AppNotificationManager.notifyConfirmed()
-  └→ ParkingSyncScheduler.schedule(sessionId)
+  └→ ParkingSyncScheduler.enqueueSaveNewParkingSession(session, previousSessionId)
          ↓
-       ParkingSyncWorker (WorkManager / coroutine en iOS)
+       SaveNewParkingSessionWorker (WorkManager / coroutine en iOS)
          ↓
-       Firestore.collection("userParkings").set(...)
+       Firestore.collection("userParkings").set(...) + opcional update({isActive:false}) en previa
 ```
 
 ---
@@ -183,7 +183,7 @@ io.apptolast.paparcar
 `domain/` no debe importar `android.*` ni `platform.*` (iOS). Verificado: no hay violaciones. Las dependencias de plataforma se exponen como `interface` en domain y se implementan via `expect/actual` o Koin bindings en `androidMain`/`iosMain`.
 
 ### 2. Offline-first con dual write
-**Room es Source of Truth.** `ConfirmParkingUseCase` escribe a Room **sincrónicamente**, y `ParkingSyncWorker` propaga a Firestore con reintentos. La lectura siempre observa Room; Firestore se merge upstream via listener.
+**Room es Source of Truth.** `ConfirmParkingUseCase` escribe a Room **sincrónicamente**, y `SaveNewParkingSessionWorker` propaga a Firestore con reintentos. La lectura siempre observa Room; Firestore se merge upstream via listener.
 
 Rationale: la app debe funcionar sin red (el usuario aparca y pierde cobertura en parking subterráneo).
 
@@ -201,12 +201,12 @@ Detalle algorítmico completo en `docs/PARKING_DETECTION.md` y `docs/detection/P
 Eventos críticos (sync Firestore, geocoding, validación de departure) no se ejecutan inline porque pueden tardar y fallar por red. Se delegan a workers con `BackoffPolicy.EXPONENTIAL` y constraints (CONNECTED solo donde necesario).
 
 Workers actuales (Android):
-- `ParkingSyncWorker` — sesión activa → Firestore (constraint: CONNECTED)
-- `EnrichParkingSessionWorker` — geocoder + places lookup (sin constraint, best-effort)
+- `SaveNewParkingSessionWorker` — sesión nueva (`set()`) + desactiva previa (`update({isActive:false})`) en Firestore (constraint: CONNECTED)
+- `ClearActiveParkingSessionWorker` — `update({isActive:false})` sobre la sesión liberada (constraint: CONNECTED)
+- `UpdateParkingSessionAddressAndPlaceWorker` — `update({address, placeInfo})` tras enrichment (constraint: CONNECTED)
+- `EnrichParkingSessionWorker` — geocoder + places lookup (sin constraint, best-effort) — encadena `UpdateParkingSessionAddressAndPlaceWorker`
 - `DepartureDetectionWorker` — valida geofence + AR + sesión (3 retries max)
 - `ReportSpotWorker` — publica spot liberado
-- `LocationUpdateSyncWorker` — propaga actualizaciones de ubicación de parking
-- `ClearActiveSyncWorker` — limpia sesión inactiva tras release
 
 En iOS estos están como **stubs** (sin BGTaskScheduler) — ver `docs/IOS_PLAN.md`.
 
