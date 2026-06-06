@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.math.abs
 
 /**
@@ -55,6 +56,9 @@ class DetectParkingDepartureUseCase(
     private val departureEventBus: DepartureEventBus,
     private val config: ParkingDetectionConfig,
 ) {
+    private companion object {
+        const val TAG = "DetectParkingDepartureUseCase"
+    }
 
     /**
      * @param geofenceId        ID of the geofence that fired the exit transition.
@@ -72,7 +76,10 @@ class DetectParkingDepartureUseCase(
         // comparing) is correct under multi-parking — different vehicles can each have
         // their own active session, each tied to its own geofence. [MULTI-PARKING-001]
         userParkingRepository.getActiveSessionByGeofence(geofenceId)
-            ?: return DepartureDecision.Rejected
+            ?: run {
+                PaparcarLogger.w(TAG, "departure rejected: no active session for geofenceId=$geofenceId")
+                return DepartureDecision.Rejected
+            }
 
         val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt
         val speedConfirmsMovement = currentSpeedKmh != null &&
@@ -83,6 +90,7 @@ class DetectParkingDepartureUseCase(
             val timeDiffMs = abs(exitTimestampMs - vehicleEnteredAt)
             if (timeDiffMs > config.vehicleEnterWindowMs) {
                 // The transition is from a previous trip — ignore it.
+                PaparcarLogger.w(TAG, "departure rejected: IN_VEHICLE_ENTER too old — timeDiff=${timeDiffMs}ms window=${config.vehicleEnterWindowMs}ms geofenceId=$geofenceId")
                 DepartureDecision.Rejected
             } else if (currentSpeedKmh != null && !speedConfirmsMovement) {
                 // IN_VEHICLE_ENTER is within the window (strong signal), but speed is low.

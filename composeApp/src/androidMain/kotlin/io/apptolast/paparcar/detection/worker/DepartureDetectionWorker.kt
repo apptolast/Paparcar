@@ -9,29 +9,22 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
-import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DepartureDecision
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
-import io.apptolast.paparcar.domain.model.SpotType
-import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
 
 /**
- * Decides whether a geofence-exit represents a real car departure and, if so,
- * clears the saved parking session and schedules a "spot released" report.
+ * Decides whether a geofence-exit represents a real car departure and, if confirmed,
+ * delegates all side-effects to [ProcessConfirmedDepartureUseCase].
  *
- * Decision logic is fully delegated to [DetectParkingDepartureUseCase]:
- * - Saved parking session must exist and match [KEY_GEOFENCE_ID].
- * - IN_VEHICLE_ENTER must have occurred within the configured time window.
- * - Speed (from a fresh GPS reading) must exceed the departure threshold if available.
- *
- * No network constraint: the departure check is purely local.
+ * This worker only handles WorkManager concerns: retries, backoff, and the
+ * max-retries fallthrough guard. All domain logic lives in use cases.
  */
 class DepartureDetectionWorker(
     context: Context,
@@ -39,15 +32,13 @@ class DepartureDetectionWorker(
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val detectParkingDeparture: DetectParkingDepartureUseCase by inject()
+    private val processConfirmedDeparture: ProcessConfirmedDepartureUseCase by inject()
     private val getOneLocation: GetOneLocationUseCase by inject()
     private val departureEventBus: DepartureEventBus by inject()
-    private val userParkingRepository: UserParkingRepository by inject()
-    private val reportSpotReleased: ReportSpotReleasedUseCase by inject()
-    private val geofenceService: GeofenceManager by inject()
 
     override suspend fun doWork(): Result {
         val geofenceId = inputData.getString(KEY_GEOFENCE_ID)
-            ?: return Result.success() // missing data — no-op
+            ?: return Result.success()
 
         val exitTimestampMs = inputData.getLong(KEY_EXIT_TIMESTAMP, -1L)
             .takeIf { it > 0L } ?: Clock.System.now().toEpochMilliseconds()
@@ -60,48 +51,24 @@ class DepartureDetectionWorker(
             currentSpeedKmh = speedKmh,
         )
 
-        // Hard reject: geofenceId doesn't match the active session or there is no session.
         if (decision == DepartureDecision.Rejected) return Result.success()
 
-        // Inconclusive: Activity Recognition hasn't arrived yet or speed is below threshold.
-        // Retry up to MAX_INCONCLUSIVE_RETRIES to allow AR delivery (~2 min on slow devices).
-        // After max retries fall through — a geofence exit is strong enough evidence on its
-        // own to confirm departure, so the session must not be left open indefinitely.
         if (decision == DepartureDecision.Inconclusive && runAttemptCount < MAX_INCONCLUSIVE_RETRIES) {
             return Result.retry()
         }
+        // Max retries exhausted. Fall through only if IN_VEHICLE_ENTER was recorded after
+        // parking was confirmed — covers slow garage exits where speed never crosses the
+        // departure threshold. Without any vehicle signal, reject to avoid false positives
+        // from the user walking near the car. [BUG-WALK-DEPART-001]
+        if (decision == DepartureDecision.Inconclusive && departureEventBus.lastVehicleEnteredAt == null) {
+            return Result.success()
+        }
 
-        // Confirmed (or Inconclusive after max retries — geofence exit = departure).
-        // Resolve by geofenceId so we only ever clear the session tied to *this* exit,
-        // never another vehicle's still-parked session. [MULTI-PARKING-001]
-        val session = userParkingRepository.getActiveSessionByGeofence(geofenceId)
-        val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
-        val lat = session?.location?.latitude
-        val lon = session?.location?.longitude
-        // Private-zone sessions never publish the spot — the space belongs to the user.
-        // Schedule the report BEFORE clearing so the WorkManager job is durably enqueued
-        // even if a retry fires after the session has been deleted. On retry the job is
-        // re-enqueued with REPLACE policy — no duplicate publications.
-        if (lat != null && lon != null && session != null && session.privateZoneId == null) {
-            reportSpotReleased(
-                lat = lat,
-                lon = lon,
-                spotId = spotId,
-                spotType = session.spotType,
-                confidence = session.detectionReliability ?: 1f,
-                sizeCategory = session.sizeCategory,
+        return processConfirmedDeparture(geofenceId)
+            .fold(
+                onSuccess = { Result.success() },
+                onFailure = { Result.retry() },
             )
-        }
-        // Clear AFTER scheduling. If the clear fails we retry; the session is still
-        // present so DetectParkingDepartureUseCase returns Confirmed again on the next attempt.
-        if (session != null) {
-            userParkingRepository.clearActiveById(session.id).onFailure { return Result.retry() }
-        }
-        departureEventBus.reset()
-        // Remove the geofence so Play Services doesn't keep monitoring it and re-firing
-        // exits after the session is already cleared.
-        geofenceService.removeGeofence(geofenceId)
-        return Result.success()
     }
 
     companion object {
@@ -111,15 +78,9 @@ class DepartureDetectionWorker(
 
         /**
          * Maximum retries when the decision is [DepartureDecision.Inconclusive].
-         * Inconclusive covers two scenarios:
-         *  1. IN_VEHICLE_ENTER not yet delivered (AR API can take up to ~2 min).
-         *  2. IN_VEHICLE_ENTER is within window but GPS speed is still below threshold
-         *     (user leaving a garage ramp or a tight urban exit slowly).
-         * With EXPONENTIAL backoff starting at 15s the retries fire at ~15s, ~30s, ~60s
-         * giving a total window of ~2 min — enough for AR delivery and for the vehicle
-         * to accelerate above the departure threshold.
-         * After max retries the worker falls through to confirm departure anyway — a
-         * geofence exit is strong enough evidence on its own.
+         * With EXPONENTIAL backoff starting at 15s the retries fire at ~15s, ~30s, ~60s —
+         * a ~2 min window for AR delivery and for the vehicle to accelerate past the
+         * departure threshold.
          */
         private const val MAX_INCONCLUSIVE_RETRIES = 3
         private const val INITIAL_BACKOFF_SECONDS = 15L

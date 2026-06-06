@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.TransitionAction
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import kotlin.concurrent.Volatile
 
 /**
  * Handles a single IN_VEHICLE activity-recognition transition event.
@@ -27,7 +28,8 @@ class HandleVehicleTransitionUseCase(
     private val departureEventBus: DepartureEventBus,
 ) {
     /** Mirrors the last seen IN_VEHICLE state; suppresses duplicate ENTER bursts. */
-    @Volatile private var isVehicleIn: Boolean = false
+    @Volatile
+    private var isVehicleIn: Boolean = false
 
     /**
      * @param isEnter  `true` for ACTIVITY_TRANSITION_ENTER, `false` for EXIT.

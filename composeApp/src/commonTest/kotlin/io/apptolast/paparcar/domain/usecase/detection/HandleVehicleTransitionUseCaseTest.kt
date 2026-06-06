@@ -16,7 +16,6 @@ import io.apptolast.paparcar.fakes.FakeBluetoothScanner
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
-import io.apptolast.paparcar.fakes.FakeParkingSyncScheduler
 import io.apptolast.paparcar.fakes.FakeStepDetectorSource
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
@@ -146,9 +145,9 @@ class HandleVehicleTransitionUseCaseTest {
                 geofenceService = FakeGeofenceManager(),
                 notificationPort = notification,
                 enrichmentScheduler = FakeParkingEnrichmentScheduler(),
-                parkingSyncScheduler = FakeParkingSyncScheduler(),
                 authRepository = auth,
                 config = config,
+                departureEventBus = bus,
             ),
             notifyParkingConfirmation = NotifyParkingConfirmationUseCase(notification, vehicleRepo),
             notificationPort = notification,
