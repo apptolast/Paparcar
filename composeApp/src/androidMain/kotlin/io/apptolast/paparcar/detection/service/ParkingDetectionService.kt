@@ -14,12 +14,14 @@ import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.activityLabel
 import io.apptolast.paparcar.detection.transitionLabel
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.detection.TransitionAction
 import io.apptolast.paparcar.domain.usecase.detection.HandleVehicleTransitionUseCase
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
@@ -49,6 +51,15 @@ class ParkingDetectionService : LifecycleService() {
 
         PaparcarLogger.d(DIAG, "▶ onStartCommand action=${intent?.action} flags=$flags startId=$startId")
 
+        // Promote to foreground immediately — Android 8+ enforces a 5 s window for any
+        // startForegroundService() call, including those from notification action receivers.
+        // Use FOREGROUND_SERVICE_TYPE_LOCATION only when we actually hold location permission:
+        // on Android 14+ calling startForeground() with type LOCATION without the runtime
+        // permission throws SecurityException [BUG-FGS-001a].
+        val hasPerms = hasRequiredPermissions()
+        startForegroundCompat(withLocationPermission = hasPerms)
+        updateCrashlyticsContext(intent?.action, hasPerms)
+
         // null intent = START_STICKY restart after process kill. Treat as START_TRACKING but guard
         // permissions first — the user may have revoked location access while we were dead. [§9]
         val action = intent?.action ?: ACTION_START_TRACKING
@@ -63,13 +74,9 @@ class ParkingDetectionService : LifecycleService() {
                 PaparcarLogger.d(DIAG, "  → START_TRACKING — (re)starting detection")
                 detectionJob?.cancel()
                 detectionJob = null
-                startForegroundCompat()
                 startParkingDetection()
             }
             ACTION_VEHICLE_TRANSITION -> {
-                // Delivered directly from Play Services via PendingIntent.getForegroundService().
-                // startForeground() must be called first — Android 8+ enforces a 5 s window. [BUG-FGS-001]
-                startForegroundCompat()
                 if (!guardPermissions("VEHICLE_TRANSITION")) return START_NOT_STICKY
                 processTransitionIntent(intent!!)
             }
@@ -130,9 +137,9 @@ class ParkingDetectionService : LifecycleService() {
         stopSelf()
     }
 
-    private fun startForegroundCompat() {
+    private fun startForegroundCompat(withLocationPermission: Boolean = true) {
         val notification = foregroundNotificationProvider.buildDetectionNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (withLocationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // Android 14 logs "foreground service started by ACTIVITY_RECOGNITION exemption
             // can not have location access" — this is informational only; the service still
             // receives GPS fixes. The exemption type warning does not block any API. [FGS-003]
@@ -144,14 +151,14 @@ class ParkingDetectionService : LifecycleService() {
         } else {
             startForeground(AppNotificationManager.DETECTION_NOTIFICATION_ID, notification)
         }
-        PaparcarLogger.d(DIAG, "  ✓ startForeground done (notif ${AppNotificationManager.DETECTION_NOTIFICATION_ID})")
+        PaparcarLogger.d(DIAG, "  ✓ startForeground done (locationPermission=$withLocationPermission, notif ${AppNotificationManager.DETECTION_NOTIFICATION_ID})")
     }
 
     private fun startParkingDetection() {
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator")
         lifecycleScope.launch {
             val vehicleName = vehicleRepository.observeActiveVehicle().firstOrNull()
-                ?.let { listOfNotNull(it.brand, it.model).joinToString(" ").ifBlank { null } }
+                ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
             if (vehicleName != null) {
                 notificationPort.updateDetectionVehicle(vehicleName, AppNotificationManager.DETECTION_NOTIFICATION_ID)
             }
@@ -179,6 +186,17 @@ class ParkingDetectionService : LifecycleService() {
                 } else {
                     PaparcarLogger.d(DIAG, "    ■ finally → superseded by newer job, skipping stopSelf()")
                 }
+            }
+        }
+    }
+
+    private fun updateCrashlyticsContext(intentAction: String?, hasLocationPerm: Boolean) {
+        runCatching {
+            FirebaseCrashlytics.getInstance().run {
+                setCustomKey("det_action", intentAction ?: "null→START_TRACKING")
+                setCustomKey("det_job_active", detectionJob?.isActive == true)
+                setCustomKey("det_has_movement", parkingDetectionCoordinator.hasDetectedMovement)
+                setCustomKey("det_location_perm", hasLocationPerm)
             }
         }
     }

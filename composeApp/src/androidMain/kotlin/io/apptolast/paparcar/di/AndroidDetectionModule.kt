@@ -42,12 +42,14 @@ val androidDetectionModule = module {
     single<ParkingEnrichmentScheduler> { WorkManagerParkingEnrichmentScheduler(androidContext()) }
 
     // --- Parking Sync (Firestore propagation, off the confirm-parking critical path) ---
-    single<ParkingSyncScheduler> { WorkManagerParkingSyncScheduler(androidContext(), get()) }
+    // userId is resolved inside each worker's doWork() via AuthRepository — no coroutine scope needed here.
+    single<ParkingSyncScheduler> { WorkManagerParkingSyncScheduler(androidContext()) }
 
     // --- Spot Report ---
     single<ReportSpotScheduler> { WorkManagerReportSpotScheduler(androidContext()) }
 
-    // BluetoothParkingDetector is instantiated directly by BluetoothDetectionService in
-    // onCreate(), using the service's lifecycleScope as the coroutine owner. [BT-REFACTOR-FGS-001]
+    // BluetoothParkingDetector is stateless — inject as factory so each Service instance
+    // gets its own, keeping the scope ownership clean. [BT-REFACTOR-FGS-001]
+    factory { io.apptolast.paparcar.bluetooth.BluetoothParkingDetector(get(), get()) }
 
 }

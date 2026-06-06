@@ -8,6 +8,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Deterministic parking detector driven by Bluetooth connection events.
@@ -42,15 +43,13 @@ class BluetoothParkingDetector(
 
         // BT-005: wait before acting — brief stops and BT oscillation fire disconnect
         // events too. If BT reconnects, the Service cancels this coroutine here.
-        delay(BT_DISCONNECT_DEBOUNCE_MS)
+        delay(BT_DISCONNECT_DEBOUNCE_MS.milliseconds)
 
         PaparcarLogger.d(TAG, "Debounce passed — sampling GPS for parking fix")
 
         // BT-005: sample GPS until accuracy is good enough or timeout fires
-        val parkingFix = withTimeoutOrNull(GPS_SAMPLE_TIMEOUT_MS) {
-            observeLocation()
-                .filter { it.accuracy <= GPS_ACCURACY_THRESHOLD_M }
-                .first()
+        val parkingFix = withTimeoutOrNull(GPS_SAMPLE_TIMEOUT_MS.milliseconds) {
+            observeLocation().first { it.accuracy <= GPS_ACCURACY_THRESHOLD_M }
         }
 
         if (parkingFix == null) {
@@ -61,17 +60,15 @@ class BluetoothParkingDetector(
         PaparcarLogger.d(TAG, "Got parking fix at (${parkingFix.latitude}, ${parkingFix.longitude}), accuracy=${parkingFix.accuracy}m")
 
         // Watch subsequent GPS updates for the distance departure check
-        observeLocation()
-            .filter { current ->
-                val dist = FloatArray(DISTANCE_RESULT_SIZE)
-                Location.distanceBetween(
-                    parkingFix.latitude, parkingFix.longitude,
-                    current.latitude, current.longitude,
-                    dist,
-                )
-                dist[0] >= DISTANCE_THRESHOLD_M
-            }
-            .first()
+        observeLocation().first { current ->
+            val dist = FloatArray(DISTANCE_RESULT_SIZE)
+            Location.distanceBetween(
+                parkingFix.latitude, parkingFix.longitude,
+                current.latitude, current.longitude,
+                dist,
+            )
+            dist[0] >= DISTANCE_THRESHOLD_M
+        }
 
         PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking for vehicle=$vehicleId")
         confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY, vehicleId = vehicleId)

@@ -133,6 +133,19 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.CONFIRMATION_FAILED_NOTIFICATION_ID, notification)
     }
 
+    override fun showHomeParkingLeft(label: String, lat: Double, lon: Double) {
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_home_parking_left_title, label))
+            .setContentText(context.getString(R.string.notif_home_parking_left_text))
+            .setSmallIcon(R.drawable.ic_notification_parking_saved)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setContentIntent(buildFocusIntent(RC_HOME_PARKING_LEFT, lat, lon))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.HOME_PARKING_NOTIFICATION_ID, notification)
+    }
+
     override fun showDebug(message: String) {
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_debug_title))
@@ -244,6 +257,7 @@ class AppNotificationManagerImpl(
         private const val RC_PERMISSION_REVOKED = 15
         private const val RC_SPOT_PUBLISHED = 16
         private const val RC_CONFIRMATION_FAILED = 17
+        private const val RC_HOME_PARKING_LEFT = 18
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
 

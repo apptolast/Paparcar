@@ -6,16 +6,14 @@ import android.os.Build
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.repository.VehicleRepository
-import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
-import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
 
 /**
@@ -56,17 +54,14 @@ class BluetoothDetectionService : LifecycleService() {
 
     private val foregroundNotificationProvider: ForegroundNotificationProvider by inject()
     private val notificationPort: AppNotificationManager by inject()
+    private val detector: BluetoothParkingDetector by inject()
+    private val vehicleRepository: VehicleRepository by inject()
 
-    private lateinit var detector: BluetoothParkingDetector
     private var detectionJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
         PaparcarLogger.d(DIAG, "▶ Service onCreate")
-        detector = BluetoothParkingDetector(
-            observeLocation = get<ObserveAdaptiveLocationUseCase>(),
-            confirmParking = get<ConfirmParkingUseCase>(),
-        )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -88,8 +83,9 @@ class BluetoothDetectionService : LifecycleService() {
                 startForegroundCompat()
 
                 lifecycleScope.launch {
-                    val vehicleName = get<VehicleRepository>().observeActiveVehicle().firstOrNull()
-                        ?.let { listOfNotNull(it.brand, it.model).joinToString(" ").ifBlank { null } }
+                    val vehicleName = vehicleRepository.observeActiveVehicle().firstOrNull()
+                        ?.displayName(fallback = "")
+                        ?.takeIf { it.isNotBlank() }
                     if (vehicleName != null) {
                         notificationPort.updateDetectionVehicle(vehicleName, AppNotificationManager.BT_DETECTION_NOTIFICATION_ID)
                     }

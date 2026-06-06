@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.coordinator
 
+import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
@@ -17,7 +18,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
@@ -297,7 +297,12 @@ class ParkingDetectionCoordinator(
                         PaparcarLogger.d(DIAG, "    → confirmParking(reliability=user) START")
                         confirmParking(locationToConfirm, config.reliabilityUserConfirmed, vehicleId = activeVehicleId)
                             .onFailure { e ->
-                                PaparcarLogger.e(TAG, "Failed to confirm parking (user path)", e)
+                                if (e is PaparcarError.Auth.NotAuthenticated) {
+                                    // Transient session loss — not a real crash. Will self-heal on next launch.
+                                    PaparcarLogger.w(TAG, "confirmParking (user path) — session temporarily unavailable")
+                                } else {
+                                    PaparcarLogger.e(TAG, "Failed to confirm parking (user path)", e)
+                                }
                                 notificationPort.showConfirmationFailed()
                             }
                         PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=user) END")
@@ -383,7 +388,11 @@ class ParkingDetectionCoordinator(
                             PaparcarLogger.d(DIAG, "    → confirmParking(reliability=$reliability) START")
                             confirmParking(locationToConfirm, reliability, vehicleId = activeVehicleId)
                                 .onFailure { e ->
-                                    PaparcarLogger.e(TAG, "Failed to confirm parking (candidate path)", e)
+                                    if (e is PaparcarError.Auth.NotAuthenticated) {
+                                        PaparcarLogger.w(TAG, "confirmParking (candidate path) — session temporarily unavailable")
+                                    } else {
+                                        PaparcarLogger.e(TAG, "Failed to confirm parking (candidate path)", e)
+                                    }
                                     notificationPort.showConfirmationFailed()
                                 }
                             PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=$reliability) END")

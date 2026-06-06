@@ -49,21 +49,23 @@ class GeofenceBroadcastReceiver : BroadcastReceiver(), KoinComponent {
         val now = Clock.System.now().toEpochMilliseconds()
 
         for (geofence in triggeringGeofences) {
+            val geofenceId = geofence.requestId
+
             // 1 — Propagate to in-process observers (ViewModels, etc.)
             geofenceEventBus.emit(
                 GeofenceEvent.Exited(
-                    geofenceId = geofence.requestId,
+                    geofenceId = geofenceId,
                     timestamp = now,
                 )
             )
 
-            // 2 — Enqueue departure check. DepartureDetectionWorker combines this exit event
-            //     with the IN_VEHICLE_ENTER signal to decide whether to publish the spot.
+            // 2 — Enqueue departure detection: decides if it's a real departure and
+            // reports the freed spot to the community.
             WorkManager.getInstance(context).enqueueUniqueWork(
-                "${DepartureDetectionWorker.TAG}_${geofence.requestId}",
+                "${DepartureDetectionWorker.TAG}_$geofenceId",
                 ExistingWorkPolicy.REPLACE,
                 DepartureDetectionWorker.buildRequest(
-                    geofenceId = geofence.requestId,
+                    geofenceId = geofenceId,
                     exitTimestampMs = now,
                 ),
             )

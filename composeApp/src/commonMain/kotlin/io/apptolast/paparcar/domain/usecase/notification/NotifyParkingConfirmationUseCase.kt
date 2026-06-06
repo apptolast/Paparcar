@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.usecase.notification
 
 import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -24,8 +25,7 @@ class NotifyParkingConfirmationUseCase(
         PaparcarLogger.d(DIAG, "■ NotifyParkingConfirmation.invoke DONE")
     }
 
-    private fun Vehicle.displayName(): String? =
-        listOfNotNull(brand, model).joinToString(" ").ifBlank { null }
+    private fun Vehicle.displayName(): String? = displayName(fallback = "").takeIf { it.isNotBlank() }
 
     private companion object {
         const val DIAG = "PARKDIAG/Notify"

@@ -81,6 +81,17 @@ interface AppNotificationManager {
     fun showConfirmationFailed() {}
 
     /**
+     * Shows a transient notification when the user exits a home parking geofence.
+     * Informs the user that their habitual spot is now available to others.
+     * Tapping opens the map centred on the spot.
+     *
+     * @param label The user-defined label for the home parking marker (e.g. "My garage").
+     * @param lat   Latitude of the home parking marker.
+     * @param lon   Longitude of the home parking marker.
+     */
+    fun showHomeParkingLeft(label: String, lat: Double, lon: Double) {}
+
+    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -113,5 +124,8 @@ interface AppNotificationManager {
 
         /** ID for the "parking confirmation failed" error notification. */
         const val CONFIRMATION_FAILED_NOTIFICATION_ID = 2004
+
+        /** ID for the "you left your home parking spot" notification. */
+        const val HOME_PARKING_NOTIFICATION_ID = 2005
     }
 }
