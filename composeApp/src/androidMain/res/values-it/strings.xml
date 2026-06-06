@@ -43,4 +43,10 @@
     <string name="channel_upload_desc">Conferme di posto salvato e caricamento su cloud</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Messaggi di debug — solo nelle versioni di sviluppo</string>
+
+    <!-- Notifica: uscita da parcheggio abituale -->
+    <string name="notif_home_parking_left_title">Hai lasciato %1$s</string>
+    <string name="notif_home_parking_left_text">Il tuo posto auto è ora disponibile per altri</string>
+
+    <string name="attribution_detection_label">Rilevamento parcheggio</string>
 </resources>

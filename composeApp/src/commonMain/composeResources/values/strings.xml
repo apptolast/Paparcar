@@ -20,6 +20,10 @@
     <string name="home_vehicle_card_status_empty">Not parked</string>
     <!-- Fallback label when a Vehicle has no name, brand or model set. -->
     <string name="home_vehicle_fallback_name">Vehicle</string>
+    <!-- Vehicle chip — detection badge for the coordinator (isActive) strategy. -->
+    <string name="home_vehicle_chip_badge_active">Active</string>
+    <!-- Vehicle chip — session status when parked; %1$s is the formatted distance (e.g. "120m"). -->
+    <string name="home_vehicle_chip_status_parked">Parked · %1$s</string>
     <!-- ParkingPeekRow (selected vehicle hero card) — fallback when vehicle lookup fails. -->
     <string name="home_peek_active_session">Active session</string>
     <string name="home_peek_parked_label">Parked</string>
@@ -250,6 +254,7 @@
     <string name="parking_detail_no_address">Unknown location</string>
     <string name="parking_detail_detection_auto">Auto-detected</string>
     <string name="parking_detail_detection_manual">Manual report</string>
+    <string name="parking_detail_detection_home">Private zone</string>
     <string name="map_marker_my_car">Your parked car</string>
     <string name="map_marker_car_here">Car parked here</string>
     <string name="map_marker_free">Free spot</string>
@@ -450,6 +455,7 @@
     <string name="vehicle_registration_size_required_hint">Choose a size to continue</string>
     <string name="vehicle_registration_saving">Saving…</string>
     <string name="vehicle_registration_bt_new_hint">Save the vehicle first to pair Bluetooth</string>
+    <string name="vehicle_registration_license_plate_label">License plate</string>
     <string name="vehicle_show_on_spot">Show brand and model on free spots</string>
     <string name="vehicle_show_on_spot_desc">Brand and model are private — used only to estimate the parking space size. Enable this to show others which car freed the spot.</string>
     <string name="vehicle_size_label">Vehicle size</string>
@@ -595,4 +601,5 @@
     <string name="home_spot_peek_show_list">Nearby spots</string>
     <string name="home_spot_peek_hide_list">Hide list</string>
     <string name="history_load_more">Load more</string>
+
 </resources>

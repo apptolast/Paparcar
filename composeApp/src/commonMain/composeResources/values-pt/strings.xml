@@ -11,6 +11,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Está estacionado</string>
     <string name="home_where_to_park_title">Onde quer estacionar?</string>
+    <string name="home_vehicle_chip_badge_active">Ativo</string>
+    <string name="home_vehicle_chip_status_parked">Estacionado · %1$s</string>
     <string name="home_active_vehicle_title">O seu veículo ativo</string>
     <string name="home_parking_release">Libertar lugar</string>
     <string name="home_navigate_to_spot">Como chegar</string>
@@ -203,6 +205,7 @@
     <string name="parking_detail_no_address">Localização desconhecida</string>
     <string name="parking_detail_detection_auto">Deteção automática</string>
     <string name="parking_detail_detection_manual">Aviso manual</string>
+    <string name="parking_detail_detection_home">Zona privada</string>
     <string name="map_marker_my_car">O meu carro estacionado</string>
     <string name="map_marker_car_here">Carro estacionado aqui</string>
     <string name="map_marker_free">Lugar livre</string>
@@ -330,6 +333,7 @@
     <string name="vehicle_registration_size_required_hint">Escolha um tamanho para continuar</string>
     <string name="vehicle_registration_saving">A guardar…</string>
     <string name="vehicle_registration_bt_new_hint">Guarde o veículo primeiro para associar o Bluetooth</string>
+    <string name="vehicle_registration_license_plate_label">Matrícula</string>
     <string name="vehicle_show_on_spot">Mostrar marca e modelo em vagas livres</string>
     <string name="vehicle_show_on_spot_desc">Marca e modelo são privados — usados apenas para estimar o tamanho da vaga. Ative para que outros vejam qual carro libertou a vaga.</string>
     <string name="vehicle_size_label">Tamanho do veículo</string>

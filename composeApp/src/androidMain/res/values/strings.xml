@@ -46,4 +46,8 @@
     <string name="channel_upload_desc">Parking saved and spot upload confirmations</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Debug messages — development builds only</string>
+
+    <!-- Notification: home parking departure -->
+    <string name="notif_home_parking_left_title">You left %1$s</string>
+    <string name="notif_home_parking_left_text">Your parking spot is now available to others</string>
 </resources>

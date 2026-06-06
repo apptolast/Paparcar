@@ -11,6 +11,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Ești parcat</string>
     <string name="home_where_to_park_title">Unde doriți să parcați?</string>
+    <string name="home_vehicle_chip_badge_active">Activ</string>
+    <string name="home_vehicle_chip_status_parked">Parcat · %1$s</string>
     <string name="home_active_vehicle_title">Vehiculul dumneavoastră activ</string>
     <string name="home_parking_release">Eliberează locul</string>
     <string name="home_navigate_to_spot">Indicații</string>
@@ -203,6 +205,7 @@
     <string name="parking_detail_no_address">Locație necunoscută</string>
     <string name="parking_detail_detection_auto">Detectat automat</string>
     <string name="parking_detail_detection_manual">Raport manual</string>
+    <string name="parking_detail_detection_home">Zonă privată</string>
     <string name="map_marker_my_car">Mașina ta parcată</string>
     <string name="map_marker_car_here">Mașină parcată aici</string>
     <string name="map_marker_free">Loc liber</string>
@@ -330,6 +333,7 @@
     <string name="vehicle_registration_size_required_hint">Alege o dimensiune pentru a continua</string>
     <string name="vehicle_registration_saving">Se salvează…</string>
     <string name="vehicle_registration_bt_new_hint">Salvează vehiculul mai întâi pentru a asocia Bluetooth</string>
+    <string name="vehicle_registration_license_plate_label">Număr de înmatriculare</string>
     <string name="vehicle_show_on_spot">Afișează marca și modelul pe locurile libere</string>
     <string name="vehicle_show_on_spot_desc">Marca și modelul sunt private — folosite doar pentru a estima dimensiunea locului. Activează pentru ca alții să vadă ce mașină a eliberat locul.</string>
     <string name="vehicle_size_label">Mărimea vehiculului</string>

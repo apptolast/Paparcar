@@ -43,4 +43,10 @@
     <string name="channel_upload_desc">Confirmations de place enregistrée et upload vers le cloud</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Messages de débogage — builds de développement uniquement</string>
+
+    <!-- Notification : départ d'un stationnement habituel -->
+    <string name="notif_home_parking_left_title">Vous avez quitté %1$s</string>
+    <string name="notif_home_parking_left_text">Votre place de stationnement est maintenant disponible</string>
+
+    <string name="attribution_detection_label">Détection de stationnement</string>
 </resources>

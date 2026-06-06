@@ -11,6 +11,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">U bent geparkeerd</string>
     <string name="home_where_to_park_title">Waar wilt u parkeren?</string>
+    <string name="home_vehicle_chip_badge_active">Actief</string>
+    <string name="home_vehicle_chip_status_parked">Geparkeerd · %1$s</string>
     <string name="home_active_vehicle_title">Uw actieve voertuig</string>
     <string name="home_parking_release">Parkeerplaats vrijgeven</string>
     <string name="home_navigate_to_spot">Route</string>
@@ -203,6 +205,7 @@
     <string name="parking_detail_no_address">Onbekende locatie</string>
     <string name="parking_detail_detection_auto">Automatisch gedetecteerd</string>
     <string name="parking_detail_detection_manual">Handmatige melding</string>
+    <string name="parking_detail_detection_home">Privézone</string>
     <string name="map_marker_my_car">Uw geparkeerde auto</string>
     <string name="map_marker_car_here">Hier geparkeerde auto</string>
     <string name="map_marker_free">Vrije parkeerplaats</string>
@@ -330,6 +333,7 @@
     <string name="vehicle_registration_size_required_hint">Kies een maat om door te gaan</string>
     <string name="vehicle_registration_saving">Opslaan…</string>
     <string name="vehicle_registration_bt_new_hint">Sla het voertuig eerst op om Bluetooth te koppelen</string>
+    <string name="vehicle_registration_license_plate_label">Kenteken</string>
     <string name="vehicle_show_on_spot">Merk en model tonen op vrije parkeerplaatsen</string>
     <string name="vehicle_show_on_spot_desc">Merk en model zijn privé — alleen gebruikt om de parkeerplaatsgrootte te schatten. Schakel in zodat anderen zien welke auto de plek heeft vrijgemaakt.</string>
     <string name="vehicle_size_label">Voertuiggrootte</string>

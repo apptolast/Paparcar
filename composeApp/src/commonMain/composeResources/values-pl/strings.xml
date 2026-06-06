@@ -11,6 +11,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Jesteś zaparkowany</string>
     <string name="home_where_to_park_title">Gdzie chcesz zaparkować?</string>
+    <string name="home_vehicle_chip_badge_active">Aktywny</string>
+    <string name="home_vehicle_chip_status_parked">Zaparkowany · %1$s</string>
     <string name="home_active_vehicle_title">Twój aktywny pojazd</string>
     <string name="home_parking_release">Zwolnij miejsce</string>
     <string name="home_navigate_to_spot">Trasa</string>
@@ -207,6 +209,7 @@
     <string name="parking_detail_no_address">Nieznana lokalizacja</string>
     <string name="parking_detail_detection_auto">Wykryto automatycznie</string>
     <string name="parking_detail_detection_manual">Zgłoszenie ręczne</string>
+    <string name="parking_detail_detection_home">Strefa prywatna</string>
     <string name="map_marker_my_car">Twój zaparkowany samochód</string>
     <string name="map_marker_car_here">Samochód zaparkowany tutaj</string>
     <string name="map_marker_free">Wolne miejsce</string>
@@ -334,6 +337,7 @@
     <string name="vehicle_registration_size_required_hint">Wybierz rozmiar, aby kontynuować</string>
     <string name="vehicle_registration_saving">Zapisywanie…</string>
     <string name="vehicle_registration_bt_new_hint">Zapisz pojazd najpierw, aby sparować Bluetooth</string>
+    <string name="vehicle_registration_license_plate_label">Numer rejestracyjny</string>
     <string name="vehicle_show_on_spot">Pokaż markę i model na wolnych miejscach</string>
     <string name="vehicle_show_on_spot_desc">Marka i model są prywatne — używane tylko do szacowania rozmiaru miejsca. Włącz, aby inni widzieli, który samochód zwolnił miejsce.</string>
     <string name="vehicle_size_label">Rozmiar pojazdu</string>

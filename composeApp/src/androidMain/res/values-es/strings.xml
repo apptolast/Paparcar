@@ -43,4 +43,10 @@
     <string name="channel_upload_desc">Confirmaciones de plaza guardada y subida a la nube</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Mensajes de depuración — solo en builds de desarrollo</string>
+
+    <!-- Notificación: salida de aparcamiento habitual -->
+    <string name="notif_home_parking_left_title">Has salido de %1$s</string>
+    <string name="notif_home_parking_left_text">Tu plaza de aparcamiento ya está disponible</string>
+
+    <string name="attribution_detection_label">Detección de aparcamiento</string>
 </resources>

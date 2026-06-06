@@ -11,6 +11,8 @@
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Sei parcheggiato</string>
     <string name="home_where_to_park_title">Dove vuoi parcheggiare?</string>
+    <string name="home_vehicle_chip_badge_active">Attivo</string>
+    <string name="home_vehicle_chip_status_parked">Parcheggiato · %1$s</string>
     <string name="home_active_vehicle_title">Il tuo veicolo attivo</string>
     <string name="home_parking_release">Libera posto</string>
     <string name="home_navigate_to_spot">Indicazioni</string>
@@ -203,6 +205,7 @@
     <string name="parking_detail_no_address">Posizione sconosciuta</string>
     <string name="parking_detail_detection_auto">Rilevamento automatico</string>
     <string name="parking_detail_detection_manual">Segnalazione manuale</string>
+    <string name="parking_detail_detection_home">Zona privata</string>
     <string name="map_marker_my_car">La tua auto parcheggiata</string>
     <string name="map_marker_car_here">Auto parcheggiata qui</string>
     <string name="map_marker_free">Posto libero</string>
@@ -330,6 +333,7 @@
     <string name="vehicle_registration_size_required_hint">Scegli una dimensione per continuare</string>
     <string name="vehicle_registration_saving">Salvataggio…</string>
     <string name="vehicle_registration_bt_new_hint">Salva il veicolo prima di abbinare il Bluetooth</string>
+    <string name="vehicle_registration_license_plate_label">Targa</string>
     <string name="vehicle_show_on_spot">Mostra marca e modello sui posti liberi</string>
     <string name="vehicle_show_on_spot_desc">Marca e modello sono privati — usati solo per stimare la dimensione del posto. Abilitalo per mostrare agli altri quale auto ha liberato il posto.</string>
     <string name="vehicle_size_label">Dimensione veicolo</string>

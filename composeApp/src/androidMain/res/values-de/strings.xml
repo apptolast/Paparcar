@@ -43,4 +43,10 @@
     <string name="channel_upload_desc">Bestätigungen für gespeicherte Stellplätze und Cloud-Upload</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Debug-Meldungen — nur in Entwicklungs-Builds</string>
+
+    <!-- Benachrichtigung: Heimstellplatz verlassen -->
+    <string name="notif_home_parking_left_title">Du hast %1$s verlassen</string>
+    <string name="notif_home_parking_left_text">Dein Parkplatz ist jetzt für andere verfügbar</string>
+
+    <string name="attribution_detection_label">Parkerkennung</string>
 </resources>

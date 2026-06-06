@@ -43,4 +43,10 @@
     <string name="channel_upload_desc">Bevestigingen van opgeslagen parkeerplaats en cloud-upload</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Foutopsporingsberichten — alleen in ontwikkelingsbuilds</string>
+
+    <!-- Melding: verlaten van vaste parkeerplaats -->
+    <string name="notif_home_parking_left_title">Je hebt %1$s verlaten</string>
+    <string name="notif_home_parking_left_text">Je parkeerplaats is nu beschikbaar voor anderen</string>
+
+    <string name="attribution_detection_label">Parkeerdetectie</string>
 </resources>

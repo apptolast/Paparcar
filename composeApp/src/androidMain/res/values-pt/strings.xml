@@ -43,4 +43,10 @@
     <string name="channel_upload_desc">Confirmações de lugar guardado e upload para a nuvem</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Mensagens de depuração — apenas em builds de desenvolvimento</string>
+
+    <!-- Notificação: saída do estacionamento habitual -->
+    <string name="notif_home_parking_left_title">Saiu de %1$s</string>
+    <string name="notif_home_parking_left_text">O seu lugar de estacionamento está agora disponível</string>
+
+    <string name="attribution_detection_label">Deteção de estacionamento</string>
 </resources>

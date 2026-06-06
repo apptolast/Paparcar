@@ -43,4 +43,10 @@
     <string name="channel_upload_desc">Potwierdzenia zapisanych miejsc i przesyłania do chmury</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Wiadomości debugowania — tylko w buildach deweloperskich</string>
+
+    <!-- Powiadomienie: opuszczenie zwykłego miejsca parkingowego -->
+    <string name="notif_home_parking_left_title">Opuściłeś %1$s</string>
+    <string name="notif_home_parking_left_text">Twoje miejsce parkingowe jest teraz dostępne dla innych</string>
+
+    <string name="attribution_detection_label">Wykrywanie parkowania</string>
 </resources>

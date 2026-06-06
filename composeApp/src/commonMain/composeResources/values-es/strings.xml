@@ -20,6 +20,8 @@
     <string name="home_vehicle_card_status_empty">Sin aparcar</string>
     <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
     <string name="home_vehicle_fallback_name">Vehículo</string>
+    <string name="home_vehicle_chip_badge_active">Activo</string>
+    <string name="home_vehicle_chip_status_parked">Aparcado · %1$s</string>
     <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_active_session">Sesión activa</string>
     <string name="home_peek_parked_label">Aparcado</string>
@@ -248,6 +250,7 @@
     <string name="parking_detail_no_address">Ubicación desconocida</string>
     <string name="parking_detail_detection_auto">Detección automática</string>
     <string name="parking_detail_detection_manual">Aviso manual</string>
+    <string name="parking_detail_detection_home">Zona privada</string>
     <string name="map_marker_my_car">Tu coche aparcado</string>
     <string name="map_marker_car_here">Coche aparcado aquí</string>
     <string name="map_marker_free">Plaza libre</string>
@@ -436,6 +439,7 @@
     <string name="vehicle_registration_size_required_hint">Elige un tamaño para continuar</string>
     <string name="vehicle_registration_saving">Guardando…</string>
     <string name="vehicle_registration_bt_new_hint">Guarda el vehículo primero para vincular el Bluetooth</string>
+    <string name="vehicle_registration_license_plate_label">Matrícula</string>
     <string name="vehicle_show_on_spot">Mostrar marca y modelo en plazas libres</string>
     <string name="vehicle_show_on_spot_desc">Marca y modelo son privados — solo se usan para estimar el tamaño de la plaza. Actívalo para que otros vean qué coche liberó la plaza.</string>
     <string name="vehicle_size_label">Tamaño del vehículo</string>
