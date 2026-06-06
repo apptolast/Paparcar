@@ -310,7 +310,7 @@ Google Activity Recognition a veces oscila entre `IN_VEHICLE` y `ON_BICYCLE` par
 
 ---
 
-## 5 · FEAT-HOME-PARKING-001 — Marcador "mi parking de casa" con geocerca · 🟡 deferred
+## 5 · FEAT-HOME-PARKING-001..004 — Marcador "mi parking de casa" con geocerca · ✅ Done 2026-06-05
 
 **Estado:** Diferido hasta completar BUG-GARAGE-COLA-001 + BUG-SCOOTER-001 (decisión usuario 2026-05-27).
 
@@ -377,13 +377,15 @@ Cada fase es mergeable de forma independiente.
 
 ---
 
-## Resumen — Estado y orden actualizado (2026-05-27)
+## Resumen — Estado y orden actualizado (2026-06-05)
 
 | Orden | Item | Estado |
 |-------|------|--------|
 | 0 | Refactor de detección | ✅ Done (commit `935e6fc`) |
 | 1 | `BUG-GARAGE-COLA-001` (sec. 3) — Step Detector como señal canónica | 🔵 Branch ready — pendiente commit/merge |
 | 2 | `BUG-SCOOTER-001` (sec. 4) — VehicleType + smart confirmation prompt | 🔵 Branch ready — pendiente commit/merge |
-| 3 | `FEAT-HOME-PARKING-001` (sec. 5) | 🟡 Deferred — retomar tras 1 y 2 |
-| 4 | `DECISION-SERVICE-LIFECYCLE-001` (sec. 1) | 🟡 Deferred — necesita razonamiento + telemetría |
-| 5 | `DECISION-MERGE-BT-COORDINATOR-002` (sec. 2) | 🟡 Deferred — necesita debate técnico |
+| 3 | `FEAT-HOME-PARKING-001..004` (sec. 5) | ✅ Done 2026-06-05 |
+| 4 | `BUG-WALK-DEPART-001` — Plaza liberada al pasar andando junto al coche | ✅ Done 2026-06-05 — ver `detection-departure-bugs-2026-06-05.md` |
+| 5 | `ARCH-DEPARTURE-GEOFENCE-DUAL-TRIGGER-001` — GEOFENCE_EXIT como trigger dual | ⚪ Pending — ver `detection-departure-bugs-2026-06-05.md` |
+| 6 | `DECISION-SERVICE-LIFECYCLE-001` (sec. 1) | 🟡 Deferred — necesita razonamiento + telemetría |
+| 7 | `DECISION-MERGE-BT-COORDINATOR-002` (sec. 2) | 🟡 Deferred — necesita debate técnico |
