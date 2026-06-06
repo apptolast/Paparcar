@@ -1286,7 +1286,7 @@ internal fun peekTitle(
  */
 @Composable
 internal fun cameraTitleOrFallback(
-    info: io.apptolast.paparcar.domain.model.LocationInfo?,
+    info: io.apptolast.paparcar.domain.model.AddressAndPlace?,
 ): String {
     val placeName = info?.placeInfo?.name?.takeIf { it.isNotBlank() }
     if (placeName != null) return placeName
@@ -1303,12 +1303,12 @@ internal fun cameraTitleOrFallback(
 @Composable
 private fun cameraTitleWhileSettling(state: HomeState): String =
     if (state.isCameraMoving || state.isCameraGeocoding) {
-        state.cameraLocationInfo?.let { info ->
+        state.cameraAddressAndPlace?.let { info ->
             info.placeInfo?.name?.takeIf { it.isNotBlank() }
                 ?: info.address?.displayLine?.takeIf { it.isNotBlank() }
         } ?: "…"
     } else {
-        cameraTitleOrFallback(state.cameraLocationInfo)
+        cameraTitleOrFallback(state.cameraAddressAndPlace)
     }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1317,7 +1317,7 @@ private fun cameraTitleWhileSettling(state: HomeState): String =
 
 @Composable
 private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> Unit = {}) {
-    val info = state.cameraLocationInfo
+    val info = state.cameraAddressAndPlace
     // Show skeleton when there is no displayable content — covers:
     //  • info still null (initial load before first geocode)
     //  • geocoding in flight with no previous content

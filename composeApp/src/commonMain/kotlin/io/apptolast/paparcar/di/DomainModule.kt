@@ -3,7 +3,7 @@ package io.apptolast.paparcar.di
 import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
@@ -13,6 +13,7 @@ import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUs
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
@@ -46,14 +47,14 @@ val domainModule = module {
 
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }
-    factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getLocationInfo = get(), authRepository = get()) }
+    factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getAddressAndPlace = get(), authRepository = get()) }
     factory { SendSpotSignalUseCase(get()) }
 
     // Zone UseCases
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
 
     // Location UseCases
-    factory { GetLocationInfoUseCase(repository = get()) }
+    factory { GetAddressAndPlaceUseCase(repository = get()) }
     factory { GetOneLocationUseCase(get()) }
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SearchAddressUseCase(get()) }
@@ -76,9 +77,9 @@ val domainModule = module {
             geofenceService = get(),
             notificationPort = get(),
             enrichmentScheduler = get(),
-            parkingSyncScheduler = get(),
             authRepository = get(),
             config = get(),
+            departureEventBus = get(),
         )
     }
     single {
@@ -99,11 +100,22 @@ val domainModule = module {
     // Parking session lifecycle use cases
     factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get()) }
     factory {
+        ProcessConfirmedDepartureUseCase(
+            userParkingRepository = get(),
+            zoneRepository = get(),
+            reportSpotReleased = get(),
+            geofenceService = get(),
+            departureEventBus = get(),
+            notificationPort = get(),
+        )
+    }
+    factory {
         UpdateParkingLocationUseCase(
             userParkingRepository = get(),
             geofenceService = get(),
             enrichmentScheduler = get(),
             config = get(),
+            departureEventBus = get(),
         )
     }
 

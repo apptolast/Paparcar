@@ -4,7 +4,7 @@ package io.apptolast.paparcar.presentation.preview
 
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.model.LocationInfo
+import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
@@ -91,10 +91,10 @@ internal object FakeData {
     val placeInfoMall = PlaceInfo("Moda Shopping", PlaceCategory.MALL)
     val placeInfoCafe = PlaceInfo("Starbucks Serrano", PlaceCategory.CAFE)
 
-    // ── LocationInfo (for HomeState.userLocationInfo) ─────────────────────────
+    // ── AddressAndPlace (for HomeState.userAddressAndPlace) ─────────────────────────
 
-    val locationInfoFuel = LocationInfo(addrFuel, placeInfoFuel)
-    val locationInfoStreet = LocationInfo(addrStreet, null)
+    val addressAndPlaceFuel = AddressAndPlace(addrFuel, placeInfoFuel)
+    val addressAndPlaceStreet = AddressAndPlace(addrStreet, null)
 
     // ── Sessions ──────────────────────────────────────────────────────────────
 

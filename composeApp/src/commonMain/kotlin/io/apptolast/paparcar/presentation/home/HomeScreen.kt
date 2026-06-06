@@ -187,7 +187,7 @@ fun HomeScreen(
         ConfirmationBottomSheet(
             onConfirm = { viewModel.handleIntent(HomeIntent.ConfirmDetectedParking) },
             onDismiss = { viewModel.handleIntent(HomeIntent.DismissConfirmation) },
-            addressLine = state.cameraLocationInfo?.displayLine,
+            addressLine = state.cameraAddressAndPlace?.displayLine,
             detectionTimestampMs = pending.timestamp,
         )
     }

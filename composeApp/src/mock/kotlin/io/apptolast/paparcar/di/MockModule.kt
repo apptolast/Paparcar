@@ -9,10 +9,10 @@ import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
-import io.apptolast.paparcar.data.geocoder.RoomLocalLocationInfoDataSource
-import io.apptolast.paparcar.data.repository.LocationInfoRepositoryImpl
+import io.apptolast.paparcar.data.geocoder.RoomLocalAddressAndPlaceDataSource
+import io.apptolast.paparcar.data.repository.AddressAndPlaceRepositoryImpl
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
-import io.apptolast.paparcar.domain.geocoder.LocalLocationInfoDataSource
+import io.apptolast.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
@@ -80,7 +80,7 @@ val mockModule = module {
     single<UserParkingRepository> { FakeUserParkingRepository() }
     single<UserProfileRepository> { FakeUserProfileRepository() }
     single<ZoneRepository> { FakeZoneRepository() }
-    single<LocationInfoRepository> { LocationInfoRepositoryImpl(get(), get(), get()) }
+    single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }
 
     // Database (In-memory Room)
     single<AppDatabase> {
@@ -98,5 +98,5 @@ val mockModule = module {
     single { get<AppDatabase>().geocoderCacheDao() }
 
     // Local datasources
-    single<LocalLocationInfoDataSource> { RoomLocalLocationInfoDataSource(get()) }
+    single<LocalAddressAndPlaceDataSource> { RoomLocalAddressAndPlaceDataSource(get()) }
 }

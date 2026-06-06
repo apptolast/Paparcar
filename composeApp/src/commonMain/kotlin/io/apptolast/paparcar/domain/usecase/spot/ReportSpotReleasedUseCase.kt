@@ -6,7 +6,7 @@ import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -23,7 +23,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 class ReportSpotReleasedUseCase(
     private val reportSpotScheduler: ReportSpotScheduler,
-    private val getLocationInfo: GetLocationInfoUseCase,
+    private val getAddressAndPlace: GetAddressAndPlaceUseCase,
     private val authRepository: AuthRepository,
 ) {
     suspend operator fun invoke(
@@ -38,14 +38,14 @@ class ReportSpotReleasedUseCase(
         var address: AddressInfo? = null
         var placeInfo: PlaceInfo? = null
         withTimeoutOrNull(GEOCODE_TIMEOUT_MS) {
-            getLocationInfo(lat, lon)
+            getAddressAndPlace(lat, lon)
                 .catch { /* best-effort: schedule with whatever info we have */ }
                 .collect { info ->
                     address = info.address
                     placeInfo = info.placeInfo ?: placeInfo
                 }
         }
-        reportSpotScheduler.schedule(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, reporterName)
+        reportSpotScheduler.enqueueReportSpot(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, reporterName)
     }
 
     companion object {

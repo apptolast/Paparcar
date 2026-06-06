@@ -4,26 +4,26 @@ package io.apptolast.paparcar.data.geocoder
 
 import io.apptolast.paparcar.data.datasource.local.room.GeocoderCacheDao
 import io.apptolast.paparcar.data.datasource.local.room.GeocoderCacheEntity
-import io.apptolast.paparcar.domain.geocoder.LocalLocationInfoDataSource
+import io.apptolast.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import io.apptolast.paparcar.domain.model.AddressInfo
-import io.apptolast.paparcar.domain.model.LocationInfo
+import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import kotlin.math.roundToInt
 import kotlin.time.Clock
 
-class RoomLocalLocationInfoDataSource(
+class RoomLocalAddressAndPlaceDataSource(
     private val dao: GeocoderCacheDao,
-) : LocalLocationInfoDataSource {
+) : LocalAddressAndPlaceDataSource {
 
-    override suspend fun get(lat: Double, lon: Double): LocationInfo? {
+    override suspend fun get(lat: Double, lon: Double): AddressAndPlace? {
         val entity = dao.getByKey(cacheKey(lat, lon)) ?: return null
         if (Clock.System.now().toEpochMilliseconds() - entity.cachedAt > CACHE_TTL_MS) return null
         if (!entity.poiChecked) return null
-        return entity.toLocationInfo()
+        return entity.toAddressAndPlace()
     }
 
-    override suspend fun put(lat: Double, lon: Double, info: LocationInfo, poiChecked: Boolean) {
+    override suspend fun put(lat: Double, lon: Double, info: AddressAndPlace, poiChecked: Boolean) {
         dao.upsert(
             GeocoderCacheEntity(
                 locationKey = cacheKey(lat, lon),
@@ -45,7 +45,7 @@ class RoomLocalLocationInfoDataSource(
         dao.evictExpired(expiryMs)
     }
 
-    private fun GeocoderCacheEntity.toLocationInfo(): LocationInfo {
+    private fun GeocoderCacheEntity.toAddressAndPlace(): AddressAndPlace {
         val address = AddressInfo(
             street = addressStreet,
             city = addressCity,
@@ -60,7 +60,7 @@ class RoomLocalLocationInfoDataSource(
                 .getOrDefault(PlaceCategory.OTHER)
             PlaceInfo(name = placeInfoName, category = category)
         } else null
-        return LocationInfo(address = address, placeInfo = placeInfo)
+        return AddressAndPlace(address = address, placeInfo = placeInfo)
     }
 
     private companion object {

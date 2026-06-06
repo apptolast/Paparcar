@@ -15,7 +15,7 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
-import io.apptolast.paparcar.domain.usecase.location.GetLocationInfoUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
@@ -63,7 +63,7 @@ class HomeViewModel(
     private val observeParkedVehicles: ObserveParkedVehiclesUseCase,
     private val updateParkingLocation: UpdateParkingLocationUseCase,
     private val vehicleRepository: VehicleRepository,
-    private val getLocationInfo: GetLocationInfoUseCase,
+    private val getAddressAndPlace: GetAddressAndPlaceUseCase,
     private val searchAddress: SearchAddressUseCase,
     private val zoneRepository: ZoneRepository,
     private val saveZone: SaveZoneUseCase,
@@ -297,7 +297,7 @@ class HomeViewModel(
             .onEach { location ->
                 updateState { copy(isLoading = false, userGpsPoint = location) }
                 geocodeUserLocation(location.latitude, location.longitude)
-                if (state.value.cameraLocationInfo == null) {
+                if (state.value.cameraAddressAndPlace == null) {
                     geocodeCameraLocation(location.latitude, location.longitude)
                 }
                 // Keep query center in sync with GPS while user hasn't panned away.
@@ -550,9 +550,9 @@ class HomeViewModel(
     private fun geocodeUserLocation(lat: Double, lon: Double) {
         userGeocoderJob?.cancel()
         userGeocoderJob = viewModelScope.launch {
-            getLocationInfo(lat, lon)
+            getAddressAndPlace(lat, lon)
                 .catch { e -> PaparcarLogger.w(TAG, "geocodeUserLocation error", e) }
-                .collect { info -> updateState { copy(userLocationInfo = info) } }
+                .collect { info -> updateState { copy(userAddressAndPlace = info) } }
         }
     }
 
@@ -567,13 +567,13 @@ class HomeViewModel(
             cameraGeocoderJob?.cancel()
             cameraGeocoderJob = viewModelScope.launch {
                 var addressReceived = false
-                getLocationInfo(lat, lon)
+                getAddressAndPlace(lat, lon)
                     .onCompletion { cause -> if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) } }
                     .catch { updateState { copy(isCameraGeocoding = false) } }
                     .collect { info ->
-                        updateState { copy(cameraLocationInfo = info) }
+                        updateState { copy(cameraAddressAndPlace = info) }
                         // Stop shimmer as soon as Phase 1 address arrives — Phase 2 (POI)
-                        // will quietly update cameraLocationInfo when it finishes.
+                        // will quietly update cameraAddressAndPlace when it finishes.
                         if (!addressReceived) {
                             addressReceived = true
                             updateState { copy(isCameraGeocoding = false) }

@@ -8,7 +8,7 @@ package io.apptolast.paparcar.domain.model
  *
  * [displayLine] prioritises the POI name (with emoji) over the street address.
  */
-data class LocationInfo(
+data class AddressAndPlace(
     val address: AddressInfo,
     val placeInfo: PlaceInfo?,
 ) {

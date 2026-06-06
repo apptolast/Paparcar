@@ -3,7 +3,7 @@ package io.apptolast.paparcar.presentation.home
 import androidx.compose.runtime.Immutable
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.model.LocationInfo
+import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Spot
@@ -48,7 +48,7 @@ data class HomeState(
     // ── User location ─────────────────────────────────────────────────────────
 
     val userGpsPoint: GpsPoint? = null,
-    val userLocationInfo: LocationInfo? = null,
+    val userAddressAndPlace: AddressAndPlace? = null,
 
     // ── Community data ────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ data class HomeState(
 
     val mapType: MapType = MapType.TERRAIN,
     /** Geocoded address of the map camera centre (updated as the user pans). */
-    val cameraLocationInfo: LocationInfo? = null,
+    val cameraAddressAndPlace: AddressAndPlace? = null,
     /** True while camera geocoding is in flight — drives a skeleton placeholder. */
     val isCameraGeocoding: Boolean = false,
 

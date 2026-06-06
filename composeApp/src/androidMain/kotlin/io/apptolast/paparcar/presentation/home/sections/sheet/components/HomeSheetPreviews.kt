@@ -87,7 +87,7 @@ private fun HomePeekHandleWithPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         HomePeekHandle(
             state = HomeState(
-                cameraLocationInfo = FakeData.locationInfoFuel,
+                cameraAddressAndPlace = FakeData.addressAndPlaceFuel,
                 nearbySpots = FakeData.nearbySpots,
             ),
         )
@@ -100,7 +100,7 @@ private fun HomePeekHandleStreetLightPreview() {
     PaparcarTheme(darkTheme = false) {
         HomePeekHandle(
             state = HomeState(
-                cameraLocationInfo = FakeData.locationInfoStreet,
+                cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                 nearbySpots = FakeData.nearbySpots,
             ),
         )
@@ -196,7 +196,7 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
 private fun HomeVehicleCardParkedPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleCard(
+            HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSession),
                 userLocation = Pair(40.4165, -3.7030),
                 isSelected = false,
@@ -211,7 +211,7 @@ private fun HomeVehicleCardParkedPoiDarkPreview() {
 private fun HomeVehicleCardParkedNoAddressLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleCard(
+            HomeVehicleChip(
                 card = VehicleCard(
                     vehicle = FakeData.vehicleVan,
                     session = FakeData.activeSession.copy(address = null, placeInfo = null),
@@ -230,7 +230,7 @@ private fun HomeVehicleCardParkedNoAddressLightPreview() {
 private fun HomeVehicleCardSelectedDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleCard(
+            HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSessionSupermarket),
                 userLocation = Pair(40.4165, -3.7030),
                 isSelected = true,
@@ -246,7 +246,7 @@ private fun HomeVehicleCardSelectedDarkPreview() {
 private fun HomeVehicleCardEmptyDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleCard(
+            HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
                 userLocation = null,
                 isSelected = false,
@@ -261,7 +261,7 @@ private fun HomeVehicleCardEmptyDarkPreview() {
 private fun HomeVehicleCardEmptyLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleCard(
+            HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleNoName, session = null),
                 userLocation = null,
                 isSelected = false,
