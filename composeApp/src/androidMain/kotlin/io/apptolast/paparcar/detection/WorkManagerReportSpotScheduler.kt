@@ -20,7 +20,7 @@ class WorkManagerReportSpotScheduler(
     private val context: Context,
 ) : ReportSpotScheduler {
 
-    override fun schedule(
+    override fun enqueueReportSpot(
         spotId: String,
         lat: Double,
         lon: Double,

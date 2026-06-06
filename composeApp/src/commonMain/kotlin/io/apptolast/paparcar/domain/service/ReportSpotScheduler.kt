@@ -8,14 +8,20 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 /**
  * Schedules guaranteed delivery of a "spot released" report to the remote backend.
  *
- * The implementation (WorkManager on Android) persists the job across process death
- * and retries automatically when the device is connected to the network.
+ * Fire-and-forget (non-suspending). The Android implementation is backed by WorkManager
+ * so the job persists across process death and retries automatically when connected.
  *
- * Phase 4 params ([spotType], [confidence], [sizeCategory]) are forwarded to the
- * [Spot] written to Firestore so clients can render reliability indicators.
+ * Called by [ReportSpotReleasedUseCase] immediately after a parking session is cleared
+ * from Room. [spotType], [confidence], and [sizeCategory] are forwarded to Firestore
+ * so clients can render reliability and size indicators on the available spot.
  */
 interface ReportSpotScheduler {
-    fun schedule(
+
+    /**
+     * Enqueues a spot-released report for [spotId] at the given coordinates.
+     * Duplicate enqueues for the same [spotId] are idempotent (REPLACE policy).
+     */
+    fun enqueueReportSpot(
         spotId: String,
         lat: Double,
         lon: Double,

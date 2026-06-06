@@ -20,7 +20,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     var lastPlaceInfo: PlaceInfo? = null
     var lastReporterName: String? = null
 
-    override fun schedule(
+    override fun enqueueReportSpot(
         spotId: String,
         lat: Double,
         lon: Double,
