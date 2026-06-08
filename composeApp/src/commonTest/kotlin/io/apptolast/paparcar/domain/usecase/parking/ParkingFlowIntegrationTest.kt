@@ -52,7 +52,7 @@ class ParkingFlowIntegrationTest {
 
     private val parkingRepo = FakeUserParkingRepository()
     private val vehicleRepo = FakeVehicleRepository(
-        defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM),
+        defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM_SUV),
     )
     private val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
     private val spotScheduler = FakeReportSpotScheduler()
@@ -133,7 +133,7 @@ class ParkingFlowIntegrationTest {
 
         releaseParking(location.latitude, location.longitude, confirmedSession)
 
-        assertEquals(VehicleSize.MEDIUM, spotScheduler.lastSizeCategory)
+        assertEquals(VehicleSize.MEDIUM_SUV, spotScheduler.lastSizeCategory)
     }
 
     @Test

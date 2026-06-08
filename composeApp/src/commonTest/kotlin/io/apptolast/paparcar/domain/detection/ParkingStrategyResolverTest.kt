@@ -87,7 +87,7 @@ class ParkingStrategyResolverTest {
     ) = Vehicle(
         id = "v-1",
         userId = "u-1",
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         vehicleType = type,
         bluetoothDeviceId = bluetoothDeviceId,
     )

@@ -30,7 +30,7 @@ class VehiclesViewModelTest {
     private fun vehicle(id: String, isActive: Boolean = false) = Vehicle(
         id = id,
         userId = "user-1",
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         isActive = isActive,
     )
 

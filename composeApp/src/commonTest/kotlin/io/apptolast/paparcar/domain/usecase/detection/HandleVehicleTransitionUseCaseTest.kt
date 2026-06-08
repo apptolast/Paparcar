@@ -34,7 +34,7 @@ class HandleVehicleTransitionUseCaseTest {
     private val carVehicle = Vehicle(
         id = "v-car",
         userId = "u-1",
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         vehicleType = VehicleType.CAR,
         bluetoothDeviceId = null,
     )

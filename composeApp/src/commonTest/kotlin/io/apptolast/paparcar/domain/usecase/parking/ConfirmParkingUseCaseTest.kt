@@ -37,7 +37,7 @@ class ConfirmParkingUseCaseTest {
     /** Default vehicle present in every fixture unless a test explicitly overrides — matches
      *  the production invariant (FLOW-001 ensures the user always has a default before the
      *  detection service can fire). [AUTH-001] */
-    private val defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM)
+    private val defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM_SUV)
 
     // ── Happy path ────────────────────────────────────────────────────────────
 
@@ -165,27 +165,27 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should resolve sizeCategory from default vehicle when not explicitly provided`() = runTest {
         val repo = FakeUserParkingRepository()
-        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE)
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE_SEDAN)
         val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
 
         useCase(location, detectionReliability = 0.9f)
 
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
-        assertEquals(VehicleSize.LARGE, savedSession.sizeCategory)
+        assertEquals(VehicleSize.LARGE_SEDAN, savedSession.sizeCategory)
     }
 
     @Test
     fun `should use explicit sizeCategory when provided even if vehicle has different size`() = runTest {
         val repo = FakeUserParkingRepository()
-        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE)
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE_SEDAN)
         val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
 
-        useCase(location, detectionReliability = 0.9f, sizeCategory = VehicleSize.MOTO)
+        useCase(location, detectionReliability = 0.9f, sizeCategory = VehicleSize.MOTORCYCLE)
 
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
-        assertEquals(VehicleSize.MOTO, savedSession.sizeCategory)
+        assertEquals(VehicleSize.MOTORCYCLE, savedSession.sizeCategory)
     }
 
     @Test
@@ -214,7 +214,7 @@ class ConfirmParkingUseCaseTest {
         val secondary = Vehicle(
             id = "v-2",
             userId = "user-42",
-            sizeCategory = VehicleSize.VAN,
+            sizeCategory = VehicleSize.VAN_HIGH,
             bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
         )
         val useCase = buildUseCase(
@@ -236,7 +236,7 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should resolve sizeCategory from explicit vehicle when vehicleId provided`() = runTest {
         val repo = FakeUserParkingRepository()
-        val secondary = Vehicle(id = "v-2", userId = "user-42", sizeCategory = VehicleSize.VAN)
+        val secondary = Vehicle(id = "v-2", userId = "user-42", sizeCategory = VehicleSize.VAN_HIGH)
         val useCase = buildUseCase(
             repo = repo,
             vehicles = FakeVehicleRepository(
@@ -249,7 +249,7 @@ class ConfirmParkingUseCaseTest {
 
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
-        assertEquals(VehicleSize.VAN, savedSession.sizeCategory)
+        assertEquals(VehicleSize.VAN_HIGH, savedSession.sizeCategory)
     }
 
     @Test
@@ -304,7 +304,7 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should use moto radius for MOTO vehicle`() = runTest {
         val geofence = FakeGeofenceManager()
-        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MOTO)
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MOTORCYCLE)
         val config = ParkingDetectionConfig()
         val useCase = buildUseCase(
             geofence = geofence,
@@ -321,7 +321,7 @@ class ConfirmParkingUseCaseTest {
     @Test
     fun `should use van radius for VAN vehicle`() = runTest {
         val geofence = FakeGeofenceManager()
-        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.VAN)
+        val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.VAN_HIGH)
         val config = ParkingDetectionConfig()
         val useCase = buildUseCase(
             geofence = geofence,
@@ -342,7 +342,7 @@ class ConfirmParkingUseCaseTest {
         val useCase = buildUseCase(geofence = geofence, config = config)
         val locationWith10mAccuracy = location.copy(accuracy = 10f)
 
-        useCase(locationWith10mAccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM)
+        useCase(locationWith10mAccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV)
 
         val expected = config.geofenceRadiusMeters + (10f * config.geofenceAccuracyPadFactor)
         assertEquals(expected, geofence.lastCreatedRadiusMeters)
@@ -356,7 +356,7 @@ class ConfirmParkingUseCaseTest {
         // accuracy=100m on a VAN (base 120m) → 120 + 150 = 270m > 200m max
         val highInaccuracy = location.copy(accuracy = 100f)
 
-        useCase(highInaccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.VAN)
+        useCase(highInaccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.VAN_HIGH)
 
         assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
     }

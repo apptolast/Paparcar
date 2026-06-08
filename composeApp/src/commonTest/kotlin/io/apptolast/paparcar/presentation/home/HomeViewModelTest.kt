@@ -402,13 +402,13 @@ class HomeViewModelTest {
 
     @Test
     fun `should_set_sizeFilter_on_SetSizeFilter`() = runTest {
-        vm.handleIntent(HomeIntent.SetSizeFilter(io.apptolast.paparcar.domain.model.VehicleSize.SMALL))
-        assertEquals(io.apptolast.paparcar.domain.model.VehicleSize.SMALL, vm.state.value.sizeFilter)
+        vm.handleIntent(HomeIntent.SetSizeFilter(io.apptolast.paparcar.domain.model.VehicleSize.MICRO_SMALL))
+        assertEquals(io.apptolast.paparcar.domain.model.VehicleSize.MICRO_SMALL, vm.state.value.sizeFilter)
     }
 
     @Test
     fun `should_clear_sizeFilter_on_SetSizeFilter_null`() = runTest {
-        vm.handleIntent(HomeIntent.SetSizeFilter(io.apptolast.paparcar.domain.model.VehicleSize.SMALL))
+        vm.handleIntent(HomeIntent.SetSizeFilter(io.apptolast.paparcar.domain.model.VehicleSize.MICRO_SMALL))
         vm.handleIntent(HomeIntent.SetSizeFilter(null))
         assertNull(vm.state.value.sizeFilter)
     }
@@ -511,7 +511,7 @@ class HomeViewModelTest {
                 userId = "user-1",
                 brand = "Toyota",
                 model = "Corolla",
-                sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM,
+                sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
             ),
             extraVehicles = listOf(
                 Vehicle(
@@ -519,7 +519,7 @@ class HomeViewModelTest {
                     userId = "user-1",
                     brand = "Ford",
                     model = "Transit",
-                    sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.LARGE,
+                    sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.LARGE_SEDAN,
                 ),
             ),
         )

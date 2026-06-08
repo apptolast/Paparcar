@@ -4,6 +4,7 @@ package io.apptolast.paparcar.presentation.vehicleregistration
 
 import app.cash.turbine.test
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
@@ -36,7 +37,7 @@ class VehicleRegistrationViewModelTest {
         userId = "user-1",
         brand = "Toyota",
         model = "Corolla",
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         isActive = true,
     )
 
@@ -69,8 +70,8 @@ class VehicleRegistrationViewModelTest {
 
     @Test
     fun `should_updateSize_on_SetSize`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.VAN))
-        assertEquals(VehicleSize.VAN, vm.state.value.sizeCategory)
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.VAN_LIGHT))
+        assertEquals(VehicleSize.VAN_HIGH, vm.state.value.sizeCategory)
     }
 
     @Test
@@ -85,7 +86,7 @@ class VehicleRegistrationViewModelTest {
     fun `should_emit_SavedSuccessfully_on_valid_save`() = runTest {
         vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Seat"))
         vm.handleIntent(VehicleRegistrationIntent.SelectModel("Ibiza"))
-        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.HATCHBACK_SMALL))
 
         vm.effect.test {
             vm.handleIntent(VehicleRegistrationIntent.Save)
@@ -98,7 +99,7 @@ class VehicleRegistrationViewModelTest {
     fun `should_persist_vehicle_to_repo_on_save`() = runTest {
         vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Seat"))
         vm.handleIntent(VehicleRegistrationIntent.SelectModel("Ibiza"))
-        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.HATCHBACK_SMALL))
         vm.handleIntent(VehicleRegistrationIntent.Save)
 
         val saved = vehicleRepo.observeActiveVehicle().first()
@@ -108,7 +109,7 @@ class VehicleRegistrationViewModelTest {
     @Test
     fun `should_trim_blank_brand_to_null_on_save`() = runTest {
         vm.handleIntent(VehicleRegistrationIntent.SelectBrand("   "))
-        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.MEDIUM))
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.HATCHBACK_MEDIUM))
         vm.handleIntent(VehicleRegistrationIntent.Save)
 
         assertNull(vehicleRepo.observeActiveVehicle().first()?.brand)
@@ -138,7 +139,7 @@ class VehicleRegistrationViewModelTest {
 
         assertEquals("Toyota", vm.state.value.brand)
         assertEquals("Corolla", vm.state.value.model)
-        assertEquals(VehicleSize.MEDIUM, vm.state.value.sizeCategory)
+        assertEquals(VehicleSize.MEDIUM_SUV, vm.state.value.sizeCategory)
         assertEquals("v-edit", vm.state.value.editingVehicleId)
     }
 
@@ -161,7 +162,7 @@ class VehicleRegistrationViewModelTest {
         // arrives while state.isSaving is still true and hits the guard.
         val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
         vehicleRepo.saveVehicleAwait = gate
-        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.HATCHBACK_SMALL))
 
         vm.handleIntent(VehicleRegistrationIntent.Save)  // launches coroutine, suspends on gate
         vm.handleIntent(VehicleRegistrationIntent.Save)  // state.isSaving=true → blocked by guard
@@ -172,7 +173,7 @@ class VehicleRegistrationViewModelTest {
 
     @Test
     fun `should_reuse_same_vehicle_id_when_retrying_after_save_failure`() = runTest {
-        vm.handleIntent(VehicleRegistrationIntent.SetSize(VehicleSize.SMALL))
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.HATCHBACK_SMALL))
 
         // First attempt fails.
         vehicleRepo.saveVehicleThrows = RuntimeException("network error")

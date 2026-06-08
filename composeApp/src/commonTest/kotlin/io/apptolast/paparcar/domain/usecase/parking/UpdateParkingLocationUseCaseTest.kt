@@ -20,7 +20,7 @@ class UpdateParkingLocationUseCaseTest {
 
     private val newLocation = GpsPoint(latitude = 40.42, longitude = -3.71, accuracy = 5f, timestamp = 0L, speed = 0f)
 
-    private fun existingSession(id: String = "session-1", sizeCategory: VehicleSize = VehicleSize.MEDIUM) = UserParking(
+    private fun existingSession(id: String = "session-1", sizeCategory: VehicleSize = VehicleSize.MEDIUM_SUV) = UserParking(
         id = id,
         userId = "user-1",
         vehicleId = "v-1",
@@ -97,7 +97,7 @@ class UpdateParkingLocationUseCaseTest {
 
     @Test
     fun `should use moto radius for MOTO session`() = runTest {
-        val session = existingSession(sizeCategory = VehicleSize.MOTO)
+        val session = existingSession(sizeCategory = VehicleSize.MOTORCYCLE)
         val repo = FakeUserParkingRepository(initialSession = session)
         val geofence = FakeGeofenceManager()
         val config = ParkingDetectionConfig()
@@ -111,7 +111,7 @@ class UpdateParkingLocationUseCaseTest {
 
     @Test
     fun `should cap radius at geofenceMaxRadiusMeters when accuracy is very high`() = runTest {
-        val session = existingSession(sizeCategory = VehicleSize.VAN)
+        val session = existingSession(sizeCategory = VehicleSize.VAN_HIGH)
         val repo = FakeUserParkingRepository(initialSession = session)
         val geofence = FakeGeofenceManager()
         val config = ParkingDetectionConfig()

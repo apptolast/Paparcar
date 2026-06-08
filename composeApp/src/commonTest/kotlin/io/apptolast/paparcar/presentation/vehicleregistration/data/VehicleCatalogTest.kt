@@ -11,23 +11,30 @@ class VehicleCatalogTest {
 
     @Test
     fun should_returnCorrectSize_when_knownBrandAndModel() {
-        assertEquals(VehicleSize.MEDIUM, VehicleCatalog.sizeFor("Dacia", "Sandero"))
-        assertEquals(VehicleSize.MEDIUM, VehicleCatalog.sizeFor("Dacia", "Logan"))
-        assertEquals(VehicleSize.SMALL, VehicleCatalog.sizeFor("Dacia", "Spring"))
-        assertEquals(VehicleSize.MEDIUM, VehicleCatalog.sizeFor("Volkswagen", "Golf"))
-        assertEquals(VehicleSize.SMALL, VehicleCatalog.sizeFor("Volkswagen", "Polo"))
-        assertEquals(VehicleSize.LARGE, VehicleCatalog.sizeFor("Volkswagen", "Tiguan"))
+        assertEquals(VehicleSize.MEDIUM_SUV, VehicleCatalog.inferSize("Dacia", "Sandero"))
+        assertEquals(VehicleSize.MEDIUM_SUV, VehicleCatalog.inferSize("Dacia", "Logan"))
+        assertEquals(VehicleSize.MICRO_SMALL, VehicleCatalog.inferSize("Dacia", "Spring"))
+        assertEquals(VehicleSize.MEDIUM_SUV, VehicleCatalog.inferSize("Volkswagen", "Golf"))
+        assertEquals(VehicleSize.MICRO_SMALL, VehicleCatalog.inferSize("Volkswagen", "Polo"))
+        assertEquals(VehicleSize.LARGE_SEDAN, VehicleCatalog.inferSize("Volkswagen", "Tiguan"))
     }
 
     @Test
     fun should_returnNull_when_unknownModel() {
-        assertNull(VehicleCatalog.sizeFor("Dacia", "Otro"))
-        assertNull(VehicleCatalog.sizeFor("Volkswagen", "Otro"))
+        assertNull(VehicleCatalog.inferSize("Dacia", "Otro"))
+        assertNull(VehicleCatalog.inferSize("Volkswagen", "Otro"))
     }
 
     @Test
-    fun should_returnNull_when_unknownBrand() {
-        assertNull(VehicleCatalog.sizeFor("MarcaInventada", "Golf"))
+    fun should_fallBackToPatternMatch_when_unknownBrandButKnownModel() {
+        // New bidimensional catalog falls back to keyword patterns when the brand is
+        // unknown — "golf" still maps to a medium hatchback. [VEHICLE-CATEGORIZATION-001]
+        assertEquals(VehicleSize.MEDIUM_SUV, VehicleCatalog.inferSize("MarcaInventada", "Golf"))
+    }
+
+    @Test
+    fun should_returnNull_when_brandAndModelHaveNoPatternMatch() {
+        assertNull(VehicleCatalog.inferSize("MarcaInventada", "ModeloSinPista"))
     }
 
     @Test
@@ -45,10 +52,10 @@ class VehicleCatalogTest {
             "Seat" to "Arona",
         )
         cSegment.forEach { (brand, model) ->
-            val size = VehicleCatalog.sizeFor(brand, model)
+            val size = VehicleCatalog.inferSize(brand, model)
             assertNotNull(size, "$brand $model should have a mapped size")
             assertTrue(
-                size != VehicleSize.SMALL,
+                size != VehicleSize.MICRO_SMALL,
                 "$brand $model ($size) should not be SMALL — it is a C-segment or crossover vehicle",
             )
         }
@@ -67,8 +74,8 @@ class VehicleCatalogTest {
         )
         cityCars.forEach { (brand, model) ->
             assertEquals(
-                VehicleSize.SMALL,
-                VehicleCatalog.sizeFor(brand, model),
+                VehicleSize.MICRO_SMALL,
+                VehicleCatalog.inferSize(brand, model),
                 "$brand $model should be SMALL",
             )
         }
@@ -84,7 +91,7 @@ class VehicleCatalogTest {
             assertTrue(models.isNotEmpty(), "$brand should have at least one model")
             models.forEach { model ->
                 assertNotNull(
-                    VehicleCatalog.sizeFor(brand, model),
+                    VehicleCatalog.inferSize(brand, model),
                     "$brand $model is in the catalog but has no size mapping",
                 )
             }
@@ -93,8 +100,8 @@ class VehicleCatalogTest {
 
     @Test
     fun should_returnVan_when_utilityVehicles() {
-        assertEquals(VehicleSize.VAN, VehicleCatalog.sizeFor("Citroën", "Berlingo"))
-        assertEquals(VehicleSize.VAN, VehicleCatalog.sizeFor("Ford", "Transit"))
-        assertEquals(VehicleSize.VAN, VehicleCatalog.sizeFor("Mercedes", "Vito"))
+        assertEquals(VehicleSize.VAN_HIGH, VehicleCatalog.inferSize("Citroën", "Berlingo"))
+        assertEquals(VehicleSize.VAN_HIGH, VehicleCatalog.inferSize("Ford", "Transit"))
+        assertEquals(VehicleSize.VAN_HIGH, VehicleCatalog.inferSize("Mercedes", "Vito"))
     }
 }

@@ -25,7 +25,7 @@ class NotifyParkingConfirmationUseCaseTest {
         userId = "user-1",
         brand = brand,
         model = model,
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         bluetoothDeviceId = null,
         isActive = true,
     )

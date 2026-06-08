@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -16,6 +17,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     var lastSpotType: SpotType? = null
     var lastConfidence: Float = 0f
     var lastSizeCategory: VehicleSize? = null
+    var lastCarbodyType: CarbodyType? = null
     var lastAddress: AddressInfo? = null
     var lastPlaceInfo: PlaceInfo? = null
     var lastReporterName: String? = null
@@ -29,6 +31,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         spotType: SpotType,
         confidence: Float,
         sizeCategory: VehicleSize?,
+        carbodyType: CarbodyType?,
         reporterName: String?,
     ) {
         scheduleCallCount++
@@ -40,6 +43,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         lastSpotType = spotType
         lastConfidence = confidence
         lastSizeCategory = sizeCategory
+        lastCarbodyType = carbodyType
         lastReporterName = reporterName
     }
 }

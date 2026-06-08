@@ -18,7 +18,7 @@ class SpotDtoMapperTest {
         val dto = buildDto(
             type = "MANUAL_REPORT",
             confidence = 0.65f,
-            sizeCategory = "SMALL",
+            sizeCategory = "MICRO_SMALL",
             enRouteCount = 3,
             expiresAt = 1_000_000L,
         )
@@ -27,7 +27,7 @@ class SpotDtoMapperTest {
 
         assertEquals(SpotType.MANUAL_REPORT, domain.type)
         assertEquals(0.65f, domain.confidence)
-        assertEquals(VehicleSize.SMALL, domain.sizeCategory)
+        assertEquals(VehicleSize.MICRO_SMALL, domain.sizeCategory)
         assertEquals(3, domain.enRouteCount)
         assertEquals(1_000_000L, domain.expiresAt)
     }
@@ -81,7 +81,7 @@ class SpotDtoMapperTest {
         val spot = buildSpot(
             type = SpotType.MANUAL_REPORT,
             confidence = 0.5f,
-            sizeCategory = VehicleSize.VAN,
+            sizeCategory = VehicleSize.VAN_HIGH,
             enRouteCount = 2,
             expiresAt = 9_999_999L,
         )
@@ -90,7 +90,7 @@ class SpotDtoMapperTest {
 
         assertEquals("MANUAL_REPORT", dto.type)
         assertEquals(0.5f, dto.confidence)
-        assertEquals("VAN", dto.sizeCategory)
+        assertEquals("VAN_HIGH", dto.sizeCategory)
         assertEquals(2, dto.enRouteCount)
         assertEquals(9_999_999L, dto.expiresAt)
     }

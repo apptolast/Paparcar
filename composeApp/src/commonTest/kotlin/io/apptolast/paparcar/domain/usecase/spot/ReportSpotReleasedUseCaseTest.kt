@@ -102,9 +102,9 @@ class ReportSpotReleasedUseCaseTest {
 
     @Test
     fun `should_passSizeCategory`() = runTest {
-        useCase(40.416775, -3.703790, "spot-1", sizeCategory = VehicleSize.SMALL)
+        useCase(40.416775, -3.703790, "spot-1", sizeCategory = VehicleSize.MICRO_SMALL)
 
-        assertEquals(VehicleSize.SMALL, scheduler.lastSizeCategory)
+        assertEquals(VehicleSize.MICRO_SMALL, scheduler.lastSizeCategory)
     }
 
     @Test

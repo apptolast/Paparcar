@@ -94,7 +94,7 @@ class SplashViewModelTest {
     private fun vehicle() = Vehicle(
         id = "v-1",
         userId = "user-1",
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         isActive = true,
     )
 

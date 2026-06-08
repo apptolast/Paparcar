@@ -61,7 +61,7 @@ class ParkingEdgeCaseTest {
         val geofence = FakeGeofenceManager()
         val noGpsLocation = goodLocation.copy(accuracy = 0f)
 
-        buildConfirm(geofence = geofence)(noGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM)
+        buildConfirm(geofence = geofence)(noGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV)
 
         // base + 0 * padFactor = base radius (no padding when accuracy is 0)
         assertEquals(config.geofenceRadiusMeters, geofence.lastCreatedRadiusMeters)
@@ -75,7 +75,7 @@ class ParkingEdgeCaseTest {
         // accuracy=200m on MEDIUM: 80 + 200 * 1.5 = 380m >> max 200m
         val poorGpsLocation = goodLocation.copy(accuracy = 200f)
 
-        buildConfirm(geofence = geofence)(poorGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM)
+        buildConfirm(geofence = geofence)(poorGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV)
 
         assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
     }
@@ -218,7 +218,7 @@ class ParkingEdgeCaseTest {
     @Test
     fun `VAN with poor GPS should cap at max geofence radius`() = runTest {
         val geofence = FakeGeofenceManager()
-        val vehicle = Vehicle(id = "v-van", userId = "user-42", sizeCategory = VehicleSize.VAN)
+        val vehicle = Vehicle(id = "v-van", userId = "user-42", sizeCategory = VehicleSize.VAN_HIGH)
         val poorAccuracy = goodLocation.copy(accuracy = 100f)
 
         // VAN base (120) + 100 * 1.5 = 270 → capped at 200
@@ -235,7 +235,7 @@ class ParkingEdgeCaseTest {
     private fun buildConfirm(
         repo: FakeUserParkingRepository = FakeUserParkingRepository(),
         vehicles: FakeVehicleRepository = FakeVehicleRepository(
-            Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM),
+            Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM_SUV),
         ),
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         notification: FakeAppNotificationManager = FakeAppNotificationManager(),

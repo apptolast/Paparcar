@@ -16,8 +16,8 @@ class ObserveParkedVehiclesUseCaseTest {
 
     private val location = GpsPoint(latitude = 40.416775, longitude = -3.703790, accuracy = 8f, timestamp = 0L, speed = 0f)
 
-    private val vehicleA = Vehicle(id = "a-vehicle", userId = "user-1", sizeCategory = VehicleSize.MEDIUM)
-    private val vehicleB = Vehicle(id = "b-vehicle", userId = "user-1", sizeCategory = VehicleSize.VAN)
+    private val vehicleA = Vehicle(id = "a-vehicle", userId = "user-1", sizeCategory = VehicleSize.MEDIUM_SUV)
+    private val vehicleB = Vehicle(id = "b-vehicle", userId = "user-1", sizeCategory = VehicleSize.VAN_HIGH)
 
     private fun activeSession(id: String, vehicleId: String) = UserParking(
         id = id,

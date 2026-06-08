@@ -94,9 +94,9 @@ class ReleaseActiveParkingSessionUseCaseTest {
 
     @Test
     fun `should_useSessionSizeCategory`() = runTest {
-        useCase(40.0, -3.0, session(size = VehicleSize.LARGE))
+        useCase(40.0, -3.0, session(size = VehicleSize.LARGE_SEDAN))
 
-        assertEquals(VehicleSize.LARGE, scheduler.lastSizeCategory)
+        assertEquals(VehicleSize.LARGE_SEDAN, scheduler.lastSizeCategory)
     }
 
     @Test

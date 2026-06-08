@@ -37,7 +37,7 @@ class BluetoothConfigViewModelTest {
         userId = "user-1",
         brand = "Toyota",
         model = "Yaris",
-        sizeCategory = VehicleSize.SMALL,
+        sizeCategory = VehicleSize.MICRO_SMALL,
         bluetoothDeviceId = btDeviceId,
         isActive = true,
     )
@@ -88,7 +88,7 @@ class BluetoothConfigViewModelTest {
         val noNameVehicle = Vehicle(
             id = vehicleId,
             userId = "user-1",
-            sizeCategory = VehicleSize.MEDIUM,
+            sizeCategory = VehicleSize.MEDIUM_SUV,
         )
         val repo = FakeVehicleRepository(defaultVehicle = noNameVehicle)
         val vmNoName = BluetoothConfigViewModel(vehicleId, scanner, repo, permissionManager)
