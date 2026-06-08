@@ -131,10 +131,16 @@ chore/FND-008-repo-cleanup
 - No crear pantallas sin sus correspondientes State/Intent/Effect sealed classes
 
 ## Modelos de datos clave
-- `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, enRouteCount, TTL
-- `UserParking` — sesión propia: vehicleId, location, geofenceId, isActive, detectionMethod
-- `Vehicle` — vehículo: brand, model, licensePlate?, bluetoothDeviceId?, isDefault
+- `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, sizeCategory, carbodyType, enRouteCount, TTL
+- `UserParking` — sesión propia: vehicleId, location, geofenceId, isActive, detectionMethod, sizeCategory, carbodyType
+- `Vehicle` — vehículo: brand, model, licensePlate?, bluetoothDeviceId?, isDefault, sizeCategory, carbodyType?
 - `UserProfile` — perfil Firebase: userId, email, displayName, photoUrl
+
+### Categorización bidimensional de vehículos
+- `VehicleSize` (5 valores): MOTORCYCLE, MICRO_SMALL, MEDIUM_SUV, LARGE_SEDAN, VAN_HIGH — afecta longitud de la plaza y radio de geofence
+- `CarbodyType` (10 valores): HATCHBACK_SMALL, SUV_SMALL, HATCHBACK_MEDIUM, SUV_MEDIUM, SEDAN, FAMILY_LONG, SUV_LARGE, VAN_LIGHT, VAN_COMMERCIAL, PICKUP — afecta anchura, gálibo e identidad visual (icono en mapa, peek)
+- Inferencia automática `brand + model → CarbodyType` vía `VehicleCatalog.inferBodyType()` con fallback de patrones (regex `contains`) cuando no hay match exacto
+- Compatibilidad `SpotFit` (OPTIMAL / FITS / DOES_NOT_FIT / UNKNOWN) calculada con ambos ejes — ver `docs/architecture/VEHICLE-CATEGORIZATION.md`
 
 ## Navegación
 BottomNav con 4 destinos: Mapa | Historial | Mi Coche | Ajustes
