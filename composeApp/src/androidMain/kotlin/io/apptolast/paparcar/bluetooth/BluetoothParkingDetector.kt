@@ -1,12 +1,15 @@
 package io.apptolast.paparcar.bluetooth
 
 import android.location.Location
+import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -16,7 +19,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * Stateless: owns no [kotlinx.coroutines.CoroutineScope] and no [kotlinx.coroutines.Job].
  * The caller ([BluetoothDetectionService]) runs [detectParking] inside its own
  * [androidx.lifecycle.lifecycleScope] and cancels the coroutine when BT reconnects —
- * cooperative cancellation via [delay] and [Flow.first] handles the abort cleanly.
+ * cooperative cancellation via [delay] and `first` handles the abort cleanly.
  *
  * **Disconnect → park flow:**
  * 1. Car BT disconnects.
@@ -27,6 +30,10 @@ import kotlin.time.Duration.Companion.milliseconds
  * 4. Record the fix as the candidate parking location.
  * 5. Watch subsequent GPS updates — when the user has moved ≥ [DISTANCE_THRESHOLD_M]
  *    from the fix, the spot is confirmed with [ConfirmParkingUseCase].
+ * 6. **[REFACTOR-300] Unified post-save notification** — after a successful save,
+ *    [AppNotificationManager.showParkingSavedConfirm] posts the "Vehículo aparcado ·
+ *    Cancelar" card so the user can revert if BT identified the event incorrectly
+ *    (e.g. user was a passenger, or a neighbour's car was bonded by mistake).
  *
  * @param vehicleId  id of the vehicle whose paired BT device disconnected. The caller
  *   ([BluetoothConnectionReceiver]) resolves this from the device address before
@@ -36,6 +43,9 @@ import kotlin.time.Duration.Companion.milliseconds
 class BluetoothParkingDetector(
     private val observeLocation: ObserveAdaptiveLocationUseCase,
     private val confirmParking: ConfirmParkingUseCase,
+    // [REFACTOR-300] post-save notif owned here so the user can revert a BT auto-confirm.
+    private val notificationPort: AppNotificationManager,
+    private val vehicleRepository: VehicleRepository,
 ) {
 
     suspend fun detectParking(deviceAddress: String, vehicleId: String) {
@@ -71,7 +81,22 @@ class BluetoothParkingDetector(
         }
 
         PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking for vehicle=$vehicleId")
-        confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY, vehicleId = vehicleId)
+        // [REFACTOR-300] silent=true: detector owns the post-save notification via
+        // showParkingSavedConfirm below; we DO NOT want ConfirmParkingUseCase to fire
+        // the legacy showParkingSaved (would be the double-notif we just eliminated).
+        confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY, vehicleId = vehicleId, silent = true)
+            .onSuccess { saved ->
+                val vehicleName = runCatching {
+                    vehicleRepository.observeActiveVehicle().firstOrNull()
+                        ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
+                }.getOrNull()
+                notificationPort.showParkingSavedConfirm(
+                    parkingId = saved.id,
+                    vehicleName = vehicleName,
+                    latitude = saved.location.latitude,
+                    longitude = saved.location.longitude,
+                )
+            }
             .onFailure { e -> PaparcarLogger.e(TAG, "Failed to confirm parking", e) }
     }
 
@@ -90,7 +115,15 @@ class BluetoothParkingDetector(
         /** Distance the user must walk from the fix before parking is auto-confirmed. */
         const val DISTANCE_THRESHOLD_M = 30f
 
-        /** Reliability reported to ConfirmParkingUseCase — BT is deterministic, very high. */
+        /**
+         * Reliability reported to ConfirmParkingUseCase. BT is deterministic — a real
+         * disconnect + 30 m walk is an unambiguous signal — so we use a value higher
+         * than the activity-recognition-based vehicleExit path (0.90).
+         *
+         * **TODO-BT-CONFIG-P2:** move to [ParkingDetectionConfig.reliabilityBluetooth]
+         * for parity with the other reliability constants. Left as a literal here for
+         * surface-minimal v1.
+         */
         const val PARKING_DETECTION_RELIABILITY = 0.95f
 
         /** Required size of the FloatArray passed to [Location.distanceBetween]. */

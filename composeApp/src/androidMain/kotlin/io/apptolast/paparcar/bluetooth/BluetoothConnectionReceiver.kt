@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -32,12 +33,19 @@ import org.koin.core.component.inject
  *
  * Registered in AndroidManifest with `exported=false` and a BLUETOOTH_CONNECT permission guard
  * so that the system only delivers events when the app holds the permission.
+ *
+ * **Refactor 2026-06-08 [BT-BUG-102 + BT-BUG-106]:**
+ *  - Per-delivery [CoroutineScope] instead of an instance field. The previous design
+ *    created one scope per delivery on a property that was never cancelled — each
+ *    onReceive leaked a SupervisorJob into the JVM. `pending.finish()` releases the
+ *    ANR window but does not cancel the scope; explicit cancel after the work block
+ *    closes the leak.
+ *  - `device.address` access now logs SecurityException at warn level instead of being
+ *    swallowed silently — BLUETOOTH_CONNECT revocation produces a visible trace.
  */
 class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val vehicleRepository: VehicleRepository by inject()
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
@@ -51,12 +59,20 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
             @Suppress("DEPRECATION")
             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
         } ?: return
-        val deviceAddress = runCatching { device.address }.getOrNull() ?: return
+        val deviceAddress = runCatching { device.address }
+            .onFailure { e -> PaparcarLogger.w(TAG, "device.address threw — BLUETOOTH_CONNECT likely revoked: ${e.message}") }
+            .getOrNull() ?: return
 
         val eventLabel = if (action == BluetoothDevice.ACTION_ACL_DISCONNECTED) "DISCONNECTED" else "CONNECTED"
         PaparcarLogger.d(TAG, "▶ BT $eventLabel device=$deviceAddress")
 
         val pending = goAsync()
+        // [FIX BT-BUG-102] Scope is local to this delivery. The previous design held a
+        // CoroutineScope on the receiver instance — each onReceive launched into it but
+        // nothing ever cancelled the SupervisorJob, so completed jobs accumulated as
+        // garbage children of a parent that lived forever. Local scope + explicit cancel
+        // in the finally closes the leak.
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         scope.launch {
             try {
@@ -87,8 +103,13 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         context.startService(serviceIntent)
                     }
                 }
+            } catch (e: Throwable) {
+                // Any unexpected throwable: don't let it escape the receiver (would crash the
+                // app under goAsync). Log + continue to the finally block.
+                PaparcarLogger.e(TAG, "  ✗ delivery handler threw", e)
             } finally {
                 pending.finish()
+                scope.cancel() // [FIX BT-BUG-102] tear down the per-delivery scope.
             }
         }
     }

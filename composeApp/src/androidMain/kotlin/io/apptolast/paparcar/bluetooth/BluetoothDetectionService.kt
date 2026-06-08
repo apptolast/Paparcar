@@ -1,18 +1,17 @@
 package io.apptolast.paparcar.bluetooth
 
 import android.content.Intent
-import android.content.pm.ServiceInfo
-import android.os.Build
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import com.apptolast.customlogin.domain.AuthRepository
+import io.apptolast.paparcar.detection.service.ForegroundServiceController
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
@@ -27,11 +26,12 @@ import org.koin.android.ext.android.inject
  *
  * **Lifecycle contract:**
  * - [ACTION_BT_DISCONNECTED] — started via `startForegroundService()` from
- *   [BluetoothConnectionReceiver]. Calls `startForeground()`, launches detection in
- *   [lifecycleScope], and calls `stopSelf()` when detection completes (success or failure).
+ *   [BluetoothConnectionReceiver]. Calls `fgs.promote()`, launches detection in
+ *   [lifecycleScope], and tears down via `fgs.stopForegroundAndSelf()` when detection
+ *   completes.
  * - [ACTION_BT_CONNECTED] — started via `startService()` (NOT foreground; work is instant).
- *   Cancels any active detection job and calls `stopSelf()`. If the Service is already
- *   running as foreground (detection active), this `onStartCommand` is called on the same
+ *   Cancels any active detection job and tears down. If the Service is already running
+ *   as foreground (detection active), this `onStartCommand` is called on the same
  *   instance — the job is cancelled and the service stops cleanly.
  *
  * **Cancellation and the BT debounce:**
@@ -49,6 +49,17 @@ import org.koin.android.ext.android.inject
  * Uses [AppNotificationManager.BT_DETECTION_NOTIFICATION_ID] (1003) — distinct from
  * [AppNotificationManager.DETECTION_NOTIFICATION_ID] (1001) used by [ParkingDetectionService]
  * so both services can run their notifications independently without overwriting each other.
+ *
+ * **Refactor 2026-06-08 [BT-BUG-100..105 + BT-REFACTOR-200]:**
+ *  - Reuses [ForegroundServiceController] so every teardown path goes through
+ *    `stopForeground(STOP_FOREGROUND_REMOVE)` (no more leaked FGS notification).
+ *  - `thisJob === detectionJob` guard prevents a superseded job from killing a
+ *    replacement coordinator (`DETECT-SERVICE-RACE-001` ported from ParkingDetectionService).
+ *  - Vehicle-name fetch moved INSIDE the detection job (no more side-launch race with
+ *    `updateDetectionVehicle.notify` re-posting the notification after teardown).
+ *  - Vehicle name resolved by `vehicleId` (the actually disconnected vehicle), not by
+ *    `observeActiveVehicle` (which returns the user's *default* in multi-vehicle setups).
+ *  - `onDestroy` safety net removes the FGS notification defensively.
  */
 class BluetoothDetectionService : LifecycleService() {
 
@@ -56,8 +67,13 @@ class BluetoothDetectionService : LifecycleService() {
     private val notificationPort: AppNotificationManager by inject()
     private val detector: BluetoothParkingDetector by inject()
     private val vehicleRepository: VehicleRepository by inject()
+    private val authRepository: AuthRepository by inject()
 
-    private var detectionJob: Job? = null
+    // [BT-REFACTOR-200] one controller per Service instance, centralises FGS lifecycle.
+    private val fgs by lazy { ForegroundServiceController(this) }
+
+    // Main-thread-only — lifecycleScope's default dispatcher is Main.immediate.
+    @Volatile private var detectionJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -69,84 +85,106 @@ class BluetoothDetectionService : LifecycleService() {
         PaparcarLogger.d(DIAG, "▶ onStartCommand action=${intent?.action}")
 
         when (intent?.action) {
-            ACTION_BT_DISCONNECTED -> {
-                val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
-                val vehicleId = intent.getStringExtra(EXTRA_VEHICLE_ID)
-                if (deviceAddress == null || vehicleId == null) {
-                    PaparcarLogger.w(DIAG, "  ✗ BT_DISCONNECTED — missing extras, stopSelf")
-                    stopSelf()
-                    return START_NOT_STICKY
-                }
-
-                // Must call startForeground() before any suspending work — Android 8+ enforces
-                // the 5-second window from startForegroundService(). [BUG-FGS-001]
-                startForegroundCompat()
-
-                lifecycleScope.launch {
-                    val vehicleName = vehicleRepository.observeActiveVehicle().firstOrNull()
-                        ?.displayName(fallback = "")
-                        ?.takeIf { it.isNotBlank() }
-                    if (vehicleName != null) {
-                        notificationPort.updateDetectionVehicle(vehicleName, AppNotificationManager.BT_DETECTION_NOTIFICATION_ID)
-                    }
-                }
-
-                PaparcarLogger.d(DIAG, "  → BT_DISCONNECTED device=$deviceAddress vehicle=$vehicleId — launching detector")
-                detectionJob?.cancel()
-                detectionJob = lifecycleScope.launch {
-                    try {
-                        detector.detectParking(deviceAddress, vehicleId)
-                        PaparcarLogger.d(DIAG, "  ✓ detectParking returned normally")
-                    } catch (e: CancellationException) {
-                        PaparcarLogger.d(DIAG, "  ✗ detection cancelled (BT reconnect or destroy)")
-                        throw e
-                    } catch (e: Exception) {
-                        PaparcarLogger.e(DIAG, "  ✗ detection error", e)
-                        notificationPort.showDebug("BT detection error: ${e.message}")
-                    } finally {
-                        PaparcarLogger.d(DIAG, "  ■ detection finished — stopSelf()")
-                        stopSelf()
-                    }
-                }
-            }
-
-            ACTION_BT_CONNECTED -> {
-                val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS) ?: ""
-                PaparcarLogger.d(DIAG, "  → BT_CONNECTED device=$deviceAddress — cancelling detection, stopSelf()")
-                detectionJob?.cancel()
-                detectionJob = null
-                stopSelf()
-            }
-
+            ACTION_BT_DISCONNECTED -> handleDisconnected(intent)
+            ACTION_BT_CONNECTED -> handleConnected(intent)
             null -> {
                 // START_NOT_STICKY means this should never be delivered, but guard defensively.
-                PaparcarLogger.w(DIAG, "  ✗ null intent (unexpected restart) — stopSelf")
-                stopSelf()
+                PaparcarLogger.w(DIAG, "  ✗ null intent (unexpected restart) — stopForegroundAndSelf")
+                fgs.stopForegroundAndSelf() // [FIX BT-BUG-100]
             }
         }
 
         return START_NOT_STICKY
     }
 
+    private fun handleDisconnected(intent: Intent) {
+        val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS)
+        val vehicleId = intent.getStringExtra(EXTRA_VEHICLE_ID)
+        if (deviceAddress.isNullOrBlank() || vehicleId.isNullOrBlank()) {
+            PaparcarLogger.w(DIAG, "  ✗ BT_DISCONNECTED — missing extras (deviceAddress=$deviceAddress, vehicleId=$vehicleId), stop")
+            // startForegroundCompat has NOT been called yet — plain stopSelf is fine, but
+            // route through fgs for consistency. The internal stopForeground is a no-op
+            // because we never promoted. [FIX BT-BUG-100]
+            fgs.stopForegroundAndSelf()
+            return
+        }
+
+        // Must promote before any suspending work — Android 8+ enforces the 5-second
+        // window from startForegroundService(). [BUG-FGS-001]
+        fgs.promote(
+            notificationId = AppNotificationManager.BT_DETECTION_NOTIFICATION_ID,
+            notification = foregroundNotificationProvider.buildDetectionNotification(),
+            withLocationPermission = true,
+        )
+        PaparcarLogger.d(DIAG, "  ✓ startForeground done (notif ${AppNotificationManager.BT_DETECTION_NOTIFICATION_ID})")
+
+        PaparcarLogger.d(DIAG, "  → BT_DISCONNECTED device=$deviceAddress vehicle=$vehicleId — launching detector")
+        detectionJob?.cancel()
+        detectionJob = lifecycleScope.launch {
+            val thisJob = coroutineContext[Job]
+
+            // [FIX BT-BUG-103 + BT-BUG-104] Resolve the vehicle name INSIDE the detection job
+            // (same lifetime as detectionJob, no side-launch race) AND by the vehicleId that
+            // actually disconnected (not by observeActiveVehicle, which would return the
+            // user's default vehicle in multi-vehicle setups).
+            runCatching {
+                val userId = authRepository.getCurrentSession()?.userId
+                val name = userId
+                    ?.let { vehicleRepository.getVehicleById(it, vehicleId) }
+                    ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
+                if (name != null) {
+                    notificationPort.updateDetectionVehicle(
+                        name,
+                        AppNotificationManager.BT_DETECTION_NOTIFICATION_ID,
+                    )
+                }
+            }.onFailure { e ->
+                PaparcarLogger.w(DIAG, "    ⚠ vehicle-name fetch failed: ${e.message}")
+            }
+
+            try {
+                detector.detectParking(deviceAddress, vehicleId)
+                PaparcarLogger.d(DIAG, "  ✓ detectParking returned normally")
+            } catch (e: CancellationException) {
+                PaparcarLogger.d(DIAG, "  ✗ detection cancelled (BT reconnect or destroy)")
+                throw e
+            } catch (e: Exception) {
+                PaparcarLogger.e(DIAG, "  ✗ detection error", e)
+                notificationPort.showDebug("BT detection error: ${e.message}")
+            } finally {
+                // [FIX BT-BUG-101] Race guard: skip teardown when this job has been
+                // superseded by a newer detection job (e.g. a new BT_DISCONNECTED arrived
+                // while we were finishing). Without this, the older job would tear down
+                // the FGS that the replacement just promoted. Mirrors `DETECT-SERVICE-RACE-001`
+                // from ParkingDetectionService.
+                if (detectionJob === thisJob) {
+                    PaparcarLogger.d(DIAG, "  ■ detection finished — stopForegroundAndSelf()")
+                    fgs.stopForegroundAndSelf() // [FIX BT-BUG-100]
+                } else {
+                    PaparcarLogger.d(DIAG, "  ■ detection finished — superseded by newer job, skipping stop")
+                }
+            }
+        }
+    }
+
+    private fun handleConnected(intent: Intent) {
+        val deviceAddress = intent.getStringExtra(EXTRA_DEVICE_ADDRESS) ?: ""
+        PaparcarLogger.d(DIAG, "  → BT_CONNECTED device=$deviceAddress — cancelling detection, stopForegroundAndSelf()")
+        detectionJob?.cancel()
+        detectionJob = null
+        fgs.stopForegroundAndSelf() // [FIX BT-BUG-100]
+    }
+
     override fun onDestroy() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")
         detectionJob?.cancel()
+        // [BT-REFACTOR-200] Defensive safety net (ports BUG-FGS-113 fix). Idempotent: a
+        // redundant stopForeground after the notification is already gone is a documented
+        // no-op on every Android version we ship to.
+        runCatching { fgs.removeForegroundNotification() }
+            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ onDestroy stopForeground failed: ${e.message}") }
         super.onDestroy()
         PaparcarLogger.d(DIAG, "■ Service onDestroy DONE")
-    }
-
-    private fun startForegroundCompat() {
-        val notification = foregroundNotificationProvider.buildDetectionNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                AppNotificationManager.BT_DETECTION_NOTIFICATION_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
-            )
-        } else {
-            startForeground(AppNotificationManager.BT_DETECTION_NOTIFICATION_ID, notification)
-        }
-        PaparcarLogger.d(DIAG, "  ✓ startForeground done (notif ${AppNotificationManager.BT_DETECTION_NOTIFICATION_ID})")
     }
 
     companion object {
