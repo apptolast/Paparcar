@@ -17,6 +17,13 @@
     <string name="notif_parking_saved_title">Parken gespeichert</string>
     <string name="notif_parking_saved_text">Ihr Auto wurde geparkt. Tippen Sie, um es auf der Karte zu sehen.</string>
 
+    <!-- Benachrichtigung: Parken gespeichert + Abbrechen-Aktion (ersetzt die Eingabeaufforderung nach Auto-Bestätigung) -->
+    <string name="notif_parking_saved_confirm_title">Fahrzeug geparkt</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkt</string>
+    <string name="notif_parking_saved_confirm_text">Tippen, um die Karte zu öffnen, oder abbrechen, wenn es nicht Ihr Fahrzeug war.</string>
+    <string name="notif_action_confirm">Ja, bestätigen</string>
+    <string name="notif_action_cancel_save">Nein, abbrechen</string>
+
     <!-- Benachrichtigung: Gemeinschaftsstellplatz veröffentlicht -->
     <string name="notif_spot_published_title">Stellplatz für andere verfügbar</string>
     <string name="notif_spot_published_text">Ihr Parkplatz ist jetzt für Fahrer in der Nähe sichtbar.</string>

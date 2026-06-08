@@ -17,6 +17,13 @@
     <string name="notif_parking_saved_title">Parcheggio salvato</string>
     <string name="notif_parking_saved_text">La tua auto è stata parcheggiata. Tocca per vederla sulla mappa.</string>
 
+    <!-- Notifica: parcheggio salvato + azione annulla (sostituisce il prompt dopo l'auto-conferma) -->
+    <string name="notif_parking_saved_confirm_title">Veicolo parcheggiato</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s parcheggiato</string>
+    <string name="notif_parking_saved_confirm_text">Tocca per aprire la mappa, o annulla se non era il tuo veicolo.</string>
+    <string name="notif_action_confirm">Sì, conferma</string>
+    <string name="notif_action_cancel_save">No, annulla</string>
+
     <!-- Notifica: posto comunitario pubblicato -->
     <string name="notif_spot_published_title">Posto disponibile per altri</string>
     <string name="notif_spot_published_text">Il tuo posto auto è ora visibile ai conducenti nelle vicinanze.</string>

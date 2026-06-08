@@ -17,6 +17,13 @@
     <string name="notif_parking_saved_title">Estacionamento guardado</string>
     <string name="notif_parking_saved_text">O seu carro foi estacionado. Toque para vê-lo no mapa.</string>
 
+    <!-- Notificação: estacionamento guardado + ação cancelar (substitui o prompt após auto-confirmação) -->
+    <string name="notif_parking_saved_confirm_title">Veículo estacionado</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s estacionado</string>
+    <string name="notif_parking_saved_confirm_text">Toque para abrir o mapa, ou cancele se não era o seu veículo.</string>
+    <string name="notif_action_confirm">Sim, confirmar</string>
+    <string name="notif_action_cancel_save">Não, cancelar</string>
+
     <!-- Notificação: lugar comunitário publicado -->
     <string name="notif_spot_published_title">Lugar disponível para outros</string>
     <string name="notif_spot_published_text">O seu lugar de estacionamento já está visível para os condutores próximos.</string>

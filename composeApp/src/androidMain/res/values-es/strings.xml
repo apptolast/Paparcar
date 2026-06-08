@@ -17,6 +17,13 @@
     <string name="notif_parking_saved_title">Aparcamiento guardado</string>
     <string name="notif_parking_saved_text">Tu coche ha sido aparcado. Toca para verlo en el mapa.</string>
 
+    <!-- Notificación: aparcamiento guardado + acción de cancelar (sustituye al prompt tras auto-confirm) -->
+    <string name="notif_parking_saved_confirm_title">Vehículo aparcado</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s aparcado</string>
+    <string name="notif_parking_saved_confirm_text">Toca para abrir el mapa, o cancela si no era tu vehículo.</string>
+    <string name="notif_action_confirm">Sí, confirmar</string>
+    <string name="notif_action_cancel_save">No, cancelar</string>
+
     <!-- Notificación: plaza comunitaria publicada -->
     <string name="notif_spot_published_title">Plaza disponible para otros</string>
     <string name="notif_spot_published_text">Tu plaza de aparcamiento ya es visible para los conductores cercanos.</string>

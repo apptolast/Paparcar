@@ -17,6 +17,14 @@
     <string name="notif_parking_saved_title">Parking saved</string>
     <string name="notif_parking_saved_text">Your car has been parked. Tap to see it on the map.</string>
 
+    <!-- Notification: parking saved + revert action (replaces the prompt after auto-confirm) -->
+    <string name="notif_parking_saved_confirm_title">Vehicle parked</string>
+    <!-- %1$s = vehicle name (e.g. "Ford Focus") -->
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s parked</string>
+    <string name="notif_parking_saved_confirm_text">Tap to open the map, or cancel if it wasn\'t your vehicle.</string>
+    <string name="notif_action_confirm">Yes, confirm</string>
+    <string name="notif_action_cancel_save">No, cancel</string>
+
     <!-- Notification: community spot published after user departs -->
     <string name="notif_spot_published_title">Spot available for others</string>
     <string name="notif_spot_published_text">Your parking spot is now visible to nearby drivers.</string>

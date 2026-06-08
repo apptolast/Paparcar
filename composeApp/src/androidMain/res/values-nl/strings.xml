@@ -17,6 +17,13 @@
     <string name="notif_parking_saved_title">Parkeren opgeslagen</string>
     <string name="notif_parking_saved_text">Uw auto is geparkeerd. Tik om het op de kaart te zien.</string>
 
+    <!-- Melding: parkeren opgeslagen + annuleeractie (vervangt de prompt na auto-bevestiging) -->
+    <string name="notif_parking_saved_confirm_title">Voertuig geparkeerd</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s geparkeerd</string>
+    <string name="notif_parking_saved_confirm_text">Tik om de kaart te openen, of annuleer als het niet uw voertuig was.</string>
+    <string name="notif_action_confirm">Ja, bevestigen</string>
+    <string name="notif_action_cancel_save">Nee, annuleren</string>
+
     <!-- Melding: gemeenschappelijke parkeerplaats gepubliceerd -->
     <string name="notif_spot_published_title">Parkeerplaats beschikbaar voor anderen</string>
     <string name="notif_spot_published_text">Uw parkeerplaats is nu zichtbaar voor bestuurders in de buurt.</string>

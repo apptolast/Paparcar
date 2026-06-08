@@ -17,6 +17,13 @@
     <string name="notif_parking_saved_title">Parcare salvată</string>
     <string name="notif_parking_saved_text">Mașina ta a fost parcată. Apasă pentru a o vedea pe hartă.</string>
 
+    <!-- Notificare: parcare salvată + acțiune anulare (înlocuiește promptul după auto-confirmare) -->
+    <string name="notif_parking_saved_confirm_title">Vehicul parcat</string>
+    <string name="notif_parking_saved_confirm_title_vehicle">%1$s parcat</string>
+    <string name="notif_parking_saved_confirm_text">Atinge pentru a deschide harta, sau anulează dacă nu era vehiculul tău.</string>
+    <string name="notif_action_confirm">Da, confirmă</string>
+    <string name="notif_action_cancel_save">Nu, anulează</string>
+
     <!-- Notificare: loc comunitar publicat -->
     <string name="notif_spot_published_title">Loc disponibil pentru alții</string>
     <string name="notif_spot_published_text">Locul tău de parcare este acum vizibil pentru șoferii din apropiere.</string>

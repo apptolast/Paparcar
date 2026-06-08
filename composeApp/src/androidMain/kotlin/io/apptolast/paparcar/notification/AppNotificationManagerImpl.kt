@@ -81,6 +81,59 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
     }
 
+    /**
+     * [REFACTOR-300] Single notification that replaces the "¿Has aparcado?" prompt at
+     * the same ID. Two action buttons:
+     *  - "Sí, confirmar" → ACTION_PARKING_ACK (just dismiss + stop service)
+     *  - "No, cancelar"  → ACTION_PARKING_REVERT + parkingId extra → RevertParkingUseCase
+     *
+     * The notification stays on the DETECTION channel (LOW priority, no sound) because
+     * we are MORPHING the existing prompt — surfacing a fresh DEFAULT-priority buzz
+     * after the user already saw the prompt would be obnoxious. Tap on the body opens
+     * MainActivity focused on the parking location.
+     */
+    override fun showParkingSavedConfirm(
+        parkingId: String,
+        vehicleName: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        val ackPi = PendingIntent.getBroadcast(
+            context, RC_SAVED_ACK,
+            Intent(ParkingConfirmationReceiver.ACTION_ACK).apply {
+                setClass(context, ParkingConfirmationReceiver::class.java)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        // FLAG_UPDATE_CURRENT replaces the EXTRA on each new save; we only ever have one
+        // post-save notification visible at a time so this is correct.
+        val revertPi = PendingIntent.getBroadcast(
+            context, RC_SAVED_REVERT,
+            Intent(ParkingConfirmationReceiver.ACTION_REVERT).apply {
+                setClass(context, ParkingConfirmationReceiver::class.java)
+                putExtra(ParkingConfirmationReceiver.EXTRA_PARKING_ID, parkingId)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val title = if (vehicleName != null) {
+            context.getString(R.string.notif_parking_saved_confirm_title_vehicle, vehicleName)
+        } else {
+            context.getString(R.string.notif_parking_saved_confirm_title)
+        }
+        val notification = NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(context.getString(R.string.notif_parking_saved_confirm_text))
+            .setSmallIcon(R.drawable.ic_notification_parking_saved)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setContentIntent(buildFocusIntent(RC_SAVED_FOCUS, latitude, longitude))
+            .addAction(0, context.getString(R.string.notif_action_confirm), ackPi)
+            .addAction(0, context.getString(R.string.notif_action_cancel_save), revertPi)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
+    }
+
     override fun showSpotPublished(latitude: Double, longitude: Double) {
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_spot_published_title))
@@ -260,6 +313,10 @@ class AppNotificationManagerImpl(
         private const val RC_HOME_PARKING_LEFT = 18
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
+        // [REFACTOR-300] post-save notification request codes
+        private const val RC_SAVED_FOCUS = 202
+        private const val RC_SAVED_ACK = 203
+        private const val RC_SAVED_REVERT = 204
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active
