@@ -202,7 +202,7 @@ internal object FakeData {
             placeInfo = null,
             confidence = 0.92f,
             enRouteCount = 2,
-            sizeCategory = VehicleSize.MEDIUM,
+            sizeCategory = VehicleSize.MEDIUM_SUV,
         ),
         Spot(
             id = "sp_2",
@@ -212,7 +212,7 @@ internal object FakeData {
             placeInfo = placeInfoFuel,
             confidence = 0.65f,
             enRouteCount = 1,
-            sizeCategory = VehicleSize.SMALL,
+            sizeCategory = VehicleSize.MICRO_SMALL,
         ),
         Spot(
             id = "sp_3",
@@ -232,7 +232,7 @@ internal object FakeData {
             placeInfo = null,
             confidence = 0.45f,
             enRouteCount = 0,
-            sizeCategory = VehicleSize.LARGE,
+            sizeCategory = VehicleSize.LARGE_SEDAN,
         ),
     )
 
@@ -245,7 +245,7 @@ internal object FakeData {
         name = "Mi Seat",
         brand = "Seat",
         model = "León",
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         vehicleType = VehicleType.CAR,
         isActive = true,
     )
@@ -256,7 +256,7 @@ internal object FakeData {
         userId = "user-1",
         brand = "Toyota",
         model = "Corolla",
-        sizeCategory = VehicleSize.MEDIUM,
+        sizeCategory = VehicleSize.MEDIUM_SUV,
         vehicleType = VehicleType.CAR,
         bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
         showBrandModelOnSpot = true,
@@ -269,7 +269,7 @@ internal object FakeData {
         name = "La Moto",
         brand = "Honda",
         model = "CBR 600",
-        sizeCategory = VehicleSize.MOTO,
+        sizeCategory = VehicleSize.MOTORCYCLE,
         vehicleType = VehicleType.MOTORCYCLE,
     )
 
@@ -280,7 +280,7 @@ internal object FakeData {
         name = "Furgoneta",
         brand = "Ford",
         model = "Transit",
-        sizeCategory = VehicleSize.VAN,
+        sizeCategory = VehicleSize.VAN_HIGH,
         vehicleType = VehicleType.CAR,
         bluetoothDeviceId = "11:22:33:44:55:66",
     )

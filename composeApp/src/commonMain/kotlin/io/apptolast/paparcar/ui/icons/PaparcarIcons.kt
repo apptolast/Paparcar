@@ -459,11 +459,11 @@ private fun vehicleVanVector(): ImageVector = buildVehicleVector("PapVehicleVan"
  */
 val VehicleSize.icon: ImageVector
     get() = when (this) {
-        VehicleSize.MOTO   -> PaparcarIcons.VehicleMoto
-        VehicleSize.SMALL  -> PaparcarIcons.VehicleSmall
-        VehicleSize.MEDIUM -> PaparcarIcons.VehicleMedium
-        VehicleSize.LARGE  -> PaparcarIcons.VehicleLarge
-        VehicleSize.VAN    -> PaparcarIcons.VehicleVan
+        VehicleSize.MOTORCYCLE   -> PaparcarIcons.VehicleMoto
+        VehicleSize.MICRO_SMALL  -> PaparcarIcons.VehicleSmall
+        VehicleSize.MEDIUM_SUV -> PaparcarIcons.VehicleMedium
+        VehicleSize.LARGE_SEDAN  -> PaparcarIcons.VehicleLarge
+        VehicleSize.VAN_HIGH    -> PaparcarIcons.VehicleVan
     }
 
 /**

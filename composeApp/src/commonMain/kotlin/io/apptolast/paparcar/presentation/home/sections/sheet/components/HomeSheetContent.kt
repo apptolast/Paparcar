@@ -361,11 +361,11 @@ private fun HomeSizeFilterBar(
             onClick = { onFilterSelect(null) },
         )
         listOf(
-            VehicleSize.MOTO   to motoLabel,
-            VehicleSize.SMALL  to smallLabel,
-            VehicleSize.MEDIUM to mediumLabel,
-            VehicleSize.LARGE  to largeLabel,
-            VehicleSize.VAN    to vanLabel,
+            VehicleSize.MOTORCYCLE   to motoLabel,
+            VehicleSize.MICRO_SMALL  to smallLabel,
+            VehicleSize.MEDIUM_SUV to mediumLabel,
+            VehicleSize.LARGE_SEDAN  to largeLabel,
+            VehicleSize.VAN_HIGH    to vanLabel,
         ).forEach { (size, label) ->
             PaparcarFilterChip(
                 label = label,

@@ -112,6 +112,7 @@ fun VehicleBadgeMarker(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
     sizeCategory: VehicleSize? = null,
+    carbodyType: io.apptolast.paparcar.domain.model.CarbodyType? = null,
     isActive: Boolean = true,
 ) {
     val vc = vehicleStateColors()
@@ -144,9 +145,9 @@ fun VehicleBadgeMarker(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = sizeCategory?.icon ?: PaparcarIcons.VehicleCar,
-                contentDescription = null,
+            VehicleIcon(
+                carbody = carbodyType,
+                size = sizeCategory,
                 tint = on,
                 modifier = Modifier.size(BADGE_ICON_SIZE),
             )
@@ -155,7 +156,7 @@ fun VehicleBadgeMarker(
 }
 
 private val BADGE_DIAM       = 46.dp
-private val BADGE_ICON_SIZE  = 34.dp
+private val BADGE_ICON_SIZE  = 32.dp
 private val BADGE_STROKE     = 2.dp
 private val BADGE_SEL_STROKE = 3.dp
 private val BADGE_SHADOW_W   = 22.dp

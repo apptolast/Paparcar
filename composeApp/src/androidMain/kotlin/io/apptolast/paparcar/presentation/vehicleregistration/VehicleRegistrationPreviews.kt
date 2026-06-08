@@ -36,7 +36,7 @@ private fun VehicleRegistrationEditLightPreview() {
                 editingVehicleId = "v-edit",
                 brand = "Toyota",
                 model = "Corolla",
-                sizeCategory = VehicleSize.MEDIUM,
+                sizeCategory = VehicleSize.MEDIUM_SUV,
                 showBrandModelOnSpot = true,
             ),
         )
@@ -51,7 +51,7 @@ private fun VehicleRegistrationSavingPreview() {
             state = VehicleRegistrationState(
                 brand = "Seat",
                 model = "Ibiza",
-                sizeCategory = VehicleSize.SMALL,
+                sizeCategory = VehicleSize.MICRO_SMALL,
                 isSaving = true,
             ),
         )

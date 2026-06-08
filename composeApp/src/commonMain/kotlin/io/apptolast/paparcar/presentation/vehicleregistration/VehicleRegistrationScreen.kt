@@ -59,11 +59,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
+import io.apptolast.paparcar.ui.components.CarbodyInfoCard
+import io.apptolast.paparcar.ui.components.CarbodyManualPicker
+import io.apptolast.paparcar.ui.components.NonCarSizeBadge
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.PapTextField
-import io.apptolast.paparcar.ui.components.VehicleSizeSelector
+import io.apptolast.paparcar.ui.components.label
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
@@ -95,6 +98,7 @@ import paparcar.composeapp.generated.resources.vehicle_registration_other_option
 import paparcar.composeapp.generated.resources.vehicle_registration_preview_title
 import paparcar.composeapp.generated.resources.vehicle_registration_save
 import paparcar.composeapp.generated.resources.vehicle_registration_saving
+import paparcar.composeapp.generated.resources.vehicle_registration_carbody_section
 import paparcar.composeapp.generated.resources.vehicle_registration_section_detection
 import paparcar.composeapp.generated.resources.vehicle_registration_section_identity
 import paparcar.composeapp.generated.resources.vehicle_registration_section_optional
@@ -205,6 +209,7 @@ internal fun VehicleRegistrationContent(
     var brandExpanded by remember { mutableStateOf(false) }
     var modelExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCarbodyPicker by remember { mutableStateOf(false) }
 
     val models = remember(state.brand, state.isBrandOther) {
         if (!state.isBrandOther && state.brand.isNotBlank()) VehicleCatalog.modelsFor(state.brand)
@@ -386,34 +391,37 @@ internal fun VehicleRegistrationContent(
                 }
             }
 
-            // ── Size section — auto-detected or manual ────────────────────────
+            // ── Carbody section — auto-inferred card + manual override picker ──
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_size))
-                val sizeHint = if (state.isSizeAutoDetected && state.sizeCategory != null) {
-                    val sizeLabel = when (state.sizeCategory) {
-                        VehicleSize.MOTO   -> stringResource(Res.string.vehicle_size_moto)
-                        VehicleSize.SMALL  -> stringResource(Res.string.vehicle_size_small)
-                        VehicleSize.MEDIUM -> stringResource(Res.string.vehicle_size_medium)
-                        VehicleSize.LARGE  -> stringResource(Res.string.vehicle_size_large)
-                        VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
+                PapSectionHeader(title = stringResource(Res.string.vehicle_registration_carbody_section))
+                val expectsCarbody = state.expectsCarbody
+                val carbody = state.carbodyType
+                val size = state.sizeCategory
+
+                when {
+                    expectsCarbody && carbody != null -> {
+                        CarbodyInfoCard(
+                            carbody = carbody,
+                            sizeLabel = size?.label() ?: "",
+                            isManualOverride = state.isCarbodyManualOverride,
+                            onChange = { showCarbodyPicker = true },
+                        )
                     }
-                    stringResource(Res.string.vehicle_registration_size_auto_detected, sizeLabel)
-                } else {
-                    stringResource(Res.string.vehicle_registration_size_hint)
+                    expectsCarbody -> {
+                        // Brand or model still blank — nudge the user toward filling them.
+                        Text(
+                            text = stringResource(Res.string.vehicle_registration_size_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = cs.onSurfaceVariant,
+                        )
+                    }
+                    size != null -> {
+                        NonCarSizeBadge(sizeLabel = size.label())
+                    }
                 }
-                Text(
-                    text = sizeHint,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (state.isSizeAutoDetected) cs.primary.copy(alpha = AUTO_SIZE_LABEL_ALPHA)
-                            else cs.onSurfaceVariant,
-                )
-                VehicleSizeSelector(
-                    selected = state.sizeCategory,
-                    onSelect = { onIntent(VehicleRegistrationIntent.SetSize(it)) },
-                )
             }
 
             // ── Nickname section — optional ───────────────────────────────────
@@ -591,6 +599,14 @@ internal fun VehicleRegistrationContent(
                 )
             }
 
+            if (showCarbodyPicker) {
+                CarbodyManualPicker(
+                    selected = state.carbodyType,
+                    onSelect = { body -> onIntent(VehicleRegistrationIntent.SetCarbody(body)) },
+                    onDismiss = { showCarbodyPicker = false },
+                )
+            }
+
             Spacer(Modifier.height(SECTION_SPACING))
         }
     }
@@ -615,11 +631,11 @@ private fun VehicleHeroCard(
     }
 
     val sizeLabel = when (state.sizeCategory) {
-        VehicleSize.MOTO   -> stringResource(Res.string.vehicle_size_moto)
-        VehicleSize.SMALL  -> stringResource(Res.string.vehicle_size_small)
-        VehicleSize.MEDIUM -> stringResource(Res.string.vehicle_size_medium)
-        VehicleSize.LARGE  -> stringResource(Res.string.vehicle_size_large)
-        VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
+        VehicleSize.MOTORCYCLE   -> stringResource(Res.string.vehicle_size_moto)
+        VehicleSize.MICRO_SMALL  -> stringResource(Res.string.vehicle_size_small)
+        VehicleSize.MEDIUM_SUV -> stringResource(Res.string.vehicle_size_medium)
+        VehicleSize.LARGE_SEDAN  -> stringResource(Res.string.vehicle_size_large)
+        VehicleSize.VAN_HIGH    -> stringResource(Res.string.vehicle_size_van)
         null               -> stringResource(Res.string.vehicle_registration_size_hint)
     }
 
@@ -643,11 +659,12 @@ private fun VehicleHeroCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Icon(
-                imageVector = state.sizeCategory?.icon ?: PaparcarIcons.VehicleMedium,
-                contentDescription = null,
-                modifier = Modifier.size(HERO_ICON_SIZE),
+            io.apptolast.paparcar.ui.components.VehicleIcon(
+                carbody = state.carbodyType,
+                size = state.sizeCategory,
                 tint = iconTint,
+                fallback = PaparcarIcons.VehicleMedium,
+                modifier = Modifier.size(HERO_ICON_SIZE),
             )
             Spacer(Modifier.height(12.dp))
             Text(
@@ -751,7 +768,7 @@ private val SECTION_SPACING              = 16.dp
 private val CONTENT_TOP_SPACING          = 8.dp
 
 // Hero card
-private val HERO_ICON_SIZE               = 64.dp
+private val HERO_ICON_SIZE               = 88.dp
 private val HERO_CARD_VERTICAL_PADDING   = 24.dp
 private const val HERO_CARD_BG_ALPHA     = 0.4f
 private const val HERO_ICON_INACTIVE_ALPHA = 0.35f

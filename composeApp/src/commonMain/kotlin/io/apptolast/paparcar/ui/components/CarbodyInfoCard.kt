@@ -1,0 +1,246 @@
+package io.apptolast.paparcar.ui.components
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.getParkingRules
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.vehicle_registration_carbody_auto_label
+import paparcar.composeapp.generated.resources.vehicle_registration_carbody_change
+import paparcar.composeapp.generated.resources.vehicle_registration_carbody_manual_label
+
+/**
+ * Feedback card surfaced once the registration form has enough signal (brand +
+ * model) to infer a body type. Shows:
+ *
+ *  - the [CarbodyType.icon] painter
+ *  - the size group title (e.g. "Mediano · SUV compacto")
+ *  - the body subtitle (e.g. "SUV Mediano")
+ *  - a parking advisory chip — tinted red when the body requires high ceiling
+ *
+ * The card surfaces an `Edit` affordance the user can tap to override the
+ * inference manually via [onChange]. When [isManualOverride] is true the auto
+ * badge flips to "Elegido manualmente" so the user always knows whether the
+ * displayed body came from the catalog or their own pick.
+ */
+@Composable
+fun CarbodyInfoCard(
+    carbody: CarbodyType,
+    sizeLabel: String,
+    isManualOverride: Boolean,
+    onChange: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    val rules = carbody.getParkingRules()
+    val alertCopy = rules.alertKey.label()
+    val alertIcon = if (rules.requiresHighCeiling) Icons.Outlined.WarningAmber else Icons.Outlined.Info
+    val alertTint = if (rules.requiresHighCeiling) cs.error else cs.primary
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        color = cs.surfaceContainerHigh,
+        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+    ) {
+        Column(modifier = Modifier.padding(CARD_PADDING_DP.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(ICON_BOX_DP.dp)
+                        .clip(CircleShape)
+                        .background(cs.primary.copy(alpha = ICON_BG_ALPHA)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(carbody.icon),
+                        contentDescription = null,
+                        tint = cs.primary,
+                        modifier = Modifier.size(ICON_SIZE_DP.dp),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = sizeLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = cs.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = carbody.label(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Surface(
+                    onClick = onChange,
+                    shape = RoundedCornerShape(CHANGE_PILL_RADIUS_DP.dp),
+                    color = cs.surfaceContainerHighest,
+                    border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = null,
+                            tint = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = stringResource(Res.string.vehicle_registration_carbody_change),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            // Inference origin badge — flips between "auto" (sparkle) and "manual" (edit).
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = if (isManualOverride) Icons.Outlined.Edit else Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = cs.primary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = stringResource(
+                        if (isManualOverride) Res.string.vehicle_registration_carbody_manual_label
+                        else Res.string.vehicle_registration_carbody_auto_label
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = cs.primary,
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(ALERT_CORNER_DP.dp))
+                    .background(alertTint.copy(alpha = ALERT_BG_ALPHA))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = alertIcon,
+                    contentDescription = null,
+                    tint = alertTint,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = alertCopy,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = alertTint,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Read-only chip surfaced when the user picks a non-CAR [VehicleSize] (moto,
+ * scooter, bike). Shows just the size label since carbody doesn't apply.
+ */
+@Composable
+fun NonCarSizeBadge(
+    sizeLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    val cs = MaterialTheme.colorScheme
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        color = cs.surfaceContainerHigh,
+        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+    ) {
+        Row(
+            modifier = Modifier.padding(CARD_PADDING_DP.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(ICON_BOX_DP.dp)
+                    .clip(CircleShape)
+                    .background(cs.primary.copy(alpha = ICON_BG_ALPHA)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = io.apptolast.paparcar.ui.icons.PaparcarIcons.VehicleMotorcycle,
+                    contentDescription = null,
+                    tint = cs.primary,
+                    modifier = Modifier.size(ICON_SIZE_DP.dp),
+                )
+            }
+            Text(
+                text = sizeLabel,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = cs.onSurface,
+            )
+        }
+    }
+}
+
+@Suppress("UnusedReceiverParameter")
+private fun VehicleSize.unused() = Unit  // anchors the import so build doesn't strip it
+
+private const val CARD_CORNER_DP = 16
+private const val CARD_PADDING_DP = 14
+private const val CARD_BORDER_ALPHA = 0.4f
+private const val ICON_BOX_DP = 48
+private const val ICON_SIZE_DP = 28
+private const val ICON_BG_ALPHA = 0.14f
+private const val SUBTITLE_ALPHA = 0.65f
+private const val CHANGE_PILL_RADIUS_DP = 999
+private const val ALERT_CORNER_DP = 10
+private const val ALERT_BG_ALPHA = 0.12f

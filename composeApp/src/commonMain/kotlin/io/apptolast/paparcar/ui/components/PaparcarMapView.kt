@@ -255,7 +255,28 @@ private const val MARKER_FREE_SPOT_SEL = "free_spot_sel"
 // Alpha applied to dimmed markers — visible enough to deter duplicate
 // reports, subordinate enough that the centre pin dominates.
 private const val DIM_MARKER_ALPHA = 0.35f
+private const val FULL_MARKER_ALPHA = 1f
 private const val MARKER_CLUSTER   = "cluster"
+
+/**
+ * Wraps a non-focus marker so it fades to [DIM_MARKER_ALPHA] when the host
+ * has a selection (or is pinning). The selected marker — spot, parked
+ * vehicle, etc. — uses its own `_sel` contentId and bypasses this slot,
+ * so the bitmap stays at full opacity.
+ *
+ * Every non-selected marker handler MUST go through this wrapper so the
+ * "click any marker → others fade" invariant holds uniformly across spots,
+ * clusters, parked vehicles and zones. [MAP-MARKERS-DIM-001]
+ */
+@Composable
+private fun DimmableMarkerSlot(
+    dim: Boolean,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier = Modifier.alpha(if (dim) DIM_MARKER_ALPHA else FULL_MARKER_ALPHA)) {
+        content()
+    }
+}
 // Zone markers are keyed by iconKey: zones sharing the same icon reuse the
 // same cached bitmap, which is correct since the visual is identical.
 private const val MARKER_ZONE_PREFIX         = "zone_"
@@ -354,6 +375,8 @@ fun PaparcarMapView(
     parkedVehicles: List<ParkedVehicleSummary> = emptyList(),
     /** Vehicle size for the fallback single-parking marker (used by ParkingLocationScreen). */
     parkingVehicleSize: VehicleSize? = null,
+    /** Vehicle body shape for the fallback single-parking marker — preferred over [parkingVehicleSize] when present. */
+    parkingVehicleCarbody: io.apptolast.paparcar.domain.model.CarbodyType? = null,
     /** When false the fallback parking marker renders in the inactive/history palette. */
     parkingIsActive: Boolean = true,
     cameraTarget: CameraTarget? = null,
@@ -371,16 +394,12 @@ fun PaparcarMapView(
     isAnyItemSelected: Boolean = false,
     isLoading: Boolean = false,
     /**
-     * When true, every marker EXCEPT the currently-focused one (the
-     * selected spot via [selectedSpotId] or the parked car via
-     * [isMyCarSelected]) renders with [DIM_MARKER_ALPHA] opacity via a
-     * distinct "_dim" contentId. The kmpmaps bitmap cache keys on
-     * contentId, so flipping this flag re-rasterises the affected
-     * markers — flipping a Modifier.alpha inside the existing lambda
-     * would reuse the cached bitmap and the dim would never appear.
-     * Used by the host to subordinate non-focus markers while the user
-     * has a selection or is positioning a new spot (Home's Reporting
-     * mode + selection states).
+     * When true, every non-focus marker (anything not routed to a `_sel`
+     * contentId via [selectedSpotId] or [isMyCarSelected]) renders with
+     * [DIM_MARKER_ALPHA] opacity through [DimmableMarkerSlot]. Used by
+     * the host to subordinate non-focus markers while the user has a
+     * selection or is positioning a new spot (Home's Reporting mode +
+     * selection states).
      */
     dimSpots: Boolean = false,
     onSpotClick: (String) -> Unit = {},
@@ -403,11 +422,6 @@ fun PaparcarMapView(
     }
 
     // ── Build markers list ───────────────────────────────────────────────────
-    // dimSpots + isMyCarSelected are part of the cache key because both
-    // flip per-marker contentIds (full-opacity ↔ "_dim" variants, plus the
-    // parking-selected exception). Without them, the remembered list would
-    // hold the original Markers and kmpmaps would keep showing the cached
-    // full-opacity bitmaps after the host enters a focus state.
     // Coords-keyed side maps replace the per-marker title encoding. Each is
     // remembered against the same keys as the markers list so a stale entry
     // can't leak: any marker still in `markers` is guaranteed to have a meta
@@ -523,52 +537,79 @@ fun PaparcarMapView(
     //   - VehicleBadgeMarker: amber circle + vehicle icon (one bitmap per vehicle×state)
     //   - FreeSpotMarker: unified green circle + "P" (3 shared bitmaps, no reliability tiers)
     //   - ZoneMarker: blue hexagon + 3-char zone code (one bitmap per zone×state)
-    val customMarkerContent = remember(clusterCountByCoords, parkedVehicles, zones, isMyCarSelected, dimSpots, parkingVehicleSize, parkingIsActive) {
+    // Non-selected marker handlers route through [DimmableMarkerSlot]; selected
+    // handlers render at full opacity. Selection routing is done via contentId
+    // when building the markers list above, so a `_nrm`/non-selected handler
+    // only ever runs when its marker is NOT the focus — no extra guard needed
+    // inside the handler. [MAP-MARKERS-DIM-001]
+    val customMarkerContent = remember(clusterCountByCoords, parkedVehicles, zones, dimSpots, parkingVehicleSize, parkingVehicleCarbody, parkingIsActive) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = mapOf(
             // ── Fallback single-parking marker (ParkingLocationScreen) ──
-            // Dim applied via alpha when dimSpots=true and car is not selected. [COMPOSE-PERF-001]
             MARKER_MY_CAR to { _ ->
-                val alpha = if (!isMyCarSelected && dimSpots) DIM_MARKER_ALPHA else 1f
-                Box(modifier = Modifier.alpha(alpha)) {
-                    VehicleBadgeMarker(sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
+                DimmableMarkerSlot(dim = dimSpots) {
+                    VehicleBadgeMarker(
+                        sizeCategory = parkingVehicleSize,
+                        carbodyType = parkingVehicleCarbody,
+                        isActive = parkingIsActive,
+                    )
                 }
             },
             MARKER_MY_CAR_SELECTED to { _ ->
-                VehicleBadgeMarker(selected = true, sizeCategory = parkingVehicleSize, isActive = parkingIsActive)
+                VehicleBadgeMarker(
+                    selected = true,
+                    sizeCategory = parkingVehicleSize,
+                    carbodyType = parkingVehicleCarbody,
+                    isActive = parkingIsActive,
+                )
             },
-            // ── Free-spot bitmaps — 2 shared bitmaps (sel/nrm); dim applied via alpha ──
-            // [COMPOSE-PERF-001]: dim no longer encoded in contentId so markers list is
-            // stable during sheet drag; only customMarkerContent rebuild triggers on dimSpots.
+            // ── Free-spot bitmaps — 2 shared bitmaps (sel/nrm) ──
             MARKER_FREE_SPOT_NRM to { _ ->
-                val alpha = if (dimSpots) DIM_MARKER_ALPHA else 1f
-                Box(modifier = Modifier.alpha(alpha)) { FreeSpotWithOverlays(selected = false) }
+                DimmableMarkerSlot(dim = dimSpots) { FreeSpotWithOverlays(selected = false) }
             },
             MARKER_FREE_SPOT_SEL to { _ -> FreeSpotWithOverlays(selected = true) },
+            // ── Spot clusters ──
             MARKER_CLUSTER to { marker ->
-                FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
+                DimmableMarkerSlot(dim = dimSpots) {
+                    FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
+                }
             },
         )
 
-        baseHandlers + parkedVehicles.flatMap { v ->
-            // One bitmap per vehicle×selected — dim applied via alpha. [COMPOSE-PERF-001]
-            val entries: List<Pair<String, @Composable (Marker) -> Unit>> = listOf(
-                vehicleBadgeContentId(v, selected = false) to { _: Marker ->
-                    val alpha = if (!isMyCarSelected && dimSpots) DIM_MARKER_ALPHA else 1f
-                    Box(modifier = Modifier.alpha(alpha)) {
-                        VehicleBadgeMarker(sizeCategory = v.sizeCategory, isActive = true)
+        // ── Per-vehicle badge bitmaps (one per vehicle × selected) ──
+        val vehicleHandlers: Map<String, @Composable (Marker) -> Unit> =
+            parkedVehicles.flatMap { v ->
+                listOf<Pair<String, @Composable (Marker) -> Unit>>(
+                    vehicleBadgeContentId(v, selected = false) to { _: Marker ->
+                        DimmableMarkerSlot(dim = dimSpots) {
+                            VehicleBadgeMarker(
+                                sizeCategory = v.sizeCategory,
+                                carbodyType = v.carbodyType,
+                                isActive = true,
+                            )
+                        }
+                    },
+                    vehicleBadgeContentId(v, selected = true) to { _: Marker ->
+                        VehicleBadgeMarker(
+                            selected = true,
+                            sizeCategory = v.sizeCategory,
+                            carbodyType = v.carbodyType,
+                            isActive = true,
+                        )
+                    },
+                )
+            }.toMap()
+
+        // ── Per-zone marker bitmaps (zone code is zone-specific) ──
+        val zoneHandlers: Map<String, @Composable (Marker) -> Unit> =
+            zones.associate { zone ->
+                "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}" to { _: Marker ->
+                    DimmableMarkerSlot(dim = dimSpots) {
+                        ZoneMarker(zoneCode = zone.name.take(3).uppercase(), isPrivate = zone.isPrivate)
                     }
-                },
-                vehicleBadgeContentId(v, selected = true) to { _: Marker ->
-                    VehicleBadgeMarker(selected = true, sizeCategory = v.sizeCategory, isActive = true)
-                },
-            )
-            entries
-        }.toMap() + zones.associate { zone ->
-            // Per-zone contentId: each zone gets its own cached bitmap (zone code is zone-specific).
-            "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}" to { _: Marker ->
-                ZoneMarker(zoneCode = zone.name.take(3).uppercase(), isPrivate = zone.isPrivate)
+                }
             }
-        }
+
+        baseHandlers + vehicleHandlers + zoneHandlers
     }
 
     // ── Track real camera center (set by the map, not by us) ──────────────

@@ -118,11 +118,11 @@ internal fun HomeVehicleChip(
                         .background(iconBg),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        vehicle.sizeCategory.icon,
-                        contentDescription = null,
+                    io.apptolast.paparcar.ui.components.VehicleIcon(
+                        carbody = vehicle.carbodyType,
+                        size = vehicle.sizeCategory,
                         tint = iconTint,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(22.dp),
                     )
                 }
                 Text(

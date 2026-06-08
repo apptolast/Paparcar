@@ -52,11 +52,11 @@ fun VehicleSizeSelector(
     modifier: Modifier = Modifier,
 ) {
     val options = listOf(
-        SizeOption(VehicleSize.MOTO,   PaparcarIcons.VehicleMoto,   "Mini"),
-        SizeOption(VehicleSize.SMALL,  PaparcarIcons.VehicleSmall,  "Pequeño"),
-        SizeOption(VehicleSize.MEDIUM, PaparcarIcons.VehicleMedium, "Mediano"),
-        SizeOption(VehicleSize.LARGE,  PaparcarIcons.VehicleLarge,  "Grande"),
-        SizeOption(VehicleSize.VAN,    PaparcarIcons.VehicleVan,    "Furgo"),
+        SizeOption(VehicleSize.MOTORCYCLE,   PaparcarIcons.VehicleMoto,   "Mini"),
+        SizeOption(VehicleSize.MICRO_SMALL,  PaparcarIcons.VehicleSmall,  "Pequeño"),
+        SizeOption(VehicleSize.MEDIUM_SUV, PaparcarIcons.VehicleMedium, "Mediano"),
+        SizeOption(VehicleSize.LARGE_SEDAN,  PaparcarIcons.VehicleLarge,  "Grande"),
+        SizeOption(VehicleSize.VAN_HIGH,    PaparcarIcons.VehicleVan,    "Furgo"),
     )
 
     Row(

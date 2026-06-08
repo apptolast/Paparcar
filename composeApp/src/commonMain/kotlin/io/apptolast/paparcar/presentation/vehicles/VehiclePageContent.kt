@@ -133,9 +133,9 @@ private fun VehicleHeroCard(
                             .background(if (isActive) cs.primary else cs.surfaceContainerHighest),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(
-                            imageVector = vehicle.sizeCategory.icon,
-                            contentDescription = null,
+                        io.apptolast.paparcar.ui.components.VehicleIcon(
+                            carbody = vehicle.carbodyType,
+                            size = vehicle.sizeCategory,
                             tint = if (isActive) cs.onPrimary else cs.primary,
                             modifier = Modifier.size(HERO_ICON_SIZE_DP.dp),
                         )
@@ -346,17 +346,17 @@ private fun StatMiniCard(
 
 @Composable
 private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
-    VehicleSize.MOTO   -> stringResource(Res.string.vehicle_size_moto)
-    VehicleSize.SMALL  -> stringResource(Res.string.vehicle_size_small)
-    VehicleSize.MEDIUM -> stringResource(Res.string.vehicle_size_medium)
-    VehicleSize.LARGE  -> stringResource(Res.string.vehicle_size_large)
-    VehicleSize.VAN    -> stringResource(Res.string.vehicle_size_van)
+    VehicleSize.MOTORCYCLE   -> stringResource(Res.string.vehicle_size_moto)
+    VehicleSize.MICRO_SMALL  -> stringResource(Res.string.vehicle_size_small)
+    VehicleSize.MEDIUM_SUV -> stringResource(Res.string.vehicle_size_medium)
+    VehicleSize.LARGE_SEDAN  -> stringResource(Res.string.vehicle_size_large)
+    VehicleSize.VAN_HIGH    -> stringResource(Res.string.vehicle_size_van)
 }
 
 private const val CARD_PADDING = 16
 private const val HERO_BORDER_ALPHA = 0.55f
 private const val HERO_ICON_BOX_DP = 56
-private const val HERO_ICON_SIZE_DP = 28
+private const val HERO_ICON_SIZE_DP = 40
 private const val PILL_RADIUS_DP = 999
 private const val ACTIVE_DOT_DP = 6
 private const val BADGE_ICON_DP = 14

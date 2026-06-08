@@ -236,7 +236,7 @@ internal fun HomePeekHandle(
                 is PeekState.SelectedSpot -> SpotPeekRow(
                     spot = target.spot,
                     userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                    userVehicleSize = state.vehicles.firstOrNull { it.isActive }?.sizeCategory,
+                    activeVehicle = state.vehicles.firstOrNull { it.isActive },
                     onDismiss = onDismiss,
                     onNavigate = {
                         onNavigateExternal(target.spot.location.latitude, target.spot.location.longitude, false)
@@ -307,7 +307,7 @@ private sealed class PeekState {
 private fun SpotPeekRow(
     spot: Spot,
     userLocation: Pair<Double, Double>?,
-    userVehicleSize: VehicleSize?,
+    activeVehicle: Vehicle?,
     onDismiss: () -> Unit,
     onNavigate: () -> Unit,
     onRejectSpot: () -> Unit,
@@ -328,11 +328,6 @@ private fun SpotPeekRow(
     )
     val ttlMinutes = remainingMinutes(spot.expiresAt)
     val filledSegments = (palette.fillRatio * FIABILITY_SEGMENTS).roundToInt().coerceIn(1, FIABILITY_SEGMENTS)
-    // Compatible when the spot size >= user's vehicle size (spot is big enough).
-    // If sizeCategory is null, isCompatible is true but CompatibilityRow shows the unknown state.
-    val isCompatible = userVehicleSize == null ||
-        spot.sizeCategory == null ||
-        userVehicleSize.ordinal <= spot.sizeCategory.ordinal
     val spotAgeMin = ageMinutes(spot.location.timestamp)
 
     PeekStateCard(
@@ -342,7 +337,7 @@ private fun SpotPeekRow(
         onDismiss = onDismiss,
         leading = { SpotReliabilityBadge(palette) },
         content = {
-            CompatibilityRow(sizeCategory = spot.sizeCategory, isCompatible = isCompatible)
+            SpotFitRow(spot = spot, vehicle = activeVehicle)
             Spacer(Modifier.height(8.dp))
             DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.badgeBg)
             if (spotAgeMin != null) {
@@ -451,83 +446,6 @@ private fun vehicleSummary(vehicle: Vehicle?): String? {
     if (vehicle == null) return null
     val fallback = stringResource(Res.string.home_vehicle_fallback_name)
     return vehicle.displayName(fallback = fallback).takeIf { it.isNotBlank() }
-}
-
-@Composable
-private fun CompatibilityRow(sizeCategory: VehicleSize?, isCompatible: Boolean) {
-    val cs = MaterialTheme.colorScheme
-
-    if (sizeCategory == null) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(COMPAT_CORNER_DP.dp))
-                .background(cs.onSurface.copy(alpha = COMPAT_INCOMPAT_BG_ALPHA))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Info,
-                contentDescription = null,
-                tint = cs.onSurface.copy(alpha = COMPAT_UNKNOWN_FG_ALPHA),
-                modifier = Modifier.size(COMPAT_ICON_DP.dp),
-            )
-            Text(
-                text = stringResource(Res.string.home_peek_spot_size_unknown),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                color = cs.onSurface.copy(alpha = COMPAT_UNKNOWN_FG_ALPHA),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        return
-    }
-
-    val sizeLabel = stringResource(
-        when (sizeCategory) {
-            VehicleSize.MOTO   -> Res.string.home_peek_spot_compat_moto
-            VehicleSize.SMALL  -> Res.string.home_peek_spot_compat_small
-            VehicleSize.MEDIUM -> Res.string.home_peek_spot_compat_medium
-            VehicleSize.LARGE  -> Res.string.home_peek_spot_compat_large
-            VehicleSize.VAN    -> Res.string.home_peek_spot_compat_van
-        }
-    )
-    val bgColor = if (isCompatible) cs.primary.copy(alpha = COMPAT_BG_ALPHA)
-                  else cs.onSurface.copy(alpha = COMPAT_INCOMPAT_BG_ALPHA)
-    val contentColor = if (isCompatible) cs.primary
-                       else cs.onSurface.copy(alpha = COMPAT_INCOMPAT_FG_ALPHA)
-    val icon = if (isCompatible) Icons.Outlined.CheckCircle else Icons.Outlined.Info
-    val label = if (isCompatible)
-        stringResource(Res.string.home_peek_spot_compatible, sizeLabel)
-    else
-        stringResource(Res.string.home_peek_spot_incompatible, sizeLabel)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(COMPAT_CORNER_DP.dp))
-            .background(bgColor)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(COMPAT_ICON_DP.dp),
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = contentColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
 }
 
 @Composable
@@ -747,7 +665,16 @@ private fun ParkingPeekRow(
         title = title,
         accentColor = vc.bg,
         onDismiss = onDismiss,
-        leading = { PeekHeaderIconChip(icon = vehicle?.sizeCategory?.icon ?: PaparcarIcons.VehicleCar, accentColor = vc.bg, iconTint = vc.on) },
+        leading = {
+            PeekHeaderIconChip(
+                painter = io.apptolast.paparcar.ui.components.vehicleIconPainter(
+                    carbody = vehicle?.carbodyType,
+                    size = vehicle?.sizeCategory,
+                ),
+                accentColor = vc.bg,
+                iconTint = vc.on,
+            )
+        },
         content = {
             DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = vc.bg)
             Spacer(Modifier.height(8.dp))
@@ -1016,11 +943,11 @@ private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit
             val isSelected = size == selected
             val label = stringResource(
                 when (size) {
-                    VehicleSize.MOTO   -> Res.string.vehicle_size_moto
-                    VehicleSize.SMALL  -> Res.string.vehicle_size_small
-                    VehicleSize.MEDIUM -> Res.string.vehicle_size_medium
-                    VehicleSize.LARGE  -> Res.string.vehicle_size_large
-                    VehicleSize.VAN    -> Res.string.vehicle_size_van
+                    VehicleSize.MOTORCYCLE   -> Res.string.vehicle_size_moto
+                    VehicleSize.MICRO_SMALL  -> Res.string.vehicle_size_small
+                    VehicleSize.MEDIUM_SUV -> Res.string.vehicle_size_medium
+                    VehicleSize.LARGE_SEDAN  -> Res.string.vehicle_size_large
+                    VehicleSize.VAN_HIGH    -> Res.string.vehicle_size_van
                 }
             )
             val cs = MaterialTheme.colorScheme

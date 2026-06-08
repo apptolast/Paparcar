@@ -288,11 +288,11 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
-                imageVector = vehicle.sizeCategory.icon,
-                contentDescription = null,
+            io.apptolast.paparcar.ui.components.VehicleIcon(
+                carbody = vehicle.carbodyType,
+                size = vehicle.sizeCategory,
                 tint = iconTint,
-                modifier = Modifier.size(14.dp),
+                modifier = Modifier.size(20.dp),
             )
             Text(
                 text = tabName,

@@ -41,3 +41,19 @@ enum class CarbodyType(
     VAN_COMMERCIAL(VehicleSize.VAN_HIGH, Res.drawable.ic_car_van_commercial),
     PICKUP(VehicleSize.VAN_HIGH, Res.drawable.ic_car_pickup),
 }
+
+/**
+ * Canonical [CarbodyType] used as a visual fallback when a vehicle stores only
+ * the length-based [VehicleSize] (legacy rows, or motorcycles/scooters/bikes
+ * where the body dimension does not apply).
+ *
+ * Returns null for [VehicleSize.MOTORCYCLE] — bikes have no carbody, so the UI
+ * falls back to the legacy two-wheel ImageVector via `vehicleIconPainter`.
+ */
+fun VehicleSize.fallbackCarbody(): CarbodyType? = when (this) {
+    VehicleSize.MOTORCYCLE -> null
+    VehicleSize.MICRO_SMALL -> CarbodyType.HATCHBACK_SMALL
+    VehicleSize.MEDIUM_SUV -> CarbodyType.HATCHBACK_MEDIUM
+    VehicleSize.LARGE_SEDAN -> CarbodyType.SEDAN
+    VehicleSize.VAN_HIGH -> CarbodyType.VAN_LIGHT
+}

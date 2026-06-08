@@ -189,11 +189,11 @@ private fun HeaderBody(vehicle: Vehicle, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.sm),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = vehicle.sizeCategory.icon,
-                contentDescription = null,
+            io.apptolast.paparcar.ui.components.VehicleIcon(
+                carbody = vehicle.carbodyType,
+                size = vehicle.sizeCategory,
                 tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(60.dp),
             )
             Spacer(Modifier.width(PaparcarSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
@@ -237,9 +237,9 @@ private fun HeaderBody(vehicle: Vehicle, modifier: Modifier = Modifier) {
 }
 
 private fun vehicleSizeLabelPreview(size: VehicleSize): String = when (size) {
-    VehicleSize.MOTO   -> "MOTO"
-    VehicleSize.SMALL  -> "SMALL"
-    VehicleSize.MEDIUM -> "MEDIUM"
-    VehicleSize.LARGE  -> "LARGE"
-    VehicleSize.VAN    -> "VAN"
+    VehicleSize.MOTORCYCLE   -> "MOTO"
+    VehicleSize.MICRO_SMALL  -> "SMALL"
+    VehicleSize.MEDIUM_SUV -> "MEDIUM"
+    VehicleSize.LARGE_SEDAN  -> "LARGE"
+    VehicleSize.VAN_HIGH    -> "VAN"
 }

@@ -158,6 +158,34 @@ internal fun PeekHeaderIconChip(
 }
 
 /**
+ * [PeekHeaderIconChip] overload for callers that supply a [Painter] — typically
+ * the carbody drawables. Uses [Image] + `ContentScale.Fit` so side-profile
+ * pictograms keep their aspect ratio instead of being stretched into a square.
+ */
+@Composable
+internal fun PeekHeaderIconChip(
+    painter: androidx.compose.ui.graphics.painter.Painter,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    iconTint: Color = MaterialTheme.colorScheme.onPrimary,
+) {
+    Box(
+        modifier = Modifier
+            .size(CHIP_DP.dp)
+            .clip(CircleShape)
+            .background(accentColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.foundation.Image(
+            painter = painter,
+            contentDescription = null,
+            modifier = Modifier.size(32.dp),
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(iconTint),
+        )
+    }
+}
+
+/**
  * Visually de-emphasised dismiss × used by every [PeekStateCard].
  */
 @Composable

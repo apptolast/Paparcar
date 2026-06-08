@@ -278,7 +278,7 @@ private fun AddressHeroRow(session: UserParking?, isActive: Boolean) {
 
     val iconBg = if (isActive) cs.primaryContainer else cs.surfaceVariant
     val iconTint = if (isActive) cs.primary else cs.onSurfaceVariant
-    val vehicleIcon = (session?.sizeCategory ?: VehicleSize.MEDIUM).icon
+    val vehicleIcon = (session?.sizeCategory ?: VehicleSize.MEDIUM_SUV).icon
 
     Row(
         modifier = Modifier.fillMaxWidth(),

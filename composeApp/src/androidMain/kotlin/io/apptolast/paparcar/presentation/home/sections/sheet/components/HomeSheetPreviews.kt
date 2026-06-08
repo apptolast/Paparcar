@@ -31,7 +31,7 @@ internal fun fakeSpot(
     agoMinutes: Long,
     lat: Double = 40.418,
     lon: Double = -3.706,
-    sizeCategory: io.apptolast.paparcar.domain.model.VehicleSize? = VehicleSize.MEDIUM,
+    sizeCategory: io.apptolast.paparcar.domain.model.VehicleSize? = VehicleSize.MEDIUM_SUV,
 ) = io.apptolast.paparcar.domain.model.Spot(
     id = id,
     location = GpsPoint(
@@ -59,7 +59,7 @@ internal fun fakeSpotWithPoi(id: String, agoMinutes: Long) = io.apptolast.paparc
     reportedBy = "user_preview",
     address = FakeData.addrFuel,
     placeInfo = FakeData.placeInfoFuel,
-    sizeCategory = VehicleSize.SMALL,
+    sizeCategory = VehicleSize.MICRO_SMALL,
 )
 
 /** Lista de 3 spots con frescuras verde, ámbar y gris para comparar colores. */
