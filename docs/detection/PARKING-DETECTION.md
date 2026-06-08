@@ -828,3 +828,56 @@ val confirmNow = when {
 **Root cause.** `hasEverMoved` served double duty: (1) "did the user really drive?" and (2) "gate confidence evaluation". The distance requirement (150 m) was added for duty 1 to filter GPS-noise speed spikes while stationary, but it inadvertently blocks duty 2 for genuine short trips.
 
 **Fix.** Introduce `hasEverReachedDrivingSpeed: Boolean` — activated by speed alone (`speed >= minimumTripSpeedMps`), no distance requirement. All logic gates that previously used `hasEverMoved` now use `hasEverReachedDrivingSpeed`: the `maxNoMovementMs` abort guard, the vehicleId lock, the confidence-evaluator skip, and `hasDetectedMovement` exposed to the Service. `hasEverMoved` (speed + distance) is retained purely as a state data field. A genuine GPS-noise spike while stationary cannot sustain driving speed across multiple GPS fixes, so `hasEverReachedDrivingSpeed` alone is sufficient to confirm real driving intent.
+
+### REFACTOR-300 — Unified notification + revertible auto-confirm (2026-06-08)
+
+**Observed.** Two redundant notifications were posted for a single parking event:
+1. `PARKING_CONFIRMATION_NOTIFICATION_ID` (2002, DETECTION channel) — "¿Has aparcado tu Toyota?" with Sí/No.
+2. `UPLOAD_NOTIFICATION_ID` (1002, UPLOAD channel) — "Aparcamiento guardado" toast-style acknowledgment, posted by `ConfirmParkingUseCase.invoke()` after the save completed.
+
+When the user manually tapped "Sí" on (1), the coordinator dismissed (1) and then (2) immediately appeared — two notifs back-to-back for one event. The redundancy was UX-bad and, more importantly, after **auto-confirm** (vehicle-exit window or step proof) (1) was dismissed silently and (2) appeared as a fait accompli — the user had no way to say "wait, that wasn't my car, I was a passenger".
+
+**Fix — one notification, two states, same ID.**
+
+| State | Title | Body | Actions |
+|---|---|---|---|
+| A · Pre-save (prompt) | "¿Has aparcado tu Toyota?" | confirmation_text | "Sí, he aparcado" → `ACTION_PARKING_CONFIRMED`<br>"No, no he aparcado" → `ACTION_PARKING_DENIED` |
+| B · Post-save (savedConfirm) | "Toyota aparcado" (or "Vehículo aparcado") | "Toca para abrir el mapa, o cancela si no era tu vehículo." | "Sí, confirmar" → `ACTION_PARKING_ACK`<br>"No, cancelar" → `ACTION_PARKING_REVERT` + `EXTRA_PARKING_ID` |
+
+Both states post on `PARKING_CONFIRMATION_NOTIFICATION_ID` (DETECTION channel, IMPORTANCE_LOW so the morph doesn't buzz). State B replaces state A by re-posting on the same id.
+
+**Implementation.**
+- `AppNotificationManager.showParkingSavedConfirm(parkingId, vehicleName, lat, lon)` — new method, Android impl in `AppNotificationManagerImpl`. The `parkingId` is baked into the REVERT PendingIntent as an extra.
+- `ConfirmParkingUseCase.invoke(..., silent: Boolean = false)` — new param. When `silent=true` the use case skips its own `showParkingSaved` notification. The Coordinator passes `silent=true` because it owns the unified notification via `showParkingSavedConfirm`. All other callers (HomeViewModel manual/auto-accept, BluetoothParkingDetector, manual report screen) leave the default `silent=false` and keep the legacy `showParkingSaved` behaviour.
+- `ParkingDetectionCoordinator.runConfirm.onSuccess` — replaced `dismiss(PARKING_CONFIRMATION_NOTIFICATION_ID)` (BUG-FGS-103's original fix) with `notificationPort.showParkingSavedConfirm(...)`. This morphs the prompt into the saved+revert card. The stale-tap protection of BUG-FGS-103 remains intact because the receiver routes to a different action (`ACTION_PARKING_ACK`/`ACTION_PARKING_REVERT`) and the Service handles them with their own teardown.
+- `ParkingDetectionService.ACTION_PARKING_ACK` — handler dismisses the notif + `stopForegroundAndSelf()`.
+- `ParkingDetectionService.ACTION_PARKING_REVERT` — handler reads `EXTRA_PARKING_ID`, calls `RevertParkingUseCase`, then `stopForegroundAndSelf()`.
+- `RevertParkingUseCase` — composes `userParkingRepository.clearActiveParkingSession(parkingId)` + `geofenceService.removeGeofence(parkingId)` + `notificationPort.dismiss(...)`. Best-effort, each step logs its own failure.
+
+**No community spot to retract.** The public Spot is published by `ReportSpotWorker`, which is enqueued by `DepartureDetectionWorker` on geofence EXIT — *not* at confirm time. At the moment of revert the spot has not yet been published, and because we just removed the geofence it never will be. ✓
+
+**Open follow-ups.**
+- **TODO-REVERT-P1:** Add `UserParkingRepository.deleteSession(parkingId)` so the reverted session disappears from the history list entirely. Currently `clearActiveParkingSession` only flips `isActive=false`; the user still sees the cancelled session in their history.
+- **TODO-REVERT-P2:** Auto-dismiss the state-B notification after `confirmationResponseTimeoutMs` (15 min) via WorkManager so abandoned cards don't linger.
+- **TODO-REVERT-P2:** Test coverage for the revert flow (currently exercised only by manual smoke). Wire `FakeUserParkingRepository.clearActiveParkingSession` + a fake `notificationPort.dismissCalls` assertion in `ParkingDetectionCoordinatorTest`.
+
+### REFACTOR-301 — Bluetooth strategy: lifecycle + unified post-save notification (2026-06-08)
+
+Companion refactor to REFACTOR-300, applied to the Bluetooth detection flow (`BluetoothDetectionService` + `BluetoothParkingDetector` + `BluetoothConnectionReceiver`).
+
+**BT bugs closed.**
+
+| ID | Description | Fix |
+|---|---|---|
+| BT-BUG-100 | Every `stopSelf()` path skipped `stopForeground(STOP_FOREGROUND_REMOVE)` → BT_DETECTION FGS notification (id 1003) could persist. | `BluetoothDetectionService` now uses `ForegroundServiceController.stopForegroundAndSelf()` on every teardown path (handleConnected, missing-extras, null-intent, detection-finally). |
+| BT-BUG-101 | `DETECT-SERVICE-RACE-001` ported to BT: a superseded detection job could call `stopSelf()` after a replacement job had just promoted. | `thisJob === detectionJob` guard in the detection-coroutine's `finally`. |
+| BT-BUG-102 | `BluetoothConnectionReceiver` held a `CoroutineScope(SupervisorJob() + Dispatchers.IO)` as a property — completed jobs accumulated as child garbage of a parent that was never cancelled. | Per-delivery local scope, explicit `scope.cancel()` in the `finally`. |
+| BT-BUG-103 | Vehicle-name fetch was a side-launch outside `detectionJob`; a fast BT_CONNECTED could cancel the detection while the side-launch was still resolving, then `updateDetectionVehicle.notify(...)` would re-post the FGS notification AFTER `stopForeground` (ghost notif). | Fetch moved INSIDE the detection coroutine; same lifetime as `detectionJob`. |
+| BT-BUG-104 | Name fetch used `observeActiveVehicle()` (the *default* vehicle) instead of the vehicle whose BT actually disconnected. In multi-vehicle setups the notification displayed the wrong name. | Resolve via `vehicleRepository.getVehicleById(userId, vehicleId)` where `vehicleId` came from the BT_DISCONNECTED intent extras. |
+| BT-BUG-105 | BT auto-confirm fired silently with no user-facing affordance to revert (user was a passenger / neighbour's car was bonded by accident → permanent unwanted parking event). | `BluetoothParkingDetector` now calls `confirmParking(silent=true)` then `notificationPort.showParkingSavedConfirm(parkingId, vehicleName, lat, lon)` — same unified state-B notif as the Coordinator path. ACK / REVERT both work via the existing `ParkingConfirmationReceiver`. |
+| BT-BUG-106 | `runCatching { device.address }.getOrNull()` silenced SecurityException on revoked BLUETOOTH_CONNECT. | Adds a `.onFailure { PaparcarLogger.w(...) }` so revocation produces a trace. |
+| BT-REFACTOR-200 | No `onDestroy` safety net for the FGS notification. | Mirrors BUG-FGS-113 fix from `ParkingDetectionService` — `onDestroy` calls `fgs.removeForegroundNotification()` defensively (idempotent). |
+
+**Open follow-ups (BT).**
+- **TODO-BT-CONFIG-P2:** Move `BluetoothParkingDetector.PARKING_DETECTION_RELIABILITY = 0.95f` to `ParkingDetectionConfig.reliabilityBluetooth` for parity with the existing `reliabilityUserConfirmed`/`reliabilityVehicleExit`/`reliabilitySlowPath`. Cosmetic; no behaviour change.
+- **TODO-BT-IOS-P3:** When iOS BT detection lands it should follow the same `silent=true` + `showParkingSavedConfirm` pattern. `IosAppNotificationManagerImpl` will need to implement `showParkingSavedConfirm` (currently default `{}` from the interface).
