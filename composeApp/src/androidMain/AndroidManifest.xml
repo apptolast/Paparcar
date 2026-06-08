@@ -108,13 +108,17 @@
             </intent-filter>
         </receiver>
 
-        <!-- ParkingConfirmationReceiver — notification action buttons -->
+        <!-- ParkingConfirmationReceiver — notification action buttons.
+             Pre-save prompt: CONFIRMED / DENIED.
+             Post-save card  : ACK / REVERT  [REFACTOR-300] -->
         <receiver
             android:name=".detection.receiver.ParkingConfirmationReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="io.apptolast.paparcar.ACTION_PARKING_CONFIRMED" />
                 <action android:name="io.apptolast.paparcar.ACTION_PARKING_DENIED" />
+                <action android:name="io.apptolast.paparcar.ACTION_PARKING_ACK" />
+                <action android:name="io.apptolast.paparcar.ACTION_PARKING_REVERT" />
             </intent-filter>
         </receiver>
 

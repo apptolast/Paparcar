@@ -6,7 +6,8 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.TransitionAction
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import kotlin.concurrent.Volatile
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Handles a single IN_VEHICLE activity-recognition transition event.
@@ -21,14 +22,24 @@ import kotlin.concurrent.Volatile
  * this class stays free of Android/GMS dependencies.
  *
  * **Statefulness:** tracks [isVehicleIn] across calls — must be a Koin singleton.
+ *
+ * **Thread-safety [FIX BUG-DET-101].** The read-modify-write on [isVehicleIn] is
+ * serialised by [mutex]. The previous `@Volatile` guard only protected visibility,
+ * not the compound CAS — concurrent ENTER events from a single AR transition batch
+ * (delivered via per-event coroutines in the Service) could both observe
+ * `isVehicleIn=false`, both proceed past the debounce, and both spawn
+ * [TransitionAction.StartCoordinatorDetection]. A coroutine [Mutex] is the KMP-safe
+ * fit (no new dependencies; the function is already suspend).
  */
 class HandleVehicleTransitionUseCase(
     private val strategyResolver: ParkingStrategyResolver,
     private val coordinator: ParkingDetectionCoordinator,
     private val departureEventBus: DepartureEventBus,
 ) {
+    // [FIX BUG-DET-101: serialise debounce + side-effects; @Volatile alone was unsafe]
+    private val mutex = Mutex()
+
     /** Mirrors the last seen IN_VEHICLE state; suppresses duplicate ENTER bursts. */
-    @Volatile
     private var isVehicleIn: Boolean = false
 
     /**
@@ -36,7 +47,7 @@ class HandleVehicleTransitionUseCase(
      * @param epochMs  Wall-clock ms of the event, pre-computed by the Android caller.
      */
     suspend operator fun invoke(isEnter: Boolean, epochMs: Long): TransitionAction =
-        if (isEnter) handleEnter(epochMs) else handleExit()
+        mutex.withLock { if (isEnter) handleEnter(epochMs) else handleExit() }
 
     private suspend fun handleEnter(epochMs: Long): TransitionAction {
         if (isVehicleIn) {

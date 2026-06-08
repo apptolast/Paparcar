@@ -24,6 +24,11 @@ interface AppNotificationManager {
      * Shows a transient notification confirming that the user's car is parked.
      * Tapping opens the map centred on the parking location.
      *
+     * Used for **manual** save paths only (manual report screen). For auto-detection
+     * the unified [showParkingSavedConfirm] is used instead — it replaces the
+     * confirmation prompt at the same notification ID so the user never sees two
+     * notifications for the same event. [REFACTOR-300]
+     *
      * @param latitude  Latitude of the confirmed parking spot.
      * @param longitude Longitude of the confirmed parking spot.
      */
@@ -31,6 +36,31 @@ interface AppNotificationManager {
 
     @Deprecated("Use showParkingSaved", ReplaceWith("showParkingSaved(latitude, longitude)"))
     fun showParkingSpotSaved(latitude: Double, longitude: Double) = showParkingSaved(latitude, longitude)
+
+    /**
+     * [REFACTOR-300] Unified post-save notification: replaces the "¿Has aparcado?"
+     * prompt at [PARKING_CONFIRMATION_NOTIFICATION_ID] with a "Vehículo aparcado +
+     * Confirmar / Cancelar" UI.
+     *
+     * Why merged with the prompt:
+     * - Avoids the previous "prompt → dismissed → saved notif appears" double-notification
+     *   the user flagged as redundant.
+     * - Gives the user a reversal window even when auto-confirm fired silently while
+     *   they were walking away — the visible card lets them say "no era yo".
+     *
+     * @param parkingId    Id of the saved [io.apptolast.paparcar.domain.model.UserParking].
+     *                     Travels in the "No, cancelar" PendingIntent extras and is read
+     *                     by [io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase].
+     * @param vehicleName  Optional display name of the parked vehicle (e.g. "Toyota Corolla").
+     * @param latitude     Latitude — tap on the body opens the map focused here.
+     * @param longitude    Longitude.
+     */
+    fun showParkingSavedConfirm(
+        parkingId: String,
+        vehicleName: String?,
+        latitude: Double,
+        longitude: Double,
+    ) {}
 
     /**
      * Shows a transient notification confirming the freed spot is visible to other drivers.

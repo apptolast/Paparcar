@@ -44,12 +44,22 @@ class ConfirmParkingUseCase(
     private val departureEventBus: DepartureEventBus,
 ) {
 
+    /**
+     * @param silent  When `true` the user-facing "Parking saved" notification is NOT
+     *   posted from inside this use case. Used by [ParkingDetectionCoordinator] which
+     *   prefers to morph the active confirmation prompt into a single unified post-save
+     *   card via [AppNotificationManager.showParkingSavedConfirm] (avoids the double-notif
+     *   the user flagged as redundant). Other callers (manual report screen, BT detector,
+     *   HomeViewModel auto-accept) leave this `false` and get the legacy single-shot save
+     *   notification. [REFACTOR-300]
+     */
     suspend operator fun invoke(
         location: GpsPoint,
         detectionReliability: Float,
         spotType: SpotType = SpotType.AUTO_DETECTED,
         sizeCategory: VehicleSize? = null,
         vehicleId: String? = null,
+        silent: Boolean = false,
     ): Result<UserParking> {
         PaparcarLogger.d(
             DIAG,
@@ -163,9 +173,17 @@ class ConfirmParkingUseCase(
         )
         PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
 
-        PaparcarLogger.d(DIAG, "  → notificationPort.showParkingSaved BEFORE")
-        notificationPort.showParkingSaved(gpsPoint.latitude, gpsPoint.longitude)
-        PaparcarLogger.d(DIAG, "  ← showParkingSaved AFTER")
+        // [REFACTOR-300] Auto-detection path (`silent=true`) skips this notification — the
+        // coordinator handles the user-facing UI via showParkingSavedConfirm at the same
+        // notification ID as the prompt, avoiding the double-show the user flagged. Manual
+        // / BT / HomeViewModel callers leave `silent=false` and keep the legacy behaviour.
+        if (!silent) {
+            PaparcarLogger.d(DIAG, "  → notificationPort.showParkingSaved BEFORE")
+            notificationPort.showParkingSaved(gpsPoint.latitude, gpsPoint.longitude)
+            PaparcarLogger.d(DIAG, "  ← showParkingSaved AFTER")
+        } else {
+            PaparcarLogger.d(DIAG, "  ⊘ showParkingSaved suppressed (silent=true; coordinator owns notif)")
+        }
 
         PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS")
         return Result.success(session)
