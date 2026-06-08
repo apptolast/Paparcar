@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.usecase.spot
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -33,6 +34,7 @@ class ReportSpotReleasedUseCase(
         spotType: SpotType = SpotType.AUTO_DETECTED,
         confidence: Float = 1f,
         sizeCategory: VehicleSize? = null,
+        carbodyType: CarbodyType? = null,
     ) {
         val reporterName = authRepository.getCurrentSession()?.displayName
         var address: AddressInfo? = null
@@ -45,7 +47,18 @@ class ReportSpotReleasedUseCase(
                     placeInfo = info.placeInfo ?: placeInfo
                 }
         }
-        reportSpotScheduler.enqueueReportSpot(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, reporterName)
+        reportSpotScheduler.enqueueReportSpot(
+            spotId = spotId,
+            lat = lat,
+            lon = lon,
+            address = address,
+            placeInfo = placeInfo,
+            spotType = spotType,
+            confidence = confidence,
+            sizeCategory = sizeCategory,
+            carbodyType = carbodyType,
+            reporterName = reporterName,
+        )
     }
 
     companion object {

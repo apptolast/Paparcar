@@ -4,6 +4,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.SpotType
@@ -58,6 +59,7 @@ class ConfirmParkingUseCase(
         detectionReliability: Float,
         spotType: SpotType = SpotType.AUTO_DETECTED,
         sizeCategory: VehicleSize? = null,
+        carbodyType: CarbodyType? = null,
         vehicleId: String? = null,
         silent: Boolean = false,
     ): Result<UserParking> {
@@ -100,6 +102,7 @@ class ConfirmParkingUseCase(
         }
 
         val resolvedSizeCategory = sizeCategory ?: vehicle.sizeCategory
+        val resolvedCarbodyType = carbodyType ?: vehicle.carbodyType
         val resolvedVehicleId = vehicle.id
 
         // Check if the parking location falls inside one of the user's private zones.
@@ -143,6 +146,7 @@ class ConfirmParkingUseCase(
             detectionReliability = detectionReliability,
             spotType = resolvedSpotType,
             sizeCategory = resolvedSizeCategory,
+            carbodyType = resolvedCarbodyType,
             privateZoneId = matchedPrivateZoneId,
         )
 
@@ -196,10 +200,10 @@ class ConfirmParkingUseCase(
 
     private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
         val base = when (sizeCategory) {
-            VehicleSize.MOTO -> config.geofenceRadiusMotoMeters
-            VehicleSize.LARGE -> config.geofenceRadiusLargeMeters
-            VehicleSize.VAN -> config.geofenceRadiusVanMeters
-            else -> config.geofenceRadiusMeters  // SMALL, MEDIUM, null
+            VehicleSize.MOTORCYCLE -> config.geofenceRadiusMotoMeters
+            VehicleSize.LARGE_SEDAN -> config.geofenceRadiusLargeMeters
+            VehicleSize.VAN_HIGH -> config.geofenceRadiusVanMeters
+            else -> config.geofenceRadiusMeters  // MICRO_SMALL, MEDIUM_SUV, null
         }
         val padded = base + (accuracyMeters * config.geofenceAccuracyPadFactor)
         return padded.coerceAtMost(config.geofenceMaxRadiusMeters)

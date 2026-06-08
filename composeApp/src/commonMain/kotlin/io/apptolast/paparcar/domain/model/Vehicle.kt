@@ -23,8 +23,11 @@ data class Vehicle(
     val brand: String? = null,
     /** Optional model shown on freed spot (e.g. "Corolla"). */
     val model: String? = null,
-    /** Mandatory size category used on Spot for space estimation. */
+    /** Length-based size category used on Spot for space estimation and geofence radius. */
     val sizeCategory: VehicleSize,
+    /** Body-shape category. Non-null only when [vehicleType] = CAR; the registration screen
+     *  infers it from brand+model via VehicleCatalog and lets the user override it manually. */
+    val carbodyType: CarbodyType? = null,
     /** Mandatory vehicle type. Controls whether automatic detection runs (CAR/MOTORCYCLE) or is
      *  suppressed (SCOOTER/BIKE), and feeds the vehicle-mismatch prompt heuristic. [BUG-SCOOTER-001] */
     val vehicleType: VehicleType = VehicleType.CAR,

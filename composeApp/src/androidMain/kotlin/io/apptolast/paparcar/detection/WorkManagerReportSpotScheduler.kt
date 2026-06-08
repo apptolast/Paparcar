@@ -5,6 +5,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import io.apptolast.paparcar.detection.worker.ReportSpotWorker
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -29,12 +30,13 @@ class WorkManagerReportSpotScheduler(
         spotType: SpotType,
         confidence: Float,
         sizeCategory: VehicleSize?,
+        carbodyType: CarbodyType?,
         reporterName: String?,
     ) {
         WorkManager.getInstance(context).enqueueUniqueWork(
             "${ReportSpotWorker.TAG}_$spotId",
             ExistingWorkPolicy.REPLACE,
-            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, reporterName),
+            ReportSpotWorker.buildRequest(spotId, lat, lon, address, placeInfo, spotType, confidence, sizeCategory, carbodyType, reporterName),
         )
     }
 }

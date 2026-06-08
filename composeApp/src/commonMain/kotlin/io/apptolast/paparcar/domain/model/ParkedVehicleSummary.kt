@@ -14,6 +14,8 @@ data class ParkedVehicleSummary(
     val displayName: String,
     val location: GpsPoint,
     val sizeCategory: VehicleSize?,
+    /** Body shape of the parked vehicle. Null when the underlying vehicle is non-CAR or unknown. */
+    val carbodyType: CarbodyType? = null,
     val stableRank: Int,
     val privateZoneId: String? = null,
     /** On-device license plate — used to label the map marker. Never synced to Firestore. */

@@ -85,9 +85,9 @@ class UpdateParkingLocationUseCase(
 
     private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
         val base = when (sizeCategory) {
-            VehicleSize.MOTO -> config.geofenceRadiusMotoMeters
-            VehicleSize.LARGE -> config.geofenceRadiusLargeMeters
-            VehicleSize.VAN -> config.geofenceRadiusVanMeters
+            VehicleSize.MOTORCYCLE -> config.geofenceRadiusMotoMeters
+            VehicleSize.LARGE_SEDAN -> config.geofenceRadiusLargeMeters
+            VehicleSize.VAN_HIGH -> config.geofenceRadiusVanMeters
             else -> config.geofenceRadiusMeters
         }
         val padded = base + (accuracyMeters * config.geofenceAccuracyPadFactor)

@@ -2,6 +2,7 @@ package io.apptolast.paparcar.fakes.data.repository
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
@@ -53,5 +54,5 @@ class FakeParkingSyncScheduler : ParkingSyncScheduler {
 }
 
 class FakeReportSpotScheduler : ReportSpotScheduler {
-    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, reporterName: String?) {}
+    override fun enqueueReportSpot(spotId: String, lat: Double, lon: Double, address: AddressInfo?, placeInfo: PlaceInfo?, spotType: SpotType, confidence: Float, sizeCategory: VehicleSize?, carbodyType: CarbodyType?, reporterName: String?) {}
 }

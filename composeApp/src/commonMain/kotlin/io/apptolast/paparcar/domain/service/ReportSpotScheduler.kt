@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.service
 
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -12,8 +13,9 @@ import io.apptolast.paparcar.domain.model.VehicleSize
  * so the job persists across process death and retries automatically when connected.
  *
  * Called by [ReportSpotReleasedUseCase] immediately after a parking session is cleared
- * from Room. [spotType], [confidence], and [sizeCategory] are forwarded to Firestore
- * so clients can render reliability and size indicators on the available spot.
+ * from Room. [spotType], [confidence], [sizeCategory] and [carbodyType] are forwarded to
+ * Firestore so clients can render reliability, fit, and body-shape indicators on the
+ * available spot.
  */
 interface ReportSpotScheduler {
 
@@ -30,6 +32,7 @@ interface ReportSpotScheduler {
         spotType: SpotType = SpotType.AUTO_DETECTED,
         confidence: Float = 1f,
         sizeCategory: VehicleSize? = null,
+        carbodyType: CarbodyType? = null,
         reporterName: String? = null,
     )
 }

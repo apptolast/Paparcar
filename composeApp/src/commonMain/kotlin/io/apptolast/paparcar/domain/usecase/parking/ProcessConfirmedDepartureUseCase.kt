@@ -54,6 +54,7 @@ class ProcessConfirmedDepartureUseCase(
                     spotType = session.spotType,
                     confidence = session.detectionReliability ?: 1f,
                     sizeCategory = session.sizeCategory,
+                    carbodyType = session.carbodyType,
                 )
             } else {
                 val zoneName = runCatching { zoneRepository.getPrivateZonesSnapshot() }

@@ -37,10 +37,19 @@ class ReleaseActiveParkingSessionUseCase(
             val spotType = currentSession?.spotType ?: SpotType.AUTO_DETECTED
             val confidence = currentSession?.detectionReliability ?: 1f
             val sizeCategory = currentSession?.sizeCategory
+            val carbodyType = currentSession?.carbodyType
 
             // Schedule WorkManager job BEFORE clearing so the spot report is durably
             // enqueued even if the app is killed immediately after.
-            reportSpotReleased(lat, lon, spotId, spotType, confidence, sizeCategory)
+            reportSpotReleased(
+                lat = lat,
+                lon = lon,
+                spotId = spotId,
+                spotType = spotType,
+                confidence = confidence,
+                sizeCategory = sizeCategory,
+                carbodyType = carbodyType,
+            )
         }
 
         // Under multi-parking we can only clear *this* specific session — clearing

@@ -14,6 +14,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -57,6 +58,8 @@ class ReportSpotWorker(
         val confidence = inputData.getFloat(KEY_CONFIDENCE, 1f)
         val sizeCategory = inputData.getString(KEY_SIZE_CATEGORY)
             ?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
+        val carbodyType = inputData.getString(KEY_CARBODY_TYPE)
+            ?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() }
         val expiresAt = nowMs + if (spotType == SpotType.MANUAL_REPORT) {
             MANUAL_SPOT_TTL_MS
         } else {
@@ -77,6 +80,7 @@ class ReportSpotWorker(
             type = spotType,
             confidence = confidence,
             sizeCategory = sizeCategory,
+            carbodyType = carbodyType,
             expiresAt = expiresAt,
         )
 
@@ -120,10 +124,10 @@ class ReportSpotWorker(
         private const val KEY_ADDRESS_COUNTRY_CODE = "address_country_code"
         private const val KEY_PLACE_NAME = "place_name"
         private const val KEY_PLACE_CATEGORY = "place_category"
-        // Phase 4 keys
         private const val KEY_SPOT_TYPE = "spot_type"
         private const val KEY_CONFIDENCE = "confidence"
         private const val KEY_SIZE_CATEGORY = "size_category"
+        private const val KEY_CARBODY_TYPE = "carbody_type"
         private const val KEY_REPORTER_NAME = "reporter_name"
 
         fun buildRequest(
@@ -135,6 +139,7 @@ class ReportSpotWorker(
             spotType: SpotType = SpotType.AUTO_DETECTED,
             confidence: Float = 1f,
             sizeCategory: VehicleSize? = null,
+            carbodyType: CarbodyType? = null,
             reporterName: String? = null,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<ReportSpotWorker>()
@@ -154,6 +159,7 @@ class ReportSpotWorker(
                         KEY_SPOT_TYPE to spotType.name,
                         KEY_CONFIDENCE to confidence,
                         KEY_SIZE_CATEGORY to sizeCategory?.name,
+                        KEY_CARBODY_TYPE to carbodyType?.name,
                         KEY_REPORTER_NAME to reporterName,
                     )
                 )
