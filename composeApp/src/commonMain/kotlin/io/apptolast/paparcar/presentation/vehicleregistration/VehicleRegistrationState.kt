@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.vehicleregistration
 
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
 
@@ -14,7 +15,24 @@ data class VehicleRegistrationState(
     val model: String = "",
     /** Whether the user selected "Other…" for model (shows free-text field). */
     val isModelOther: Boolean = false,
+    /**
+     * Body-shape category. For CAR vehicles this is the primary classification
+     * (size is derived from it via [CarbodyType.sizeCategory]). Null when
+     * inference has not run yet or [vehicleType] is non-CAR.
+     */
+    val carbodyType: CarbodyType? = null,
+    /**
+     * Length-based size. For CAR vehicles, derived from [carbodyType]. For
+     * MOTORCYCLE / SCOOTER / BIKE, forced to [VehicleSize.MOTORCYCLE]. Null
+     * only while the form is still empty.
+     */
     val sizeCategory: VehicleSize? = null,
+    /**
+     * True when the user explicitly picked a body type that differs from the
+     * automatic inference. Drives the "manual override" badge on the Hero card
+     * and disables re-inference until the user changes brand or model.
+     */
+    val isCarbodyManualOverride: Boolean = false,
     /**
      * High-level vehicle category. Drives detection-strategy resolution:
      * SCOOTER / BIKE bypass the Coordinator entirely. Required from the user
@@ -25,8 +43,6 @@ data class VehicleRegistrationState(
     val showBrandModelOnSpot: Boolean = false,
     val isSaving: Boolean = false,
     val editingVehicleId: String? = null,
-    /** True when sizeCategory was derived automatically from a catalog brand+model pair. */
-    val isSizeAutoDetected: Boolean = false,
     /**
      * UUID generado en el primer intento de guardado de un vehículo nuevo (no edición).
      * Se memoiza aquí para que un reintento tras fallo de red (mismo VM, otro tap) reuse el
@@ -50,14 +66,21 @@ data class VehicleRegistrationState(
     /** True when there is more than one vehicle — prevents deleting the last one. */
     val canDelete: Boolean get() = existingVehicleCount > 1
 
+    /** True when the vehicle is a car-like body and therefore expects a [carbodyType]. */
+    val expectsCarbody: Boolean get() = vehicleType == VehicleType.CAR
+
     /**
-     * CTA is enabled when size is chosen and brand is filled.
-     * For catalog brands, model is also required. For "Other" brand, model is optional.
+     * CTA is enabled when:
+     *  - brand is filled (catalog or custom)
+     *  - if catalog brand, model is also filled (custom brands allow blank model)
+     *  - for CAR: a carbody is selected (auto-inferred or manual)
+     *  - for MOTORCYCLE / SCOOTER / BIKE: size is already forced to MOTORCYCLE
      */
     val canSubmit: Boolean
-        get() = sizeCategory != null &&
-                brand.isNotBlank() &&
-                (isBrandOther || model.isNotBlank())
+        get() = brand.isNotBlank() &&
+                (isBrandOther || model.isNotBlank()) &&
+                sizeCategory != null &&
+                (!expectsCarbody || carbodyType != null)
 
     /** Drives inline error on the brand field — only after the user has started filling the form. */
     val brandError: Boolean

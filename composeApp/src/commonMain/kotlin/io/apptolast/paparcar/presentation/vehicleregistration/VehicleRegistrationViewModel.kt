@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.vehicleregistration
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
@@ -41,44 +42,101 @@ class VehicleRegistrationViewModel(
                     isBrandOther = false,
                     model = "",
                     isModelOther = false,
-                    isSizeAutoDetected = false,
-                    vehicleType = VehicleType.CAR,
+                    carbodyType = null,
+                    sizeCategory = null,
+                    isCarbodyManualOverride = false,
+                    vehicleType = vehicleType ?: VehicleType.CAR,
                     hasInteractedWithForm = true,
                 )
             }
             is VehicleRegistrationIntent.SelectBrandOther -> updateState {
                 copy(
-                    brand = "", isBrandOther = true, model = "", isModelOther = false,
-                    isSizeAutoDetected = false, vehicleType = VehicleType.CAR,
+                    brand = "",
+                    isBrandOther = true,
+                    model = "",
+                    isModelOther = false,
+                    carbodyType = null,
+                    sizeCategory = null,
+                    isCarbodyManualOverride = false,
+                    vehicleType = vehicleType ?: VehicleType.CAR,
                     hasInteractedWithForm = true,
                 )
             }
-            is VehicleRegistrationIntent.SetCustomBrand ->
-                updateState { copy(brand = intent.value, isSizeAutoDetected = false, hasInteractedWithForm = true) }
+            is VehicleRegistrationIntent.SetCustomBrand -> updateState {
+                val inferred = inferIfCar(vehicleType, intent.value, model)
+                copy(
+                    brand = intent.value,
+                    carbodyType = inferred,
+                    sizeCategory = resolveSize(vehicleType, inferred),
+                    isCarbodyManualOverride = false,
+                    hasInteractedWithForm = true,
+                )
+            }
 
-            is VehicleRegistrationIntent.SelectModel -> {
-                val autoSize = VehicleCatalog.sizeFor(state.value.brand, intent.model)
-                updateState {
+            is VehicleRegistrationIntent.SelectModel -> updateState {
+                val inferred = inferIfCar(vehicleType, brand, intent.model)
+                copy(
+                    model = intent.model,
+                    isModelOther = false,
+                    carbodyType = inferred,
+                    sizeCategory = resolveSize(vehicleType, inferred),
+                    isCarbodyManualOverride = false,
+                    vehicleType = vehicleType ?: VehicleType.CAR,
+                    hasInteractedWithForm = true,
+                )
+            }
+            is VehicleRegistrationIntent.SelectModelOther -> updateState {
+                copy(
+                    model = "",
+                    isModelOther = true,
+                    carbodyType = null,
+                    sizeCategory = if (vehicleType == VehicleType.CAR || vehicleType == null) null else VehicleSize.MOTORCYCLE,
+                    isCarbodyManualOverride = false,
+                    hasInteractedWithForm = true,
+                )
+            }
+            is VehicleRegistrationIntent.SetCustomModel -> updateState {
+                val inferred = inferIfCar(vehicleType, brand, intent.value)
+                copy(
+                    model = intent.value,
+                    carbodyType = inferred,
+                    sizeCategory = resolveSize(vehicleType, inferred),
+                    isCarbodyManualOverride = false,
+                    hasInteractedWithForm = true,
+                )
+            }
+
+            is VehicleRegistrationIntent.SetCarbody -> updateState {
+                copy(
+                    carbodyType = intent.body,
+                    sizeCategory = intent.body.sizeCategory,
+                    isCarbodyManualOverride = true,
+                    hasInteractedWithForm = true,
+                )
+            }
+            is VehicleRegistrationIntent.SetVehicleType -> updateState {
+                val newType = intent.type
+                if (newType == VehicleType.CAR) {
+                    val inferred = inferIfCar(newType, brand, model)
                     copy(
-                        model = intent.model,
-                        isModelOther = false,
-                        sizeCategory = autoSize ?: sizeCategory,
-                        isSizeAutoDetected = autoSize != null,
-                        vehicleType = VehicleType.CAR,
+                        vehicleType = newType,
+                        carbodyType = inferred,
+                        sizeCategory = resolveSize(newType, inferred),
+                        isCarbodyManualOverride = false,
+                        hasInteractedWithForm = true,
+                    )
+                } else {
+                    // Motorcycles, scooters and bikes don't have a carbody — they always
+                    // share the MOTORCYCLE size for the spot fit calculation.
+                    copy(
+                        vehicleType = newType,
+                        carbodyType = null,
+                        sizeCategory = VehicleSize.MOTORCYCLE,
+                        isCarbodyManualOverride = false,
                         hasInteractedWithForm = true,
                     )
                 }
             }
-            is VehicleRegistrationIntent.SelectModelOther -> updateState {
-                copy(model = "", isModelOther = true, isSizeAutoDetected = false, hasInteractedWithForm = true)
-            }
-            is VehicleRegistrationIntent.SetCustomModel ->
-                updateState { copy(model = intent.value, isSizeAutoDetected = false, hasInteractedWithForm = true) }
-
-            is VehicleRegistrationIntent.SetSize ->
-                updateState { copy(sizeCategory = intent.size, hasInteractedWithForm = true) }
-            is VehicleRegistrationIntent.SetVehicleType ->
-                updateState { copy(vehicleType = intent.type, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetLicensePlate ->
                 updateState { copy(licensePlate = intent.value) }
             is VehicleRegistrationIntent.SetShowOnSpot ->
@@ -89,6 +147,29 @@ class VehicleRegistrationViewModel(
             is VehicleRegistrationIntent.NavigateBack ->
                 sendEffect(VehicleRegistrationEffect.NavigateBack)
         }
+    }
+
+    /**
+     * Runs the carbody inference only when the user is registering a CAR. For
+     * other vehicle types we never have a carbody, and a blank brand+model
+     * pair short-circuits to null so the UI doesn't flash a stale selection.
+     */
+    private fun inferIfCar(type: VehicleType?, brand: String, model: String): CarbodyType? {
+        if (type != null && type != VehicleType.CAR) return null
+        if (brand.isBlank() && model.isBlank()) return null
+        return VehicleCatalog.inferBodyType(brand, model)
+    }
+
+    /**
+     * Resolves the size dimension that gets persisted:
+     *  - non-CAR vehicle types are always [VehicleSize.MOTORCYCLE]
+     *  - CAR with a known carbody uses [CarbodyType.sizeCategory]
+     *  - CAR without an inferred carbody returns null so the form stays gated
+     */
+    private fun resolveSize(type: VehicleType?, body: CarbodyType?): VehicleSize? = when {
+        type != null && type != VehicleType.CAR -> VehicleSize.MOTORCYCLE
+        body != null -> body.sizeCategory
+        else -> null
     }
 
     private fun loadVehicle(vehicleId: String) {
@@ -102,6 +183,15 @@ class VehicleRegistrationViewModel(
                 val modelsForBrand = if (brandInCatalog)
                     VehicleCatalog.modelsFor(vehicle.brand) else emptyList()
                 val modelInCatalog = vehicle.model != null && vehicle.model in modelsForBrand
+                // Detect a divergence between the stored body and what the catalog would
+                // infer right now — surfaces the "manual override" badge so the user
+                // remembers their own pick instead of seeing a silent "auto" label.
+                val inferredForStored = vehicle.brand?.let { brand ->
+                    vehicle.model?.let { model -> VehicleCatalog.inferBodyType(brand, model) }
+                }
+                val isManualOverride = vehicle.carbodyType != null &&
+                        inferredForStored != null &&
+                        inferredForStored != vehicle.carbodyType
                 updateState {
                     copy(
                         editingVehicleId = vehicle.id,
@@ -110,7 +200,9 @@ class VehicleRegistrationViewModel(
                         isBrandOther = vehicle.brand != null && !brandInCatalog,
                         model = vehicle.model ?: "",
                         isModelOther = vehicle.model != null && !modelInCatalog,
+                        carbodyType = vehicle.carbodyType,
                         sizeCategory = vehicle.sizeCategory,
+                        isCarbodyManualOverride = isManualOverride,
                         vehicleType = vehicle.vehicleType,
                         showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
                         licensePlate = vehicle.licensePlate ?: "",
@@ -137,6 +229,9 @@ class VehicleRegistrationViewModel(
         // Silent CAR default for safety — UI requires a pick (canSubmit gate),
         // so this only triggers on programmatic save paths. [BUG-SCOOTER-001]
         val type = current.vehicleType ?: VehicleType.CAR
+        // Carbody is required for CAR (canSubmit enforces it). Non-CAR types
+        // intentionally persist null.
+        val body = if (type == VehicleType.CAR) current.carbodyType else null
         // name is required when both brand and model are blank — persist placeholder if that slips through
         val resolvedName = current.name.trim().ifBlank {
             if (current.brand.isBlank() && current.model.isBlank()) "Car ${current.defaultNamePlaceholderIndex}" else null
@@ -163,6 +258,7 @@ class VehicleRegistrationViewModel(
                     brand = current.brand.trim().ifBlank { null },
                     model = current.model.trim().ifBlank { null },
                     sizeCategory = size,
+                    carbodyType = body,
                     vehicleType = type,
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
                     isActive = shouldBeDefault,

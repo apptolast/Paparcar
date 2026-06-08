@@ -1,6 +1,6 @@
 package io.apptolast.paparcar.presentation.vehicleregistration
 
-import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleType
 
 sealed class VehicleRegistrationIntent {
@@ -17,7 +17,12 @@ sealed class VehicleRegistrationIntent {
     data object SelectModelOther : VehicleRegistrationIntent()
     /** Update the free-text model value when [SelectModelOther] is active. */
     data class SetCustomModel(val value: String) : VehicleRegistrationIntent()
-    data class SetSize(val size: VehicleSize) : VehicleRegistrationIntent()
+    /**
+     * User manually overrides the inferred body type (or picks one when inference
+     * returned null). Marks [VehicleRegistrationState.isCarbodyManualOverride] true
+     * so the size is recomputed from the chosen body and the auto badge is hidden.
+     */
+    data class SetCarbody(val body: CarbodyType) : VehicleRegistrationIntent()
     /** Pick a high-level vehicle category (CAR / MOTORCYCLE / SCOOTER / BIKE). [BUG-SCOOTER-001] */
     data class SetVehicleType(val type: VehicleType) : VehicleRegistrationIntent()
     data class SetLicensePlate(val value: String) : VehicleRegistrationIntent()
