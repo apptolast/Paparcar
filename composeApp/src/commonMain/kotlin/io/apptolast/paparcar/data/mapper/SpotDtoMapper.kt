@@ -8,6 +8,7 @@ import io.apptolast.paparcar.data.geohash.encodeGeohash
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -42,6 +43,7 @@ fun SpotDto.toDomain(): Spot = Spot(
         nowMs = Clock.System.now().toEpochMilliseconds(),
     ),
     sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
+    carbodyType = carbodyType?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() },
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
 )
@@ -64,6 +66,7 @@ fun Spot.toDto(): SpotDto = SpotDto(
     type = type.name,
     confidence = confidence,
     sizeCategory = sizeCategory?.name,
+    carbodyType = carbodyType?.name,
     enRouteCount = enRouteCount,
     expiresAt = expiresAt,
     // Note: acceptCount/rejectCount are NOT written back through Spot.toDto()
@@ -91,6 +94,7 @@ fun SpotDto.toEntity(): SpotEntity = SpotEntity(
     type = type,
     confidence = confidence,
     sizeCategory = sizeCategory,
+    carbodyType = carbodyType,
     enRouteCount = enRouteCount,
     expiresAt = expiresAt,
     acceptCount = acceptCount,
@@ -125,6 +129,7 @@ fun SpotEntity.toDomain(): Spot = Spot(
         nowMs = Clock.System.now().toEpochMilliseconds(),
     ),
     sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
+    carbodyType = carbodyType?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() },
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
 )

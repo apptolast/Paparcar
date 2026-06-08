@@ -14,7 +14,7 @@ import androidx.room.RoomDatabaseConstructor
         ZoneEntity::class,
         GeocoderCacheEntity::class,
     ],
-    version = 5,
+    version = 6,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

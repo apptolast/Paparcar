@@ -2,6 +2,7 @@ package io.apptolast.paparcar.data.mapper
 
 import io.apptolast.paparcar.data.datasource.local.room.VehicleEntity
 import io.apptolast.paparcar.data.datasource.remote.dto.VehicleDto
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
@@ -12,7 +13,8 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     name = name,
     brand = brand,
     model = model,
-    sizeCategory = runCatching { VehicleSize.valueOf(sizeCategory) }.getOrDefault(VehicleSize.MEDIUM),
+    sizeCategory = VehicleSize.valueOf(sizeCategory),
+    carbodyType = carbodyType?.toCarbodyTypeOrNull(),
     vehicleType = runCatching { VehicleType.valueOf(vehicleType) }.getOrDefault(VehicleType.CAR),
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
@@ -27,6 +29,7 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     brand = brand,
     model = model,
     sizeCategory = sizeCategory.name,
+    carbodyType = carbodyType?.name,
     vehicleType = vehicleType.name,
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
@@ -35,9 +38,9 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
 )
 
 // ── VehicleDto → Entity (sync from Firestore) ──────────────────────────────
-// Older Firestore rows may not have the vehicleType field — fall back to "CAR"
-// so the entity's NOT NULL column always holds a valid enum name.
-// licensePlate is on-device only — never synced from Firestore, default null.
+// `vehicleType` falls back to "CAR" so the NOT NULL Room column always holds a
+// valid enum name. `carbodyType` is allowed to remain null for non-CAR vehicles.
+// licensePlate is on-device only — never synced from Firestore.
 
 fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     id = id,
@@ -46,6 +49,7 @@ fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     brand = brand,
     model = model,
     sizeCategory = sizeCategory,
+    carbodyType = carbodyType.ifBlank { null },
     vehicleType = vehicleType.ifBlank { VehicleType.CAR.name },
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
@@ -63,8 +67,12 @@ fun Vehicle.toDto(): VehicleDto = VehicleDto(
     brand = brand,
     model = model,
     sizeCategory = sizeCategory.name,
+    carbodyType = carbodyType?.name ?: "",
     vehicleType = vehicleType.name,
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
 )
+
+private fun String.toCarbodyTypeOrNull(): CarbodyType? =
+    runCatching { CarbodyType.valueOf(this) }.getOrNull()

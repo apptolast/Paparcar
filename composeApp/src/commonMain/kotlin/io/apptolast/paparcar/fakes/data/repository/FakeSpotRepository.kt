@@ -27,7 +27,7 @@ class FakeSpotRepository : SpotRepository {
             confidence = 0.92f, // ALTA (Verde)
             enRouteCount = 2,
             address = AddressInfo(street = "Calle Larga 14", city = "Jerez de la Frontera", region = "Andalucía", country = "España"),
-            sizeCategory = VehicleSize.MEDIUM,
+            sizeCategory = VehicleSize.MEDIUM_SUV,
         ),
         Spot(
             id = "spot_mock_002",
@@ -38,7 +38,7 @@ class FakeSpotRepository : SpotRepository {
             enRouteCount = 1,
             address = AddressInfo(street = "Av. Álvaro Domecq 2", city = "Jerez de la Frontera", region = "Andalucía", country = "España"),
             placeInfo = PlaceInfo("Mercadona Álvaro Domecq", PlaceCategory.SUPERMARKET),
-            sizeCategory = VehicleSize.SMALL,
+            sizeCategory = VehicleSize.MICRO_SMALL,
         ),
         Spot(
             id = "spot_mock_003",
@@ -58,7 +58,7 @@ class FakeSpotRepository : SpotRepository {
             confidence = 0.85f, // ALTA (Verde)
             enRouteCount = 0,
             address = AddressInfo(street = "Calle Corredera 8", city = "Jerez de la Frontera", region = "Andalucía", country = "España"),
-            sizeCategory = VehicleSize.LARGE,
+            sizeCategory = VehicleSize.LARGE_SEDAN,
         ),
         Spot(
             id = "spot_mock_005",
@@ -69,7 +69,7 @@ class FakeSpotRepository : SpotRepository {
             enRouteCount = 3,
             address = AddressInfo(street = "Calle Consistorio 12", city = "Jerez de la Frontera", region = "Andalucía", country = "España"),
             placeInfo = PlaceInfo("Repsol Consistorio", PlaceCategory.FUEL),
-            sizeCategory = VehicleSize.VAN,
+            sizeCategory = VehicleSize.VAN_HIGH,
         ),
     )
 

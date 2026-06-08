@@ -5,6 +5,7 @@ import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -32,6 +33,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     placeInfo = placeInfoOrNull(),
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
+    carbodyType = carbodyType?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() },
     privateZoneId = privateZoneId,
 )
 
@@ -72,6 +74,7 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     placeInfoCategory = placeInfo?.category?.name,
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.name,
+    carbodyType = carbodyType?.name,
     privateZoneId = privateZoneId,
 )
 
@@ -83,6 +86,8 @@ fun UserParking.toSpot(): Spot = Spot(
     reportedBy = userId,
     address = address,
     placeInfo = placeInfo,
+    sizeCategory = sizeCategory,
+    carbodyType = carbodyType,
 )
 
 // ── Domain → ParkingHistoryDto (write-through to Firestore) ──────────────────
@@ -101,6 +106,8 @@ fun UserParking.toParkingHistoryDto() = ParkingHistoryDto(
     address = address?.toAddressDto(),
     placeInfo = placeInfo?.toPlaceInfoDto(),
     detectionReliability = detectionReliability,
+    sizeCategory = sizeCategory?.name,
+    carbodyType = carbodyType?.name,
 )
 
 // ── ParkingHistoryDto → Entity (sync from Firestore on new device) ────────────
@@ -123,6 +130,8 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
     detectionReliability = detectionReliability,
+    sizeCategory = sizeCategory,
+    carbodyType = carbodyType,
 )
 
 // ── Shared DTO helpers ────────────────────────────────────────────────────────

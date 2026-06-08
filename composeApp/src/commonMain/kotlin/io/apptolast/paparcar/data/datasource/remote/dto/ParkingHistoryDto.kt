@@ -17,4 +17,8 @@ data class ParkingHistoryDto(
     val address: AddressDto? = null,
     val placeInfo: PlaceInfoDto? = null,
     val detectionReliability: Float? = null,
+    /** [VehicleSize] enum name captured at park time. Null when unknown. */
+    val sizeCategory: String? = null,
+    /** [CarbodyType] enum name captured at park time. Null for non-CAR or unknown. */
+    val carbodyType: String? = null,
 )

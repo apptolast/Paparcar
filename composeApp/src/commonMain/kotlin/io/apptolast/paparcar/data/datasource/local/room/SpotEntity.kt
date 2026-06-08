@@ -29,6 +29,7 @@ data class SpotEntity(
     val type: String = "AUTO_DETECTED",
     val confidence: Float = 1f,
     val sizeCategory: String? = null,
+    val carbodyType: String? = null,
     val enRouteCount: Int = 0,
     val expiresAt: Long = 0L,
     // Phase 7 — community signals
