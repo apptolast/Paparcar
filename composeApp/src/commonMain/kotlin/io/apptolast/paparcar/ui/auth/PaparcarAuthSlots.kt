@@ -2,20 +2,28 @@ package io.apptolast.paparcar.ui.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
@@ -26,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -52,7 +61,15 @@ import paparcar.composeapp.generated.resources.auth_forgot_password
 import paparcar.composeapp.generated.resources.auth_header_tagline
 import paparcar.composeapp.generated.resources.ic_paparcar_round
 
-private val HEADER_LOGO_SIZE = 88.dp
+private val LOGO_BADGE_SIZE = 92.dp
+private val LOGO_IMAGE_SIZE = 76.dp
+private val LOGO_BADGE_ELEVATION = 6.dp
+private val HEADER_TOP_SPACING = 4.dp
+private val HEADER_LOGO_TITLE_GAP = 18.dp
+private val HEADER_TITLE_TAGLINE_GAP = 6.dp
+private val HEADER_BOTTOM_SPACING = 8.dp
+private val FIELD_ICON_SIZE = 20.dp
+private val FIELD_CORNER_RADIUS = 14.dp
 
 fun paparcarAuthSlots(): AuthScreenSlots = AuthScreenSlots(
     login = LoginScreenSlots(
@@ -130,26 +147,37 @@ private fun PaparcarAuthHeader() {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(HEADER_TOP_SPACING))
 
-        Image(
-            painter = painterResource(Res.drawable.ic_paparcar_round),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.size(HEADER_LOGO_SIZE),
-        )
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shadowElevation = LOGO_BADGE_ELEVATION,
+            modifier = Modifier.size(LOGO_BADGE_SIZE),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Image(
+                    painter = painterResource(Res.drawable.ic_paparcar_round),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .size(LOGO_IMAGE_SIZE)
+                        .clip(CircleShape),
+                )
+            }
+        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(HEADER_LOGO_TITLE_GAP))
 
         Text(
             text = stringResource(Res.string.auth_header_app_name),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(HEADER_TITLE_TAGLINE_GAP))
 
         Text(
             text = stringResource(Res.string.auth_header_tagline),
@@ -158,7 +186,7 @@ private fun PaparcarAuthHeader() {
             textAlign = TextAlign.Center,
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(HEADER_BOTTOM_SPACING))
     }
 }
 
@@ -174,10 +202,18 @@ private fun CompactEmailField(
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(stringResource(Res.string.auth_field_email)) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Outlined.Email,
+                contentDescription = null,
+                modifier = Modifier.size(FIELD_ICON_SIZE),
+            )
+        },
         isError = error != null,
         supportingText = error?.let { { Text(it) } },
         enabled = enabled,
         singleLine = true,
+        shape = RoundedCornerShape(FIELD_CORNER_RADIUS),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next,
@@ -197,10 +233,18 @@ private fun CompactNameField(
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(stringResource(Res.string.auth_field_name)) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Outlined.Person,
+                contentDescription = null,
+                modifier = Modifier.size(FIELD_ICON_SIZE),
+            )
+        },
         isError = error != null,
         supportingText = error?.let { { Text(it) } },
         enabled = enabled,
         singleLine = true,
+        shape = RoundedCornerShape(FIELD_CORNER_RADIUS),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Text,
             imeAction = ImeAction.Next,
@@ -224,10 +268,18 @@ private fun CompactPasswordField(
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Outlined.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(FIELD_ICON_SIZE),
+            )
+        },
         isError = error != null,
         supportingText = error?.let { { Text(it) } },
         enabled = enabled,
         singleLine = true,
+        shape = RoundedCornerShape(FIELD_CORNER_RADIUS),
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Password,
@@ -265,15 +317,20 @@ private fun CompactSubmitButton(
 
 @Composable
 private fun CompactForgotPasswordLink(onClick: () -> Unit) {
-    TextButton(
-        onClick = onClick,
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(vertical = 2.dp),
+        horizontalArrangement = Arrangement.End,
     ) {
-        Text(
-            text = stringResource(Res.string.auth_forgot_password),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        TextButton(
+            onClick = onClick,
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.auth_forgot_password),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
