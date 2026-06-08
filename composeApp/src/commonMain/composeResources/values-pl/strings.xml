@@ -578,4 +578,34 @@
     <string name="home_spot_peek_show_list">Pobliskie miejsca</string>
     <string name="home_spot_peek_hide_list">Ukryj listę</string>
     <string name="history_load_more">Załaduj więcej</string>
+
+    <!-- VEHICLE-CATEGORIZATION-001 -->
+    <string name="home_peek_spot_fit_optimal">Optimal for your %1$s</string>
+    <string name="home_peek_spot_fit_fits">Fits — bay for %1$s</string>
+    <string name="home_peek_spot_fit_does_not_fit">Too tight for your %1$s</string>
+    <string name="home_peek_spot_left_by">Left by %1$s</string>
+
+    <string name="carbody_hatchback_small">Small hatchback</string>
+    <string name="carbody_suv_small">Urban SUV</string>
+    <string name="carbody_hatchback_medium">Compact hatchback</string>
+    <string name="carbody_suv_medium">Medium SUV</string>
+    <string name="carbody_sedan">Sedan</string>
+    <string name="carbody_family_long">Estate / wagon</string>
+    <string name="carbody_suv_large">Large SUV</string>
+    <string name="carbody_van_light">Compact van</string>
+    <string name="carbody_van_commercial">Commercial van</string>
+    <string name="carbody_pickup">Pick-up</string>
+
+    <string name="parking_alert_high_ceiling">Watch the height. Skip garages with clearance under 2.10 m.</string>
+    <string name="parking_alert_long_car">Long car — beware of overhang on short bays.</string>
+    <string name="parking_alert_wide_car">Wide vehicle — prefer bays without lateral columns.</string>
+    <string name="parking_alert_standard">Standard size — fits the vast majority of bays.</string>
+
+    <string name="vehicle_registration_carbody_section">Body and size</string>
+    <string name="vehicle_registration_carbody_auto_label">Detected automatically</string>
+    <string name="vehicle_registration_carbody_manual_label">Manual choice</string>
+    <string name="vehicle_registration_carbody_change">Change</string>
+    <string name="vehicle_registration_carbody_picker_title">Pick your body type</string>
+    <string name="vehicle_registration_carbody_picker_dismiss">Close</string>
+
 </resources>

@@ -565,4 +565,33 @@
     <string name="home_spot_peek_show_list">Plazas cercanas</string>
     <string name="home_spot_peek_hide_list">Ocultar lista</string>
     <string name="history_load_more">Cargar más</string>
+
+    <!-- VEHICLE-CATEGORIZATION-001 -->
+    <string name="home_peek_spot_fit_optimal">Ideal para tu %1$s</string>
+    <string name="home_peek_spot_fit_fits">Apto — plaza para %1$s</string>
+    <string name="home_peek_spot_fit_does_not_fit">Muy justo para tu %1$s</string>
+    <string name="home_peek_spot_left_by">Liberada por %1$s</string>
+
+    <string name="carbody_hatchback_small">Compacto pequeño</string>
+    <string name="carbody_suv_small">SUV urbano</string>
+    <string name="carbody_hatchback_medium">Compacto familiar</string>
+    <string name="carbody_suv_medium">SUV mediano</string>
+    <string name="carbody_sedan">Berlina</string>
+    <string name="carbody_family_long">Familiar</string>
+    <string name="carbody_suv_large">SUV grande</string>
+    <string name="carbody_van_light">Furgoneta ligera</string>
+    <string name="carbody_van_commercial">Furgón comercial</string>
+    <string name="carbody_pickup">Pick-up</string>
+
+    <string name="parking_alert_high_ceiling">Atención al gálibo. Evita parkings con altura menor a 2,10 m.</string>
+    <string name="parking_alert_long_car">Coche largo. Cuidado con el morro en plazas cortas.</string>
+    <string name="parking_alert_wide_car">Vehículo ancho. Prioriza plazas sin columnas laterales.</string>
+    <string name="parking_alert_standard">Tamaño estándar. Apto para la mayoría de plazas.</string>
+
+    <string name="vehicle_registration_carbody_section">Carrocería y tamaño</string>
+    <string name="vehicle_registration_carbody_auto_label">Detectado automáticamente</string>
+    <string name="vehicle_registration_carbody_manual_label">Elegido manualmente</string>
+    <string name="vehicle_registration_carbody_change">Cambiar</string>
+    <string name="vehicle_registration_carbody_picker_title">Elige el tipo de carrocería</string>
+    <string name="vehicle_registration_carbody_picker_dismiss">Cerrar</string>
 </resources>
