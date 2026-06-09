@@ -16,7 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,7 +61,6 @@ internal fun PeekStateCard(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     showDismiss: Boolean = true,
     contentScrollable: Boolean = false,
-    onHeaderHeightChanged: ((Float) -> Unit)? = null,
     leading: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit = {},
     actions: @Composable ColumnScope.() -> Unit = {},
@@ -70,32 +68,13 @@ internal fun PeekStateCard(
     Column(modifier = modifier.padding(horizontal = HORIZONTAL_DP.dp)) {
 
         // ── Header (chip + [label/title column] + close ×) ───────────────
-        // Header height is reported separately so the parent sheet can use it
-        // as the "minimized" snap point (drag-down state showing only the
-        // header). [SHEET-DRAG-001]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 14.dp)
-                .then(
-                    if (onHeaderHeightChanged != null) {
-                        Modifier.onSizeChanged { size ->
-                            if (size.height > 0) onHeaderHeightChanged(size.height.toFloat())
-                        }
-                    } else {
-                        Modifier
-                    }
-                ),
+                .padding(top = 12.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Toolbar-style header: [back] [chip] [label/title]. Back lives on
-            // the left so it matches the standard Material navigation pattern,
-            // and the user's thumb can reach it from a natural one-handed grip
-            // on the bottom sheet. [SHEET-BACKNAV-002]
-            if (showDismiss) {
-                PeekStateDismissButton(onDismiss = onDismiss)
-            }
             leading()
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -126,6 +105,9 @@ internal fun PeekStateCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+            }
+            if (showDismiss) {
+                PeekStateDismissButton(onDismiss = onDismiss)
             }
         }
 
@@ -204,9 +186,7 @@ internal fun PeekHeaderIconChip(
 }
 
 /**
- * Visually de-emphasised back affordance used by every [PeekStateCard]. Tapping
- * exits the current state to Browse (same semantics as the system back gesture,
- * which is also wired in HomeScreen via BackHandler). [SHEET-BACKNAV-001]
+ * Visually de-emphasised dismiss × used by every [PeekStateCard].
  */
 @Composable
 private fun PeekStateDismissButton(onDismiss: () -> Unit) {
@@ -218,7 +198,7 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.AutoMirrored.Filled.ArrowBack,
+            Icons.Outlined.Close,
             contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISMISS_ALPHA),
             modifier = Modifier.size(DISMISS_ICON_DP.dp),

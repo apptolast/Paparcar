@@ -56,7 +56,6 @@ internal fun HomeBottomSheet(
     bottomContentPadding: Dp,
     coroutineScope: CoroutineScope,
     onPeekHeightChanged: (Float) -> Unit,
-    onHeaderHeightChanged: (Float) -> Unit,
     onIntent: (HomeIntent) -> Unit,
     /** Tap on a per-vehicle row that already has an active session — selects that session. */
     onParkingClick: (UserParking) -> Unit,
@@ -149,7 +148,6 @@ internal fun HomeBottomSheet(
                     onToggle = onToggle,
                     spotListExpanded = spotListExpanded,
                     onToggleSpotList = onToggleSpotList,
-                    onHeaderHeightChanged = onHeaderHeightChanged,
                     onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                     onRelease = onRelease,
                     onRejectSpot = {

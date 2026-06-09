@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import io.apptolast.paparcar.domain.error.PaparcarError
-import io.apptolast.paparcar.presentation.util.PaparcarBackHandler
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
@@ -115,11 +114,12 @@ private val FAB_ABOVE_SHEET_GAP = 12.dp
 // from the SheetPeekHeightInitial estimate to the real measured height.
 private val PEEK_LAYOUT_SNAP_TOLERANCE = 64.dp
 
-// Height of the drag-pill strip above the peek content (10dp top + 4dp pill +
-// 8dp bottom — see HomePeekHandle). Added to headerHeightPx when computing the
-// minimized snap point so the pill plus header both remain visible when the
-// user drags a non-Browse state down to its smallest size. [SHEET-DRAG-001]
-private val SHEET_DRAG_PILL_HEIGHT = 22.dp
+// Minimum visible sheet height when dragged to its smallest "minimized" state.
+// Matches the natural Browse peek (drag pill + CameraLocationRow with title +
+// secondary line) so the sheet never collapses below the band the user sees
+// in Browse. The Browse peek auto-coerces to this when its measured height is
+// smaller; non-Browse peeks treat it as the drag-down floor. [SHEET-MIN-001]
+private val SHEET_MIN_VISIBLE_HEIGHT = 96.dp
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,11 +180,6 @@ fun HomeScreen(
     // is safe to remember once. Prevents HomeContent from getting a new
     // lambda on every state emission, which would defeat skipping in children.
     val onIntent: (HomeIntent) -> Unit = remember(viewModel) { viewModel::handleIntent }
-
-    // System back navigates non-Browse states to Browse (silent discard).
-    // Disabled in Browse so the back press still bubbles up to the host nav
-    // (BottomNav / activity finish). [SHEET-BACKNAV-001]
-    HomeBackNavigation(state = state, onIntent = onIntent)
 
     HomeContent(
         state = state,
@@ -370,18 +365,14 @@ private fun HomeContent(
                 }
                 val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
 
-                // Header height = the title row of PeekStateCard (chip + label/title +
-                // back arrow). Reported only by non-Browse peek cards; in Browse the
-                // CameraLocationRow IS the whole peek so headerHeightPx stays 0 and
-                // the minimized snap point collapses back to peek. [SHEET-DRAG-001]
-                var headerHeightPx by remember { mutableFloatStateOf(0f) }
-                val dragPillHeightPx = with(density) { SHEET_DRAG_PILL_HEIGHT.toPx() }
-                val minimizedOffsetPx = if (headerHeightPx > 0f) {
-                    (containerHeightPx - headerHeightPx - dragPillHeightPx)
-                        .coerceAtLeast(peekOffsetPx)
-                } else {
-                    peekOffsetPx
-                }
+                // Minimized snap point — the drag-down floor for non-Browse states.
+                // Same fixed height for all states so the modal never collapses
+                // below the Browse peek's visible band. For Browse (peekHeightPx ≈
+                // SHEET_MIN_VISIBLE_HEIGHT), this coerces to peekOffsetPx so there
+                // is no extra drag below peek. [SHEET-MIN-001]
+                val sheetMinHeightPx = with(density) { SHEET_MIN_VISIBLE_HEIGHT.toPx() }
+                val minimizedOffsetPx = (containerHeightPx - sheetMinHeightPx)
+                    .coerceAtLeast(peekOffsetPx)
 
                 // Content-aware full snap: when ALL list items are visible in the current
                 // viewport (nothing to scroll) the sheet stops at content height instead of
@@ -806,9 +797,6 @@ private fun HomeContent(
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
                     onPeekHeightChanged = { h -> peekHeightPx = h },
-                    onHeaderHeightChanged = { h ->
-                        if (h > 0f) headerHeightPx = h
-                    },
                     onIntent = onIntent,
                     onParkingClick = { parking ->
                         onIntent(HomeIntent.SelectItem(parking.id))
@@ -866,28 +854,3 @@ private fun HomeContent(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// System back wiring
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Intercepts the system back gesture/key whenever Home is in a non-Browse
- * state (pin-positioning mode or any selection peek). Tapping back unwinds
- * exactly one level — same target as the peek's back arrow. Discards in-progress
- * input silently (e.g. half-filled Reporting/AddingZone form). [SHEET-BACKNAV-001]
- *
- * Disabled in Browse so the back press still bubbles up to the host nav
- * (BottomNav back behaviour / activity finish).
- */
-@Composable
-private fun HomeBackNavigation(state: HomeState, onIntent: (HomeIntent) -> Unit) {
-    val backAction: (() -> Unit)? = when {
-        state.mode is HomeMode.Reporting -> { { onIntent(HomeIntent.ExitReportMode) } }
-        state.mode is HomeMode.AddingZone -> { { onIntent(HomeIntent.ExitAddZoneMode) } }
-        state.mode is HomeMode.AddingParking -> { { onIntent(HomeIntent.ExitAddParkingMode) } }
-        state.selectedItemId != null -> { { onIntent(HomeIntent.SelectItem(null)) } }
-        state.selectedZoneId != null -> { { onIntent(HomeIntent.DismissZone) } }
-        else -> null
-    }
-    PaparcarBackHandler(enabled = backAction != null) { backAction?.invoke() }
-}
