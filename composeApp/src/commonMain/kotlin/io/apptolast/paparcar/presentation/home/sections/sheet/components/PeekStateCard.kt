@@ -89,6 +89,13 @@ internal fun PeekStateCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Toolbar-style header: [back] [chip] [label/title]. Back lives on
+            // the left so it matches the standard Material navigation pattern,
+            // and the user's thumb can reach it from a natural one-handed grip
+            // on the bottom sheet. [SHEET-BACKNAV-002]
+            if (showDismiss) {
+                PeekStateDismissButton(onDismiss = onDismiss)
+            }
             leading()
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -119,9 +126,6 @@ internal fun PeekStateCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-            if (showDismiss) {
-                PeekStateDismissButton(onDismiss = onDismiss)
             }
         }
 
