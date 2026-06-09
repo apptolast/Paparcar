@@ -375,11 +375,18 @@ private fun HomeContent(
                 // CameraLocationRow IS the whole peek so headerHeightPx stays 0 and
                 // the minimized snap point collapses back to peek. [SHEET-DRAG-001]
                 var headerHeightPx by remember { mutableFloatStateOf(0f) }
-                // Reset header height whenever the peek surface switches — the new
-                // card emits its own onSizeChanged on first compose, but until then
-                // the stale value would let the sheet drag past the new card's edge.
-                LaunchedEffect(state.mode, state.selectedItemId, state.selectedZoneId) {
+                // Reset both peek and header heights whenever the peek surface switches
+                // so the new card's intrinsic dimensions can be captured cleanly.
+                //
+                // peekHeightPx is monotonic between resets: while the user drags the
+                // sheet below peek, the Surface clips the peek content and onSizeChanged
+                // reports a smaller value. Accepting that would shrink peekOffsetPx,
+                // chase minimizedOffsetPx, and yank the sheet back via the reset-to-peek
+                // effect (feedback loop). Only growth is accepted until the next state
+                // transition resets the baseline. [SHEET-DRAG-002]
+                LaunchedEffect(state.mode, state.selectedItemId, state.selectedZoneId, spotListExpanded) {
                     headerHeightPx = 0f
+                    peekHeightPx = with(density) { SheetPeekHeightInitial.toPx() }
                 }
                 val dragPillHeightPx = with(density) { SHEET_DRAG_PILL_HEIGHT.toPx() }
                 val minimizedOffsetPx = if (headerHeightPx > 0f) {
@@ -811,8 +818,15 @@ private fun HomeContent(
                     sheetNestedScroll = sheetNestedScroll,
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
-                    onPeekHeightChanged = { h -> peekHeightPx = h },
-                    onHeaderHeightChanged = { h -> headerHeightPx = h },
+                    onPeekHeightChanged = { h ->
+                        // Only grow — drag-clipped measurements are ignored. [SHEET-DRAG-002]
+                        if (h > peekHeightPx) peekHeightPx = h
+                    },
+                    onHeaderHeightChanged = { h ->
+                        // Header is always at the top of the peek, never clipped by drag,
+                        // so it can update freely.
+                        if (h > 0f) headerHeightPx = h
+                    },
                     onIntent = onIntent,
                     onParkingClick = { parking ->
                         onIntent(HomeIntent.SelectItem(parking.id))
