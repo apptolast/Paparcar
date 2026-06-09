@@ -115,6 +115,12 @@ private val FAB_ABOVE_SHEET_GAP = 12.dp
 // from the SheetPeekHeightInitial estimate to the real measured height.
 private val PEEK_LAYOUT_SNAP_TOLERANCE = 64.dp
 
+// Height of the drag-pill strip above the peek content (10dp top + 4dp pill +
+// 8dp bottom — see HomePeekHandle). Added to headerHeightPx when computing the
+// minimized snap point so the pill plus header both remain visible when the
+// user drags a non-Browse state down to its smallest size. [SHEET-DRAG-001]
+private val SHEET_DRAG_PILL_HEIGHT = 22.dp
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root
@@ -364,6 +370,25 @@ private fun HomeContent(
                 }
                 val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
 
+                // Header height = the title row of PeekStateCard (chip + label/title +
+                // back arrow). Reported only by non-Browse peek cards; in Browse the
+                // CameraLocationRow IS the whole peek so headerHeightPx stays 0 and
+                // the minimized snap point collapses back to peek. [SHEET-DRAG-001]
+                var headerHeightPx by remember { mutableFloatStateOf(0f) }
+                // Reset header height whenever the peek surface switches — the new
+                // card emits its own onSizeChanged on first compose, but until then
+                // the stale value would let the sheet drag past the new card's edge.
+                LaunchedEffect(state.mode, state.selectedItemId, state.selectedZoneId) {
+                    headerHeightPx = 0f
+                }
+                val dragPillHeightPx = with(density) { SHEET_DRAG_PILL_HEIGHT.toPx() }
+                val minimizedOffsetPx = if (headerHeightPx > 0f) {
+                    (containerHeightPx - headerHeightPx - dragPillHeightPx)
+                        .coerceAtLeast(peekOffsetPx)
+                } else {
+                    peekOffsetPx
+                }
+
                 // Content-aware full snap: when ALL list items are visible in the current
                 // viewport (nothing to scroll) the sheet stops at content height instead of
                 // expanding all the way to the screen top and leaving empty space.
@@ -387,10 +412,10 @@ private fun HomeContent(
                     }
                 }
                 val fullSnapOffsetPx = when {
-                    // Pin-positioning modes (Reporting / AddingZone) AND
-                    // vehicle-selected lock the sheet to peek height because
-                    // the peek handle owns the whole surface — no list to
-                    // expose below.
+                    // Pin-positioning modes (Reporting / AddingZone / AddingParking) AND
+                    // vehicle-selected cap the sheet's UPPER extent at peek height because
+                    // the peek handle owns the whole surface — no list to expose above.
+                    // The user can still drag DOWN to minimizedOffsetPx (header-only). [SHEET-DRAG-001]
                     state.mode !is HomeMode.Browse -> peekOffsetPx
                     isParkingSelected -> peekOffsetPx
                     // Zone selected: peek shows zone detail card, no list below.
@@ -415,14 +440,14 @@ private fun HomeContent(
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
                 LaunchedEffect(peekOffsetPx, state.selectedItemId, state.selectedZoneId, state.mode) {
-                    // Pin-positioning modes (Reporting / AddingZone) and the
-                    // selected-vehicle state both lock the sheet to peek height
-                    // because the peek handle hosts the entire state surface.
-                    // Browse-with-no-selection also rests at peek.
+                    // Entering a non-Browse state resets the sheet to peek (full
+                    // peek content visible). The user can then drag DOWN to
+                    // minimizedOffsetPx for a header-only view. [SHEET-DRAG-001]
                     val isPinning = state.mode is HomeMode.Reporting ||
-                        state.mode is HomeMode.AddingZone
-                    val lockToPeek = isPinning || isParkingSelected || state.selectedZoneId != null
-                    if (state.selectedItemId == null || lockToPeek) {
+                        state.mode is HomeMode.AddingZone ||
+                        state.mode is HomeMode.AddingParking
+                    val resetToPeek = isPinning || isParkingSelected || state.selectedZoneId != null
+                    if (state.selectedItemId == null || resetToPeek) {
                         val correction = kotlin.math.abs(sheetOffsetPx.value - peekOffsetPx)
                         // Snap (not animate) when: small layout correction OR sheet is already at
                         // or below the new peek. The latter covers selection events where the peek
@@ -520,11 +545,12 @@ private fun HomeContent(
                 val mapBleedPx = with(density) { MAP_BOTTOM_BLEED.toPx() }
                 val fabGapPx = with(density) { FAB_ABOVE_SHEET_GAP.toPx() }
 
-                val dragSnap = remember(peekOffsetPx, halfOffsetPx, fullSnapOffsetPx) {
+                val dragSnap = remember(peekOffsetPx, halfOffsetPx, fullSnapOffsetPx, minimizedOffsetPx) {
                     HomeSheetSnap(
                         peekOffsetPx = peekOffsetPx,
                         halfOffsetPx = halfOffsetPx,
                         fullSnapOffsetPx = fullSnapOffsetPx,
+                        minimizedOffsetPx = minimizedOffsetPx,
                         snapSpec = SnapSpec,
                     )
                 }
@@ -786,6 +812,7 @@ private fun HomeContent(
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
                     onPeekHeightChanged = { h -> peekHeightPx = h },
+                    onHeaderHeightChanged = { h -> headerHeightPx = h },
                     onIntent = onIntent,
                     onParkingClick = { parking ->
                         onIntent(HomeIntent.SelectItem(parking.id))

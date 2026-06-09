@@ -57,6 +57,7 @@ internal fun HomeBottomSheet(
     bottomContentPadding: Dp,
     coroutineScope: CoroutineScope,
     onPeekHeightChanged: (Float) -> Unit,
+    onHeaderHeightChanged: (Float) -> Unit,
     onIntent: (HomeIntent) -> Unit,
     /** Tap on a per-vehicle row that already has an active session — selects that session. */
     onParkingClick: (UserParking) -> Unit,
@@ -118,7 +119,7 @@ internal fun HomeBottomSheet(
                             coroutineScope.launch {
                                 sheetOffsetPx.snapTo(
                                     (sheetOffsetPx.value + delta)
-                                        .coerceIn(dragSnap.fullSnapOffsetPx, dragSnap.peekOffsetPx),
+                                        .coerceIn(dragSnap.fullSnapOffsetPx, dragSnap.minimizedOffsetPx),
                                 )
                             }
                         },
@@ -135,6 +136,7 @@ internal fun HomeBottomSheet(
                     onToggle = onToggle,
                     spotListExpanded = spotListExpanded,
                     onToggleSpotList = onToggleSpotList,
+                    onHeaderHeightChanged = onHeaderHeightChanged,
                     onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                     onRelease = onRelease,
                     onRejectSpot = {
@@ -200,38 +202,57 @@ internal fun HomeBottomSheet(
 }
 
 /**
- * Snap-point bundle for the sheet drag. Centralises the three offsets and
- * the fling/soft-drag selection so [HomeBottomSheet] can be called with a
- * single value instead of four loose floats.
+ * Snap-point bundle for the sheet drag. Centralises the offsets and the
+ * fling/soft-drag selection so [HomeBottomSheet] can be called with a single
+ * value instead of loose floats.
+ *
+ * Offset semantics: larger value = sheet top farther from screen top = sheet
+ * smaller. So `minimizedOffsetPx >= peekOffsetPx >= halfOffsetPx >= fullSnapOffsetPx`.
+ *
+ * [minimizedOffsetPx] is the extra "drag-down to header-only" snap point used
+ * in non-Browse states. In Browse it equals [peekOffsetPx] so the snap logic
+ * collapses to the original three-point behaviour. [SHEET-DRAG-001]
  */
 internal data class HomeSheetSnap(
     val peekOffsetPx: Float,
     val halfOffsetPx: Float,
     val fullSnapOffsetPx: Float,
+    val minimizedOffsetPx: Float,
     val snapSpec: androidx.compose.animation.core.AnimationSpec<Float>,
 ) {
     /** Returns the snap target the sheet should animate to after the user releases the drag. */
     fun snapTarget(current: Float, velocityYPxPerSec: Float): Float = when {
         velocityYPxPerSec < -FLING_SNAP_VELOCITY -> {
-            // Fling up: collapsed → half, half → full.
-            if (current > halfOffsetPx) halfOffsetPx else fullSnapOffsetPx
-        }
-        velocityYPxPerSec > FLING_SNAP_VELOCITY -> {
-            // Fling down: full → half, half → collapsed.
-            if (current < halfOffsetPx) halfOffsetPx else peekOffsetPx
-        }
-        else -> {
-            // Soft drag: snap to the nearest of full / half / peek.
-            val distFull = (current - fullSnapOffsetPx).absoluteValue
-            val distHalf = (current - halfOffsetPx).absoluteValue
-            val distPeek = (current - peekOffsetPx).absoluteValue
+            // Fling up: minimized → peek, peek → half, half → full.
             when {
-                distPeek <= distHalf && distPeek <= distFull -> peekOffsetPx
-                distHalf <= distFull -> halfOffsetPx
+                current > peekOffsetPx -> peekOffsetPx
+                current > halfOffsetPx -> halfOffsetPx
                 else -> fullSnapOffsetPx
             }
         }
-    }.coerceIn(fullSnapOffsetPx, peekOffsetPx)
+        velocityYPxPerSec > FLING_SNAP_VELOCITY -> {
+            // Fling down: full → half, half → peek, peek → minimized.
+            when {
+                current < halfOffsetPx -> halfOffsetPx
+                current < peekOffsetPx -> peekOffsetPx
+                else -> minimizedOffsetPx
+            }
+        }
+        else -> {
+            // Soft drag: snap to the nearest of minimized / peek / half / full.
+            val distMin = (current - minimizedOffsetPx).absoluteValue
+            val distPeek = (current - peekOffsetPx).absoluteValue
+            val distHalf = (current - halfOffsetPx).absoluteValue
+            val distFull = (current - fullSnapOffsetPx).absoluteValue
+            val (offset, _) = listOf(
+                fullSnapOffsetPx to distFull,
+                halfOffsetPx to distHalf,
+                peekOffsetPx to distPeek,
+                minimizedOffsetPx to distMin,
+            ).minBy { it.second }
+            offset
+        }
+    }.coerceIn(fullSnapOffsetPx, minimizedOffsetPx)
 }
 
 // Velocity (px/s) required to snap the sheet on fling; below this the sheet

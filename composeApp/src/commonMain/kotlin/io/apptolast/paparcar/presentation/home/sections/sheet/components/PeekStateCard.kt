@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,6 +62,7 @@ internal fun PeekStateCard(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     showDismiss: Boolean = true,
     contentScrollable: Boolean = false,
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
     leading: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit = {},
     actions: @Composable ColumnScope.() -> Unit = {},
@@ -68,10 +70,22 @@ internal fun PeekStateCard(
     Column(modifier = modifier.padding(horizontal = HORIZONTAL_DP.dp)) {
 
         // ── Header (chip + [label/title column] + close ×) ───────────────
+        // Header height is reported separately so the parent sheet can use it
+        // as the "minimized" snap point (drag-down state showing only the
+        // header). [SHEET-DRAG-001]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 14.dp),
+                .padding(top = 12.dp, bottom = 14.dp)
+                .then(
+                    if (onHeaderHeightChanged != null) {
+                        Modifier.onSizeChanged { size ->
+                            if (size.height > 0) onHeaderHeightChanged(size.height.toFloat())
+                        }
+                    } else {
+                        Modifier
+                    }
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

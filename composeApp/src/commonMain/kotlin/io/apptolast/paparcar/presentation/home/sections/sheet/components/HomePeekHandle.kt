@@ -185,6 +185,10 @@ internal fun HomePeekHandle(
     onZoneDismiss: () -> Unit = {},
     onEditZone: (zoneId: String) -> Unit = {},
     onDeleteZone: (zoneId: String) -> Unit = {},
+    /** Reports the header row height of the current non-Browse peek state so
+     *  the sheet can use it as the "drag-down to header-only" snap point.
+     *  Null callback (or Browse state) means no minimized snap is offered. */
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
 ) {
     val freeCount = state.filteredNearbySpots.size
     val isParkingSelected = state.isParkingSelected
@@ -244,6 +248,7 @@ internal fun HomePeekHandle(
                     onRejectSpot = onRejectSpot,
                     spotListExpanded = spotListExpanded,
                     onToggleSpotList = onToggleSpotList,
+                    onHeaderHeightChanged = onHeaderHeightChanged,
                 )
                 is PeekState.SelectedParking -> ParkingPeekRow(
                     parking = target.parking,
@@ -255,18 +260,21 @@ internal fun HomePeekHandle(
                         onNavigateExternal(target.parking.location.latitude, target.parking.location.longitude, true)
                     },
                     onMoveLocation = onMoveParkingLocation,
+                    onHeaderHeightChanged = onHeaderHeightChanged,
                 )
                 is PeekState.SelectedZone -> ZonePeekRow(
                     zone = target.zone,
                     onDismiss = onZoneDismiss,
                     onEdit = { onEditZone(target.zone.id) },
                     onDelete = { onDeleteZone(target.zone.id) },
+                    onHeaderHeightChanged = onHeaderHeightChanged,
                 )
                 PeekState.Reporting -> ReportPeekRow(
                     state = state,
                     onCancel = onCancelReport,
                     onConfirm = onConfirmReport,
                     onSizeSelected = onReportSizeSelected,
+                    onHeaderHeightChanged = onHeaderHeightChanged,
                 )
                 PeekState.AddingZone -> AddingZonePeekRow(
                     state = state,
@@ -276,12 +284,14 @@ internal fun HomePeekHandle(
                     onIconChange = onUpdateZoneIcon,
                     onRadiusChange = onZoneRadiusChanged,
                     onIsPrivateToggled = onZoneIsPrivateToggled,
+                    onHeaderHeightChanged = onHeaderHeightChanged,
                 )
                 is PeekState.AddingParking -> AddingParkingPeekRow(
                     state = state,
                     isEditing = target.isEditing,
                     onCancel = onCancelAddParking,
                     onConfirm = onConfirmAddParking,
+                    onHeaderHeightChanged = onHeaderHeightChanged,
                 )
                 PeekState.Browse -> CameraLocationRow(state = state, freeCount = freeCount, onToggle = onToggle)
             }
@@ -313,6 +323,7 @@ private fun SpotPeekRow(
     onRejectSpot: () -> Unit,
     spotListExpanded: Boolean = false,
     onToggleSpotList: () -> Unit = {},
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
 ) {
     val palette = spot.toReliabilityUiState().peekPalette()
     val distM = userLocation?.let { (uLat, uLon) ->
@@ -335,6 +346,7 @@ private fun SpotPeekRow(
         title = title,
         accentColor = palette.badgeBg,
         onDismiss = onDismiss,
+        onHeaderHeightChanged = onHeaderHeightChanged,
         leading = { SpotReliabilityBadge(palette) },
         content = {
             SpotFitRow(spot = spot, vehicle = activeVehicle)
@@ -642,6 +654,7 @@ private fun ParkingPeekRow(
     onRelease: () -> Unit,
     onWalkToCar: () -> Unit,
     onMoveLocation: () -> Unit,
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
@@ -665,6 +678,7 @@ private fun ParkingPeekRow(
         title = title,
         accentColor = vc.bg,
         onDismiss = onDismiss,
+        onHeaderHeightChanged = onHeaderHeightChanged,
         leading = {
             PeekHeaderIconChip(
                 painter = io.apptolast.paparcar.ui.components.vehicleIconPainter(
@@ -755,6 +769,7 @@ private fun ZonePeekRow(
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
 ) {
     val isPrivate = zone.isPrivate
     val accentColor = if (isPrivate) MaterialTheme.colorScheme.tertiary
@@ -767,6 +782,7 @@ private fun ZonePeekRow(
         title = stringResource(Res.string.home_zone_radius_meters, zone.radiusMeters.roundToInt()),
         accentColor = accentColor,
         onDismiss = onDismiss,
+        onHeaderHeightChanged = onHeaderHeightChanged,
         leading = {
             PeekHeaderIconChip(
                 icon = zoneIconFor(zone.iconKey),
@@ -818,6 +834,7 @@ private fun AddingParkingPeekRow(
     isEditing: Boolean,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
 ) {
     val primaryText = cameraTitleWhileSettling(state)
 
@@ -858,6 +875,7 @@ private fun AddingParkingPeekRow(
         headerLabel = headerLabel,
         title = primaryText,
         onDismiss = onCancel,
+        onHeaderHeightChanged = onHeaderHeightChanged,
         leading = { PeekHeaderIconChip(icon = PaparcarIcons.VehicleCar) },
         content = {
             HelperRow(
@@ -892,6 +910,7 @@ private fun ReportPeekRow(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
     onSizeSelected: (VehicleSize?) -> Unit,
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
 ) {
     val primaryText = cameraTitleWhileSettling(state)
 
@@ -899,6 +918,7 @@ private fun ReportPeekRow(
         headerLabel = stringResource(Res.string.home_report_header_label),
         title = primaryText,
         onDismiss = onCancel,
+        onHeaderHeightChanged = onHeaderHeightChanged,
         leading = { PeekHeaderIconChip(icon = Icons.Outlined.Campaign) },
         content = {
             HelperRow(
@@ -985,6 +1005,7 @@ private fun AddingZonePeekRow(
     onIconChange: (String) -> Unit,
     onRadiusChange: (Float) -> Unit,
     onIsPrivateToggled: (Boolean) -> Unit = {},
+    onHeaderHeightChanged: ((Float) -> Unit)? = null,
 ) {
     val primaryText = cameraTitleWhileSettling(state)
 
@@ -999,6 +1020,7 @@ private fun AddingZonePeekRow(
         title = primaryText,
         onDismiss = onCancel,
         contentScrollable = true,
+        onHeaderHeightChanged = onHeaderHeightChanged,
         leading = { PeekHeaderIconChip(icon = zoneIconFor(state.addingZoneIconKey)) },
         content = {
             androidx.compose.material3.OutlinedTextField(
