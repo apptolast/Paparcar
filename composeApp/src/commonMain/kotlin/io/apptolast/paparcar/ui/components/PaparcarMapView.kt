@@ -230,12 +230,24 @@ private data class SpotMeta(
 )
 
 // ── Marker content IDs ──────────────────────────────────────────────────────
-// Badge markers: contentId encodes vehicleId + sizeCategory + state so the
-// bitmap cache stores one entry per vehicle×state. [MAP-MARKERS-REDESIGN-001]
-private fun vehicleBadgeContentId(v: ParkedVehicleSummary, selected: Boolean): String =
-    "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_${if (selected) "sel" else "nrm"}"
+// Badge markers: contentId encodes vehicleId + sizeCategory + selection + dim
+// state, so the bitmap cache stores one entry per vehicle×state×dim and
+// kmpmaps regenerates the bitmap whenever any of those flips. [MAP-MARKERS-DIM-002]
+private fun vehicleBadgeContentId(
+    v: ParkedVehicleSummary,
+    selected: Boolean,
+    dim: Boolean = false,
+): String {
+    val state = when {
+        selected -> "sel"
+        dim      -> "dim"
+        else     -> "nrm"
+    }
+    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_$state"
+}
 
 private const val MARKER_MY_CAR          = "my_car"
+private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
 
 // Google Maps renders billboard markers by screen-Y when zIndex is equal,
@@ -247,33 +259,30 @@ private val SELECTED_MARKER_OPTIONS = AndroidMarkerOptions(zIndex = MARKER_Z_IND
 private val NORMAL_MARKER_OPTIONS   = AndroidMarkerOptions(zIndex = MARKER_Z_INDEX_NORMAL)
 
 // Free-spot markers — unified green style, no reliability tiers. [MAP-MARKERS-REDESIGN-001]
-// Dim state is no longer encoded in contentId; it is applied via Modifier.alpha in
-// customMarkerContent composables so the markers list stays stable during sheet drag. [COMPOSE-PERF-001]
+// Dim state IS encoded in contentId (NRM vs DIM are separate cached bitmaps)
+// because kmpmaps caches by contentId; if dim were applied post-rasterization
+// via a Modifier.alpha, the cached bitmap would never refresh when dimSpots
+// toggled without the list of Marker instances also changing. [MAP-MARKERS-DIM-002]
 private const val MARKER_FREE_SPOT_NRM = "free_spot_nrm"
+private const val MARKER_FREE_SPOT_DIM = "free_spot_dim"
 private const val MARKER_FREE_SPOT_SEL = "free_spot_sel"
 
 // Alpha applied to dimmed markers — visible enough to deter duplicate
 // reports, subordinate enough that the centre pin dominates.
 private const val DIM_MARKER_ALPHA = 0.35f
-private const val FULL_MARKER_ALPHA = 1f
-private const val MARKER_CLUSTER   = "cluster"
+private const val MARKER_CLUSTER     = "cluster"
+private const val MARKER_CLUSTER_DIM = "cluster_dim"
 
 /**
- * Wraps a non-focus marker so it fades to [DIM_MARKER_ALPHA] when the host
- * has a selection (or is pinning). The selected marker — spot, parked
- * vehicle, etc. — uses its own `_sel` contentId and bypasses this slot,
- * so the bitmap stays at full opacity.
- *
- * Every non-selected marker handler MUST go through this wrapper so the
- * "click any marker → others fade" invariant holds uniformly across spots,
- * clusters, parked vehicles and zones. [MAP-MARKERS-DIM-001]
+ * Wraps non-focus marker content with a fixed [DIM_MARKER_ALPHA]. This is
+ * only ever called from the `_dim` handler branches — `dim` is baked into
+ * the marker's `contentId` by the list builder, so kmpmaps caches NRM and
+ * DIM as separate bitmaps and refreshes the bitmap as soon as the contentId
+ * flips (e.g. on selection change). [MAP-MARKERS-DIM-002]
  */
 @Composable
-private fun DimmableMarkerSlot(
-    dim: Boolean,
-    content: @Composable () -> Unit,
-) {
-    Box(modifier = Modifier.alpha(if (dim) DIM_MARKER_ALPHA else FULL_MARKER_ALPHA)) {
+private fun DimWrapper(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.alpha(DIM_MARKER_ALPHA)) {
         content()
     }
 }
@@ -396,10 +405,12 @@ fun PaparcarMapView(
     /**
      * When true, every non-focus marker (anything not routed to a `_sel`
      * contentId via [selectedSpotId] or [isMyCarSelected]) renders with
-     * [DIM_MARKER_ALPHA] opacity through [DimmableMarkerSlot]. Used by
-     * the host to subordinate non-focus markers while the user has a
-     * selection or is positioning a new spot (Home's Reporting mode +
-     * selection states).
+     * [DIM_MARKER_ALPHA] opacity. Dim is baked into the marker's contentId
+     * by the list builder, so kmpmaps caches NRM and DIM as separate
+     * bitmaps and the visual flips reliably whenever dimSpots toggles.
+     * Used by the host to subordinate non-focus markers while the user has
+     * a selection or is positioning a new spot (Home's Reporting mode +
+     * selection states). [MAP-MARKERS-DIM-002]
      */
     dimSpots: Boolean = false,
     onSpotClick: (String) -> Unit = {},
@@ -454,14 +465,20 @@ fun PaparcarMapView(
         parkedVehicles.associate { Coordinates(it.location.latitude, it.location.longitude) to it.sessionId }
     }
 
-    // dimSpots intentionally excluded from this remember key — dim is visual-only and
-    // changes on every sheet-drag frame. The marker list only encodes geometry and
-    // selection (which affect zIndex/ordering); opacity is applied inside customMarkerContent
-    // composable lambdas which rebuild independently on dimSpots changes. [COMPOSE-PERF-001]
-    val markers = remember(clusters, parkingLocation, parkedVehicles, selectedSpotId, isMyCarSelected, zones) {
+    // dim is encoded in the contentId of every non-selected marker (selected
+    // markers always render at full opacity regardless of dimSpots). When
+    // dimSpots flips, every non-selected marker gets a NEW contentId and
+    // kmpmaps fetches the pre-dimmed bitmap from cache — that is the only
+    // reliable way to refresh opacity, since kmpmaps caches the rasterised
+    // bitmap by contentId. [MAP-MARKERS-DIM-002]
+    val markers = remember(
+        clusters, parkingLocation, parkedVehicles, selectedSpotId, isMyCarSelected, zones, dimSpots,
+    ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
-            // always render on top.
+            // always render on top. Zones are never the selected marker, so they
+            // route through the dim suffix uniformly.
+            val zoneDimSuffix = if (dimSpots) "_dim" else "_nrm"
             zones.forEach { zone ->
                 add(
                     Marker(
@@ -470,8 +487,8 @@ fun PaparcarMapView(
                         // balloon. Zone ID is recovered via zoneIdByCoords in the
                         // click handler instead.
                         title = null,
-                        // Per-zone contentId: each zone instance gets its own bitmap. [MAP-MARKERS-REDESIGN-001]
-                        contentId = "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}",
+                        // Per-zone × dim contentId: each zone has two cached bitmaps. [MAP-MARKERS-DIM-002]
+                        contentId = "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}$zoneDimSuffix",
                         androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
                 )
@@ -484,8 +501,11 @@ fun PaparcarMapView(
                         Marker(
                             coordinates = Coordinates(v.location.latitude, v.location.longitude),
                             title = null,
-                            // dim=false: opacity applied in customMarkerContent lambda
-                            contentId = vehicleBadgeContentId(v, selected = selected),
+                            contentId = vehicleBadgeContentId(
+                                v,
+                                selected = selected,
+                                dim = !selected && dimSpots,
+                            ),
                             androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
@@ -494,12 +514,16 @@ fun PaparcarMapView(
                 // Fallback: legacy teardrop (used by ParkingLocationScreen which
                 // does not supply parkedVehicles).
                 parkingLocation?.let {
+                    val contentId = when {
+                        isMyCarSelected -> MARKER_MY_CAR_SELECTED
+                        dimSpots        -> MARKER_MY_CAR_DIM
+                        else            -> MARKER_MY_CAR
+                    }
                     add(
                         Marker(
                             coordinates = Coordinates(it.latitude, it.longitude),
                             title = null,
-                            // dim handled in customMarkerContent; only selected affects zIndex here
-                            contentId = if (isMyCarSelected) MARKER_MY_CAR_SELECTED else MARKER_MY_CAR,
+                            contentId = contentId,
                             androidMarkerOptions = if (isMyCarSelected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
@@ -509,12 +533,16 @@ fun PaparcarMapView(
                 if (cluster.spots.size == 1) {
                     val spot = cluster.spots.first()
                     val selected = spot.id == selectedSpotId
+                    val contentId = when {
+                        selected -> MARKER_FREE_SPOT_SEL
+                        dimSpots -> MARKER_FREE_SPOT_DIM
+                        else     -> MARKER_FREE_SPOT_NRM
+                    }
                     add(
                         Marker(
                             coordinates = Coordinates(spot.location.latitude, spot.location.longitude),
                             title = null,
-                            // dim=false: opacity applied in customMarkerContent lambda
-                            contentId = if (selected) MARKER_FREE_SPOT_SEL else MARKER_FREE_SPOT_NRM,
+                            contentId = contentId,
                             androidMarkerOptions = if (selected) SELECTED_MARKER_OPTIONS else NORMAL_MARKER_OPTIONS,
                         ),
                     )
@@ -523,7 +551,7 @@ fun PaparcarMapView(
                         Marker(
                             coordinates = Coordinates(cluster.lat, cluster.lon),
                             title = null,
-                            contentId = MARKER_CLUSTER,
+                            contentId = if (dimSpots) MARKER_CLUSTER_DIM else MARKER_CLUSTER,
                             androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                         ),
                     )
@@ -534,19 +562,29 @@ fun PaparcarMapView(
 
     // ── Custom marker composables ─────────────────────────────────────────────
     // Three-marker system [MAP-MARKERS-REDESIGN-001]:
-    //   - VehicleBadgeMarker: amber circle + vehicle icon (one bitmap per vehicle×state)
-    //   - FreeSpotMarker: unified green circle + "P" (3 shared bitmaps, no reliability tiers)
-    //   - ZoneMarker: blue hexagon + 3-char zone code (one bitmap per zone×state)
-    // Non-selected marker handlers route through [DimmableMarkerSlot]; selected
-    // handlers render at full opacity. Selection routing is done via contentId
-    // when building the markers list above, so a `_nrm`/non-selected handler
-    // only ever runs when its marker is NOT the focus — no extra guard needed
-    // inside the handler. [MAP-MARKERS-DIM-001]
-    val customMarkerContent = remember(clusterCountByCoords, parkedVehicles, zones, dimSpots, parkingVehicleSize, parkingVehicleCarbody, parkingIsActive) {
+    //   - VehicleBadgeMarker: amber circle + vehicle icon (per vehicle×state×dim)
+    //   - FreeSpotMarker: unified green circle + "P" (shared bitmaps, no reliability tiers)
+    //   - ZoneMarker: blue hexagon + 3-char zone code (per zone×dim)
+    // Each non-selected content type registers TWO handlers — `_nrm` at full
+    // alpha and `_dim` wrapped in [DimWrapper] — and the list builder picks
+    // the contentId that matches the current dimSpots. This means the dim
+    // state is baked into the rasterised bitmap (kmpmaps caches by contentId)
+    // instead of being applied as a post-rasterisation Modifier.alpha, which
+    // never refreshed reliably. [MAP-MARKERS-DIM-002]
+    val customMarkerContent = remember(
+        clusterCountByCoords, parkedVehicles, zones, parkingVehicleSize, parkingVehicleCarbody, parkingIsActive,
+    ) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = mapOf(
             // ── Fallback single-parking marker (ParkingLocationScreen) ──
             MARKER_MY_CAR to { _ ->
-                DimmableMarkerSlot(dim = dimSpots) {
+                VehicleBadgeMarker(
+                    sizeCategory = parkingVehicleSize,
+                    carbodyType = parkingVehicleCarbody,
+                    isActive = parkingIsActive,
+                )
+            },
+            MARKER_MY_CAR_DIM to { _ ->
+                DimWrapper {
                     VehicleBadgeMarker(
                         sizeCategory = parkingVehicleSize,
                         carbodyType = parkingVehicleCarbody,
@@ -562,25 +600,34 @@ fun PaparcarMapView(
                     isActive = parkingIsActive,
                 )
             },
-            // ── Free-spot bitmaps — 2 shared bitmaps (sel/nrm) ──
-            MARKER_FREE_SPOT_NRM to { _ ->
-                DimmableMarkerSlot(dim = dimSpots) { FreeSpotWithOverlays(selected = false) }
-            },
+            // ── Free-spot bitmaps — 3 shared bitmaps (nrm/dim/sel) ──
+            MARKER_FREE_SPOT_NRM to { _ -> FreeSpotWithOverlays(selected = false) },
+            MARKER_FREE_SPOT_DIM to { _ -> DimWrapper { FreeSpotWithOverlays(selected = false) } },
             MARKER_FREE_SPOT_SEL to { _ -> FreeSpotWithOverlays(selected = true) },
             // ── Spot clusters ──
             MARKER_CLUSTER to { marker ->
-                DimmableMarkerSlot(dim = dimSpots) {
+                FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
+            },
+            MARKER_CLUSTER_DIM to { marker ->
+                DimWrapper {
                     FreeSpotClusterMarker(count = clusterCountByCoords[marker.coordinates] ?: 0)
                 }
             },
         )
 
-        // ── Per-vehicle badge bitmaps (one per vehicle × selected) ──
+        // ── Per-vehicle badge bitmaps (one per vehicle × selected × dim) ──
         val vehicleHandlers: Map<String, @Composable (Marker) -> Unit> =
             parkedVehicles.flatMap { v ->
                 listOf<Pair<String, @Composable (Marker) -> Unit>>(
-                    vehicleBadgeContentId(v, selected = false) to { _: Marker ->
-                        DimmableMarkerSlot(dim = dimSpots) {
+                    vehicleBadgeContentId(v, selected = false, dim = false) to { _: Marker ->
+                        VehicleBadgeMarker(
+                            sizeCategory = v.sizeCategory,
+                            carbodyType = v.carbodyType,
+                            isActive = true,
+                        )
+                    },
+                    vehicleBadgeContentId(v, selected = false, dim = true) to { _: Marker ->
+                        DimWrapper {
                             VehicleBadgeMarker(
                                 sizeCategory = v.sizeCategory,
                                 carbodyType = v.carbodyType,
@@ -599,15 +646,21 @@ fun PaparcarMapView(
                 )
             }.toMap()
 
-        // ── Per-zone marker bitmaps (zone code is zone-specific) ──
+        // ── Per-zone marker bitmaps (zone code is zone-specific × dim) ──
         val zoneHandlers: Map<String, @Composable (Marker) -> Unit> =
-            zones.associate { zone ->
-                "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}" to { _: Marker ->
-                    DimmableMarkerSlot(dim = dimSpots) {
+            zones.flatMap { zone ->
+                val base = "$MARKER_ZONE_PREFIX${zone.id}_${if (zone.isPrivate) "prv" else "pub"}"
+                listOf<Pair<String, @Composable (Marker) -> Unit>>(
+                    "${base}_nrm" to { _: Marker ->
                         ZoneMarker(zoneCode = zone.name.take(3).uppercase(), isPrivate = zone.isPrivate)
-                    }
-                }
-            }
+                    },
+                    "${base}_dim" to { _: Marker ->
+                        DimWrapper {
+                            ZoneMarker(zoneCode = zone.name.take(3).uppercase(), isPrivate = zone.isPrivate)
+                        }
+                    },
+                )
+            }.toMap()
 
         baseHandlers + vehicleHandlers + zoneHandlers
     }
@@ -737,12 +790,13 @@ fun PaparcarMapView(
                 val cid = marker.contentId
                 when {
                     cid == MARKER_MY_CAR ||
+                        cid == MARKER_MY_CAR_DIM ||
                         cid == MARKER_MY_CAR_SELECTED ||
                         cid?.startsWith("vehicle_badge_") == true ->
                         sessionIdByCoords[marker.coordinates]?.let(onMyCarClick)
                     cid?.startsWith(MARKER_ZONE_PREFIX) == true ->
                         zoneIdByCoords[marker.coordinates]?.let(onZoneClick)
-                    cid == MARKER_CLUSTER -> Unit // cluster taps are inert
+                    cid == MARKER_CLUSTER || cid == MARKER_CLUSTER_DIM -> Unit // cluster taps are inert
                     else ->
                         spotMetaByCoords[marker.coordinates]?.let { onSpotClick(it.spotId) }
                 }
