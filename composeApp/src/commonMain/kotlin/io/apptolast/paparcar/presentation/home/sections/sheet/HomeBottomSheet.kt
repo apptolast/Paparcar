@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -107,10 +106,24 @@ internal fun HomeBottomSheet(
             val isBrowseTappable = state.mode is HomeMode.Browse && state.selectedItemId == null
             Box(
                 modifier = Modifier
-                    .onSizeChanged { size ->
-                        // Guard 0-height transients during the first compose
-                        // pass so peekHeightPx never collapses the offset math.
-                        if (size.height > 0) onPeekHeightChanged(size.height.toFloat())
+                    // Measure the peek handle with an UNBOUNDED max height so the
+                    // reported intrinsic size is independent of the Surface clip.
+                    // Without this, dragging the sheet below peek (non-Browse states)
+                    // shrinks the Surface, the Box gets clipped, onSizeChanged reports
+                    // the clipped height, peekOffsetPx chases minimizedOffsetPx, and
+                    // the reset-to-peek effect yanks the sheet back — making drag
+                    // feel static. The Box is laid out at min(intrinsic, parentMax)
+                    // so siblings (LazyColumn) keep their position; visual overflow
+                    // is clipped by the Surface shape. [SHEET-DRAG-003]
+                    .layout { measurable, constraints ->
+                        val unbounded = constraints.copy(
+                            minHeight = 0,
+                            maxHeight = androidx.compose.ui.unit.Constraints.Infinity,
+                        )
+                        val placeable = measurable.measure(unbounded)
+                        if (placeable.height > 0) onPeekHeightChanged(placeable.height.toFloat())
+                        val outHeight = placeable.height.coerceAtMost(constraints.maxHeight)
+                        layout(placeable.width, outHeight) { placeable.place(0, 0) }
                     }
                     .then(if (isBrowseTappable) Modifier.clickable(onClick = onToggle) else Modifier)
                     .draggable(
