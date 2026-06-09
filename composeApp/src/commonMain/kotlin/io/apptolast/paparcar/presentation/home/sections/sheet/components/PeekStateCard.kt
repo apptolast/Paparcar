@@ -16,7 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -186,7 +186,9 @@ internal fun PeekHeaderIconChip(
 }
 
 /**
- * Visually de-emphasised dismiss × used by every [PeekStateCard].
+ * Visually de-emphasised back affordance used by every [PeekStateCard]. Tapping
+ * exits the current state to Browse (same semantics as the system back gesture,
+ * which is also wired in HomeScreen via BackHandler). [SHEET-BACKNAV-001]
  */
 @Composable
 private fun PeekStateDismissButton(onDismiss: () -> Unit) {
@@ -198,7 +200,7 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.Outlined.Close,
+            Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISMISS_ALPHA),
             modifier = Modifier.size(DISMISS_ICON_DP.dp),

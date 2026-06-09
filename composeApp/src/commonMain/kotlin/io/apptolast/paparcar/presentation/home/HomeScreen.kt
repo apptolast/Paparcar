@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.presentation.util.PaparcarBackHandler
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
@@ -173,6 +174,11 @@ fun HomeScreen(
     // is safe to remember once. Prevents HomeContent from getting a new
     // lambda on every state emission, which would defeat skipping in children.
     val onIntent: (HomeIntent) -> Unit = remember(viewModel) { viewModel::handleIntent }
+
+    // System back navigates non-Browse states to Browse (silent discard).
+    // Disabled in Browse so the back press still bubbles up to the host nav
+    // (BottomNav / activity finish). [SHEET-BACKNAV-001]
+    HomeBackNavigation(state = state, onIntent = onIntent)
 
     HomeContent(
         state = state,
@@ -835,4 +841,30 @@ private fun HomeContent(
             }
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// System back wiring
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Intercepts the system back gesture/key whenever Home is in a non-Browse
+ * state (pin-positioning mode or any selection peek). Tapping back unwinds
+ * exactly one level — same target as the peek's back arrow. Discards in-progress
+ * input silently (e.g. half-filled Reporting/AddingZone form). [SHEET-BACKNAV-001]
+ *
+ * Disabled in Browse so the back press still bubbles up to the host nav
+ * (BottomNav back behaviour / activity finish).
+ */
+@Composable
+private fun HomeBackNavigation(state: HomeState, onIntent: (HomeIntent) -> Unit) {
+    val backAction: (() -> Unit)? = when {
+        state.mode is HomeMode.Reporting -> { { onIntent(HomeIntent.ExitReportMode) } }
+        state.mode is HomeMode.AddingZone -> { { onIntent(HomeIntent.ExitAddZoneMode) } }
+        state.mode is HomeMode.AddingParking -> { { onIntent(HomeIntent.ExitAddParkingMode) } }
+        state.selectedItemId != null -> { { onIntent(HomeIntent.SelectItem(null)) } }
+        state.selectedZoneId != null -> { { onIntent(HomeIntent.DismissZone) } }
+        else -> null
+    }
+    PaparcarBackHandler(enabled = backAction != null) { backAction?.invoke() }
 }
