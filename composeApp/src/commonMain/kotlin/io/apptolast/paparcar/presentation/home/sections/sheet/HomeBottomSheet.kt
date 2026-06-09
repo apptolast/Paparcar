@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.home.sections.sheet
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -99,12 +100,12 @@ internal fun HomeBottomSheet(
         Column(modifier = Modifier.fillMaxSize()) {
             // The entire peek handle (drag pill + content row) is tappable to
             // toggle the sheet between peek and the appropriate snap (half for
-            // Browse, minimized for non-Browse). The clickable sits alongside
-            // draggable on the same Box so pointer events reach ONE composable,
-            // avoiding the press-state race that prevents the ripple from
-            // showing when clickable is nested below draggable. Inner interactive
-            // children (buttons, text fields, sliders) consume their own clicks
-            // and don't propagate. [SHEET-TAP-001]
+            // Browse, minimized for non-Browse). Inner interactive children
+            // (buttons, text fields, sliders) consume their own clicks and
+            // don't propagate. Ripple is suppressed because the visible response
+            // to the tap is the sheet animation itself — a flash on the chip /
+            // helper text reads as a glitch over content. [SHEET-TAP-002]
+            val toggleInteractionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
                     // Measure the peek handle with an UNBOUNDED max height so the
@@ -126,7 +127,11 @@ internal fun HomeBottomSheet(
                         val outHeight = placeable.height.coerceAtMost(constraints.maxHeight)
                         layout(placeable.width, outHeight) { placeable.place(0, 0) }
                     }
-                    .clickable(onClick = onToggle)
+                    .clickable(
+                        interactionSource = toggleInteractionSource,
+                        indication = null,
+                        onClick = onToggle,
+                    )
                     .draggable(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->
