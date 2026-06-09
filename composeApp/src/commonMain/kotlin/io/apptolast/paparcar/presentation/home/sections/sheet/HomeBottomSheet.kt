@@ -97,12 +97,14 @@ internal fun HomeBottomSheet(
         shadowElevation = SHEET_SHADOW_ELEVATION_DP.dp,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // In Browse-with-no-selection mode the entire peek handle (drag pill
-            // + content row) is tappable to toggle the sheet. The clickable sits
-            // alongside draggable on the same Box so pointer events reach ONE
-            // composable, avoiding the press-state race that prevents the ripple
-            // from showing when clickable is nested below draggable.
-            val isBrowseTappable = state.mode is HomeMode.Browse && state.selectedItemId == null
+            // The entire peek handle (drag pill + content row) is tappable to
+            // toggle the sheet between peek and the appropriate snap (half for
+            // Browse, minimized for non-Browse). The clickable sits alongside
+            // draggable on the same Box so pointer events reach ONE composable,
+            // avoiding the press-state race that prevents the ripple from
+            // showing when clickable is nested below draggable. Inner interactive
+            // children (buttons, text fields, sliders) consume their own clicks
+            // and don't propagate. [SHEET-TAP-001]
             Box(
                 modifier = Modifier
                     // Measure the peek handle with an UNBOUNDED max height so the
@@ -124,7 +126,7 @@ internal fun HomeBottomSheet(
                         val outHeight = placeable.height.coerceAtMost(constraints.maxHeight)
                         layout(placeable.width, outHeight) { placeable.place(0, 0) }
                     }
-                    .then(if (isBrowseTappable) Modifier.clickable(onClick = onToggle) else Modifier)
+                    .clickable(onClick = onToggle)
                     .draggable(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->

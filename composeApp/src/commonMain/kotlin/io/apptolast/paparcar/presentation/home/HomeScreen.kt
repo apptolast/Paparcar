@@ -544,6 +544,7 @@ private fun HomeContent(
                 // changes — used by lambdas that must be stable but always read the
                 // latest snap values at call-time rather than capture-time.
                 val currentHalfOffset = rememberUpdatedState(halfOffsetPx)
+                val currentMinimizedOffset = rememberUpdatedState(minimizedOffsetPx)
                 val currentUserParking = rememberUpdatedState(state.userParking)
                 val currentActiveSessions = rememberUpdatedState(state.activeSessions)
                 val currentUserGpsPoint = rememberUpdatedState(state.userGpsPoint)
@@ -565,17 +566,33 @@ private fun HomeContent(
                     }
                 }
 
-                // Toggles the sheet between peek (collapsed) and half-expanded.
-                // At peek → animate to half; at or above half → collapse to peek.
+                // Toggles the sheet between peek and the adjacent snap. The
+                // "adjacent" snap depends on the current state:
+                //  - Browse with a list (half < peek):  peek ↔ half
+                //  - Non-Browse (half == peek, no expansion above):  peek ↔ minimized
+                // So tap-from-peek opens upward in Browse and downward in pin /
+                // selection states — matching the user's directional expectation
+                // for each modal. [SHEET-TAP-001]
                 val toggleSheet: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
                     {
                         coroutineScope.launch {
-                            // > (strict): when the sheet is exactly at half, the
-                            // next tap must collapse, not re-animate to the same spot.
-                            val target = if (sheetOffsetPx.value > currentHalfOffset.value) {
-                                currentHalfOffset.value.coerceIn(currentFullSnap.value, currentPeekOffset.value)
-                            } else {
-                                currentPeekOffset.value
+                            val current = sheetOffsetPx.value
+                            val peek = currentPeekOffset.value
+                            val minimized = currentMinimizedOffset.value
+                            val half = currentHalfOffset.value
+                                .coerceIn(currentFullSnap.value, peek)
+                            val canExpandAbovePeek = half < peek - 1f
+                            val canCollapseBelowPeek = minimized > peek + 1f
+                            val target = when {
+                                // Above peek → collapse to peek.
+                                current < peek - 1f -> peek
+                                // Below peek → expand to peek.
+                                current > peek + 1f -> peek
+                                // At peek with a half snap available → go to half.
+                                canExpandAbovePeek -> half
+                                // At peek with no expansion but a minimized snap → collapse.
+                                canCollapseBelowPeek -> minimized
+                                else -> peek
                             }
                             sheetOffsetPx.animateTo(target, SnapSpec)
                         }
