@@ -2,7 +2,7 @@ package io.apptolast.paparcar.ui.components
 
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -10,13 +10,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.material3.Icon
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 /**
  * Branded text input field.
  *
  * Applies [MaterialTheme.shapes.small] (8 dp corners) and the design system
  * color tokens. Supports optional [leadingIcon] / [trailingIcon] and error state.
+ *
+ * When [showClearButton] is true (default) and the caller does not provide a
+ * [trailingIcon], an automatic clear (X) button is rendered while the field is
+ * editable and has content.
  */
 @Composable
 fun PapTextField(
@@ -35,7 +39,13 @@ fun PapTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     enabled: Boolean = true,
     readOnly: Boolean = false,
+    showClearButton: Boolean = true,
 ) {
+    val resolvedTrailingIcon: @Composable (() -> Unit)? = trailingIcon
+        ?: if (showClearButton && value.isNotEmpty() && enabled && !readOnly) {
+            { PapClearIconButton(onClick = { onValueChange("") }) }
+        } else null
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -52,7 +62,7 @@ fun PapTextField(
                 )
             }
         },
-        trailingIcon = trailingIcon,
+        trailingIcon = resolvedTrailingIcon,
         isError = isError,
         supportingText = errorMessage?.let {
             {

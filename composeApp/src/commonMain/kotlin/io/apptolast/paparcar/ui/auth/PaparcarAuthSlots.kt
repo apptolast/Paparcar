@@ -61,12 +61,12 @@ import paparcar.composeapp.generated.resources.auth_forgot_password
 import paparcar.composeapp.generated.resources.auth_header_tagline
 import paparcar.composeapp.generated.resources.ic_paparcar_round
 
-private val LOGO_BADGE_SIZE = 92.dp
-private val LOGO_IMAGE_SIZE = 76.dp
+private val LOGO_BADGE_SIZE = 72.dp
+private val LOGO_IMAGE_SIZE = 60.dp
 private val LOGO_BADGE_ELEVATION = 6.dp
 private val HEADER_TOP_SPACING = 4.dp
-private val HEADER_LOGO_TITLE_GAP = 18.dp
-private val HEADER_TITLE_TAGLINE_GAP = 6.dp
+private val HEADER_LOGO_TEXT_GAP = 14.dp
+private val HEADER_TITLE_TAGLINE_GAP = 4.dp
 private val HEADER_BOTTOM_SPACING = 8.dp
 private val FIELD_ICON_SIZE = 20.dp
 private val FIELD_CORNER_RADIUS = 14.dp
@@ -149,42 +149,47 @@ private fun PaparcarAuthHeader() {
     ) {
         Spacer(modifier = Modifier.height(HEADER_TOP_SPACING))
 
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            shadowElevation = LOGO_BADGE_ELEVATION,
-            modifier = Modifier.size(LOGO_BADGE_SIZE),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(HEADER_LOGO_TEXT_GAP),
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Image(
-                    painter = painterResource(Res.drawable.ic_paparcar_round),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .size(LOGO_IMAGE_SIZE)
-                        .clip(CircleShape),
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shadowElevation = LOGO_BADGE_ELEVATION,
+                modifier = Modifier.size(LOGO_BADGE_SIZE),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(Res.drawable.ic_paparcar_round),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .size(LOGO_IMAGE_SIZE)
+                            .clip(CircleShape),
+                    )
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = stringResource(Res.string.auth_header_app_name),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Start,
+                )
+
+                Spacer(modifier = Modifier.height(HEADER_TITLE_TAGLINE_GAP))
+
+                Text(
+                    text = stringResource(Res.string.auth_header_tagline),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Start,
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(HEADER_LOGO_TITLE_GAP))
-
-        Text(
-            text = stringResource(Res.string.auth_header_app_name),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-
-        Spacer(modifier = Modifier.height(HEADER_TITLE_TAGLINE_GAP))
-
-        Text(
-            text = stringResource(Res.string.auth_header_tagline),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
 
         Spacer(modifier = Modifier.height(HEADER_BOTTOM_SPACING))
     }
