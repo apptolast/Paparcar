@@ -76,7 +76,6 @@ val domainModule = module {
             vehicleRepository = get(),
             zoneRepository = get(),
             geofenceService = get(),
-            notificationPort = get(),
             enrichmentScheduler = get(),
             authRepository = get(),
             config = get(),

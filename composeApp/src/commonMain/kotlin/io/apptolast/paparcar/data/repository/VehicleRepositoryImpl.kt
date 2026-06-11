@@ -165,8 +165,13 @@ class VehicleRepositoryImpl(
     }
 
     override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?): Result<Unit> = runCatching {
-        // On-device only — intentionally never synced to Firestore
         dao.updateBluetoothDevice(vehicleId, deviceAddress)
+        // Sync to Firestore so the pairing survives the syncFromRemote replace
+        // on the next bootstrap. Without this, deleteByUser + upsertAll wipes
+        // the local pairing because Firestore still carries the old null value.
+        currentUserId()?.let { uid ->
+            userProfileDataSource.updateVehicleBluetoothDevice(uid, vehicleId, deviceAddress)
+        }
     }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
