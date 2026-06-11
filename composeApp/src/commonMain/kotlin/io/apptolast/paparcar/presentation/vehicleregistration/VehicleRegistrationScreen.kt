@@ -18,10 +18,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Delete
@@ -53,10 +54,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import io.apptolast.paparcar.ui.components.CarbodyInfoCard
@@ -67,8 +73,6 @@ import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.PapTextField
 import io.apptolast.paparcar.ui.components.label
-import io.apptolast.paparcar.ui.icons.PaparcarIcons
-import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
@@ -94,7 +98,6 @@ import paparcar.composeapp.generated.resources.vehicle_registration_license_plat
 import paparcar.composeapp.generated.resources.vehicle_registration_model_hint
 import paparcar.composeapp.generated.resources.vehicle_registration_name_label
 import paparcar.composeapp.generated.resources.vehicle_registration_name_placeholder
-import paparcar.composeapp.generated.resources.vehicle_registration_other_option
 import paparcar.composeapp.generated.resources.vehicle_registration_preview_title
 import paparcar.composeapp.generated.resources.vehicle_registration_save
 import paparcar.composeapp.generated.resources.vehicle_registration_saving
@@ -204,16 +207,27 @@ internal fun VehicleRegistrationContent(
     val isEditing = state.editingVehicleId != null
     val isNewVehicle = state.editingVehicleId == null
     val brands = remember { VehicleCatalog.brands() }
-    val otherLabel = stringResource(Res.string.vehicle_registration_other_option)
 
     var brandExpanded by remember { mutableStateOf(false) }
     var modelExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showCarbodyPicker by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
-    val models = remember(state.brand, state.isBrandOther) {
-        if (!state.isBrandOther && state.brand.isNotBlank()) VehicleCatalog.modelsFor(state.brand)
+    // Model catalog surfaces only when the typed brand matches a known catalog entry — the
+    // user might be in "custom" mode (isBrandOther=true) but if their text exactly matches
+    // a catalog brand we still want to suggest its models.
+    val modelsForBrand = remember(state.brand) {
+        if (state.brand.isNotBlank() && state.brand in brands) VehicleCatalog.modelsFor(state.brand)
         else emptyList()
+    }
+    val filteredBrands = remember(state.brand) {
+        if (state.brand.isBlank()) brands
+        else brands.filter { it.contains(state.brand, ignoreCase = true) }
+    }
+    val filteredModels = remember(state.model, modelsForBrand) {
+        if (state.model.isBlank()) modelsForBrand
+        else modelsForBrand.filter { it.contains(state.model, ignoreCase = true) }
     }
 
     val bottomHint: String? = when {
@@ -289,46 +303,36 @@ internal fun VehicleRegistrationContent(
                         ) {
                             PapTextField(
                                 value = state.brand,
-                                onValueChange = {
-                                    if (state.isBrandOther) onIntent(VehicleRegistrationIntent.SetCustomBrand(it))
+                                onValueChange = { value ->
+                                    onIntent(VehicleRegistrationIntent.SetCustomBrand(value))
+                                    brandExpanded = true
                                 },
-                                readOnly = !state.isBrandOther,
                                 label = stringResource(Res.string.vehicle_registration_brand_hint),
                                 isError = state.brandError,
-                                trailingIcon = {
-                                    if (!state.isBrandOther) {
-                                        IconButton(onClick = { brandExpanded = true }) {
-                                            Icon(
-                                                Icons.AutoMirrored.Filled.ArrowForward,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Words,
+                                    imeAction = ImeAction.Next,
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusManager.moveFocus(FocusDirection.Next) },
+                                ),
+                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
                             )
-                            if (!state.isBrandOther) {
+                            if (filteredBrands.isNotEmpty()) {
                                 ExposedDropdownMenu(
                                     expanded = brandExpanded,
                                     onDismissRequest = { brandExpanded = false },
                                 ) {
-                                    brands.forEach { brand ->
+                                    filteredBrands.forEach { brand ->
                                         DropdownMenuItem(
                                             text = { Text(brand) },
                                             onClick = {
                                                 onIntent(VehicleRegistrationIntent.SelectBrand(brand))
                                                 brandExpanded = false
+                                                focusManager.clearFocus()
                                             },
                                         )
                                     }
-                                    DropdownMenuItem(
-                                        text = { Text(otherLabel) },
-                                        onClick = {
-                                            onIntent(VehicleRegistrationIntent.SelectBrandOther)
-                                            brandExpanded = false
-                                        },
-                                    )
                                 }
                             }
                         }
@@ -336,54 +340,43 @@ internal fun VehicleRegistrationContent(
 
                     Box(modifier = Modifier.weight(1f)) {
                         ExposedDropdownMenuBox(
-                            expanded = modelExpanded && (models.isNotEmpty() || state.isBrandOther),
+                            expanded = modelExpanded && modelsForBrand.isNotEmpty(),
                             onExpandedChange = {
-                                if (models.isNotEmpty() || state.isBrandOther) modelExpanded = it
+                                if (modelsForBrand.isNotEmpty()) modelExpanded = it
                             },
                         ) {
                             PapTextField(
                                 value = state.model,
-                                onValueChange = {
-                                    if (state.isModelOther || state.isBrandOther)
-                                        onIntent(VehicleRegistrationIntent.SetCustomModel(it))
+                                onValueChange = { value ->
+                                    onIntent(VehicleRegistrationIntent.SetCustomModel(value))
+                                    if (modelsForBrand.isNotEmpty()) modelExpanded = true
                                 },
-                                readOnly = models.isNotEmpty() && !state.isModelOther,
                                 label = stringResource(Res.string.vehicle_registration_model_hint),
-                                trailingIcon = {
-                                    if (models.isNotEmpty() && !state.isModelOther) {
-                                        IconButton(onClick = { modelExpanded = true }) {
-                                            Icon(
-                                                Icons.AutoMirrored.Filled.ArrowForward,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp),
-                                            )
-                                        }
-                                    }
-                                },
-                                enabled = state.brand.isNotBlank() || state.isBrandOther,
-                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Words,
+                                    imeAction = ImeAction.Next,
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { focusManager.moveFocus(FocusDirection.Next) },
+                                ),
+                                enabled = state.brand.isNotBlank(),
+                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
                             )
-                            if (models.isNotEmpty() && !state.isModelOther) {
+                            if (filteredModels.isNotEmpty()) {
                                 ExposedDropdownMenu(
                                     expanded = modelExpanded,
                                     onDismissRequest = { modelExpanded = false },
                                 ) {
-                                    models.forEach { model ->
+                                    filteredModels.forEach { model ->
                                         DropdownMenuItem(
                                             text = { Text(model) },
                                             onClick = {
                                                 onIntent(VehicleRegistrationIntent.SelectModel(model))
                                                 modelExpanded = false
+                                                focusManager.clearFocus()
                                             },
                                         )
                                     }
-                                    DropdownMenuItem(
-                                        text = { Text(otherLabel) },
-                                        onClick = {
-                                            onIntent(VehicleRegistrationIntent.SelectModelOther)
-                                            modelExpanded = false
-                                        },
-                                    )
                                 }
                             }
                         }
@@ -438,12 +431,26 @@ internal fun VehicleRegistrationContent(
                         Res.string.vehicle_registration_name_placeholder,
                         state.defaultNamePlaceholderIndex,
                     ),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        imeAction = ImeAction.Next,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Next) },
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 PapTextField(
                     value = state.licensePlate,
                     onValueChange = { onIntent(VehicleRegistrationIntent.SetLicensePlate(it)) },
                     label = stringResource(Res.string.vehicle_registration_license_plate_label),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Characters,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { focusManager.clearFocus() },
+                    ),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -584,16 +591,18 @@ internal fun VehicleRegistrationContent(
 
             if (showDeleteDialog) {
                 PapAlertDialog(
-                    onDismiss = { showDeleteDialog = false },
+                    onDismiss = { if (!state.isDeleting) showDeleteDialog = false },
                     icon = Icons.Outlined.Delete,
                     title = stringResource(Res.string.my_car_delete_confirm_title),
                     body = stringResource(Res.string.my_car_delete_confirm_message),
                     primaryLabel = stringResource(Res.string.my_car_delete_confirm_action),
                     primaryLeadingIcon = Icons.Outlined.Delete,
                     onPrimary = {
-                        showDeleteDialog = false
+                        // Don't close the dialog: the VM navigates away on success and
+                        // resets isDeleting on failure (dialog stays open for retry).
                         onIntent(VehicleRegistrationIntent.DeleteVehicle)
                     },
+                    isLoading = state.isDeleting,
                     cancelLabel = stringResource(Res.string.my_car_delete_cancel),
                     accent = PapDialogAccent.Destructive,
                 )
@@ -663,7 +672,7 @@ private fun VehicleHeroCard(
                 carbody = state.carbodyType,
                 size = state.sizeCategory,
                 tint = iconTint,
-                fallback = PaparcarIcons.VehicleMedium,
+                defaultCarbody = CarbodyType.HATCHBACK_MEDIUM,
                 modifier = Modifier.size(HERO_ICON_SIZE),
             )
             Spacer(Modifier.height(12.dp))

@@ -13,7 +13,10 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     name = name,
     brand = brand,
     model = model,
-    sizeCategory = VehicleSize.valueOf(sizeCategory),
+    // Legacy/blank rows synced from a Firestore doc that pre-dated VEHICLE-CATEGORIZATION-001
+    // get a safe MEDIUM_SUV fallback so the rest of the app (geofence sizing, peek fit pill,
+    // marker icons) keeps working instead of crashing on VehicleSize.valueOf("").
+    sizeCategory = runCatching { VehicleSize.valueOf(sizeCategory) }.getOrDefault(VehicleSize.MEDIUM_SUV),
     carbodyType = carbodyType?.toCarbodyTypeOrNull(),
     vehicleType = runCatching { VehicleType.valueOf(vehicleType) }.getOrDefault(VehicleType.CAR),
     bluetoothDeviceId = bluetoothDeviceId,

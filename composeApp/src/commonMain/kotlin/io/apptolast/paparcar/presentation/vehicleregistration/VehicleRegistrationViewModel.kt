@@ -63,9 +63,17 @@ class VehicleRegistrationViewModel(
                 )
             }
             is VehicleRegistrationIntent.SetCustomBrand -> updateState {
-                val inferred = inferIfCar(vehicleType, intent.value, model)
+                // Typing in the brand field always switches to "custom brand" mode. If we were
+                // previously on a catalog selection, drop the model so it doesn't outlive the
+                // brand it was tied to.
+                val wasCatalog = !isBrandOther
+                val nextModel = if (wasCatalog) "" else model
+                val inferred = inferIfCar(vehicleType, intent.value, nextModel)
                 copy(
                     brand = intent.value,
+                    isBrandOther = true,
+                    model = nextModel,
+                    isModelOther = if (wasCatalog) false else isModelOther,
                     carbodyType = inferred,
                     sizeCategory = resolveSize(vehicleType, inferred),
                     isCarbodyManualOverride = false,
@@ -96,9 +104,12 @@ class VehicleRegistrationViewModel(
                 )
             }
             is VehicleRegistrationIntent.SetCustomModel -> updateState {
+                // Typing in the model field always switches to "custom model" mode so the
+                // canSubmit gate treats the value as user-supplied free text.
                 val inferred = inferIfCar(vehicleType, brand, intent.value)
                 copy(
                     model = intent.value,
+                    isModelOther = true,
                     carbodyType = inferred,
                     sizeCategory = resolveSize(vehicleType, inferred),
                     isCarbodyManualOverride = false,
@@ -244,11 +255,15 @@ class VehicleRegistrationViewModel(
         viewModelScope.launch {
             runCatching {
                 val userId = authRepository.getCurrentSession()?.userId ?: ""
-                // New vehicles only become default when they are the first vehicle ever
-                // registered. Editing preserves the original flag so the user's existing
-                // default is never silently replaced mid-session. [BUG-NEW-VEHICLE-DEFAULT]
+                // The form doesn't track these on-vehicle fields, so they must be
+                // read from the existing row before save — otherwise the constructor
+                // defaults (null / false) silently overwrite them in Room AND Firestore.
+                // [BUG-NEW-VEHICLE-DEFAULT] covers isActive; [ARCH-MONITORING-002]
+                // covers bluetoothDeviceId — pairing via BluetoothConfigViewModel only
+                // touches its own field, so the form save must not wipe it.
+                val existing = if (isEditing) vehicleRepository.getVehicleById(userId, vehicleId) else null
                 val shouldBeDefault = when {
-                    isEditing -> vehicleRepository.getVehicleById(userId, vehicleId)?.isActive ?: false
+                    isEditing -> existing?.isActive ?: false
                     else -> !vehicleRepository.hasVehicles(userId)
                 }
                 val vehicle = Vehicle(
@@ -260,6 +275,7 @@ class VehicleRegistrationViewModel(
                     sizeCategory = size,
                     carbodyType = body,
                     vehicleType = type,
+                    bluetoothDeviceId = existing?.bluetoothDeviceId,
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
                     isActive = shouldBeDefault,
                     licensePlate = current.licensePlate.trim().ifBlank { null },
@@ -284,11 +300,14 @@ class VehicleRegistrationViewModel(
 
     private fun deleteVehicle() {
         val vehicleId = state.value.editingVehicleId ?: return
+        if (state.value.isDeleting) return
+        updateState { copy(isDeleting = true) }
         viewModelScope.launch {
             vehicleRepository.deleteVehicle(vehicleId)
                 .onSuccess { sendEffect(VehicleRegistrationEffect.NavigateBack) }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to delete vehicle", e)
+                    updateState { copy(isDeleting = false) }
                     sendEffect(VehicleRegistrationEffect.ShowError(PaparcarError.Vehicle.DeleteFailed))
                 }
         }

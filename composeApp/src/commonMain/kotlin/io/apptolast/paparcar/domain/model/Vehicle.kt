@@ -5,7 +5,10 @@ package io.apptolast.paparcar.domain.model
  *
  * Privacy rules:
  * - [brand] and [model] are shared on [Spot] only when [showBrandModelOnSpot] = true.
- * - [bluetoothDeviceId] stays on-device and is never sent to Firestore.
+ * - [bluetoothDeviceId] is synced to Firestore so the pairing survives the
+ *   syncFromRemote replace on bootstrap and across reinstall. A MAC address is
+ *   not personally identifying without device proximity, and the alternative
+ *   (on-device-only + defensive merge) added too many failure modes.
  * - [licensePlate] is on-device only and is never sent to Firestore or shared on Spot.
  *
  * Each user may have multiple vehicles; exactly one is [isActive] at a time.

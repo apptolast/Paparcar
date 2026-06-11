@@ -39,8 +39,9 @@ fun vehicleIconPainter(
     carbody: CarbodyType?,
     size: VehicleSize?,
     fallback: ImageVector = PaparcarIcons.VehicleCar,
+    defaultCarbody: CarbodyType? = null,
 ): Painter {
-    val resolved = carbody ?: size?.fallbackCarbody()
+    val resolved = carbody ?: size?.fallbackCarbody() ?: defaultCarbody
     return when {
         resolved != null -> painterResource(resolved.icon)
         size != null -> rememberVectorPainter(size.icon)
@@ -67,9 +68,15 @@ fun VehicleIcon(
     modifier: Modifier = Modifier,
     tint: Color = LocalContentColor.current,
     fallback: ImageVector = PaparcarIcons.VehicleCar,
+    defaultCarbody: CarbodyType? = null,
 ) {
     Image(
-        painter = vehicleIconPainter(carbody = carbody, size = size, fallback = fallback),
+        painter = vehicleIconPainter(
+            carbody = carbody,
+            size = size,
+            fallback = fallback,
+            defaultCarbody = defaultCarbody,
+        ),
         contentDescription = null,
         modifier = modifier,
         contentScale = ContentScale.Fit,

@@ -42,6 +42,7 @@ data class VehicleRegistrationState(
     val vehicleType: VehicleType? = null,
     val showBrandModelOnSpot: Boolean = false,
     val isSaving: Boolean = false,
+    val isDeleting: Boolean = false,
     val editingVehicleId: String? = null,
     /**
      * UUID generado en el primer intento de guardado de un vehículo nuevo (no edición).
