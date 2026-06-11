@@ -245,7 +245,6 @@ class ParkingEdgeCaseTest {
         vehicleRepository = vehicles,
         zoneRepository = FakeZoneRepository(),
         geofenceService = geofence,
-        notificationPort = notification,
         enrichmentScheduler = enrichment,
         authRepository = FakeAuthRepository(initialSession = session),
         config = config,

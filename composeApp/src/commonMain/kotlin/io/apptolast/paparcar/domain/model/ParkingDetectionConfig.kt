@@ -223,6 +223,29 @@ data class ParkingDetectionConfig(
      */
     val minStepsToConfirm: Int = 8,
 
+    /** Number of pedestrian steps observed *before* [hasEverReachedDrivingSpeed] becomes
+     *  true that mark the current session as a spurious IN_VEHICLE_ENTER triggered by
+     *  walking. When reached, the coordinator aborts immediately — same threshold as
+     *  [minStepsToConfirm] for symmetry: 8 steps is unambiguous walking, not riding.
+     *
+     *  **Why this gate.** On real hardware Activity Recognition fires `IN_VEHICLE_ENTER`
+     *  while the user is walking briskly (especially right after parking and getting
+     *  out — door slam + walk to trunk + carry bags). Without an early abort, each false
+     *  ENTER spins up a fresh coordinator session that waits the full [maxNoMovementMs]
+     *  (4 min) before self-terminating. The FGS notification stays visible all that time
+     *  and the cycle can repeat. With this gate the session aborts in ~6 s of walking.
+     *
+     *  **Why before driving speed.** Once the user has reached driving speed, the
+     *  coordinator is in a legitimate session and steps must not abort it. After driving
+     *  speed crosses, the step counter takes its normal role (confirm parking on stop).
+     *
+     *  **Trade-off.** A pathological case — phone in pocket bouncing in stop-and-go
+     *  traffic for the first minute of a drive — could in theory accumulate 8 step
+     *  events before reaching driving speed. Field telemetry has not surfaced this;
+     *  if it does, raise this threshold or add a sliding-window timeout. [BUG-FALSE-ENTER-WALKING]
+     */
+    val falseEnterAbortSteps: Int = 8,
+
     // ── VEHICLE-MISMATCH GUARD (BUG-SCOOTER-001) ──────────────────────────────
     /** Maximum session top speed (km/h) below which an auto-confirm is treated as
      *  *suspicious* for a CAR vehicle — scooter/moped territory. Combined with
@@ -325,6 +348,9 @@ data class ParkingDetectionConfig(
         }
         require(minStepsToConfirm >= 1) {
             "minStepsToConfirm must be >= 1, was $minStepsToConfirm"
+        }
+        require(falseEnterAbortSteps >= 1) {
+            "falseEnterAbortSteps must be >= 1, was $falseEnterAbortSteps"
         }
         require(mismatchMaxSpeedKmh > 0) {
             "mismatchMaxSpeedKmh must be > 0, was $mismatchMaxSpeedKmh"
