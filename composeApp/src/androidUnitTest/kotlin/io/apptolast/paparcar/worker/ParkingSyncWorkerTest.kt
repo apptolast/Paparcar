@@ -277,6 +277,7 @@ private class FakeUserProfileDataSource : RemoteUserProfileDataSource {
     override suspend fun saveVehicle(userId: String, vehicle: VehicleDto) = Unit
     override suspend fun deleteVehicle(userId: String, vehicleId: String) = Unit
     override suspend fun updateVehicleActiveFlag(userId: String, vehicleId: String, isActive: Boolean) = Unit
+    override suspend fun updateVehicleBluetoothDevice(userId: String, vehicleId: String, deviceAddress: String?) = Unit
 
     override suspend fun saveParkingSession(userId: String, session: ParkingHistoryDto) {
         saveParkingSessionThrows?.let { throw it }

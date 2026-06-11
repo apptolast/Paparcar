@@ -85,6 +85,11 @@ class RemoteUserProfileDataSourceImpl(
         vehiclesCollection(userId).document(vehicleId).update(mapOf(FIELD_IS_ACTIVE to isActive))
     }
 
+    override suspend fun updateVehicleBluetoothDevice(userId: String, vehicleId: String, deviceAddress: String?) {
+        vehiclesCollection(userId).document(vehicleId)
+            .update(mapOf(FIELD_BLUETOOTH_DEVICE_ID to deviceAddress))
+    }
+
     override suspend fun deleteUserData(userId: String) {
         parkingHistoryCollection(userId).get().documents.forEach { it.reference.delete() }
         vehiclesCollection(userId).get().documents.forEach { it.reference.delete() }
@@ -110,16 +115,22 @@ class RemoteUserProfileDataSourceImpl(
             null
         }
 
+    // Field-by-field read so every property in [VehicleDto] is covered. Adding a new
+    // field to the DTO requires extending this block too — otherwise the value falls back
+    // to the DTO default on read and the in-memory Vehicle silently loses it after sync.
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toVehicleDto(): VehicleDto? =
         runCatching {
             VehicleDto(
                 id = id,
-                userId = get<String?>("userId") ?: return@runCatching null,
-                brand = get<String?>("brand"),
-                model = get<String?>("model"),
-                sizeCategory = get<String?>("sizeCategory") ?: "",
-                bluetoothDeviceId = get<String?>("bluetoothDeviceId"),
-                showBrandModelOnSpot = get<Boolean?>("showBrandModelOnSpot") ?: false,
+                userId = get<String?>(FIELD_USER_ID) ?: return@runCatching null,
+                name = get<String?>(FIELD_NAME),
+                brand = get<String?>(FIELD_BRAND),
+                model = get<String?>(FIELD_MODEL),
+                sizeCategory = get<String?>(FIELD_SIZE_CATEGORY).orEmpty(),
+                carbodyType = get<String?>(FIELD_CARBODY_TYPE).orEmpty(),
+                vehicleType = get<String?>(FIELD_VEHICLE_TYPE).orEmpty(),
+                bluetoothDeviceId = get<String?>(FIELD_BLUETOOTH_DEVICE_ID),
+                showBrandModelOnSpot = get<Boolean?>(FIELD_SHOW_BRAND_MODEL_ON_SPOT) ?: false,
                 isActive = get<Boolean?>(FIELD_IS_ACTIVE) ?: false,
             )
         }.getOrElse { e ->
@@ -127,13 +138,15 @@ class RemoteUserProfileDataSourceImpl(
             null
         }
 
+    // Field-by-field read so every property in [ParkingHistoryDto] is covered. Same
+    // parity rule as [toVehicleDto]: missing reads silently lose data after Firestore sync.
     private fun dev.gitlive.firebase.firestore.DocumentSnapshot.toParkingHistoryDto(): ParkingHistoryDto? =
         runCatching {
             val lat = get<Double?>(FIELD_LATITUDE) ?: return@runCatching null
             val lon = get<Double?>(FIELD_LONGITUDE) ?: return@runCatching null
             ParkingHistoryDto(
                 id = id,
-                userId = get<String?>(FIELD_USER_ID) ?: "",
+                userId = get<String?>(FIELD_USER_ID).orEmpty(),
                 vehicleId = runCatching { get<String?>(FIELD_VEHICLE_ID) }.getOrNull(),
                 latitude = lat,
                 longitude = lon,
@@ -145,6 +158,8 @@ class RemoteUserProfileDataSourceImpl(
                 address = runCatching { get<AddressDto?>(FIELD_ADDRESS) }.getOrNull(),
                 placeInfo = runCatching { get<PlaceInfoDto?>(FIELD_PLACE_INFO) }.getOrNull(),
                 detectionReliability = runCatching { get<Double?>(FIELD_DETECTION_RELIABILITY)?.toFloat() }.getOrNull(),
+                sizeCategory = get<String?>(FIELD_SIZE_CATEGORY),
+                carbodyType = get<String?>(FIELD_CARBODY_TYPE),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toParkingHistoryDto failed — doc=$id", e)
@@ -175,6 +190,14 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_DEFAULT_VEHICLE_ID = "defaultVehicleId"
 
         const val FIELD_VEHICLE_ID = "vehicleId"
+        const val FIELD_NAME = "name"
+        const val FIELD_BRAND = "brand"
+        const val FIELD_MODEL = "model"
+        const val FIELD_SIZE_CATEGORY = "sizeCategory"
+        const val FIELD_CARBODY_TYPE = "carbodyType"
+        const val FIELD_VEHICLE_TYPE = "vehicleType"
+        const val FIELD_BLUETOOTH_DEVICE_ID = "bluetoothDeviceId"
+        const val FIELD_SHOW_BRAND_MODEL_ON_SPOT = "showBrandModelOnSpot"
         const val FIELD_LATITUDE = "latitude"
         const val FIELD_LONGITUDE = "longitude"
         const val FIELD_ACCURACY = "accuracy"

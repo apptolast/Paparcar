@@ -25,6 +25,8 @@ interface RemoteUserProfileDataSource {
     suspend fun saveVehicle(userId: String, vehicle: VehicleDto)
     suspend fun deleteVehicle(userId: String, vehicleId: String)
     suspend fun updateVehicleActiveFlag(userId: String, vehicleId: String, isActive: Boolean)
+    /** Field-targeted update of the paired BT MAC. Pass null to remove the pairing. */
+    suspend fun updateVehicleBluetoothDevice(userId: String, vehicleId: String, deviceAddress: String?)
 
     suspend fun deleteUserData(userId: String)
 }
