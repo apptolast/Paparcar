@@ -110,10 +110,14 @@ class VehiclesViewModel(
     }
 
     private fun setActiveVehicle(vehicleId: String) {
+        if (state.value.settingActiveVehicleId != null) return
+        updateState { copy(settingActiveVehicleId = vehicleId) }
         viewModelScope.launch {
             vehicleRepository.setActiveVehicle(vehicleId)
+                .onSuccess { updateState { copy(settingActiveVehicleId = null) } }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to set default vehicle", e)
+                    updateState { copy(settingActiveVehicleId = null) }
                     sendEffect(VehiclesEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: "")))
                 }
         }

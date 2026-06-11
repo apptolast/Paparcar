@@ -8,6 +8,8 @@ import io.apptolast.paparcar.domain.model.VehicleWithStats
 data class VehiclesState(
     val vehicles: List<VehicleWithStats> = emptyList(),
     val isLoading: Boolean = true,
+    /** Id of the vehicle whose isActive flag is being switched. Null when idle. */
+    val settingActiveVehicleId: String? = null,
     val selectedVehicleIndex: Int = 0,
     val bluetoothConnectedVehicleId: String? = null,
     val historyCache: Map<String, HistoryState> = emptyMap(),

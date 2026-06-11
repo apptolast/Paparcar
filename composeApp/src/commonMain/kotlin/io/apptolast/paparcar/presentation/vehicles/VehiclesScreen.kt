@@ -52,7 +52,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.theme.PapBorders
@@ -221,6 +223,7 @@ private fun VehiclesPager(
             VehiclePageContent(
                 vehicleWithStats = vehicleWithStats,
                 historyState = pageHistoryState,
+                isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
                 onIntent = onIntent,
             )
         }
@@ -274,7 +277,13 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
     val bg = if (selected) cs.primary.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
     val fg = if (selected) cs.primary else cs.onSurface
     val iconTint = cs.primary
-    val dotColor = cs.primary
+    val monitoring = vehicle.monitoringStatus()
+    // Status dot — tertiary (BT accent) when paired, primary when AR-active, hidden when inactive.
+    val dotColor = when (monitoring) {
+        is VehicleMonitoringStatus.Bluetooth -> cs.tertiary
+        VehicleMonitoringStatus.Active       -> cs.primary
+        VehicleMonitoringStatus.Inactive     -> null
+    }
 
     Surface(
         onClick = onClick,
@@ -301,7 +310,7 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
                 color = fg,
                 maxLines = 1,
             )
-            if (vehicle.isActive) {
+            if (dotColor != null) {
                 Box(
                     modifier = Modifier
                         .size(ACTIVE_DOT_DP.dp)

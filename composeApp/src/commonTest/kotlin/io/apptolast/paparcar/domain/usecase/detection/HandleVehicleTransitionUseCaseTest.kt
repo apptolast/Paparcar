@@ -143,7 +143,6 @@ class HandleVehicleTransitionUseCaseTest {
                 vehicleRepository = vehicleRepo,
                 zoneRepository = FakeZoneRepository(),
                 geofenceService = FakeGeofenceManager(),
-                notificationPort = notification,
                 enrichmentScheduler = FakeParkingEnrichmentScheduler(),
                 authRepository = auth,
                 config = config,
