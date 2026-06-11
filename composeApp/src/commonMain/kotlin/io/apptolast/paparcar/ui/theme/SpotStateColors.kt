@@ -40,3 +40,23 @@ fun SpotReliabilityUiState.stateColors(): SpotStateColors = when (this) {
 fun vehicleStateColors(): SpotStateColors =
     if (isDark) SpotStateColors(PapAmber, PapInk)
     else        SpotStateColors(PapAmberLight, Color.White)
+
+/**
+ * Per-vehicle accent for the "this is *yours*, parked" visual molde — dark interior
+ * + accent ring + accent-tinted icon. Mirrors the Paparcar logo language.
+ *
+ * Semantic mapping:
+ *  - [isBluetoothPaired] = true → **blue** ring (BT slot). One consistent "blue = BT"
+ *    language across the app.
+ *  - [isBluetoothPaired] = false → cycles through the 7 non-blue slots keyed by
+ *    [stableRank] (from [io.apptolast.paparcar.domain.model.ParkedVehicleSummary]).
+ *    Null [stableRank] falls back to the amber slot.
+ */
+@Composable
+fun parkedVehicleAccent(
+    stableRank: Int? = null,
+    isBluetoothPaired: Boolean = false,
+): VehicleAccent = when {
+    isBluetoothPaired -> VehicleAccentPalette.bluetooth()
+    else              -> VehicleAccentPalette.nonBluetooth(stableRank ?: 0)
+}

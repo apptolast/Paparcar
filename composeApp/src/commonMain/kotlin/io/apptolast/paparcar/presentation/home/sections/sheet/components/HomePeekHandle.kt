@@ -90,12 +90,13 @@ import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.presentation.util.zoneIconFor
+import io.apptolast.paparcar.ui.components.PapClearIconButton
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.parkedVehicleAccent
 import io.apptolast.paparcar.ui.theme.stateColors
-import io.apptolast.paparcar.ui.theme.vehicleStateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_add_parking_cancel_cd
@@ -157,6 +158,7 @@ import paparcar.composeapp.generated.resources.vehicle_size_large
 import paparcar.composeapp.generated.resources.vehicle_size_medium
 import paparcar.composeapp.generated.resources.vehicle_size_moto
 import paparcar.composeapp.generated.resources.vehicle_size_small
+import paparcar.composeapp.generated.resources.vehicle_size_unknown
 import paparcar.composeapp.generated.resources.vehicle_size_van
 import kotlin.math.roundToInt
 
@@ -198,9 +200,9 @@ internal fun HomePeekHandle(
             PeekState.AddingParking(isEditing = state.editingParkingId != null)
         state.mode is HomeMode.Reporting -> PeekState.Reporting
         state.mode is HomeMode.AddingZone -> PeekState.AddingZone
-        selectedSpot != null -> PeekState.SelectedSpot(selectedSpot)
-        parkingToShow != null -> PeekState.SelectedParking(parkingToShow)
-        state.selectedZone != null -> PeekState.SelectedZone(state.selectedZone!!)
+        selectedSpot != null -> PeekState.SelectedSpot(selectedSpot.id)
+        parkingToShow != null -> PeekState.SelectedParking(parkingToShow.id)
+        state.selectedZone != null -> PeekState.SelectedZone(state.selectedZone!!.id)
         else -> PeekState.Browse
     }
 
@@ -233,35 +235,55 @@ internal fun HomePeekHandle(
             label = "peek_content",
         ) { target ->
             when (target) {
-                is PeekState.SelectedSpot -> SpotPeekRow(
-                    spot = target.spot,
-                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                    activeVehicle = state.vehicles.firstOrNull { it.isActive },
-                    onDismiss = onDismiss,
-                    onNavigate = {
-                        onNavigateExternal(target.spot.location.latitude, target.spot.location.longitude, false)
-                    },
-                    onRejectSpot = onRejectSpot,
-                    spotListExpanded = spotListExpanded,
-                    onToggleSpotList = onToggleSpotList,
-                            )
-                is PeekState.SelectedParking -> ParkingPeekRow(
-                    parking = target.parking,
-                    vehicle = state.vehicles.firstOrNull { it.id == target.parking.vehicleId },
-                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                    onDismiss = onDismiss,
-                    onRelease = onRelease,
-                    onWalkToCar = {
-                        onNavigateExternal(target.parking.location.latitude, target.parking.location.longitude, true)
-                    },
-                    onMoveLocation = onMoveParkingLocation,
-                            )
-                is PeekState.SelectedZone -> ZonePeekRow(
-                    zone = target.zone,
-                    onDismiss = onZoneDismiss,
-                    onEdit = { onEditZone(target.zone.id) },
-                    onDelete = { onDeleteZone(target.zone.id) },
-                            )
+                is PeekState.SelectedSpot -> {
+                    // Resolve live spot from state — PeekState only carries the id so
+                    // AnimatedContent doesn't transition on Spot data refresh. [BUG-PEEK-JITTER-001]
+                    val spot = state.nearbySpots.firstOrNull { it.id == target.spotId }
+                    if (spot != null) {
+                        SpotPeekRow(
+                            spot = spot,
+                            userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                            activeVehicle = state.vehicles.firstOrNull { it.isActive },
+                            onDismiss = onDismiss,
+                            onNavigate = {
+                                onNavigateExternal(spot.location.latitude, spot.location.longitude, false)
+                            },
+                            onRejectSpot = onRejectSpot,
+                            spotListExpanded = spotListExpanded,
+                            onToggleSpotList = onToggleSpotList,
+                        )
+                    }
+                }
+                is PeekState.SelectedParking -> {
+                    val parking = state.activeSessions.firstOrNull { it.id == target.sessionId }
+                    if (parking != null) {
+                        ParkingPeekRow(
+                            parking = parking,
+                            vehicle = state.vehicles.firstOrNull { it.id == parking.vehicleId },
+                            stableRank = state.parkedVehicles
+                                .firstOrNull { it.vehicleId == parking.vehicleId }
+                                ?.stableRank,
+                            userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                            onDismiss = onDismiss,
+                            onRelease = onRelease,
+                            onWalkToCar = {
+                                onNavigateExternal(parking.location.latitude, parking.location.longitude, true)
+                            },
+                            onMoveLocation = onMoveParkingLocation,
+                        )
+                    }
+                }
+                is PeekState.SelectedZone -> {
+                    val zone = state.zones.firstOrNull { it.id == target.zoneId }
+                    if (zone != null) {
+                        ZonePeekRow(
+                            zone = zone,
+                            onDismiss = onZoneDismiss,
+                            onEdit = { onEditZone(zone.id) },
+                            onDelete = { onDeleteZone(zone.id) },
+                        )
+                    }
+                }
                 PeekState.Reporting -> ReportPeekRow(
                     state = state,
                     onCancel = onCancelReport,
@@ -289,10 +311,20 @@ internal fun HomePeekHandle(
     }
 }
 
+/**
+ * Drives [AnimatedContent] in [HomePeekHandle]. Variants store **identity only**
+ * (ids and other rarely-changing primitives) — never the underlying domain
+ * object — so equality stays stable even when Firestore re-emits the same
+ * spot/parking with cosmetic field changes (enRouteCount, expiresAt drift,
+ * geocoded address arriving late, etc.). Without this discipline the
+ * AnimatedContent would transition on every Spot/UserParking refresh and the
+ * sheet would visibly thrash. The content lambda re-reads the live object from
+ * the captured `HomeState`. [BUG-PEEK-JITTER-001]
+ */
 private sealed class PeekState {
-    data class SelectedSpot(val spot: Spot) : PeekState()
-    data class SelectedParking(val parking: UserParking) : PeekState()
-    data class SelectedZone(val zone: Zone) : PeekState()
+    data class SelectedSpot(val spotId: String) : PeekState()
+    data class SelectedParking(val sessionId: String) : PeekState()
+    data class SelectedZone(val zoneId: String) : PeekState()
     data object Reporting : PeekState()
     data object AddingZone : PeekState()
     data class AddingParking(val isEditing: Boolean) : PeekState()
@@ -642,6 +674,7 @@ private fun ParkingPeekRow(
     onRelease: () -> Unit,
     onWalkToCar: () -> Unit,
     onMoveLocation: () -> Unit,
+    stableRank: Int? = null,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, parking.location.latitude, parking.location.longitude)
@@ -652,7 +685,10 @@ private fun ParkingPeekRow(
         lat = parking.location.latitude,
         lon = parking.location.longitude,
     )
-    val vc = vehicleStateColors()
+    val accent = parkedVehicleAccent(
+        stableRank = stableRank,
+        isBluetoothPaired = vehicle?.bluetoothDeviceId != null,
+    )
     val vehicleName = vehicleSummary(vehicle)
     val headerLabel = if (vehicleName != null) {
         stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
@@ -663,22 +699,21 @@ private fun ParkingPeekRow(
     PeekStateCard(
         headerLabel = headerLabel,
         title = title,
-        accentColor = vc.bg,
+        accentColor = accent.fill,
         onDismiss = onDismiss,
         leading = {
-            PeekHeaderIconChip(
+            ParkedVehicleHeaderChip(
                 painter = io.apptolast.paparcar.ui.components.vehicleIconPainter(
                     carbody = vehicle?.carbodyType,
                     size = vehicle?.sizeCategory,
                 ),
-                accentColor = vc.bg,
-                iconTint = vc.on,
+                accent = accent,
             )
         },
         content = {
-            DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = vc.bg)
+            DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accent.fill)
             Spacer(Modifier.height(8.dp))
-            ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = vc.bg)
+            ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = accent.fill)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
@@ -687,8 +722,8 @@ private fun ParkingPeekRow(
                 leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk,
                 onClick = onWalkToCar,
                 style = PapFooterButtonStyle.Filled,
-                containerColor = vc.bg,
-                contentColor = vc.on,
+                containerColor = accent.fill,
+                contentColor = accent.on,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
@@ -876,6 +911,7 @@ private fun AddingParkingPeekRow(
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
                 enabled = !state.isSavingParking && !state.isCameraMoving,
+                isLoading = state.isSavingParking,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -926,6 +962,7 @@ private fun ReportPeekRow(
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
                 enabled = !state.isCameraMoving && !state.isReporting,
+                isLoading = state.isReporting,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -935,12 +972,41 @@ private fun ReportPeekRow(
 @Composable
 private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit) {
     val sizes = VehicleSize.entries
+    val cs = MaterialTheme.colorScheme
+
+    @Composable
+    fun Chip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(SIZE_CHIP_RADIUS_DP.dp))
+                .background(
+                    if (isSelected) cs.primary else cs.surfaceContainerHigh,
+                )
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) cs.onPrimary else cs.onSurfaceVariant,
+            )
+        }
+    }
+
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        item(key = "unknown") {
+            Chip(
+                label = stringResource(Res.string.vehicle_size_unknown),
+                isSelected = selected == null,
+                onClick = { onSelect(null) },
+            )
+        }
         items(items = sizes, key = { it.name }) { size ->
-            val isSelected = size == selected
             val label = stringResource(
                 when (size) {
                     VehicleSize.MOTORCYCLE   -> Res.string.vehicle_size_moto
@@ -950,24 +1016,11 @@ private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit
                     VehicleSize.VAN_HIGH    -> Res.string.vehicle_size_van
                 }
             )
-            val cs = MaterialTheme.colorScheme
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(SIZE_CHIP_RADIUS_DP.dp))
-                    .background(
-                        if (isSelected) cs.primary else cs.surfaceContainerHigh,
-                    )
-                    .clickable { onSelect(size) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isSelected) cs.onPrimary else cs.onSurfaceVariant,
-                )
-            }
+            Chip(
+                label = label,
+                isSelected = size == selected,
+                onClick = { onSelect(size) },
+            )
         }
     }
 }
@@ -998,7 +1051,6 @@ private fun AddingZonePeekRow(
         headerLabel = headerLabel,
         title = primaryText,
         onDismiss = onCancel,
-        contentScrollable = true,
         leading = { PeekHeaderIconChip(icon = zoneIconFor(state.addingZoneIconKey)) },
         content = {
             androidx.compose.material3.OutlinedTextField(
@@ -1018,6 +1070,9 @@ private fun AddingZonePeekRow(
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 },
+                trailingIcon = if (state.addingZoneName.isNotEmpty()) {
+                    { PapClearIconButton(onClick = { onNameChange("") }) }
+                } else null,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
@@ -1100,6 +1155,7 @@ private fun AddingZonePeekRow(
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
                 enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone && !state.isCameraMoving,
+                isLoading = state.isSavingZone,
                 modifier = Modifier.fillMaxWidth(),
             )
         },

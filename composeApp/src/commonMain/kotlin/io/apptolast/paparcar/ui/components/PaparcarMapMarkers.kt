@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -41,10 +42,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapInk
+import io.apptolast.paparcar.ui.theme.parkedVehicleAccent
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
-import io.apptolast.paparcar.ui.theme.vehicleStateColors
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlinx.coroutines.launch
@@ -65,9 +68,16 @@ import kotlinx.coroutines.launch
 // ─── Shared palette ──────────────────────────────────────────────────────────
 
 private object MarkerColors {
-    // Free spot — classic parking green (unified, no reliability tiers)
+    // Free spot — one tone per SpotReliabilityUiState tier so the on-map marker
+    // matches the peek modal badge (HIGH=green / MEDIUM=amber / LOW=red / MANUAL=blue).
     val SpotGreen     = Color(0xFF22C55E)
     val SpotOnGreen   = Color(0xFF052E16)
+    val SpotAmber     = Color(0xFFF59E0B)
+    val SpotOnAmber   = Color(0xFF402100)
+    val SpotRed       = Color(0xFFEF4444)
+    val SpotOnRed     = Color(0xFF450505)
+    val SpotBlue      = Color(0xFF3B82F6)
+    val SpotOnBlue    = Color(0xFF0B1E3F)
 
     // License-plate marker — amber rectangle
     val PlateAmber    = Color(0xFFF59E0B)
@@ -99,13 +109,21 @@ private const val GROUND_SHADOW_ALPHA = 0.35f
 // ─── Marker 1 — Parked vehicle (VehicleBadgeMarker) ─────────────────────────
 
 /**
- * Amber circle badge for the user's parked vehicle.
+ * Logo-style badge for the user's parked vehicle: dark PapInk interior + accent
+ * ring + accent-tinted carbody icon. Mirrors the Paparcar app-icon language so
+ * the user instantly reads "mine, parked" without confusing it with the green
+ * free-spot circles around it.
  *
- * Same circle pattern as [FreeSpotMarker] and [ZoneMarker] — one coherent family
- * on the map. Amber + car icon reads immediately as "mine, active". Slightly
- * larger than [FreeSpotMarker] (46 dp vs 42 dp) so the user's car dominates.
+ * Per-vehicle accent comes from [parkedVehicleAccent] keyed by [stableRank]
+ * (from `ParkedVehicleSummary.stableRank`). Multi-vehicle setups get distinct
+ * colours; single-vehicle / legacy callers fall back to amber.
  *
- * @param selected when true the border turns white to indicate selection.
+ * Same 46dp footprint as [FreeSpotMarker]/[ZoneMarker] — one coherent family.
+ *
+ * @param selected when true the border switches to white to signal selection.
+ * @param isActive when false the badge is greyed out (monitoring stopped).
+ * @param stableRank index into [io.apptolast.paparcar.ui.theme.VehicleAccentPalette];
+ *   null → amber fallback.
  */
 @Composable
 fun VehicleBadgeMarker(
@@ -114,11 +132,14 @@ fun VehicleBadgeMarker(
     sizeCategory: VehicleSize? = null,
     carbodyType: io.apptolast.paparcar.domain.model.CarbodyType? = null,
     isActive: Boolean = true,
+    stableRank: Int? = null,
+    isBluetoothPaired: Boolean = false,
 ) {
-    val vc = vehicleStateColors()
     val cs = MaterialTheme.colorScheme
-    val bg   = if (isActive) vc.bg  else cs.surfaceVariant
-    val on   = if (isActive) vc.on  else cs.onSurfaceVariant
+    val accent = parkedVehicleAccent(stableRank, isBluetoothPaired)
+    val bg = if (isActive) PapInk else cs.surfaceVariant
+    val ring = if (isActive) accent.fill else cs.onSurfaceVariant
+    val iconTint = ring
     val shadowColor = cs.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
 
     Box(
@@ -140,7 +161,7 @@ fun VehicleBadgeMarker(
                 .background(color = bg, shape = CircleShape)
                 .border(
                     width = if (selected) BADGE_SEL_STROKE else BADGE_STROKE,
-                    color = if (selected) Color.White else on.copy(alpha = 0.3f),
+                    color = if (selected) Color.White else ring,
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -148,7 +169,7 @@ fun VehicleBadgeMarker(
             VehicleIcon(
                 carbody = carbodyType,
                 size = sizeCategory,
-                tint = on,
+                tint = iconTint,
                 modifier = Modifier.size(BADGE_ICON_SIZE),
             )
         }
@@ -332,17 +353,21 @@ private val MY_VEHICLE_H = 55.dp
 // ─── Marker 2 — Free spot (FreeSpotMarker) ───────────────────────────────────
 
 /**
- * Free-spot marker. Green circle with a parking "P" icon — unified single style,
- * no reliability tiers. [MAP-MARKERS-REDESIGN-001]
+ * Free-spot marker. Circle with a parking "P" icon — color encodes the spot's
+ * reliability tier so it stays in sync with the peek modal badge. [MAP-MARKERS-RELIABILITY-001]
  *
+ * @param reliability tier that drives bg/on palette. Defaults to [SpotReliabilityUiState.HIGH]
+ *   (green) for legacy callers that don't have a [Spot] in hand.
  * @param selected when true the border turns white to indicate selection.
  */
 @Composable
 fun FreeSpotMarker(
     modifier: Modifier = Modifier,
+    reliability: SpotReliabilityUiState = SpotReliabilityUiState.HIGH,
     selected: Boolean = false,
 ) {
     val shadowColor = MaterialTheme.colorScheme.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
+    val palette = reliability.markerPalette()
 
     Box(
         modifier = modifier.size(
@@ -360,10 +385,10 @@ fun FreeSpotMarker(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .size(FREE_SPOT_MARKER_DIAM)
-                .background(color = MarkerColors.SpotGreen, shape = CircleShape)
+                .background(color = palette.bg, shape = CircleShape)
                 .border(
                     width = if (selected) FREE_SPOT_SEL_STROKE else FREE_SPOT_MARKER_STROKE,
-                    color = if (selected) Color.White else MarkerColors.SpotOnGreen.copy(alpha = 0.3f),
+                    color = if (selected) Color.White else palette.on.copy(alpha = 0.3f),
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -372,11 +397,20 @@ fun FreeSpotMarker(
             Icon(
                 imageVector = Icons.Outlined.LocalParking,
                 contentDescription = null,
-                tint = if (isDark) MarkerColors.SpotOnGreen else Color.White,
+                tint = if (isDark) palette.on else Color.White,
                 modifier = Modifier.size(FREE_SPOT_MARKER_ICON),
             )
         }
     }
+}
+
+private data class SpotMarkerPalette(val bg: Color, val on: Color)
+
+private fun SpotReliabilityUiState.markerPalette(): SpotMarkerPalette = when (this) {
+    SpotReliabilityUiState.HIGH   -> SpotMarkerPalette(MarkerColors.SpotGreen, MarkerColors.SpotOnGreen)
+    SpotReliabilityUiState.MEDIUM -> SpotMarkerPalette(MarkerColors.SpotAmber, MarkerColors.SpotOnAmber)
+    SpotReliabilityUiState.LOW    -> SpotMarkerPalette(MarkerColors.SpotRed,   MarkerColors.SpotOnRed)
+    SpotReliabilityUiState.MANUAL -> SpotMarkerPalette(MarkerColors.SpotBlue,  MarkerColors.SpotOnBlue)
 }
 
 private val FREE_SPOT_MARKER_DIAM       = 42.dp
@@ -485,8 +519,17 @@ private const val ZONE_HEX_STROKE  = 1.5f
 
 /**
  * Animated circle scaffold shared by [ReportCenterPin] and [ParkingCenterPin].
- * Renders a borderOnly circle (no fill) with a ground shadow. Lifts and
- * scales slightly when [cameraMoving] to signal the pin is floating.
+ * Renders a border-only circle (no fill) with a ground shadow at the BOTTOM.
+ * Lifts and scales slightly when [cameraMoving] to signal the pin is floating.
+ *
+ * Geometry mirrors [VehicleBadgeMarker] / [FreeSpotMarker]: a `DIAM x (DIAM + GROUND_GAP)`
+ * box with the circle aligned TopCenter and the shadow at BottomCenter. This guarantees
+ * the **bottom-centre** of the scaffold == the visual ground point.
+ *
+ * Position with [Modifier.mapCenterPinAnchor] inside a `Box(contentAlignment = Center)`
+ * so the bottom-centre lands on the parent centre — which is the geographic camera
+ * target. That matches the `(0.5, 1.0)` anchor used by placed markers, so the pin
+ * the user is positioning visually coincides with the marker that will replace it.
  */
 @Composable
 private fun RoundCenterPinScaffold(
@@ -508,7 +551,6 @@ private fun RoundCenterPinScaffold(
 
     Box(
         modifier = modifier.size(width = ROUND_PIN_TOTAL_W, height = ROUND_PIN_TOTAL_H),
-        contentAlignment = Alignment.Center,
     ) {
         Canvas(
             modifier = Modifier
@@ -526,6 +568,30 @@ private fun RoundCenterPinScaffold(
             contentAlignment = Alignment.Center,
             content = content,
         )
+    }
+}
+
+/**
+ * Map-centre anchor for centre-pin composables.
+ *
+ * `Modifier.align(Alignment.Center)` aligns the child's **geometric centre** with the
+ * parent centre — but the map's geographic camera target also sits at the parent
+ * centre, and placed markers are rendered with anchor `(0.5, 1.0)`, i.e. the
+ * **bottom-centre** of the bitmap is what pins to the latlon. The two anchors don't
+ * agree, so dropping the pin makes the placed marker visually jump UP relative to
+ * where the centre-pin circle was floating.
+ *
+ * This modifier shifts the composable up by half its measured height after layout,
+ * so its bottom-centre — not its geometric centre — coincides with the parent's
+ * centre alignment point. Result: the centre pin's shadow sits exactly where the
+ * placed marker's anchor will pin, eliminating the visual jump.
+ *
+ * Apply inside a `Box(contentAlignment = Alignment.Center)` after [Modifier.align].
+ */
+fun Modifier.mapCenterPinAnchor(): Modifier = this.layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
+    layout(placeable.width, placeable.height) {
+        placeable.placeRelative(0, -placeable.height / 2)
     }
 }
 
@@ -573,13 +639,14 @@ fun ZoneCenterPin(
     )
 }
 
-private val ROUND_PIN_DIAM      = 48.dp
-private val ROUND_PIN_ICON_SIZE = 26.dp
-private val ROUND_PIN_TOTAL_W   = 56.dp
-private val ROUND_PIN_TOTAL_H   = 60.dp
-private val ROUND_PIN_SHADOW_W  = 22.dp
-private val ROUND_PIN_SHADOW_H  = 5.dp
-private val ROUND_PIN_BORDER    = 2.5.dp
+private val ROUND_PIN_DIAM        = 48.dp
+private val ROUND_PIN_ICON_SIZE   = 26.dp
+private val ROUND_PIN_GROUND_GAP  = 4.dp  // mirrors BADGE_GROUND_GAP / FREE_SPOT_MARKER_GROUND_GAP
+private val ROUND_PIN_TOTAL_W     = ROUND_PIN_DIAM
+private val ROUND_PIN_TOTAL_H     = ROUND_PIN_DIAM + ROUND_PIN_GROUND_GAP
+private val ROUND_PIN_SHADOW_W    = 22.dp
+private val ROUND_PIN_SHADOW_H    = 5.dp
+private val ROUND_PIN_BORDER      = 2.5.dp
 private const val ROUND_PIN_SHADOW_ALPHA = 0.32f
 private const val ROUND_PIN_REST_DP      = 0f
 private const val ROUND_PIN_LIFT_DP      = -10f

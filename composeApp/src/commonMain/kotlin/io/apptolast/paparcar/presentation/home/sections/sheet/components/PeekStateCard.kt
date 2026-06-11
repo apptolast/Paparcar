@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,9 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
@@ -30,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.theme.PapInk
+import io.apptolast.paparcar.ui.theme.VehicleAccent
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
@@ -60,7 +61,6 @@ internal fun PeekStateCard(
     subtitle: String? = null,
     accentColor: Color = MaterialTheme.colorScheme.primary,
     showDismiss: Boolean = true,
-    contentScrollable: Boolean = false,
     leading: @Composable () -> Unit,
     content: @Composable ColumnScope.() -> Unit = {},
     actions: @Composable ColumnScope.() -> Unit = {},
@@ -112,17 +112,7 @@ internal fun PeekStateCard(
         }
 
         // ── Content slot (optional) ───────────────────────────────────────
-        if (contentScrollable) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                content()
-            }
-        } else {
-            content()
-        }
+        content()
 
         // ── Actions slot (optional) ───────────────────────────────────────
         actions()
@@ -186,6 +176,36 @@ internal fun PeekHeaderIconChip(
 }
 
 /**
+ * "This is yours, parked" leading chip — logo-style molde. Dark PapInk interior +
+ * accent ring + accent-tinted carbody pictogram. Distinct from [PeekHeaderIconChip]
+ * (filled accent + dark icon) so the user instantly reads "my car" vs. "a free spot".
+ *
+ * Same 44dp outer footprint as the standard chip so the header rhythm stays uniform.
+ */
+@Composable
+internal fun ParkedVehicleHeaderChip(
+    painter: androidx.compose.ui.graphics.painter.Painter,
+    accent: VehicleAccent,
+) {
+    Box(
+        modifier = Modifier
+            .size(CHIP_DP.dp)
+            .clip(CircleShape)
+            .background(PapInk)
+            .border(width = PARKED_RING_DP.dp, color = accent.fill, shape = CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.foundation.Image(
+            painter = painter,
+            contentDescription = null,
+            modifier = Modifier.size(PARKED_ICON_DP.dp),
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(accent.fill),
+        )
+    }
+}
+
+/**
  * Visually de-emphasised dismiss × used by every [PeekStateCard].
  */
 @Composable
@@ -208,6 +228,8 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
 
 private const val HORIZONTAL_DP = 20
 private const val CHIP_DP = 44
+private const val PARKED_RING_DP = 2
+private const val PARKED_ICON_DP = 28
 private const val DISMISS_HIT_DP = 48
 private const val DISMISS_ICON_DP = 20
 private const val DISMISS_ALPHA = 0.55f

@@ -39,6 +39,7 @@ class ObserveParkedVehiclesUseCase(
                     stableRank = sortedIds.indexOf(vehicleId).coerceAtLeast(0),
                     privateZoneId = session.privateZoneId,
                     licensePlate = vehicle.licensePlate,
+                    isBluetoothPaired = vehicle.bluetoothDeviceId != null,
                 )
             }
         }

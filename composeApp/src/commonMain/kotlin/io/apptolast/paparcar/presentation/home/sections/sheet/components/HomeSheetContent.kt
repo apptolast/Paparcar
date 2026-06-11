@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.domain.model.sortRank
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
@@ -152,8 +154,7 @@ private fun LazyListScope.vehiclesSection(
     val userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     val sorted = vehicleCards.sortedWith(
         compareByDescending<VehicleCard> { it.session != null }
-            .thenByDescending { it.vehicle.bluetoothDeviceId != null }
-            .thenByDescending { it.vehicle.isActive }
+            .thenBy { it.vehicle.monitoringStatus().sortRank() }
     )
     item("vehicles_row") {
         LazyRow(
@@ -171,6 +172,9 @@ private fun LazyListScope.vehiclesSection(
                 }
                 HomeVehicleChip(
                     card = card,
+                    stableRank = state.parkedVehicles
+                        .firstOrNull { it.vehicleId == card.vehicle.id }
+                        ?.stableRank,
                     userLocation = userLocation,
                     isSelected = card.session != null && state.selectedItemId == card.session.id,
                     onClick = onCardClick,

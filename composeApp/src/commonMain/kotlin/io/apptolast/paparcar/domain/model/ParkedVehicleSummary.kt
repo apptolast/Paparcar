@@ -20,4 +20,11 @@ data class ParkedVehicleSummary(
     val privateZoneId: String? = null,
     /** On-device license plate — used to label the map marker. Never synced to Firestore. */
     val licensePlate: String? = null,
+    /**
+     * True when the underlying vehicle has a paired Bluetooth device. Drives the
+     * accent colour: BT-paired vehicles always get the blue slot so "blue ring =
+     * tracked via BT" reads as a consistent language. Non-BT vehicles cycle through
+     * the remaining 7 palette colours by [stableRank].
+     */
+    val isBluetoothPaired: Boolean = false,
 )

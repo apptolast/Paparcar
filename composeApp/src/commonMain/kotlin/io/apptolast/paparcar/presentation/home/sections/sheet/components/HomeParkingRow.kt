@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,16 +26,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapInk
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.parkedVehicleAccent
 import io.apptolast.paparcar.ui.theme.stateColors
-import io.apptolast.paparcar.ui.theme.vehicleStateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
@@ -60,17 +63,22 @@ internal fun HomeVehicleChip(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    stableRank: Int? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
     val isParked = session != null
-    val badge = vehicle.detectionBadge()
+    val monitoring = vehicle.monitoringStatus()
 
     val vehicleName = vehicle.displayName(fallback = stringResource(Res.string.home_vehicle_fallback_name))
-    val badgeLabel = if (badge == DetectionBadge.ACTIVE) stringResource(Res.string.home_vehicle_chip_badge_active) else null
+    val activeLabel = stringResource(Res.string.home_vehicle_chip_badge_active)
     val statusText = chipStatusText(session, userLocation)
 
-    val parkedAccent = SpotReliabilityLevel.HIGH.stateColors().bg
+    val accent = parkedVehicleAccent(
+        stableRank = stableRank,
+        isBluetoothPaired = vehicle.bluetoothDeviceId != null,
+    )
+    val parkedAccent = accent.fill
     val borderColor = when {
         isSelected -> MaterialTheme.colorScheme.primary
         isParked   -> parkedAccent
@@ -87,15 +95,23 @@ internal fun HomeVehicleChip(
         isParked   -> parkedAccent
         else       -> mutedColor
     }
-    val vc = vehicleStateColors()
+    // Parked icon box uses logo molde: dark PapInk interior + accent ring + accent-tinted
+    // icon. Mirrors the map marker so "this is yours, parked" reads at-a-glance.
+    // The molde **survives selection**: when a parked chip is selected the card chrome
+    // turns primary green (global "selected" language) but the icon box keeps its dark
+    // accent identity so BT/per-vehicle hue stays legible.
     val iconBg = when {
+        isParked   -> PapInk
         isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = ICON_BG_ALPHA)
-        isParked   -> vc.bg
         else       -> MaterialTheme.colorScheme.surfaceContainer
     }
+    val iconRing = when {
+        isParked -> parkedAccent
+        else     -> Color.Transparent
+    }
     val iconTint = when {
+        isParked   -> parkedAccent
         isSelected -> MaterialTheme.colorScheme.onPrimary
-        isParked   -> vc.on
         else       -> MaterialTheme.colorScheme.primary
     }
 
@@ -115,7 +131,8 @@ internal fun HomeVehicleChip(
                     modifier = Modifier
                         .size(ICON_BOX_DP.dp)
                         .clip(CircleShape)
-                        .background(iconBg),
+                        .background(iconBg)
+                        .border(width = ICON_RING_DP.dp, color = iconRing, shape = CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     io.apptolast.paparcar.ui.components.VehicleIcon(
@@ -141,12 +158,12 @@ internal fun HomeVehicleChip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                when (badge) {
-                    DetectionBadge.BLUETOOTH -> DetectionLabel(text = "BT", textColor = mutedColor)
-                    DetectionBadge.ACTIVE    -> if (badgeLabel != null) DetectionLabel(text = badgeLabel, textColor = mutedColor)
-                    DetectionBadge.NONE      -> Unit
+                when (monitoring) {
+                    is VehicleMonitoringStatus.Bluetooth -> DetectionLabel(text = "BT", textColor = mutedColor)
+                    VehicleMonitoringStatus.Active       -> DetectionLabel(text = activeLabel, textColor = mutedColor)
+                    VehicleMonitoringStatus.Inactive     -> Unit
                 }
-                if (badge != DetectionBadge.NONE) {
+                if (monitoring !is VehicleMonitoringStatus.Inactive) {
                     Text(BULLET, style = MaterialTheme.typography.labelSmall, color = mutedColor)
                 }
                 Text(
@@ -189,16 +206,9 @@ private fun chipStatusText(session: UserParking?, userLocation: Pair<Double, Dou
     }
 }
 
-private enum class DetectionBadge { BLUETOOTH, ACTIVE, NONE }
-
-private fun Vehicle.detectionBadge(): DetectionBadge = when {
-    bluetoothDeviceId != null -> DetectionBadge.BLUETOOTH
-    isActive                  -> DetectionBadge.ACTIVE
-    else                      -> DetectionBadge.NONE
-}
-
 private const val CHIP_WIDTH_DP = 148
 private const val ICON_BOX_DP = 28
+private const val ICON_RING_DP = 1f
 private const val BORDER_DP = 1
 private const val OUTLINE_ALPHA = 0.4f
 private const val MUTED_ALPHA = 0.6f
