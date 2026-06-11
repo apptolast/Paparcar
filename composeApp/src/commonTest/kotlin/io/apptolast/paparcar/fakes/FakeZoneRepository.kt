@@ -20,6 +20,9 @@ class FakeZoneRepository : ZoneRepository {
     var deleteAllUserId: String? = null
         private set
 
+    /** When set, [saveZone] returns this Result instead of Success and the in-memory list is not updated. */
+    var saveZoneResult: Result<Unit>? = null
+
     var syncFromRemoteCallCount = 0
         private set
     var syncFromRemoteResult: Result<Unit> = Result.success(Unit)
@@ -35,7 +38,8 @@ class FakeZoneRepository : ZoneRepository {
 
     override suspend fun saveZone(zone: Zone): Result<Unit> {
         savedZone = zone
-        _zones.value = _zones.value + zone
+        saveZoneResult?.let { return it }
+        _zones.value = _zones.value.filterNot { it.id == zone.id } + zone
         return Result.success(Unit)
     }
 

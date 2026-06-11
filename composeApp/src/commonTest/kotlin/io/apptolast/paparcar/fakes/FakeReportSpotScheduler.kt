@@ -22,6 +22,9 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     var lastPlaceInfo: PlaceInfo? = null
     var lastReporterName: String? = null
 
+    /** When true, [enqueueReportSpot] throws to simulate a downstream failure. */
+    var shouldThrow: Boolean = false
+
     override fun enqueueReportSpot(
         spotId: String,
         lat: Double,
@@ -45,5 +48,6 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         lastSizeCategory = sizeCategory
         lastCarbodyType = carbodyType
         lastReporterName = reporterName
+        if (shouldThrow) throw RuntimeException("simulated enqueue failure")
     }
 }

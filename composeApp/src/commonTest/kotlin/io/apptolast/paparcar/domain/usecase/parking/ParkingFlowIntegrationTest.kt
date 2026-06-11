@@ -66,7 +66,6 @@ class ParkingFlowIntegrationTest {
         vehicleRepository = vehicleRepo,
         zoneRepository = FakeZoneRepository(),
         geofenceService = geofence,
-        notificationPort = notification,
         enrichmentScheduler = enrichment,
         authRepository = auth,
         config = ParkingDetectionConfig(),
@@ -221,11 +220,11 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `confirm should register geofence and enrichment before release is called`() = runTest {
+        // [CONFIRM-NO-NOTIF-CLEANUP] notif assertion moved out — the use case no longer posts.
         confirmParking(location, detectionReliability = 0.9f)
 
         assertEquals(1, geofence.createGeofenceCallCount)
         assertEquals(1, enrichment.scheduleCallCount)
-        assertEquals(1, notification.parkingSpotSavedCallCount)
     }
 
     @Test
