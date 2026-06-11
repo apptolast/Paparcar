@@ -49,6 +49,7 @@
     <string name="home_reliability_high">Détecté automatiquement</string>
     <string name="home_reliability_auto">Approx.</string>
     <string name="home_search_clear_cd">Effacer la recherche</string>
+    <string name="pap_field_clear_cd">Effacer le champ</string>
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">%1$d min</string>
     <string name="home_spot_freshness_hours">%1$d h</string>
@@ -347,6 +348,7 @@
     <string name="vehicle_size_large_examples">ex. BMW Série 5, Mercedes Classe E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Fourgon / SUV</string>
     <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+    <string name="vehicle_size_unknown">Indéfini</string>
 
     <!-- Sélecteur de type de véhicule — écran d\'enregistrement / édition -->
     <string name="vehicle_type_label">Type de véhicule</string>

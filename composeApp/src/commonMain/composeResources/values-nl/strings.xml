@@ -49,6 +49,7 @@
     <string name="home_reliability_high">Automatisch gedetecteerd</string>
     <string name="home_reliability_auto">Ongeveer</string>
     <string name="home_search_clear_cd">Zoekopdracht wissen</string>
+    <string name="pap_field_clear_cd">Veld wissen</string>
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">%1$d min geleden</string>
     <string name="home_spot_freshness_hours">%1$d u geleden</string>
@@ -347,6 +348,7 @@
     <string name="vehicle_size_large_examples">bijv. BMW 5 Serie, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Bestelbus / SUV</string>
     <string name="vehicle_size_van_examples">bijv. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+    <string name="vehicle_size_unknown">Onbekend</string>
 
     <!-- Voertuigtype-keuze — registratie / bewerk scherm -->
     <string name="vehicle_type_label">Voertuigtype</string>

@@ -51,6 +51,7 @@
     <string name="home_reliability_high">Wykryto automatycznie</string>
     <string name="home_reliability_auto">Przybliżone</string>
     <string name="home_search_clear_cd">Wyczyść wyszukiwanie</string>
+    <string name="pap_field_clear_cd">Wyczyść pole</string>
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">%1$d min temu</string>
     <string name="home_spot_freshness_hours">%1$d godz. temu</string>
@@ -351,6 +352,7 @@
     <string name="vehicle_size_large_examples">np. BMW Seria 5, Mercedes Klasa E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Van / SUV</string>
     <string name="vehicle_size_van_examples">np. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+    <string name="vehicle_size_unknown">Nieokreślony</string>
 
     <!-- Wybór typu pojazdu — ekran rejestracji / edycji -->
     <string name="vehicle_type_label">Typ pojazdu</string>

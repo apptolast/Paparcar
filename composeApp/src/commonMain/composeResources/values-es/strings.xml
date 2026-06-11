@@ -75,6 +75,7 @@
     <string name="home_reliability_auto">Aprox.</string>
     <!-- HomeSearchBar -->
     <string name="home_search_clear_cd">Limpiar búsqueda</string>
+    <string name="pap_field_clear_cd">Limpiar campo</string>
     <!-- HomeFloatingHeader -->
     <!-- HomeSpotRows chip de frescura — %1$d = minutos u horas -->
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
@@ -453,6 +454,7 @@
     <string name="vehicle_size_large_examples">ej. BMW Serie 5, Mercedes Clase E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Furgoneta / SUV</string>
     <string name="vehicle_size_van_examples">ej. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+    <string name="vehicle_size_unknown">Indefinido</string>
 
     <!-- Selector de tipo de vehículo — pantalla de registro / edición -->
     <string name="vehicle_type_label">Tipo de vehículo</string>

@@ -49,6 +49,7 @@
     <string name="home_reliability_high">Detectat automat</string>
     <string name="home_reliability_auto">Aproximativ</string>
     <string name="home_search_clear_cd">Șterge căutarea</string>
+    <string name="pap_field_clear_cd">Șterge câmpul</string>
     <string name="home_spot_freshness_under_min">&lt; 1 min</string>
     <string name="home_spot_freshness_minutes">acum %1$d min</string>
     <string name="home_spot_freshness_hours">acum %1$d ore</string>
@@ -347,6 +348,7 @@
     <string name="vehicle_size_large_examples">ex. BMW Seria 5, Mercedes Clasa E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Dubă / SUV</string>
     <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
+    <string name="vehicle_size_unknown">Nedefinit</string>
 
     <!-- Selector tip vehicul — ecran de înregistrare / editare -->
     <string name="vehicle_type_label">Tip vehicul</string>
