@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
+import androidx.compose.runtime.SideEffect
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -113,6 +114,16 @@ private val FAB_ABOVE_SHEET_GAP = 12.dp
 // occurs when the peek handle is first measured and peekHeightPx is corrected
 // from the SheetPeekHeightInitial estimate to the real measured height.
 private val PEEK_LAYOUT_SNAP_TOLERANCE = 64.dp
+
+// Hysteresis around peekHeightPx updates. Below this delta we treat the new
+// height as the same value and skip the state write, which kills the
+// sheet-snap-loop seen when AnimatedContent inside the peek transitions
+// between SelectedSpot states with slightly different intrinsic heights:
+// the layout-phase measurement reports sub-pixel oscillations every frame,
+// and without this gate every wobble re-fired the LaunchedEffect that snaps
+// the sheet to peekOffsetPx — making the sheet jitter while the user looked
+// at it. [BUG-PEEK-JITTER-001]
+private val PEEK_HEIGHT_UPDATE_HYSTERESIS = 4.dp
 
 // Minimum visible sheet height when dragged to its smallest "minimized" state.
 // Matches the natural Browse peek (drag pill + CameraLocationRow with title +
@@ -226,9 +237,15 @@ private fun HomeContent(
     // out during a drag — if the sheet consumed that raw value, its scroll
     // area would visibly shift underfoot. Latch the last non-zero padding
     // so the sheet keeps reserving space for the nav while it animates away.
+    //
+    // Mutation happens in a SideEffect rather than inline — writing to a
+    // mutableState from the composition phase is a Compose anti-pattern and
+    // can mis-fire invalidation in future runtime versions.
     var lastKnownNavHeight by remember { mutableStateOf(0.dp) }
-    if (bottomPadding > 0.dp && bottomPadding != lastKnownNavHeight) {
-        lastKnownNavHeight = bottomPadding
+    SideEffect {
+        if (bottomPadding > 0.dp && bottomPadding != lastKnownNavHeight) {
+            lastKnownNavHeight = bottomPadding
+        }
     }
     val stableBottomPadding = if (bottomPadding > 0.dp) bottomPadding else lastKnownNavHeight
 
@@ -270,8 +287,21 @@ private fun HomeContent(
     var showReleaseDialog by remember { mutableStateOf(false) }
     val lazyListState = rememberLazyListState()
 
-    LaunchedEffect(state.userParking, state.isReleasingParking) {
-        if (state.userParking == null && !state.isReleasingParking) showReleaseDialog = false
+    // Auto-close the release dialog as soon as the in-flight release finishes
+    // (success or failure). Errors are surfaced via snackbar — the dialog has
+    // nothing to add once isReleasingParking flips back to false. Tracking the
+    // true→false flip avoids the multi-parking pitfall where checking
+    // `state.userParking == null` would never be true when other vehicles
+    // still have active sessions. [BUG-RELEASE-DIALOG-001] [MULTI-PARKING-001]
+    val releaseInFlight = state.isReleasingParking
+    var wasReleasing by remember { mutableStateOf(false) }
+    LaunchedEffect(releaseInFlight) {
+        if (releaseInFlight) {
+            wasReleasing = true
+        } else if (wasReleasing) {
+            wasReleasing = false
+            showReleaseDialog = false
+        }
     }
 
     LaunchedEffect(state.userGpsPoint) {
@@ -363,6 +393,7 @@ private fun HomeContent(
                 var peekHeightPx by remember {
                     mutableFloatStateOf(with(density) { SheetPeekHeightInitial.toPx() })
                 }
+                val peekHeightHysteresisPx = with(density) { PEEK_HEIGHT_UPDATE_HYSTERESIS.toPx() }
                 val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
 
                 // Minimized snap point — the drag-down floor for non-Browse states.
@@ -659,7 +690,8 @@ private fun HomeContent(
                 HomeMapSection(
                     state = state,
                     selectedSpotId = selectedSpotId,
-                    isMyCarSelected = isParkingSelected,
+                    // Per-vehicle: only the matching marker renders selected. [MULTI-PARKING-001]
+                    selectedSessionId = state.selectedItemId.takeIf { isParkingSelected },
                     reportMode = isPinningMode,
                     cameraTarget = uiController.cameraTarget,
                     centerPin = centerPinKind,
@@ -813,7 +845,13 @@ private fun HomeContent(
                     sheetNestedScroll = sheetNestedScroll,
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
-                    onPeekHeightChanged = { h -> peekHeightPx = h },
+                    onPeekHeightChanged = { h ->
+                        // Reject sub-threshold changes so AnimatedContent transitions inside
+                        // the peek don't whip the sheet around. [BUG-PEEK-JITTER-001]
+                        if (kotlin.math.abs(peekHeightPx - h) >= peekHeightHysteresisPx) {
+                            peekHeightPx = h
+                        }
+                    },
                     onIntent = onIntent,
                     onParkingClick = { parking ->
                         onIntent(HomeIntent.SelectItem(parking.id))

@@ -9,7 +9,9 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
+import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -29,7 +31,6 @@ import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.presentation.base.BaseViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -43,7 +44,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
@@ -71,6 +71,7 @@ class HomeViewModel(
     private val saveZone: SaveZoneUseCase,
     private val appPreferences: AppPreferences,
     private val mapFocusEventBus: MapFocusEventBus,
+    private val notificationPort: AppNotificationManager,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     // ── Private flows ─────────────────────────────────────────────────────────
@@ -85,14 +86,19 @@ class HomeViewModel(
     // user pans the map past SPOT_CAMERA_PAN_THRESHOLD_METERS in Browse mode.
     private val spotQueryCenter = MutableStateFlow<GpsPoint?>(null)
 
-    // ── Geocode jobs ──────────────────────────────────────────────────────────
-    // cameraDebounceJob: cancelled on every camera move (drops rapid-pan spam).
-    // cameraGeocoderJob: only cancelled when the debounce fires for a NEW location,
-    //   so Phase 2 (slow Overpass call) survives brief camera animations.
+    // ── Geocode controller ────────────────────────────────────────────────────
+    // Encapsulates user + camera geocoding flows (debounce, Phase-2 survival
+    // semantics, in-flight flag invariants). [F3] [BUG-GEOCODE-STUCK-001]
 
-    private var userGeocoderJob: Job? = null
-    private var cameraDebounceJob: Job? = null
-    private var cameraGeocoderJob: Job? = null
+    private val geocoder = HomeGeocodingController(
+        scope = viewModelScope,
+        getAddressAndPlace = getAddressAndPlace,
+        onUserAddress = { info -> updateState { copy(userAddressAndPlace = info) } },
+        onCameraAddress = { info -> updateState { copy(cameraAddressAndPlace = info) } },
+        onCameraGeocodingChange = { active -> updateState { copy(isCameraGeocoding = active) } },
+        debounceMs = GEOCODE_DEBOUNCE_MS,
+    )
+
     private var cameraSettledJob: Job? = null
 
     // ── Init ──────────────────────────────────────────────────────────────────
@@ -127,17 +133,21 @@ class HomeViewModel(
                     sendEffect(HomeEffect.RequestLocationPermission)
                 }
             }
-            is HomeIntent.SelectItem -> updateState { copy(selectedItemId = intent.itemId, selectedZoneId = null) }
+            is HomeIntent.SelectItem -> updateState {
+                clearedModeFields().copy(selectedItemId = intent.itemId)
+            }
             is HomeIntent.SetSizeFilter -> updateState { copy(sizeFilter = intent.size) }
             is HomeIntent.SendSpotSignal -> submitSpotSignal(intent.spotId, intent.accepted)
 
             // Reporting mode
             is HomeIntent.EnterReportMode -> updateState {
-                copy(mode = HomeMode.Reporting, selectedItemId = null, pinCameraLat = intent.lat, pinCameraLon = intent.lon)
+                clearedModeFields().copy(
+                    mode = HomeMode.Reporting,
+                    pinCameraLat = intent.lat,
+                    pinCameraLon = intent.lon,
+                )
             }
-            is HomeIntent.ExitReportMode -> updateState {
-                copy(mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null, isCameraMoving = false, reportingSize = null)
-            }
+            is HomeIntent.ExitReportMode -> updateState { clearedModeFields() }
             is HomeIntent.ConfirmReportSpot -> confirmReportSpot()
             is HomeIntent.SetReportingSize -> updateState {
                 copy(reportingSize = if (reportingSize == intent.size) null else intent.size)
@@ -151,53 +161,26 @@ class HomeViewModel(
             // Parking lifecycle
             is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon, intent.publishSpot)
             is HomeIntent.EnterAddParkingMode -> updateState {
-                copy(
+                clearedModeFields().copy(
                     mode = HomeMode.AddingParking,
-                    selectedItemId = null,
                     pinCameraLat = intent.initialGps?.latitude,
                     pinCameraLon = intent.initialGps?.longitude,
                     editingParkingId = intent.editingParkingId,
                     addingParkingVehicleId = intent.targetVehicleId,
                 )
             }
-            is HomeIntent.ExitAddParkingMode -> updateState {
-                copy(
-                    mode = HomeMode.Browse,
-                    pinCameraLat = null,
-                    pinCameraLon = null,
-                    isCameraMoving = false,
-                    editingParkingId = null,
-                    addingParkingVehicleId = null,
-                )
-            }
+            is HomeIntent.ExitAddParkingMode -> updateState { clearedModeFields() }
             is HomeIntent.ConfirmAddParking -> confirmAddParking()
 
             // Zone management
             is HomeIntent.EnterAddZoneMode -> updateState {
-                copy(
+                clearedModeFields().copy(
                     mode = HomeMode.AddingZone,
-                    selectedItemId = null,
-                    selectedZoneId = null,
                     pinCameraLat = intent.lat,
                     pinCameraLon = intent.lon,
-                    isCameraMoving = false,
-                    addingZoneName = "",
-                    addingZoneIconKey = ZoneIcon.DEFAULT,
-                    editingZoneId = null,
                 )
             }
-            is HomeIntent.ExitAddZoneMode -> updateState {
-                copy(
-                    mode = HomeMode.Browse,
-                    selectedZoneId = null,
-                    pinCameraLat = null,
-                    pinCameraLon = null,
-                    isCameraMoving = false,
-                    addingZoneName = "",
-                    addingZoneIconKey = ZoneIcon.DEFAULT,
-                    editingZoneId = null,
-                )
-            }
+            is HomeIntent.ExitAddZoneMode -> updateState { clearedModeFields() }
             is HomeIntent.ConfirmAddZone -> confirmAddZone()
             is HomeIntent.UpdateAddingZoneName -> updateState { copy(addingZoneName = intent.name) }
             is HomeIntent.UpdateAddingZoneIcon -> updateState { copy(addingZoneIconKey = intent.iconKey) }
@@ -205,21 +188,24 @@ class HomeViewModel(
             is HomeIntent.SetZoneIsPrivate -> updateState { copy(addingZoneIsPrivate = intent.isPrivate) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
             is HomeIntent.DismissZone -> updateState { copy(selectedZoneId = null) }
-            is HomeIntent.DeleteZone -> viewModelScope.launch {
-                zoneRepository.deleteZone(intent.zoneId)
-                    .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
+            is HomeIntent.DeleteZone -> {
+                if (intent.zoneId in state.value.deletingZoneIds) return@handleIntent
+                updateState { copy(deletingZoneIds = deletingZoneIds + intent.zoneId) }
+                viewModelScope.launch {
+                    zoneRepository.deleteZone(intent.zoneId)
+                        .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
+                    updateState { copy(deletingZoneIds = deletingZoneIds - intent.zoneId) }
+                }
             }
             is HomeIntent.EnterEditZoneMode -> enterEditZoneMode(intent.zoneId)
 
             // Search
             is HomeIntent.SearchQueryChanged -> onSearchQueryChanged(intent.query)
             is HomeIntent.SelectSearchResult -> {
-                updateState { copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false) }
+                updateState { resetSearch() }
                 geocodeCameraLocation(intent.result.lat, intent.result.lon)
             }
-            is HomeIntent.ClearSearch -> updateState {
-                copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false)
-            }
+            is HomeIntent.ClearSearch -> updateState { resetSearch() }
 
             // Debug
             is HomeIntent.ReportTestSpot -> reportTestSpot()
@@ -284,17 +270,27 @@ class HomeViewModel(
     }
 
     private fun subscribeGpsLocation() {
-        combine(permissionManager.permissionState, reconnectTick) { perm, _ -> perm }
-            .flatMapLatest { perm ->
+        // [BUG-7] AR registration must fire only on the actual false→true flip of
+        // permissionsGranted, NOT on every reconnect tick. Track permission changes
+        // in a dedicated stream that mirrors the granted state into HomeState and
+        // registers transitions once. The location stream below depends on the
+        // (permState, reconnectTick) pair so reconnects still rebuild the spot
+        // subscription, but AR is left alone.
+        permissionManager.permissionState
+            .distinctUntilChanged { old, new -> old.allPermissionsGranted == new.allPermissionsGranted }
+            .onEach { perm ->
                 updateState { copy(allPermissionsGranted = perm.allPermissionsGranted) }
                 if (perm.allPermissionsGranted) {
                     // Best-effort: AR failure degrades gracefully to GPS-only detection.
                     runCatching { activityRecognitionManager.registerTransitions() }
                         .onFailure { e -> PaparcarLogger.w(TAG, "AR registration failed — GPS-only mode", e) }
-                    locationDataSource.observeBalancedLocation()
-                } else {
-                    emptyFlow()
                 }
+            }
+            .launchIn(viewModelScope)
+
+        combine(permissionManager.permissionState, reconnectTick) { perm, _ -> perm }
+            .flatMapLatest { perm ->
+                if (perm.allPermissionsGranted) locationDataSource.observeBalancedLocation() else emptyFlow()
             }
             .onStart { updateState { copy(isLoading = true) } }
             .onEach { location ->
@@ -309,6 +305,12 @@ class HomeViewModel(
                 }
             }
             .catch { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: ""))) }
+            .launchIn(viewModelScope)
+    }
+
+    private fun subscribeMapFocusEvents() {
+        mapFocusEventBus.events
+            .onEach { (lat, lon) -> sendEffect(HomeEffect.MoveCameraTo(lat, lon)) }
             .launchIn(viewModelScope)
     }
 
@@ -329,44 +331,70 @@ class HomeViewModel(
                         }
                 }
             }
-            .onEach { spots ->
-                updateState {
-                    val cur = selectedItemId
-                    copy(
-                        nearbySpots = spots,
-                        selectedItemId = if (cur == null ||
-                            activeSessions.any { it.id == cur } ||
-                            spots.any { it.id == cur }) cur else null,
-                    )
-                }
-            }
+            .onEach { spots -> updateState { applyNewSpots(spots) } }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Applies the freshly-fetched nearby spots and prunes the selection if the
+     * selected item is no longer either an active session or one of the visible
+     * spots. Keeps the selection logic adjacent to the data update without
+     * inlining it inside the flow operator. [A1]
+     */
+    private fun HomeState.applyNewSpots(spots: List<io.apptolast.paparcar.domain.model.Spot>): HomeState {
+        val cur = selectedItemId
+        val selectionStillValid = cur == null ||
+            activeSessions.any { it.id == cur } ||
+            spots.any { it.id == cur }
+        return copy(
+            nearbySpots = spots,
+            selectedItemId = if (selectionStillValid) cur else null,
+        )
     }
 
     // ── Intent handlers ───────────────────────────────────────────────────────
 
     private fun onCameraPositionChanged(lat: Double, lon: Double) {
         if (state.value.mode !is HomeMode.Browse) {
-            updateState { copy(pinCameraLat = lat, pinCameraLon = lon, isCameraMoving = true) }
-            cameraSettledJob?.cancel()
-            cameraSettledJob = viewModelScope.launch {
-                kotlinx.coroutines.delay(CAMERA_SETTLED_MS)
-                updateState { copy(isCameraMoving = false) }
-            }
+            updatePinDuringMode(lat, lon)
         } else {
-            val current = spotQueryCenter.value
-            if (current != null && haversineMeters(current.latitude, current.longitude, lat, lon) > SPOT_CAMERA_PAN_THRESHOLD_METERS) {
-                spotQueryCenter.value = GpsPoint(
-                    latitude = lat,
-                    longitude = lon,
-                    accuracy = 0f,
-                    timestamp = Clock.System.now().toEpochMilliseconds(),
-                    speed = 0f,
-                )
-                updateState { copy(isSpotQueryCenteredOnUser = false) }
-            }
+            maybeRecenterSpotsOnPan(lat, lon)
         }
         geocodeCameraLocation(lat, lon)
+    }
+
+    /**
+     * Pin-mode handler: track the camera centre as the pending pin coordinate
+     * and flip [HomeState.isCameraMoving] off after [CAMERA_SETTLED_MS] without
+     * a new frame so confirm buttons are only enabled once the camera settles.
+     */
+    private fun updatePinDuringMode(lat: Double, lon: Double) {
+        updateState { copy(pinCameraLat = lat, pinCameraLon = lon, isCameraMoving = true) }
+        cameraSettledJob?.cancel()
+        cameraSettledJob = viewModelScope.launch {
+            delay(CAMERA_SETTLED_MS)
+            updateState { copy(isCameraMoving = false) }
+        }
+    }
+
+    /**
+     * Browse-mode handler: if the user has panned more than
+     * [SPOT_CAMERA_PAN_THRESHOLD_METERS] from the current spot query centre,
+     * move the centre to the new camera position so the nearby spots query
+     * rebuilds against where the user is actually looking. Only relevant once
+     * the centre has been seeded by the first GPS fix.
+     */
+    private fun maybeRecenterSpotsOnPan(lat: Double, lon: Double) {
+        val current = spotQueryCenter.value ?: return
+        if (haversineMeters(current.latitude, current.longitude, lat, lon) <= SPOT_CAMERA_PAN_THRESHOLD_METERS) return
+        spotQueryCenter.value = GpsPoint(
+            latitude = lat,
+            longitude = lon,
+            accuracy = 0f,
+            timestamp = Clock.System.now().toEpochMilliseconds(),
+            speed = 0f,
+        )
+        updateState { copy(isSpotQueryCenteredOnUser = false) }
     }
 
     private fun onRecenterSpots() {
@@ -377,10 +405,21 @@ class HomeViewModel(
     }
 
     private fun onSearchQueryChanged(query: String) {
-        updateState { copy(searchQuery = query, isSearchActive = true) }
-        if (query.isBlank()) updateState { copy(searchResults = emptyList(), isSearching = false) }
+        val blank = query.isBlank()
+        updateState {
+            copy(
+                searchQuery = query,
+                isSearchActive = true,
+                searchResults = if (blank) emptyList() else searchResults,
+                isSearching = if (blank) false else isSearching,
+            )
+        }
         searchQueryFlow.value = query
     }
+
+    /** Wipes every search-related field. Used by SelectSearchResult + ClearSearch. */
+    private fun HomeState.resetSearch(): HomeState =
+        copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false)
 
     private fun confirmReportSpot() {
         val current = state.value
@@ -391,12 +430,36 @@ class HomeViewModel(
         val lon = current.pinCameraLon ?: run {
             sendEffect(HomeEffect.ShowError(PaparcarError.Location.ProviderDisabled)); return
         }
+        // Carbody hygiene [F1-bis]: when the user reports a freed spot manually they pick
+        // size but no carbody (no picker in the report flow). Fall back to the active
+        // vehicle's carbody so the public Spot carries it and the "Left by …" subline
+        // renders for other users. Size is taken verbatim from the picker — null means
+        // the user explicitly selected "Indefinido", so we don't infer it from the vehicle.
+        val activeVehicle = current.vehicles.firstOrNull { it.isActive }
+        val resolvedSize = current.reportingSize
+        val resolvedCarbody = activeVehicle?.carbodyType
         updateState { copy(isReporting = true) }
         viewModelScope.launch {
             val spotId = "manual_${Clock.System.now().toEpochMilliseconds()}"
-            reportSpotReleased(lat, lon, spotId, SpotType.MANUAL_REPORT, confidence = 1f, sizeCategory = current.reportingSize)
-            updateState { copy(isReporting = false, mode = HomeMode.Browse, pinCameraLat = null, pinCameraLon = null, reportingSize = null) }
-            sendEffect(HomeEffect.SpotReported)
+            runCatching {
+                reportSpotReleased(
+                    lat = lat,
+                    lon = lon,
+                    spotId = spotId,
+                    spotType = SpotType.MANUAL_REPORT,
+                    confidence = 1f,
+                    sizeCategory = resolvedSize,
+                    carbodyType = resolvedCarbody,
+                )
+            }
+                .onSuccess {
+                    updateState { clearedModeFields().copy(isReporting = false) }
+                    sendEffect(HomeEffect.SpotReported)
+                }
+                .onFailure { e ->
+                    updateState { copy(isReporting = false) }
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(e.message ?: "")))
+                }
         }
     }
 
@@ -405,6 +468,10 @@ class HomeViewModel(
         updateState { copy(pendingParkingGps = null) }
         viewModelScope.launch {
             confirmParking(gps, 1.0f, SpotType.AUTO_DETECTED)
+                .onSuccess { saved ->
+                    // [CONFIRM-NO-NOTIF-CLEANUP] notification responsibility moved out of use case.
+                    notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+                }
                 .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
     }
@@ -414,13 +481,14 @@ class HomeViewModel(
         updateState { copy(isReleasingParking = true) }
         viewModelScope.launch {
             releaseSession(lat, lon, target, publishSpot)
+                .onSuccess {
+                    updateState { copy(selectedItemId = null, isReleasingParking = false) }
+                    if (publishSpot) sendEffect(HomeEffect.SpotReported)
+                }
                 .onFailure { e ->
                     updateState { copy(isReleasingParking = false) }
                     sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
-                    return@launch
                 }
-            updateState { copy(selectedItemId = null, isReleasingParking = false) }
-            if (publishSpot) sendEffect(HomeEffect.SpotReported)
         }
     }
 
@@ -449,19 +517,22 @@ class HomeViewModel(
             val result = if (editingId != null) {
                 updateParkingLocation(editingId, newGps).map { Unit }
             } else {
-                confirmParking(newGps, 1.0f, SpotType.MANUAL_REPORT, vehicleId = current.addingParkingVehicleId).map { Unit }
+                confirmParking(newGps, 1.0f, SpotType.MANUAL_REPORT, vehicleId = current.addingParkingVehicleId)
+                    .onSuccess { saved ->
+                        // [CONFIRM-NO-NOTIF-CLEANUP] notification responsibility moved out of use case.
+                        notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+                    }
+                    .map { Unit }
             }
-            result.onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
-            updateState {
-                copy(
-                    isSavingParking = false,
-                    mode = HomeMode.Browse,
-                    pinCameraLat = null,
-                    pinCameraLon = null,
-                    editingParkingId = null,
-                    addingParkingVehicleId = null,
-                )
-            }
+            result
+                .onSuccess { updateState { clearedModeFields().copy(isSavingParking = false) } }
+                .onFailure { e ->
+                    // [BUG-8] Keep the user in AddingParking with the pin intact so they
+                    // can retry. Only flip the spinner off. Going back to Browse on failure
+                    // would force the user to re-centre the camera and reconfirm.
+                    updateState { copy(isSavingParking = false) }
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed))
+                }
         }
     }
 
@@ -478,41 +549,56 @@ class HomeViewModel(
         updateState { copy(isSavingZone = true) }
         viewModelScope.launch {
             val editingId = current.editingZoneId
-            if (editingId != null) {
-                current.zones.find { it.id == editingId }?.let { existing ->
-                    zoneRepository.saveZone(existing.copy(name = name.trim(), lat = lat, lon = lon, iconKey = current.addingZoneIconKey))
-                        .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
+            val saveResult: Result<*> = if (editingId != null) {
+                val existing = current.zones.find { it.id == editingId }
+                if (existing == null) {
+                    Result.failure(IllegalStateException("zone $editingId vanished while editing"))
+                } else {
+                    zoneRepository.saveZone(
+                        existing.copy(
+                            name = name,
+                            lat = lat,
+                            lon = lon,
+                            iconKey = current.addingZoneIconKey,
+                            radiusMeters = current.addingZoneRadius,
+                            isPrivate = current.addingZoneIsPrivate,
+                        )
+                    )
                 }
             } else {
-                saveZone(name = name, lat = lat, lon = lon, iconKey = current.addingZoneIconKey)
-                    .onFailure { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: ""))) }
-            }
-            updateState {
-                copy(
-                    isSavingZone = false,
-                    mode = HomeMode.Browse,
-                    pinCameraLat = null,
-                    pinCameraLon = null,
-                    addingZoneName = "",
-                    addingZoneIconKey = ZoneIcon.DEFAULT,
-                    editingZoneId = null,
+                saveZone(
+                    name = name,
+                    lat = lat,
+                    lon = lon,
+                    iconKey = current.addingZoneIconKey,
+                    radiusMeters = current.addingZoneRadius,
+                    isPrivate = current.addingZoneIsPrivate,
                 )
             }
-            sendEffect(HomeEffect.ZoneSaved)
+            saveResult
+                .onSuccess {
+                    updateState { clearedModeFields().copy(isSavingZone = false) }
+                    sendEffect(HomeEffect.ZoneSaved)
+                }
+                .onFailure { e ->
+                    // [BUG-8] Stay in AddingZone with the form intact so the user can retry.
+                    updateState { copy(isSavingZone = false) }
+                    sendEffect(HomeEffect.ShowError(PaparcarError.Database.WriteError(e.message ?: "")))
+                }
         }
     }
 
     private fun enterEditZoneMode(zoneId: String) {
         val zone = state.value.zones.find { it.id == zoneId } ?: return
         updateState {
-            copy(
+            clearedModeFields().copy(
                 mode = HomeMode.AddingZone,
-                selectedItemId = null,
-                selectedZoneId = null,
                 pinCameraLat = zone.lat,
                 pinCameraLon = zone.lon,
                 addingZoneName = zone.name,
                 addingZoneIconKey = zone.iconKey,
+                addingZoneRadius = zone.radiusMeters,
+                addingZoneIsPrivate = zone.isPrivate,
                 editingZoneId = zoneId,
             )
         }
@@ -521,15 +607,70 @@ class HomeViewModel(
 
     private fun selectZone(zoneId: String) {
         val zone = state.value.zones.find { it.id == zoneId } ?: return
-        updateState { copy(selectedZoneId = zoneId, selectedItemId = null) }
+        updateState {
+            clearedModeFields().copy(selectedZoneId = zoneId)
+        }
         sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
     }
 
+    // ── Mode invariant ────────────────────────────────────────────────────────
+    //
+    // Selection (selectedItemId / selectedZoneId) and add-modes (Reporting /
+    // AddingZone / AddingParking) are mutually exclusive:
+    //   mode != Browse                 ⇒  selectedItemId == null && selectedZoneId == null
+    //   selectedItemId or zoneId != 0  ⇒  mode == Browse
+    //
+    // Enforcement sites:
+    //   • EnterReportMode / EnterAddParkingMode / EnterAddZoneMode / EnterEditZoneMode
+    //     all clear `selectedItemId` (and `selectedZoneId`) on entry.
+    //   • SelectItem / selectZone both call [clearedModeFields] before applying the
+    //     new selection, so picking a marker silently exits any active add-mode.
+    //
+    // Use this helper for any new transition from a non-Browse mode back to Browse
+    // — it wipes every field that belongs to a non-Browse mode in one place, so
+    // the invariant cannot drift as new mode-scoped fields are added.
+
+    /**
+     * Returns a copy of this state reset to [HomeMode.Browse], clearing every
+     * field that is owned by a non-Browse mode (pin coords, camera-moving flag,
+     * report/zone/parking form fields, editing IDs) AND both selection fields
+     * (selectedItemId, selectedZoneId). Callers that need to set a selection or
+     * re-enter a mode apply their fields via `.copy(...)` on top of this base.
+     *
+     * In-flight booleans (isReporting / isSavingZone / isSavingParking /
+     * isReleasingParking) are intentionally left alone: they reflect a running
+     * operation, not the user-facing mode.
+     *
+     * **Invariant enforced here:** `mode != Browse ⇒ selectedItemId == null &&
+     * selectedZoneId == null`. Every Enter*Mode / SelectItem / selectZone path
+     * goes through this helper so the invariant cannot drift as new
+     * mode-scoped fields are added. [BUG-5]
+     */
+    private fun HomeState.clearedModeFields(): HomeState = copy(
+        mode = HomeMode.Browse,
+        selectedItemId = null,
+        selectedZoneId = null,
+        pinCameraLat = null,
+        pinCameraLon = null,
+        isCameraMoving = false,
+        reportingSize = null,
+        addingZoneName = "",
+        addingZoneIconKey = ZoneIcon.DEFAULT,
+        addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
+        addingZoneIsPrivate = false,
+        editingZoneId = null,
+        editingParkingId = null,
+        addingParkingVehicleId = null,
+    )
+
     private fun submitSpotSignal(spotId: String, accepted: Boolean) {
+        if (spotId in state.value.inFlightSpotSignals) return
+        updateState { copy(inFlightSpotSignals = inFlightSpotSignals + spotId) }
         viewModelScope.launch {
             sendSpotSignal(spotId, accepted)
                 .onSuccess { sendEffect(HomeEffect.SpotSignalSent) }
                 .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(it.message ?: ""))) }
+            updateState { copy(inFlightSpotSignals = inFlightSpotSignals - spotId) }
         }
     }
 
@@ -539,61 +680,22 @@ class HomeViewModel(
         updateState { copy(mapType = type) }
     }
 
+    @OptIn(kotlin.uuid.ExperimentalUuidApi::class)
     private fun reportTestSpot() {
         if (!isDebugBuild) return
         viewModelScope.launch {
-            val spotId = "user-123_${Clock.System.now().toEpochMilliseconds()}"
-            reportSpotReleased(40.416775, -3.703790, spotId)
-            sendEffect(HomeEffect.TestSpotSent)
+            val spotId = "test_${kotlin.uuid.Uuid.random()}"
+            runCatching { reportSpotReleased(40.416775, -3.703790, spotId) }
+                .onSuccess { sendEffect(HomeEffect.TestSpotSent) }
+                .onFailure { e -> PaparcarLogger.w(TAG, "reportTestSpot failed", e) }
         }
     }
 
-    // ── Geocoding ─────────────────────────────────────────────────────────────
-
-    private fun geocodeUserLocation(lat: Double, lon: Double) {
-        userGeocoderJob?.cancel()
-        userGeocoderJob = viewModelScope.launch {
-            getAddressAndPlace(lat, lon)
-                .catch { e -> PaparcarLogger.w(TAG, "geocodeUserLocation error", e) }
-                .collect { info -> updateState { copy(userAddressAndPlace = info) } }
-        }
-    }
-
-    private fun geocodeCameraLocation(lat: Double, lon: Double) {
-        // Cancel only the debounce — NOT the geocoding job — so Phase 2 (Overpass)
-        // survives rapid camera animations and is only killed when the camera truly
-        // settles at a different location.
-        cameraDebounceJob?.cancel()
-        updateState { copy(isCameraGeocoding = true) }
-        cameraDebounceJob = viewModelScope.launch {
-            delay(GEOCODE_DEBOUNCE_MS)
-            cameraGeocoderJob?.cancel()
-            cameraGeocoderJob = viewModelScope.launch {
-                var addressReceived = false
-                getAddressAndPlace(lat, lon)
-                    .onCompletion { cause -> if (cause !is CancellationException) updateState { copy(isCameraGeocoding = false) } }
-                    .catch { updateState { copy(isCameraGeocoding = false) } }
-                    .collect { info ->
-                        updateState { copy(cameraAddressAndPlace = info) }
-                        // Stop shimmer as soon as Phase 1 address arrives — Phase 2 (POI)
-                        // will quietly update cameraAddressAndPlace when it finishes.
-                        if (!addressReceived) {
-                            addressReceived = true
-                            updateState { copy(isCameraGeocoding = false) }
-                        }
-                    }
-            }
-        }
-    }
-
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
-
-    override fun onCleared() {
-        searchQueryFlow.value = ""
-        reconnectTick.value = 0
-        spotQueryCenter.value = null
-        super.onCleared()
-    }
+    // Geocoding implementations live in [HomeGeocodingController]. The VM
+    // delegates via the [geocoder] field above — see its kdoc for the exact
+    // cancellation policy and shimmer-flag invariants.
+    private fun geocodeUserLocation(lat: Double, lon: Double) = geocoder.geocodeUserLocation(lat, lon)
+    private fun geocodeCameraLocation(lat: Double, lon: Double) = geocoder.geocodeCameraLocation(lat, lon)
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -616,14 +718,6 @@ class HomeViewModel(
         MapType.SATELLITE -> MAP_TYPE_SATELLITE
         MapType.HYBRID -> MAP_TYPE_HYBRID
         else -> MAP_TYPE_TERRAIN
-    }
-
-    // ── Notification focus ────────────────────────────────────────────────────
-
-    private fun subscribeMapFocusEvents() {
-        mapFocusEventBus.events
-            .onEach { (lat, lon) -> sendEffect(HomeEffect.MoveCameraTo(lat, lon)) }
-            .launchIn(viewModelScope)
     }
 
     // ── Constants ─────────────────────────────────────────────────────────────

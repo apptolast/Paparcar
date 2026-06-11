@@ -123,6 +123,13 @@ data class HomeState(
     // ── AddingZone mode ───────────────────────────────────────────────────────
 
     val isSavingZone: Boolean = false,
+    /** Ids of zones whose delete write is in flight. Prevents double-tap firing
+     *  the destructive write twice — UX is already optimistic (the chip vanishes
+     *  on success because the Flow stops emitting it). */
+    val deletingZoneIds: Set<String> = emptySet(),
+    /** Ids of spots whose accept/reject signal is in flight. Prevents double-tap
+     *  on the small thumbs-up/down buttons in the spot peek. */
+    val inFlightSpotSignals: Set<String> = emptySet(),
     val addingZoneName: String = "",
     val addingZoneIconKey: String = ZoneIcon.DEFAULT,
     val addingZoneRadius: Float = Zone.DEFAULT_RADIUS_METERS,

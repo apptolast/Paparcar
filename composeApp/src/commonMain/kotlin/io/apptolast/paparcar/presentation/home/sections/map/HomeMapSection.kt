@@ -28,7 +28,7 @@ import io.apptolast.paparcar.ui.components.PaparcarMapView
 internal fun HomeMapSection(
     state: HomeState,
     selectedSpotId: String?,
-    isMyCarSelected: Boolean,
+    selectedSessionId: String?,
     reportMode: Boolean,
     cameraTarget: CameraTarget?,
     centerPin: CenterPinKind? = null,
@@ -58,7 +58,7 @@ internal fun HomeMapSection(
         previewZoneRadius = previewZoneRadius,
         previewZoneIsPrivate = previewZoneIsPrivate,
         selectedSpotId = selectedSpotId,
-        isMyCarSelected = isMyCarSelected,
+        selectedSessionId = selectedSessionId,
         reportMode = reportMode,
         isAnyItemSelected = state.selectedItemId != null,
         isLoading = state.isLoading,

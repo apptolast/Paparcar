@@ -189,6 +189,7 @@ internal fun HomeBottomSheet(
                 (!isSpotSelected || spotListExpanded)
             if (showList) {
                 HorizontalDivider(
+                    thickness = 1.dp,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = PEEK_LIST_DIVIDER_ALPHA),
                 )
                 LazyColumn(
@@ -278,4 +279,6 @@ internal data class HomeSheetSnap(
 private const val FLING_SNAP_VELOCITY = 1200f
 
 private const val SHEET_SHADOW_ELEVATION_DP = 12
-private const val PEEK_LIST_DIVIDER_ALPHA = 0.08f
+// Matches [AppBottomNavigation]'s top divider alpha so the two hairlines read
+// as a single visual boundary when the sheet's list section sits above the nav bar.
+private const val PEEK_LIST_DIVIDER_ALPHA = 0.12f

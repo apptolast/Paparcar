@@ -40,6 +40,7 @@ import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import io.apptolast.paparcar.fakes.FakeZoneRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -67,6 +68,7 @@ class HomeViewModelTest {
     private lateinit var prefs: FakeAppPreferences
     private lateinit var activityRecognition: FakeActivityRecognitionManager
     private lateinit var reportScheduler: FakeReportSpotScheduler
+    private lateinit var zoneRepo: FakeZoneRepository
     private lateinit var vm: HomeViewModel
 
     private fun buildVm(initialMapType: String = "TERRAIN"): HomeViewModel {
@@ -83,7 +85,6 @@ class HomeViewModelTest {
             vehicleRepository = vehicleRepo,
             zoneRepository = FakeZoneRepository(),
             geofenceService = FakeGeofenceManager(),
-            notificationPort = FakeAppNotificationManager(),
             enrichmentScheduler = FakeParkingEnrichmentScheduler(),
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
@@ -97,7 +98,6 @@ class HomeViewModelTest {
             departureEventBus = FakeDepartureEventBus(),
         )
         val observeParkedVehicles = ObserveParkedVehiclesUseCase(parkingRepo, vehicleRepo)
-        val zoneRepo = FakeZoneRepository()
         return HomeViewModel(
             permissionManager = permissions,
             locationDataSource = locationDataSource,
@@ -118,6 +118,7 @@ class HomeViewModelTest {
             saveZone = SaveZoneUseCase(zoneRepo, authRepo),
             vehicleRepository = vehicleRepo,
             mapFocusEventBus = MapFocusEventBus(),
+            notificationPort = FakeAppNotificationManager(),
         )
     }
 
@@ -133,6 +134,7 @@ class HomeViewModelTest {
         connectivity = FakeConnectivityObserver(ConnectivityStatus.Online)
         activityRecognition = FakeActivityRecognitionManager()
         reportScheduler = FakeReportSpotScheduler()
+        zoneRepo = FakeZoneRepository()
         vm = buildVm()
     }
 
@@ -343,6 +345,60 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.SelectItem("spot-42"))
         vm.handleIntent(HomeIntent.SelectItem(null))
         assertNull(vm.state.value.selectedItemId)
+    }
+
+    // ── Mode atomicity invariant ──────────────────────────────────────────────
+    // Selecting a marker while in any add-mode must exit that add-mode cleanly:
+    // the modal, pin and per-mode form state cannot coexist with a selection.
+    // (Without this enforcement, the AddingParking pin used to remain on screen
+    //  underneath a freshly selected marker's peek card.)
+
+    @Test
+    fun `should_exit_AddingParking_and_clear_pin_state_on_SelectItem`() = runTest {
+        vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
+        assertEquals(HomeMode.AddingParking, vm.state.value.mode)
+
+        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
+
+        val s = vm.state.value
+        assertEquals(HomeMode.Browse, s.mode)
+        assertEquals("spot-42", s.selectedItemId)
+        assertNull(s.pinCameraLat)
+        assertNull(s.pinCameraLon)
+        assertNull(s.editingParkingId)
+        assertNull(s.addingParkingVehicleId)
+    }
+
+    @Test
+    fun `should_exit_Reporting_and_clear_reportingSize_on_SelectItem`() = runTest {
+        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.SetReportingSize(io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV))
+        assertEquals(HomeMode.Reporting, vm.state.value.mode)
+
+        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
+
+        val s = vm.state.value
+        assertEquals(HomeMode.Browse, s.mode)
+        assertEquals("spot-42", s.selectedItemId)
+        assertNull(s.reportingSize)
+        assertNull(s.pinCameraLat)
+    }
+
+    @Test
+    fun `should_exit_AddingZone_and_clear_zone_form_on_SelectItem`() = runTest {
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Casa"))
+        vm.handleIntent(HomeIntent.SetZoneIsPrivate(true))
+        assertEquals(HomeMode.AddingZone, vm.state.value.mode)
+
+        vm.handleIntent(HomeIntent.SelectItem("spot-42"))
+
+        val s = vm.state.value
+        assertEquals(HomeMode.Browse, s.mode)
+        assertEquals("spot-42", s.selectedItemId)
+        assertEquals("", s.addingZoneName)
+        assertEquals(false, s.addingZoneIsPrivate)
+        assertNull(s.editingZoneId)
     }
 
     // ── SetMapType ────────────────────────────────────────────────────────────
@@ -594,5 +650,191 @@ class HomeViewModelTest {
         val activeAfter = vm.state.value.activeSessions.map { it.id }.toSet()
         // First-emitted session (sessionA) is the legacy fallback target.
         assertEquals(setOf("session-B"), activeAfter)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // [F1] BUG-1..5 + F1-bis regression coverage — added 2026-06-10
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `should_persist_radiusMeters_and_isPrivate_on_ConfirmAddZone`() = runTest {
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Garaje"))
+        vm.handleIntent(HomeIntent.SetZoneRadius(420f))
+        vm.handleIntent(HomeIntent.SetZoneIsPrivate(true))
+        vm.handleIntent(HomeIntent.ConfirmAddZone)
+
+        val saved = zoneRepo.savedZone
+        assertEquals("Garaje", saved?.name)
+        assertEquals(420f, saved?.radiusMeters)
+        assertEquals(true, saved?.isPrivate)
+    }
+
+    @Test
+    fun `should_reset_radius_and_isPrivate_to_defaults_on_EnterAddZoneMode`() = runTest {
+        // Leak state from a prior session
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.SetZoneRadius(420f))
+        vm.handleIntent(HomeIntent.SetZoneIsPrivate(true))
+        vm.handleIntent(HomeIntent.ExitAddZoneMode)
+
+        // Re-enter — form must NOT pre-fill the previous values.
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 41.0, lon = -4.0))
+
+        val s = vm.state.value
+        assertEquals(io.apptolast.paparcar.domain.model.Zone.DEFAULT_RADIUS_METERS, s.addingZoneRadius)
+        assertEquals(false, s.addingZoneIsPrivate)
+        assertEquals("", s.addingZoneName)
+    }
+
+    @Test
+    fun `should_emit_ZoneSaved_only_on_successful_save`() = runTest {
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Casa"))
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ConfirmAddZone)
+            assertIs<HomeEffect.ZoneSaved>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_emit_ShowError_and_keep_form_when_save_zone_fails`() = runTest {
+        // Inject failure on the repo
+        zoneRepo.saveZoneResult = Result.failure(RuntimeException("firestore down"))
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.UpdateAddingZoneName("Casa"))
+        vm.handleIntent(HomeIntent.SetZoneRadius(150f))
+        vm.handleIntent(HomeIntent.SetZoneIsPrivate(true))
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ConfirmAddZone)
+            assertIs<HomeEffect.ShowError>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+        // Form stays intact so user can retry — VM stays in AddingZone.
+        val s = vm.state.value
+        assertEquals(HomeMode.AddingZone, s.mode)
+        assertEquals("Casa", s.addingZoneName)
+        assertEquals(150f, s.addingZoneRadius)
+        assertEquals(true, s.addingZoneIsPrivate)
+        assertEquals(false, s.isSavingZone)
+    }
+
+    @Test
+    fun `should_prefill_radius_and_isPrivate_on_EnterEditZoneMode`() = runTest {
+        val zone = io.apptolast.paparcar.domain.model.Zone(
+            id = "z1",
+            userId = "u1",
+            name = "Trabajo",
+            lat = 41.0,
+            lon = -4.0,
+            iconKey = "work",
+            createdAt = 0L,
+            radiusMeters = 175f,
+            isPrivate = true,
+        )
+        zoneRepo.zones = listOf(zone)
+        // Recreate VM so observeZones picks it up at init
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.EnterEditZoneMode("z1"))
+
+        val s = vm.state.value
+        assertEquals(HomeMode.AddingZone, s.mode)
+        assertEquals("z1", s.editingZoneId)
+        assertEquals("Trabajo", s.addingZoneName)
+        assertEquals(175f, s.addingZoneRadius)
+        assertEquals(true, s.addingZoneIsPrivate)
+    }
+
+    @Test
+    fun `should_emit_ShowError_when_confirmReportSpot_use_case_throws`() = runTest {
+        reportScheduler.shouldThrow = true
+        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ConfirmReportSpot)
+            // First effect is the ShowError from the failure branch.
+            val first = awaitItem()
+            assertIs<HomeEffect.ShowError>(first)
+            cancelAndIgnoreRemainingEvents()
+        }
+        // isReporting must reset; mode stays Reporting so user can retry the report.
+        val s = vm.state.value
+        assertEquals(false, s.isReporting)
+        assertEquals(HomeMode.Reporting, s.mode)
+    }
+
+    @Test
+    fun `should_pass_active_vehicle_carbody_and_null_size_when_user_did_not_pick`() = runTest {
+        // Behaviour [F1-bis]: when the user opens "Avisar plaza" and confirms without
+        // picking a size, null is interpreted as the explicit "Indefinido" choice and
+        // is forwarded verbatim. Carbody, on the other hand, has no picker in the
+        // report flow — it falls back to the active vehicle so the public Spot still
+        // shows "Left by …".
+        val activeVehicle = Vehicle(
+            id = "v1",
+            userId = "u1",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.LARGE_SEDAN,
+            carbodyType = io.apptolast.paparcar.domain.model.CarbodyType.SEDAN,
+            isActive = true,
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVehicle)
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.ConfirmReportSpot)
+        advanceUntilIdle()
+
+        assertEquals(io.apptolast.paparcar.domain.model.CarbodyType.SEDAN, reportScheduler.lastCarbodyType)
+        assertNull(reportScheduler.lastSizeCategory)
+    }
+
+    @Test
+    fun `should_prefer_user_selected_size_over_active_vehicle_size_on_reportSpot`() = runTest {
+        val activeVehicle = Vehicle(
+            id = "v1",
+            userId = "u1",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.LARGE_SEDAN,
+            carbodyType = io.apptolast.paparcar.domain.model.CarbodyType.SEDAN,
+            isActive = true,
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVehicle)
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.EnterReportMode(lat = 40.0, lon = -3.7))
+        vm.handleIntent(HomeIntent.SetReportingSize(io.apptolast.paparcar.domain.model.VehicleSize.MICRO_SMALL))
+        vm.handleIntent(HomeIntent.ConfirmReportSpot)
+        advanceUntilIdle()
+
+        // User-picked size wins; carbody still comes from the active vehicle.
+        assertEquals(io.apptolast.paparcar.domain.model.VehicleSize.MICRO_SMALL, reportScheduler.lastSizeCategory)
+        assertEquals(io.apptolast.paparcar.domain.model.CarbodyType.SEDAN, reportScheduler.lastCarbodyType)
+    }
+
+    @Test
+    fun `should_clear_both_selection_fields_when_entering_AddingZone_with_zone_preselected`() = runTest {
+        val zone = io.apptolast.paparcar.domain.model.Zone(
+            id = "z1",
+            userId = "u1",
+            name = "Casa",
+            lat = 40.0,
+            lon = -3.7,
+            iconKey = "home",
+            createdAt = 0L,
+        )
+        zoneRepo.zones = listOf(zone)
+        vm = buildVm()
+
+        // Pre-condition: a zone is selected.
+        vm.handleIntent(HomeIntent.SelectZone("z1"))
+        assertEquals("z1", vm.state.value.selectedZoneId)
+
+        // Now enter AddZone — selection invariants demand both selection fields null.
+        vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
+
+        val s = vm.state.value
+        assertEquals(HomeMode.AddingZone, s.mode)
+        assertNull(s.selectedZoneId)
+        assertNull(s.selectedItemId)
     }
 }

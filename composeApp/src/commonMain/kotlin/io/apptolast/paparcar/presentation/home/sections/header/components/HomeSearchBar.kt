@@ -14,21 +14,23 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import io.apptolast.paparcar.ui.components.GlassDefaults
 import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
+import io.apptolast.paparcar.ui.components.PapClearIconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -68,6 +70,7 @@ internal fun HomeSearchBar(
     // Fade the inner colours instead so each piece (text, placeholder, icon)
     // mixes into the surface without any extra compositing layer.
     val isInteracting = LocalMapInteracting.current
+    val focusManager = LocalFocusManager.current
     val contentAlpha by animateFloatAsState(
         targetValue = if (isInteracting) GlassDefaults.ALPHA_INTERACTING else GlassDefaults.ALPHA_IDLE,
         animationSpec = tween(
@@ -93,7 +96,11 @@ internal fun HomeSearchBar(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Search,
+                ),
+                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 placeholder = {
                     Text(stringResource(Res.string.home_search_placeholder), style = MaterialTheme.typography.bodyMedium)
                 },
@@ -111,9 +118,10 @@ internal fun HomeSearchBar(
                 },
                 trailingIcon = if (query.isNotEmpty()) {
                     {
-                        IconButton(onClick = onClear) {
-                            Icon(Icons.Outlined.Close, contentDescription = stringResource(Res.string.home_search_clear_cd))
-                        }
+                        PapClearIconButton(
+                            onClick = onClear,
+                            contentDescription = stringResource(Res.string.home_search_clear_cd),
+                        )
                     }
                 } else null,
                 singleLine = true,
