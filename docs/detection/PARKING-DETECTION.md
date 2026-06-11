@@ -19,22 +19,28 @@ Paparcar detects the moment a user parks their car so it can publish the freshly
 | **BluetoothDetectionStrategy** | Car BT disconnects → debounce → GPS fix → user walks ≥ 30 m | 0.95 (deterministic) | User has paired BT with their car AND BT is on |
 | **CoordinatorDetectionStrategy** | Activity Recognition + GPS stream → confidence scoring | 0.75 / 0.90 / 1.00 (probabilistic) | Everyone else — no BT, BT off, or no paired device |
 
-The choice is made in `ParkingStrategyResolver`:
+The choice is made in `ParkingStrategyResolver` and honours the **BT-supersedes** invariant: any vehicle in the fleet with a paired BT device routes through BLUETOOTH, decoupling "primary vehicle for identity fallbacks" (`isActive`) from "vehicle the Coordinator monitors" (derived). See ARCH-MONITORING-002 in §2.
 
 ```kotlin
 enum class ParkingStrategy { NONE, BLUETOOTH, COORDINATOR }
 
 suspend fun resolve(): ParkingStrategy {
-    val vehicle = vehicleRepository.observeDefaultVehicle().first()
-    if (vehicle != null && vehicle.vehicleType in NON_PARKING_TYPES) {
+    val vehicles = vehicleRepository.observeVehicles().first()
+
+    // BT wins independently of which vehicle is primary.
+    val hasAnyBtPaired = vehicles.any {
+        it.bluetoothDeviceId != null && it.vehicleType !in NON_PARKING_TYPES
+    }
+    if (hasAnyBtPaired && bluetoothScanner.isBluetoothEnabled()) {
+        return ParkingStrategy.BLUETOOTH
+    }
+
+    // Coordinator path: keyed on the primary; suppress if primary doesn't park.
+    val primary = vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()
+    if (primary != null && primary.vehicleType in NON_PARKING_TYPES) {
         return ParkingStrategy.NONE        // SCOOTER, BIKE
     }
-    val hasBtConfig = vehicle?.bluetoothDeviceId != null
-    return if (hasBtConfig && bluetoothScanner.isBluetoothEnabled()) {
-        ParkingStrategy.BLUETOOTH
-    } else {
-        ParkingStrategy.COORDINATOR
-    }
+    return ParkingStrategy.COORDINATOR
 }
 ```
 
@@ -801,7 +807,7 @@ val confirmNow = when {
 
 **Trade-off accepted.** A real car trip in extreme bumper-to-bumper traffic that never exceeds 28 km/h for 8+ min triggers the same gate. The notification still fires, so the user can override — we prefer "ask the user" over "publish a wrong spot." Thresholds live in `ParkingDetectionConfig.mismatchMaxSpeedKmh` / `mismatchMinSessionDurationMs` for future tuning once telemetry is available.
 
-**Tests.** `ParkingStrategyResolverTest` covers all enum branches: SCOOTER → NONE (even with BT config), BIKE → NONE, MOTORCYCLE without BT → COORDINATOR, CAR with BT → BLUETOOTH, no default vehicle → COORDINATOR. Mismatch-guard unit tests deferred to a future integration ticket — they need `now` mocking + a CANDIDATE-phase fixture which the current test setup does not yet support.
+**Tests.** `ParkingStrategyResolverTest` covers all enum branches: SCOOTER → NONE (even with BT config), BIKE → NONE, MOTORCYCLE without BT → COORDINATOR, CAR with BT → BLUETOOTH, no default vehicle → COORDINATOR. Multi-vehicle cases per ARCH-MONITORING-002: BT-paired secondary forces BLUETOOTH even if primary has no BT; scooter primary + BT-paired car still resolves to BLUETOOTH; BT-only single vehicle with `isActive=false` resolves to BLUETOOTH. Mismatch-guard unit tests deferred to a future integration ticket — they need `now` mocking + a CANDIDATE-phase fixture which the current test setup does not yet support.
 
 ### BUG-STUCK-SESSION — Confirmation notification re-fires at home, service runs for hours (2026-06-03)
 
@@ -860,6 +866,94 @@ Both states post on `PARKING_CONFIRMATION_NOTIFICATION_ID` (DETECTION channel, I
 - **TODO-REVERT-P1:** Add `UserParkingRepository.deleteSession(parkingId)` so the reverted session disappears from the history list entirely. Currently `clearActiveParkingSession` only flips `isActive=false`; the user still sees the cancelled session in their history.
 - **TODO-REVERT-P2:** Auto-dismiss the state-B notification after `confirmationResponseTimeoutMs` (15 min) via WorkManager so abandoned cards don't linger.
 - **TODO-REVERT-P2:** Test coverage for the revert flow (currently exercised only by manual smoke). Wire `FakeUserParkingRepository.clearActiveParkingSession` + a fake `notificationPort.dismissCalls` assertion in `ParkingDetectionCoordinatorTest`.
+
+### REFACTOR-300-FIX — Coordinator was wiping the post-save card (2026-06-09)
+
+**Observed.** Field test on 2026-06-09: the unified "Vehículo aparcado · Cancelar" notification flashed visibly and disappeared within ~1–2 s of auto-confirm. The revert window REFACTOR-300 was designed to give the user (taxi / passenger / neighbour's car bonded by mistake) was effectively zero.
+
+**Two related defects.**
+
+1. **Finally wiped the card.** `ParkingDetectionCoordinator.reset()` dismissed `PARKING_CONFIRMATION_NOTIFICATION_ID` as part of its state-clear, and `reset()` was called both at session-start AND in the session-end `finally`. After auto-confirm: `runConfirm.onSuccess` posted `showParkingSavedConfirm` on `PARKING_CONFIRMATION_NOTIFICATION_ID` → `completed = true` → `takeWhile` closed the flow on the next location tick → `finally { reset() }` ran → dismissed the id we just posted onto. The old contract ("this id only ever carries the prompt; dismiss freely on session end") predated REFACTOR-300 which reused the id for the morph-to-saved card, but the cleanup path was never adjusted.
+2. **Naive session-start dismiss would still wipe the card.** A simple fix that moved the dismiss to session-start only was insufficient: if Activity Recognition fires a spurious `IN_VEHICLE_ENTER` while the user is walking from the parked car, the service restarts the coordinator → new `invoke()` → session-start dismiss → revert card gone within seconds. The 4-minute `maxNoMovementMs` guard inside the spurious session would have run for the whole window with no card visible to the user.
+
+**Fix — timestamp gate at session-start.**
+
+- New field `savedConfirmPostedAt: Long?` on the coordinator singleton. Set to `Clock.System.now()` inside `runConfirm.onSuccess` immediately after `showParkingSavedConfirm`.
+- Session-start dismisses only when `savedConfirmPostedAt == null` OR `now - savedConfirmPostedAt > config.confirmationResponseTimeoutMs (15 min)`. Otherwise the dismiss is skipped and the card survives the new session-start. The flag resets to `null` whenever a dismiss fires.
+- Session-end `finally` never touches notifications. Explicit dismisses live in the paths that legitimately end the prompt: `onUserConfirmedParking`, `onUserDeniedParking`, response-timeout abort, `runConfirm.onFailure`.
+
+**Process-death behaviour.** `savedConfirmPostedAt` lives in memory only. A coordinator created after process restart sees `null` → next session-start dismisses whatever is still showing. Reasonable: we have no way to verify the lingering notification's age, and the user has had at least one full cold-start delay to act on it.
+
+**Why the same timeout as the prompt response.** `confirmationResponseTimeoutMs = 15 min` was already the budget for "user must respond to the pre-save prompt". Reusing it for the post-save card means the user gets the same 15-minute revert budget — symmetrical and lets the single config knob tune both. Also folds in TODO-REVERT-P2's "15-min auto-dismiss" intent without needing a WorkManager job.
+
+**Tests.**
+- `should_keep_post_save_card_after_session_finally`: regression for defect 1 — asserts `savedConfirm` is the last op on the id after a user-confirm + session-end.
+- `should_preserve_post_save_card_across_immediate_new_session`: regression for defect 2 — runs two back-to-back sessions and asserts the second's session-start did not append a `dismiss` op to the confirmation id.
+- `FakeAppNotificationManager` now tracks `parkingSavedConfirmCallCount` and an ordered `confirmationNotifOps` log; closes part of the TODO-REVERT-P2 test gap.
+
+**Side bug surfaced.** In the user-confirm path, `locationToConfirm = state.bestStopLocation ?: state.bestFix(location)` falls back to `location` (the current GPS fix) when no stop has been recorded yet. In a spurious-ENTER session the user is walking — a stale tap on a leftover prompt would save parking at the walking position. Out of scope for this fix; ticketed separately (TODO-CONFIRM-NO-STOP-LOCATION).
+
+### BUG-FALSE-ENTER-WALKING — Steps-before-driving abort (2026-06-10)
+
+**Observed.** Redmi Note 11 field test 2026-06-10: in the hospital scenario the user reported the detection foreground notification reappearing 1 minute after parking (so a fresh session had restarted) and the cycle repeating until the user reached home. AR was firing spurious `IN_VEHICLE_ENTER` events while the user was walking from the car (door slam + walk to trunk + carry bags). Each false ENTER spun up a fresh coordinator session that ran the full `maxNoMovementMs = 4 min` watchdog before self-terminating — and could restart immediately as AR misfired again.
+
+**Root cause.** `maxNoMovementMs` is the only abort gate before driving speed is reached, and 4 minutes is a long time to keep a foreground service alive on a misfire. There was no cheaper signal that the session was bogus.
+
+**Fix.** Add a step-detector-driven early abort. The `stepJob` already counts pedestrian steps; before the BUG-FALSE-ENTER-WALKING fix it only counted them when `stoppedSince != null` (i.e. during the eventual park stop). Now the rule is:
+
+- **Before** `hasEverReachedDrivingSpeed` becomes true: count every step regardless of `stoppedSince`. These are the walking steps that prove the ENTER was spurious.
+- **After** `hasEverReachedDrivingSpeed` becomes true: original behaviour — only count while stopped. Driving with the phone in a pocket still produces sensor events; we don't want them to interfere with the parking-confirm steps proof.
+
+Once `state.stepCount >= falseEnterAbortSteps = 8` and `!state.hasEverReachedDrivingSpeed`, the location collector aborts the session: `completed = true; return@collect`. The coordinator's `finally` runs, the service stops. Subsequent real ENTERs (when the user actually gets in the car) start a fresh session with `stepCount = 0`.
+
+**Why 8 steps.** Symmetrical with `minStepsToConfirm = 8` and unambiguous walking (≈ 6 s at normal cadence). Below 8 the threshold gets noisy; above 8 the abort is unnecessarily slow.
+
+**Trade-off.** Phone bouncing in a pocket during the first minute of stop-and-go traffic could in theory accumulate 8 step events before crossing driving speed; field telemetry has not surfaced this case. If it does, raise the threshold or add a sliding-window timeout.
+
+**Test.** `should_abort_session_when_steps_burst_before_driving_speed` + regression guard `should_not_abort_session_when_steps_arrive_after_driving_speed`.
+
+### CONFIRM-NO-NOTIF-CLEANUP — Notification responsibility removed from `ConfirmParkingUseCase` (2026-06-10)
+
+REFACTOR-300 introduced a `silent: Boolean = false` flag on `ConfirmParkingUseCase` so the coordinator could suppress the legacy `showParkingSaved` and own its unified state-B card via `showParkingSavedConfirm`. The flag worked but encoded a boolean-trap smell (4 callers, 2 with `true` and 2 with `false`, decision invisible at the call site) and mixed two responsibilities (persistence + UI) in one use case.
+
+**Fix.** The use case now does *only* persistence + geofence + enrichment + `departureEventBus.reset()`. The notification call is gone. Each caller posts its own notification at the call site:
+
+| Caller | Notification posted on success |
+|---|---|
+| `ParkingDetectionCoordinator.runConfirm.onSuccess` | `showParkingSavedConfirm` (state-B card with REVERT, on id 2002) |
+| `BluetoothParkingDetector.detectParking` | `showParkingSaved` (legacy tap-to-open-map, on UPLOAD_CHANNEL) — see `BT-NOTIF-LEGACY-CLEANUP` |
+| `HomeViewModel.confirmDetectedParking` | `showParkingSaved` (manual auto-accept) |
+| `HomeViewModel.confirmAddParking` | `showParkingSaved` (manual map-pin save) |
+
+Single-purpose use case, no boolean flag, each call site documents its own UI intent. The test `should not post any notification (caller's responsibility)` in `ConfirmParkingUseCaseTest` is the regression boundary — if a future contributor re-adds a notification call inside the use case, that test fires.
+
+### BT-NOTIF-LEGACY-CLEANUP — Bluetooth path no longer posts the REVERT card (2026-06-10)
+
+`BluetoothParkingDetector` was posting the unified `showParkingSavedConfirm` state-B card (with `Sí confirmar / No cancelar`) on auto-confirm, mirroring the coordinator path. This created a cross-strategy lifecycle bug: the coordinator's `savedConfirmPostedAt` timestamp (introduced by REFACTOR-300-FIX) lives on the coordinator instance, but a BT-posted card has no way to register itself there. A next coordinator session-start would wipe the BT-posted card before its 15-min revert window expired.
+
+**Decision.** Bluetooth detection is bound to a specific MAC address (the user's configured `bluetoothDeviceId`). The "neighbour's identical Toyota" failure mode is impossible — MAC addresses don't collide. The remaining edge cases (passenger in a paired vehicle, spurious BT drop mid-drive) are rare and bounded: a wrongly-saved BT parking only pollutes the community map IF the user drives out of the geofence radius after the wrong save, and community spots have a TTL anyway. The REVERT card was over-engineering for a 0.95-reliability path.
+
+**Fix.** `BluetoothParkingDetector` now posts the legacy `showParkingSaved` notification (tap → open map, no actions). The cross-strategy timestamp problem evaporates because the coordinator is the only emitter of the state-B card. `BluetoothParkingDetector` no longer takes `vehicleRepository` (used only to look up the vehicle name for the card).
+
+Users with a misfire can clean up from the history screen. Field telemetry will tell us if that's enough; if not, we revisit by introducing a shared `SavedConfirmCardTracker` Koin single.
+
+### BUG-OPPO-LATE-CONFIRM — EXIT + steps fast path (2026-06-10)
+
+**Observed.** Oppo CPH2371 field test 2026-06-09, session 3: physical park at ~19:42, foreground service stayed visible until 20:02:54 (confirm via steps proof inside CANDIDATE). 20 minutes of FGS visible after the user had already parked. The saved location was offset from the actual parked-car position.
+
+**Root cause.** The slow path (no STILL, no fast-path bonuses) requires 5 minutes of *continuous* stop before reaching `High`. The user was already out of the car at 19:45:50 (AR EXIT delivered then) but kept walking briefly between stops (speed oscillated between 0 m/s and ~1 m/s for ~12 min). Every `speed >= stoppedSpeedThresholdMps = 1 m/s` fix resets `stoppedSince`, so the 5-min window never accumulated until the user finally sat still around 19:57. Worse, by then `bestStopLocation` had been overwritten each time a new stop opened a fresh initial-stop window, so the location anchored at the user's destination rather than the parked car.
+
+`activityStill` would have triggered the fast path (Medium → High via the STILL+exit bonuses) but on this device it arrived at 19:58:03, 12 minutes after EXIT — too late to anchor `bestStopLocation` at the car.
+
+**Fix.** Insert a short-circuit check after the candidate-phase decision tree but before scoring: when **both** `state.vehicleExitConfirmed == true` AND `state.stepCount >= minStepsToConfirm`, confirm immediately with `reliabilityVehicleExit`. The confirm uses `bestStopLocation ?: bestFix(location)` — same location anchoring as every other auto-confirm path.
+
+**Honours mismatch guard.** A CAR profile with sustained slow speed could be a scooter; we still apply the `BUG-SCOOTER-001` heuristic (`maxSpeedKmh <= mismatchMaxSpeedKmh && sessionDurationMs >= mismatchMinSessionDurationMs`) and suppress the fast confirm in that case. The slow-path fallback still runs and the user-prompt notification still fires.
+
+**Why this is safe.** EXIT + steps = "user got out of car" with as much evidence as the existing CANDIDATE-phase steps proof. The difference is only the gate: CANDIDATE requires the slow path to first reach HIGH (≥ 5 min stop + STILL/exit bonuses); this path skips that wait. We're not lowering the evidence bar, we're removing an unnecessary timer.
+
+**Why this doesn't fire spuriously.** Steps count only when stopped (post-drive) and require `vehicleExitConfirmed`. A long queue-in-car scenario (BUG-GARAGE-COLA-001) won't trigger because the user hasn't actually gotten out — no steps fire (sensor accumulator inside-car noise was field-measured at ≤ 5 in 8 min).
+
+**Test.** `should_fast_confirm_when_exit_and_steps_arrive_before_slow_path_matures` + regression guard `should_not_fast_confirm_when_only_exit_without_steps`.
 
 ### REFACTOR-301 — Bluetooth strategy: lifecycle + unified post-save notification (2026-06-08)
 
