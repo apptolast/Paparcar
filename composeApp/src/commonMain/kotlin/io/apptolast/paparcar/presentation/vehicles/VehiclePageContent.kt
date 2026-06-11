@@ -4,6 +4,7 @@ package io.apptolast.paparcar.presentation.vehicles
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.GppGood
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,13 +42,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapInk
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.VehicleAccentPalette
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_active_vehicle
@@ -67,6 +73,7 @@ import paparcar.composeapp.generated.resources.vehicle_stats_sessions
 internal fun VehiclePageContent(
     vehicleWithStats: VehicleWithStats,
     historyState: HistoryState,
+    isSettingActive: Boolean,
     onIntent: (VehiclesIntent) -> Unit,
 ) {
     val vehicleId = vehicleWithStats.vehicle.id
@@ -83,6 +90,7 @@ internal fun VehiclePageContent(
                 VehicleHeroCard(
                     vehicleWithStats = vehicleWithStats,
                     reliabilityPct = historyState.statsData?.avgReliabilityPct,
+                    isSettingActive = isSettingActive,
                     onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
                     onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
                 )
@@ -99,14 +107,32 @@ internal fun VehiclePageContent(
 private fun VehicleHeroCard(
     vehicleWithStats: VehicleWithStats,
     reliabilityPct: Int?,
+    isSettingActive: Boolean,
     onSetActive: () -> Unit,
     onEdit: () -> Unit,
 ) {
     val vehicle = vehicleWithStats.vehicle
     val displayName = vehicle.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle))
     val sizeLabel = vehicleSizeLabel(vehicle.sizeCategory)
-    val isActive = vehicle.isActive
+    val monitoring = vehicle.monitoringStatus()
+    val highlight = monitoring !is VehicleMonitoringStatus.Inactive
+    val isBtPaired = vehicle.bluetoothDeviceId != null
     val cs = MaterialTheme.colorScheme
+    // BT-paired vehicles get the logo molde (PapInk + blue ring + blue icon), mirroring
+    // the Home marker/peek/chip so "blue ring = tracked via BT" reads across the app.
+    // Non-BT vehicles keep the existing primary/muted toggle by monitoring state.
+    val btAccent = if (isBtPaired) VehicleAccentPalette.bluetooth() else null
+    val iconBoxBg = when {
+        btAccent != null -> PapInk
+        highlight        -> cs.primary
+        else             -> cs.surfaceContainerHighest
+    }
+    val iconBoxRing = btAccent?.fill ?: Color.Transparent
+    val iconTint = when {
+        btAccent != null -> btAccent.fill
+        highlight        -> cs.onPrimary
+        else             -> cs.primary
+    }
 
     Surface(
         modifier = Modifier
@@ -130,13 +156,14 @@ private fun VehicleHeroCard(
                         modifier = Modifier
                             .size(HERO_ICON_BOX_DP.dp)
                             .clip(CircleShape)
-                            .background(if (isActive) cs.primary else cs.surfaceContainerHighest),
+                            .background(iconBoxBg)
+                            .border(width = HERO_ICON_RING_DP.dp, color = iconBoxRing, shape = CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         io.apptolast.paparcar.ui.components.VehicleIcon(
                             carbody = vehicle.carbodyType,
                             size = vehicle.sizeCategory,
-                            tint = if (isActive) cs.onPrimary else cs.primary,
+                            tint = iconTint,
                             modifier = Modifier.size(HERO_ICON_SIZE_DP.dp),
                         )
                     }
@@ -172,8 +199,8 @@ private fun VehicleHeroCard(
                         )
                     }
                     VehicleStatusBadge(
-                        isActive = isActive,
-                        hasBluetooth = vehicle.bluetoothDeviceId != null,
+                        status = monitoring,
+                        isSettingActive = isSettingActive,
                         onSetActive = onSetActive,
                     )
                 }
@@ -197,67 +224,96 @@ private fun VehicleHeroCard(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun VehicleStatusBadge(isActive: Boolean, hasBluetooth: Boolean, onSetActive: () -> Unit) {
+private fun VehicleStatusBadge(
+    status: VehicleMonitoringStatus,
+    isSettingActive: Boolean,
+    onSetActive: () -> Unit,
+) {
     val cs = MaterialTheme.colorScheme
-    when {
-        isActive && hasBluetooth -> Row(
+    when (status) {
+        is VehicleMonitoringStatus.Bluetooth -> VehicleStatusPill(
+            text = stringResource(Res.string.vehicle_card_detection_bt),
+            accent = cs.tertiary,
+            leading = PillLeading.BtIcon,
+            onClick = null,
+            isLoading = false,
+        )
+        VehicleMonitoringStatus.Active -> VehicleStatusPill(
+            text = stringResource(Res.string.my_car_active_vehicle),
+            accent = cs.primary,
+            leading = PillLeading.Dot,
+            onClick = null,
+            isLoading = false,
+        )
+        VehicleMonitoringStatus.Inactive -> VehicleStatusPill(
+            text = stringResource(Res.string.my_car_set_active),
+            accent = cs.outline,
+            leading = PillLeading.Dot,
+            onClick = onSetActive,
+            isLoading = isSettingActive,
+        )
+    }
+}
+
+private enum class PillLeading { None, Dot, BtIcon }
+
+/**
+ * Outlined pill used for the three vehicle-monitoring states. Same height, padding
+ * and typography across states so Active / Bluetooth / Set-active align visually
+ * in the hero card. Text stays high-contrast ([onSurface]) so the [accent] only
+ * paints the border + leading marker. The action variant ([onClick] non-null)
+ * drops the marker. When [isLoading] is true the leading marker is replaced by
+ * a spinner and the click is suppressed.
+ */
+@Composable
+private fun VehicleStatusPill(
+    text: String,
+    accent: Color,
+    leading: PillLeading,
+    onClick: (() -> Unit)?,
+    isLoading: Boolean,
+) {
+    val shape = RoundedCornerShape(PILL_RADIUS_DP.dp)
+    val border = BorderStroke(1.dp, accent)
+    val content: @Composable () -> Unit = {
+        Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Bluetooth,
-                contentDescription = null,
-                tint = cs.tertiary,
-                modifier = Modifier.size(BADGE_ICON_DP.dp),
-            )
+            when {
+                isLoading -> CircularProgressIndicator(
+                    modifier = Modifier.size(BADGE_ICON_DP.dp),
+                    strokeWidth = 2.dp,
+                    color = accent,
+                )
+                leading == PillLeading.Dot -> Box(
+                    modifier = Modifier
+                        .size(ACTIVE_DOT_DP.dp)
+                        .clip(CircleShape)
+                        .background(accent),
+                )
+                leading == PillLeading.BtIcon -> Icon(
+                    imageVector = Icons.Outlined.Bluetooth,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(BADGE_ICON_DP.dp),
+                )
+                else -> Unit
+            }
             Text(
-                text = stringResource(Res.string.vehicle_card_detection_bt),
+                text = text,
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = cs.onSurfaceVariant,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
-        isActive -> ActiveStatusInline()
-        else -> SetActiveButton(onClick = onSetActive)
     }
-}
-
-@Composable
-private fun ActiveStatusInline() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(ACTIVE_DOT_DP.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-        )
-        Text(
-            text = stringResource(Res.string.my_car_active_vehicle).uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-    }
-}
-
-@Composable
-private fun SetActiveButton(onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-    ) {
-        Text(
-            text = stringResource(Res.string.my_car_set_active),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-        )
+    val safeOnClick: (() -> Unit)? = onClick?.takeIf { !isLoading }
+    if (safeOnClick != null) {
+        Surface(onClick = safeOnClick, shape = shape, color = Color.Transparent, border = border) { content() }
+    } else {
+        Surface(shape = shape, color = Color.Transparent, border = border) { content() }
     }
 }
 
@@ -357,6 +413,7 @@ private const val CARD_PADDING = 16
 private const val HERO_BORDER_ALPHA = 0.55f
 private const val HERO_ICON_BOX_DP = 56
 private const val HERO_ICON_SIZE_DP = 40
+private const val HERO_ICON_RING_DP = 1.5f
 private const val PILL_RADIUS_DP = 999
 private const val ACTIVE_DOT_DP = 6
 private const val BADGE_ICON_DP = 14
