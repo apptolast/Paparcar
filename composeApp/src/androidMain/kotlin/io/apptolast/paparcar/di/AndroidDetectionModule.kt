@@ -50,14 +50,14 @@ val androidDetectionModule = module {
 
     // BluetoothParkingDetector is stateless — inject as factory so each Service instance
     // gets its own, keeping the scope ownership clean. [BT-REFACTOR-FGS-001]
-    // [REFACTOR-300] now takes notificationPort + vehicleRepository so it can post the
-    // unified post-save "Vehículo aparcado · Cancelar" notification after auto-confirm.
+    // [BT-NOTIF-LEGACY-CLEANUP] uses the legacy showParkingSaved notification (no REVERT
+    // card); MAC-address binding makes BT detection reliable enough that the revert
+    // affordance was overkill. Only takes notificationPort, not vehicleRepository.
     factory {
         io.apptolast.paparcar.bluetooth.BluetoothParkingDetector(
             observeLocation = get(),
             confirmParking = get(),
             notificationPort = get(),
-            vehicleRepository = get(),
         )
     }
 

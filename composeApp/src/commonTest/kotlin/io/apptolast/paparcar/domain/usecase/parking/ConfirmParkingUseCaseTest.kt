@@ -75,14 +75,18 @@ class ConfirmParkingUseCaseTest {
     }
 
     @Test
-    fun `should show notification after successful save`() = runTest {
+    fun `should not post any notification (caller's responsibility)`() = runTest {
+        // [CONFIRM-NO-NOTIF-CLEANUP] Notification responsibility lives in the caller now:
+        // coordinator owns showParkingSavedConfirm (REVERT card), BT detector + HomeViewModel
+        // own showParkingSaved (legacy tap-to-open). The use case never posts.
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(notification = notification)
 
         val result = useCase(location, detectionReliability = 0.9f)
 
         assertTrue(result.isSuccess)
-        assertEquals(1, notification.parkingSpotSavedCallCount)
+        assertEquals(0, notification.parkingSpotSavedCallCount)
+        assertEquals(0, notification.parkingSavedConfirmCallCount)
     }
 
     @Test
@@ -402,7 +406,6 @@ class ConfirmParkingUseCaseTest {
         vehicleRepository = vehicles,
         zoneRepository = FakeZoneRepository(),
         geofenceService = geofence,
-        notificationPort = notification,
         enrichmentScheduler = enrichment,
         authRepository = auth,
         config = config,

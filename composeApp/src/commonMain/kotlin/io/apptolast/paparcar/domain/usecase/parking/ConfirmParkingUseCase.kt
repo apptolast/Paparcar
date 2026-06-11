@@ -10,7 +10,6 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
@@ -38,7 +37,6 @@ class ConfirmParkingUseCase(
     private val vehicleRepository: VehicleRepository,
     private val zoneRepository: ZoneRepository,
     private val geofenceService: GeofenceManager,
-    private val notificationPort: AppNotificationManager,
     private val enrichmentScheduler: ParkingEnrichmentScheduler,
     private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
@@ -46,13 +44,12 @@ class ConfirmParkingUseCase(
 ) {
 
     /**
-     * @param silent  When `true` the user-facing "Parking saved" notification is NOT
-     *   posted from inside this use case. Used by [ParkingDetectionCoordinator] which
-     *   prefers to morph the active confirmation prompt into a single unified post-save
-     *   card via [AppNotificationManager.showParkingSavedConfirm] (avoids the double-notif
-     *   the user flagged as redundant). Other callers (manual report screen, BT detector,
-     *   HomeViewModel auto-accept) leave this `false` and get the legacy single-shot save
-     *   notification. [REFACTOR-300]
+     * Persists the parking spot, registers the geofence, schedules enrichment, and
+     * resets [DepartureEventBus]. Pure data operation — the caller is responsible for
+     * any user-facing notification (legacy `showParkingSaved` or REFACTOR-300's
+     * unified `showParkingSavedConfirm` card with REVERT). This separation keeps the
+     * use case single-purpose and lets each caller pick the right UX without a
+     * boolean flag argument. [CONFIRM-NO-NOTIF-CLEANUP]
      */
     suspend operator fun invoke(
         location: GpsPoint,
@@ -61,7 +58,6 @@ class ConfirmParkingUseCase(
         sizeCategory: VehicleSize? = null,
         carbodyType: CarbodyType? = null,
         vehicleId: String? = null,
-        silent: Boolean = false,
     ): Result<UserParking> {
         PaparcarLogger.d(
             DIAG,
@@ -177,19 +173,7 @@ class ConfirmParkingUseCase(
         )
         PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
 
-        // [REFACTOR-300] Auto-detection path (`silent=true`) skips this notification — the
-        // coordinator handles the user-facing UI via showParkingSavedConfirm at the same
-        // notification ID as the prompt, avoiding the double-show the user flagged. Manual
-        // / BT / HomeViewModel callers leave `silent=false` and keep the legacy behaviour.
-        if (!silent) {
-            PaparcarLogger.d(DIAG, "  → notificationPort.showParkingSaved BEFORE")
-            notificationPort.showParkingSaved(gpsPoint.latitude, gpsPoint.longitude)
-            PaparcarLogger.d(DIAG, "  ← showParkingSaved AFTER")
-        } else {
-            PaparcarLogger.d(DIAG, "  ⊘ showParkingSaved suppressed (silent=true; coordinator owns notif)")
-        }
-
-        PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS")
+        PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS (notif is caller's responsibility)")
         return Result.success(session)
     }
 
