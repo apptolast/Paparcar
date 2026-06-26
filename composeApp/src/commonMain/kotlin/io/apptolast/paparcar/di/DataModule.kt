@@ -8,6 +8,7 @@ import io.apptolast.paparcar.data.geocoder.RoomLocalAddressAndPlaceDataSource
 import io.apptolast.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSourceImpl
+import io.apptolast.paparcar.data.datasource.remote.FirestoreDetectionEventLogger
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
 import io.apptolast.paparcar.data.repository.AddressAndPlaceRepositoryImpl
@@ -23,7 +24,11 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.session.LocalSessionCache
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 
 val dataModule = module {
@@ -34,6 +39,18 @@ val dataModule = module {
     // DataSources
     single<FirebaseDataSource> { FirebaseDataSourceImpl(get()) }
     single<RemoteUserProfileDataSource> { RemoteUserProfileDataSourceImpl(get()) }
+
+    // Detection diagnostics — Firestore-backed remote event log, gated by a Firestore flag
+    // (diagnostics_config/{userId}.enabled). [DET-LOG-02]
+    // Dispatchers.Default (not IO) keeps this constructible from commonMain; GitLive suspend calls
+    // are callback-based and don't block the dispatcher thread.
+    single<DetectionEventLogger> {
+        FirestoreDetectionEventLogger(
+            firestore = get(),
+            authRepository = get(),
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        )
+    }
 
     // Repositories
     single<SpotRepository> { SpotRepositoryImpl(get(), get()) }

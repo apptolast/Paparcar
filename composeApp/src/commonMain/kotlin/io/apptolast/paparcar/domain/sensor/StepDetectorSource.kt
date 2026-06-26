@@ -3,7 +3,7 @@ package io.apptolast.paparcar.domain.sensor
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Hardware step-event source used by [io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator]
+ * Hardware step-event source used by [io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector]
  * to distinguish a real parking from a queue/traffic stop.
  *
  * **Why this exists.** Activity Recognition fires `STILL ENTER` whenever the device sits still long

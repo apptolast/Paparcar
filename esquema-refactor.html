@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refactor detección · Paparcar</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#121922;
+    --panel-2:#0e141c;
+    --ink:#e6edf3;
+    --ink-dim:#8b9aa9;
+    --line:#1f2b38;
+    --emerald:#2fd6a0;       /* señal fuerte / confirmado */
+    --amber:#f5b85a;         /* inconcluso / candidato */
+    --red:#ef6f6f;           /* rechazado / fantasma */
+    --blue:#5aa9f5;          /* departure / geocerca */
+    --violet:#b48cf0;        /* bluetooth */
+    --mono:'SFMono-Regular',ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace;
+    --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:
+      radial-gradient(900px 500px at 80% -10%, #13202b 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);font-family:var(--sans);
+    line-height:1.5;padding:48px 20px 80px;
+  }
+  .wrap{max-width:1080px;margin:0 auto}
+  .eyebrow{
+    font-family:var(--mono);font-size:12px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--emerald);margin:0 0 14px;
+  }
+  h1{font-size:clamp(28px,5vw,46px);line-height:1.05;margin:0 0 10px;font-weight:680;letter-spacing:-.02em}
+  h1 .sub{display:block;color:var(--ink-dim);font-size:clamp(15px,2.4vw,19px);font-weight:400;margin-top:12px;letter-spacing:0}
+  .principle{
+    border-left:2px solid var(--emerald);padding:14px 0 14px 20px;margin:34px 0 10px;
+    font-size:17px;color:var(--ink);
+  }
+  .principle b{color:var(--emerald);font-weight:620}
+  section{margin-top:56px}
+  .shead{display:flex;align-items:baseline;gap:14px;margin-bottom:22px}
+  .snum{font-family:var(--mono);font-size:13px;color:var(--emerald);border:1px solid var(--line);
+    border-radius:6px;padding:3px 9px;background:var(--panel-2)}
+  .shead h2{font-size:21px;margin:0;font-weight:600;letter-spacing:-.01em}
+
+  /* ── state machine ── */
+  .machine{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:30px 26px;position:relative;overflow:hidden;
+  }
+  .flow{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:stretch}
+  .node{
+    border-radius:13px;padding:18px 18px 16px;border:1px solid var(--line);
+    background:linear-gradient(180deg,#13202b,#0f1822);position:relative;
+  }
+  .node .tag{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-dim)}
+  .node h3{margin:7px 0 6px;font-size:18px;font-weight:640;letter-spacing:-.01em}
+  .node.parked{border-color:rgba(47,214,160,.4);box-shadow:0 0 0 1px rgba(47,214,160,.08) inset}
+  .node.parked h3{color:var(--emerald)}
+  .node.driving{border-color:rgba(90,169,245,.4)}
+  .node.driving h3{color:var(--blue)}
+  .node.candidate{border-color:rgba(245,184,90,.45)}
+  .node.candidate h3{color:var(--amber)}
+  .node p{margin:6px 0 0;font-size:13px;color:var(--ink-dim)}
+  .arrowcol{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-width:150px}
+  .arrowlabel{font-family:var(--mono);font-size:11px;color:var(--ink);text-align:center;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;line-height:1.35}
+  .arrowlabel.blue{border-color:rgba(90,169,245,.4);color:#bcd9fb}
+  .arrowlabel.emerald{border-color:rgba(47,214,160,.4);color:#a7ecd3}
+  .arrow{font-size:20px;color:var(--ink-dim)}
+  .machine-bottom{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;margin-top:18px;align-items:center}
+  .decision{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .pill{font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid}
+  .pill.ok{color:var(--emerald);border-color:rgba(47,214,160,.5);background:rgba(47,214,160,.07)}
+  .pill.inc{color:var(--amber);border-color:rgba(245,184,90,.5);background:rgba(245,184,90,.07)}
+  .pill.rej{color:var(--red);border-color:rgba(239,111,111,.5);background:rgba(239,111,111,.07)}
+  .seed{font-family:var(--mono);font-size:11px;color:var(--ink-dim);text-align:center;margin-top:16px;
+    border-top:1px dashed var(--line);padding-top:14px}
+  .seed b{color:var(--ink)}
+
+  /* ── before / after ── */
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px}
+  .card.bad{border-color:rgba(239,111,111,.3)}
+  .card.good{border-color:rgba(47,214,160,.3)}
+  .card .lab{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+  .card.bad .lab{color:var(--red)}
+  .card.good .lab{color:var(--emerald)}
+  .card h4{margin:9px 0 14px;font-size:16px;font-weight:600}
+  .card ul{margin:0;padding:0;list-style:none}
+  .card li{font-size:13.5px;padding:8px 0 8px 22px;position:relative;border-top:1px solid var(--line);color:var(--ink-dim)}
+  .card li:first-child{border-top:none}
+  .card li::before{position:absolute;left:0;top:8px;font-family:var(--mono);font-size:12px}
+  .card.bad li::before{content:"✕";color:var(--red)}
+  .card.good li::before{content:"✓";color:var(--emerald)}
+  .card li b{color:var(--ink);font-weight:600}
+
+  /* ── decisions grid ── */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .dcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;position:relative}
+  .dcard .id{font-family:var(--mono);font-size:12px;color:var(--emerald);font-weight:600}
+  .dcard h4{margin:8px 0 8px;font-size:15.5px;font-weight:620;letter-spacing:-.01em}
+  .dcard p{margin:0;font-size:13px;color:var(--ink-dim)}
+  .dcard .key{color:var(--ink);font-weight:600}
+  .dcard.span{grid-column:1/-1}
+  .warn{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    color:var(--amber);border:1px solid rgba(245,184,90,.4);border-radius:5px;padding:2px 7px;margin-top:11px}
+
+  /* ── signal hierarchy ── */
+  .signals{display:flex;flex-direction:column;gap:8px}
+  .sig{display:grid;grid-template-columns:150px 1fr auto;gap:14px;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+  .sig .name{font-weight:600;font-size:14px}
+  .sig .bar{height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;position:relative}
+  .sig .bar i{display:block;height:100%;border-radius:4px}
+  .sig .role{font-family:var(--mono);font-size:11px;color:var(--ink-dim);white-space:nowrap}
+  .strong .name{color:var(--emerald)} .strong .bar i{background:var(--emerald);width:92%}
+  .strong2 .name{color:var(--violet)} .strong2 .bar i{background:var(--violet);width:95%}
+  .mid .name{color:var(--blue)} .mid .bar i{background:var(--blue);width:62%}
+  .weak .name{color:var(--ink-dim)} .weak .bar i{background:var(--ink-dim);width:28%}
+
+  /* ── phases ── */
+  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .phase{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 16px;position:relative}
+  .phase .pl{font-family:var(--mono);font-size:12px;color:var(--emerald);font-weight:600}
+  .phase h4{margin:6px 0 4px;font-size:15px;font-weight:620}
+  .phase .when{font-family:var(--mono);font-size:10.5px;color:var(--ink-dim);margin-bottom:12px}
+  .phase ul{margin:0;padding-left:16px}
+  .phase li{font-size:12.5px;color:var(--ink-dim);margin-bottom:6px}
+  .phase li::marker{color:var(--line)}
+
+  @media(max-width:820px){
+    .flow,.machine-bottom{grid-template-columns:1fr}
+    .arrowcol{flex-direction:row;min-width:0;padding:6px 0}
+    .ba,.grid{grid-template-columns:1fr}
+    .phases{grid-template-columns:1fr 1fr}
+    .sig{grid-template-columns:110px 1fr;}
+    .sig .role{grid-column:1/-1;text-align:right}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Paparcar · Núcleo de detección</p>
+  <h1>Refactor de detección de aparcamiento
+    <span class="sub">De heurística probabilística frágil a confirmación por corroboración de señales fuertes. La pieza central del producto: si publica plazas fantasma, la red pierde su única moneda — la confianza.</span>
+  </h1>
+
+  <div class="principle">
+    <b>Principio rector — fallo asimétrico.</b> Ningún sensor confirma “he dejado de conducir” al 100%.
+    Un falso negativo es invisible; un falso positivo destruye confianza. Por tanto se confirma por
+    <b>egreso</b> (la persona sale y se aleja), nunca por quietud — y la fuerza nace de la
+    <b>conjunción de señales independientes</b>, jamás de una sola.
+  </div>
+
+  <!-- 1 · STATE MACHINE -->
+  <section>
+    <div class="shead"><span class="snum">01</span><h2>Máquina de estados objetivo</h2></div>
+    <div class="machine">
+      <div class="flow">
+        <div class="node parked">
+          <div class="tag">Estado base</div>
+          <h3>PARKED</h3>
+          <p>Hay una plaza propia conocida, con su geocerca activa. Punto de partida del ciclo.</p>
+        </div>
+        <div class="arrowcol">
+          <div class="arrow">→</div>
+          <div class="arrowlabel blue">DEPARTURE confirmado<br>GEOFENCE_EXIT validado<br>· o · BT connect + movimiento</div>
+          <div class="arrow">→</div>
+        </div>
+        <div class="node driving">
+          <div class="tag">En marcha</div>
+          <h3>DRIVING</h3>
+          <p>Viaje real en curso. Al detenerse (speed &lt; umbral) se captura <span style="color:var(--ink)">egressAnchor</span> inmutable.</p>
+        </div>
+      </div>
+
+      <div class="machine-bottom">
+        <div class="node candidate" style="grid-column:1/-1">
+          <div class="tag">Sub-estado transitorio</div>
+          <h3>CANDIDATE</h3>
+          <p>El coche está parado, pero aún no se confirma nada. Se evalúa <span style="color:var(--ink)">ParkingDecision</span> en cada fix:</p>
+          <div class="decision" style="margin-top:14px">
+            <span class="pill ok">Confirmed → BT disconnect &nbsp;ó&nbsp; pasos AND desplazamiento</span>
+            <span class="pill inc">Inconclusive → mantener candidato, seguir</span>
+            <span class="pill rej">Rejected → vuelve IN_VEHICLE / speed↑ → descartar</span>
+          </div>
+        </div>
+      </div>
+      <div class="seed">
+        Re-seed manual (cold-start): cuando no hay plaza previa conocida → modal no bloqueante.
+        <b>Armar ≠ confirmar</b> — “estoy conduciendo” solo entra a DRIVING; la confirmación sigue pasando por el gate.
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · BEFORE / AFTER -->
+  <section>
+    <div class="shead"><span class="snum">02</span><h2>Qué cambia en la confirmación</h2></div>
+    <div class="ba">
+      <div class="card bad">
+        <div class="lab">Hoy · el bug de Praga</div>
+        <h4>Confirmación por una señal sola</h4>
+        <ul>
+          <li><b>8 pasos</b> con el coche parado → plaza, sin más (Path 8).</li>
+          <li>Las <b>vibraciones</b> del atasco cuentan como pasos.</li>
+          <li><b>Sin gate de desplazamiento</b>: confirma donde paró el tráfico.</li>
+          <li>Decisión repartida en <b>9 paths</b> que compiten + 20 parches.</li>
+          <li>AR <code>IN_VEHICLE_ENTER</code> arma sin exigir plaza previa → un Bolt crea plaza.</li>
+        </ul>
+      </div>
+      <div class="card good">
+        <div class="lab">Objetivo · corroboración</div>
+        <h4>Dos señales fuertes que concuerdan</h4>
+        <ul>
+          <li>Pasos <b>AND</b> desplazamiento ≥ <code>minEgressDisplacementMeters</code>.</li>
+          <li>En atasco el coche no se aleja → nunca confirma.</li>
+          <li><b>egressAnchor</b> inmutable: graba la plaza, no el portal.</li>
+          <li>Decisión en <b>una función pura</b> testeable (replay de trazas).</li>
+          <li>Armado por <b>departure confirmado</b> → sin plaza previa, no hay detección.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · SIGNAL HIERARCHY -->
+  <section>
+    <div class="shead"><span class="snum">03</span><h2>Jerarquía de señales</h2></div>
+    <div class="signals">
+      <div class="sig strong2"><span class="name">BT disconnect</span><span class="bar"><i></i></span><span class="role">confirmador primario · hecho físico</span></div>
+      <div class="sig strong"><span class="name">Pasos + desplazamiento</span><span class="bar"><i></i></span><span class="role">confirmador de egreso · sensor hub</span></div>
+      <div class="sig mid"><span class="name">Geofence EXIT</span><span class="bar"><i></i></span><span class="role">trigger de armado / liberación</span></div>
+      <div class="sig weak"><span class="name">AR IN_VEHICLE/EXIT</span><span class="bar"><i></i></span><span class="role">apoyo · nunca confirmador único</span></div>
+      <div class="sig weak"><span class="name">STILL / dwell / GPS-speed solo</span><span class="bar"><i></i></span><span class="role">solo abre candidato · degradada</span></div>
+    </div>
+  </section>
+
+  <!-- 4 · DECISIONS -->
+  <section>
+    <div class="shead"><span class="snum">04</span><h2>Decisiones de diseño</h2></div>
+    <div class="grid">
+      <div class="dcard">
+        <span class="id">D-1</span>
+        <h4>Decisión ≠ confianza</h4>
+        <p>La <span class="key">decisión</span> es un gate booleano de corroboración, no un score sumado. La <span class="key">confianza</span> sobrevive como metadato del UserParking: <code>reliabilidad_de_ruta × calidad_GPS</code>.</p>
+      </div>
+      <div class="dcard">
+        <span class="id">D-2</span>
+        <h4>Gate de desplazamiento</h4>
+        <p>Nuevo <span class="key">egressAnchor</span> inmutable (capturado al parar). Pasos solo cuentan si hay ≥ 18 m de alejamiento. Arregla Praga de inmediato.</p>
+      </div>
+      <div class="dcard">
+        <span class="id">D-3</span>
+        <h4>Función pura de decisión</h4>
+        <p><span class="key">EvaluateParkingDecisionUseCase</span>, espejo del departure. Colapsa los 9 paths. Se testea replayando la traza de Praga sin dispositivo.</p>
+      </div>
+      <div class="dcard">
+        <span class="id">D-4</span>
+        <h4>BT + geocerca corroborador</h4>
+        <p>BT disconnect confirma por sí mismo. La geocerca <span class="key">sube confianza</span> pero no es obligatoria — si fuese gate duro, rompería el garaje subterráneo.</p>
+        <span class="warn">⚠ no convertir geocerca en gate duro</span>
+      </div>
+      <div class="dcard span">
+        <span class="id">D-5</span>
+        <h4>Armado por departure · cold-start con armar ≠ confirmar</h4>
+        <p>La detección se arma cuando un <span class="key">departure confirmado</span> sale de la geocerca de una plaza propia, no por AR ENTER directo — así un taxi/Bolt sin coche propio nunca arma nada. En cold-start, el modal solo entra a DRIVING; la confirmación sigue exigiendo velocidad real + egreso, de modo que un “estoy conduciendo” falso expira en Inconclusive.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · PHASES -->
+  <section>
+    <div class="shead"><span class="snum">05</span><h2>Plan por fases</h2></div>
+    <div class="phases">
+      <div class="phase">
+        <div class="pl">Fase A</div>
+        <h4>Parar el sangrado</h4>
+        <div class="when">días</div>
+        <ul>
+          <li>egressAnchor + gate de desplazamiento</li>
+          <li>config + require</li>
+          <li>log remoto a Firestore</li>
+          <li>mitigar START_STICKY / FGS fantasma</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="pl">Fase B</div>
+        <h4>Endurecer</h4>
+        <div class="when">semana 1–2</div>
+        <ul>
+          <li>revert automático post-confirm</li>
+          <li>degradar slow-path y STILL</li>
+          <li>watchdog FGS huérfano</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="pl">Fase C</div>
+        <h4>Reestructurar</h4>
+        <div class="when">semana 3–4</div>
+        <ul>
+          <li>extraer función pura de decisión</li>
+          <li>ParkingDecision + confidence</li>
+          <li>reconvertir el confidence use case</li>
+          <li>tests con replay de trazas</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="pl">Fase D</div>
+        <h4>Determinismo</h4>
+        <div class="when">roadmap BT</div>
+        <ul>
+          <li>armado por departure</li>
+          <li>cold-start modal</li>
+          <li>receiver BT-disconnect</li>
+          <li>geocerca corroboradora en BT</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

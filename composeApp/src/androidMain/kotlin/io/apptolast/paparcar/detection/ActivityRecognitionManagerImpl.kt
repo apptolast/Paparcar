@@ -12,7 +12,6 @@ import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionRequest
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.receiver.ActivityTransitionReceiver
-import io.apptolast.paparcar.detection.service.ParkingDetectionService
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 
@@ -32,25 +31,13 @@ class ActivityRecognitionManagerImpl(
         },
     )
 
-    // STILL events → BroadcastReceiver. No FGS needed — coordinator.onStillDetected() is fire-and-forget.
-    private val stillPendingIntent: PendingIntent by lazy {
+    // IN_VEHICLE events → BroadcastReceiver. [DET-G-01] AR no longer ARMS the coordinator (the
+    // geofence exit does), so it needs no foreground service — a getBroadcast avoids the FGS flash on
+    // every bus ride / spurious IN_VEHICLE. The receiver records the enter timestamp (departure-window
+    // corroborator) and forwards EXIT to a running coordinator as a non-decisive hint.
+    private val vehiclePendingIntent: PendingIntent by lazy {
         val intent = Intent(context, ActivityTransitionReceiver::class.java)
         PendingIntent.getBroadcast(
-            context,
-            STILL_REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
-        )
-    }
-
-    // IN_VEHICLE events → ForegroundService PendingIntent. Play Services delivers directly to the
-    // service with system privileges, bypassing the Android 12+ background FGS start restriction.
-    // [BUG-FGS-001]
-    private val vehiclePendingIntent: PendingIntent by lazy {
-        val intent = Intent(context, ParkingDetectionService::class.java).apply {
-            action = ParkingDetectionService.ACTION_VEHICLE_TRANSITION
-        }
-        PendingIntent.getForegroundService(
             context,
             VEHICLE_REQUEST_CODE,
             intent,
@@ -65,15 +52,6 @@ class ActivityRecognitionManagerImpl(
             return
         }
 
-        val stillRequest = ActivityTransitionRequest(
-            listOf(
-                ActivityTransition.Builder()
-                    .setActivityType(DetectedActivity.STILL)
-                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
-                    .build(),
-            ),
-        )
-
         val vehicleRequest = ActivityTransitionRequest(
             listOf(
                 ActivityTransition.Builder()
@@ -87,17 +65,12 @@ class ActivityRecognitionManagerImpl(
             ),
         )
 
-        activityClient.requestActivityTransitionUpdates(stillRequest, stillPendingIntent)
-            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ STILL transitions registered") }
-            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register STILL transitions", e) }
-
         activityClient.requestActivityTransitionUpdates(vehicleRequest, vehiclePendingIntent)
             .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE transitions registered") }
             .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE transitions", e) }
     }
 
     override fun unregisterTransitions() {
-        activityClient.removeActivityTransitionUpdates(stillPendingIntent)
         activityClient.removeActivityTransitionUpdates(vehiclePendingIntent)
     }
 
@@ -113,9 +86,6 @@ class ActivityRecognitionManagerImpl(
 
     private companion object {
         const val TAG = "ActivityRecognitionManager"
-        // PendingIntent request codes — keep distinct so FLAG_UPDATE_CURRENT does not collide
-        // between the broadcast (STILL) and the foreground-service (IN_VEHICLE) PendingIntents.
-        const val STILL_REQUEST_CODE = 101
         const val VEHICLE_REQUEST_CODE = 102
     }
 }

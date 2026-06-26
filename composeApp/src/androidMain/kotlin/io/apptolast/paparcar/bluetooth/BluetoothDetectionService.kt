@@ -47,14 +47,14 @@ import org.koin.android.ext.android.inject
  *
  * **Notification ID:**
  * Uses [AppNotificationManager.BT_DETECTION_NOTIFICATION_ID] (1003) — distinct from
- * [AppNotificationManager.DETECTION_NOTIFICATION_ID] (1001) used by [ParkingDetectionService]
+ * [AppNotificationManager.DETECTION_NOTIFICATION_ID] (1001) used by [CoordinatorDetectionService]
  * so both services can run their notifications independently without overwriting each other.
  *
  * **Refactor 2026-06-08 [BT-BUG-100..105 + BT-REFACTOR-200]:**
  *  - Reuses [ForegroundServiceController] so every teardown path goes through
  *    `stopForeground(STOP_FOREGROUND_REMOVE)` (no more leaked FGS notification).
  *  - `thisJob === detectionJob` guard prevents a superseded job from killing a
- *    replacement coordinator (`DETECT-SERVICE-RACE-001` ported from ParkingDetectionService).
+ *    replacement coordinator (`DETECT-SERVICE-RACE-001` ported from CoordinatorDetectionService).
  *  - Vehicle-name fetch moved INSIDE the detection job (no more side-launch race with
  *    `updateDetectionVehicle.notify` re-posting the notification after teardown).
  *  - Vehicle name resolved by `vehicleId` (the actually disconnected vehicle), not by
@@ -156,7 +156,7 @@ class BluetoothDetectionService : LifecycleService() {
                 // superseded by a newer detection job (e.g. a new BT_DISCONNECTED arrived
                 // while we were finishing). Without this, the older job would tear down
                 // the FGS that the replacement just promoted. Mirrors `DETECT-SERVICE-RACE-001`
-                // from ParkingDetectionService.
+                // from CoordinatorDetectionService.
                 if (detectionJob === thisJob) {
                     PaparcarLogger.d(DIAG, "  ■ detection finished — stopForegroundAndSelf()")
                     fgs.stopForegroundAndSelf() // [FIX BT-BUG-100]

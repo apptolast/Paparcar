@@ -2,15 +2,18 @@
 
 package io.apptolast.paparcar.domain.coordinator
 
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
+import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
+import io.apptolast.paparcar.fakes.FakeDetectionEventLogger
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeParkingEnrichmentScheduler
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlin.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -30,7 +34,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * Unit tests for [ParkingDetectionCoordinator].
+ * Unit tests for [CoordinatorParkingDetector].
  *
  * Scope is the deterministic, non-time-dependent behaviour:
  *  - user-confirmed confirmation path
@@ -43,12 +47,18 @@ import kotlin.test.assertTrue
  * [io.apptolast.paparcar.domain.usecase.parking.ParkingFlowIntegrationTest] instead
  * of being faked here.
  */
-class ParkingDetectionCoordinatorTest {
+class CoordinatorParkingDetectorTest {
 
     private val authSession = FakeAuthRepository.authenticatedSession(userId = "user-1")
-    private val config = ParkingDetectionConfig()
+    // confirmHoldMs = 0 → no post-confirm hold, so egress confirms fire immediately and these
+    // deterministic tests stay synchronous. The hold itself is covered by dedicated tests below
+    // that drive an injected clock. [DET-C-02]
+    private val config = ParkingDetectionConfig(confirmHoldMs = 0L)
 
-    private fun setup(): TestEnv {
+    private fun setup(
+        config: ParkingDetectionConfig = this.config,
+        clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    ): TestEnv {
         val auth = FakeAuthRepository(initialSession = authSession)
         val vehicleRepo = FakeVehicleRepository(
             defaultVehicle = Vehicle(
@@ -77,7 +87,8 @@ class ParkingDetectionCoordinatorTest {
         )
         val calcConfidence = CalculateParkingConfidenceUseCase(config)
         val stepDetector = FakeStepDetectorSource()
-        val coordinator = ParkingDetectionCoordinator(
+        val detectionLogger = FakeDetectionEventLogger()
+        val coordinator = CoordinatorParkingDetector(
             calculateParkingConfidence = calcConfidence,
             confirmParking = confirmParking,
             notifyParkingConfirmation = notifyParking,
@@ -85,8 +96,11 @@ class ParkingDetectionCoordinatorTest {
             vehicleRepository = vehicleRepo,
             stepDetector = stepDetector,
             config = config,
+            detectionEventLogger = detectionLogger,
+            evaluateParkingDecision = EvaluateParkingDecisionUseCase(config),
+            clock = clock,
         )
-        return TestEnv(coordinator, parkingRepo, geofence, enrichment, notification, stepDetector)
+        return TestEnv(coordinator, parkingRepo, geofence, enrichment, notification, stepDetector, detectionLogger)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -123,6 +137,63 @@ class ParkingDetectionCoordinatorTest {
                 "reliability should be the user-confirmed score",
             )
             assertEquals(1, env.geofence.createGeofenceCallCount, "geofence should be registered for the saved session")
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DET-LOG-03: coordinator emits a diagnostics session trace
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_emit_session_trace_when_user_confirms() =
+        runTest(UnconfinedTestDispatcher()) {
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(stationaryFix(lat = 40.002, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            val events = env.detectionLogger.events
+            assertTrue(events.any { it is DetectionEvent.SessionStarted }, "SessionStarted must be logged")
+            assertTrue(events.any { it is DetectionEvent.LocationFix }, "raw GPS fixes must be logged [DET-LOG-04]")
+            assertTrue(
+                events.any { it is DetectionEvent.Decision && it.outcome == "CONFIRMED" && it.pathLabel == "user" },
+                "a CONFIRMED Decision with the user path must be logged",
+            )
+            assertTrue(events.any { it is DetectionEvent.SessionEnded }, "SessionEnded must be logged")
+            assertEquals(
+                1,
+                events.map { it.sessionId }.distinct().size,
+                "all events in one session must share a single sessionId",
+            )
+        }
+
+    @Test
+    fun should_log_vehicle_exit_transition_in_trace() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-LOG-04] An IN_VEHICLE→EXIT fed via onVehicleExit() must surface as an
+            // ActivityTransition in the trace, edge-logged once on the next fix.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            env.coordinator.onVehicleExit()
+            locations.emit(stationaryFix(lat = 40.002, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            assertTrue(
+                env.detectionLogger.events.any {
+                    it is DetectionEvent.ActivityTransition && it.activity == "IN_VEHICLE" && it.transition == "EXIT"
+                },
+                "an IN_VEHICLE EXIT transition must be logged in the trace",
+            )
         }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -542,22 +613,25 @@ class ParkingDetectionCoordinatorTest {
             locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
             assertTrue(env.coordinator.hasDetectedMovement, "sanity: driving speed reached")
 
-            // Park at (40.005, -3.7) — captures bestStopLocation in the initial-stop window.
+            // Park at (40.005, -3.7) — captures bestStopLocation AND the egress anchor in the
+            // initial-stop window.
             locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
 
             // AR EXIT arrives + 8 pedestrian steps fire. No STILL, no 5 min of stop.
             env.coordinator.onVehicleExit()
             env.stepDetector.emitSteps(8)
 
-            // Next location tick — the fast-confirm guard should fire here.
-            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            // [DET-A] The user has now physically walked away: next stopped fix is ~33 m from the
+            // park anchor (40.005 → 40.0053), past minEgressDisplacementMeters=18 m. The egress
+            // gate is satisfied and the fast-confirm fires here.
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
 
             job.cancelAndJoin()
 
             assertEquals(
                 1,
                 env.parkingRepo.saveNewParkingSessionCallCount,
-                "EXIT + ${env.coordinator}.minStepsToConfirm steps must trigger an immediate confirm",
+                "EXIT + minStepsToConfirm steps + egress displacement must trigger an immediate confirm",
             )
             val saved = env.parkingRepo.getActiveSession()
             assertNotNull(saved)
@@ -599,6 +673,185 @@ class ParkingDetectionCoordinatorTest {
                 0,
                 env.parkingRepo.saveNewParkingSessionCallCount,
                 "EXIT without steps must not auto-confirm — slow path remains the gate",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DET-A: egress displacement gate — the Prague false positive
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_not_fast_confirm_when_exit_and_steps_arrive_without_egress_displacement() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The Prague false positive, replayed. A spurious AR IN_VEHICLE_EXIT fires mid-trip
+            // and, stuck in stop-and-go traffic, the phone bouncing in the user's pocket counts
+            // ≥ minStepsToConfirm step events — all while the car never moved and the user never
+            // left it. Pre-DET-A this satisfied `vehicleExitConfirmed && stepCount >= min` and
+            // published a phantom spot. The egress gate requires real displacement from the
+            // parked-car anchor, which never happens here, so no spot is saved. [DET-A]
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Drive: origin + cross movement threshold.
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            assertTrue(env.coordinator.hasDetectedMovement, "sanity: driving speed reached")
+
+            // Traffic-jam stop at (40.005) — egress anchor pinned here.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            // Spurious EXIT + 8 bouncing-phone steps. The user is still in the car.
+            env.coordinator.onVehicleExit()
+            env.stepDetector.emitSteps(8)
+
+            // Subsequent fixes stay essentially at the anchor (~1 m jitter, well under the
+            // 18 m gate). The car never drove away, the user never walked away.
+            locations.emit(GpsPoint(40.005009, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            locations.emit(GpsPoint(40.005000, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "EXIT + steps WITHOUT egress displacement must NOT confirm — this is the Prague phantom spot",
+            )
+        }
+
+    @Test
+    fun should_fast_confirm_on_steps_and_egress_without_any_vehicle_exit() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-D-03] Steps + egress confirm on their own — no AR IN_VEHICLE_EXIT required. A field
+            // trace (2026-06-26) showed the confirm needlessly waiting ~16 s for the AR EXIT while
+            // steps+egress were already satisfied. The egress gate is the decisive signal; the exit
+            // requirement was redundant and fragile on hardware where EXIT is late/missing.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Drive, then park at (40.005) — bestStopLocation pinned here.
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            // NO onVehicleExit() — only the pedestrian-steps proof + egress displacement.
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // ~33 m away
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "steps + egress must confirm WITHOUT an AR vehicle-exit [DET-D-03]",
+            )
+            assertEquals(
+                40.005,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "confirmed location must be the parked-car position (bestStopLocation)",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // DET-C-02: post-confirm hold — errand re-anchor + finalize
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_discard_tentative_confirm_and_reanchor_at_final_spot_when_driving_resumes() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-C-02] The "buy tobacco" bug: the user parks at an errand spot, gets out and walks
+            // to a kiosk (egress → tentative confirm), then drives on to park properly nearby. The
+            // tentative confirm must be DISCARDED when driving resumes within the hold, and the park
+            // must re-anchor at the FINAL spot — not pin the kiosk.
+            var fakeNow = 1_000_000L
+            val holdConfig = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = holdConfig, clock = { fakeNow })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Drive, then park at the ERRAND spot (40.005); egress → tentative confirm (held, not saved).
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress ~33 m
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "must NOT confirm yet — held in the post-confirm window [DET-C-02]",
+            )
+
+            // 30 s into the hold the errand is over: drive off again → discard the tentative confirm.
+            fakeNow += 30_000L
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "tentative confirm discarded — still nothing saved",
+            )
+
+            // Park for real at the FINAL spot (40.020); egress → new tentative confirm; let it settle.
+            locations.emit(GpsPoint(40.020, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0203, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress ~33 m
+            fakeNow += 120_001L
+            locations.emit(GpsPoint(40.0203, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // hold elapsed
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "exactly one confirm — the FINAL spot, after the hold settled [DET-C-02]",
+            )
+            assertEquals(
+                40.020,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.0001,
+                "park must anchor at the FINAL spot (40.020), not the errand stop (40.005)",
+            )
+        }
+
+    @Test
+    fun should_finalize_tentative_confirm_after_hold_when_car_stays_put() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-C-02] A genuine park: egress → tentative confirm → the car stays put → the hold
+            // elapses → finalize at the parked-car position. Nothing is saved during the hold window.
+            var fakeNow = 1_000_000L
+            val holdConfig = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = holdConfig, clock = { fakeNow })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress → tentative
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "held, not confirmed yet [DET-C-02]",
+            )
+
+            // Car stays put; hold elapses → finalize on the next stationary fix.
+            fakeNow += 120_001L
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "finalized exactly once after the hold elapsed [DET-C-02]",
+            )
+            assertEquals(
+                40.005,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.0001,
+                "finalized at the parked-car position",
             )
         }
 
@@ -658,11 +911,12 @@ class ParkingDetectionCoordinatorTest {
         GpsPoint(latitude = lat, longitude = lon, accuracy = 5f, timestamp = 0L, speed = 0f)
 
     private data class TestEnv(
-        val coordinator: ParkingDetectionCoordinator,
+        val coordinator: CoordinatorParkingDetector,
         val parkingRepo: FakeUserParkingRepository,
         val geofence: FakeGeofenceManager,
         val enrichment: FakeParkingEnrichmentScheduler,
         val notification: FakeAppNotificationManager,
         val stepDetector: FakeStepDetectorSource,
+        val detectionLogger: FakeDetectionEventLogger,
     )
 }

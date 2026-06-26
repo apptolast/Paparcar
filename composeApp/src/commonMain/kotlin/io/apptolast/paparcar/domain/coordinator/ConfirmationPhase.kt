@@ -7,7 +7,7 @@ package io.apptolast.paparcar.domain.coordinator
  *
  * Replaces the legacy fields `lowFirstReachedAt`, `confirmationNotificationShownAt`,
  * `highConfidenceReachedAt`, and `highCandidateHadVehicleExit` (kept in
- * [io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator]'s state until
+ * [io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector]'s state until
  * 2026-06-08). The implicit triple permitted invalid combinations (e.g. a candidate set
  * while no notification was shown) for a one-instruction window between
  * [kotlinx.coroutines.flow.MutableStateFlow.update] calls; the sealed interface makes those

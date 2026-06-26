@@ -6,12 +6,12 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 
 /**
- * [REFACTOR: SRP — extract FGS lifecycle from ParkingDetectionService]
+ * [REFACTOR: SRP — extract FGS lifecycle from CoordinatorDetectionService]
  *
  * Centralises the foreground-service promotion + clean shutdown.
  *
  * Why this exists:
- * - Five different code paths in [ParkingDetectionService] call `stopSelf()` without
+ * - Five different code paths in [CoordinatorDetectionService] call `stopSelf()` without
  *   ever calling `stopForeground(STOP_FOREGROUND_REMOVE)` first, which is the only
  *   reliable way to remove the FGS notification *before* the Service object is
  *   destroyed. On Android 11–14 with a re-entering [startForegroundService] call

@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Geocodes the given coordinates (best-effort, inline) and schedules a guaranteed
@@ -39,7 +40,7 @@ class ReportSpotReleasedUseCase(
         val reporterName = authRepository.getCurrentSession()?.displayName
         var address: AddressInfo? = null
         var placeInfo: PlaceInfo? = null
-        withTimeoutOrNull(GEOCODE_TIMEOUT_MS) {
+        withTimeoutOrNull(GEOCODE_TIMEOUT_MS.milliseconds) {
             getAddressAndPlace(lat, lon)
                 .catch { /* best-effort: schedule with whatever info we have */ }
                 .collect { info ->

@@ -2,7 +2,7 @@
 
 package io.apptolast.paparcar.notification
 
-import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
+import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -20,8 +20,8 @@ import platform.darwin.NSObject
  * Yes/No buttons of the parking-confirmation notifications into the same domain hooks.
  *
  * State A (pre-save prompt, category [IosAppNotificationManagerImpl.CATEGORY_PARKING_CONFIRMATION]):
- *  - `ACTION_CONFIRMED` → [ParkingDetectionCoordinator.onUserConfirmedParking]
- *  - `ACTION_DENIED`    → [ParkingDetectionCoordinator.onUserDeniedParking]
+ *  - `ACTION_CONFIRMED` → [CoordinatorParkingDetector.onUserConfirmedParking]
+ *  - `ACTION_DENIED`    → [CoordinatorParkingDetector.onUserDeniedParking]
  *
  * State B (post-save card, category [IosAppNotificationManagerImpl.CATEGORY_PARKING_SAVED_CONFIRM]):
  *  - `ACTION_ACK`    → dismiss; user acknowledges the saved spot.
@@ -31,7 +31,7 @@ import platform.darwin.NSObject
  * `UNUserNotificationCenter.delegate` is a weak reference.
  */
 class IosNotificationActionHandler(
-    private val coordinator: ParkingDetectionCoordinator,
+    private val coordinator: CoordinatorParkingDetector,
     private val revertParkingUseCase: RevertParkingUseCase,
     private val notificationPort: AppNotificationManager,
 ) : NSObject(), UNUserNotificationCenterDelegateProtocol {

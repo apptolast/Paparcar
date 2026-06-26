@@ -31,6 +31,19 @@ service cloud.firestore {
       }
     }
 
+    // Diagnostics — trazas de detección en campo (DET-LOG). Sólo el propio usuario escribe/lee
+    // las suyas. Default OFF vía el flag de abajo; sin opt-in no se escribe nada.
+    match /diagnostics/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Flag de diagnóstico por usuario. El cliente sólo LO LEE para auto-gatearse; el toggle
+    // lo hace un admin (MCP / Admin SDK, que bypassa estas reglas), nunca el cliente.
+    match /diagnostics_config/{uid} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Denegar cualquier otra colección no listada explícitamente.
     match /{document=**} {
       allow read, write: if false;

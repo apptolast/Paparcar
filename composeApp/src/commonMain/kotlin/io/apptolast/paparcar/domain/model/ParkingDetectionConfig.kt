@@ -63,6 +63,22 @@ data class ParkingDetectionConfig(
     /** GPS horizontal accuracy (meters) below which the fix is considered high-quality. */
     val minGpsAccuracyMeters: Float = 15f,
 
+    // ── EGRESS DISPLACEMENT GATE (DET-A) ──────────────────────────────────────
+    /** Minimum displacement (meters) from [egressAnchor] — the position captured at the
+     *  moment the vehicle first stopped — that the current fix must reach before a
+     *  steps-based auto-confirm (Path 8 and the candidate `hasStepsProof`) is allowed.
+     *
+     *  **Why.** Steps alone are not proof of egress: a phone bouncing in a pocket during
+     *  stop-and-go traffic accumulates step events while the car never moved and the user
+     *  never left it (the Prague false positive). Requiring the user to have physically
+     *  walked away from the parked-car anchor turns "steps" into "steps AND displacement"
+     *  — the conjunction of two independent signals, which is the only thing physically
+     *  impossible to fake at a traffic stop.
+     *
+     *  Set strictly above [minGpsAccuracyMeters] (enforced in `init`) so a single noisy fix
+     *  inside the accuracy envelope cannot satisfy the gate on its own. Default 18 m. */
+    val minEgressDisplacementMeters: Float = 18f,
+
     // ── GEOFENCE ──────────────────────────────────────────────────────────────
     /** Base geofence radius (meters) for MOTO vehicles. Smaller because motorcycles park in tighter spots. */
     val geofenceRadiusMotoMeters: Float = 60f,
@@ -85,8 +101,9 @@ data class ParkingDetectionConfig(
     /** Time window (ms) after the vehicle first stops during which GPS fixes are
      *  collected into [stoppedFixes]. Fixes outside this window are ignored so that
      *  locations recorded AFTER the user has walked away from the car are not used
-     *  as the saved parking spot. At HIGH_ACCURACY (2 s interval) a 30 s window
-     *  yields ~15 candidate fixes — enough to select the best accuracy. */
+     *  as the saved parking spot. At HIGH_ACCURACY (~2–5 s cadence: 5 s requested
+     *  interval, 2 s fastest — see AndroidLocationDataSourceImpl) a 30 s window
+     *  yields ~6–15 candidate fixes — enough to select the best accuracy. */
     val initialStopWindowMs: Long = 30_000L,
     /** Maximum number of GPS fixes retained during [initialStopWindowMs] for
      *  best-accuracy selection. At the 2 s HIGH_ACCURACY cadence, 20 fixes
@@ -194,6 +211,19 @@ data class ParkingDetectionConfig(
      *  [BUG-STUCK-SESSION] */
     val confirmationResponseTimeoutMs: Long = 15 * 60_000L,
 
+    // ── POST-CONFIRM HOLD (DET-C-02) ──────────────────────────────────────────
+    /** Grace window (ms) after an auto egress-confirm during which the session stays alive
+     *  ("tentatively parked") to make sure the user does not immediately drive off again. If
+     *  driving resumes (speed > [clearBestStopSpeedMps] with a trustworthy fix) before this
+     *  elapses, the tentative confirm is discarded and detection continues — so a quick errand
+     *  stop (e.g. parking, walking to a kiosk to buy tobacco, then driving on to park properly)
+     *  re-anchors the saved park at the FINAL spot instead of pinning the errand location.
+     *  Once it elapses with the car still stopped, the park is finalised; an explicit user-yes
+     *  finalises immediately. Set to 0 to disable the hold and confirm immediately (legacy
+     *  behaviour / unit tests). Default 2 minutes — long enough to cover a quick errand, tune
+     *  with field telemetry. [DET-C-02] */
+    val confirmHoldMs: Long = 2 * 60_000L,
+
     // ── DETECTION RELIABILITY ─────────────────────────────────────────────────
     /** Reliability score [0.0, 1.0] assigned when the user manually confirms parking.
      *  Represents near-certain ground truth. */
@@ -201,6 +231,11 @@ data class ParkingDetectionConfig(
     /** Reliability score assigned when parking is auto-confirmed after observing an
      *  IN_VEHICLE→EXIT activity transition + [vehicleExitObservationWindowMs]. */
     val reliabilityVehicleExit: Float = 0.90f,
+    /** Reliability score assigned when parking is auto-confirmed by the deterministic Bluetooth
+     *  strategy (paired-device disconnect + GPS fix + ≥30 m walk). Higher than [reliabilityVehicleExit]
+     *  because the MAC-address binding makes a real disconnect + walk unambiguous — the
+     *  "neighbour's identical car" case is impossible. [DET-F-01, was BluetoothParkingDetector literal] */
+    val reliabilityBluetooth: Float = 0.95f,
     /** Reliability score assigned when parking is auto-confirmed via the slow path only
      *  (no activity-exit signal, stopped for [confirmationObservationWindowMs]). */
     val reliabilitySlowPath: Float = 0.75f,
@@ -343,11 +378,19 @@ data class ParkingDetectionConfig(
         require(reliabilityVehicleExit in 0f..reliabilityUserConfirmed) {
             "reliabilityVehicleExit must be in 0..reliabilityUserConfirmed, was $reliabilityVehicleExit"
         }
+        require(reliabilityBluetooth in reliabilityVehicleExit..reliabilityUserConfirmed) {
+            "reliabilityBluetooth ($reliabilityBluetooth) must be in [reliabilityVehicleExit=$reliabilityVehicleExit, " +
+                "reliabilityUserConfirmed=$reliabilityUserConfirmed] — BT is deterministic, stronger than AR-exit"
+        }
         require(reliabilitySlowPath in 0f..reliabilityVehicleExit) {
             "reliabilitySlowPath must be in 0..reliabilityVehicleExit, was $reliabilitySlowPath"
         }
         require(minStepsToConfirm >= 1) {
             "minStepsToConfirm must be >= 1, was $minStepsToConfirm"
+        }
+        require(minEgressDisplacementMeters > minGpsAccuracyMeters) {
+            "minEgressDisplacementMeters ($minEgressDisplacementMeters) must be > minGpsAccuracyMeters " +
+                "($minGpsAccuracyMeters) so a single in-envelope GPS noise fix cannot satisfy the gate"
         }
         require(falseEnterAbortSteps >= 1) {
             "falseEnterAbortSteps must be >= 1, was $falseEnterAbortSteps"
@@ -363,6 +406,9 @@ data class ParkingDetectionConfig(
         }
         require(confirmationResponseTimeoutMs > lowNotifTimeoutMs) {
             "confirmationResponseTimeoutMs ($confirmationResponseTimeoutMs) must be > lowNotifTimeoutMs ($lowNotifTimeoutMs)"
+        }
+        require(confirmHoldMs >= 0) {
+            "confirmHoldMs must be >= 0 (0 disables the post-confirm hold), was $confirmHoldMs"
         }
     }
 }

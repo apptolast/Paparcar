@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.bluetooth
 
 import android.location.Location
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -46,6 +47,7 @@ class BluetoothParkingDetector(
     private val observeLocation: ObserveAdaptiveLocationUseCase,
     private val confirmParking: ConfirmParkingUseCase,
     private val notificationPort: AppNotificationManager,
+    private val config: ParkingDetectionConfig,
 ) {
 
     suspend fun detectParking(deviceAddress: String, vehicleId: String) {
@@ -81,7 +83,7 @@ class BluetoothParkingDetector(
         }
 
         PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking for vehicle=$vehicleId")
-        confirmParking(parkingFix, PARKING_DETECTION_RELIABILITY, vehicleId = vehicleId)
+        confirmParking(parkingFix, config.reliabilityBluetooth, vehicleId = vehicleId)
             .onSuccess { saved ->
                 // Legacy tap-to-open-map notification. [BT-NOTIF-LEGACY-CLEANUP]
                 notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
@@ -103,17 +105,6 @@ class BluetoothParkingDetector(
 
         /** Distance the user must walk from the fix before parking is auto-confirmed. */
         const val DISTANCE_THRESHOLD_M = 30f
-
-        /**
-         * Reliability reported to ConfirmParkingUseCase. BT is deterministic — a real
-         * disconnect + 30 m walk is an unambiguous signal — so we use a value higher
-         * than the activity-recognition-based vehicleExit path (0.90).
-         *
-         * **TODO-BT-CONFIG-P2:** move to [ParkingDetectionConfig.reliabilityBluetooth]
-         * for parity with the other reliability constants. Left as a literal here for
-         * surface-minimal v1.
-         */
-        const val PARKING_DETECTION_RELIABILITY = 0.95f
 
         /** Required size of the FloatArray passed to [Location.distanceBetween]. */
         const val DISTANCE_RESULT_SIZE = 1

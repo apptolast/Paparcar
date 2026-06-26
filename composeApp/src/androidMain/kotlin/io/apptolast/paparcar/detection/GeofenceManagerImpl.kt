@@ -7,7 +7,7 @@ import android.content.Intent
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
-import io.apptolast.paparcar.detection.receiver.GeofenceBroadcastReceiver
+import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -50,11 +50,18 @@ class GeofenceManagerImpl(
     override fun getGeofenceEvents(): Flow<GeofenceEvent> = geofenceEventBus.events
 
     private fun buildPendingIntent(): PendingIntent {
-        val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
-        // FLAG_MUTABLE is required: Play Services fills GeofencingEvent extras into the intent
-        // at delivery time. FLAG_IMMUTABLE blocks this on Android 12+ — triggeringGeofences
-        // would be null and the receiver silently returns without firing departure detection.
-        return PendingIntent.getBroadcast(
+        // [DET-G-01] Deliver the geofence transition DIRECTLY to the detection service via
+        // getForegroundService, so Play Services grants the privileged FGS start (the same mechanism
+        // the AR IN_VEHICLE path uses — see ActivityRecognitionManagerImpl / BUG-FGS-001). This is
+        // what lets the geofence exit BOTH dispatch departure AND arm the next detection: a
+        // background BroadcastReceiver/Worker cannot legally start an FGS on Android 12+.
+        // GeofenceBroadcastReceiver is kept as a one-line-revertible fallback (swap back to getBroadcast).
+        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
+            action = CoordinatorDetectionService.ACTION_GEOFENCE_EXIT
+        }
+        // FLAG_MUTABLE is required: Play Services fills GeofencingEvent extras into the intent at
+        // delivery time. FLAG_IMMUTABLE blocks this on Android 12+ — triggeringGeofences would be null.
+        return PendingIntent.getForegroundService(
             context,
             REQUEST_CODE,
             intent,

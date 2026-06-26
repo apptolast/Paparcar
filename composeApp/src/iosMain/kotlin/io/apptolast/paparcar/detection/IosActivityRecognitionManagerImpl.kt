@@ -3,7 +3,7 @@
 package io.apptolast.paparcar.detection
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
-import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
+import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
@@ -23,17 +23,19 @@ import platform.Foundation.NSOperationQueue
  * Android signals registered in [ActivityRecognitionManagerImpl]:
  *
  *  - `automotive` false → true   ≡ IN_VEHICLE / ENTER  → [DepartureEventBus.onVehicleEntered]
- *  - `automotive` true  → false  ≡ IN_VEHICLE / EXIT   → [ParkingDetectionCoordinator.onVehicleExit]
- *  - `stationary` false → true   ≡ STILL / ENTER       → [ParkingDetectionCoordinator.onStillDetected]
+ *  - `automotive` true  → false  ≡ IN_VEHICLE / EXIT   → [CoordinatorParkingDetector.onVehicleExit]
+ *
+ * `stationary` (STILL) is intentionally not synthesised: STILL was dropped as a detection signal
+ * (redundant with the egress gate, fires in traffic jams). [DET-D-03]
  *
  * Low-confidence snapshots are ignored. The Android side uses the system's
  * confidence threshold implicitly; on iOS we filter [CMMotionActivityConfidenceLow]
  * explicitly to avoid jitter.
  *
- * The Android pipeline also starts [ParkingDetectionService] from the receiver when
+ * The Android pipeline also starts [CoordinatorDetectionService] from the receiver when
  * IN_VEHICLE/ENTER fires and BT strategy isn't owning the session. iOS has no
  * foreground-service equivalent — the loop that calls
- * [ParkingDetectionCoordinator.invoke] with a GPS stream is a separate concern
+ * [CoordinatorParkingDetector.invoke] with a GPS stream is a separate concern
  * (see IOS_PLAN.md). The signals here are still useful in the meantime: they
  * keep the singleton coordinator's state primed so that whichever component
  * eventually starts the session sees an up-to-date vehicleExit/still flag.
@@ -43,7 +45,7 @@ import platform.Foundation.NSOperationQueue
  */
 class IosActivityRecognitionManagerImpl(
     private val departureEventBus: DepartureEventBus,
-    private val coordinator: ParkingDetectionCoordinator,
+    private val coordinator: CoordinatorParkingDetector,
 ) : ActivityRecognitionManager {
 
     private val manager = CMMotionActivityManager()
@@ -92,10 +94,6 @@ class IosActivityRecognitionManagerImpl(
         if (previous.automotive && !activity.automotive) {
             PaparcarLogger.d(TAG, "Transition: IN_VEHICLE / EXIT")
             coordinator.onVehicleExit()
-        }
-        if (!previous.stationary && activity.stationary) {
-            PaparcarLogger.d(TAG, "Transition: STILL / ENTER")
-            coordinator.onStillDetected()
         }
     }
 

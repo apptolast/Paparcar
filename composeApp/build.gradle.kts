@@ -336,3 +336,12 @@ android {
     // Disabling embedding has no effect on prod devices (no custom profile module exists).
     experimentalProperties["android.experimental.art.profile.enable"] = false
 }
+
+// [build] The Crashlytics ProGuard-mapping upload runs after the APK is built and reaches Firebase
+// over the network — blocked by SSL inspection on this dev network (PKIX cert error), failing the
+// build even though the APK is already produced. `mappingFileUploadEnabled = false` is ignored by
+// AGP 9, so disable the task directly. Re-enable from a network that can reach Firebase (e.g. CI)
+// with -PuploadCrashlyticsMapping=true.
+tasks.matching { it.name.startsWith("uploadCrashlyticsMappingFile") }.configureEach {
+    enabled = project.findProperty("uploadCrashlyticsMapping") == "true"
+}

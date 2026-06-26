@@ -55,9 +55,9 @@
             </intent-filter>
         </activity>
 
-        <!-- ParkingDetectionService — Coordinator (Activity Recognition) path -->
+        <!-- CoordinatorDetectionService — Coordinator (Activity Recognition) path -->
         <service
-            android:name=".detection.service.ParkingDetectionService"
+            android:name=".detection.service.CoordinatorDetectionService"
             android:foregroundServiceType="location"
             android:exported="false" />
 

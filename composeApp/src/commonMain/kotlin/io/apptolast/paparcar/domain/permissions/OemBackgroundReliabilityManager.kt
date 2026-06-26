@@ -5,7 +5,7 @@ package io.apptolast.paparcar.domain.permissions
  * stock Android permissions. Xiaomi (MIUI) and Oppo (ColorOS) — among others —
  * expose an "Autostart" / "Background activity" toggle that defaults to OFF and,
  * when off, prevents the OS from ever reviving the app after it has been killed
- * in background. Without that whitelist, `ParkingDetectionService` cannot survive
+ * in background. Without that whitelist, `CoordinatorDetectionService` cannot survive
  * a long doze cycle no matter what runtime permissions are granted. [BUG-DETECT-OEM-KILLER-001]
  *
  * The implementation is platform-specific:

@@ -10,8 +10,9 @@ import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
+import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
-import io.apptolast.paparcar.domain.coordinator.ParkingDetectionCoordinator
+import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
@@ -19,7 +20,6 @@ import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
-import io.apptolast.paparcar.domain.usecase.detection.HandleVehicleTransitionUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
@@ -63,6 +63,7 @@ val domainModule = module {
     // Parking UseCases
     single { ParkingDetectionConfig() }
     factory { CalculateParkingConfidenceUseCase(get()) }
+    factory { EvaluateParkingDecisionUseCase(get()) }
     factory {
         DetectParkingDepartureUseCase(
             userParkingRepository = get(),
@@ -83,7 +84,7 @@ val domainModule = module {
         )
     }
     single {
-        ParkingDetectionCoordinator(
+        CoordinatorParkingDetector(
             calculateParkingConfidence = get(),
             confirmParking = get(),
             notifyParkingConfirmation = get(),
@@ -91,6 +92,8 @@ val domainModule = module {
             vehicleRepository = get(),
             stepDetector = get(),
             config = get(),
+            detectionEventLogger = get(),
+            evaluateParkingDecision = get(),
         )
     }
 
@@ -132,6 +135,4 @@ val domainModule = module {
     // Strategy Resolution
     factory { ParkingStrategyResolver(get(), get()) }
 
-    // Vehicle transition (singleton — tracks isVehicleIn state across events)
-    single { HandleVehicleTransitionUseCase(get(), get(), get()) }
 }

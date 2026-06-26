@@ -58,15 +58,21 @@ The strategies never mix signals. BLUETOOTH and COORDINATOR converge on `Confirm
 1. **Debounce** — `delay(BT_DISCONNECT_DEBOUNCE_MS = 30 s)`. Cancellable — if BT reconnects, the Service cancels the coroutine here before the delay returns (BT-005).
 2. **GPS fix** — sample the location stream until `accuracy ≤ GPS_ACCURACY_THRESHOLD_M = 50 m`, or `GPS_SAMPLE_TIMEOUT_MS = 60 s` elapses. The first fix that meets the accuracy bar is the candidate parking location.
 3. **Walking confirmation** — keep watching GPS until the user has moved `≥ DISTANCE_THRESHOLD_M = 30 m` from the candidate fix. This rules out "BT dropped while still in the car" cases (passenger left, head-unit died, etc.).
-4. **Confirm** — `confirmParking(candidateFix, PARKING_DETECTION_RELIABILITY = 0.95f)`.
+4. **Confirm** — `confirmParking(candidateFix, config.reliabilityBluetooth = 0.95f)`. [DET-F-01]
 
 Abort-on-reconnect (BT-005): when `ACTION_ACL_CONNECTED` arrives, the Receiver starts the Service with `ACTION_BT_CONNECTED`. The Service calls `detectionJob?.cancel()` — the suspend function receives `CancellationException` at the active suspension point (`delay` or `Flow.first`) and exits cooperatively. The detector itself carries no cancellation flag.
+
+> **DET-E-01 reverted (code review):** feeding `DepartureEventBus.onVehicleEntered` on BT connect
+> made the `BUG-WALK-DEPART-001` fallthrough in `DepartureDetectionWorker` treat a BT user merely
+> *sitting in* their parked car as a departure (enter present + no speed → publish phantom spot). AR
+> `IN_VEHICLE_ENTER` (which detects real motion, not mere BT pairing) already covers BT users and is
+> the stronger signal, so the BT connect no longer touches the departure bus.
 
 This strategy has no scoring and no medium-confidence path: BT disconnect + GPS-anchored walk is treated as ground truth.
 
 ### 1.3 CoordinatorDetectionStrategy (probabilistic)
 
-`ParkingDetectionCoordinator.invoke(locations: Flow<GpsPoint>)` is the heart of the probabilistic path. It owns a single `MutableStateFlow<ParkingDetectionState>` updated atomically per location fix; external signals (`onVehicleExit`, `onStillDetected`, `onUserConfirmedParking`, `onUserDeniedParking`) feed in via thread-safe setters.
+`CoordinatorParkingDetector.invoke(locations: Flow<GpsPoint>)` is the heart of the probabilistic path. It owns a single `MutableStateFlow<ParkingDetectionState>` updated atomically per location fix; external signals (`onVehicleExit`, `onStillDetected`, `onUserConfirmedParking`, `onUserDeniedParking`) feed in via thread-safe setters.
 
 The coordinator is a Koin **single**, kept stateful across sessions so the foreground service can drive multiple invocations into the same instance; `reset()` runs at the top of every `invoke()`.
 
@@ -143,6 +149,26 @@ The 2.5 m/s driving ceiling is deliberately above typical walking speed (~1.4 m/
 - `Medium(score)` — same.
 - `High(score)` — opens the CANDIDATE phase.
 
+> **DET-D-03 (2026-06-26) — STILL removed as a fed signal.** Activity Recognition no longer registers
+> STILL transitions and nothing calls `onStillDetected()` (`ActivityRecognitionManagerImpl`,
+> `ActivityTransitionReceiver`, the iOS impl and the coordinator's `activityStillDetected` state were
+> all stripped). STILL was redundant with the egress gate and fired in traffic jams (a fragile
+> non-event signal). In production `ParkingSignals.activityStill` is now **always false**, so every
+> `activityStill` branch in the scorer below is inert (the fast path tops at 0.65 = Medium; the
+> slow-path `stillBonus` never applies). The scorer scaffolding is kept until the D-03c
+> scorer→metadata rework removes it. Confirmation is unaffected — it is decided by the egress gate.
+
+> **DET-C-02 (2026-06-26) — post-confirm hold.** An auto egress-confirm is now **tentative**: instead
+> of ending the session, the coordinator records a `PendingConfirm` and stays alive for
+> `confirmHoldMs` (default 2 min). If driving resumes (`speed > clearBestStopSpeedMps` with a
+> trustworthy fix) before the window elapses, the tentative confirm is **discarded** and detection
+> continues — so an errand stop (park → walk to a kiosk → drive on to park properly) **re-anchors at
+> the final spot** instead of pinning the errand location. If the window elapses with the car still
+> stopped (or the user taps "yes"), the park is finalised via the normal `confirmParking` path. The
+> hold makes confirmation *stricter* (never weaker): the egress gate is still mandatory. `confirmHoldMs
+> = 0` disables it (legacy immediate-confirm; used by the synchronous unit tests). The wall clock is
+> injected (`clock`) so the hold is unit-testable. Tune `confirmHoldMs` with field telemetry.
+
 Two scoring paths feed the same threshold (`highConfidenceThreshold = 0.75`):
 
 **Fast path** — requires `activityExit = true` (an `IN_VEHICLE → EXIT` Activity Recognition transition was observed):
@@ -176,9 +202,9 @@ During the window, the only events that matter are:
 1. `userConfirmedParking()` → confirm immediately with `reliabilityUserConfirmed = 1.0f`.
 2. `userDeniedParking()` → full state reset (preserving `hasEverMoved`).
 3. A trusted driving signal (speed ≥ 2.5 m/s, accuracy ≤ 50 m) → reset to scoring.
-4. **Pedestrian steps** ≥ `minStepsToConfirm = 8` while stopped → confirm immediately with `reliabilityVehicleExit = 0.90f`. Steps are unambiguous proof the user exited the car, stronger than the AR exit transition. [BUG-GARAGE-COLA-001]
-5. Window expires **with** vehicle-exit signal → confirm with `reliabilityVehicleExit = 0.90f`.
-6. Window expires **without** steps and without vehicle-exit → discard the candidate (likely cola/atasco). The notification that fired on High entry remains the only chance to confirm; if the user did park and ignored it, the next session catches them.
+4. **Pedestrian steps** ≥ `minStepsToConfirm = 8` while stopped **AND** displacement ≥ `minEgressDisplacementMeters = 18 m` from the park anchor → confirm immediately with `reliabilityVehicleExit = 0.90f`. Steps + egress is unambiguous proof the user exited *and walked away from* the car; steps alone are not (a phone bouncing in stop-and-go traffic counts steps while the car never moved). See DET-A in §2. [BUG-GARAGE-COLA-001]
+5. Window expires **with** vehicle-exit signal **AND** egress displacement ≥ `minEgressDisplacementMeters = 18 m` → confirm with `reliabilityVehicleExit = 0.90f`. **[DET-C-01]** AR-exit + dwell-time on their own no longer confirm: a spurious `IN_VEHICLE_EXIT` during a long traffic stop must not publish a phantom spot. Egress displacement is now mandatory for **every** candidate auto-confirm path (see §2 DET-C-01).
+6. Window expires **without** the egress conjunction → discard the candidate (likely cola/atasco). The notification that fired on High entry remains the only chance to confirm; if the user did park and ignored it, the next session catches them.
 
 The confirmation notification is **always** posted when the CANDIDATE phase opens, so the user has the option to override.
 
@@ -268,7 +294,7 @@ When the user drives far enough from the saved parking location, Google Play Ser
 
 #### Step 2 — Activity Recognition: IN_VEHICLE_ENTER
 
-Independently, `ActivityRecognitionManagerImpl` is subscribed to `IN_VEHICLE_ENTER` transitions. When Play Services fires this event, it delivers directly to `ParkingDetectionService` via `PendingIntent.getForegroundService()` (ACTION_VEHICLE_TRANSITION). The service records `departureEventBus.onVehicleEntered(epochMs)` — an in-memory timestamp marking the moment the user entered a vehicle.
+Independently, `ActivityRecognitionManagerImpl` is subscribed to `IN_VEHICLE_ENTER` transitions. When Play Services fires this event, it delivers directly to `CoordinatorDetectionService` via `PendingIntent.getForegroundService()` (ACTION_VEHICLE_TRANSITION). The service records `departureEventBus.onVehicleEntered(epochMs)` — an in-memory timestamp marking the moment the user entered a vehicle.
 
 #### Step 3 — DepartureDetectionWorker: three-signal check
 
@@ -306,8 +332,8 @@ If the process is killed between parking confirmation and the geofence exit, the
 
 Debug builds enable `FileAntilog` (`composeApp/src/androidMain/.../logging/FileAntilog.kt`). Every Napier log line tagged `PARKDIAG/*` is appended to `${context.filesDir}/parkdiag.log` (5 MB rotating). Tags used:
 
-- `PARKDIAG/Service` — `ParkingDetectionService` lifecycle.
-- `PARKDIAG/Coord` — `ParkingDetectionCoordinator` state transitions.
+- `PARKDIAG/Service` — `CoordinatorDetectionService` lifecycle.
+- `PARKDIAG/Coord` — `CoordinatorParkingDetector` state transitions.
 - `PARKDIAG/Confirm` — `ConfirmParkingUseCase` steps.
 - `PARKDIAG/Notify` — `NotifyParkingConfirmationUseCase`.
 - `PARKDIAG/SyncScheduler`, `PARKDIAG/SaveNewParkingSessionWorker`, `PARKDIAG/ClearActiveParkingSessionWorker`, `PARKDIAG/UpdateParkingSessionAddressAndPlaceWorker` — WorkManager pipeline.
@@ -377,7 +403,7 @@ The notify use case was non-suspend and wrapped `vehicleRepository.observeDefaul
 
 **Commit:** `2f4eef2` (merge), `371ce85` (work).
 
-The original `confirmParking` did Room save + Firestore set + geofence registration + notification, all in a `withContext(NonCancellable)` block inside `ParkingDetectionCoordinator.evaluateConfidence`. Firestore writes can hang for tens of seconds on bad networks; the foreground service can hang with them. PARKDIAG captures during the "blue notification stays forever" bug pointed to Firestore as the long pole.
+The original `confirmParking` did Room save + Firestore set + geofence registration + notification, all in a `withContext(NonCancellable)` block inside `CoordinatorParkingDetector.evaluateConfidence`. Firestore writes can hang for tens of seconds on bad networks; the foreground service can hang with them. PARKDIAG captures during the "blue notification stays forever" bug pointed to Firestore as the long pole.
 
 **Fix.** Introduce `ParkingSyncScheduler` + `SaveNewParkingSessionWorker`. `confirmParking` now does Room write only and enqueues the Firestore reconciliation in WorkManager. The critical path is bounded by Room + Geofence + Notification, none of which can hang indefinitely. Full plan in `docs/refactors/PIPE-001-confirm-parking-pipeline.md`.
 
@@ -478,7 +504,7 @@ val shouldClearBestStop = isDriving || isRepositionBurst
 
 **Symptom.** Field test on 2026-05-27 with two phones (Oppo CPH2371 + Redmi Note 11) on the same trip: 3 of 6 parking events failed to auto-confirm. The pattern in `diagnostics/2026-05-27/{oppo,redmi-note-11}.log` was always the same — multiple `→ VEHICLE_TRANSITION IN_VEHICLE ENTER` events arriving within seconds of each other, each followed by `✗ detection cancelled: StandaloneCoroutine was cancelled` and a fresh `▶ detection coroutine entered`. The coordinator never reached its CANDIDATE phase before the trip ended, so no Notify and no Confirm fired even though the EXIT eventually arrived correctly. Real-world driving (yields, traffic lights, brief idle) is enough for Play Services Activity Recognition to fire IN_VEHICLE ENTER bursts; the service treated each burst as a new trip and reset state.
 
-**Root cause.** `ParkingDetectionService.handleVehicleTransition()` guarded the restart with:
+**Root cause.** `CoordinatorDetectionService.handleVehicleTransition()` guarded the restart with:
 
 ```kotlin
 if (detectionJob?.isActive != true || !parkingDetectionCoordinator.hasDetectedMovement) {
@@ -516,9 +542,9 @@ The `hasDetectedMovement`-based guard inside the COORDINATOR strategy branch was
 **Field validation.** New log line `↻ IN_VEHICLE_ENTER ignored — already IN (AR noise debounce)` makes the debounce visible in `parkdiag.log` — the next field test confirms whether the duplicate-ENTER bursts are now absorbed. No unit test was added; Robolectric-wrapping the foreground service to exercise this 4-line state machine has a poor cost/benefit when the log line is unambiguous.
 
 **Files touched.**
-- `composeApp/src/androidMain/.../detection/service/ParkingDetectionService.kt` — state field, enum, debounce check in ENTER branch, OUT reset in EXIT branch, removal of stale `hasDetectedMovement` guard in COORDINATOR.
+- `composeApp/src/androidMain/.../detection/service/CoordinatorDetectionService.kt` — state field, enum, debounce check in ENTER branch, OUT reset in EXIT branch, removal of stale `hasDetectedMovement` guard in COORDINATOR.
 
-`hasDetectedMovement` itself is still used by the `ACTION_START_TRACKING` path and by the coordinator's internal `maxNoMovementMs` guard, so it stays on `ParkingDetectionCoordinator`.
+`hasDetectedMovement` itself is still used by the `ACTION_START_TRACKING` path and by the coordinator's internal `maxNoMovementMs` guard, so it stays on `CoordinatorParkingDetector`.
 
 ### Field validation: `minStepsToConfirm=8` correctly rejects in-car social/idle stops (2026-05-28)
 
@@ -532,7 +558,7 @@ The `hasDetectedMovement`-based guard inside the COORDINATOR strategy branch was
 
 1. The threshold blocks the most common false-positive class (long social/traffic stops in the car) without help from AR EXIT.
 2. Real parkings still confirm within seconds because 8 steps takes ~6 s of normal walking.
-3. The dual-path `confirmNow = hasStepsProof || (windowElapsed && highCandidateHadVehicleExit)` in `ParkingDetectionCoordinator` is the right shape — step proof gates fast confirms, AR EXIT + 2-min window remains the slower fallback.
+3. The dual-path `confirmNow = hasStepsProof || (windowElapsed && highCandidateHadVehicleExit)` in `CoordinatorParkingDetector` is the right shape — step proof gates fast confirms, AR EXIT + 2-min window remains the slower fallback.
 
 Resolved without code changes. Ticket `BUG-DETECT-EXIT-LAG-VS-STEPS-001` closed in `docs/backlog/parking-detection-real-world-2026-05-28.md`.
 
@@ -558,7 +584,7 @@ The worker stays enrolled (WorkManager KEEP policy) so OEM Doze restrictions can
 
 **Symptom.** Field test 2026-05-30: 5-stop trip (Decathlon → Hospital Puerto Real → Jerez → Puerto1 → Puerto2). Redmi detected 3/5, Oppo 2/5. PARKDIAG shows the race pattern at Oppo 19:31:08, 19:35:53 and Redmi 18:33:32, 18:38:47 — each an instance of a missed detection.
 
-**Root cause.** `ParkingDetectionService.startParkingDetection()` launched the coordinator in a `lifecycleScope.launch { }` block with:
+**Root cause.** `CoordinatorDetectionService.startParkingDetection()` launched the coordinator in a `lifecycleScope.launch { }` block with:
 
 ```kotlin
 detectionJob = lifecycleScope.launch {
@@ -640,7 +666,7 @@ can kill background processes in that window. A kill silently discarded the in-f
    cooperative cancellation: the Service cancels `detectionJob` on `ACTION_BT_CONNECTED`; `delay()`
    and `Flow.first()` inside `detectParking()` are cancellation points.
 
-**Why not `ParkingDetectionService`?** The Coordinator Service uses `START_STICKY` because Play
+**Why not `CoordinatorDetectionService`?** The Coordinator Service uses `START_STICKY` because Play
 Services can re-deliver `IN_VEHICLE_ENTER` to restart detection. BT detection cannot resume
 after a kill (in-memory `parkingFix` coordinates are lost), so `START_NOT_STICKY` is the correct
 contract. Merging two independent trigger sources (AR vs BT ACL) into one Service would also
@@ -674,9 +700,9 @@ On Android 12+ (API 31+), calling `startForegroundService()` from a BroadcastRec
 **Fix.** Remove `ActivityTransitionReceiver` as a foreground-service launcher entirely. `ActivityRecognitionManagerImpl` now registers two separate subscriptions:
 
 - `STILL_ENTER` → `PendingIntent.getBroadcast()` → `ActivityTransitionReceiver` (no FGS needed — fires `coordinator.onStillDetected()`).
-- `IN_VEHICLE_ENTER` + `IN_VEHICLE_EXIT` → `PendingIntent.getForegroundService()` → `ParkingDetectionService` (Play Services delivers with system privileges, bypassing the restriction).
+- `IN_VEHICLE_ENTER` + `IN_VEHICLE_EXIT` → `PendingIntent.getForegroundService()` → `CoordinatorDetectionService` (Play Services delivers with system privileges, bypassing the restriction).
 
-`ParkingDetectionService.onStartCommand(ACTION_VEHICLE_TRANSITION)` extracts the `ActivityTransitionResult` from the intent, guards permissions, and routes:
+`CoordinatorDetectionService.onStartCommand(ACTION_VEHICLE_TRANSITION)` extracts the `ActivityTransitionResult` from the intent, guards permissions, and routes:
 - **IN_VEHICLE_ENTER** → `departureEventBus.onVehicleEntered(epochMs)` + `strategyResolver.resolve()` → start coordinator (`COORDINATOR`), `stopSelf()` (`BLUETOOTH` is owner), or `stopSelf()` (`NONE` — scooter/bike opts out).
 - **IN_VEHICLE_EXIT** → `coordinator.onVehicleExit()` + `stopSelf()` if no active detection job.
 
@@ -698,7 +724,7 @@ On Android 12+ (API 31+), calling `startForegroundService()` from a BroadcastRec
 
 **Observed:** 2026-05-27 test drive. At 12:11:22, user stopped 93 s at a traffic light (acc=1.8 m) → `ParkingConfidence.Low` scored → notification fired. User continued driving 30+ more minutes before actually parking.
 
-**Root cause.** `ParkingDetectionCoordinator.evaluateConfidence()` showed the Low/Medium notification whenever `!state.mediumNotificationShown`, with no check for an activity-exit or STILL signal. A traffic stop long enough to pass the `slowPathGateMs` gate (90 s) was sufficient to trigger the notification even when the user was still in a moving vehicle.
+**Root cause.** `CoordinatorParkingDetector.evaluateConfidence()` showed the Low/Medium notification whenever `!state.mediumNotificationShown`, with no check for an activity-exit or STILL signal. A traffic stop long enough to pass the `slowPathGateMs` gate (90 s) was sufficient to trigger the notification even when the user was still in a moving vehicle.
 
 **Fix.** Gate the Low/Medium notification on `vehicleExitConfirmed || activityStillDetected`. Without either activity-transition signal, brief stops are treated as traffic/errand stops and no notification is shown. The High-confidence CANDIDATE phase is unaffected — it always notifies.
 
@@ -733,11 +759,11 @@ Without STILL, the fast-path maximum is now 0.65 (Medium). A Medium score does N
 
 **Commit:** to be filled after merge.
 
-Mechanical clean-up of the three classes that own the detection runtime: `ParkingDetectionCoordinator`, `ParkingDetectionService`, `ActivityTransitionReceiver`. No threshold or scoring changes; behaviour-preserving except for the `collectLatest → collect` swap noted below.
+Mechanical clean-up of the three classes that own the detection runtime: `CoordinatorParkingDetector`, `CoordinatorDetectionService`, `ActivityTransitionReceiver`. No threshold or scoring changes; behaviour-preserving except for the `collectLatest → collect` swap noted below.
 
 - **M1 — `collectLatest` → `collect` in coordinator.** The inner per-location block has no suspending I/O that should be cancelled when a newer fix arrives, so `collectLatest` was adding cancellation hazards (notifications could be cancelled mid-flight) without any benefit. With `collect`, each fix runs to completion before the next is processed, and the `withContext(NonCancellable) { notifyParkingConfirmation(...) }` workarounds added earlier became dead weight and were removed.
 - **M2 — atomic state snapshot.** `_detectionState.update { ... }` followed by `val state = _detectionState.value` is racy: between the two lines another collector could mutate the state. Replaced with `val state = _detectionState.updateAndGet { ... }`, which returns the post-update snapshot atomically.
-- **M3 — shared label helpers.** `activityLabel(Int)` and `transitionLabel(Int)` were duplicated inline in `ParkingDetectionService` and `ActivityTransitionReceiver`. Extracted to `composeApp/src/androidMain/.../detection/ActivityRecognitionLabels.kt` (internal helpers).
+- **M3 — shared label helpers.** `activityLabel(Int)` and `transitionLabel(Int)` were duplicated inline in `CoordinatorDetectionService` and `ActivityTransitionReceiver`. Extracted to `composeApp/src/androidMain/.../detection/ActivityRecognitionLabels.kt` (internal helpers).
 - **M4 — co-locate PendingIntent request codes.** `REQUEST_CODE = 101` lived in `ActivityTransitionReceiver` and was referenced by `ActivityRecognitionManagerImpl` — non-obvious coupling. Moved to `ActivityRecognitionManagerImpl.companion` as `STILL_REQUEST_CODE` alongside `VEHICLE_REQUEST_CODE`, with a comment explaining why both codes must remain distinct (`FLAG_UPDATE_CURRENT` would otherwise collide).
 - **C2 — `guardPermissions(actionLabel)` helper in the service.** The same three-line "check permissions → showPermissionRevoked → stopSelf → return false" appeared inline in START_TRACKING, ACTION_VEHICLE_TRANSITION, and IN_VEHICLE_ENTER paths. Consolidated into a single method; call sites now read `if (!guardPermissions("LABEL")) return …`.
 
@@ -753,7 +779,7 @@ Mechanical clean-up of the three classes that own the detection runtime: `Parkin
 
 **Why "walking ≥ 30 m" was not the answer.** The Bluetooth strategy uses a 30 m walk as proof the user left the car, which works for outdoor street parking but fails in garages — the user typically walks ~4 m from the parking slot to a door, then takes an elevator. Distance is too coarse and venue-dependent to be the canonical signal in the Coordinator.
 
-**Fix.** Introduce `StepDetectorSource` (`Sensor.TYPE_STEP_DETECTOR` on Android, empty stub on iOS — `CMPedometer` port deferred) and wire it as a sibling coroutine inside `ParkingDetectionCoordinator.invoke()`. Steps that arrive while `stoppedSince != null` increment `stepCount`. When `stepCount ≥ minStepsToConfirm = 8` during the CANDIDATE phase, confirm immediately with `reliabilityVehicleExit = 0.90f` — pedestrian steps are unambiguous evidence the user has exited the car, stronger than the AR exit transition (which is noisy on real hardware).
+**Fix.** Introduce `StepDetectorSource` (`Sensor.TYPE_STEP_DETECTOR` on Android, empty stub on iOS — `CMPedometer` port deferred) and wire it as a sibling coroutine inside `CoordinatorParkingDetector.invoke()`. Steps that arrive while `stoppedSince != null` increment `stepCount`. When `stepCount ≥ minStepsToConfirm = 8` during the CANDIDATE phase, confirm immediately with `reliabilityVehicleExit = 0.90f` — pedestrian steps are unambiguous evidence the user has exited the car, stronger than the AR exit transition (which is noisy on real hardware).
 
 **Behaviour change.** The slow path no longer auto-confirms purely on time. CANDIDATE expiry now requires **either** step proof **or** the vehicle-exit signal; otherwise the candidate is discarded as likely cola/atasco. This trades a small surface of "user parked and ignored the notification" cases (still recovered next session) for elimination of the long-stop false positives.
 
@@ -761,7 +787,7 @@ Mechanical clean-up of the three classes that own the detection runtime: `Parkin
 - `commonMain/.../domain/sensor/StepDetectorSource.kt` — domain interface.
 - `androidMain/.../detection/sensor/AndroidStepDetectorSource.kt` — `Sensor.TYPE_STEP_DETECTOR` via `callbackFlow`; returns `emptyFlow()` if hardware missing. ACTIVITY_RECOGNITION permission covers it (already required for AR transitions).
 - `iosMain/.../detection/IosStepDetectorSource.kt` — `emptyFlow()` stub. CMPedometer backing tracked in the same backlog file.
-- Koin: `AndroidDetectionModule` + `IosDetectionModule` provide the platform impl; `DomainModule` injects into `ParkingDetectionCoordinator`.
+- Koin: `AndroidDetectionModule` + `IosDetectionModule` provide the platform impl; `DomainModule` injects into `CoordinatorParkingDetector`.
 - `stepCount` reset to 0 whenever a driving signal arrives (`updateStopTracking` clears it alongside `stoppedSince`).
 
 ### BUG-SCOOTER-001 — VehicleType-aware detection + mismatch guard
@@ -774,7 +800,7 @@ Mechanical clean-up of the three classes that own the detection runtime: `Parkin
 
 **Fix — Level 1: vehicleType awareness.** `Vehicle` now carries `vehicleType: VehicleType ∈ { CAR, MOTORCYCLE, SCOOTER, BIKE }`. Persisted in Room (schema v4 via `MIGRATION_3_4`, column `vehicle_type` default `'CAR'`) and Firestore (`ifBlank → "CAR"` on read for backwards compatibility). UI exposes the choice via `VehicleTypeSelector` in vehicle registration/edit, mirroring the existing `VehicleSizeSelector` pattern.
 
-`ParkingStrategyResolver.resolve()` short-circuits to `ParkingStrategy.NONE` when `vehicleType ∈ { SCOOTER, BIKE }` — the Coordinator never starts. `MOTORCYCLE` still resolves to BLUETOOTH/COORDINATOR (motorcycles do park). `ParkingDetectionService.handleVehicleTransition()` switches on the enum: COORDINATOR starts detection, BLUETOOTH and NONE both `stopSelf()`.
+`ParkingStrategyResolver.resolve()` short-circuits to `ParkingStrategy.NONE` when `vehicleType ∈ { SCOOTER, BIKE }` — the Coordinator never starts. `MOTORCYCLE` still resolves to BLUETOOTH/COORDINATOR (motorcycles do park). `CoordinatorDetectionService.handleVehicleTransition()` switches on the enum: COORDINATOR starts detection, BLUETOOTH and NONE both `stopSelf()`.
 
 **Fix — Level 2: vehicle-mismatch guard (covers case 2).** The Coordinator now tracks per-session velocity profile:
 
@@ -795,10 +821,13 @@ data class ParkingDetectionState(
 val isMismatch = activeVehicleType == VehicleType.CAR &&
     state.sessionDurationMs(now) >= config.mismatchMinSessionDurationMs &&  // 8 min
     state.maxSpeedKmh <= config.mismatchMaxSpeedKmh                          // 28 km/h
+// [DET-A] hasStepsProof now ANDs egress displacement:
+//   hasStepsProof = stepCount >= minStepsToConfirm && hasEgressDisplacement(state, location)
 val confirmNow = when {
     isMismatch -> false                                              // suppress auto-confirm
-    hasStepsProof -> true                                            // BUG-GARAGE-COLA-001
-    windowElapsed && state.highCandidateHadVehicleExit -> true
+    !hasEgress -> false                                              // [DET-C-01] egress mandatory for ALL paths
+    hasStepsProof -> true                                            // BUG-GARAGE-COLA-001 + DET-A
+    windowElapsed && state.highCandidateHadVehicleExit -> true       // exit + dwell + egress
     else -> false
 }
 ```
@@ -855,9 +884,9 @@ Both states post on `PARKING_CONFIRMATION_NOTIFICATION_ID` (DETECTION channel, I
 **Implementation.**
 - `AppNotificationManager.showParkingSavedConfirm(parkingId, vehicleName, lat, lon)` — new method, Android impl in `AppNotificationManagerImpl`. The `parkingId` is baked into the REVERT PendingIntent as an extra.
 - `ConfirmParkingUseCase.invoke(..., silent: Boolean = false)` — new param. When `silent=true` the use case skips its own `showParkingSaved` notification. The Coordinator passes `silent=true` because it owns the unified notification via `showParkingSavedConfirm`. All other callers (HomeViewModel manual/auto-accept, BluetoothParkingDetector, manual report screen) leave the default `silent=false` and keep the legacy `showParkingSaved` behaviour.
-- `ParkingDetectionCoordinator.runConfirm.onSuccess` — replaced `dismiss(PARKING_CONFIRMATION_NOTIFICATION_ID)` (BUG-FGS-103's original fix) with `notificationPort.showParkingSavedConfirm(...)`. This morphs the prompt into the saved+revert card. The stale-tap protection of BUG-FGS-103 remains intact because the receiver routes to a different action (`ACTION_PARKING_ACK`/`ACTION_PARKING_REVERT`) and the Service handles them with their own teardown.
-- `ParkingDetectionService.ACTION_PARKING_ACK` — handler dismisses the notif + `stopForegroundAndSelf()`.
-- `ParkingDetectionService.ACTION_PARKING_REVERT` — handler reads `EXTRA_PARKING_ID`, calls `RevertParkingUseCase`, then `stopForegroundAndSelf()`.
+- `CoordinatorParkingDetector.runConfirm.onSuccess` — replaced `dismiss(PARKING_CONFIRMATION_NOTIFICATION_ID)` (BUG-FGS-103's original fix) with `notificationPort.showParkingSavedConfirm(...)`. This morphs the prompt into the saved+revert card. The stale-tap protection of BUG-FGS-103 remains intact because the receiver routes to a different action (`ACTION_PARKING_ACK`/`ACTION_PARKING_REVERT`) and the Service handles them with their own teardown.
+- `CoordinatorDetectionService.ACTION_PARKING_ACK` — handler dismisses the notif + `stopForegroundAndSelf()`.
+- `CoordinatorDetectionService.ACTION_PARKING_REVERT` — handler reads `EXTRA_PARKING_ID`, calls `RevertParkingUseCase`, then `stopForegroundAndSelf()`.
 - `RevertParkingUseCase` — composes `userParkingRepository.clearActiveParkingSession(parkingId)` + `geofenceService.removeGeofence(parkingId)` + `notificationPort.dismiss(...)`. Best-effort, each step logs its own failure.
 
 **No community spot to retract.** The public Spot is published by `ReportSpotWorker`, which is enqueued by `DepartureDetectionWorker` on geofence EXIT — *not* at confirm time. At the moment of revert the spot has not yet been published, and because we just removed the geofence it never will be. ✓
@@ -865,7 +894,7 @@ Both states post on `PARKING_CONFIRMATION_NOTIFICATION_ID` (DETECTION channel, I
 **Open follow-ups.**
 - **TODO-REVERT-P1:** Add `UserParkingRepository.deleteSession(parkingId)` so the reverted session disappears from the history list entirely. Currently `clearActiveParkingSession` only flips `isActive=false`; the user still sees the cancelled session in their history.
 - **TODO-REVERT-P2:** Auto-dismiss the state-B notification after `confirmationResponseTimeoutMs` (15 min) via WorkManager so abandoned cards don't linger.
-- **TODO-REVERT-P2:** Test coverage for the revert flow (currently exercised only by manual smoke). Wire `FakeUserParkingRepository.clearActiveParkingSession` + a fake `notificationPort.dismissCalls` assertion in `ParkingDetectionCoordinatorTest`.
+- **TODO-REVERT-P2:** Test coverage for the revert flow (currently exercised only by manual smoke). Wire `FakeUserParkingRepository.clearActiveParkingSession` + a fake `notificationPort.dismissCalls` assertion in `CoordinatorParkingDetectorTest`.
 
 ### REFACTOR-300-FIX — Coordinator was wiping the post-save card (2026-06-09)
 
@@ -873,7 +902,7 @@ Both states post on `PARKING_CONFIRMATION_NOTIFICATION_ID` (DETECTION channel, I
 
 **Two related defects.**
 
-1. **Finally wiped the card.** `ParkingDetectionCoordinator.reset()` dismissed `PARKING_CONFIRMATION_NOTIFICATION_ID` as part of its state-clear, and `reset()` was called both at session-start AND in the session-end `finally`. After auto-confirm: `runConfirm.onSuccess` posted `showParkingSavedConfirm` on `PARKING_CONFIRMATION_NOTIFICATION_ID` → `completed = true` → `takeWhile` closed the flow on the next location tick → `finally { reset() }` ran → dismissed the id we just posted onto. The old contract ("this id only ever carries the prompt; dismiss freely on session end") predated REFACTOR-300 which reused the id for the morph-to-saved card, but the cleanup path was never adjusted.
+1. **Finally wiped the card.** `CoordinatorParkingDetector.reset()` dismissed `PARKING_CONFIRMATION_NOTIFICATION_ID` as part of its state-clear, and `reset()` was called both at session-start AND in the session-end `finally`. After auto-confirm: `runConfirm.onSuccess` posted `showParkingSavedConfirm` on `PARKING_CONFIRMATION_NOTIFICATION_ID` → `completed = true` → `takeWhile` closed the flow on the next location tick → `finally { reset() }` ran → dismissed the id we just posted onto. The old contract ("this id only ever carries the prompt; dismiss freely on session end") predated REFACTOR-300 which reused the id for the morph-to-saved card, but the cleanup path was never adjusted.
 2. **Naive session-start dismiss would still wipe the card.** A simple fix that moved the dismiss to session-start only was insufficient: if Activity Recognition fires a spurious `IN_VEHICLE_ENTER` while the user is walking from the parked car, the service restarts the coordinator → new `invoke()` → session-start dismiss → revert card gone within seconds. The 4-minute `maxNoMovementMs` guard inside the spurious session would have run for the whole window with no card visible to the user.
 
 **Fix — timestamp gate at session-start.**
@@ -920,7 +949,7 @@ REFACTOR-300 introduced a `silent: Boolean = false` flag on `ConfirmParkingUseCa
 
 | Caller | Notification posted on success |
 |---|---|
-| `ParkingDetectionCoordinator.runConfirm.onSuccess` | `showParkingSavedConfirm` (state-B card with REVERT, on id 2002) |
+| `CoordinatorParkingDetector.runConfirm.onSuccess` | `showParkingSavedConfirm` (state-B card with REVERT, on id 2002) |
 | `BluetoothParkingDetector.detectParking` | `showParkingSaved` (legacy tap-to-open-map, on UPLOAD_CHANNEL) — see `BT-NOTIF-LEGACY-CLEANUP` |
 | `HomeViewModel.confirmDetectedParking` | `showParkingSaved` (manual auto-accept) |
 | `HomeViewModel.confirmAddParking` | `showParkingSaved` (manual map-pin save) |
@@ -939,6 +968,13 @@ Users with a misfire can clean up from the history screen. Field telemetry will 
 
 ### BUG-OPPO-LATE-CONFIRM — EXIT + steps fast path (2026-06-10)
 
+> **Superseded by DET-D-03 (2026-06-26).** The fast path no longer requires AR `IN_VEHICLE_EXIT` —
+> the guard is now `stepCount >= minStepsToConfirm` alone, and `EvaluateParkingDecisionUseCase`
+> confirms on **steps + egress** (the egress gate is the decisive signal; AR EXIT was a redundant
+> extra gate). A field trace (2026-06-26) showed the confirm waiting ~16 s for the AR EXIT while
+> steps+egress were already satisfied — and on hardware where EXIT is late or never fires, the old
+> guard would miss the park entirely. AR EXIT is now a non-decisive hint. `pathLabel` is `steps+egress`.
+
 **Observed.** Oppo CPH2371 field test 2026-06-09, session 3: physical park at ~19:42, foreground service stayed visible until 20:02:54 (confirm via steps proof inside CANDIDATE). 20 minutes of FGS visible after the user had already parked. The saved location was offset from the actual parked-car position.
 
 **Root cause.** The slow path (no STILL, no fast-path bonuses) requires 5 minutes of *continuous* stop before reaching `High`. The user was already out of the car at 19:45:50 (AR EXIT delivered then) but kept walking briefly between stops (speed oscillated between 0 m/s and ~1 m/s for ~12 min). Every `speed >= stoppedSpeedThresholdMps = 1 m/s` fix resets `stoppedSince`, so the 5-min window never accumulated until the user finally sat still around 19:57. Worse, by then `bestStopLocation` had been overwritten each time a new stop opened a fresh initial-stop window, so the location anchored at the user's destination rather than the parked car.
@@ -955,6 +991,77 @@ Users with a misfire can clean up from the history screen. Field telemetry will 
 
 **Test.** `should_fast_confirm_when_exit_and_steps_arrive_before_slow_path_matures` + regression guard `should_not_fast_confirm_when_only_exit_without_steps`.
 
+> **Superseded by DET-A (below).** The "steps count only when stopped + require vehicleExit"
+> argument above turned out **not** to be sufficient: a spurious AR `IN_VEHICLE_EXIT` mid-trip plus
+> a phone bouncing in stop-and-go traffic produces both `vehicleExitConfirmed` and ≥ 8 steps while
+> the car never moved. DET-A adds the missing second signal — egress displacement.
+
+### DET-A — Egress displacement gate (the Prague false positive, 2026-06-25)
+
+**Symptom.** A Bolt ride in Prague published a phantom free spot. Root cause confirmed in code:
+1. AR emitted a spurious `IN_VEHICLE_EXIT` mid-trip → `vehicleExitConfirmed = true`.
+2. Stuck in stop-and-go traffic, `stoppedSince != null`, so the step accumulator counted every
+   pocket vibration as a step (`shouldCount = !hasEverReachedDrivingSpeed || stoppedSince != null`).
+3. `stepCount` reached `minStepsToConfirm = 8`.
+4. **Path 8** (`vehicleExitConfirmed && stepCount >= minStepsToConfirm`) confirmed, skipping the
+   slow path and STILL — **with no displacement check**. `evaluateCandidatePhase.hasStepsProof` had
+   the same hole.
+
+**Fix.** A new immutable `egressAnchor` is pinned at the moment the vehicle first stops
+(`stoppedSince` null→non-null) and held — never refined within the initial-stop window, preserved
+across walking-pace fixes, cleared only on genuine drive-away / reposition burst so the next stop
+re-pins it. `hasEgressDisplacement(state, current)` is true only when the current fix is
+≥ `minEgressDisplacementMeters = 18 m` from that anchor. Both confirm paths now AND it:
+- **Path 8** (EXIT + steps fast confirm) and
+- **candidate `hasStepsProof`**.
+
+**Why a separate anchor (not `bestStopLocation`).** `bestStopLocation` is refined by accuracy during
+`initialStopWindowMs = 30 s`; the 8 steps arrive in ~5–8 s while that anchor can still move with the
+user. `egressAnchor` is captured once and pinned, so displacement is measured from the parked car.
+
+**Why 18 m.** Strictly above `minGpsAccuracyMeters = 15 m` (enforced by `require` in
+`ParkingDetectionConfig.init`) so a single in-envelope GPS noise fix cannot satisfy the gate.
+
+**GPS cadence is sufficient.** `AndroidLocationDataSourceImpl` requests HIGH_ACCURACY at a 5 s
+interval with a 2 s fastest-update floor → ~2–5 s cadence → 5–8 fixes during an 18 m egress walk.
+The gate adds ~10–15 s to the fast-confirm but does not block it.
+
+**Tests.** `should_not_fast_confirm_when_exit_and_steps_arrive_without_egress_displacement` (Prague
+replay → no save) + `should_fast_confirm_when_exit_and_steps_arrive_before_slow_path_matures` updated
+to walk past the anchor before confirming.
+
+### DET-C-01 — Egress is mandatory for every auto-confirm (2026-06-25)
+
+DET-A gated the two **steps** confirm paths (Path 8 + candidate `hasStepsProof`). One soft path
+remained ungated: the candidate's `windowElapsed && hadVehicleExit` branch auto-confirmed on an
+AR `IN_VEHICLE_EXIT` + dwell-time, **with no displacement check** — exactly what a spurious AR exit
+during a long traffic stop would trigger.
+
+**Fix.** A single `!hasEgress -> false` guard at the top of the candidate `confirmNow` decision makes
+egress displacement a precondition for **every** auto-confirm path. Consequence — the invariant the
+asymmetric-failure principle wants: **no auto-confirm can happen without the user having physically
+walked ≥ `minEgressDisplacementMeters` from the parked car** (the one signal impossible to fake at a
+stop). STILL, dwell-time and AR-exit-time on their own now only open the candidate and surface the
+prompt; the decision falls to the user or to a later steps/exit **+ egress**. The `user` tap path is
+unaffected (it bypasses the candidate tree entirely).
+
+### DET-D-02 — Candidate decision extracted to a pure function (2026-06-25)
+
+The candidate `confirmNow` logic (above) now lives in `EvaluateParkingDecisionUseCase`, a pure
+function of `ParkingDecisionInput` (primitive corroboration signals, not the coordinator's private
+state) returning `ParkingDecision { Confirmed(pathLabel, reliability) / Rejected / Inconclusive }` —
+the mirror of `DepartureDecision`. The coordinator's `evaluateCandidatePhase` is now a thin
+orchestrator: build the input → `when (decision)` → run confirm / discard / keep waiting. Behaviour
+is identical; the win is that the wall-clock-driven `windowElapsed` paths (previously impossible to
+drive through the real-`Clock` collect loop) are now unit-tested in `EvaluateParkingDecisionUseCaseTest`,
+including the Prague replay (steps without egress → Inconclusive, then Rejected once the window
+expires). The slow-path/STILL confidence reconversion (DET-D-03) is deferred — it changes prompt
+*timing*, not just structure.
+
+> **Path 8** (the invoke-level EXIT+steps fast confirm) is intentionally left outside the use case
+> for now — it is already egress-gated (DET-A) and covered by `should_fast_confirm…`. Unifying it
+> with the candidate decision is a future cleanup.
+
 ### REFACTOR-301 — Bluetooth strategy: lifecycle + unified post-save notification (2026-06-08)
 
 Companion refactor to REFACTOR-300, applied to the Bluetooth detection flow (`BluetoothDetectionService` + `BluetoothParkingDetector` + `BluetoothConnectionReceiver`).
@@ -970,7 +1077,7 @@ Companion refactor to REFACTOR-300, applied to the Bluetooth detection flow (`Bl
 | BT-BUG-104 | Name fetch used `observeActiveVehicle()` (the *default* vehicle) instead of the vehicle whose BT actually disconnected. In multi-vehicle setups the notification displayed the wrong name. | Resolve via `vehicleRepository.getVehicleById(userId, vehicleId)` where `vehicleId` came from the BT_DISCONNECTED intent extras. |
 | BT-BUG-105 | BT auto-confirm fired silently with no user-facing affordance to revert (user was a passenger / neighbour's car was bonded by accident → permanent unwanted parking event). | `BluetoothParkingDetector` now calls `confirmParking(silent=true)` then `notificationPort.showParkingSavedConfirm(parkingId, vehicleName, lat, lon)` — same unified state-B notif as the Coordinator path. ACK / REVERT both work via the existing `ParkingConfirmationReceiver`. |
 | BT-BUG-106 | `runCatching { device.address }.getOrNull()` silenced SecurityException on revoked BLUETOOTH_CONNECT. | Adds a `.onFailure { PaparcarLogger.w(...) }` so revocation produces a trace. |
-| BT-REFACTOR-200 | No `onDestroy` safety net for the FGS notification. | Mirrors BUG-FGS-113 fix from `ParkingDetectionService` — `onDestroy` calls `fgs.removeForegroundNotification()` defensively (idempotent). |
+| BT-REFACTOR-200 | No `onDestroy` safety net for the FGS notification. | Mirrors BUG-FGS-113 fix from `CoordinatorDetectionService` — `onDestroy` calls `fgs.removeForegroundNotification()` defensively (idempotent). |
 
 **Open follow-ups (BT).**
 - **TODO-BT-CONFIG-P2:** Move `BluetoothParkingDetector.PARKING_DETECTION_RELIABILITY = 0.95f` to `ParkingDetectionConfig.reliabilityBluetooth` for parity with the existing `reliabilityUserConfirmed`/`reliabilityVehicleExit`/`reliabilitySlowPath`. Cosmetic; no behaviour change.

@@ -3,12 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application>
-        <!-- DEBUG-ONLY: expose ParkingDetectionService so we can trigger ACTION_START_TRACKING
+        <!-- DEBUG-ONLY: expose CoordinatorDetectionService so we can trigger ACTION_START_TRACKING
              via `adb shell am start-foreground-service` while diagnosing the foreground-service
              hang bug. NEVER ship this in release. The release variant keeps exported="false"
              from the main manifest. -->
         <service
-            android:name=".detection.service.ParkingDetectionService"
+            android:name=".detection.service.CoordinatorDetectionService"
             android:exported="true"
             tools:replace="android:exported" />
     </application>

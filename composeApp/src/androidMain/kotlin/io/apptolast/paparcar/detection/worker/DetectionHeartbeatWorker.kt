@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
  * When confirmed parking sessions exist in Room the user is parked — no coordinator restart
  * is needed. Departure detection resumes automatically: IN_VEHICLE_ENTER is delivered via
  * [PendingIntent.getForegroundService] directly from Play Services, which starts
- * [ParkingDetectionService] even if the process is dead. [HEARTBEAT-001]
+ * [CoordinatorDetectionService] even if the process is dead. [HEARTBEAT-001]
  *
  * When no sessions exist the user may be mid-drive with no confirmed parking yet; the
  * coordinator is already running (or will be restarted by START_STICKY), so we also skip.
