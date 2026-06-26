@@ -596,4 +596,32 @@
     <string name="vehicle_registration_carbody_change">Cambiar</string>
     <string name="vehicle_registration_carbody_picker_title">Elige el tipo de carrocería</string>
     <string name="vehicle_registration_carbody_picker_dismiss">Cerrar</string>
+
+    <!-- Claves añadidas: home peek spot / parking + registro de vehículo -->
+    <string name="home_peek_car_parked_label">Tu coche está aparcado</string>
+    <string name="home_peek_parking_duration_hm">Aparcado hace %1$dh %2$dm</string>
+    <string name="home_peek_parking_duration_min">Aparcado hace %1$d min</string>
+    <string name="home_peek_spot_age_hour">Publicada hace %1$d h</string>
+    <string name="home_peek_spot_age_min">Publicada hace %1$d min</string>
+    <string name="home_peek_spot_compat_large">coche grande</string>
+    <string name="home_peek_spot_compat_medium">coche mediano</string>
+    <string name="home_peek_spot_compat_moto">moto</string>
+    <string name="home_peek_spot_compat_small">coche pequeño</string>
+    <string name="home_peek_spot_compat_van">furgoneta</string>
+    <string name="home_peek_spot_compatible">Apta para %1$s</string>
+    <string name="home_peek_spot_en_route">%1$d en camino</string>
+    <string name="home_peek_spot_incompatible">Demasiado pequeña para %1$s</string>
+    <string name="home_peek_spot_occupied">Ya ocupada</string>
+    <string name="home_peek_spot_reliability_label">Fiabilidad</string>
+    <string name="home_peek_spot_size_unknown">Tamaño sin especificar</string>
+    <string name="home_report_size_section">Tamaño de la plaza (opcional)</string>
+    <string name="vehicle_registration_bt_cta">Vincular</string>
+    <string name="vehicle_registration_bt_desc">Detecta tu aparcamiento de forma fiable</string>
+    <string name="vehicle_registration_bt_title">Vincular Bluetooth</string>
+    <string name="vehicle_registration_preview_subtitle_default">Coche mediano</string>
+    <string name="vehicle_registration_preview_title">Tu coche</string>
+    <string name="vehicle_registration_section_detection">Detección automática</string>
+    <string name="vehicle_registration_section_privacy">Privacidad</string>
+    <string name="vehicle_registration_section_size">Tamaño del vehículo</string>
+    <string name="vehicle_registration_size_hint">Toca para seleccionar el tamaño</string>
 </resources>

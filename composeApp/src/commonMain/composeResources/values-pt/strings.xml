@@ -578,32 +578,64 @@
     <string name="history_load_more">Carregar mais</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
-    <string name="home_peek_spot_fit_optimal">Optimal for your %1$s</string>
-    <string name="home_peek_spot_fit_fits">Fits — bay for %1$s</string>
-    <string name="home_peek_spot_fit_does_not_fit">Too tight for your %1$s</string>
-    <string name="home_peek_spot_left_by">Left by %1$s</string>
+    <string name="home_peek_spot_fit_optimal">Ideal para o teu %1$s</string>
+    <string name="home_peek_spot_fit_fits">Cabe — lugar para %1$s</string>
+    <string name="home_peek_spot_fit_does_not_fit">Demasiado apertado para o teu %1$s</string>
+    <string name="home_peek_spot_left_by">Deixado por %1$s</string>
 
-    <string name="carbody_hatchback_small">Small hatchback</string>
-    <string name="carbody_suv_small">Urban SUV</string>
-    <string name="carbody_hatchback_medium">Compact hatchback</string>
-    <string name="carbody_suv_medium">Medium SUV</string>
-    <string name="carbody_sedan">Sedan</string>
-    <string name="carbody_family_long">Estate / wagon</string>
-    <string name="carbody_suv_large">Large SUV</string>
-    <string name="carbody_van_light">Compact van</string>
-    <string name="carbody_van_commercial">Commercial van</string>
+    <string name="carbody_hatchback_small">Citadino pequeno</string>
+    <string name="carbody_suv_small">SUV urbano</string>
+    <string name="carbody_hatchback_medium">Compacto</string>
+    <string name="carbody_suv_medium">SUV médio</string>
+    <string name="carbody_sedan">Berlina</string>
+    <string name="carbody_family_long">Carrinha familiar</string>
+    <string name="carbody_suv_large">SUV grande</string>
+    <string name="carbody_van_light">Carrinha compacta</string>
+    <string name="carbody_van_commercial">Carrinha comercial</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Watch the height. Skip garages with clearance under 2.10 m.</string>
-    <string name="parking_alert_long_car">Long car — beware of overhang on short bays.</string>
-    <string name="parking_alert_wide_car">Wide vehicle — prefer bays without lateral columns.</string>
-    <string name="parking_alert_standard">Standard size — fits the vast majority of bays.</string>
+    <string name="parking_alert_high_ceiling">Atenção à altura. Evita garagens com gálibo inferior a 2,10 m.</string>
+    <string name="parking_alert_long_car">Carro comprido — cuidado com a saliência em lugares curtos.</string>
+    <string name="parking_alert_wide_car">Veículo largo — prefere lugares sem colunas laterais.</string>
+    <string name="parking_alert_standard">Tamanho padrão — cabe na grande maioria dos lugares.</string>
 
-    <string name="vehicle_registration_carbody_section">Body and size</string>
-    <string name="vehicle_registration_carbody_auto_label">Detected automatically</string>
-    <string name="vehicle_registration_carbody_manual_label">Manual choice</string>
-    <string name="vehicle_registration_carbody_change">Change</string>
-    <string name="vehicle_registration_carbody_picker_title">Pick your body type</string>
-    <string name="vehicle_registration_carbody_picker_dismiss">Close</string>
+    <string name="vehicle_registration_carbody_section">Carroçaria e tamanho</string>
+    <string name="vehicle_registration_carbody_auto_label">Detetado automaticamente</string>
+    <string name="vehicle_registration_carbody_manual_label">Escolha manual</string>
+    <string name="vehicle_registration_carbody_change">Alterar</string>
+    <string name="vehicle_registration_carbody_picker_title">Escolhe o tipo de carroçaria</string>
+    <string name="vehicle_registration_carbody_picker_dismiss">Fechar</string>
+
+    <!-- DET-001 / categorization follow-ups — added keys -->
+    <string name="home_peek_car_parked_label">O seu carro está estacionado</string>
+    <string name="home_peek_parking_duration_hm">Estacionado há %1$dh %2$dm</string>
+    <string name="home_peek_parking_duration_min">Estacionado há %1$d min</string>
+    <string name="home_peek_spot_age_hour">Publicado há %1$d h</string>
+    <string name="home_peek_spot_age_min">Publicado há %1$d min</string>
+    <string name="home_peek_spot_compat_large">carro grande</string>
+    <string name="home_peek_spot_compat_medium">carro médio</string>
+    <string name="home_peek_spot_compat_moto">mota</string>
+    <string name="home_peek_spot_compat_small">carro pequeno</string>
+    <string name="home_peek_spot_compat_van">carrinha</string>
+    <string name="home_peek_spot_compatible">Cabe %1$s</string>
+    <string name="home_peek_spot_en_route">%1$d a caminho</string>
+    <string name="home_peek_spot_incompatible">Demasiado pequeno para %1$s</string>
+    <string name="home_peek_spot_occupied">Já ocupado</string>
+    <string name="home_peek_spot_reliability_label">Fiabilidade</string>
+    <string name="home_peek_spot_size_unknown">Tamanho não especificado</string>
+    <string name="home_report_size_section">Tamanho do lugar (opcional)</string>
+    <string name="permissions_bg_guide_title">Ativar localização em segundo plano</string>
+    <string name="permissions_bg_guide_body">No ecrã seguinte:\n\n1. Toca em «Localização»\n2. Seleciona «Permitir sempre»\n3. Carrega em Voltar para regressar ao Paparcar</string>
+    <string name="permissions_bg_guide_cta">Abrir definições</string>
+    <string name="permissions_bg_guide_dismiss">Agora não</string>
+    <string name="vehicle_registration_bt_title">Emparelhar Bluetooth</string>
+    <string name="vehicle_registration_bt_desc">Deteta o teu estacionamento de forma fiável</string>
+    <string name="vehicle_registration_bt_cta">Emparelhar</string>
+    <string name="vehicle_registration_preview_title">O teu carro</string>
+    <string name="vehicle_registration_preview_subtitle_default">Carro médio</string>
+    <string name="vehicle_registration_section_detection">Deteção automática</string>
+    <string name="vehicle_registration_section_privacy">Privacidade</string>
+    <string name="vehicle_registration_section_size">Tamanho do veículo</string>
+    <string name="vehicle_registration_size_hint">Toca para selecionar o tamanho</string>
 
 </resources>

@@ -582,32 +582,64 @@
     <string name="history_load_more">Załaduj więcej</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
-    <string name="home_peek_spot_fit_optimal">Optimal for your %1$s</string>
-    <string name="home_peek_spot_fit_fits">Fits — bay for %1$s</string>
-    <string name="home_peek_spot_fit_does_not_fit">Too tight for your %1$s</string>
-    <string name="home_peek_spot_left_by">Left by %1$s</string>
+    <string name="home_peek_spot_fit_optimal">Optymalne dla Twojego %1$s</string>
+    <string name="home_peek_spot_fit_fits">Mieści się — miejsce dla %1$s</string>
+    <string name="home_peek_spot_fit_does_not_fit">Za ciasne dla Twojego %1$s</string>
+    <string name="home_peek_spot_left_by">Zwolnione przez %1$s</string>
 
-    <string name="carbody_hatchback_small">Small hatchback</string>
-    <string name="carbody_suv_small">Urban SUV</string>
-    <string name="carbody_hatchback_medium">Compact hatchback</string>
-    <string name="carbody_suv_medium">Medium SUV</string>
+    <string name="carbody_hatchback_small">Mały hatchback</string>
+    <string name="carbody_suv_small">Miejski SUV</string>
+    <string name="carbody_hatchback_medium">Kompaktowy hatchback</string>
+    <string name="carbody_suv_medium">Średni SUV</string>
     <string name="carbody_sedan">Sedan</string>
-    <string name="carbody_family_long">Estate / wagon</string>
-    <string name="carbody_suv_large">Large SUV</string>
-    <string name="carbody_van_light">Compact van</string>
-    <string name="carbody_van_commercial">Commercial van</string>
+    <string name="carbody_family_long">Kombi</string>
+    <string name="carbody_suv_large">Duży SUV</string>
+    <string name="carbody_van_light">Kompaktowy van</string>
+    <string name="carbody_van_commercial">Van dostawczy</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Watch the height. Skip garages with clearance under 2.10 m.</string>
-    <string name="parking_alert_long_car">Long car — beware of overhang on short bays.</string>
-    <string name="parking_alert_wide_car">Wide vehicle — prefer bays without lateral columns.</string>
-    <string name="parking_alert_standard">Standard size — fits the vast majority of bays.</string>
+    <string name="parking_alert_high_ceiling">Uważaj na wysokość. Omijaj garaże o prześwicie poniżej 2,10 m.</string>
+    <string name="parking_alert_long_car">Długie auto — uważaj na zwis nadwozia na krótkich miejscach.</string>
+    <string name="parking_alert_wide_car">Szeroki pojazd — wybieraj miejsca bez bocznych słupów.</string>
+    <string name="parking_alert_standard">Standardowy rozmiar — mieści się na zdecydowanej większości miejsc.</string>
 
-    <string name="vehicle_registration_carbody_section">Body and size</string>
-    <string name="vehicle_registration_carbody_auto_label">Detected automatically</string>
-    <string name="vehicle_registration_carbody_manual_label">Manual choice</string>
-    <string name="vehicle_registration_carbody_change">Change</string>
-    <string name="vehicle_registration_carbody_picker_title">Pick your body type</string>
-    <string name="vehicle_registration_carbody_picker_dismiss">Close</string>
+    <string name="vehicle_registration_carbody_section">Nadwozie i rozmiar</string>
+    <string name="vehicle_registration_carbody_auto_label">Wykryto automatycznie</string>
+    <string name="vehicle_registration_carbody_manual_label">Wybór ręczny</string>
+    <string name="vehicle_registration_carbody_change">Zmień</string>
+    <string name="vehicle_registration_carbody_picker_title">Wybierz typ nadwozia</string>
+    <string name="vehicle_registration_carbody_picker_dismiss">Zamknij</string>
+
+    <!-- Missing keys added (i18n parity) -->
+    <string name="home_peek_car_parked_label">Twój samochód jest zaparkowany</string>
+    <string name="home_peek_parking_duration_hm">Zaparkowano %1$dh %2$dm temu</string>
+    <string name="home_peek_parking_duration_min">Zaparkowano %1$d min temu</string>
+    <string name="home_peek_spot_age_hour">Dodano %1$d godz. temu</string>
+    <string name="home_peek_spot_age_min">Dodano %1$d min temu</string>
+    <string name="home_peek_spot_compat_large">duże auto</string>
+    <string name="home_peek_spot_compat_medium">średnie auto</string>
+    <string name="home_peek_spot_compat_moto">motocykl</string>
+    <string name="home_peek_spot_compat_small">małe auto</string>
+    <string name="home_peek_spot_compat_van">van</string>
+    <string name="home_peek_spot_compatible">Mieści %1$s</string>
+    <string name="home_peek_spot_en_route">%1$d w drodze</string>
+    <string name="home_peek_spot_incompatible">Za małe dla %1$s</string>
+    <string name="home_peek_spot_occupied">Już zajęte</string>
+    <string name="home_peek_spot_reliability_label">Wiarygodność</string>
+    <string name="home_peek_spot_size_unknown">Rozmiar nieokreślony</string>
+    <string name="home_report_size_section">Rozmiar miejsca (opcjonalnie)</string>
+    <string name="permissions_bg_guide_body">Na następnym ekranie:\n\n1. Dotknij «Lokalizacja»\n2. Wybierz «Zezwalaj zawsze»\n3. Naciśnij Wstecz, aby wrócić do Paparcar</string>
+    <string name="permissions_bg_guide_cta">Otwórz ustawienia</string>
+    <string name="permissions_bg_guide_dismiss">Nie teraz</string>
+    <string name="permissions_bg_guide_title">Włącz lokalizację w tle</string>
+    <string name="vehicle_registration_bt_cta">Sparuj</string>
+    <string name="vehicle_registration_bt_desc">Niezawodnie wykrywaj swoje parkowanie</string>
+    <string name="vehicle_registration_bt_title">Sparuj Bluetooth</string>
+    <string name="vehicle_registration_preview_subtitle_default">Średnie auto</string>
+    <string name="vehicle_registration_preview_title">Twój samochód</string>
+    <string name="vehicle_registration_section_detection">Automatyczne wykrywanie</string>
+    <string name="vehicle_registration_section_privacy">Prywatność</string>
+    <string name="vehicle_registration_section_size">Rozmiar pojazdu</string>
+    <string name="vehicle_registration_size_hint">Dotknij, aby wybrać rozmiar</string>
 
 </resources>

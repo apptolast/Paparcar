@@ -578,32 +578,68 @@
     <string name="history_load_more">Încarcă mai mult</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
-    <string name="home_peek_spot_fit_optimal">Optimal for your %1$s</string>
-    <string name="home_peek_spot_fit_fits">Fits — bay for %1$s</string>
-    <string name="home_peek_spot_fit_does_not_fit">Too tight for your %1$s</string>
-    <string name="home_peek_spot_left_by">Left by %1$s</string>
+    <string name="home_peek_spot_fit_optimal">Optim pentru %1$s</string>
+    <string name="home_peek_spot_fit_fits">Încape — loc pentru %1$s</string>
+    <string name="home_peek_spot_fit_does_not_fit">Prea strâmt pentru %1$s</string>
+    <string name="home_peek_spot_left_by">Lăsat de %1$s</string>
 
-    <string name="carbody_hatchback_small">Small hatchback</string>
-    <string name="carbody_suv_small">Urban SUV</string>
-    <string name="carbody_hatchback_medium">Compact hatchback</string>
-    <string name="carbody_suv_medium">Medium SUV</string>
+    <string name="carbody_hatchback_small">Hatchback mic</string>
+    <string name="carbody_suv_small">SUV urban</string>
+    <string name="carbody_hatchback_medium">Hatchback compact</string>
+    <string name="carbody_suv_medium">SUV mediu</string>
     <string name="carbody_sedan">Sedan</string>
-    <string name="carbody_family_long">Estate / wagon</string>
-    <string name="carbody_suv_large">Large SUV</string>
-    <string name="carbody_van_light">Compact van</string>
-    <string name="carbody_van_commercial">Commercial van</string>
+    <string name="carbody_family_long">Break / combi</string>
+    <string name="carbody_suv_large">SUV mare</string>
+    <string name="carbody_van_light">Dubă compactă</string>
+    <string name="carbody_van_commercial">Dubă comercială</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Watch the height. Skip garages with clearance under 2.10 m.</string>
-    <string name="parking_alert_long_car">Long car — beware of overhang on short bays.</string>
-    <string name="parking_alert_wide_car">Wide vehicle — prefer bays without lateral columns.</string>
-    <string name="parking_alert_standard">Standard size — fits the vast majority of bays.</string>
+    <string name="parking_alert_high_ceiling">Atenție la înălțime. Evită garajele cu gabarit sub 2.10 m.</string>
+    <string name="parking_alert_long_car">Mașină lungă — atenție la depășire pe locurile scurte.</string>
+    <string name="parking_alert_wide_car">Vehicul lat — preferă locurile fără stâlpi laterali.</string>
+    <string name="parking_alert_standard">Dimensiune standard — încape pe marea majoritate a locurilor.</string>
 
-    <string name="vehicle_registration_carbody_section">Body and size</string>
-    <string name="vehicle_registration_carbody_auto_label">Detected automatically</string>
-    <string name="vehicle_registration_carbody_manual_label">Manual choice</string>
-    <string name="vehicle_registration_carbody_change">Change</string>
-    <string name="vehicle_registration_carbody_picker_title">Pick your body type</string>
-    <string name="vehicle_registration_carbody_picker_dismiss">Close</string>
+    <string name="vehicle_registration_carbody_section">Caroserie și dimensiune</string>
+    <string name="vehicle_registration_carbody_auto_label">Detectat automat</string>
+    <string name="vehicle_registration_carbody_manual_label">Alegere manuală</string>
+    <string name="vehicle_registration_carbody_change">Schimbă</string>
+    <string name="vehicle_registration_carbody_picker_title">Alege tipul caroseriei</string>
+    <string name="vehicle_registration_carbody_picker_dismiss">Închide</string>
+
+    <!-- DET / peek spot compatibility + age -->
+    <string name="home_peek_car_parked_label">Mașina ta este parcată</string>
+    <string name="home_peek_parking_duration_hm">Parcat acum %1$dh %2$dm</string>
+    <string name="home_peek_parking_duration_min">Parcat acum %1$d min</string>
+    <string name="home_peek_spot_age_hour">Postat acum %1$d h</string>
+    <string name="home_peek_spot_age_min">Postat acum %1$d min</string>
+    <string name="home_peek_spot_compat_large">mașină mare</string>
+    <string name="home_peek_spot_compat_medium">mașină medie</string>
+    <string name="home_peek_spot_compat_moto">motocicletă</string>
+    <string name="home_peek_spot_compat_small">mașină mică</string>
+    <string name="home_peek_spot_compat_van">dubă</string>
+    <string name="home_peek_spot_compatible">Încape %1$s</string>
+    <string name="home_peek_spot_en_route">%1$d în drum</string>
+    <string name="home_peek_spot_incompatible">Prea mic pentru %1$s</string>
+    <string name="home_peek_spot_occupied">Deja ocupat</string>
+    <string name="home_peek_spot_reliability_label">Fiabilitate</string>
+    <string name="home_peek_spot_size_unknown">Dimensiune nespecificată</string>
+    <string name="home_report_size_section">Dimensiunea locului (opțional)</string>
+
+    <!-- Background location guide -->
+    <string name="permissions_bg_guide_title">Activează locația în fundal</string>
+    <string name="permissions_bg_guide_body">Pe ecranul următor:\n\n1. Atinge «Locație»\n2. Selectează «Permite tot timpul»\n3. Apasă Înapoi pentru a reveni la Paparcar</string>
+    <string name="permissions_bg_guide_cta">Deschide setările</string>
+    <string name="permissions_bg_guide_dismiss">Nu acum</string>
+
+    <!-- Vehicle registration — Bluetooth + sections + preview -->
+    <string name="vehicle_registration_bt_title">Asociază Bluetooth</string>
+    <string name="vehicle_registration_bt_desc">Detectează-ți parcarea în mod fiabil</string>
+    <string name="vehicle_registration_bt_cta">Asociază</string>
+    <string name="vehicle_registration_preview_title">Mașina ta</string>
+    <string name="vehicle_registration_preview_subtitle_default">Mașină medie</string>
+    <string name="vehicle_registration_section_detection">Detectare automată</string>
+    <string name="vehicle_registration_section_privacy">Confidențialitate</string>
+    <string name="vehicle_registration_section_size">Dimensiunea vehiculului</string>
+    <string name="vehicle_registration_size_hint">Atinge pentru a selecta dimensiunea</string>
 
 </resources>

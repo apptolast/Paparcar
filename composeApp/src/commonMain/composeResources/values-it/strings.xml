@@ -57,7 +57,7 @@
     <string name="spot_card_en_route">%1$d in arrivo</string>
     <string name="spot_card_reliability_high">Auto</string>
     <string name="spot_card_reliability_high_desc">Rilevato automaticamente con alta affidabilità — probabilmente ancora libero.</string>
-    <string name="spot_card_reliability_medium">Approx.</string>
+    <string name="spot_card_reliability_medium">Appross.</string>
     <string name="spot_card_reliability_medium_desc">Rilevato automaticamente con affidabilità moderata — potrebbe già essere occupato.</string>
     <string name="spot_card_reliability_low">Vecchia</string>
     <string name="spot_card_reliability_low_desc">Rilevato automaticamente con bassa affidabilità — verifica prima di andare.</string>
@@ -578,32 +578,64 @@
     <string name="history_load_more">Carica altri</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
-    <string name="home_peek_spot_fit_optimal">Optimal for your %1$s</string>
-    <string name="home_peek_spot_fit_fits">Fits — bay for %1$s</string>
-    <string name="home_peek_spot_fit_does_not_fit">Too tight for your %1$s</string>
-    <string name="home_peek_spot_left_by">Left by %1$s</string>
+    <string name="home_peek_spot_fit_optimal">Ottimale per la tua %1$s</string>
+    <string name="home_peek_spot_fit_fits">Adatto — posto per %1$s</string>
+    <string name="home_peek_spot_fit_does_not_fit">Troppo stretto per la tua %1$s</string>
+    <string name="home_peek_spot_left_by">Lasciato da %1$s</string>
 
-    <string name="carbody_hatchback_small">Small hatchback</string>
-    <string name="carbody_suv_small">Urban SUV</string>
-    <string name="carbody_hatchback_medium">Compact hatchback</string>
-    <string name="carbody_suv_medium">Medium SUV</string>
-    <string name="carbody_sedan">Sedan</string>
-    <string name="carbody_family_long">Estate / wagon</string>
-    <string name="carbody_suv_large">Large SUV</string>
-    <string name="carbody_van_light">Compact van</string>
-    <string name="carbody_van_commercial">Commercial van</string>
+    <string name="carbody_hatchback_small">Utilitaria piccola</string>
+    <string name="carbody_suv_small">SUV urbano</string>
+    <string name="carbody_hatchback_medium">Utilitaria compatta</string>
+    <string name="carbody_suv_medium">SUV medio</string>
+    <string name="carbody_sedan">Berlina</string>
+    <string name="carbody_family_long">Station wagon</string>
+    <string name="carbody_suv_large">SUV grande</string>
+    <string name="carbody_van_light">Furgone compatto</string>
+    <string name="carbody_van_commercial">Furgone commerciale</string>
     <string name="carbody_pickup">Pick-up</string>
 
-    <string name="parking_alert_high_ceiling">Watch the height. Skip garages with clearance under 2.10 m.</string>
-    <string name="parking_alert_long_car">Long car — beware of overhang on short bays.</string>
-    <string name="parking_alert_wide_car">Wide vehicle — prefer bays without lateral columns.</string>
-    <string name="parking_alert_standard">Standard size — fits the vast majority of bays.</string>
+    <string name="parking_alert_high_ceiling">Attenzione all\'altezza. Evita i garage con altezza inferiore a 2,10 m.</string>
+    <string name="parking_alert_long_car">Auto lunga — attenzione alla sporgenza nei posti corti.</string>
+    <string name="parking_alert_wide_car">Veicolo largo — preferisci posti senza colonne laterali.</string>
+    <string name="parking_alert_standard">Dimensione standard — adatta alla grande maggioranza dei posti.</string>
 
-    <string name="vehicle_registration_carbody_section">Body and size</string>
-    <string name="vehicle_registration_carbody_auto_label">Detected automatically</string>
-    <string name="vehicle_registration_carbody_manual_label">Manual choice</string>
-    <string name="vehicle_registration_carbody_change">Change</string>
-    <string name="vehicle_registration_carbody_picker_title">Pick your body type</string>
-    <string name="vehicle_registration_carbody_picker_dismiss">Close</string>
+    <string name="vehicle_registration_carbody_section">Carrozzeria e dimensione</string>
+    <string name="vehicle_registration_carbody_auto_label">Rilevato automaticamente</string>
+    <string name="vehicle_registration_carbody_manual_label">Scelta manuale</string>
+    <string name="vehicle_registration_carbody_change">Cambia</string>
+    <string name="vehicle_registration_carbody_picker_title">Scegli il tipo di carrozzeria</string>
+    <string name="vehicle_registration_carbody_picker_dismiss">Chiudi</string>
+
+    <!-- Aggiunte riferimento it-IT -->
+    <string name="home_peek_car_parked_label">La tua auto è parcheggiata</string>
+    <string name="home_peek_parking_duration_hm">Parcheggiato %1$dh %2$dm fa</string>
+    <string name="home_peek_parking_duration_min">Parcheggiato %1$d min fa</string>
+    <string name="home_peek_spot_age_hour">Pubblicato %1$d h fa</string>
+    <string name="home_peek_spot_age_min">Pubblicato %1$d min fa</string>
+    <string name="home_peek_spot_compat_large">auto grande</string>
+    <string name="home_peek_spot_compat_medium">auto media</string>
+    <string name="home_peek_spot_compat_moto">moto</string>
+    <string name="home_peek_spot_compat_small">auto piccola</string>
+    <string name="home_peek_spot_compat_van">furgone</string>
+    <string name="home_peek_spot_compatible">Adatto a %1$s</string>
+    <string name="home_peek_spot_en_route">%1$d in arrivo</string>
+    <string name="home_peek_spot_incompatible">Troppo piccolo per %1$s</string>
+    <string name="home_peek_spot_occupied">Già occupato</string>
+    <string name="home_peek_spot_reliability_label">Affidabilità</string>
+    <string name="home_peek_spot_size_unknown">Dimensione non specificata</string>
+    <string name="home_report_size_section">Dimensione del posto (opzionale)</string>
+    <string name="permissions_bg_guide_body">Nella schermata successiva:\n\n1. Tocca «Posizione»\n2. Seleziona «Consenti sempre»\n3. Premi Indietro per tornare a Paparcar</string>
+    <string name="permissions_bg_guide_cta">Apri impostazioni</string>
+    <string name="permissions_bg_guide_dismiss">Non ora</string>
+    <string name="permissions_bg_guide_title">Attiva la posizione in background</string>
+    <string name="vehicle_registration_bt_cta">Abbina</string>
+    <string name="vehicle_registration_bt_desc">Rileva il parcheggio in modo affidabile</string>
+    <string name="vehicle_registration_bt_title">Abbina Bluetooth</string>
+    <string name="vehicle_registration_preview_subtitle_default">Auto media</string>
+    <string name="vehicle_registration_preview_title">La tua auto</string>
+    <string name="vehicle_registration_section_detection">Rilevamento automatico</string>
+    <string name="vehicle_registration_section_privacy">Privacy</string>
+    <string name="vehicle_registration_section_size">Dimensione del veicolo</string>
+    <string name="vehicle_registration_size_hint">Tocca per selezionare la dimensione</string>
 
 </resources>
