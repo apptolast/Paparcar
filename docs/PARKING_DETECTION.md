@@ -183,7 +183,7 @@ Configurados en `ParkingDetectionConfig` (singleton inyectable):
 ### 4.2 Altos
 
 - **MIUI / Doze fragility** — sin `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, el foreground service puede ser killed por Xiaomi/Oppo sin "Autostart" habilitado. Test en Redmi Note 11 pendiente (ver `BUGS_AND_DEBT.md` §7)
-- **Geofences sin auto-expiry** — pueden quedar huérfanos en el OS si la app muere antes de `removeGeofence()` (ver `BUGS_AND_DEBT.md` §8)
+- **Geofences `NEVER_EXPIRE`** — sin expiración para no perder detección de salida en parkings >24h con WorkManager estrangulado; prevención de huérfanas vía borrado explícito (fin de sesión + drenado en logout `removeAllGeofences()`) y limpieza del OS en uninstall/reboot (ver `BUGS_AND_DEBT.md` §8 / §8.1)
 - **`START_STICKY` sin re-check de permisos** — si el usuario revoca background location entre kills, el service intenta operar sin permiso (ver `BUGS_AND_DEBT.md` §9)
 
 ### 4.3 Medios

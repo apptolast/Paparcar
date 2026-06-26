@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeConnectivityObserver
+import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeLocalSessionCache
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -48,6 +49,7 @@ class SplashViewModelTest {
     private lateinit var fakePerms: FakePermissionManager
     private lateinit var fakeSessionCache: FakeLocalSessionCache
     private lateinit var fakeConnectivity: FakeConnectivityObserver
+    private lateinit var fakeGeofenceManager: FakeGeofenceManager
 
     @BeforeTest
     fun setUp() {
@@ -61,6 +63,7 @@ class SplashViewModelTest {
         fakePerms = FakePermissionManager()
         fakeSessionCache = FakeLocalSessionCache()
         fakeConnectivity = FakeConnectivityObserver()
+        fakeGeofenceManager = FakeGeofenceManager()
     }
 
     @AfterTest
@@ -88,6 +91,7 @@ class SplashViewModelTest {
             permissionManager = fakePerms,
             localSessionCache = fakeSessionCache,
             connectivityObserver = fakeConnectivity,
+            geofenceManager = fakeGeofenceManager,
         )
     }
 
@@ -150,6 +154,17 @@ class SplashViewModelTest {
         fakeAuth.emitState(AuthState.Unauthenticated)
 
         assertEquals(1, fakeSessionCache.wipeCount)
+    }
+
+    @Test
+    fun `OS geofences are drained when auth transitions to Unauthenticated`() = runTest {
+        buildViewModel()
+        fakeAuth.emitState(AuthState.Authenticated(session))
+        fakeAuth.emitState(AuthState.Unauthenticated)
+
+        // Geofences live in the OS, not in Room: signing out must deregister them so the
+        // previous user's parking geofence cannot fire under the next account. [SESSION-ISOLATION-001]
+        assertEquals(1, fakeGeofenceManager.removeAllCallCount)
     }
 
     @Test

@@ -27,5 +27,12 @@ class FakeGeofenceManager : GeofenceManager {
     override suspend fun removeGeofence(geofenceId: String): Result<Unit> =
         Result.success(Unit)
 
+    var removeAllCallCount = 0
+
+    override suspend fun removeAllGeofences(): Result<Unit> {
+        removeAllCallCount++
+        return Result.success(Unit)
+    }
+
     override fun getGeofenceEvents(): Flow<GeofenceEvent> = emptyFlow()
 }

@@ -110,6 +110,17 @@ Los restantes ~60 hits del grep son iconos decorativos junto a `Text` con label 
 - `GeofenceJanitorWorker.kt` (nuevo) — worker periódico (12 h, KEEP policy) que re-registra las geofences de todas las sesiones activas en Room. Re-añadir una geofence existente es idempotente (`FLAG_UPDATE_CURRENT`, `setInitialTrigger(0)`).
 - `PaparcarApp.kt` — `GeofenceJanitorWorker.enqueueKeep(workManager)` en `onCreate()`.
 
+### §8.1 · ✅ Revisión (2026-06-26) — vuelta a `NEVER_EXPIRE` + drenado en logout [SESSION-ISOLATION-001]
+
+El TTL de 24h provocaba que un coche aparcado >24h perdiera la detección de salida si el OEM (Xiaomi/Redmi) estrangulaba a WorkManager y el Janitor no corría dentro de la ventana. Decisión: geofence **sin expiración** y prevención de huérfanas vía borrado explícito en todas las vías de fin de sesión.
+
+**Cambios:**
+- `GeofenceManagerImpl.kt` — `GEOFENCE_TTL_MS` (24 h) → `Geofence.NEVER_EXPIRE`.
+- `GeofenceManager` (domain) — nuevo `removeAllGeofences()`; Android lo implementa con `removeGeofences(PendingIntent)` (borra todas sin enumerar ids), iOS itera `monitoredRegions`.
+- `SplashViewModel.wipeLocalUserData()` — drena las geofences del OS **antes** del `clearAllTables()` en cada transición a `Unauthenticated` (logout / cambio de usuario / token expiry). Cierra el hueco por el que la geofence del usuario anterior seguía registrada en GMS hasta 24h.
+- `GeofenceJanitorWorker` — su rol pasa de "refrescar TTL" a "restaurar tras reboot/reinstall" (GMS borra todas las geofences en ambos casos, independientemente de la expiración).
+- Prevención de huérfanas restante: borrado en `RevertParkingUseCase` / `ProcessConfirmedDepartureUseCase` / `UpdateParkingLocationUseCase`, drenado en logout, y limpieza automática del OS en uninstall.
+
 ---
 
 ## §9 · ✅ Resuelto (2026-05-25) — `ParkingDetectionService` `START_STICKY` sin re-check de permisos

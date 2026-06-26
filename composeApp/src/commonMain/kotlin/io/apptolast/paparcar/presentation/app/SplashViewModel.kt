@@ -12,6 +12,7 @@ import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.session.LocalSessionCache
 import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
@@ -70,6 +71,7 @@ class SplashViewModel(
     private val permissionManager: PermissionManager,
     private val localSessionCache: LocalSessionCache,
     private val connectivityObserver: ConnectivityObserver,
+    private val geofenceManager: GeofenceManager,
 ) : ViewModel() {
 
     /** Kept so [retry] can re-enter the bootstrap chain without waiting for a new auth emission. */
@@ -131,7 +133,14 @@ class SplashViewModel(
      * token expiry, splash-time profile sync failure). [SESSION-ISOLATION-001]
      */
     private suspend fun wipeLocalUserData() {
-        PaparcarLogger.i(TAG, "auth Unauthenticated — wiping local Room cache")
+        PaparcarLogger.i(TAG, "auth Unauthenticated — draining geofences + wiping local Room cache")
+        // Drain OS-level geofences first. They live in Play Services / CoreLocation, not in Room,
+        // so clearAllTables() alone leaves them registered: a parking geofence from the previous
+        // user would keep monitoring and could fire an exit transition under the next account.
+        // removeAllGeofences() drops them all by PendingIntent without needing the (about-to-be-wiped)
+        // ids from Room. Best-effort — a failure here must not block the cache wipe. [SESSION-ISOLATION-001]
+        runCatching { geofenceManager.removeAllGeofences() }
+            .onFailure { e -> PaparcarLogger.e(TAG, "geofence drain failed", e) }
         runCatching { localSessionCache.wipe() }
             .onFailure { e -> PaparcarLogger.e(TAG, "Room wipe failed", e) }
         // Reset splash state so the next Authenticated transition re-runs the bootstrap

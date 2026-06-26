@@ -98,6 +98,14 @@ class IosGeofenceManagerImpl(
         }
     }
 
+    override suspend fun removeAllGeofences(): Result<Unit> = withContext(Dispatchers.Main) {
+        runCatching {
+            manager.monitoredRegions
+                .filterIsInstance<CLRegion>()
+                .forEach { manager.stopMonitoringForRegion(it) }
+        }
+    }
+
     override fun getGeofenceEvents(): Flow<GeofenceEvent> = geofenceEventBus.events
 
     private fun nowMillis(): Long = (NSDate().timeIntervalSince1970 * MILLIS_PER_SECOND).toLong()

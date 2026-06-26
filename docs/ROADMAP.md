@@ -84,7 +84,7 @@ Tickets nuevos derivados del resumen ejecutivo. Detalle técnico en `docs/BUGS_A
 | Ticket | Descripción | Estimado | Ref |
 |--------|-------------|----------|-----|
 | ✅ **DOZE-001** | ~~Doze/MIUI mitigation~~ — done 2026-05-25. Battery opt exemption row en Permissions + `DetectionHeartbeatWorker` 15 min. | 4 h | BUGS §7 |
-| ✅ **GEOF-001** | ~~Scheduler de TTL para geofences huérfanos~~ — done 2026-05-25. 24h TTL + `GeofenceJanitorWorker` cada 12h. | 2 h | BUGS §8 |
+| ✅ **GEOF-001** | ~~Scheduler de TTL para geofences huérfanos~~ — done 2026-05-25. Revisado 2026-06-26: `NEVER_EXPIRE` + drenado en logout (`removeAllGeofences`); Janitor pasa a restaurar tras reboot/reinstall. | 2 h | BUGS §8/§8.1 |
 | ✅ **A11Y-001** | ~~contentDescription audit~~ — done 2026-05-25. Sólo 2 reales (back + password toggle); resto eran decorativos. Ver BUGS §6. | 1 h | BUGS §6 |
 | ✅ **PERF-002** | ~~Memoizar lambdas inline en `HomeSheetContent.kt:174` y `HomeZoneChips.kt:70`~~ — done 2026-05-25 | 1 h | BUGS §5 |
 | ✅ **DB-001** | ~~Política de migraciones Room~~ — done 2026-05-25. `fallbackToDestructiveMigrationFrom(true, 1, 2)` + KDoc contrato en `AppDatabase`. Migración real + `MigrationTestHelper` quedan para cuando llegue v4. | 1 h | BUGS §11 |

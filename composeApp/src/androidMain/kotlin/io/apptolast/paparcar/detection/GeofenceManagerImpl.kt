@@ -30,7 +30,7 @@ class GeofenceManagerImpl(
         val geofence = Geofence.Builder()
             .setRequestId(geofenceId)
             .setCircularRegion(latitude, longitude, radiusMeters)
-            .setExpirationDuration(GEOFENCE_TTL_MS)
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_EXIT)
             .setLoiteringDelay(LOITERING_DELAY_MS)
             .build()
@@ -45,6 +45,13 @@ class GeofenceManagerImpl(
 
     override suspend fun removeGeofence(geofenceId: String): Result<Unit> = runCatching {
         geofencingClient.removeGeofences(listOf(geofenceId)).await()
+    }
+
+    override suspend fun removeAllGeofences(): Result<Unit> = runCatching {
+        // removeGeofences(PendingIntent) drops every geofence registered against this app's
+        // PendingIntent — no need to enumerate ids (GMS exposes no list API). The same builder
+        // resolves to the existing PendingIntent because it matches on action + request code.
+        geofencingClient.removeGeofences(buildPendingIntent()).await()
     }
 
     override fun getGeofenceEvents(): Flow<GeofenceEvent> = geofenceEventBus.events
@@ -74,8 +81,10 @@ class GeofenceManagerImpl(
         const val LOITERING_DELAY_MS = 60_000
         /** Suppress the initial dwell trigger when registering a geofence. */
         const val NO_INITIAL_TRIGGER = 0
-        /** Geofences self-destruct after 24 h. GeofenceJanitorWorker re-registers any that
-         *  are still needed (active parking session), preventing orphan accumulation. [GEOF-001] */
-        const val GEOFENCE_TTL_MS = 24L * 60 * 60 * 1_000
+        // Geofences use NEVER_EXPIRE: a car can stay parked for days, and a TTL would silently drop
+        // exit detection if WorkManager (the re-registering Janitor) is throttled by the OEM before
+        // it expires. Orphan prevention no longer relies on expiry — it relies on explicit removal:
+        // session-end paths (revert / confirmed-departure / location-move), removeAllGeofences() on
+        // sign-out, and the OS clearing all geofences on uninstall and reboot. [GEOF-001]
     }
 }

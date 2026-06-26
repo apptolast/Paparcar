@@ -18,10 +18,13 @@ import java.util.concurrent.TimeUnit
 /**
  * Periodic worker that re-registers geofences for all active parking sessions.
  *
- * Geofences in [GeofenceManagerImpl] are created with a 24-hour TTL to avoid
- * orphan accumulation after process kills. This worker runs every 12 hours and
- * re-registers them before they expire, ensuring exit-transition detection stays
- * active as long as the session is live in Room. [GEOF-001]
+ * Geofences in [GeofenceManagerImpl] are now created with `NEVER_EXPIRE`, so this worker is
+ * no longer a TTL refresher — it is the **restoration** path. Play Services drops every
+ * registered geofence on device reboot and on reinstall; after either event the geofences in
+ * GMS no longer match the active sessions still present in Room (reboot) or freshly synced from
+ * Firestore (reinstall). [BootCompletedReceiver] and app start re-enqueue this worker, which
+ * reads the active sessions and re-registers their geofences. Running periodically also
+ * self-heals any registration that was lost while the process was dead. [GEOF-001]
  *
  * Re-adding an existing geofence via [GeofenceManager.createGeofence] is idempotent
  * because [android.app.PendingIntent.FLAG_UPDATE_CURRENT] replaces the existing entry.
