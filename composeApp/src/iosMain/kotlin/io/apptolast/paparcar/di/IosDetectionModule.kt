@@ -26,5 +26,5 @@ val iosDetectionModule = module {
     single<DepartureEventBus> { IosDepartureEventBusImpl() }
     single<ParkingEnrichmentScheduler> { IosParkingEnrichmentScheduler(get(), get()) }
     single<ParkingSyncScheduler> { IosParkingSyncScheduler(get(), get()) }
-    single<ReportSpotScheduler> { IosReportSpotScheduler(get(), get()) }
+    single<ReportSpotScheduler> { IosReportSpotScheduler(get()) }
 }

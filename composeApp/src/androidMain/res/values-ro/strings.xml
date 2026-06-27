@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notificare: serviciu foreground de detecție -->
-    <string name="notif_detection_title">Detecție activă</string>
-    <string name="notif_detection_text">Caut semnale de parcare…</string>
+    <string name="notif_detection_title">Detecția parcării activă</string>
+    <string name="notif_detection_text">Detectez când parchezi · atinge pentru gestionare</string>
     <!-- %1$s = numele vehiculului (ex. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Monitorizare %1$s</string>
+    <string name="notif_detection_text_vehicle">Atent la %1$s al tău · atinge pentru gestionare</string>
+    <string name="notif_detection_explainer">Detectez automat când parchezi pentru a elibera locul tău comunității. Consum minim de baterie.</string>
 
     <!-- Notificare: confirmare parcare -->
     <string name="notif_confirmation_title">Ai parcat?</string>
@@ -24,14 +25,6 @@
     <string name="notif_action_confirm">Da, confirmă</string>
     <string name="notif_action_cancel_save">Nu, anulează</string>
 
-    <!-- Notificare: loc comunitar publicat -->
-    <string name="notif_spot_published_title">Loc disponibil pentru alții</string>
-    <string name="notif_spot_published_text">Locul tău de parcare este acum vizibil pentru șoferii din apropiere.</string>
-
-    <!-- Notificare: se încarcă locul -->
-    <string name="notif_uploading_title">Paparcar</string>
-    <string name="notif_uploading_text">Se încarcă noul loc…</string>
-
     <!-- Notificare: permisiune revocată în timp ce serviciul era activ -->
     <string name="notif_permission_revoked_title">Paparcar are nevoie de permisiuni</string>
     <string name="notif_permission_revoked_text">Permisiunea de localizare a fost revocată — apasă pentru a restaura</string>
@@ -48,12 +41,10 @@
     <string name="channel_detection_desc">Notificare persistentă cât timp detecția parcării este activă</string>
     <string name="channel_upload_name">Încărcare locuri</string>
     <string name="channel_upload_desc">Confirmări de loc salvat și încărcare în cloud</string>
+    <string name="channel_action_name">Confirmare parcare</string>
+    <string name="channel_action_desc">Îți cere să confirmi dacă ai parcat</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Mesaje de depanare — doar în build-urile de dezvoltare</string>
-
-    <!-- Notificare: plecare de la locul obișnuit de parcare -->
-    <string name="notif_home_parking_left_title">Ai plecat din %1$s</string>
-    <string name="notif_home_parking_left_text">Locul tău de parcare este acum disponibil pentru alții</string>
 
     <string name="attribution_detection_label">Detectare parcare</string>
 </resources>

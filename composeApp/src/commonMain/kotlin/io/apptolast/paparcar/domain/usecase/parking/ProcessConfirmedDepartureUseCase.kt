@@ -2,9 +2,7 @@
 
 package io.apptolast.paparcar.domain.usecase.parking
 
-import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
-import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -15,7 +13,7 @@ import kotlin.time.Clock
  * Executes all side-effects of a confirmed car departure:
  *
  * 1. Resolves the active [UserParking] session for the given geofence.
- * 2. Reports the freed spot to the community (or sends a private-zone notification).
+ * 2. Reports the freed spot to the community (public spots only; private zones are not published).
  * 3. Clears the session from the local store.
  * 4. Resets [DepartureEventBus] so the next trip starts clean.
  * 5. Removes the geofence from Play Services.
@@ -29,11 +27,9 @@ import kotlin.time.Clock
  */
 class ProcessConfirmedDepartureUseCase(
     private val userParkingRepository: UserParkingRepository,
-    private val zoneRepository: ZoneRepository,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val geofenceService: GeofenceManager,
     private val departureEventBus: DepartureEventBus,
-    private val notificationPort: AppNotificationManager,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -45,24 +41,17 @@ class ProcessConfirmedDepartureUseCase(
         val lat = session?.location?.latitude
         val lon = session?.location?.longitude
 
-        if (lat != null && lon != null) {
-            if (session.privateZoneId == null) {
-                reportSpotReleased(
-                    lat = lat,
-                    lon = lon,
-                    spotId = spotId,
-                    spotType = session.spotType,
-                    confidence = session.detectionReliability ?: 1f,
-                    sizeCategory = session.sizeCategory,
-                    carbodyType = session.carbodyType,
-                )
-            } else {
-                val zoneName = runCatching { zoneRepository.getPrivateZonesSnapshot() }
-                    .getOrElse { emptyList() }
-                    .firstOrNull { it.id == session.privateZoneId }?.name
-                    ?: session.privateZoneId
-                notificationPort.showHomeParkingLeft(zoneName, lat, lon)
-            }
+        // Public spots are published to the community; private zones are not reported.
+        if (session != null && lat != null && lon != null && session.privateZoneId == null) {
+            reportSpotReleased(
+                lat = lat,
+                lon = lon,
+                spotId = spotId,
+                spotType = session.spotType,
+                confidence = session.detectionReliability ?: 1f,
+                sizeCategory = session.sizeCategory,
+                carbodyType = session.carbodyType,
+            )
         }
 
         if (session != null) {

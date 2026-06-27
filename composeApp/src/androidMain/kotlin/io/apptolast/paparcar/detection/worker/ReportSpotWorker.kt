@@ -12,7 +12,6 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
-import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -21,7 +20,6 @@ import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
@@ -44,7 +42,6 @@ class ReportSpotWorker(
 ) : CoroutineWorker(context, params), KoinComponent {
 
     private val spotRepository: SpotRepository by inject()
-    private val notificationPort: AppNotificationManager by inject()
 
     override suspend fun doWork(): Result {
         val spotId = inputData.getString(KEY_SPOT_ID) ?: return Result.failure()
@@ -84,21 +81,10 @@ class ReportSpotWorker(
             expiresAt = expiresAt,
         )
 
-        notificationPort.showSpotUploading()
-
         return spotRepository.reportSpotReleased(spot).fold(
-            onSuccess = {
-                notificationPort.dismiss(AppNotificationManager.UPLOAD_NOTIFICATION_ID)
-                notificationPort.showSpotPublished(lat, lon)
-                if (BuildConfig.DEBUG) notificationPort.showDebug("Spot published as free")
-                Result.success()
-            },
+            onSuccess = { Result.success() },
             onFailure = {
-                if (runAttemptCount < MAX_RETRY_ATTEMPTS) Result.retry()
-                else {
-                    notificationPort.dismiss(AppNotificationManager.UPLOAD_NOTIFICATION_ID)
-                    Result.failure()
-                }
+                if (runAttemptCount < MAX_RETRY_ATTEMPTS) Result.retry() else Result.failure()
             },
         )
     }

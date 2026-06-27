@@ -37,10 +37,6 @@ open class FakeAppNotificationManager : AppNotificationManager {
         confirmationNotifOps.add("savedConfirm")
     }
 
-    override fun showSpotPublished(latitude: Double, longitude: Double) = Unit
-
-    override fun showSpotUploading() = Unit
-
     override fun updateDetectionVehicle(vehicleName: String, notifId: Int) = Unit
 
     override fun showPermissionRevoked() = Unit

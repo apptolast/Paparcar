@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notificación: servicio foreground de detección -->
-    <string name="notif_detection_title">Detección en curso</string>
-    <string name="notif_detection_text">Buscando señales de aparcamiento…</string>
+    <string name="notif_detection_title">Detección de aparcamiento activa</string>
+    <string name="notif_detection_text">Detectaré cuándo aparcas · toca para gestionar</string>
     <!-- %1$s = nombre del vehículo (ej. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Monitorizando %1$s</string>
+    <string name="notif_detection_text_vehicle">Atento a tu %1$s · toca para gestionar</string>
+    <string name="notif_detection_explainer">Detecto automáticamente cuándo aparcas para liberar tu plaza a la comunidad. Consumo de batería mínimo.</string>
 
     <!-- Notificación: confirmación de aparcamiento -->
     <string name="notif_confirmation_title">¿Has aparcado?</string>
@@ -24,14 +25,6 @@
     <string name="notif_action_confirm">Sí, confirmar</string>
     <string name="notif_action_cancel_save">No, cancelar</string>
 
-    <!-- Notificación: plaza comunitaria publicada -->
-    <string name="notif_spot_published_title">Plaza disponible para otros</string>
-    <string name="notif_spot_published_text">Tu plaza de aparcamiento ya es visible para los conductores cercanos.</string>
-
-    <!-- Notificación: subiendo spot -->
-    <string name="notif_uploading_title">Paparcar</string>
-    <string name="notif_uploading_text">Subiendo nuevo spot…</string>
-
     <!-- Notificación: permiso revocado mientras el servicio estaba activo -->
     <string name="notif_permission_revoked_title">Paparcar necesita permisos</string>
     <string name="notif_permission_revoked_text">Permiso de ubicación revocado — toca para restaurar</string>
@@ -48,12 +41,10 @@
     <string name="channel_detection_desc">Notificación persistente mientras se detecta aparcamiento</string>
     <string name="channel_upload_name">Subida de Spot</string>
     <string name="channel_upload_desc">Confirmaciones de plaza guardada y subida a la nube</string>
+    <string name="channel_action_name">Confirmación de aparcamiento</string>
+    <string name="channel_action_desc">Te pregunta si has aparcado</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Mensajes de depuración — solo en builds de desarrollo</string>
-
-    <!-- Notificación: salida de aparcamiento habitual -->
-    <string name="notif_home_parking_left_title">Has salido de %1$s</string>
-    <string name="notif_home_parking_left_text">Tu plaza de aparcamiento ya está disponible</string>
 
     <string name="attribution_detection_label">Detección de aparcamiento</string>
 </resources>

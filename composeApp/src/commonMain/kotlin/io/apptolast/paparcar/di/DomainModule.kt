@@ -113,11 +113,9 @@ val domainModule = module {
     factory {
         ProcessConfirmedDepartureUseCase(
             userParkingRepository = get(),
-            zoneRepository = get(),
             reportSpotReleased = get(),
             geofenceService = get(),
             departureEventBus = get(),
-            notificationPort = get(),
         )
     }
     factory {

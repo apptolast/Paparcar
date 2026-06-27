@@ -1082,3 +1082,17 @@ Companion refactor to REFACTOR-300, applied to the Bluetooth detection flow (`Bl
 **Open follow-ups (BT).**
 - **TODO-BT-CONFIG-P2:** Move `BluetoothParkingDetector.PARKING_DETECTION_RELIABILITY = 0.95f` to `ParkingDetectionConfig.reliabilityBluetooth` for parity with the existing `reliabilityUserConfirmed`/`reliabilityVehicleExit`/`reliabilitySlowPath`. Cosmetic; no behaviour change.
 - **TODO-BT-IOS-P3:** When iOS BT detection lands it should follow the same `silent=true` + `showParkingSavedConfirm` pattern. `IosAppNotificationManagerImpl` will need to implement `showParkingSavedConfirm` (currently default `{}` from the interface).
+
+### NOTIF-CLEANUP-310626 — Trim non-actionable departure notifications + per-tier channels (2026-06-26)
+
+**Motivation.** The notification surface had grown to ~9 user-facing posts, several of them non-actionable noise. Audit removed three and reorganised importance.
+
+**Removed.**
+- `showSpotUploading` ("Subiendo") — cosmetic ~1-2 s ongoing toast around the Firebase write; `ReportSpotWorker` is a plain `CoroutineWorker` and never needed it. The community spot is still published to Firestore (`reportSpotReleased` is untouched) — only the notification is gone.
+- `showSpotPublished` ("Plaza publicada") — transparency-only, not actionable.
+- `showHomeParkingLeft` ("Has salido de tu plaza") — the private-zone branch of `ProcessConfirmedDepartureUseCase`. **Behaviour change:** leaving a private zone no longer has any user-facing effect (it never published a community spot — it only posted this notification). Public-spot departures are unaffected.
+- Interface methods, both Android/iOS impls, both fakes, `SPOT_PUBLISHED_NOTIFICATION_ID` / `HOME_PARKING_NOTIFICATION_ID`, the `community_channel`, and the now-orphaned `notif_spot_published_*` / `notif_uploading_*` / `notif_home_parking_left_*` strings (all 9 locales) were deleted. `ProcessConfirmedDepartureUseCase` lost its `zoneRepository` + `notificationPort` deps; `ReportSpotWorker` lost `notificationPort`; `IosReportSpotScheduler` lost `notificationPort`.
+
+**Importance reorg (per-channel).** Confirmation prompts (`showParkingConfirmation`, `showParkingSavedConfirm`) moved off the LOW `detection_channel` onto a new HIGH `action_channel` (heads-up) — they are the only button-interaction notifications. `showParkingSavedConfirm` adds `setOnlyAlertOnce(true)` so morphing the "¿Has aparcado?" prompt at the same id does not re-buzz, while the auto-confirm path still alerts once. `showPermissionRevoked` moved from LOW to the DEFAULT `upload_channel` so it is visible rather than silent-at-bottom. Detection FGS stays LOW/silent.
+
+**Icon.** All notifications (except debug) now use `ic_notification_logo` — the app's car glyph wrapped in a circle, monochrome — as the status-bar small icon, replacing the per-type contextual icons (which were deleted).

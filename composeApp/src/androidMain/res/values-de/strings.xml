@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Benachrichtigung: Erkennungs-Vordergrunddienst -->
-    <string name="notif_detection_title">Erkennung aktiv</string>
-    <string name="notif_detection_text">Suche nach Parksignalen…</string>
+    <string name="notif_detection_title">Parkerkennung aktiv</string>
+    <string name="notif_detection_text">Ich erkenne, wenn du parkst · zum Verwalten tippen</string>
     <!-- %1$s = Fahrzeugname (z. B. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Überwache %1$s</string>
+    <string name="notif_detection_text_vehicle">Ich beobachte deinen %1$s · zum Verwalten tippen</string>
+    <string name="notif_detection_explainer">Ich erkenne automatisch, wenn du parkst, um deinen Stellplatz für die Community freizugeben. Minimaler Batterieverbrauch.</string>
 
     <!-- Benachrichtigung: Parkbestätigung -->
     <string name="notif_confirmation_title">Haben Sie geparkt?</string>
@@ -24,14 +25,6 @@
     <string name="notif_action_confirm">Ja, bestätigen</string>
     <string name="notif_action_cancel_save">Nein, abbrechen</string>
 
-    <!-- Benachrichtigung: Gemeinschaftsstellplatz veröffentlicht -->
-    <string name="notif_spot_published_title">Stellplatz für andere verfügbar</string>
-    <string name="notif_spot_published_text">Ihr Parkplatz ist jetzt für Fahrer in der Nähe sichtbar.</string>
-
-    <!-- Benachrichtigung: Stellplatz wird hochgeladen -->
-    <string name="notif_uploading_title">Paparcar</string>
-    <string name="notif_uploading_text">Neuen Stellplatz hochladen…</string>
-
     <!-- Benachrichtigung: Berechtigung während des laufenden Dienstes widerrufen -->
     <string name="notif_permission_revoked_title">Paparcar benötigt Berechtigungen</string>
     <string name="notif_permission_revoked_text">Standortberechtigung widerrufen — tippen zum Wiederherstellen</string>
@@ -48,12 +41,10 @@
     <string name="channel_detection_desc">Dauerhafte Benachrichtigung während der Parkerkennung aktiv ist</string>
     <string name="channel_upload_name">Stellplatz-Upload</string>
     <string name="channel_upload_desc">Bestätigungen für gespeicherte Stellplätze und Cloud-Upload</string>
+    <string name="channel_action_name">Parkbestätigung</string>
+    <string name="channel_action_desc">Fragt dich, ob du geparkt hast</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Debug-Meldungen — nur in Entwicklungs-Builds</string>
-
-    <!-- Benachrichtigung: Heimstellplatz verlassen -->
-    <string name="notif_home_parking_left_title">Du hast %1$s verlassen</string>
-    <string name="notif_home_parking_left_text">Dein Parkplatz ist jetzt für andere verfügbar</string>
 
     <string name="attribution_detection_label">Parkerkennung</string>
 </resources>

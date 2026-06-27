@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notification : service foreground de détection -->
-    <string name="notif_detection_title">Détection active</string>
-    <string name="notif_detection_text">Recherche de signaux de stationnement…</string>
+    <string name="notif_detection_title">Détection de stationnement active</string>
+    <string name="notif_detection_text">Je détecte quand vous vous garez · toucher pour gérer</string>
     <!-- %1$s = nom du véhicule (ex. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Surveillance de %1$s</string>
+    <string name="notif_detection_text_vehicle">Attentif à votre %1$s · toucher pour gérer</string>
+    <string name="notif_detection_explainer">Je détecte automatiquement quand vous vous garez pour libérer votre place pour la communauté. Consommation de batterie minimale.</string>
 
     <!-- Notification : confirmation de stationnement -->
     <string name="notif_confirmation_title">Êtes-vous garé ?</string>
@@ -24,14 +25,6 @@
     <string name="notif_action_confirm">Oui, confirmer</string>
     <string name="notif_action_cancel_save">Non, annuler</string>
 
-    <!-- Notification : place communautaire publiée -->
-    <string name="notif_spot_published_title">Place disponible pour les autres</string>
-    <string name="notif_spot_published_text">Votre place de stationnement est maintenant visible pour les conducteurs à proximité.</string>
-
-    <!-- Notification : chargement de la place -->
-    <string name="notif_uploading_title">Paparcar</string>
-    <string name="notif_uploading_text">Chargement de la nouvelle place…</string>
-
     <!-- Notification : permission révoquée pendant que le service était actif -->
     <string name="notif_permission_revoked_title">Paparcar a besoin d\'autorisations</string>
     <string name="notif_permission_revoked_text">Permission de localisation révoquée — appuyez pour restaurer</string>
@@ -48,12 +41,10 @@
     <string name="channel_detection_desc">Notification persistante pendant la détection de stationnement</string>
     <string name="channel_upload_name">Upload de places</string>
     <string name="channel_upload_desc">Confirmations de place enregistrée et upload vers le cloud</string>
+    <string name="channel_action_name">Confirmation de stationnement</string>
+    <string name="channel_action_desc">Vous demande de confirmer si vous êtes garé</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Messages de débogage — builds de développement uniquement</string>
-
-    <!-- Notification : départ d'un stationnement habituel -->
-    <string name="notif_home_parking_left_title">Vous avez quitté %1$s</string>
-    <string name="notif_home_parking_left_text">Votre place de stationnement est maintenant disponible</string>
 
     <string name="attribution_detection_label">Détection de stationnement</string>
 </resources>

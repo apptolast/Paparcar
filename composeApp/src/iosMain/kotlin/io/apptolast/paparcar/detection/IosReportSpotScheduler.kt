@@ -8,8 +8,6 @@ import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.domain.notification.AppNotificationManager
-import io.apptolast.paparcar.domain.notification.AppNotificationManager.Companion.UPLOAD_NOTIFICATION_ID
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -38,7 +36,6 @@ import kotlinx.coroutines.launch
  */
 class IosReportSpotScheduler(
     private val spotRepository: SpotRepository,
-    private val notificationPort: AppNotificationManager,
 ) : ReportSpotScheduler {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -78,20 +75,15 @@ class IosReportSpotScheduler(
     }
 
     private suspend fun reportWithRetry(spot: Spot) {
-        notificationPort.showSpotUploading()
         var attempt = 0
         while (attempt < MAX_RETRIES) {
             val outcome = spotRepository.reportSpotReleased(spot)
-            if (outcome.isSuccess) {
-                notificationPort.dismiss(UPLOAD_NOTIFICATION_ID)
-                return
-            }
+            if (outcome.isSuccess) return
             attempt++
             val backoffMs = INITIAL_BACKOFF_MS shl (attempt - 1)
             PaparcarLogger.w(TAG, "ReportSpot attempt $attempt failed for ${spot.id} — retry in ${backoffMs}ms")
             delay(backoffMs)
         }
-        notificationPort.dismiss(UPLOAD_NOTIFICATION_ID)
         PaparcarLogger.e(TAG, "ReportSpot exhausted retries for ${spot.id}")
     }
 

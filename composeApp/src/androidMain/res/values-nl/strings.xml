@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Melding: detectie-voorgrondservice -->
-    <string name="notif_detection_title">Detectie actief</string>
-    <string name="notif_detection_text">Zoeken naar parkeersignalen…</string>
+    <string name="notif_detection_title">Parkeerdetectie aan</string>
+    <string name="notif_detection_text">Ik detecteer wanneer je parkeert · tik om te beheren</string>
     <!-- %1$s = voertuignaam (bijv. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">Bewaking van %1$s</string>
+    <string name="notif_detection_text_vehicle">Ik let op je %1$s · tik om te beheren</string>
+    <string name="notif_detection_explainer">Ik detecteer automatisch wanneer je parkeert om je plaats vrij te geven aan de community. Minimaal batterijverbruik.</string>
 
     <!-- Melding: bevestiging van parkeren -->
     <string name="notif_confirmation_title">Heeft u geparkeerd?</string>
@@ -24,14 +25,6 @@
     <string name="notif_action_confirm">Ja, bevestigen</string>
     <string name="notif_action_cancel_save">Nee, annuleren</string>
 
-    <!-- Melding: gemeenschappelijke parkeerplaats gepubliceerd -->
-    <string name="notif_spot_published_title">Parkeerplaats beschikbaar voor anderen</string>
-    <string name="notif_spot_published_text">Uw parkeerplaats is nu zichtbaar voor bestuurders in de buurt.</string>
-
-    <!-- Melding: parkeerplaats uploaden -->
-    <string name="notif_uploading_title">Paparcar</string>
-    <string name="notif_uploading_text">Nieuwe parkeerplaats uploaden…</string>
-
     <!-- Melding: toestemming ingetrokken terwijl de service actief was -->
     <string name="notif_permission_revoked_title">Paparcar heeft toestemmingen nodig</string>
     <string name="notif_permission_revoked_text">Locatietoestemming ingetrokken — tik om te herstellen</string>
@@ -48,12 +41,10 @@
     <string name="channel_detection_desc">Permanente melding terwijl parkeerdetectie actief is</string>
     <string name="channel_upload_name">Parkeerplaats uploaden</string>
     <string name="channel_upload_desc">Bevestigingen van opgeslagen parkeerplaats en cloud-upload</string>
+    <string name="channel_action_name">Parkeerbevestiging</string>
+    <string name="channel_action_desc">Vraagt je te bevestigen of je geparkeerd hebt</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Foutopsporingsberichten — alleen in ontwikkelingsbuilds</string>
-
-    <!-- Melding: verlaten van vaste parkeerplaats -->
-    <string name="notif_home_parking_left_title">Je hebt %1$s verlaten</string>
-    <string name="notif_home_parking_left_text">Je parkeerplaats is nu beschikbaar voor anderen</string>
 
     <string name="attribution_detection_label">Parkeerdetectie</string>
 </resources>

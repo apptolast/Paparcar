@@ -6,8 +6,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.MainActivity
 import io.apptolast.paparcar.R
 import io.apptolast.paparcar.detection.receiver.ParkingConfirmationReceiver
@@ -54,10 +57,10 @@ class AppNotificationManagerImpl(
         } else {
             context.getString(R.string.notif_confirmation_title)
         }
-        val notification = NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(context.getString(R.string.notif_confirmation_text))
-            .setSmallIcon(R.drawable.ic_notification_parking_question)
+            .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(buildOpenAppIntent(RC_CONFIRMATION))
@@ -72,7 +75,7 @@ class AppNotificationManagerImpl(
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_parking_saved_title))
             .setContentText(context.getString(R.string.notif_parking_saved_text))
-            .setSmallIcon(R.drawable.ic_notification_parking_saved)
+            .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             .setContentIntent(buildFocusIntent(RC_PARKING_SAVED, latitude, longitude))
@@ -87,10 +90,12 @@ class AppNotificationManagerImpl(
      *  - "Sí, confirmar" → ACTION_PARKING_ACK (just dismiss + stop service)
      *  - "No, cancelar"  → ACTION_PARKING_REVERT + parkingId extra → RevertParkingUseCase
      *
-     * The notification stays on the DETECTION channel (LOW priority, no sound) because
-     * we are MORPHING the existing prompt — surfacing a fresh DEFAULT-priority buzz
-     * after the user already saw the prompt would be obnoxious. Tap on the body opens
-     * MainActivity focused on the parking location.
+     * Posted on the ACTION channel (HIGH / heads-up) because it carries action buttons
+     * and the user must be able to reverse a silent auto-confirm. To avoid a double buzz
+     * when this MORPHS the "¿Has aparcado?" prompt already showing at the same ID, it sets
+     * [NotificationCompat.Builder.setOnlyAlertOnce] — the auto-confirm path (nothing showing)
+     * still alerts once; the morph path does not re-alert. Tap on the body opens MainActivity
+     * focused on the parking location.
      */
     override fun showParkingSavedConfirm(
         parkingId: String,
@@ -120,51 +125,26 @@ class AppNotificationManagerImpl(
         } else {
             context.getString(R.string.notif_parking_saved_confirm_title)
         }
-        val notification = NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(context.getString(R.string.notif_parking_saved_confirm_text))
-            .setSmallIcon(R.drawable.ic_notification_parking_saved)
+            .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_SUCCESS)
             .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
             .setContentIntent(buildFocusIntent(RC_SAVED_FOCUS, latitude, longitude))
             .addAction(0, context.getString(R.string.notif_action_confirm), ackPi)
             .addAction(0, context.getString(R.string.notif_action_cancel_save), revertPi)
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()
         notificationManager.notify(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID, notification)
     }
 
-    override fun showSpotPublished(latitude: Double, longitude: Double) {
-        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_spot_published_title))
-            .setContentText(context.getString(R.string.notif_spot_published_text))
-            .setSmallIcon(R.drawable.ic_notification_parking_saved)
-            .setColor(COLOR_SUCCESS)
-            .setCategory(NotificationCompat.CATEGORY_EVENT)
-            .setContentIntent(buildFocusIntent(RC_SPOT_PUBLISHED, latitude, longitude))
-            .setAutoCancel(true)
-            .build()
-        notificationManager.notify(AppNotificationManager.SPOT_PUBLISHED_NOTIFICATION_ID, notification)
-    }
-
-    override fun showSpotUploading() {
-        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_uploading_title))
-            .setContentText(context.getString(R.string.notif_uploading_text))
-            .setSmallIcon(R.drawable.ic_notification_upload)
-            .setColor(COLOR_UPLOAD)
-            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setContentIntent(buildOpenAppIntent(RC_UPLOADING))
-            .setOngoing(true)
-            .build()
-        notificationManager.notify(AppNotificationManager.UPLOAD_NOTIFICATION_ID, notification)
-    }
-
     override fun showPermissionRevoked() {
-        val notification = NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_permission_revoked_title))
             .setContentText(context.getString(R.string.notif_permission_revoked_text))
-            .setSmallIcon(R.drawable.ic_notification_detection)
+            .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_DEBUG)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(buildOpenAppIntent(RC_PERMISSION_REVOKED))
@@ -177,26 +157,13 @@ class AppNotificationManagerImpl(
         val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_confirmation_failed_title))
             .setContentText(context.getString(R.string.notif_confirmation_failed_text))
-            .setSmallIcon(R.drawable.ic_notification_parking_question)
+            .setSmallIcon(R.drawable.ic_notification_logo)
             .setColor(COLOR_CONFIRMATION)
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .setContentIntent(buildOpenAppIntent(RC_CONFIRMATION_FAILED))
             .setAutoCancel(true)
             .build()
         notificationManager.notify(AppNotificationManager.CONFIRMATION_FAILED_NOTIFICATION_ID, notification)
-    }
-
-    override fun showHomeParkingLeft(label: String, lat: Double, lon: Double) {
-        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
-            .setContentTitle(context.getString(R.string.notif_home_parking_left_title, label))
-            .setContentText(context.getString(R.string.notif_home_parking_left_text))
-            .setSmallIcon(R.drawable.ic_notification_parking_saved)
-            .setColor(COLOR_SUCCESS)
-            .setCategory(NotificationCompat.CATEGORY_EVENT)
-            .setContentIntent(buildFocusIntent(RC_HOME_PARKING_LEFT, lat, lon))
-            .setAutoCancel(true)
-            .build()
-        notificationManager.notify(AppNotificationManager.HOME_PARKING_NOTIFICATION_ID, notification)
     }
 
     override fun showDebug(message: String) {
@@ -227,11 +194,16 @@ class AppNotificationManagerImpl(
         return NotificationCompat.Builder(context, DETECTION_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_detection_title))
             .setContentText(bodyText)
-            .setSmallIcon(R.drawable.ic_notification_detection)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(context.getString(R.string.notif_detection_explainer)),
+            )
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setLargeIcon(logoColorIcon)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setContentIntent(buildOpenAppIntent(RC_DETECTION))
             .setOngoing(true)
-            .setProgress(0, 0, true)
+            .setShowWhen(false)
             .setColor(COLOR_DETECTION)
             .build()
     }
@@ -267,6 +239,22 @@ class AppNotificationManagerImpl(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+    /**
+     * Full-colour 2022 brand logo (blue disc + white car + wheels) rasterised to a bitmap for use
+     * as the large icon. The small status-bar icon is forced monochrome by the system, so this is the
+     * only place the real logo can appear in colour. The vector has transparent corners (disc only),
+     * so it renders as a circle even on OEM skins (e.g. MIUI) that don't auto-clip large icons.
+     */
+    private val logoColorIcon: Bitmap by lazy {
+        val drawable = ContextCompat.getDrawable(context, R.drawable.ic_logo_color)!!
+        val size = context.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        bitmap
+    }
+
     private fun createNotificationChannels() {
         val detectionChannel = NotificationChannel(
             DETECTION_CHANNEL_ID,
@@ -284,6 +272,13 @@ class AppNotificationManagerImpl(
         ).apply {
             description = context.getString(R.string.channel_upload_desc)
         }
+        val actionChannel = NotificationChannel(
+            ACTION_CHANNEL_ID,
+            context.getString(R.string.channel_action_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        ).apply {
+            description = context.getString(R.string.channel_action_desc)
+        }
         val debugChannel = NotificationChannel(
             DEBUG_CHANNEL_ID,
             context.getString(R.string.channel_debug_name),
@@ -292,25 +287,23 @@ class AppNotificationManagerImpl(
             description = context.getString(R.string.channel_debug_desc)
         }
         notificationManager.createNotificationChannels(
-            listOf(detectionChannel, uploadChannel, debugChannel)
+            listOf(detectionChannel, uploadChannel, actionChannel, debugChannel)
         )
     }
 
     companion object {
         const val DETECTION_CHANNEL_ID = "detection_channel"
         const val UPLOAD_CHANNEL_ID = "upload_channel"
+        const val ACTION_CHANNEL_ID = "action_channel"
         const val DEBUG_CHANNEL_ID = "debug_channel"
 
         // PendingIntent request codes — must be unique across the app
         private const val RC_DETECTION = 10
         private const val RC_CONFIRMATION = 11
         private const val RC_PARKING_SAVED = 12
-        private const val RC_UPLOADING = 13
         private const val RC_DEBUG = 14
         private const val RC_PERMISSION_REVOKED = 15
-        private const val RC_SPOT_PUBLISHED = 16
         private const val RC_CONFIRMATION_FAILED = 17
-        private const val RC_HOME_PARKING_LEFT = 18
         private const val RC_CONFIRM_YES = 200
         private const val RC_CONFIRM_NO = 201
         // [REFACTOR-300] post-save notification request codes
@@ -322,7 +315,6 @@ class AppNotificationManagerImpl(
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active
         private val COLOR_CONFIRMATION = Color.rgb(245, 124, 0)  // Orange — needs attention
         private val COLOR_SUCCESS = Color.rgb(56, 142, 60)       // Green  — success
-        private val COLOR_UPLOAD = Color.rgb(25, 118, 210)       // Blue   — in progress
         private val COLOR_DEBUG = Color.rgb(123, 31, 162)        // Purple — debug
     }
 }

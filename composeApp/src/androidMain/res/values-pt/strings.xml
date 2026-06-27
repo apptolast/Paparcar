@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Notificação: serviço foreground de deteção -->
-    <string name="notif_detection_title">Deteção ativa</string>
-    <string name="notif_detection_text">À procura de sinais de estacionamento…</string>
+    <string name="notif_detection_title">Deteção de estacionamento ativa</string>
+    <string name="notif_detection_text">Deteto quando estacionas · toca para gerir</string>
     <!-- %1$s = nome do veículo (ex. "Ford Focus") -->
-    <string name="notif_detection_text_vehicle">A monitorizar %1$s</string>
+    <string name="notif_detection_text_vehicle">Atento ao teu %1$s · toca para gerir</string>
+    <string name="notif_detection_explainer">Deteto automaticamente quando estacionas para libertar o teu lugar para a comunidade. Consumo de bateria mínimo.</string>
 
     <!-- Notificação: confirmação de estacionamento -->
     <string name="notif_confirmation_title">Estacionou?</string>
@@ -24,14 +25,6 @@
     <string name="notif_action_confirm">Sim, confirmar</string>
     <string name="notif_action_cancel_save">Não, cancelar</string>
 
-    <!-- Notificação: lugar comunitário publicado -->
-    <string name="notif_spot_published_title">Lugar disponível para outros</string>
-    <string name="notif_spot_published_text">O seu lugar de estacionamento já está visível para os condutores próximos.</string>
-
-    <!-- Notificação: a carregar lugar -->
-    <string name="notif_uploading_title">Paparcar</string>
-    <string name="notif_uploading_text">A carregar novo lugar…</string>
-
     <!-- Notificação: permissão revogada enquanto o serviço estava ativo -->
     <string name="notif_permission_revoked_title">Paparcar precisa de permissões</string>
     <string name="notif_permission_revoked_text">Permissão de localização revogada — toque para restaurar</string>
@@ -48,12 +41,10 @@
     <string name="channel_detection_desc">Notificação persistente enquanto a deteção de estacionamento está ativa</string>
     <string name="channel_upload_name">Upload de Lugar</string>
     <string name="channel_upload_desc">Confirmações de lugar guardado e upload para a nuvem</string>
+    <string name="channel_action_name">Confirmação de estacionamento</string>
+    <string name="channel_action_desc">Pergunta-te se estacionaste</string>
     <string name="channel_debug_name">Debug</string>
     <string name="channel_debug_desc">Mensagens de depuração — apenas em builds de desenvolvimento</string>
-
-    <!-- Notificação: saída do estacionamento habitual -->
-    <string name="notif_home_parking_left_title">Saiu de %1$s</string>
-    <string name="notif_home_parking_left_text">O seu lugar de estacionamento está agora disponível</string>
 
     <string name="attribution_detection_label">Deteção de estacionamento</string>
 </resources>

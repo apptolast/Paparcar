@@ -63,21 +63,6 @@ interface AppNotificationManager {
     ) {}
 
     /**
-     * Shows a transient notification confirming the freed spot is visible to other drivers.
-     * Tapping opens the map centred on the spot location.
-     *
-     * @param latitude  Latitude of the published community spot.
-     * @param longitude Longitude of the published community spot.
-     */
-    fun showSpotPublished(latitude: Double, longitude: Double)
-
-    /**
-     * Shows an ongoing notification while the spot-released report is being uploaded to Firebase.
-     * Replace with [dismiss] using [UPLOAD_NOTIFICATION_ID] once the upload completes.
-     */
-    fun showSpotUploading()
-
-    /**
      * Updates the text of the foreground detection notification to show the vehicle being monitored.
      * Called from a coroutine immediately after the service calls startForeground().
      *
@@ -111,17 +96,6 @@ interface AppNotificationManager {
     fun showConfirmationFailed() {}
 
     /**
-     * Shows a transient notification when the user exits a home parking geofence.
-     * Informs the user that their habitual spot is now available to others.
-     * Tapping opens the map centred on the spot.
-     *
-     * @param label The user-defined label for the home parking marker (e.g. "My garage").
-     * @param lat   Latitude of the home parking marker.
-     * @param lon   Longitude of the home parking marker.
-     */
-    fun showHomeParkingLeft(label: String, lat: Double, lon: Double) {}
-
-    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -133,15 +107,12 @@ interface AppNotificationManager {
         /** ID for the foreground-service detection notification (channel: DETECTION / LOW priority). */
         const val DETECTION_NOTIFICATION_ID = 1001
 
-        /** ID for the spot-uploading / parking-saved notification (channel: UPLOAD / DEFAULT priority). */
+        /** ID for the parking-saved notification (channel: UPLOAD / DEFAULT priority). */
         const val UPLOAD_NOTIFICATION_ID = 1002
 
         /** ID for the [BluetoothDetectionService] foreground notification — distinct from
          *  [DETECTION_NOTIFICATION_ID] so both services can coexist without overwriting each other. */
         const val BT_DETECTION_NOTIFICATION_ID = 1003
-
-        /** ID for the "Spot published" notification shown after a spot release is uploaded. */
-        const val SPOT_PUBLISHED_NOTIFICATION_ID = 1004
 
         /** ID for the debug diagnostic notification (channel: DEBUG / HIGH priority). */
         const val DEBUG_NOTIFICATION_ID = 2001
@@ -154,8 +125,5 @@ interface AppNotificationManager {
 
         /** ID for the "parking confirmation failed" error notification. */
         const val CONFIRMATION_FAILED_NOTIFICATION_ID = 2004
-
-        /** ID for the "you left your home parking spot" notification. */
-        const val HOME_PARKING_NOTIFICATION_ID = 2005
     }
 }

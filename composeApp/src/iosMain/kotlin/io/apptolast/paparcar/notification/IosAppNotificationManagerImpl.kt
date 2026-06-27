@@ -5,9 +5,7 @@ package io.apptolast.paparcar.notification
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.notification.AppNotificationManager.Companion.CONFIRMATION_FAILED_NOTIFICATION_ID
 import io.apptolast.paparcar.domain.notification.AppNotificationManager.Companion.DEBUG_NOTIFICATION_ID
-import io.apptolast.paparcar.domain.notification.AppNotificationManager.Companion.HOME_PARKING_NOTIFICATION_ID
 import io.apptolast.paparcar.domain.notification.AppNotificationManager.Companion.PARKING_CONFIRMATION_NOTIFICATION_ID
-import io.apptolast.paparcar.domain.notification.AppNotificationManager.Companion.SPOT_PUBLISHED_NOTIFICATION_ID
 import io.apptolast.paparcar.domain.notification.AppNotificationManager.Companion.UPLOAD_NOTIFICATION_ID
 import platform.UserNotifications.UNMutableNotificationContent
 import platform.UserNotifications.UNNotificationAction
@@ -78,15 +76,6 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         post(PARKING_CONFIRMATION_NOTIFICATION_ID, content)
     }
 
-    override fun showHomeParkingLeft(label: String, lat: Double, lon: Double) {
-        val content = UNMutableNotificationContent().apply {
-            setTitle("You left $label")
-            setBody("Your habitual spot is now visible to nearby drivers.")
-            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
-        }
-        post(HOME_PARKING_NOTIFICATION_ID, content)
-    }
-
     override fun showConfirmationFailed() {
         val content = UNMutableNotificationContent().apply {
             setTitle("Could not save parking")
@@ -96,25 +85,8 @@ class IosAppNotificationManagerImpl : AppNotificationManager {
         post(CONFIRMATION_FAILED_NOTIFICATION_ID, content)
     }
 
-    override fun showSpotPublished(latitude: Double, longitude: Double) {
-        val content = UNMutableNotificationContent().apply {
-            setTitle("Spot available for others")
-            setBody("Your parking spot is now visible to nearby drivers.")
-            setSound(platform.UserNotifications.UNNotificationSound.defaultSound)
-        }
-        post(SPOT_PUBLISHED_NOTIFICATION_ID, content)
-    }
-
     override fun updateDetectionVehicle(vehicleName: String, notifId: Int) {
         // iOS foreground service notifications are not applicable — no-op.
-    }
-
-    override fun showSpotUploading() {
-        val content = UNMutableNotificationContent().apply {
-            setTitle("Paparcar")
-            setBody("Uploading new spot…")
-        }
-        post(UPLOAD_NOTIFICATION_ID, content)
     }
 
     override fun showPermissionRevoked() = Unit // Android-only concept; iOS handles this via system UI
