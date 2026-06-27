@@ -109,6 +109,11 @@ class SaveNewParkingSessionWorker(
         private const val KEY_NEW_SESSION_SPOT_ID = "session_spot_id"
         private const val KEY_NEW_SESSION_GEOFENCE_ID = "session_geofence_id"
         private const val KEY_NEW_SESSION_DETECTION_RELIABILITY = "session_detection_reliability"
+        // [BUG-SIZE-PARITY] These were missing — the worker dropped the vehicle size/carbody on the
+        // Firestore sync (Room kept them), so parkingHistory and the published Spot showed
+        // "size unspecified", and syncFromRemote then overwrote Room's size with null. [VEHICLE-CATEGORIZATION-001]
+        private const val KEY_NEW_SESSION_SIZE_CATEGORY = "session_size_category"
+        private const val KEY_NEW_SESSION_CARBODY_TYPE = "session_carbody_type"
 
         fun buildRequest(
             session: UserParking,
@@ -128,6 +133,9 @@ class SaveNewParkingSessionWorker(
                 // NaN sentinel for "absent" — workDataOf does not preserve nulls for primitives,
                 // and `detectionReliability` may legitimately be null for manually-reported spots. [MAPPER-003]
                 KEY_NEW_SESSION_DETECTION_RELIABILITY to (session.detectionReliability?.toDouble() ?: Double.NaN),
+                // [BUG-SIZE-PARITY] carry the vehicle size/carbody through to Firestore.
+                KEY_NEW_SESSION_SIZE_CATEGORY to session.sizeCategory?.name,
+                KEY_NEW_SESSION_CARBODY_TYPE to session.carbodyType?.name,
             )
             return OneTimeWorkRequestBuilder<SaveNewParkingSessionWorker>()
                 .setInputData(data)
@@ -156,6 +164,8 @@ class SaveNewParkingSessionWorker(
                 geofenceId = getString(KEY_NEW_SESSION_GEOFENCE_ID),
                 detectionReliability = getDouble(KEY_NEW_SESSION_DETECTION_RELIABILITY, Double.NaN)
                     .takeUnless { it.isNaN() }?.toFloat(),
+                sizeCategory = getString(KEY_NEW_SESSION_SIZE_CATEGORY),
+                carbodyType = getString(KEY_NEW_SESSION_CARBODY_TYPE),
             )
         }
     }
