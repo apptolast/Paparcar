@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash window background — dark theme.
+         Mirrors PapInk (#0D1117), the Compose dark surface, so the native
+         splash matches the app base color that draws right after it. -->
+    <color name="splash_background">#0D1117</color>
+</resources>

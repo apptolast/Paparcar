@@ -4,4 +4,19 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
+
+    <!-- Native splash (core-splashscreen). windowSplashScreenBackground points to a
+         DayNight color so the splash fondo follows light/dark; the in-app ThemeMode
+         preference is pushed into AppCompat night mode in PaparcarApp so this resolves
+         to the user's choice, not just the system setting. -->
+    <style name="Theme.Paparcar.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <!-- Brand mark only (the green car glyph, transparent background) so it floats on the
+             DayNight splash fondo. Using @mipmap/ic_launcher here would render the full adaptive
+             icon — its solid green background gets masked into a circle and looks off. -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.AppCompat.Light.NoActionBar</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>

@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.work.WorkManager
 import com.apptolast.customlogin.appContext
@@ -20,7 +21,10 @@ import io.apptolast.paparcar.di.androidPlatformModule
 import io.apptolast.paparcar.di.dataModule
 import io.apptolast.paparcar.di.domainModule
 import io.apptolast.paparcar.di.presentationModule
+import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.logging.FileAntilog
+import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 
 class PaparcarApp : Application() {
@@ -50,6 +54,19 @@ class PaparcarApp : Application() {
                 androidPlatformModule,
             )
         }
+
+        // Push the in-app ThemeMode preference into AppCompat night mode BEFORE the
+        // launcher activity's starting window is drawn, so the native splash
+        // (windowSplashScreenBackground → @color/splash_background DayNight) resolves to
+        // the user's choice rather than just the system dark setting. appPreferences is
+        // synchronously available via the blocking DataStore warmup at Koin construction.
+        AppCompatDelegate.setDefaultNightMode(
+            when (get<AppPreferences>().themeMode) {
+                ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+                ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
+                ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            },
+        )
 
         val workManager = WorkManager.getInstance(this)
 

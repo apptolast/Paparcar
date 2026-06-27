@@ -67,14 +67,20 @@ class MainActivity : ComponentActivity() {
         }
 
         ActivityHolder.setActivity(this)
-        enableEdgeToEdge()
-        handleNotificationFocusIntent(intent)
+
+        // installSplashScreen() must run before super.onCreate() AND before enableEdgeToEdge():
+        // on API 31+ it internally calls setTheme(postSplashScreenTheme), which re-applies the
+        // theme's system-bar attributes. If enableEdgeToEdge() ran first, that setTheme would
+        // clobber the transparent bars and re-introduce an opaque status bar + broken insets.
         val splashScreen = installSplashScreen()
 
         // Keep splash screen visible until auth check completes
         splashScreen.setKeepOnScreenCondition {
             !splashViewModel.isReady
         }
+
+        enableEdgeToEdge()
+        handleNotificationFocusIntent(intent)
         super.onCreate(savedInstanceState)
 
         connectivityObserver.start()
@@ -85,12 +91,14 @@ class MainActivity : ComponentActivity() {
                 splashViewModel = splashViewModel,
             )
 
-            // Start detection infrastructure when all permissions are granted.
+            // Start detection infrastructure when the PRODUCER tier (background location +
+            // activity recognition) is granted — that's what AR registration and the transitions
+            // worker need. CORE-only users have no detection to arm. [DET-READY-001d]
             // distinctUntilChanged + filter ensures we trigger only on false → true transition,
             // not on every permission state update.
             LaunchedEffect(Unit) {
                 permissionManager.permissionState
-                    .map { it.allPermissionsGranted }
+                    .map { it.hasProducerPermissions }
                     .distinctUntilChanged()
                     .filter { granted -> granted }
                     .onEach {
