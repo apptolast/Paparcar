@@ -50,4 +50,13 @@ interface ParkingSyncScheduler {
      * chained after [enqueueSaveNewParkingSession] to avoid NOT_FOUND on first delivery. [PIPE-002]
      */
     fun enqueueUpdateParkingSessionAddressAndPlace(sessionId: String, address: AddressInfo?, placeInfo: PlaceInfo?)
+
+    /**
+     * [GEOF-001] Schedules an immediate one-time geofence-restoration pass — re-registers the GMS
+     * geofences for every active session in Room. Called right after [UserParkingRepositoryImpl.syncFromRemote]
+     * repopulates Room post-login, so a reinstall (which wipes BOTH the registered geofences AND Room)
+     * gets its geofence back the moment the active session is synced, instead of waiting for the
+     * periodic `GeofenceJanitorWorker` to run. Idempotent. Default no-op for platforms without WorkManager.
+     */
+    fun enqueueGeofenceRestore() {}
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import io.apptolast.paparcar.detection.worker.ClearActiveParkingSessionWorker
+import io.apptolast.paparcar.detection.worker.GeofenceJanitorWorker
 import io.apptolast.paparcar.detection.worker.SaveNewParkingSessionWorker
 import io.apptolast.paparcar.detection.worker.UpdateParkingSessionAddressAndPlaceWorker
 import io.apptolast.paparcar.domain.model.AddressInfo
@@ -56,5 +57,9 @@ class WorkManagerParkingSyncScheduler(
                 UpdateParkingSessionAddressAndPlaceWorker.buildRequest(sessionId, address, placeInfo),
             )
             .enqueue()
+    }
+
+    override fun enqueueGeofenceRestore() {
+        GeofenceJanitorWorker.enqueueOnce(WorkManager.getInstance(context))
     }
 }

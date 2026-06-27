@@ -3,6 +3,8 @@ package io.apptolast.paparcar.detection.worker
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -94,6 +96,22 @@ class GeofenceJanitorWorker(
                 TAG,
                 ExistingPeriodicWorkPolicy.KEEP,
                 buildPeriodicRequest(),
+            )
+        }
+
+        /**
+         * [GEOF-001] Immediate one-time restoration pass, distinct from the 12 h periodic. Enqueued
+         * right after a post-login `syncFromRemote` repopulates Room, so a reinstall/reboot gets its
+         * geofence re-registered within seconds instead of waiting for the periodic's next run.
+         * `REPLACE` keeps rapid duplicate enqueues idempotent; no constraints so it runs ASAP.
+         */
+        fun enqueueOnce(workManager: WorkManager) {
+            workManager.enqueueUniqueWork(
+                "${TAG}_once",
+                ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<GeofenceJanitorWorker>()
+                    .addTag(TAG)
+                    .build(),
             )
         }
     }

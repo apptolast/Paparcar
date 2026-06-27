@@ -81,6 +81,11 @@ class UserParkingRepositoryImpl(
                 .map { it.toEntity() }
             if (remoteEntities.isEmpty()) return@runCatching
             dao.upsertAll(remoteEntities)
+            // [GEOF-001] Room now holds this user's active session(s); restore their GMS geofences
+            // immediately. A reinstall wipes BOTH Room and the registered geofences, so without this
+            // the geofence would not come back until the periodic janitor's next run (the gap that left
+            // a fresh install undetected until a manual re-mark). Idempotent; no-op on platforms w/o WM.
+            parkingSyncScheduler.enqueueGeofenceRestore()
         }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> =
