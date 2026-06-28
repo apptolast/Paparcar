@@ -6,6 +6,8 @@
 
 This is the canonical reference for *how parking detection works today* and *what bugs we have already burned in trying to make it work*. Section 1 describes the algorithm. Section 2 logs every fix shipped, so future-you (or future-Claude) understands why a given guard exists before deleting it.
 
+> **Related:** this document covers the *algorithm*. The *readiness / permission / banner* layer — what the app tells the user about detection (armed / running / blocked / not applicable), the CORE-vs-PRODUCER permission tiering, and the onboarding flow — is documented separately in [`DETECTION-READINESS.md`](./DETECTION-READINESS.md) (epic DET-READY-001).
+
 ---
 
 ## 1. Algorithm and architecture
@@ -288,9 +290,9 @@ When the user leaves with their car, departure detection runs through two parall
 
 #### Step 1 — Geofence exit
 
-When the user drives far enough from the saved parking location, Google Play Services fires a geofence exit event to `GeofenceBroadcastReceiver`. The receiver extracts `GeofencingEvent.fromIntent(intent)`, reads `triggeringGeofences`, and enqueues `DepartureDetectionWorker` via WorkManager with `KEY_GEOFENCE_ID` and `KEY_EXIT_TIMESTAMP`.
+When the user drives far enough from the saved parking location, Google Play Services fires a geofence exit event **directly to `CoordinatorDetectionService` (`ACTION_GEOFENCE_EXIT`)** via the privileged `getForegroundService` PendingIntent (DET-G-01). `handleGeofenceExit` extracts `GeofencingEvent.fromIntent(intent)`, reads `triggeringGeofences`, looks up the active session for the geofence (orphan geofences are self-removed, not armed), and enqueues `DepartureDetectionWorker` via WorkManager with `KEY_GEOFENCE_ID` and `KEY_EXIT_TIMESTAMP`. The old `GeofenceBroadcastReceiver` fallback was removed once device-validated. [DET-AR-REARM-001]
 
-> **Important:** the geofence `PendingIntent` **must** use `FLAG_MUTABLE`. Play Services fills `GeofencingEvent` extras into the intent at delivery time; `FLAG_IMMUTABLE` blocks this on Android 12+ — `triggeringGeofences` arrives as `null` and the receiver silently returns without enqueuing the worker. See BUG-GEOFENCE-001 in §2.
+> **Important:** the geofence `PendingIntent` **must** use `FLAG_MUTABLE`. Play Services fills `GeofencingEvent` extras into the intent at delivery time; `FLAG_IMMUTABLE` blocks this on Android 12+ — `triggeringGeofences` arrives as `null` and the handler silently returns without enqueuing the worker. See BUG-GEOFENCE-001 in §2.
 
 #### Step 2 — Activity Recognition: IN_VEHICLE_ENTER
 
@@ -1096,3 +1098,32 @@ Companion refactor to REFACTOR-300, applied to the Bluetooth detection flow (`Bl
 **Importance reorg (per-channel).** Confirmation prompts (`showParkingConfirmation`, `showParkingSavedConfirm`) moved off the LOW `detection_channel` onto a new HIGH `action_channel` (heads-up) — they are the only button-interaction notifications. `showParkingSavedConfirm` adds `setOnlyAlertOnce(true)` so morphing the "¿Has aparcado?" prompt at the same id does not re-buzz, while the auto-confirm path still alerts once. `showPermissionRevoked` moved from LOW to the DEFAULT `upload_channel` so it is visible rather than silent-at-bottom. Detection FGS stays LOW/silent.
 
 **Icon.** All notifications (except debug) now use `ic_notification_logo` — the app's car glyph wrapped in a circle, monochrome — as the status-bar small icon, replacing the per-type contextual icons (which were deleted).
+
+### DET-AR-REARM-001 — AR proximity re-arm for short trips + missed-exit watchdog (2026-06-28)
+
+**Problem.** Since DET-G-01 the detection loop re-arms ONLY on `GEOFENCE_EXIT` (AR was demoted to a non-decisive corroborator). The loop is serial and geofence-gated: after a park is confirmed the service goes idle and only re-arms when the user leaves their own parked-car geofence. Two failure modes leave the loop **stalled** — and because arming is single-pathed, a stalled loop misses not one park but *every* subsequent park until the next genuine long departure:
+- **(a) Short trip within the radius.** Moving the car less than the ~95–120 m effective geofence radius never fires an EXIT, so detection never re-arms.
+- **(b) Platform-dropped EXIT.** Doze / aggressive OEM killers (Xiaomi/Oppo) can swallow the EXIT even on a real drive-away.
+
+Reducing the geofence radius was rejected: below ~100 m Android geofencing gets *less* reliable and GPS jitter produces false exits (which now also falsely arm detection). The radius is calibrated to platform reliability and stays.
+
+**Fix — a second, precision-preserving arming path (AR + proximity gate).** The geofence's power is a two-part signal: the departure *originates where the car is parked* (anchor) AND happens *at vehicle speed* (speed/egress gates). "Far from the car" is only half — it cannot tell *drove away* from *walked / took a bus / got picked up*, which is exactly the bus/taxi/train false-positive class the geofence kills. So:
+- `IN_VEHICLE_ENTER` is delivered DIRECTLY to `CoordinatorDetectionService.handleArVehicleEnter` via a privileged `getForegroundService` PendingIntent (`ACTION_AR_VEHICLE_ENTER`), **scoped to the parked window** so the FGS-promote only happens when a car is actually parked — not on every bus ride. Registration is wired in `ConfirmParkingUseCase` (after geofence create) and torn down in `ProcessConfirmedDepartureUseCase` only when no parked session remains; restored after reboot/reinstall by `GeofenceJanitorWorker` alongside the geofences.
+- `ShouldArmFromVehicleEnterUseCase` reconstructs the **anchor** in software: arm only if a GPS fix is within the nearest parked car's **own geofence radius** (`ParkingDetectionConfig.geofenceRadiusFor(size, accuracy)` — the same value the geofence was registered with) — boarding a vehicle *where the car is parked* is overwhelmingly the user's own car. Equal-by-construction to the geofence boundary so AR and the EXIT meet on one line: **no dead ring** between them (which a smaller flat constant left for vans/poor GPS) and **no extra bus surface** (which a larger one opened for motorcycles). Crucially, the **proximity gate — not the egress gate — is the decisive bus/taxi defence**: a bus ride satisfies the egress gate (drive + walk away), so the anchor must do the rejecting. Fails closed (no session / no fix → do not arm). The Coordinator's speed + egress gates remain the final filter, so a false arm cannot produce a phantom spot.
+- AR registration is now **split**: `registerTransitions()` is EXIT-only (always-on, plain broadcast → `ActivityTransitionReceiver`, no flash); the scoped ENTER goes to the service. Each transition reaches exactly one PendingIntent (no double-delivery). The ENTER timestamp corroborator (`DepartureEventBus.onVehicleEntered`) moved from the receiver to the service handler.
+
+**Fix — missed-exit watchdog (last resort for case (b)).** `DetectionHeartbeatWorker` (previously a no-op) now surfaces a **low-confidence** "still parked?" prompt (`showStillParkedPrompt`, ACTION channel, single "I've left" action → `ACTION_DEPARTURE_CONFIRMED` → `ProcessConfirmedDepartureUseCase`). It NEVER auto-releases — at poll time the departure speed is gone, so only the user can disambiguate, and a silent release would re-introduce the bus/taxi false positives. It does **not nag**: it fires only when an active session exists, detection is idle, the phone is beyond `watchdogFarThresholdMeters` (300 m) from the nearest car, AND an `IN_VEHICLE_ENTER` was recorded within `vehicleEnterWindowMs` (30 min). The vehicle-signal requirement excludes the normal "park and walk away" case (far all day, no vehicle signal), and the 30-min window self-bounds the prompt; when the conditions lapse the prompt is dismissed.
+
+**Trigger diagnostics.** `startParkingDetection(trigger: DetectionTrigger)` logs which signal armed the loop — `GEOFENCE_EXIT` / `AR_PROXIMITY` / `MANUAL` — to three sinks: a Crashlytics custom key (`det_trigger`), the remote `DetectionEventLogger` (Firestore, `SessionStarted` with strategy `ARM:<trigger>`), and a debug notification (DEBUG builds only) so a field tester sees on-device which trigger fired.
+
+**Idempotency / race.** Two triggers (GEOFENCE_EXIT + AR_ENTER) can arm concurrently. The early `detectionJob?.isActive` guard skips AR when a job is already running; additionally, because the AR proximity gate does an async ~15 s GPS fix, the `Arm` branch **re-checks `isActive` immediately before arming** so a GEOFENCE_EXIT that armed during the fix window is not superseded by the (less specific) AR trigger.
+
+**Geofence radius dedup.** `computeGeofenceRadius` (previously duplicated in `ConfirmParkingUseCase` and `UpdateParkingLocationUseCase`) is extracted to `ParkingDetectionConfig.geofenceRadiusFor(sizeCategory, accuracy)` — the single source of truth shared by both geofence registrations and the AR proximity gate.
+
+**New config.** `watchdogFarThresholdMeters = 300f`. (The AR proximity threshold is derived per-session via `geofenceRadiusFor`, not a constant — an earlier flat `arRearmProximityMeters = 120f` was removed because it left a dead ring for vans and was loose for motorcycles.)
+
+**Tests.** `ShouldArmFromVehicleEnterUseCaseTest` covers the four decisions (no-session / no-fix / within-proximity / too-far).
+
+**Open follow-ups.**
+- **Device validation required.** Two AR transition registrations with distinct PendingIntents (EXIT global + ENTER scoped) must be confirmed to coexist on real Play Services — especially on the OEM killers (Xiaomi/Oppo). Detection-core changes are not proven by green compile/tests.
+- `RevertParkingUseCase` and the sign-out drain do not explicitly unregister the scoped ENTER arming; it is self-correcting (the handler fails closed when no session exists) but could be wired for tidiness.

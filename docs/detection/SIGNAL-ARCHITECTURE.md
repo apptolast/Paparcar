@@ -5,6 +5,10 @@
 > **falso positivo (plaza fantasma) rompe la confianza de la red**. Por eso cada decisión cuelga de
 > la señal *más difícil de falsear en un no-evento*.
 
+> **Relacionado:** este doc cubre las *señales* del algoritmo. La capa de *readiness / permisos /
+> banner* (qué le decimos al usuario sobre la detección, el tiering CORE-vs-PRODUCER y el onboarding)
+> está en [`DETECTION-READINESS.md`](./DETECTION-READINESS.md) (epic DET-READY-001).
+
 ## Calidad de señal — la regla
 
 La señal **decisiva** (la que confirma/dispara) debe ser **físicamente imposible de producir en un

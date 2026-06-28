@@ -82,8 +82,8 @@
     <string name="onboarding_cta_setup">Machtigingen instellen</string>
 
     <!-- PermissionsScreen -->
-    <string name="permissions_title">Machtigingen inschakelen</string>
-    <string name="permissions_subtitle">De volgende machtigingen zijn vereist voor automatische detectie.</string>
+    <string name="permissions_title">Automatiseer je parkeren</string>
+    <string name="permissions_subtitle">Alleen locatie is verplicht; de rest activeert de automatische detectie.</string>
     <string name="permissions_perm_location">Nauwkeurige locatie</string>
     <string name="permissions_perm_location_desc">Om nauwkeurig op te slaan waar u uw voertuig heeft geparkeerd</string>
     <string name="permissions_perm_background">Achtergrondlocatie</string>
@@ -104,6 +104,9 @@
     <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
     <string name="permissions_btn_background">Achtergrondlocatie activeren</string>
+    <!-- DET-READY-001e -->
+    <string name="permissions_btn_activate_detection">Automatische detectie inschakelen</string>
+    <string name="permissions_continue_with_core">Misschien later</string>
     <string name="permissions_btn_settings">Systeeminstellingen openen</string>
     <string name="permissions_rationale">Sommige machtigingen zijn geweigerd. Verleen ze om door te gaan.</string>
     <string name="permissions_perm_location_services">Locatieservices</string>
@@ -364,8 +367,8 @@
     <string name="spot_item_type_manual">Handmatig</string>
 
     <!-- Machtigingen uitleg scherm -->
-    <string name="perm_rationale_title">Hoe Paparcar werkt</string>
-    <string name="perm_rationale_subtitle">We hebben een paar machtigingen nodig om uw parkeren automatisch te detecteren.</string>
+    <string name="perm_rationale_title">Automatiseer uw parkeren</string>
+    <string name="perm_rationale_subtitle">Onthoud waar u parkeerde, houd een automatische geschiedenis bij en geef uw plek vrij wanneer u vertrekt — automatisch. Er zijn maar een paar machtigingen voor nodig.</string>
     <string name="perm_rationale_body">Paparcar detecteert wanneer je je parkeerplaats verlaat en deelt deze automatisch met nabijgelegen bestuurders — net zoals jij hiervan zou profiteren als iemand anders hetzelfde doet.\n\nHiervoor hebben we toegang nodig tot je locatie en bewegingssensoren. Je exacte locatie wordt nooit gedeeld met andere gebruikers.</string>
     <string name="perm_rationale_cta">Begrepen, machtigingen inschakelen</string>
     <string name="perm_rationale_skip">Nu niet</string>
@@ -404,6 +407,15 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Automatische detectie actief</string>
     <string name="detection_banner_pair_bt">Bluetooth koppelen</string>
+    <!-- DetectionReadinessBanner [DET-READY-001] -->
+    <string name="detection_ready_armed">Klaar · ik detecteer bij het parkeren</string>
+    <string name="detection_monitoring_active">Detectie actief · onderweg</string>
+    <string name="detection_parked_watching">Geparkeerd · let op vertrek</string>
+    <string name="detection_blocked_title">Detectie gepauzeerd</string>
+    <string name="detection_blocked_cta">Inschakelen</string>
+    <string name="detection_disabled_no_vehicle">Voeg je auto toe en automatiseer het parkeren</string>
+    <string name="detection_disabled_no_vehicle_cta">Toevoegen</string>
+    <string name="detection_disabled_non_parking">Geen detectie voor motor/fiets</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d onderweg</string>
     <string name="spot_indicator_ttl_expired">Verlopen</string>
@@ -637,5 +649,28 @@
     <string name="vehicle_registration_section_privacy">Privacy</string>
     <string name="vehicle_registration_section_size">Voertuiggrootte</string>
     <string name="vehicle_registration_size_hint">Tik om de grootte te kiezen</string>
+
+    <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_novehicle_title">Voeg je auto toe</string>
+    <string name="home_det_novehicle_sub">Parkeer en geef plekken moeiteloos vrij</string>
+    <string name="home_det_novehicle_cta">Toevoegen</string>
+    <string name="home_det_core_title">Locatie inschakelen</string>
+    <string name="home_det_core_sub">Paparcar werkt er niet zonder</string>
+    <string name="home_det_core_cta">Inschakelen</string>
+    <string name="home_det_producer_title">Detectie inschakelen</string>
+    <string name="home_det_producer_sub">Geeft je plek vrij als je wegrijdt</string>
+    <string name="home_det_producer_cta">Inschakelen</string>
+    <string name="home_det_awaiting_title">Waar staat je auto?</string>
+    <string name="home_det_awaiting_sub">Markeer de plek, ik houd hem in de gaten</string>
+    <string name="home_det_awaiting_cta_primary">Plek markeren</string>
+    <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
+    <string name="home_det_monitoring">Je rit volgen</string>
+    <string name="home_chip_mark_spot">Plek markeren</string>
+    <string name="home_chip_bt_armed">Let op vertrek</string>
+
+    <!-- Permissions screen sections [DET-READY-001i] -->
+    <string name="permissions_section_essential">Essentieel</string>
+    <string name="permissions_section_detection">Automatische detectie</string>
+    <string name="permissions_section_optional">Optioneel · betrouwbaarheid</string>
 
 </resources>

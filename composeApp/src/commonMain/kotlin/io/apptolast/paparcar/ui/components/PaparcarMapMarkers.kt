@@ -45,8 +45,6 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
-import io.apptolast.paparcar.ui.theme.PapInk
-import io.apptolast.paparcar.ui.theme.parkedVehicleAccent
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
 import kotlin.math.cos
 import kotlin.math.sin
@@ -135,12 +133,14 @@ fun VehicleBadgeMarker(
     stableRank: Int? = null,
     isBluetoothPaired: Boolean = false,
 ) {
-    val cs = MaterialTheme.colorScheme
-    val accent = parkedVehicleAccent(stableRank, isBluetoothPaired)
-    val bg = if (isActive) PapInk else cs.surfaceVariant
-    val ring = if (isActive) accent.fill else cs.onSurfaceVariant
-    val iconTint = ring
-    val shadowColor = cs.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
+    // A vehicle marker is always a parked car → green, unless BT (blue) or monitoring stopped (dim).
+    // Same semantic [VehicleBadge] as the Home chip / peek so the car reads identically everywhere.
+    val tone = when {
+        !isActive -> VehicleBadgeTone.Inactive
+        isBluetoothPaired -> VehicleBadgeTone.Bluetooth
+        else -> VehicleBadgeTone.Parked
+    }
+    val shadowColor = MaterialTheme.colorScheme.onSurface.copy(alpha = GROUND_SHADOW_ALPHA)
 
     Box(
         modifier = modifier.size(
@@ -154,30 +154,19 @@ fun VehicleBadgeMarker(
                 .size(width = BADGE_SHADOW_W, height = BADGE_SHADOW_H),
         ) { drawOval(color = shadowColor) }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .size(BADGE_DIAM)
-                .background(color = bg, shape = CircleShape)
-                .border(
-                    width = if (selected) BADGE_SEL_STROKE else BADGE_STROKE,
-                    color = if (selected) Color.White else ring,
-                    shape = CircleShape,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            VehicleIcon(
-                carbody = carbodyType,
-                size = sizeCategory,
-                tint = iconTint,
-                modifier = Modifier.size(BADGE_ICON_SIZE),
-            )
-        }
+        VehicleBadge(
+            carbody = carbodyType,
+            size = sizeCategory,
+            tone = tone,
+            diameter = BADGE_DIAM,
+            selected = selected,
+            ringWidth = if (selected) BADGE_SEL_STROKE else BADGE_STROKE,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
     }
 }
 
 private val BADGE_DIAM       = 46.dp
-private val BADGE_ICON_SIZE  = 32.dp
 private val BADGE_STROKE     = 2.dp
 private val BADGE_SEL_STROKE = 3.dp
 private val BADGE_SHADOW_W   = 22.dp

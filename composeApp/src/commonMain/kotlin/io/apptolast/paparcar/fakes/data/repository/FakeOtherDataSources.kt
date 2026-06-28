@@ -60,6 +60,10 @@ class FakeAppPreferences : AppPreferences {
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer.value
     override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer.value = true }
 
+    private val _hasRequestedLocationPermission = MutableStateFlow(false)
+    override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission.value
+    override fun setLocationPermissionRequested() { _hasRequestedLocationPermission.value = true }
+
     private val _autoDetectParking = MutableStateFlow(true)
     override val autoDetectParking: Boolean get() = _autoDetectParking.value
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }

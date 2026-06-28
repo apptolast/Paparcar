@@ -15,7 +15,7 @@ import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationOpenSettingsURLString
 
-actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
+actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus: PermissionsFocus) {
     val viewModel = koinViewModel<PermissionsViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val permissionManager = koinInject<PermissionManager>()
@@ -48,6 +48,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit) {
         state = state,
         onRequestPermissions = { viewModel.handleIntent(PermissionsIntent.RequestPermissions) },
         onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
+        focus = focus,
     )
 }
 

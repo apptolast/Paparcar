@@ -7,10 +7,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -46,7 +49,9 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
+import io.apptolast.paparcar.presentation.home.sections.map.components.HomeMonitoringPill
 import io.apptolast.paparcar.presentation.home.sections.map.components.HomeReportFab
+import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
@@ -141,6 +146,10 @@ private val SHEET_MIN_VISIBLE_HEIGHT = 96.dp
 fun HomeScreen(
     navProgressState: MutableFloatState = remember { mutableFloatStateOf(1f) },
     bottomPadding: Dp = 0.dp,
+    // [DET-READY-001f] Detection-banner CTAs. Navigate to the existing permission flow
+    // (reuses its disclosure + escalation) and to vehicle registration respectively.
+    onActivateDetection: (focus: String) -> Unit = {},
+    onAddVehicle: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
@@ -199,6 +208,8 @@ fun HomeScreen(
         snackbarHostState = snackbarHostState,
         navProgressState = navProgressState,
         bottomPadding = bottomPadding,
+        onActivateDetection = onActivateDetection,
+        onAddVehicle = onAddVehicle,
     )
 
     state.pendingParkingGps?.let { pending ->
@@ -223,6 +234,8 @@ private fun HomeContent(
     snackbarHostState: SnackbarHostState,
     navProgressState: MutableFloatState,
     bottomPadding: Dp,
+    onActivateDetection: (focus: String) -> Unit,
+    onAddVehicle: () -> Unit,
 ) {
     val uiController = rememberHomeUiController()
     val coroutineScope = rememberCoroutineScope()
@@ -719,34 +732,53 @@ private fun HomeContent(
                         },
                 )
 
-                // ── Floating search bar + map-type picker + GPS banner ───────
-                AnimatedVisibility(
-                    visible = overlayVisible,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
-                    modifier = Modifier.align(Alignment.TopStart),
+                // ── Floating search header + ephemeral Monitoring pill ───────
+                // The detection ACTION surface no longer lives here — it is now a section
+                // inside the bottom sheet, under the address header. Only the transient
+                // "following your trip" pill floats over the map (centred under the search
+                // bar) while a trip is being tracked. The wrapping column owns the status-bar
+                // inset (HomeHeaderSection no longer applies it). [DET-READY-001h]
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .statusBarsPadding(),
                 ) {
-                    HomeHeaderSection(
-                        state = state,
-                        onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
-                        onSearchResultClick = { result ->
-                            uiController.moveCamera(result.lat, result.lon, zoom = 15f)
-                            onIntent(HomeIntent.SelectSearchResult(result))
-                        },
-                        onSearchClear = { onIntent(HomeIntent.ClearSearch) },
-                        onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
-                        onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
-                        onAddZone = {
-                            onIntent(
-                                HomeIntent.EnterAddZoneMode(
-                                    lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
-                                    lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
+                    AnimatedVisibility(
+                        visible = overlayVisible,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                    ) {
+                        HomeHeaderSection(
+                            state = state,
+                            onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                            onSearchResultClick = { result ->
+                                uiController.moveCamera(result.lat, result.lon, zoom = 15f)
+                                onIntent(HomeIntent.SelectSearchResult(result))
+                            },
+                            onSearchClear = { onIntent(HomeIntent.ClearSearch) },
+                            onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
+                            onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
+                            onAddZone = {
+                                onIntent(
+                                    HomeIntent.EnterAddZoneMode(
+                                        lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
+                                        lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
+                                    )
                                 )
-                            )
-                        },
-                        onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
-                        onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
-                        modifier = Modifier,
+                            },
+                            onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
+                            onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
+                            modifier = Modifier,
+                        )
+                    }
+                    // Ephemeral "following your trip" pill — floats centred under the search bar
+                    // while a tracking job runs (Monitoring). Hidden when the sheet is engaged.
+                    HomeMonitoringPill(
+                        visible = state.detectionUiState == DetectionUiState.Monitoring && overlayVisible,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 6.dp),
                     )
                 }
 
@@ -902,6 +934,27 @@ private fun HomeContent(
                     onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
                     onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
                     onToggle = toggleSheet,
+                    // Detection surface actions (reuses existing nav + AddingParking flow).
+                    onDetectionAddVehicle = onAddVehicle,
+                    onDetectionOpenPermissions = {
+                        // Focus the permissions screen on the tier that triggered the CTA. [DET-READY-001i]
+                        val focus = when (state.detectionUiState) {
+                            DetectionUiState.BlockedCore -> "core"
+                            DetectionUiState.BlockedProducer -> "producer"
+                            else -> "all"
+                        }
+                        onActivateDetection(focus)
+                    },
+                    onDetectionMarkSpot = {
+                        val markVehicleId = state.vehicles.firstOrNull { it.isActive }?.id
+                            ?: state.vehicles.firstOrNull()?.id
+                        onIntent(
+                            HomeIntent.EnterAddParkingMode(
+                                initialGps = state.userGpsPoint,
+                                targetVehicleId = markVehicleId,
+                            ),
+                        )
+                    },
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }

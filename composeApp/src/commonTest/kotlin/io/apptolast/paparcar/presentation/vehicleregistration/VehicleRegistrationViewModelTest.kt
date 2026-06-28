@@ -80,6 +80,34 @@ class VehicleRegistrationViewModelTest {
         assertTrue(vm.state.value.showBrandModelOnSpot)
     }
 
+    // ── Free-text fallback (VEH-FREETEXT-001) ─────────────────────────────────
+
+    @Test
+    fun `should_defaultCarbody_and_unblockSubmit_when_freeTextModelHasNoInference`() = runTest {
+        // User types a brand + model the catalog can't recognise and that matches no
+        // keyword pattern — the form must still let them advance with a sensible default
+        // (medium hatchback) that they can refine via the manual picker.
+        vm.handleIntent(VehicleRegistrationIntent.SetCustomBrand("Rivian"))
+        vm.handleIntent(VehicleRegistrationIntent.SetCustomModel("R1T"))
+
+        val s = vm.state.value
+        assertEquals(CarbodyType.HATCHBACK_MEDIUM, s.carbodyType)
+        assertEquals(VehicleSize.MEDIUM_SUV, s.sizeCategory)
+        assertTrue(s.expectsCarbody, "Typing a brand/model implies a CAR")
+        assertFalse(s.isCarbodyManualOverride, "Default is an auto fallback, not a manual pick")
+        assertTrue(s.canSubmit, "Free-text car with a default carbody must be submittable")
+    }
+
+    @Test
+    fun `should_keepExactInference_when_freeTextMatchesPattern`() = runTest {
+        // A recognisable model cue (Hilux → pickup) must win over the generic default.
+        vm.handleIntent(VehicleRegistrationIntent.SetCustomBrand("Toyota"))
+        vm.handleIntent(VehicleRegistrationIntent.SetCustomModel("Hilux Invincible"))
+
+        assertEquals(CarbodyType.PICKUP, vm.state.value.carbodyType)
+        assertEquals(VehicleSize.VAN_HIGH, vm.state.value.sizeCategory)
+    }
+
     // ── Save — success ────────────────────────────────────────────────────────
 
     @Test

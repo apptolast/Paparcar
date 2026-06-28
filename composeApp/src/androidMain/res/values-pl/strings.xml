@@ -47,4 +47,9 @@
     <string name="channel_debug_desc">Wiadomości debugowania — tylko w buildach deweloperskich</string>
 
     <string name="attribution_detection_label">Wykrywanie parkowania</string>
+
+    <!-- Powiadomienie: watchdog „nadal zaparkowany?" (prawdopodobnie pominięte wyjście z geofence) -->
+    <string name="notif_still_parked_title">Nadal tu zaparkowany?</string>
+    <string name="notif_still_parked_text">Jeśli już odjechałeś, zwolnij miejsce dla społeczności.</string>
+    <string name="notif_action_ive_left">Już wyjechałem</string>
 </resources>

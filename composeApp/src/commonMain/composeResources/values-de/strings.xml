@@ -82,8 +82,8 @@
     <string name="onboarding_cta_setup">Berechtigungen einrichten</string>
 
     <!-- PermissionsScreen -->
-    <string name="permissions_title">Berechtigungen aktivieren</string>
-    <string name="permissions_subtitle">Die folgenden Berechtigungen sind für die automatische Erkennung erforderlich.</string>
+    <string name="permissions_title">Automatisiere dein Parken</string>
+    <string name="permissions_subtitle">Nur der Standort ist erforderlich – der Rest ermöglicht die automatische Erkennung.</string>
     <string name="permissions_perm_location">Genaue Position</string>
     <string name="permissions_perm_location_desc">Um genau zu speichern, wo du dein Fahrzeug geparkt hast</string>
     <string name="permissions_perm_background">Hintergrundstandort</string>
@@ -104,6 +104,9 @@
     <string name="permissions_status_optional">Optional</string>
     <string name="permissions_btn_grant">Berechtigungen erteilen</string>
     <string name="permissions_btn_background">Hintergrundstandort aktivieren</string>
+    <!-- DET-READY-001e -->
+    <string name="permissions_btn_activate_detection">Automatische Erkennung aktivieren</string>
+    <string name="permissions_continue_with_core">Vielleicht später</string>
     <string name="permissions_btn_settings">Systemeinstellungen öffnen</string>
     <string name="permissions_rationale">Einige Berechtigungen wurden verweigert. Bitte erteile sie, um fortzufahren.</string>
     <string name="permissions_perm_location_services">Standortdienste</string>
@@ -364,8 +367,8 @@
     <string name="spot_item_type_manual">Manuell</string>
 
     <!-- Berechtigungs-Erklärungs-Bildschirm -->
-    <string name="perm_rationale_title">So funktioniert Paparcar</string>
-    <string name="perm_rationale_subtitle">Wir benötigen einige Berechtigungen, um Ihr Parken automatisch zu erkennen.</string>
+    <string name="perm_rationale_title">Automatisieren Sie Ihr Parken</string>
+    <string name="perm_rationale_subtitle">Merken Sie sich, wo Sie geparkt haben, führen Sie einen automatischen Verlauf und geben Sie Ihren Parkplatz beim Wegfahren frei — automatisch. Dafür sind nur ein paar Berechtigungen nötig.</string>
     <string name="perm_rationale_body">Paparcar erkennt, wenn Sie Ihren Parkplatz verlassen, und teilt ihn automatisch mit nahegelegenen Fahrern — genauso wie Sie davon profitieren würden, wenn jemand anderes das tut.\n\nDafür benötigen wir Zugriff auf Ihren Standort und Bewegungssensoren. Ihr genauer Standort wird niemals mit anderen Nutzern geteilt.</string>
     <string name="perm_rationale_cta">Verstanden, Berechtigungen aktivieren</string>
     <string name="perm_rationale_skip">Jetzt nicht</string>
@@ -404,6 +407,15 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Automatische Erkennung aktiv</string>
     <string name="detection_banner_pair_bt">Bluetooth koppeln</string>
+    <!-- DetectionReadinessBanner [DET-READY-001] -->
+    <string name="detection_ready_armed">Bereit · ich erkenne das Parken</string>
+    <string name="detection_monitoring_active">Erkennung aktiv · unterwegs</string>
+    <string name="detection_parked_watching">Geparkt · warte auf Abfahrt</string>
+    <string name="detection_blocked_title">Erkennung pausiert</string>
+    <string name="detection_blocked_cta">Aktivieren</string>
+    <string name="detection_disabled_no_vehicle">Auto hinzufügen und Parken automatisieren</string>
+    <string name="detection_disabled_no_vehicle_cta">Hinzufügen</string>
+    <string name="detection_disabled_non_parking">Keine Erkennung für Motorrad/Fahrrad</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d unterwegs</string>
     <string name="spot_indicator_ttl_expired">Abgelaufen</string>
@@ -638,4 +650,26 @@
     <string name="vehicle_registration_section_size">Fahrzeuggröße</string>
     <string name="vehicle_registration_size_hint">Tippe, um die Größe auszuwählen</string>
 
+    <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_novehicle_title">Auto hinzufügen</string>
+    <string name="home_det_novehicle_sub">Mühelos parken und Plätze freigeben</string>
+    <string name="home_det_novehicle_cta">Hinzufügen</string>
+    <string name="home_det_core_title">Standort aktivieren</string>
+    <string name="home_det_core_sub">Paparcar braucht ihn dafür</string>
+    <string name="home_det_core_cta">Aktivieren</string>
+    <string name="home_det_producer_title">Erkennung aktivieren</string>
+    <string name="home_det_producer_sub">Gibt deinen Platz frei, wenn du losfährst</string>
+    <string name="home_det_producer_cta">Aktivieren</string>
+    <string name="home_det_awaiting_title">Wo ist dein Auto?</string>
+    <string name="home_det_awaiting_sub">Markiere den Platz, ich beobachte ihn</string>
+    <string name="home_det_awaiting_cta_primary">Platz markieren</string>
+    <string name="home_det_awaiting_cta_secondary">Ich fahre gerade</string>
+    <string name="home_det_monitoring">Verfolge deine Fahrt</string>
+    <string name="home_chip_mark_spot">Platz markieren</string>
+    <string name="home_chip_bt_armed">Ausfahrt überwacht</string>
+
+    <!-- Permissions screen sections [DET-READY-001i] -->
+    <string name="permissions_section_essential">Essenziell</string>
+    <string name="permissions_section_detection">Automatische Erkennung</string>
+    <string name="permissions_section_optional">Optional · Zuverlässigkeit</string>
 </resources>

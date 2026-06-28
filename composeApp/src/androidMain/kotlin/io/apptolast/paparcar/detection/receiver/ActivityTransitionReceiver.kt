@@ -3,39 +3,34 @@ package io.apptolast.paparcar.detection.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.SystemClock
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.activityLabel
 import io.apptolast.paparcar.detection.transitionLabel
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
-import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * Receives Activity-Recognition transitions and feeds them in as **non-decisive signals**. [DET-G-01]
+ * Receives the always-on IN_VEHICLE **EXIT** transition and forwards it as a **non-decisive hint**
+ * to a *running* coordinator. [DET-G-01]
  *
- * AR no longer arms the coordinator — that is the GEOFENCE_EXIT's job (see
- * `CoordinatorDetectionService.handleGeofenceExit`). AR is a *fragile* signal: IN_VEHICLE/STILL fire
- * on buses, in traffic jams, in a friend's car. Delivered via `getBroadcast` (no foreground service,
- * so no FGS flash on a bus ride), this receiver only:
- *  - records the **IN_VEHICLE_ENTER timestamp** into [DepartureEventBus] — a *corroborator* of the
- *    departure/release window (not required; the release confirms on speed alone),
- *  - forwards **IN_VEHICLE_EXIT** to a *running* coordinator as a hint (it never confirms a park on
- *    its own — the egress gate is the decisive signal). STILL is no longer consumed at all: it was
- *    redundant with the egress gate and fired in traffic jams (a fragile non-event signal). [DET-D-03]
+ * AR does not arm the coordinator from here. Two arming paths exist instead: the GEOFENCE_EXIT
+ * (decisive, anchored) and the scoped IN_VEHICLE **ENTER** that goes DIRECTLY to
+ * `CoordinatorDetectionService.handleArVehicleEnter` via a privileged getForegroundService start
+ * (proximity-gated). [DET-AR-REARM-001] ENTER is no longer delivered to this receiver — it would
+ * need a foreground-service start a background receiver cannot legally do on Android 12+, and the
+ * service is where the ENTER timestamp + proximity gate now live.
  *
- * Side effects are synchronous (no suspend, no `goAsync`): [DepartureEventBus.onVehicleEntered] and
- * the coordinator setters are plain in-memory writes. Duplicate ENTER bursts are harmless (idempotent
- * timestamp), so the old debounce use case is gone.
+ * Delivered via `getBroadcast` (no foreground service), so forwarding EXIT never flashes the
+ * detection notification on a bus ride. STILL is not consumed — it was redundant with the egress
+ * gate and fired in traffic jams. [DET-D-03]
  */
 class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val coordinator: CoordinatorParkingDetector by inject()
-    private val departureEventBus: DepartureEventBus by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         if (!ActivityTransitionResult.hasResult(intent)) return
@@ -43,21 +38,10 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
         result.transitionEvents.forEach { event ->
             PaparcarLogger.d(TAG, "  → ${activityLabel(event.activityType)} ${transitionLabel(event.transitionType)}")
-            val isEnter = event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_ENTER
-            when (event.activityType) {
-                DetectedActivity.IN_VEHICLE ->
-                    if (isEnter) {
-                        // Record the enter timestamp for the departure window (corroborator). NOT a
-                        // trigger — the coordinator is armed by GEOFENCE_EXIT. [DET-G-01]
-                        val epochMs = System.currentTimeMillis() - SystemClock.elapsedRealtime() +
-                            event.elapsedRealTimeNanos / 1_000_000L
-                        departureEventBus.onVehicleEntered(epochMs)
-                    } else {
-                        // EXIT: a hint for a running coordinator; non-decisive (needs egress to confirm).
-                        coordinator.onVehicleExit()
-                    }
-
-                else -> Unit
+            val isExit = event.transitionType == ActivityTransition.ACTIVITY_TRANSITION_EXIT
+            if (event.activityType == DetectedActivity.IN_VEHICLE && isExit) {
+                // EXIT: a hint for a running coordinator; non-decisive (needs egress to confirm).
+                coordinator.onVehicleExit()
             }
         }
     }

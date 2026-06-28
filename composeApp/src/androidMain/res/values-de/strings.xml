@@ -47,4 +47,9 @@
     <string name="channel_debug_desc">Debug-Meldungen — nur in Entwicklungs-Builds</string>
 
     <string name="attribution_detection_label">Parkerkennung</string>
+
+    <!-- Notification: Watchdog „noch geparkt?" (vermutlich verpasster Geofence-Ausgang) -->
+    <string name="notif_still_parked_title">Noch hier geparkt?</string>
+    <string name="notif_still_parked_text">Wenn du schon weg bist, gib den Platz für die Community frei.</string>
+    <string name="notif_action_ive_left">Ich bin weg</string>
 </resources>

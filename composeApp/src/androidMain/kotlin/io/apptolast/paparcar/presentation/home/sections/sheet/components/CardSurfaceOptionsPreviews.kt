@@ -70,14 +70,12 @@ private fun HomeSheetSample() {
         HomeVehicleChip(
             card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
             userLocation = userLoc,
-            isSelected = false,
             onClick = {},
         )
         // Con sesión activa → primaryContainer (referencia fija, no varía entre opciones)
         HomeVehicleChip(
             card = VehicleCard(vehicle = FakeData.vehicleVan, session = FakeData.activeSession),
             userLocation = userLoc,
-            isSelected = false,
             onClick = {},
         )
         // Spots de contexto

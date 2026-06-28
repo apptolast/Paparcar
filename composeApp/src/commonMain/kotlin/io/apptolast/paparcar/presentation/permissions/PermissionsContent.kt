@@ -2,7 +2,9 @@ package io.apptolast.paparcar.presentation.permissions
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -30,31 +32,40 @@ import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.ic_shield_3d
 import paparcar.composeapp.generated.resources.permissions_bg_guide_body
 import paparcar.composeapp.generated.resources.permissions_bg_guide_cta
 import paparcar.composeapp.generated.resources.permissions_bg_guide_dismiss
 import paparcar.composeapp.generated.resources.permissions_bg_guide_title
-import paparcar.composeapp.generated.resources.permissions_btn_background
+import paparcar.composeapp.generated.resources.permissions_btn_activate_detection
 import paparcar.composeapp.generated.resources.permissions_btn_grant
 import paparcar.composeapp.generated.resources.permissions_btn_location_settings
 import paparcar.composeapp.generated.resources.permissions_btn_settings
+import paparcar.composeapp.generated.resources.permissions_continue_with_core
 import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
 import paparcar.composeapp.generated.resources.permissions_perm_autostart
@@ -75,20 +86,22 @@ import paparcar.composeapp.generated.resources.permissions_perm_location_service
 import paparcar.composeapp.generated.resources.permissions_perm_notifications
 import paparcar.composeapp.generated.resources.permissions_perm_notifications_desc
 import paparcar.composeapp.generated.resources.permissions_rationale
+import paparcar.composeapp.generated.resources.permissions_section_detection
+import paparcar.composeapp.generated.resources.permissions_section_essential
+import paparcar.composeapp.generated.resources.permissions_section_optional
 import paparcar.composeapp.generated.resources.permissions_status_granted
 import paparcar.composeapp.generated.resources.permissions_status_optional
 import paparcar.composeapp.generated.resources.permissions_status_pending
 import paparcar.composeapp.generated.resources.permissions_subtitle
 import paparcar.composeapp.generated.resources.permissions_title
 
-private val   CONTENT_BOTTOM_PADDING  = 120.dp
-private val   EMOJI_SIZE              = 48.sp
 private val   BUTTON_HEIGHT           = 52.dp
 private val   ROW_VERTICAL_PADDING    = 14.dp
 private val   ROW_CONTENT_SPACING     = 14.dp
 private val   ICON_BOX_SIZE           = 40.dp
 private val   ICON_SIZE               = 22.dp
 private val   BADGE_ICON_SIZE         = 14.dp
+private const val HERO_ICON_DP        = 72
 
 @Composable
 internal fun PermissionsContent(
@@ -100,6 +113,8 @@ internal fun PermissionsContent(
     onRequestOemBatterySettings: () -> Unit = {},
     onConfirmBackgroundLocationGuide: () -> Unit = {},
     onDismissBackgroundLocationGuide: () -> Unit = {},
+    onContinueWithCore: () -> Unit = {},
+    focus: PermissionsFocus = PermissionsFocus.All,
 ) {
     if (state.showBackgroundLocationGuide) {
         PapAlertDialog(
@@ -113,6 +128,12 @@ internal fun PermissionsContent(
         )
     }
 
+    // Reserve exactly the floating footer's measured height as bottom scroll padding, so the last
+    // row clears the button without leaving a big empty gap (the footer grows when "Maybe later"
+    // shows, shrinks when it doesn't). [DET-READY-001i]
+    var footerHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -123,17 +144,36 @@ internal fun PermissionsContent(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .padding(horizontal = PaparcarSpacing.xxl)
-                .padding(top = PaparcarSpacing.huge, bottom = CONTENT_BOTTOM_PADDING)
+                .padding(
+                    top = PaparcarSpacing.xxxl,
+                    bottom = with(density) { footerHeightPx.toDp() } + PaparcarSpacing.xxxl,
+                )
                 .verticalScroll(rememberScrollState()),
         ) {
-            Text(text = "🔐", fontSize = EMOJI_SIZE)
-            Spacer(Modifier.height(PaparcarSpacing.lg))
-            Text(
-                text = stringResource(Res.string.permissions_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            val showEssential = focus != PermissionsFocus.Producer
+            val showProducer = focus != PermissionsFocus.Core
+
+            // Header — 3D brand shield badge (green gradient + check + drop shadow, designed in Figma)
+            // to the LEFT of the title, vertically centred against it; subtitle below full width. More
+            // dynamic than a flat top-left stack. [DET-READY-001i]
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.ic_shield_3d),
+                    contentDescription = null,
+                    modifier = Modifier.size(HERO_ICON_DP.dp),
+                )
+                Text(
+                    text = stringResource(Res.string.permissions_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
                 text = stringResource(Res.string.permissions_subtitle),
@@ -142,123 +182,110 @@ internal fun PermissionsContent(
             )
             Spacer(Modifier.height(PaparcarSpacing.xxxl))
 
-            // ── Runtime permissions ──────────────────────────────────────────
-            PermissionRow(
-                icon = Icons.Default.LocationOn,
-                title = stringResource(Res.string.permissions_perm_location),
-                desc = stringResource(Res.string.permissions_perm_location_desc),
-                granted = state.hasFineLocation,
-            )
-            Spacer(Modifier.height(PaparcarSpacing.md))
-            PermissionRow(
-                icon = Icons.Outlined.Explore,
-                title = stringResource(Res.string.permissions_perm_background),
-                desc = stringResource(Res.string.permissions_perm_background_desc),
-                granted = state.hasBackgroundLocation,
-            )
-            Spacer(Modifier.height(PaparcarSpacing.md))
-            PermissionRow(
-                icon = Icons.Default.Person,
-                title = stringResource(Res.string.permissions_perm_activity),
-                desc = stringResource(Res.string.permissions_perm_activity_desc),
-                granted = state.hasActivityRecognition,
-            )
-            Spacer(Modifier.height(PaparcarSpacing.md))
-            PermissionRow(
-                icon = Icons.Default.Notifications,
-                title = stringResource(Res.string.permissions_perm_notifications),
-                desc = stringResource(Res.string.permissions_perm_notifications_desc),
-                granted = state.hasNotifications,
-            )
-
-            // ── System setting (GPS toggle) ──────────────────────────────────
-            Spacer(Modifier.height(PaparcarSpacing.xl))
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                thickness = 1.dp,
-            )
-            Spacer(Modifier.height(PaparcarSpacing.xl))
-            PermissionRow(
-                icon = Icons.Default.Settings,
-                title = stringResource(Res.string.permissions_perm_location_services),
-                desc = stringResource(Res.string.permissions_perm_location_services_desc),
-                granted = state.isLocationServicesEnabled,
-            )
-
-            // ── Optional Bluetooth permission ────────────────────────────────
-            Spacer(Modifier.height(PaparcarSpacing.xl))
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                thickness = 1.dp,
-            )
-            Spacer(Modifier.height(PaparcarSpacing.xl))
-            OptionalPermissionRow(
-                icon = Icons.Outlined.Bluetooth,
-                title = stringResource(Res.string.permissions_perm_bluetooth),
-                desc = stringResource(Res.string.permissions_perm_bluetooth_desc),
-                granted = state.hasBluetoothConnect,
-                onGrant = onRequestBluetooth,
-            )
-
-            // ── Optional battery optimization exemption ──────────────────────
-            Spacer(Modifier.height(PaparcarSpacing.xl))
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant,
-                thickness = 1.dp,
-            )
-            Spacer(Modifier.height(PaparcarSpacing.xl))
-            OptionalPermissionRow(
-                icon = Icons.Outlined.BatteryFull,
-                title = stringResource(Res.string.permissions_perm_battery),
-                desc = stringResource(Res.string.permissions_perm_battery_desc),
-                granted = state.isBatteryOptimizationExempt,
-                onGrant = onRequestBatteryOptimization,
-            )
-            if (!state.isBatteryOptimizationExempt) {
-                Spacer(Modifier.height(PaparcarSpacing.sm))
-                Text(
-                    text = stringResource(Res.string.permissions_perm_battery_oem_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // ── ESSENTIAL (CORE) — the minimum to use the map ───────────────
+            if (showEssential) {
+                PapSectionHeader(
+                    title = stringResource(Res.string.permissions_section_essential),
+                    modifier = Modifier.padding(bottom = PaparcarSpacing.md),
+                )
+                PermissionRow(
+                    icon = Icons.Default.LocationOn,
+                    title = stringResource(Res.string.permissions_perm_location),
+                    desc = stringResource(Res.string.permissions_perm_location_desc),
+                    granted = state.hasFineLocation,
+                )
+                Spacer(Modifier.height(PaparcarSpacing.md))
+                PermissionRow(
+                    icon = Icons.Default.Settings,
+                    title = stringResource(Res.string.permissions_perm_location_services),
+                    desc = stringResource(Res.string.permissions_perm_location_services_desc),
+                    granted = state.isLocationServicesEnabled,
                 )
             }
 
-            // ── Optional OEM autostart whitelist (MIUI/ColorOS/EMUI…) ────────
-            // No public API to read the actual toggle state. We track whether the
-            // user has opened the settings screen this session (optimistic grant).
-            if (state.showAutostartCard) {
-                Spacer(Modifier.height(PaparcarSpacing.xl))
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    thickness = 1.dp,
+            // ── AUTO-DETECTION (PRODUCER) — the star feature, optional ───────
+            if (showProducer) {
+                if (showEssential) Spacer(Modifier.height(PaparcarSpacing.xl))
+                PapSectionHeader(
+                    title = stringResource(Res.string.permissions_section_detection),
+                    modifier = Modifier.padding(bottom = PaparcarSpacing.md),
                 )
-                Spacer(Modifier.height(PaparcarSpacing.xl))
-                OptionalPermissionRow(
-                    icon = Icons.Outlined.RocketLaunch,
-                    title = stringResource(Res.string.permissions_perm_autostart),
-                    desc = stringResource(Res.string.permissions_perm_autostart_desc),
-                    granted = state.hasAcknowledgedAutostart,
-                    onGrant = onRequestOemAutostart,
+                PermissionRow(
+                    icon = Icons.Outlined.Explore,
+                    title = stringResource(Res.string.permissions_perm_background),
+                    desc = stringResource(Res.string.permissions_perm_background_desc),
+                    granted = state.hasBackgroundLocation,
                 )
-            }
+                Spacer(Modifier.height(PaparcarSpacing.md))
+                PermissionRow(
+                    icon = Icons.Default.Person,
+                    title = stringResource(Res.string.permissions_perm_activity),
+                    desc = stringResource(Res.string.permissions_perm_activity_desc),
+                    granted = state.hasActivityRecognition,
+                )
+                Spacer(Modifier.height(PaparcarSpacing.md))
+                PermissionRow(
+                    icon = Icons.Default.Notifications,
+                    title = stringResource(Res.string.permissions_perm_notifications),
+                    desc = stringResource(Res.string.permissions_perm_notifications_desc),
+                    granted = state.hasNotifications,
+                )
 
-            // ── Optional OEM battery / Hans freeze (ColorOS/OPPO/Realme) ─────
-            // OplusHansManager freezes processes with SIGSTOP even when autostart is
-            // whitelisted. Only shown on manufacturers shipping ColorOS. [OEM-002]
-            if (state.showOemBatteryCard) {
+                // ── OPTIONAL — reliability on aggressive OEMs ────────────────
                 Spacer(Modifier.height(PaparcarSpacing.xl))
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    thickness = 1.dp,
+                PapSectionHeader(
+                    title = stringResource(Res.string.permissions_section_optional),
+                    modifier = Modifier.padding(bottom = PaparcarSpacing.md),
                 )
-                Spacer(Modifier.height(PaparcarSpacing.xl))
                 OptionalPermissionRow(
-                    icon = Icons.Outlined.BatteryAlert,
-                    title = stringResource(Res.string.permissions_perm_oem_battery),
-                    desc = stringResource(Res.string.permissions_perm_oem_battery_desc),
-                    granted = state.hasAcknowledgedOemBattery,
-                    onGrant = onRequestOemBatterySettings,
+                    icon = Icons.Outlined.Bluetooth,
+                    title = stringResource(Res.string.permissions_perm_bluetooth),
+                    desc = stringResource(Res.string.permissions_perm_bluetooth_desc),
+                    granted = state.hasBluetoothConnect,
+                    onGrant = onRequestBluetooth,
                 )
+                Spacer(Modifier.height(PaparcarSpacing.md))
+                OptionalPermissionRow(
+                    icon = Icons.Outlined.BatteryFull,
+                    title = stringResource(Res.string.permissions_perm_battery),
+                    desc = stringResource(Res.string.permissions_perm_battery_desc),
+                    granted = state.isBatteryOptimizationExempt,
+                    onGrant = onRequestBatteryOptimization,
+                )
+                if (!state.isBatteryOptimizationExempt) {
+                    Spacer(Modifier.height(PaparcarSpacing.sm))
+                    Text(
+                        text = stringResource(Res.string.permissions_perm_battery_oem_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                // Optional OEM autostart whitelist (MIUI/ColorOS/EMUI…) — no public API to read the
+                // toggle; we track whether the user opened the settings screen this session.
+                if (state.showAutostartCard) {
+                    Spacer(Modifier.height(PaparcarSpacing.md))
+                    OptionalPermissionRow(
+                        icon = Icons.Outlined.RocketLaunch,
+                        title = stringResource(Res.string.permissions_perm_autostart),
+                        desc = stringResource(Res.string.permissions_perm_autostart_desc),
+                        granted = state.hasAcknowledgedAutostart,
+                        onGrant = onRequestOemAutostart,
+                    )
+                }
+
+                // Optional OEM battery / Hans freeze (ColorOS/OPPO/Realme) — OplusHansManager SIGSTOPs
+                // processes even when autostart is whitelisted. Only shown on ColorOS. [OEM-002]
+                if (state.showOemBatteryCard) {
+                    Spacer(Modifier.height(PaparcarSpacing.md))
+                    OptionalPermissionRow(
+                        icon = Icons.Outlined.BatteryAlert,
+                        title = stringResource(Res.string.permissions_perm_oem_battery),
+                        desc = stringResource(Res.string.permissions_perm_oem_battery_desc),
+                        granted = state.hasAcknowledgedOemBattery,
+                        onGrant = onRequestOemBatterySettings,
+                    )
+                }
             }
 
             if (state.showRationale && !state.showSettingsPrompt) {
@@ -272,13 +299,14 @@ internal fun PermissionsContent(
         }
 
         // ── Bottom action button ─────────────────────────────────────────────
-        val isStep1Pending = !state.hasFineLocation
-            || !state.hasActivityRecognition
-            || !state.hasNotifications
-        val isStep2Pending = !state.hasBackgroundLocation
+        // CORE = foreground location; GPS = essential toggle; PRODUCER = background + AR + notifications.
+        // The first ask is CORE-only; PRODUCER is requested via the "Activate detection" button. [DET-READY-001i]
+        val isCorePending = !state.hasFineLocation
         val isGpsPending = !state.isLocationServicesEnabled
+        val isProducerPending = !state.hasBackgroundLocation ||
+            !state.hasActivityRecognition || !state.hasNotifications
 
-        val showButton = state.showSettingsPrompt || isStep1Pending || isStep2Pending || isGpsPending
+        val showButton = state.showSettingsPrompt || isCorePending || isGpsPending || isProducerPending
 
         if (showButton) {
             Column(
@@ -287,17 +315,21 @@ internal fun PermissionsContent(
                     .fillMaxWidth()
                     .padding(horizontal = PaparcarSpacing.xxl)
                     .navigationBarsPadding()
-                    .padding(bottom = PaparcarSpacing.xxxl),
+                    .padding(bottom = PaparcarSpacing.xxxl)
+                    .onSizeChanged { footerHeightPx = it.height },
             ) {
+                // Location permanently denied / revoked → the request dialog would no-op, so jump
+                // straight to the amber "open settings" CTA from the first frame. [DET-READY-001m]
+                val coreNeedsSettings = isCorePending && state.locationPermanentlyDenied
                 val (label, isAmber) = when {
-                    state.showSettingsPrompt ->
+                    state.showSettingsPrompt || coreNeedsSettings ->
                         stringResource(Res.string.permissions_btn_settings) to true
-                    isStep1Pending ->
+                    isCorePending ->
                         stringResource(Res.string.permissions_btn_grant) to false
-                    isStep2Pending ->
-                        stringResource(Res.string.permissions_btn_background) to false
-                    else ->
+                    isGpsPending ->
                         stringResource(Res.string.permissions_btn_location_settings) to false
+                    else -> // PRODUCER pending → the deliberate "activate auto-detection" step
+                        stringResource(Res.string.permissions_btn_activate_detection) to false
                 }
                 Button(
                     onClick = onRequestPermissions,
@@ -317,6 +349,19 @@ internal fun PermissionsContent(
                     ),
                 ) {
                     Text(text = label, fontWeight = FontWeight.Bold)
+                }
+                // "Maybe later" — enter with CORE only, defer PRODUCER. Shown once the minimum
+                // (CORE + GPS) is met so the user is never stranded below it. [DET-READY-001e]
+                if (state.canContinueWithCore) {
+                    TextButton(
+                        onClick = onContinueWithCore,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.permissions_continue_with_core),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }

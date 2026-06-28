@@ -36,6 +36,8 @@ class ParkingConfirmationReceiver : BroadcastReceiver() {
             this.action = action
             // Forward the parkingId for the REVERT action; harmless on other actions.
             intent.getStringExtra(EXTRA_PARKING_ID)?.let { putExtra(EXTRA_PARKING_ID, it) }
+            // Forward the geofenceId for the watchdog DEPARTURE_CONFIRMED action; harmless otherwise.
+            intent.getStringExtra(EXTRA_GEOFENCE_ID)?.let { putExtra(EXTRA_GEOFENCE_ID, it) }
         }
         context.startForegroundService(serviceIntent)
     }
@@ -46,8 +48,11 @@ class ParkingConfirmationReceiver : BroadcastReceiver() {
         const val ACTION_DENIED = CoordinatorDetectionService.ACTION_PARKING_DENIED
         const val ACTION_ACK = CoordinatorDetectionService.ACTION_PARKING_ACK
         const val ACTION_REVERT = CoordinatorDetectionService.ACTION_PARKING_REVERT
+        const val ACTION_DEPARTURE_CONFIRMED = CoordinatorDetectionService.ACTION_DEPARTURE_CONFIRMED
         const val EXTRA_PARKING_ID = CoordinatorDetectionService.EXTRA_PARKING_ID
+        const val EXTRA_GEOFENCE_ID = CoordinatorDetectionService.EXTRA_GEOFENCE_ID
 
-        private val ROUTABLE_ACTIONS = setOf(ACTION_CONFIRMED, ACTION_DENIED, ACTION_ACK, ACTION_REVERT)
+        private val ROUTABLE_ACTIONS =
+            setOf(ACTION_CONFIRMED, ACTION_DENIED, ACTION_ACK, ACTION_REVERT, ACTION_DEPARTURE_CONFIRMED)
     }
 }

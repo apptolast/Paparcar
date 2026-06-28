@@ -2,6 +2,10 @@ package io.apptolast.paparcar.presentation.home
 
 import androidx.compose.runtime.Immutable
 import com.swmansion.kmpmaps.core.MapType
+import io.apptolast.paparcar.domain.model.DetectionReadiness
+import io.apptolast.paparcar.domain.model.DisabledReason
+import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.model.toUiState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
@@ -43,7 +47,12 @@ data class HomeState(
     // ── Loading / permissions ─────────────────────────────────────────────────
 
     val isLoading: Boolean = false,
-    val allPermissionsGranted: Boolean = false,
+    /**
+     * CORE permissions (foreground location + notifications) — gates the consumer side (map,
+     * spots, filters). PRODUCER (background + AR) is NOT required here; its state lives in
+     * [detectionReadiness]. Replaces the old all-or-nothing `allPermissionsGranted`. [DET-READY-001d]
+     */
+    val hasCorePermissions: Boolean = false,
 
     // ── User location ─────────────────────────────────────────────────────────
 
@@ -95,6 +104,13 @@ data class HomeState(
 
     /** Non-null when a parking event was detected and awaits user confirmation. */
     val pendingParkingGps: GpsPoint? = null,
+
+    /**
+     * Readiness of the automatic-detection system, rendered in the persistent top banner.
+     * Orthogonal to [mode]: this is *what detection is doing*, not *what the user is doing*.
+     * [DET-READY-001g]
+     */
+    val detectionReadiness: DetectionReadiness = DetectionReadiness.Disabled(DisabledReason.NO_VEHICLE),
 
     // ── Mode ──────────────────────────────────────────────────────────────────
 
@@ -189,4 +205,8 @@ data class HomeState(
         get() = vehicles.map { v ->
             VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
         }
+
+    /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
+    val detectionUiState: DetectionUiState
+        get() = detectionReadiness.toUiState()
 }

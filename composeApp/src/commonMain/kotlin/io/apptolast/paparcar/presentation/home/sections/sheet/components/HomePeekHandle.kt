@@ -83,6 +83,7 @@ import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
@@ -95,7 +96,6 @@ import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
-import io.apptolast.paparcar.ui.theme.parkedVehicleAccent
 import io.apptolast.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -187,6 +187,8 @@ internal fun HomePeekHandle(
     onZoneDismiss: () -> Unit = {},
     onEditZone: (zoneId: String) -> Unit = {},
     onDeleteZone: (zoneId: String) -> Unit = {},
+    /** CORE/GPS blocker CTA — opens the permission flow focused on location. [DET-READY-001n] */
+    onActivateLocation: () -> Unit = {},
 ) {
     val freeCount = state.filteredNearbySpots.size
     val isParkingSelected = state.isParkingSelected
@@ -208,19 +210,25 @@ internal fun HomePeekHandle(
 
     Column(modifier = Modifier.fillMaxWidth()) {
 
-        // Drag pill
-        Box(
-            modifier = Modifier
-                .padding(top = 10.dp, bottom = 8.dp)
-                .size(width = 32.dp, height = 4.dp)
-                .background(
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                    CircleShape,
-                )
-                .align(Alignment.CenterHorizontally),
-        )
+        // Drag pill — hidden in the CORE/GPS blocker, where the sheet is static (no drag). [DET-READY-001n]
+        if (state.detectionUiState != DetectionUiState.BlockedCore) {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 8.dp)
+                    .size(width = 32.dp, height = 4.dp)
+                    .background(
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                        CircleShape,
+                    )
+                    .align(Alignment.CenterHorizontally),
+            )
+        }
 
-        AnimatedContent(
+        if (state.detectionUiState == DetectionUiState.BlockedCore) {
+            // Consumer Home can't work without location/GPS — take over the sheet with the full
+            // blocker instead of a peek + small surface + redundant header. [DET-READY-001n]
+            HomeLocationBlockedState(onActivate = onActivateLocation)
+        } else AnimatedContent(
             targetState = peekState,
             transitionSpec = {
                 val incomingEngaged = targetState !is PeekState.Browse
@@ -685,10 +693,14 @@ private fun ParkingPeekRow(
         lat = parking.location.latitude,
         lon = parking.location.longitude,
     )
-    val accent = parkedVehicleAccent(
-        stableRank = stableRank,
+    // Unified semantic tone — a parked car is green (or blue if BT), same as its map marker. [DET-READY-001k]
+    val tone = io.apptolast.paparcar.ui.components.vehicleBadgeTone(
+        isParked = true,
         isBluetoothPaired = vehicle?.bluetoothDeviceId != null,
+        isActive = true,
     )
+    val accentColor = io.apptolast.paparcar.ui.components.vehicleBadgeAccent(tone)
+    val onAccentColor = io.apptolast.paparcar.ui.components.vehicleBadgeOnAccent(tone)
     val vehicleName = vehicleSummary(vehicle)
     val headerLabel = if (vehicleName != null) {
         stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
@@ -699,21 +711,19 @@ private fun ParkingPeekRow(
     PeekStateCard(
         headerLabel = headerLabel,
         title = title,
-        accentColor = accent.fill,
+        accentColor = accentColor,
         onDismiss = onDismiss,
         leading = {
             ParkedVehicleHeaderChip(
-                painter = io.apptolast.paparcar.ui.components.vehicleIconPainter(
-                    carbody = vehicle?.carbodyType,
-                    size = vehicle?.sizeCategory,
-                ),
-                accent = accent,
+                carbody = vehicle?.carbodyType,
+                size = vehicle?.sizeCategory,
+                tone = tone,
             )
         },
         content = {
-            DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accent.fill)
+            DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accentColor)
             Spacer(Modifier.height(8.dp))
-            ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = accent.fill)
+            ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = accentColor)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
@@ -722,26 +732,34 @@ private fun ParkingPeekRow(
                 leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk,
                 onClick = onWalkToCar,
                 style = PapFooterButtonStyle.Filled,
-                containerColor = accent.fill,
-                contentColor = accent.on,
+                containerColor = accentColor,
+                contentColor = onAccentColor,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
+            // Move is a pin-tweak utility — the lightest of the three (outlined neutral) so it
+            // recedes below the two real actions (navigate / release). [PEEK-ACTIONS-002]
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_action_move_location),
                 leadingIcon = Icons.Outlined.EditLocationAlt,
                 onClick = onMoveLocation,
                 style = PapFooterButtonStyle.Outlined,
-                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = MOVE_OUTLINE_ALPHA),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
+            // Releasing the spot is the product's core action — give it strong weight with a solid
+            // neutral fill. inverseSurface flips with the theme (dark in light, light in dark) with
+            // guaranteed-contrast text, so it's prominent yet clearly distinct from the green
+            // primary. Bottom placement is the conventional slot for the "leave" action. [PEEK-ACTIONS-002]
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_release),
                 leadingIcon = Icons.AutoMirrored.Outlined.Logout,
                 onClick = onRelease,
                 style = PapFooterButtonStyle.Filled,
+                containerColor = MaterialTheme.colorScheme.inverseSurface,
+                contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -1482,6 +1500,8 @@ private const val HELPER_BG_ALPHA = 0.5f
 private const val SECONDARY_ALPHA = 0.55f
 private const val HELPER_SECONDARY_ALPHA = SECONDARY_ALPHA
 private const val TOGGLE_ROW_ALPHA = 0.55f
+// Border alpha for the outlined "Move location" utility action — a quiet neutral hairline. [PEEK-ACTIONS-002]
+private const val MOVE_OUTLINE_ALPHA = 0.30f
 
 private const val SHIMMER_ALPHA_MIN = 0.10f
 private const val SHIMMER_ALPHA_MAX = 0.80f

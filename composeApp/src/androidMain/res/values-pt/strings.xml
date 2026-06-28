@@ -47,4 +47,9 @@
     <string name="channel_debug_desc">Mensagens de depuração — apenas em builds de desenvolvimento</string>
 
     <string name="attribution_detection_label">Deteção de estacionamento</string>
+
+    <!-- Notificação: watchdog "ainda estacionado?" (possível saída de geocerca perdida) -->
+    <string name="notif_still_parked_title">Ainda estacionado aqui?</string>
+    <string name="notif_still_parked_text">Se já saiu, liberte a vaga para a comunidade.</string>
+    <string name="notif_action_ive_left">Já saí</string>
 </resources>

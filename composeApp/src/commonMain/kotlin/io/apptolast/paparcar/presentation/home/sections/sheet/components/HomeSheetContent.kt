@@ -43,6 +43,7 @@ import io.apptolast.paparcar.domain.model.sortRank
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
+import io.apptolast.paparcar.presentation.home.model.rendersActionSurface
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -81,13 +82,32 @@ internal fun LazyListScope.homeSheetItems(
     onParkVehicle: (vehicleId: String) -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
     onEnterReportMode: () -> Unit,
+    onDetectionAddVehicle: () -> Unit = {},
+    onDetectionOpenPermissions: () -> Unit = {},
+    onDetectionMarkSpot: () -> Unit = {},
 ) {
     val selectedSpotId = state.selectedSpot?.id
     val isSpotSelected = selectedSpotId != null
     val filteredSpots = state.filteredNearbySpots
     val vehicleCards = state.vehicleCards
-    val showPersonalBlocks = state.allPermissionsGranted && vehicleCards.isNotEmpty()
-    val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
+    val showPersonalBlocks = state.hasCorePermissions && vehicleCards.isNotEmpty()
+    val showFilterBar = state.hasCorePermissions && state.nearbySpots.isNotEmpty()
+
+    // ── 0. Detection action surface — under the address header, above vehicles.
+    // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index.
+    if (state.detectionUiState.rendersActionSurface && !isSpotSelected) {
+        item("detection_surface") {
+            HomeDetectionSurface(
+                state = state.detectionUiState,
+                onAddVehicle = onDetectionAddVehicle,
+                onOpenPermissions = onDetectionOpenPermissions,
+                onMarkSpot = onDetectionMarkSpot,
+                onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection) }, // [DET-G-01b]
+                allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+            )
+        }
+    }
 
     // ── 1. "TUS VEHÍCULOS" header + per-vehicle rows — hidden when a spot is selected
     if (showPersonalBlocks && !isSpotSelected) {
@@ -101,17 +121,22 @@ internal fun LazyListScope.homeSheetItems(
     }
 
     // ── 3. Spots (header + filter bar + list + report CTA) ─────────────────
-    spotsSection(
-        state = state,
-        onIntent = onIntent,
-        onCameraMove = onCameraMove,
-        onSpotSelect = onSpotSelect,
-        selectedSpotId = selectedSpotId,
-        filteredSpots = filteredSpots,
-        showFilterBar = showFilterBar,
-        isSpotSelected = isSpotSelected,
-        onEnterReportMode = onEnterReportMode,
-    )
+    // Hidden entirely without CORE: the nearby feed is meaningless with no location, and the
+    // red Blocked·CORE surface above is already the single "turn on location" prompt — no need
+    // for the old HomePermissionsCard duplicating it. [DET-READY-001i]
+    if (state.hasCorePermissions) {
+        spotsSection(
+            state = state,
+            onIntent = onIntent,
+            onCameraMove = onCameraMove,
+            onSpotSelect = onSpotSelect,
+            selectedSpotId = selectedSpotId,
+            filteredSpots = filteredSpots,
+            showFilterBar = showFilterBar,
+            isSpotSelected = isSpotSelected,
+            onEnterReportMode = onEnterReportMode,
+        )
+    }
 }
 
 /**
@@ -124,8 +149,8 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
     if (spotIdx < 0) return -1
 
     val vehicleCards = state.vehicleCards
-    val showPersonalBlocks = state.allPermissionsGranted && vehicleCards.isNotEmpty()
-    val showFilterBar = state.allPermissionsGranted && state.nearbySpots.isNotEmpty()
+    val showPersonalBlocks = state.hasCorePermissions && vehicleCards.isNotEmpty()
+    val showFilterBar = state.hasCorePermissions && state.nearbySpots.isNotEmpty()
 
     val isSpotSelected = state.selectedSpot != null
     var base = 1 // offset carried from original layout
@@ -172,11 +197,7 @@ private fun LazyListScope.vehiclesSection(
                 }
                 HomeVehicleChip(
                     card = card,
-                    stableRank = state.parkedVehicles
-                        .firstOrNull { it.vehicleId == card.vehicle.id }
-                        ?.stableRank,
                     userLocation = userLocation,
-                    isSelected = card.session != null && state.selectedItemId == card.session.id,
                     onClick = onCardClick,
                 )
             }
@@ -218,12 +239,6 @@ private fun LazyListScope.spotsSection(
     }
 
     when {
-        !state.allPermissionsGranted -> item("permissions") {
-            HomePermissionsCard(
-                onRequestPermissions = { onIntent(HomeIntent.LoadNearbySpots) },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            )
-        }
         state.isLoading -> item("skeleton") { SpotsSkeletonList() }
         filteredSpots.isEmpty() && state.sizeFilter != null && state.nearbySpots.isNotEmpty() ->
             item("empty_filtered") {
@@ -258,7 +273,7 @@ private fun LazyListScope.spotsSection(
         }
     }
 
-    if (state.allPermissionsGranted) {
+    if (state.hasCorePermissions) {
         item("report_spot_cta") {
             HomeReportSpotCard(
                 onReport = onEnterReportMode,

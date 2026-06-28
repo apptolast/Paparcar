@@ -4,6 +4,8 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -23,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -30,6 +33,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import io.apptolast.paparcar.ui.theme.PapShapes
@@ -75,6 +79,12 @@ internal fun HomeBottomSheet(
     onEditZone: (zoneId: String) -> Unit = {},
     onDeleteZone: (zoneId: String) -> Unit = {},
     onToggle: () -> Unit,
+    /** Detection surface (DET-READY-001h) — add a vehicle. */
+    onDetectionAddVehicle: () -> Unit = {},
+    /** Detection surface — open the permissions flow (CORE or PRODUCER). */
+    onDetectionOpenPermissions: () -> Unit = {},
+    /** Detection surface — cold-start "mark my spot" (enters AddingParking for the active vehicle). */
+    onDetectionMarkSpot: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -105,6 +115,9 @@ internal fun HomeBottomSheet(
             // don't propagate. Ripple is suppressed because the visible response
             // to the tap is the sheet animation itself — a flash on the chip /
             // helper text reads as a glitch over content. [SHEET-TAP-002]
+            // CORE/GPS blocker: the sheet is a static full message — no drag, no toggle, no expand.
+            // [DET-READY-001n]
+            val isBlocked = state.detectionUiState == DetectionUiState.BlockedCore
             val toggleInteractionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
@@ -130,10 +143,12 @@ internal fun HomeBottomSheet(
                     .clickable(
                         interactionSource = toggleInteractionSource,
                         indication = null,
+                        enabled = !isBlocked,
                         onClick = onToggle,
                     )
                     .draggable(
                         orientation = Orientation.Vertical,
+                        enabled = !isBlocked,
                         state = rememberDraggableState { delta ->
                             coroutineScope.launch {
                                 sheetOffsetPx.snapTo(
@@ -179,19 +194,35 @@ internal fun HomeBottomSheet(
                     onZoneDismiss = onZoneDismiss,
                     onEditZone = onEditZone,
                     onDeleteZone = onDeleteZone,
+                    onActivateLocation = onDetectionOpenPermissions,
                 )
             }
 
             val isSpotSelected = state.selectedSpot != null
-            val showList = state.mode is HomeMode.Browse &&
+            // When location/GPS is missing the peek already shows the full blocker — suppress the
+            // list (and its divider) so the sheet is just that one message. [DET-READY-001n]
+            val showList = state.detectionUiState != DetectionUiState.BlockedCore &&
+                state.mode is HomeMode.Browse &&
                 !state.isParkingSelected &&
                 state.selectedZoneId == null &&
                 (!isSpotSelected || spotListExpanded)
+            // The peek→list divider sits at the bottom of the peek header. While the sheet rests at
+            // peek the list is entirely hidden behind the opaque bottom nav, whose own top divider
+            // is the real boundary — so this divider would only double it. Worse, `peekHeightPx`
+            // hysteresis (see HomeScreen) lets the two 1px hairlines drift up to 4dp apart, so they
+            // read as a misaligned pair. Only draw it once the sheet is dragged above peek, where the
+            // list actually emerges above the nav and a separator is genuinely needed. [BUG-PEEK-DIVIDER-ALIGN]
+            val dividerRevealPx = with(LocalDensity.current) { PEEK_LIST_DIVIDER_REVEAL.toPx() }
+            val showListDivider by remember(dragSnap, dividerRevealPx) {
+                derivedStateOf { sheetOffsetPx.value < dragSnap.peekOffsetPx - dividerRevealPx }
+            }
             if (showList) {
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = PEEK_LIST_DIVIDER_ALPHA),
-                )
+                if (showListDivider) {
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = PEEK_LIST_DIVIDER_ALPHA),
+                    )
+                }
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier
@@ -213,6 +244,9 @@ internal fun HomeBottomSheet(
                         onParkVehicle = onParkVehicle,
                         onSpotSelect = onSpotSelect,
                         onEnterReportMode = onEnterReportMode,
+                        onDetectionAddVehicle = onDetectionAddVehicle,
+                        onDetectionOpenPermissions = onDetectionOpenPermissions,
+                        onDetectionMarkSpot = onDetectionMarkSpot,
                     )
                 }
             }
@@ -282,3 +316,9 @@ private const val SHEET_SHADOW_ELEVATION_DP = 12
 // Matches [AppBottomNavigation]'s top divider alpha so the two hairlines read
 // as a single visual boundary when the sheet's list section sits above the nav bar.
 private const val PEEK_LIST_DIVIDER_ALPHA = 0.12f
+
+// Distance the sheet must rise above its peek rest position before the peek→list
+// divider is drawn. Mirrors HomeScreen's PEEK_HEIGHT_UPDATE_HYSTERESIS so the
+// divider stays hidden across the whole resting band where it would otherwise
+// drift against the bottom-nav divider. [BUG-PEEK-DIVIDER-ALIGN]
+private val PEEK_LIST_DIVIDER_REVEAL = 4.dp

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -60,10 +59,11 @@ internal fun HomeHeaderSection(
     onEditZone: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Status-bar inset is applied by the parent column in HomeScreen (which also hosts the
+    // persistent detection banner above this header). [DET-READY-001g]
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .statusBarsPadding()
             .padding(vertical = 10.dp),
     ) {
         Row(
@@ -89,7 +89,7 @@ internal fun HomeHeaderSection(
             )
         }
         AnimatedVisibility(
-            visible = state.allPermissionsGranted,
+            visible = state.hasCorePermissions,
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically(),
         ) {

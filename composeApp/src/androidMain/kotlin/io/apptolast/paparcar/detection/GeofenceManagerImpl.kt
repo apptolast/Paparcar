@@ -62,7 +62,6 @@ class GeofenceManagerImpl(
         // the AR IN_VEHICLE path uses — see ActivityRecognitionManagerImpl / BUG-FGS-001). This is
         // what lets the geofence exit BOTH dispatch departure AND arm the next detection: a
         // background BroadcastReceiver/Worker cannot legally start an FGS on Android 12+.
-        // GeofenceBroadcastReceiver is kept as a one-line-revertible fallback (swap back to getBroadcast).
         val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
             action = CoordinatorDetectionService.ACTION_GEOFENCE_EXIT
         }

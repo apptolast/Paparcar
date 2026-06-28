@@ -82,8 +82,8 @@
     <string name="onboarding_cta_setup">Configurează permisiunile</string>
 
     <!-- PermissionsScreen -->
-    <string name="permissions_title">Activează permisiunile</string>
-    <string name="permissions_subtitle">Următoarele permisiuni sunt necesare pentru funcționarea detecției automate.</string>
+    <string name="permissions_title">Automatizează-ți parcarea</string>
+    <string name="permissions_subtitle">Doar locația este obligatorie — restul activează detectarea automată.</string>
     <string name="permissions_perm_location">Locație precisă</string>
     <string name="permissions_perm_location_desc">Pentru a salva cu precizie unde ai parcat vehiculul</string>
     <string name="permissions_perm_background">Locație în fundal</string>
@@ -104,6 +104,9 @@
     <string name="permissions_status_optional">Opțional</string>
     <string name="permissions_btn_grant">Acordă permisiunile</string>
     <string name="permissions_btn_background">Activează locația în fundal</string>
+    <!-- DET-READY-001e -->
+    <string name="permissions_btn_activate_detection">Activează detectarea automată</string>
+    <string name="permissions_continue_with_core">Poate mai târziu</string>
     <string name="permissions_btn_settings">Deschide setările sistemului</string>
     <string name="permissions_rationale">Unele permisiuni au fost refuzate. Acordă-le pentru a continua.</string>
     <string name="permissions_perm_location_services">Servicii de locație</string>
@@ -364,8 +367,8 @@
     <string name="spot_item_type_manual">Manual</string>
 
     <!-- Ecranul de justificare a permisiunilor -->
-    <string name="perm_rationale_title">Cum funcționează Paparcar</string>
-    <string name="perm_rationale_subtitle">Avem nevoie de câteva permisiuni pentru a detecta automat parcarea dvs.</string>
+    <string name="perm_rationale_title">Automatizează-ți parcarea</string>
+    <string name="perm_rationale_subtitle">Reține unde ai parcat, păstrează un istoric automat și eliberează-ți locul când pleci — automat. Sunt necesare doar câteva permisiuni pentru a funcționa.</string>
     <string name="perm_rationale_body">Paparcar detectează când pleci de pe locul tău de parcare și îl distribuie automat șoferilor din apropiere — la fel cum ai beneficia dacă altcineva ar face asta.\n\nPentru a funcționa, avem nevoie de acces la locația ta și la senzorii de mișcare. Locația ta exactă nu este niciodată partajată cu alți utilizatori.</string>
     <string name="perm_rationale_cta">Înțeles, activează permisiunile</string>
     <string name="perm_rationale_skip">Nu acum</string>
@@ -404,6 +407,15 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Detectare automată activă</string>
     <string name="detection_banner_pair_bt">Asociază Bluetooth</string>
+    <!-- DetectionReadinessBanner [DET-READY-001] -->
+    <string name="detection_ready_armed">Gata · detectez când parchezi</string>
+    <string name="detection_monitoring_active">Detectare activă · în mișcare</string>
+    <string name="detection_parked_watching">Parcat · urmăresc plecarea</string>
+    <string name="detection_blocked_title">Detectare în pauză</string>
+    <string name="detection_blocked_cta">Activează</string>
+    <string name="detection_disabled_no_vehicle">Adaugă mașina și automatizează parcarea</string>
+    <string name="detection_disabled_no_vehicle_cta">Adaugă</string>
+    <string name="detection_disabled_non_parking">Fără detectare pentru motocicletă/bicicletă</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d în drum</string>
     <string name="spot_indicator_ttl_expired">Expirat</string>
@@ -641,5 +653,28 @@
     <string name="vehicle_registration_section_privacy">Confidențialitate</string>
     <string name="vehicle_registration_section_size">Dimensiunea vehiculului</string>
     <string name="vehicle_registration_size_hint">Atinge pentru a selecta dimensiunea</string>
+
+    <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_novehicle_title">Adaugă mașina</string>
+    <string name="home_det_novehicle_sub">Parchează și eliberează ușor</string>
+    <string name="home_det_novehicle_cta">Adaugă</string>
+    <string name="home_det_core_title">Activează locația</string>
+    <string name="home_det_core_sub">Paparcar nu merge fără ea</string>
+    <string name="home_det_core_cta">Activează</string>
+    <string name="home_det_producer_title">Activează detecția</string>
+    <string name="home_det_producer_sub">Eliberează locul când pleci</string>
+    <string name="home_det_producer_cta">Activează</string>
+    <string name="home_det_awaiting_title">Unde e mașina?</string>
+    <string name="home_det_awaiting_sub">Marchează locul și îl supraveghez</string>
+    <string name="home_det_awaiting_cta_primary">Marchează locul</string>
+    <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
+    <string name="home_det_monitoring">Urmăresc traseul tău</string>
+    <string name="home_chip_mark_spot">Marchează locul</string>
+    <string name="home_chip_bt_armed">Aștept plecarea</string>
+
+    <!-- Permissions screen sections [DET-READY-001i] -->
+    <string name="permissions_section_essential">Esențial</string>
+    <string name="permissions_section_detection">Detectare automată</string>
+    <string name="permissions_section_optional">Opțional · fiabilitate</string>
 
 </resources>

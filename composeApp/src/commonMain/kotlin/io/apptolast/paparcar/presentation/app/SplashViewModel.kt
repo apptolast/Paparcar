@@ -233,9 +233,12 @@ class SplashViewModel(
         // before reaching the hasVehicle check — the two are independent decisions.
         val postPermissionsRoute = if (hasVehicle) Routes.HOME else Routes.VEHICLE_SIZE_EXPLAINER
 
+        // [DET-READY-001d] Cold-start gate on CORE only: a returning user who granted CORE but
+        // not PRODUCER lands straight on Home (banner nudges them to enable detection) instead of
+        // being re-routed through the permission rationale on every launch.
         val route = when {
             !isOnboardingCompleted -> Routes.ONBOARDING
-            !perms.allPermissionsGranted -> Routes.PERMISSIONS_RATIONALE
+            !perms.hasCorePermissions -> Routes.PERMISSIONS_RATIONALE
             !perms.isLocationServicesEnabled -> Routes.PERMISSIONS
             else -> postPermissionsRoute
         }
@@ -243,7 +246,7 @@ class SplashViewModel(
             TAG,
             "startRoute decision — onboarding=$isOnboardingCompleted, " +
                 "hasVehicle=$hasVehicle, " +
-                "permsGranted=${perms.allPermissionsGranted}, " +
+                "coreGranted=${perms.hasCorePermissions}, " +
                 "gpsEnabled=${perms.isLocationServicesEnabled} " +
                 "→ route=$route",
         )

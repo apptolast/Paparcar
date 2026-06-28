@@ -13,6 +13,11 @@ class FakeLocationDataSource : LocationDataSource {
     override fun observeBalancedLocation(): Flow<GpsPoint> = _balanced
     override fun observeHighAccuracyLocation(): Flow<GpsPoint> = _highAccuracy
 
+    /** Settable cached fix returned by [getLastKnownLocation]; null by default. */
+    var lastKnown: GpsPoint? = null
+
+    override suspend fun getLastKnownLocation(): GpsPoint? = lastKnown
+
     suspend fun emitBalanced(point: GpsPoint) = _balanced.emit(point)
     suspend fun emitHighAccuracy(point: GpsPoint) = _highAccuracy.emit(point)
 }

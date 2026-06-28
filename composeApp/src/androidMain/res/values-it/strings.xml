@@ -47,4 +47,9 @@
     <string name="channel_debug_desc">Messaggi di debug — solo nelle versioni di sviluppo</string>
 
     <string name="attribution_detection_label">Rilevamento parcheggio</string>
+
+    <!-- Notifica: watchdog "ancora parcheggiato?" (possibile uscita geofence persa) -->
+    <string name="notif_still_parked_title">Ancora parcheggiato qui?</string>
+    <string name="notif_still_parked_text">Se sei già partito, libera il posto per la comunità.</string>
+    <string name="notif_action_ive_left">Sono uscito</string>
 </resources>

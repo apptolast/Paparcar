@@ -5,11 +5,14 @@ package io.apptolast.paparcar.presentation.home
 import app.cash.turbine.test
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
+import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.detection.StaticDetectionRuntimeState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -26,6 +29,7 @@ import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
+import io.apptolast.paparcar.fakes.FakeBluetoothScanner
 import io.apptolast.paparcar.fakes.FakeConnectivityObserver
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
@@ -89,6 +93,7 @@ class HomeViewModelTest {
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
             departureEventBus = FakeDepartureEventBus(),
+            activityRecognitionManager = FakeActivityRecognitionManager(),
         )
         val updateParkingLocation = UpdateParkingLocationUseCase(
             userParkingRepository = parkingRepo,
@@ -98,10 +103,18 @@ class HomeViewModelTest {
             departureEventBus = FakeDepartureEventBus(),
         )
         val observeParkedVehicles = ObserveParkedVehiclesUseCase(parkingRepo, vehicleRepo)
+        val observeDetectionReadiness = ObserveDetectionReadinessUseCase(
+            vehicleRepository = vehicleRepo,
+            userParkingRepository = parkingRepo,
+            permissionManager = permissions,
+            detectionRuntime = StaticDetectionRuntimeState(),
+            strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
+        )
         return HomeViewModel(
             permissionManager = permissions,
             locationDataSource = locationDataSource,
             observeNearbySpots = observeNearbySpots,
+            observeDetectionReadiness = observeDetectionReadiness,
             reportSpotReleased = reportSpotReleased,
             activityRecognitionManager = activityRecognition,
             userParkingRepository = parkingRepo,
@@ -119,6 +132,9 @@ class HomeViewModelTest {
             vehicleRepository = vehicleRepo,
             mapFocusEventBus = MapFocusEventBus(),
             notificationPort = FakeAppNotificationManager(),
+            manualParkingDetection = object : io.apptolast.paparcar.domain.detection.ManualParkingDetection {
+                override fun start() = Unit
+            },
         )
     }
 
@@ -159,14 +175,14 @@ class HomeViewModelTest {
     // ── Init — permissions + GPS chain ────────────────────────────────────────
 
     @Test
-    fun `should_start_with_allPermissionsGranted_false`() = runTest {
-        assertEquals(false, vm.state.value.allPermissionsGranted)
+    fun `should_start_with_hasCorePermissions_false`() = runTest {
+        assertEquals(false, vm.state.value.hasCorePermissions)
     }
 
     @Test
-    fun `should_update_allPermissionsGranted_true_when_permissions_emitted`() = runTest {
+    fun `should_update_hasCorePermissions_true_when_permissions_emitted`() = runTest {
         permissions.emit(FakePermissionManager.allGranted())
-        assertEquals(true, vm.state.value.allPermissionsGranted)
+        assertEquals(true, vm.state.value.hasCorePermissions)
     }
 
     @Test

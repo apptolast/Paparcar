@@ -97,6 +97,24 @@ data class ParkingDetectionConfig(
     /** Maximum allowed geofence radius (meters) — caps the accuracy-padded result. */
     val geofenceMaxRadiusMeters: Float = 200f,
 
+    // ── AR PROXIMITY RE-ARM / WATCHDOG [DET-AR-REARM-001] ──────────────────────
+    // Note: the AR proximity-arm threshold is NOT a flat constant — it is derived per-session from
+    // the parked car's own geofence radius via [geofenceRadiusFor]. The proximity gate is the
+    // primary defence against the bus/taxi false positive (the egress gate does NOT reject a bus
+    // ride: it looks like drive+walk-away), so it must sit exactly on the geofence anchor — large
+    // enough to catch a short trip that stays within the radius, tight enough to exclude vehicles
+    // boarded outside your parked-car bubble. A flat value would leave a dead ring (too small for
+    // vans) or widen the bus surface (too large for motorcycles).
+    /**
+     * Distance (meters) from the parked car beyond which the periodic watchdog
+     * ([io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker]) treats the user as
+     * "clearly left without a geofence EXIT" and surfaces a low-confidence "still parked?" prompt.
+     * NEVER auto-releases — at poll time the departure speed is unobservable, so only the user can
+     * disambiguate drove/walked/got-picked-up. Set well beyond [geofenceMaxRadiusMeters] so a fix
+     * that merely sits at the edge of a large geofence does not trip it. Default 300 m.
+     */
+    val watchdogFarThresholdMeters: Float = 300f,
+
     // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
     /** Time window (ms) after the vehicle first stops during which GPS fixes are
      *  collected into [stoppedFixes]. Fixes outside this window are ignored so that
@@ -410,5 +428,26 @@ data class ParkingDetectionConfig(
         require(confirmHoldMs >= 0) {
             "confirmHoldMs must be >= 0 (0 disables the post-confirm hold), was $confirmHoldMs"
         }
+    }
+
+    /**
+     * Effective geofence radius (meters) for a parked car: a size-based base padded by the GPS
+     * accuracy at park time and capped at [geofenceMaxRadiusMeters]. Single source of truth shared
+     * by [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase] /
+     * [io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase] (which register
+     * the geofence) and the AR proximity re-arm gate
+     * ([io.apptolast.paparcar.domain.usecase.detection.ShouldArmFromVehicleEnterUseCase], which must
+     * use the SAME radius so AR and the geofence EXIT meet at the same boundary — no dead ring, no
+     * extra bus surface). [DET-AR-REARM-001]
+     */
+    fun geofenceRadiusFor(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
+        val base = when (sizeCategory) {
+            VehicleSize.MOTORCYCLE -> geofenceRadiusMotoMeters
+            VehicleSize.LARGE_SEDAN -> geofenceRadiusLargeMeters
+            VehicleSize.VAN_HIGH -> geofenceRadiusVanMeters
+            else -> geofenceRadiusMeters // MICRO_SMALL, MEDIUM_SUV, null
+        }
+        val padded = base + (accuracyMeters * geofenceAccuracyPadFactor)
+        return padded.coerceAtMost(geofenceMaxRadiusMeters)
     }
 }

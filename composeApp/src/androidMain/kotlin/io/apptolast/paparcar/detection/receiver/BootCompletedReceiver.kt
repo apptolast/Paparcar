@@ -30,6 +30,7 @@ class BootCompletedReceiver : BroadcastReceiver(), KoinComponent {
         activityRecognitionManager.registerTransitions()
         RegisterActivityTransitionsWorker.enqueueKeep(workManager)
         GeofenceJanitorWorker.enqueueKeep(workManager)
+        // Fixme: Seguimos necesitando DetectionHeartbeatWorker?
         DetectionHeartbeatWorker.enqueueKeep(workManager)
     }
 }

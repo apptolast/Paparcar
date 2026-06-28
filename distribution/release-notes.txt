@@ -1,10 +1,21 @@
-Paparcar 1.0.0-beta01
+Paparcar 1.0.0-beta02
 
-Primera beta interna. Funcional pero pre-release — esperad bugs.
+Mejoras y correcciones sobre beta01.
 
-— Detección automática (BT + Coordinator) operativa.
-— Pantalla Home con tarjetas por vehículo y multi-parking.
-— Historial, vehículos, ajustes y zonas.
-— Login con Google vía BaseLogin.
+— Nueva identidad visual del coche aparcado: anillo de color sobre fondo
+  oscuro. Coches con Bluetooth emparejado salen siempre en azul; los demás
+  en colores distintos para diferenciarse en multi-coche.
+— Categorización de vehículos por tamaño + tipo de carrocería (10
+  pictogramas: hatchback, SUV, sedán, familiar, pickup, furgoneta…) con
+  auto-inferencia al elegir marca y modelo.
+— Detección de aparcamiento más fiable: deja de marcar paradas mientras
+  caminas y corrige confirmaciones tardías en Oppo.
+— Multi-vehículo: el estado de monitorización (BT / Activo / Inactivo)
+  se calcula por coche en lugar de globalmente — emparejar uno ya no
+  desactiva los demás.
+— El emparejamiento Bluetooth ahora se sincroniza con la nube; no se
+  pierde al reinstalar la app.
+— Buscador y campos de texto con botón de limpiar de una sola pulsación.
+— Traducciones revisadas en 9 idiomas.
 
 Reporte de bugs: rndeveloper11501@gmail.com

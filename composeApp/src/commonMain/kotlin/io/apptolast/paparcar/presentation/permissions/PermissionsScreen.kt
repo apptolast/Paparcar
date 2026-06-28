@@ -15,4 +15,7 @@ import androidx.compose.runtime.Composable
  *          UNUserNotificationCenter for push notifications).
  *          Calls [onPermissionsGranted] when CLAuthorizationStatus is authorizedAlways.
  */
-expect @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit)
+expect @Composable fun PermissionsScreen(
+    onPermissionsGranted: () -> Unit,
+    focus: PermissionsFocus = PermissionsFocus.All,
+)

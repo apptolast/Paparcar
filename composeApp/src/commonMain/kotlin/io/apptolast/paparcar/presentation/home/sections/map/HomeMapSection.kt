@@ -100,6 +100,7 @@ internal fun HomeMapFabsLayer(
             HomeMapFabColumn(
                 userParking = state.userParking,
                 userGpsPoint = state.userGpsPoint,
+                isParkingSelected = state.isParkingSelected,
                 onMyLocation = onMyLocation,
                 onParkedCar = onParkedCar,
                 onMidpoint = onMidpoint,

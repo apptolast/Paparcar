@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
+import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -41,6 +42,7 @@ class ConfirmParkingUseCase(
     private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
     private val departureEventBus: DepartureEventBus,
+    private val activityRecognitionManager: ActivityRecognitionManager,
 ) {
 
     /**
@@ -154,6 +156,17 @@ class ConfirmParkingUseCase(
             return Result.failure(PaparcarError.Parking.SaveFailed)
         }
 
+        // Re-parking before the previous session ended (no confirmed departure) clears the old Room
+        // row but would otherwise leave its geofence registered in Play Services (NEVER_EXPIRE) as an
+        // ORPHAN — it then fires spurious GEOFENCE_EXITs that arm detection with nothing to release.
+        // saveNewParkingSession returns the id of the session it just cleared; drop its geofence too.
+        // geofenceId == sessionId for sessions created here, so the id doubles as the geofence id.
+        saved.getOrNull()?.takeIf { it != sessionId }?.let { replacedId ->
+            PaparcarLogger.d(DIAG, "  → removing replaced session's orphan geofence=$replacedId")
+            geofenceService.removeGeofence(replacedId)
+                .onFailure { e -> PaparcarLogger.w(DIAG, "    ⚠ removeGeofence($replacedId) failed (continuing)", e) }
+        }
+
         // Clear the IN_VEHICLE_ENTER timestamp from the arrival trip so that departure
         // detection only triggers on a *new* IN_VEHICLE_ENTER that happens after parking
         // is saved. Without this reset, walking away from the car within the 30-min
@@ -169,9 +182,14 @@ class ConfirmParkingUseCase(
             geofenceId = sessionId,
             latitude = gpsPoint.latitude,
             longitude = gpsPoint.longitude,
-            radiusMeters = computeGeofenceRadius(resolvedSizeCategory, gpsPoint.accuracy),
+            radiusMeters = config.geofenceRadiusFor(resolvedSizeCategory, gpsPoint.accuracy),
         )
         PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
+
+        // [DET-AR-REARM-001] A car is now parked → arm the scoped IN_VEHICLE_ENTER proximity
+        // re-arm so a short trip that never crosses the geofence radius still re-arms detection.
+        // Idempotent; no-op on iOS. Unregistered when the last active session ends.
+        activityRecognitionManager.registerVehicleEnterArming()
 
         PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS (notif is caller's responsibility)")
         return Result.success(session)
@@ -180,16 +198,5 @@ class ConfirmParkingUseCase(
     private companion object {
         const val DIAG = "PARKDIAG/Confirm"
         const val POOR_ACCURACY_WARN_METERS = 50f
-    }
-
-    private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
-        val base = when (sizeCategory) {
-            VehicleSize.MOTORCYCLE -> config.geofenceRadiusMotoMeters
-            VehicleSize.LARGE_SEDAN -> config.geofenceRadiusLargeMeters
-            VehicleSize.VAN_HIGH -> config.geofenceRadiusVanMeters
-            else -> config.geofenceRadiusMeters  // MICRO_SMALL, MEDIUM_SUV, null
-        }
-        val padded = base + (accuracyMeters * config.geofenceAccuracyPadFactor)
-        return padded.coerceAtMost(config.geofenceMaxRadiusMeters)
     }
 }

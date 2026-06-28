@@ -127,19 +127,17 @@ private val BOTTOM_NAV_TAB_ORDER = listOf(Routes.HOME, Routes.VEHICLES, Routes.S
 // Screens where the runtime-permission guard should NOT redirect: either they ARE the
 // permission flow itself, or they are pre-permission setup screens (onboarding, vehicle
 // registration in first-run). The guard only fires on top of normal app screens.
+// Permissions route carries an optional `focus` tier arg so an in-Home CTA can open a focused view
+// (only the relevant section) instead of the full first-run list. [DET-READY-001i]
+private const val PERMISSIONS_ROUTE = "${Routes.PERMISSIONS}?focus={focus}"
+
 private val GATE_SCREENS = setOf(
-    Routes.PERMISSIONS,
+    PERMISSIONS_ROUTE,
     Routes.PERMISSIONS_RATIONALE,
     Routes.ONBOARDING,
     Routes.VEHICLE_SIZE_EXPLAINER,
     Routes.GPS_DISCLAIMER,
     "${Routes.VEHICLE_REGISTRATION}?origin={origin}&vehicleId={vehicleId}",
-)
-
-private val PERMISSION_GATE_SCREENS = setOf(
-    Routes.PERMISSIONS,
-    Routes.PERMISSIONS_RATIONALE,
-    Routes.GPS_DISCLAIMER,
 )
 
 @Composable
@@ -332,31 +330,22 @@ private fun MainAppNavigation(
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route
 
-    // Bidirectional permission gate guard — derived from state so it never misses an update.
+    // Permission gate guard. [DET-READY-001i]
+    // We deliberately do NOT force-navigate to PERMISSIONS when a permission or GPS is lost
+    // mid-session: that ejected the user to a full-screen gate even for non-blocking losses
+    // (e.g. notifications). Runtime loss now stays in Home, where the detection surfaces
+    // (Blocked·CORE / Blocked·PRODUCER) report it and route to permissions on the user's action.
+    // The cold-start gate (SplashViewModel) still requires CORE before the first entry.
     LaunchedEffect(isFullyOperational, hasSeenGpsAccuracyDisclaimer, currentRoute) {
-        when {
-            // Permissions lost mid-session → push to PERMISSIONS, clear HOME from back-stack.
-            !isFullyOperational && currentRoute != null && currentRoute !in GATE_SCREENS -> {
-                navController.navigate(Routes.PERMISSIONS) {
-                    popUpTo(Routes.HOME) { inclusive = true }
-                }
-            }
-            // Permissions granted but hasn't seen mandatory GPS disclaimer yet.
-            isFullyOperational && !hasSeenGpsAccuracyDisclaimer && currentRoute != Routes.GPS_DISCLAIMER && currentRoute !in GATE_SCREENS -> {
-                navController.navigate(Routes.GPS_DISCLAIMER) {
-                    // If we were on permissions, replace it.
-                    if (currentRoute == Routes.PERMISSIONS) {
-                        popUpTo(Routes.PERMISSIONS) { inclusive = true }
-                    }
-                }
-            }
-            // All ready: permissions granted AND disclaimer seen.
-            // If stuck on a gate screen (except legitimate setup flows like vehicle reg), go HOME.
-            isFullyOperational && hasSeenGpsAccuracyDisclaimer && currentRoute in PERMISSION_GATE_SCREENS -> {
-                navController.navigate(Routes.HOME) {
-                    popUpTo(currentRoute!!) { inclusive = true }
-                }
-            }
+        // Only safety net left: a fully-operational user sitting on a normal screen who has never
+        // seen the mandatory GPS disclaimer (e.g. granted permissions outside the first-run chain).
+        // The old "operational + on a gate screen → HOME" branch was removed: it duplicated Home
+        // when the user voluntarily opened PERMISSIONS from an in-Home CTA while already operational.
+        // Forward navigation is owned by each screen's own onComplete (context-aware, see below). [NAV-DEDUP-001]
+        if (isFullyOperational && !hasSeenGpsAccuracyDisclaimer &&
+            currentRoute != Routes.GPS_DISCLAIMER && currentRoute !in GATE_SCREENS
+        ) {
+            navController.navigate(Routes.GPS_DISCLAIMER)
         }
     }
 
@@ -496,13 +485,27 @@ private fun MainAppNavigation(
                     },
                 )
             }
-            composable(Routes.PERMISSIONS) {
+            composable(
+                route = PERMISSIONS_ROUTE,
+                arguments = listOf(
+                    navArgument("focus") {
+                        type = NavType.StringType
+                        defaultValue = io.apptolast.paparcar.presentation.permissions.PermissionsFocus.All.name
+                    },
+                ),
+            ) { backStackEntry ->
+                val focus = io.apptolast.paparcar.presentation.permissions.PermissionsFocus
+                    .fromArg(backStackEntry.arguments?.getString("focus"))
                 PermissionsScreen(
+                    focus = focus,
                     onPermissionsGranted = {
-                        // Once permissions are granted, show the mandatory GPS disclaimer
-                        // before allowing the user to proceed to the app or vehicle setup.
-                        navController.navigate(Routes.GPS_DISCLAIMER) {
-                            popUpTo(Routes.PERMISSIONS) { inclusive = true }
+                        // Voluntary visit (an in-Home "Activar" CTA — Home already in the back stack):
+                        // pop straight back to the existing Home, never push a duplicate. Cold-start
+                        // chain (no Home below): continue forward to the mandatory GPS disclaimer. [NAV-DEDUP-001]
+                        if (!navController.popBackStack(Routes.HOME, inclusive = false)) {
+                            navController.navigate(Routes.GPS_DISCLAIMER) {
+                                popUpTo(PERMISSIONS_ROUTE) { inclusive = true }
+                            }
                         }
                     },
                 )
@@ -511,8 +514,12 @@ private fun MainAppNavigation(
                 io.apptolast.paparcar.presentation.permissions.GpsDisclaimerScreen(
                     onAccepted = {
                         onDismissGpsDisclaimer()
-                        navController.navigate(postPermissionsRoute) {
-                            popUpTo(Routes.GPS_DISCLAIMER) { inclusive = true }
+                        // Same dedup rule: return to an existing Home if present, else continue the
+                        // cold-start chain forward to the resolved post-permissions route. [NAV-DEDUP-001]
+                        if (!navController.popBackStack(Routes.HOME, inclusive = false)) {
+                            navController.navigate(postPermissionsRoute) {
+                                popUpTo(Routes.GPS_DISCLAIMER) { inclusive = true }
+                            }
                         }
                     }
                 )
@@ -531,6 +538,15 @@ private fun MainAppNavigation(
                 HomeScreen(
                     navProgressState = navProgress,
                     bottomPadding = scaffoldPadding.calculateBottomPadding(),
+                    // [DET-READY-001f] Banner "Turn on" → reuse the permission flow (disclosure +
+                    // escalation already implemented there). Once PRODUCER perms land and the app is
+                    // fully operational, the gate LaunchedEffect routes back to HOME automatically.
+                    // focus = which tier triggered it (core/producer) → the permissions screen shows
+                    // only that section instead of the full list. [DET-READY-001i]
+                    onActivateDetection = { focus -> navController.navigate("${Routes.PERMISSIONS}?focus=$focus") },
+                    // Banner "Add" → vehicle registration. origin=vehicles so completion pops back
+                    // to HOME (the screen below), instead of replaying the onboarding pop chain.
+                    onAddVehicle = { navController.navigate("${Routes.VEHICLE_REGISTRATION}?origin=vehicles") },
                 )
             }
             composable(

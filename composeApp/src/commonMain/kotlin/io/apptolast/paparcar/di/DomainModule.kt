@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.usecase.user.BootstrapUserDataUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.usecase.user.GetOrCreateUserProfileUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetLastKnownLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
@@ -19,7 +20,12 @@ import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionU
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
+import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
+import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
+import io.apptolast.paparcar.domain.usecase.detection.ShouldArmFromVehicleEnterUseCase
+import org.koin.dsl.bind
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
@@ -57,11 +63,13 @@ val domainModule = module {
     // Location UseCases
     factory { GetAddressAndPlaceUseCase(repository = get()) }
     factory { GetOneLocationUseCase(get()) }
+    factory { GetLastKnownLocationUseCase(get()) } // [DET-AR-REARM-001] passive — no geofence provocation
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SearchAddressUseCase(get()) }
 
     // Parking UseCases
     single { ParkingDetectionConfig() }
+    factory { ShouldArmFromVehicleEnterUseCase(get()) } // [DET-AR-REARM-001]
     factory { CalculateParkingConfidenceUseCase(get()) }
     factory { EvaluateParkingDecisionUseCase(get()) }
     factory {
@@ -81,6 +89,7 @@ val domainModule = module {
             authRepository = get(),
             config = get(),
             departureEventBus = get(),
+            activityRecognitionManager = get(),
         )
     }
     single {
@@ -116,6 +125,7 @@ val domainModule = module {
             reportSpotReleased = get(),
             geofenceService = get(),
             departureEventBus = get(),
+            activityRecognitionManager = get(),
         )
     }
     factory {
@@ -132,5 +142,18 @@ val domainModule = module {
 
     // Strategy Resolution
     factory { ParkingStrategyResolver(get(), get()) }
+
+    // Detection readiness [DET-READY-001]
+    // Shared singleton: CoordinatorDetectionService mutates it, the use case observes it. [DET-READY-001c]
+    single { MutableDetectionRuntimeState() } bind DetectionRuntimeState::class
+    factory {
+        ObserveDetectionReadinessUseCase(
+            vehicleRepository = get(),
+            userParkingRepository = get(),
+            permissionManager = get(),
+            detectionRuntime = get(),
+            strategyResolver = get(),
+        )
+    }
 
 }

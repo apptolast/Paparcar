@@ -47,4 +47,9 @@
     <string name="channel_debug_desc">Mesaje de depanare — doar în build-urile de dezvoltare</string>
 
     <string name="attribution_detection_label">Detectare parcare</string>
+
+    <!-- Notificare: watchdog „încă parcat?" (probabil ieșire din geofence ratată) -->
+    <string name="notif_still_parked_title">Încă parcat aici?</string>
+    <string name="notif_still_parked_text">Dacă ai plecat deja, eliberează locul pentru comunitate.</string>
+    <string name="notif_action_ive_left">Am plecat</string>
 </resources>

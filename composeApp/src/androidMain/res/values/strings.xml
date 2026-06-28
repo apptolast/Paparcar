@@ -34,6 +34,11 @@
     <string name="notif_confirmation_failed_title">Parking not saved</string>
     <string name="notif_confirmation_failed_text">Could not save your parking spot. Open Paparcar to try again.</string>
 
+    <!-- Notification: watchdog "still parked?" prompt (suspected missed geofence exit) -->
+    <string name="notif_still_parked_title">Still parked here?</string>
+    <string name="notif_still_parked_text">If you\'ve already driven off, free the spot for the community.</string>
+    <string name="notif_action_ive_left">I\'ve left</string>
+
     <!-- Notification: debug (dev builds only) -->
     <string name="notif_debug_title">Paparcar Debug</string>
 

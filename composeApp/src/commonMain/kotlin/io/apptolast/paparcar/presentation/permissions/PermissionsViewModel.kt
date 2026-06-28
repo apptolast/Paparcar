@@ -71,6 +71,13 @@ class PermissionsViewModel(
                 sendEffect(PermissionsEffect.LaunchOemBatterySettings)
             }
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
+            PermissionsIntent.ContinueWithCore -> {
+                // Enter with CORE only; PRODUCER stays pending and is nudged from the Home banner.
+                // Guard on CORE + GPS so we never navigate into a non-operational app. [DET-READY-001e]
+                if (state.value.canContinueWithCore) {
+                    sendEffect(PermissionsEffect.NavigateToHome)
+                }
+            }
             PermissionsIntent.ConfirmBackgroundLocationGuide -> {
                 updateState { copy(showBackgroundLocationGuide = false) }
                 requestCount++
@@ -78,36 +85,45 @@ class PermissionsViewModel(
             }
             PermissionsIntent.DismissBackgroundLocationGuide ->
                 updateState { copy(showBackgroundLocationGuide = false) }
+            is PermissionsIntent.SetLocationPermanentlyDenied ->
+                updateState { copy(locationPermanentlyDenied = intent.value) }
         }
     }
 
     private fun handleRequestPermissions() {
         val current = state.value
         when {
-            // Already escalated to settings — send the user there.
-            current.showSettingsPrompt ->
+            // Already escalated to settings, OR location is permanently denied / revoked (the system
+            // dialog would no-op) — send the user straight to system settings. [DET-READY-001m]
+            current.showSettingsPrompt || (!current.hasFineLocation && current.locationPermanentlyDenied) ->
                 sendEffect(PermissionsEffect.OpenAppSettings)
 
-            // Step 1: fine location + activity + notifications still pending.
-            !current.hasFineLocation
-                || !current.hasActivityRecognition
-                || !current.hasNotifications -> {
+            // CORE step 1: foreground location only — the minimum to use the map. We no longer
+            // bundle activity-recognition + notifications here: those are PRODUCER and only asked
+            // when the user deliberately activates auto-detection. [DET-READY-001i]
+            !current.hasFineLocation -> {
                 escalateIfNeeded()
                 requestCount++
                 sendEffect(PermissionsEffect.RequestStep1)
             }
 
-            // Step 2: background location still pending — show guide first so the user
-            // knows to select "Allow all the time" and press Back. The guide's confirm
-            // button dispatches ConfirmBackgroundLocationGuide which sends the real effect.
+            // CORE: GPS toggle off — also essential for the map.
+            !current.isLocationServicesEnabled ->
+                sendEffect(PermissionsEffect.OpenLocationSettings)
+
+            // PRODUCER sensors: activity recognition + notifications, requested together.
+            !current.hasActivityRecognition || !current.hasNotifications -> {
+                escalateIfNeeded()
+                requestCount++
+                sendEffect(PermissionsEffect.RequestProducerSensors)
+            }
+
+            // PRODUCER: background location — show the guide first so the user knows to select
+            // "Allow all the time" and press Back. The guide's confirm dispatches the real effect.
             !current.hasBackgroundLocation -> {
                 escalateIfNeeded()
                 updateState { copy(showBackgroundLocationGuide = true) }
             }
-
-            // All runtime permissions granted, but GPS is off.
-            !current.isLocationServicesEnabled ->
-                sendEffect(PermissionsEffect.OpenLocationSettings)
         }
     }
 

@@ -29,6 +29,10 @@ class FakeAppPreferences(
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer
     override fun setGpsAccuracyDisclaimerSeen() { _hasSeenGpsAccuracyDisclaimer = true }
 
+    private var _hasRequestedLocationPermission = false
+    override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission
+    override fun setLocationPermissionRequested() { _hasRequestedLocationPermission = true }
+
     private var _autoDetectParking = initialAutoDetect
     override val autoDetectParking: Boolean get() = _autoDetectParking
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking = enabled }

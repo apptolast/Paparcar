@@ -38,6 +38,11 @@ val androidDetectionModule = module {
     // --- Departure Detection ---
     single<DepartureEventBus> { DepartureEventBusImpl() }
 
+    // --- Manual detection start ("I'm driving" cold-start affordance) [DET-G-01b] ---
+    single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
+        io.apptolast.paparcar.detection.ManualParkingDetectionImpl(androidContext())
+    }
+
     // --- Parking Enrichment ---
     single<ParkingEnrichmentScheduler> { WorkManagerParkingEnrichmentScheduler(androidContext()) }
 

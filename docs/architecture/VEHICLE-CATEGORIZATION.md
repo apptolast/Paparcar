@@ -48,12 +48,14 @@ VehicleType (qué es) ─┬─ CAR ──────────► CarbodyTyp
 
 `VehicleCatalog.inferBodyType(brand, model)` runs:
 
-1. **Exact-match** — curated `Map<String, Map<String, CarbodyType>>` for ~30 brands × ~5–10 models each.
-2. **Pattern fallback** — keyword `contains` over the lowercased `"$brand $model"` string with rules ordered from most specific to most general. Lets us still classify *unknown* brands ("hilux" → PICKUP) or custom user inputs.
+1. **Exact-match** — a single **source-of-truth** table, `Map<String, List<Pair<String, CarbodyType>>>`, covering a **global** brand set (~69 brands, mainstream EU + US + Asia + premium + EV newcomers). Both the dropdown model list (`modelsFor`) and the inference read from this one table, so they can never drift — `VehicleCatalogTest` enforces that every offered model carries a body type.
+2. **Pattern fallback** — keyword `contains` over the lowercased `"$brand $model"` string with rules ordered from most specific to most general. Lets us still classify *unknown* brands ("hilux" → PICKUP) or custom user inputs. Keywords are deliberately multi-character, model-distinct tokens (never bare digits or 2-letter fragments) so they don't false-positive on unrelated names.
 
 `inferSize(brand, model)` is the convenience that drops the body dimension and returns just the size.
 
-The registration ViewModel re-runs inference on `SelectBrand`, `SetCustomBrand`, `SelectModel`, `SetCustomModel`. Manual override via `SetCarbody(body)` flips `isCarbodyManualOverride = true` and disables auto re-inference until brand/model change.
+The registration ViewModel re-runs inference on `SelectBrand`, `SetCustomBrand`, `SelectModel`, `SetCustomModel` (the free-text intents now also pin `vehicleType = CAR` for parity with the dropdown intents, so the carbody card — not the non-car badge — surfaces). Manual override via `SetCarbody(body)` flips `isCarbodyManualOverride = true` and disables auto re-inference until brand/model change.
+
+**Free-text default (VEH-FREETEXT-001).** When a CAR's typed brand/model matches neither the catalog nor any pattern, `inferBodyType` returns null and the ViewModel falls back to `DEFAULT_CAR_CARBODY = HATCHBACK_MEDIUM`. This guarantees the form is never blocked: the user always sees a carbody card with a "change" affordance and can refine the body (and thus size) via `CarbodyManualPicker`. The default is an *auto* fallback (`isCarbodyManualOverride = false`), so picking from the catalog or the manual picker still overrides it.
 
 ## Persistence
 

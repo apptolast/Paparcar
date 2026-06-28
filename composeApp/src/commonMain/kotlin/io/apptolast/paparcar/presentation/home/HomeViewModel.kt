@@ -5,6 +5,7 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
+import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -17,6 +18,7 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
@@ -57,6 +59,7 @@ class HomeViewModel(
     private val activityRecognitionManager: ActivityRecognitionManager,
     private val connectivityObserver: ConnectivityObserver,
     private val observeNearbySpots: ObserveNearbySpotsUseCase,
+    private val observeDetectionReadiness: ObserveDetectionReadinessUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val sendSpotSignal: SendSpotSignalUseCase,
     private val userParkingRepository: UserParkingRepository,
@@ -72,6 +75,7 @@ class HomeViewModel(
     private val appPreferences: AppPreferences,
     private val mapFocusEventBus: MapFocusEventBus,
     private val notificationPort: AppNotificationManager,
+    private val manualParkingDetection: ManualParkingDetection,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     // ── Private flows ─────────────────────────────────────────────────────────
@@ -114,6 +118,7 @@ class HomeViewModel(
         subscribeGpsLocation()
         subscribeNearbySpots()
         subscribeMapFocusEvents()
+        subscribeDetectionReadiness()
     }
 
     override fun initState(): HomeState = HomeState()
@@ -129,7 +134,7 @@ class HomeViewModel(
 
             // Spot interactions
             is HomeIntent.LoadNearbySpots -> {
-                if (!permissionManager.permissionState.value.allPermissionsGranted) {
+                if (!permissionManager.permissionState.value.hasCorePermissions) {
                     sendEffect(HomeEffect.RequestLocationPermission)
                 }
             }
@@ -157,6 +162,9 @@ class HomeViewModel(
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
+            // [DET-G-01b] "I'm driving" — start tracking now; the readiness flow flips to Monitoring
+            // (the ephemeral pill) as the service marks itself running, which is the user's feedback.
+            is HomeIntent.StartDrivingDetection -> manualParkingDetection.start()
 
             // Parking lifecycle
             is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon, intent.publishSpot)
@@ -277,11 +285,16 @@ class HomeViewModel(
         // (permState, reconnectTick) pair so reconnects still rebuild the spot
         // subscription, but AR is left alone.
         permissionManager.permissionState
-            .distinctUntilChanged { old, new -> old.allPermissionsGranted == new.allPermissionsGranted }
+            .distinctUntilChanged { old, new ->
+                old.hasCorePermissions == new.hasCorePermissions &&
+                    old.hasProducerPermissions == new.hasProducerPermissions
+            }
             .onEach { perm ->
-                updateState { copy(allPermissionsGranted = perm.allPermissionsGranted) }
-                if (perm.allPermissionsGranted) {
-                    // Best-effort: AR failure degrades gracefully to GPS-only detection.
+                // Consumer UI (map, spots) is driven by CORE. [DET-READY-001d]
+                updateState { copy(hasCorePermissions = perm.hasCorePermissions) }
+                // AR registration needs the PRODUCER tier (activity recognition); register only
+                // when it is granted. Best-effort: AR failure degrades gracefully to GPS-only.
+                if (perm.hasProducerPermissions) {
                     runCatching { activityRecognitionManager.registerTransitions() }
                         .onFailure { e -> PaparcarLogger.w(TAG, "AR registration failed — GPS-only mode", e) }
                 }
@@ -290,7 +303,7 @@ class HomeViewModel(
 
         combine(permissionManager.permissionState, reconnectTick) { perm, _ -> perm }
             .flatMapLatest { perm ->
-                if (perm.allPermissionsGranted) locationDataSource.observeBalancedLocation() else emptyFlow()
+                if (perm.hasCorePermissions) locationDataSource.observeBalancedLocation() else emptyFlow()
             }
             .onStart { updateState { copy(isLoading = true) } }
             .onEach { location ->
@@ -314,9 +327,17 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
+    /** Drives the persistent detection-readiness banner. [DET-READY-001g] */
+    private fun subscribeDetectionReadiness() {
+        observeDetectionReadiness()
+            .distinctUntilChanged()
+            .onEach { readiness -> updateState { copy(detectionReadiness = readiness) } }
+            .launchIn(viewModelScope)
+    }
+
     private fun subscribeNearbySpots() {
         combine(permissionManager.permissionState, spotQueryCenter, reconnectTick) { perm, center, _ ->
-            if (perm.allPermissionsGranted) center else null
+            if (perm.hasCorePermissions) center else null
         }
             .distinctUntilChanged { old, new -> old.closeEnoughTo(new) }
             .flatMapLatest { center ->

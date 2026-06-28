@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
+import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
@@ -70,6 +71,7 @@ class ParkingFlowIntegrationTest {
         authRepository = auth,
         config = ParkingDetectionConfig(),
         departureEventBus = FakeDepartureEventBus(),
+        activityRecognitionManager = FakeActivityRecognitionManager(),
     )
 
     private val releaseParking = ReleaseActiveParkingSessionUseCase(

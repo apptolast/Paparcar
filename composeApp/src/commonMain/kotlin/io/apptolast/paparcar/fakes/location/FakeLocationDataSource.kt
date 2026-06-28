@@ -33,4 +33,7 @@ class FakeLocationDataSource : LocationDataSource {
             delay(1.seconds)
         }
     }
+
+    override suspend fun getLastKnownLocation(): GpsPoint =
+        mockLocation.copy(timestamp = Clock.System.now().toEpochMilliseconds())
 }

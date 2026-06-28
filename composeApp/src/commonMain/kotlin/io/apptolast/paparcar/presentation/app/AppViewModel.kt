@@ -26,7 +26,10 @@ class AppViewModel(
         permissionManager.permissionState.value.let { current ->
             updateState {
                 copy(
-                    permissionsGranted = current.allPermissionsGranted,
+                    // [DET-READY-001d] Gate on CORE only (foreground location + notifications).
+                    // PRODUCER (background + AR) no longer blocks the app — its absence is surfaced
+                    // in the Home detection banner, not by ejecting the user to the permission gate.
+                    permissionsGranted = current.hasCorePermissions,
                     locationServicesEnabled = current.isLocationServicesEnabled,
                     themeMode = appPreferences.themeMode,
                     imperialUnits = appPreferences.useImperialUnits,
@@ -41,7 +44,7 @@ class AppViewModel(
             permissionManager.permissionState.collect { permState ->
                 updateState {
                     copy(
-                        permissionsGranted = permState.allPermissionsGranted,
+                        permissionsGranted = permState.hasCorePermissions, // CORE-only gate [DET-READY-001d]
                         locationServicesEnabled = permState.isLocationServicesEnabled,
                     )
                 }

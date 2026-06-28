@@ -77,6 +77,9 @@ class VehicleRegistrationViewModel(
                     carbodyType = inferred,
                     sizeCategory = resolveSize(vehicleType, inferred),
                     isCarbodyManualOverride = false,
+                    // Typing a brand implies a CAR (no non-CAR picker on this screen);
+                    // keep parity with SelectBrand so expectsCarbody surfaces the carbody card.
+                    vehicleType = vehicleType ?: VehicleType.CAR,
                     hasInteractedWithForm = true,
                 )
             }
@@ -113,6 +116,7 @@ class VehicleRegistrationViewModel(
                     carbodyType = inferred,
                     sizeCategory = resolveSize(vehicleType, inferred),
                     isCarbodyManualOverride = false,
+                    vehicleType = vehicleType ?: VehicleType.CAR,
                     hasInteractedWithForm = true,
                 )
             }
@@ -164,11 +168,16 @@ class VehicleRegistrationViewModel(
      * Runs the carbody inference only when the user is registering a CAR. For
      * other vehicle types we never have a carbody, and a blank brand+model
      * pair short-circuits to null so the UI doesn't flash a stale selection.
+     *
+     * When the user types a brand/model the catalog can't recognise (free-text
+     * path), inference falls back to [DEFAULT_CAR_CARBODY] instead of null so the
+     * form is never blocked — the user can refine it via the manual carbody
+     * picker (the card always exposes a "change" affordance). [VEH-FREETEXT-001]
      */
     private fun inferIfCar(type: VehicleType?, brand: String, model: String): CarbodyType? {
         if (type != null && type != VehicleType.CAR) return null
         if (brand.isBlank() && model.isBlank()) return null
-        return VehicleCatalog.inferBodyType(brand, model)
+        return VehicleCatalog.inferBodyType(brand, model) ?: DEFAULT_CAR_CARBODY
     }
 
     /**
@@ -315,5 +324,12 @@ class VehicleRegistrationViewModel(
 
     private companion object {
         const val TAG = "VehicleRegistrationVM"
+
+        /**
+         * Body type assumed for a CAR whose typed brand/model matches neither the
+         * catalog nor any keyword pattern. The most common segment (compact
+         * hatchback) — pre-selected but always editable via the manual picker.
+         */
+        val DEFAULT_CAR_CARBODY = CarbodyType.HATCHBACK_MEDIUM
     }
 }

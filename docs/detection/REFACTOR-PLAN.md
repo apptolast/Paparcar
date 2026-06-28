@@ -1,5 +1,13 @@
 # Plan de refactor de detección — DET-001
 
+> **Estado global: ✅ ATERRIZADO EN MASTER (squash) — 2026-06-26 como `9b80f9c`.**
+> El diff completo de la rama (45 ficheros, +2700/−587) está en master. La rama
+> `refactor/DET-001-detection-decision-engine` queda como historial granular (37 commits
+> ticket-a-ticket) y es **candidata a borrado** una vez confirmado que no queda nada único.
+> Pendiente real ahora = los tickets DIFERIDOS (no la rama): `DET-C-02`, `DET-D-03`,
+> `DET-LOG-05`, `DET-G-02` + verificar `DET-G-01` (FGS-geofencing) en device + desplegar
+> reglas Firestore de diagnóstico.
+>
 > Rama: `refactor/DET-001-detection-decision-engine`
 > Origen: sesión de diseño en `HANDOFF-refactor-deteccion.md`, validada contra el repo el 2026-06-25.
 > Regla: 1 ticket = 1 commit. No se mergea sin aprobación explícita del usuario.

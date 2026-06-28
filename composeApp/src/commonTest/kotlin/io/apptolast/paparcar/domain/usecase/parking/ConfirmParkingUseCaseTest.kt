@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
+import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
@@ -410,5 +411,6 @@ class ConfirmParkingUseCaseTest {
         authRepository = auth,
         config = config,
         departureEventBus = bus,
+        activityRecognitionManager = FakeActivityRecognitionManager(),
     )
 }

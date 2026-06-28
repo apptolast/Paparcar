@@ -11,18 +11,32 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.WorkManager
 import com.google.android.gms.location.GeofencingEvent
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.DetectionTrigger
+import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
+import io.apptolast.paparcar.domain.service.GeofenceManager
+import io.apptolast.paparcar.domain.usecase.detection.ShouldArmFromVehicleEnterUseCase
+import io.apptolast.paparcar.domain.usecase.detection.VehicleEnterArmDecision
+import io.apptolast.paparcar.domain.usecase.location.GetLastKnownLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -38,8 +52,19 @@ class CoordinatorDetectionService : LifecycleService() {
     private val notificationPort: AppNotificationManager by inject()
     private val vehicleRepository: VehicleRepository by inject()
     private val revertParking: RevertParkingUseCase by inject() // [REFACTOR-300]
+    private val processConfirmedDeparture: ProcessConfirmedDepartureUseCase by inject() // [DET-AR-REARM-001]
     private val geofenceEventBus: GeofenceEventBus by inject() // [DET-G-01]
     private val strategyResolver: ParkingStrategyResolver by inject() // [DET-G-01]
+    private val detectionRuntime: MutableDetectionRuntimeState by inject() // [DET-READY-001c]
+    // [DET-AR-REARM-001] AR IN_VEHICLE_ENTER proximity re-arm. Uses PASSIVE last-known location (not
+    // an active fix) so the proximity check never feeds Play Services a fresh fix that would provoke
+    // the parked-car geofence into a spurious EXIT.
+    private val getLastKnownLocation: GetLastKnownLocationUseCase by inject()
+    private val userParkingRepository: UserParkingRepository by inject()
+    private val shouldArmFromVehicleEnter: ShouldArmFromVehicleEnterUseCase by inject()
+    private val departureEventBus: DepartureEventBus by inject()
+    private val detectionEventLogger: DetectionEventLogger by inject()
+    private val geofenceService: GeofenceManager by inject() // [orphan-geofence cleanup]
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -87,8 +112,9 @@ class CoordinatorDetectionService : LifecycleService() {
             // ForegroundServiceStartNotAllowedException (an IllegalStateException). This is the ONE
             // open unknown for the geofence path: if Play Services does not deliver the geofence
             // PendingIntent with the same FGS privilege it grants AR (BUG-FGS-001), the promote fails
-            // here. Degrade gracefully — log + stop, never crash. The fix is then a 1-line revert of
-            // GeofenceManagerImpl's PendingIntent back to getBroadcast.
+            // here. Degrade gracefully — log + stop, never crash. Validated on real devices: Play
+            // Services does grant the privileged start, so the getBroadcast fallback receiver was
+            // removed. If a future OEM regresses this, re-add a BroadcastReceiver + getBroadcast path.
             PaparcarLogger.e(DIAG, "  ✗ FGS promote blocked (action=${intent.action}) — start not foreground-eligible", e)
             stopSelf()
             return START_NOT_STICKY
@@ -99,10 +125,12 @@ class CoordinatorDetectionService : LifecycleService() {
         when (val action = intent.action) {
             ACTION_START_TRACKING -> handleStartTracking()
             ACTION_GEOFENCE_EXIT -> handleGeofenceExit(intent)
+            ACTION_AR_VEHICLE_ENTER -> handleArVehicleEnter() // [DET-AR-REARM-001]
             ACTION_PARKING_CONFIRMED -> handleUserConfirmed()
             ACTION_PARKING_DENIED -> handleUserDenied()
             ACTION_PARKING_ACK -> handlePostSaveAck() // [REFACTOR-300]
             ACTION_PARKING_REVERT -> handlePostSaveRevert(intent.getStringExtra(EXTRA_PARKING_ID)) // [REFACTOR-300]
+            ACTION_DEPARTURE_CONFIRMED -> handleWatchdogDeparture(intent.getStringExtra(EXTRA_GEOFENCE_ID)) // [DET-AR-REARM-001]
             ACTION_STOP_TRACKING -> {
                 PaparcarLogger.d(DIAG, "  → STOP_TRACKING — stopForegroundAndSelf()")
                 fgs.stopForegroundAndSelf() // [FIX BUG-FGS-100: cleanup FGS notif before stop]
@@ -129,7 +157,7 @@ class CoordinatorDetectionService : LifecycleService() {
         }
         PaparcarLogger.d(DIAG, "  → START_TRACKING — (re)starting detection")
         cancelDetectionJob()
-        startParkingDetection()
+        startParkingDetection(DetectionTrigger.MANUAL)
     }
 
     private fun handleUserConfirmed() {
@@ -193,11 +221,30 @@ class CoordinatorDetectionService : LifecycleService() {
     }
 
     /**
+     * [DET-AR-REARM-001] Watchdog "I've left" tap: the user confirmed a departure the geofence EXIT
+     * missed. Release the spot for the given geofence via [ProcessConfirmedDepartureUseCase] (report
+     * freed + clear session + remove geofence + unregister AR arming), dismiss the prompt, tear down.
+     */
+    private fun handleWatchdogDeparture(geofenceId: String?) {
+        if (geofenceId.isNullOrBlank()) {
+            PaparcarLogger.w(DIAG, "  ✗ DEPARTURE_CONFIRMED without geofenceId — dismiss + stop")
+            notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            fgs.stopForegroundAndSelf()
+            return
+        }
+        PaparcarLogger.d(DIAG, "  → DEPARTURE_CONFIRMED (watchdog) geofenceId=$geofenceId")
+        lifecycleScope.launch {
+            runCatching { processConfirmedDeparture(geofenceId) }
+                .onFailure { e -> PaparcarLogger.e(DIAG, "    ✗ watchdog departure failed", e) }
+            notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
+            fgs.stopForegroundAndSelf()
+        }
+    }
+
+    /**
      * [DET-G-01] Geofence-exit delivered directly to the service (privileged FGS start via the
      * `getForegroundService` PendingIntent — same mechanism Play Services uses for AR). Two jobs:
-     *  1. **Dispatch departure** — emit [GeofenceEvent.Exited] + enqueue [DepartureDetectionWorker],
-     *     exactly what [io.apptolast.paparcar.detection.receiver.GeofenceBroadcastReceiver] did (the
-     *     receiver is kept as a one-line-revertible fallback).
+     *  1. **Dispatch departure** — emit [GeofenceEvent.Exited] + enqueue [DepartureDetectionWorker].
      *  2. **Arm the next parking detection** (strategy-aware) — leaving the user's OWN parked-car
      *     geofence is a far more specific "I'm now driving MY car" signal than AR IN_VEHICLE_ENTER
      *     (which fires on any vehicle: a bus, a friend's car). This is what eliminates that class of
@@ -219,38 +266,156 @@ class CoordinatorDetectionService : LifecycleService() {
             stopIfIdle("geofence-empty")
             return
         }
+        val triggerLoc = event.triggeringLocation
         val now = System.currentTimeMillis()
-        triggering.forEach { geofence ->
-            val geofenceId = geofence.requestId
-            PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT geofenceId=$geofenceId — dispatch departure + arm [DET-G-01]")
-            geofenceEventBus.emit(GeofenceEvent.Exited(geofenceId = geofenceId, timestamp = now))
-            WorkManager.getInstance(this).enqueueUniqueWork(
-                "${DepartureDetectionWorker.TAG}_$geofenceId",
-                ExistingWorkPolicy.REPLACE,
-                DepartureDetectionWorker.buildRequest(geofenceId = geofenceId, exitTimestampMs = now),
-            )
-        }
-        // Arm the next detection — only on the Coordinator strategy, and only if this is a real
-        // drive-away. BT users are armed by their own BT disconnect; SCOOTER/BIKE (NONE) never park.
         lifecycleScope.launch {
+            // 1. Resolve every triggering geofence to its active session; self-clean ORPHANS (a
+            //    geofence with no active session — a re-park without a confirmed departure left it
+            //    registered NEVER_EXPIRE; it fires spurious exits that would arm with nothing to
+            //    release). Root cause is also fixed in ConfirmParkingUseCase. [orphan-geofence]
+            val realExits = mutableListOf<Pair<String, UserParking>>()
+            for (geofence in triggering) {
+                val id = geofence.requestId
+                val session = runCatching { userParkingRepository.getActiveSessionByGeofence(id) }.getOrNull()
+                if (session == null) {
+                    PaparcarLogger.w(DIAG, "  ✗ GEOFENCE_EXIT orphan geof=$id — removing")
+                    if (BuildConfig.DEBUG) {
+                        notificationPort.showDebug("GEOFENCE_EXIT HUÉRFANA geof=${id.take(8)} → limpio, no armo")
+                    }
+                    runCatching { geofenceService.removeGeofence(id) }
+                    continue
+                }
+                realExits += id to session
+            }
+
+            // All triggering geofences were orphans → nothing real happened.
+            if (realExits.isEmpty()) {
+                stopIfIdle("geofence-all-orphan")
+                return@launch
+            }
+
+            // 2. Decide which vehicle(s) actually departed. With OVERLAPPING geofences the ACTIVE
+            //    vehicle's and an INACTIVE still-parked car's geofences can both fire (their radii
+            //    overlap) — but the inactive car is still parked, so releasing its spot would be a
+            //    false positive. Prefer the active vehicle when its geofence is among those that
+            //    fired; only when it is NOT among them does the user appear to have left with an
+            //    inactive vehicle → release that one. [multi-vehicle overlap]
+            //    FUTURE: richer attribution when only an inactive vehicle's geofence fires.
+            val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
+            val departing = realExits.filter { it.second.vehicleId == activeVehicleId }
+                .ifEmpty { realExits }
+
+            // 3. Dispatch departure (speed-gated release) ONLY for the departing vehicle(s). Emitting
+            //    the in-process Exited event only for the departing geofence keeps any UI observer
+            //    from clearing the still-parked inactive car.
+            for ((id, _) in departing) {
+                geofenceEventBus.emit(GeofenceEvent.Exited(geofenceId = id, timestamp = now))
+                WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
+                    "${DepartureDetectionWorker.TAG}_$id",
+                    ExistingWorkPolicy.REPLACE,
+                    DepartureDetectionWorker.buildRequest(geofenceId = id, exitTimestampMs = now),
+                )
+            }
+
+            // 4. Arm the next-park detection ONCE, anchored to the departing (active-preferred) session.
             when (strategyResolver.resolve()) {
                 ParkingStrategy.COORDINATOR -> {
                     if (!guardPermissions("GEOFENCE_EXIT")) return@launch
-                    // Arm on the geofence exit. The walk-vs-drive discriminator is SPEED — exactly as
-                    // on the RELEASE side: DetectParkingDepartureUseCase confirms a departure on
-                    // geofence-exit + sustained departure speed (IN_VEHICLE is only a corroborator,
-                    // not required — a real drive-away releases on speed alone). We cannot read speed
-                    // synchronously inside the FGS-start window, so the coordinator itself is the speed
-                    // gate: a walk-out never reaches minimumTripSpeedMps and self-aborts via
-                    // falseEnterAbortSteps (~8 walking steps) or maxNoMovementMs. No phantom spot can
-                    // result — the egress gate requires having driven AND walked away. [DET-G-01]
-                    PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator for the next park [DET-G-01]")
+                    // Loop guard: if the coordinator is already running, a fresh exit (e.g. one its
+                    // own active GPS stream provoked) must NOT cancel + restart it — that would reset
+                    // the no-movement abort timer and, fed by more bad fixes, spin a restart loop.
+                    // Departure was already dispatched above; just don't re-arm. [DET-AR-REARM-001]
+                    if (detectionJob?.isActive == true) {
+                        PaparcarLogger.d(DIAG, "  ↻ GEOFENCE_EXIT — coordinator already running; not re-arming")
+                        return@launch
+                    }
+                    val (id, session) = departing.first()
+                    // Distance of the exit fix from the parked car + its accuracy — the on-device
+                    // diagnostic for "real drive-away" (large d) vs "GPS jitter" (small d / huge acc).
+                    val dist = triggerLoc?.let {
+                        haversineMeters(it.latitude, it.longitude, session.location.latitude, session.location.longitude).toInt()
+                    }
+                    val acc = triggerLoc?.accuracy?.toInt()
+                    val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m"
+                    PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01]")
                     cancelDetectionJob()
-                    startParkingDetection()
+                    startParkingDetection(DetectionTrigger.GEOFENCE_EXIT, detail)
                 }
                 ParkingStrategy.BLUETOOTH, ParkingStrategy.NONE -> {
                     PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — strategy not COORDINATOR; not arming")
                     stopIfIdle("geofence-non-coordinator")
+                }
+            }
+        }
+    }
+
+    /**
+     * [DET-AR-REARM-001] AR reported IN_VEHICLE_ENTER while a car is parked (the registration is
+     * scoped to that window). This is the software fallback for short trips the geofence EXIT never
+     * catches and for OEM/Doze-dropped exits. AR alone fires on any vehicle (bus, taxi, a friend's
+     * car); the *proximity gate* restores the geofence's anchor — only boarding a vehicle where the
+     * car is parked arms detection. The Coordinator's own speed/egress gates remain the decisive
+     * filter, so a false arm cannot produce a phantom spot.
+     *
+     * The FGS was already promoted in [onStartCommand] (5 s window), so a non-arming outcome must
+     * tear it down via [stopIfIdle] to keep the flash brief.
+     */
+    private fun handleArVehicleEnter() {
+        // Record the enter timestamp unconditionally — it is the departure-window corroborator the
+        // geofence-exit path reads later, independent of whether we arm now.
+        departureEventBus.onVehicleEntered(System.currentTimeMillis())
+
+        if (detectionJob?.isActive == true) {
+            PaparcarLogger.d(DIAG, "  ↻ AR_VEHICLE_ENTER ignored — detectionJob already active")
+            return
+        }
+
+        lifecycleScope.launch {
+            if (strategyResolver.resolve() != ParkingStrategy.COORDINATOR) {
+                PaparcarLogger.d(DIAG, "  → AR_VEHICLE_ENTER — strategy not COORDINATOR; not arming")
+                stopIfIdle("ar-enter-non-coordinator")
+                return@launch
+            }
+            if (!guardPermissions("AR_VEHICLE_ENTER")) return@launch
+
+            val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull() }
+                .getOrNull().orEmpty()
+            val fix = getLastKnownLocation()
+            // Pick the nearest parked session to the current fix — the one the user is most likely
+            // getting into when several vehicles are parked. Its own geofence radius is the proximity
+            // threshold, so each parked vehicle is anchored to its own bubble.
+            val nearestSession = when {
+                fix != null -> sessions.minByOrNull {
+                    haversineMeters(fix.latitude, fix.longitude, it.location.latitude, it.location.longitude)
+                }
+                else -> sessions.firstOrNull()
+            }
+
+            when (val decision = shouldArmFromVehicleEnter(fix, nearestSession)) {
+                is VehicleEnterArmDecision.Arm -> {
+                    // Race guard: this runs in an async launch, so a GEOFENCE_EXIT — the MORE specific
+                    // signal — may have armed in the meantime. If so, yield instead of cancelling and
+                    // re-arming with AR (which would lose the geofence-armed coordinator's progress and
+                    // mis-attribute the trigger). The running job already owns the FGS.
+                    if (detectionJob?.isActive == true) {
+                        PaparcarLogger.d(DIAG, "  ↻ AR_VEHICLE_ENTER — superseded by a concurrent arm during fix; not arming")
+                        return@launch
+                    }
+                    PaparcarLogger.d(DIAG, "  → AR_VEHICLE_ENTER — ARM (d=${decision.distanceMeters.toInt()}m) [DET-AR-REARM-001]")
+                    cancelDetectionJob()
+                    startParkingDetection(DetectionTrigger.AR_PROXIMITY, "d=${decision.distanceMeters.toInt()}m")
+                }
+                is VehicleEnterArmDecision.TooFar -> {
+                    PaparcarLogger.d(DIAG, "  ⊘ AR_VEHICLE_ENTER — too far (d=${decision.distanceMeters.toInt()}m) = not my car; not arming")
+                    stopIfIdle("ar-enter-too-far")
+                }
+                VehicleEnterArmDecision.NoActiveSession -> {
+                    PaparcarLogger.d(DIAG, "  ⊘ AR_VEHICLE_ENTER — no active session; not arming")
+                    stopIfIdle("ar-enter-no-session")
+                }
+                VehicleEnterArmDecision.NoFix -> {
+                    PaparcarLogger.d(DIAG, "  ⊘ AR_VEHICLE_ENTER — no GPS fix (fail closed); not arming")
+                    stopIfIdle("ar-enter-no-fix")
                 }
             }
         }
@@ -269,8 +434,13 @@ class CoordinatorDetectionService : LifecycleService() {
         fgs.stopForegroundAndSelf() // [FIX BUG-FGS-100]
     }
 
-    private fun startParkingDetection() {
-        PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator")
+    private fun startParkingDetection(trigger: DetectionTrigger, detail: String? = null) {
+        logArmTrigger(trigger, detail)
+        PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
+        // [DET-READY-001c] Mark detection as actively running so the Home banner shows Monitoring.
+        // Set synchronously here (not inside the coroutine) so a superseded old job's finally — which
+        // only flips the flag when it is still the current job — never races this to false.
+        detectionRuntime.setRunning(true)
         detectionJob = lifecycleScope.launch {
             val thisJob = coroutineContext[Job]
 
@@ -306,12 +476,44 @@ class CoordinatorDetectionService : LifecycleService() {
                 // destroy the service after the replacement coordinator was just launched,
                 // killing it via onDestroy. [DETECT-SERVICE-RACE-001]
                 if (detectionJob === thisJob) {
+                    // [DET-READY-001c] This job is the current one and is ending → detection idle.
+                    detectionRuntime.setRunning(false)
                     PaparcarLogger.d(DIAG, "    ■ finally → stopForegroundAndSelf()")
                     fgs.stopForegroundAndSelf() // [FIX BUG-FGS-100]
                 } else {
                     PaparcarLogger.d(DIAG, "    ■ finally → superseded by newer job, skipping stop")
                 }
             }
+        }
+    }
+
+    /**
+     * [DET-AR-REARM-001] Records WHICH trigger armed this Coordinator session to three sinks:
+     *  - **Crashlytics** custom key `det_trigger` (rides along on any subsequent crash report),
+     *  - the remote **[DetectionEventLogger]** (Firestore trace, gated by remote config in the real
+     *    binding) as a `SessionStarted` whose strategy encodes the arm trigger,
+     *  - a **debug notification** (DEBUG builds only) so a field tester sees, on the device, whether
+     *    a park was armed by GEOFENCE_EXIT, AR proximity, or the manual button.
+     */
+    private fun logArmTrigger(trigger: DetectionTrigger, detail: String?) {
+        runCatching {
+            FirebaseCrashlytics.getInstance().setCustomKey("det_trigger", trigger.name)
+        }
+        val now = System.currentTimeMillis()
+        lifecycleScope.launch {
+            runCatching {
+                detectionEventLogger.log(
+                    DetectionEvent.SessionStarted(
+                        sessionId = "arm_$now",
+                        timestampMs = now,
+                        strategy = "ARM:${trigger.name}${detail?.let { " ($it)" } ?: ""}",
+                    ),
+                )
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ detection-event log failed: ${e.message}") }
+        }
+        if (BuildConfig.DEBUG) {
+            val msg = "Coordinator armado por: ${trigger.name}" + (detail?.let { " · $it" } ?: "")
+            notificationPort.showDebug(msg)
         }
     }
 
@@ -360,6 +562,7 @@ class CoordinatorDetectionService : LifecycleService() {
     override fun onDestroy() {
         PaparcarLogger.d(DIAG, "■ Service onDestroy — cancelling detectionJob")
         detectionJob?.cancel()
+        detectionRuntime.setRunning(false) // [DET-READY-001c] service gone → detection idle
         // [FIX BUG-FGS-113: defensive safety net. Every primary teardown path is supposed
         //  to call fgs.stopForegroundAndSelf(), but if any future code path reaches onDestroy
         //  without first removing the FGS notification, do it now. Idempotent — calling
@@ -378,6 +581,10 @@ class CoordinatorDetectionService : LifecycleService() {
         // Play Services grants the privileged FGS start (the same getForegroundService mechanism the
         // AR IN_VEHICLE path used before AR was moved to a plain broadcast — BUG-FGS-001).
         const val ACTION_GEOFENCE_EXIT = "io.apptolast.paparcar.ACTION_GEOFENCE_EXIT"
+        // [DET-AR-REARM-001] IN_VEHICLE_ENTER delivered directly to the service (scoped to the
+        // parked window) via getForegroundService so the proximity-gated re-arm gets the privileged
+        // FGS start. See ActivityRecognitionManagerImpl.registerVehicleEnterArming.
+        const val ACTION_AR_VEHICLE_ENTER = "io.apptolast.paparcar.ACTION_AR_VEHICLE_ENTER"
         // Pre-save prompt (state A): user is being asked whether they parked.
         const val ACTION_PARKING_CONFIRMED = "io.apptolast.paparcar.ACTION_PARKING_CONFIRMED"
         const val ACTION_PARKING_DENIED = "io.apptolast.paparcar.ACTION_PARKING_DENIED"
@@ -386,6 +593,9 @@ class CoordinatorDetectionService : LifecycleService() {
         const val ACTION_PARKING_ACK = "io.apptolast.paparcar.ACTION_PARKING_ACK"
         const val ACTION_PARKING_REVERT = "io.apptolast.paparcar.ACTION_PARKING_REVERT"
         const val EXTRA_PARKING_ID = "io.apptolast.paparcar.EXTRA_PARKING_ID"
+        // [DET-AR-REARM-001] Watchdog "still parked? → I've left" → release the spot for the geofence.
+        const val ACTION_DEPARTURE_CONFIRMED = "io.apptolast.paparcar.ACTION_DEPARTURE_CONFIRMED"
+        const val EXTRA_GEOFENCE_ID = "io.apptolast.paparcar.EXTRA_GEOFENCE_ID"
         private const val DIAG = "PARKDIAG/Service"
     }
 }

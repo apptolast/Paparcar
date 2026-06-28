@@ -53,9 +53,25 @@ class IosLocationDataSourceImpl : LocationDataSource {
         }
     }.flowOn(Dispatchers.Main)
 
+    // [DET-AR-REARM-001] Passive cached read — CLLocationManager.location returns the most recently
+    // cached fix without starting updates, so it never provokes region monitoring. Null if none.
+    override suspend fun getLastKnownLocation(): GpsPoint? {
+        val cached = CLLocationManager().location ?: return null
+        return cached.coordinate.useContents {
+            GpsPoint(
+                latitude = latitude,
+                longitude = longitude,
+                accuracy = cached.horizontalAccuracy.toFloat(),
+                timestamp = (cached.timestamp.timeIntervalSince1970 * MILLIS_PER_SECOND).toLong(),
+                speed = cached.speed.toFloat().coerceAtLeast(0f),
+            )
+        }
+    }
+
     private companion object {
         const val HIGH_ACCURACY_DISTANCE_FILTER_M = 5.0
         const val BALANCED_DISTANCE_FILTER_M = 50.0
+        const val MILLIS_PER_SECOND = 1_000.0
     }
 }
 

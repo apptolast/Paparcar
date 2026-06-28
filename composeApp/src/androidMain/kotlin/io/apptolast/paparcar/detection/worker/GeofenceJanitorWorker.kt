@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -40,6 +41,7 @@ class GeofenceJanitorWorker(
     private val db: AppDatabase by inject()
     private val geofenceManager: GeofenceManager by inject()
     private val config: ParkingDetectionConfig by inject()
+    private val activityRecognitionManager: ActivityRecognitionManager by inject()
 
     override suspend fun doWork(): Result {
         PaparcarLogger.d(TAG, "▶ GeofenceJanitorWorker.doWork attempt=$runAttemptCount")
@@ -51,6 +53,15 @@ class GeofenceJanitorWorker(
             }
 
         PaparcarLogger.d(TAG, "  active sessions=${activeSessions.size}")
+
+        // [DET-AR-REARM-001] Restore (or tear down) the scoped IN_VEHICLE_ENTER proximity re-arm to
+        // match the parked state. Geofences are dropped by the OS on reboot/reinstall and so is this
+        // registration; this is the same restoration pass, idempotent on both sides.
+        if (activeSessions.isNotEmpty()) {
+            activityRecognitionManager.registerVehicleEnterArming()
+        } else {
+            activityRecognitionManager.unregisterVehicleEnterArming()
+        }
 
         var failures = 0
         activeSessions.forEach { session ->

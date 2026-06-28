@@ -28,8 +28,23 @@ data class PermissionsState(
     val hasAcknowledgedOemBattery: Boolean = false,
     val showRationale: Boolean = false,
     val showSettingsPrompt: Boolean = false,
+    /** Foreground location is denied AND the system will no longer show its dialog (permanently
+     *  denied / revoked from settings). Detected on Android via shouldShowRequestPermissionRationale
+     *  + a "have we asked" flag, so the CTA points to system settings from the first frame — no need
+     *  to tap through the request → rationale → settings escalation. [DET-READY-001m] */
+    val locationPermanentlyDenied: Boolean = false,
     /** Show step-by-step guide before opening system Settings for background location.
      *  Android 11+ takes the user directly to Settings with no dialog — without this
      *  guide users don't know they must select "Allow all the time" then press Back. */
     val showBackgroundLocationGuide: Boolean = false,
-)
+) {
+    /**
+     * True when the CORE tier (foreground location + notifications) and GPS are satisfied but the
+     * PRODUCER tier (background + activity recognition) is still incomplete — i.e. the user can
+     * enter the app now and enable auto-detection later. Drives the "Maybe later" affordance.
+     * [DET-READY-001e]
+     */
+    val canContinueWithCore: Boolean
+        get() = hasFineLocation && isLocationServicesEnabled &&
+            (!hasBackgroundLocation || !hasActivityRecognition || !hasNotifications)
+}

@@ -6,7 +6,6 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -76,22 +75,11 @@ class UpdateParkingLocationUseCase(
             geofenceId = parkingId,
             latitude = stamped.latitude,
             longitude = stamped.longitude,
-            radiusMeters = computeGeofenceRadius(updated.sizeCategory, stamped.accuracy),
+            radiusMeters = config.geofenceRadiusFor(updated.sizeCategory, stamped.accuracy),
         )
 
         PaparcarLogger.d(DIAG, "■ UpdateParkingLocation.invoke SUCCESS id=$parkingId")
         return Result.success(updated)
-    }
-
-    private fun computeGeofenceRadius(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
-        val base = when (sizeCategory) {
-            VehicleSize.MOTORCYCLE -> config.geofenceRadiusMotoMeters
-            VehicleSize.LARGE_SEDAN -> config.geofenceRadiusLargeMeters
-            VehicleSize.VAN_HIGH -> config.geofenceRadiusVanMeters
-            else -> config.geofenceRadiusMeters
-        }
-        val padded = base + (accuracyMeters * config.geofenceAccuracyPadFactor)
-        return padded.coerceAtMost(config.geofenceMaxRadiusMeters)
     }
 
     private companion object {

@@ -12,6 +12,7 @@ import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUs
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
+import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeDetectionEventLogger
 import io.apptolast.paparcar.fakes.FakeAuthRepository
@@ -80,6 +81,7 @@ class CoordinatorParkingDetectorTest {
             authRepository = auth,
             config = config,
             departureEventBus = FakeDepartureEventBus(),
+            activityRecognitionManager = FakeActivityRecognitionManager(),
         )
         val notifyParking = NotifyParkingConfirmationUseCase(
             notificationPort = notification,

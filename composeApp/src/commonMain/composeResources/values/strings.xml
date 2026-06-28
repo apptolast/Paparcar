@@ -119,8 +119,8 @@
     <string name="onboarding_cta_setup">Set up permissions</string>
 
     <!-- PermissionsScreen -->
-    <string name="permissions_title">Enable permissions</string>
-    <string name="permissions_subtitle">The following permissions are required for automatic detection to work.</string>
+    <string name="permissions_title">Automate your parking</string>
+    <string name="permissions_subtitle">Only location is required — the rest powers automatic detection.</string>
     <string name="permissions_perm_location">Precise location</string>
     <string name="permissions_perm_location_desc">To precisely save where you parked your vehicle</string>
     <string name="permissions_perm_background">Background location</string>
@@ -141,6 +141,9 @@
     <string name="permissions_status_optional">Optional</string>
     <string name="permissions_btn_grant">Grant permissions</string>
     <string name="permissions_btn_background">Activate background location</string>
+    <!-- DET-READY-001e: CORE-required, PRODUCER-optional onboarding -->
+    <string name="permissions_btn_activate_detection">Turn on auto-detection</string>
+    <string name="permissions_continue_with_core">Maybe later</string>
     <string name="permissions_btn_settings">Open system settings</string>
     <string name="permissions_rationale">Some permissions were denied. Please grant them to continue.</string>
     <string name="permissions_perm_location_services">Location services</string>
@@ -484,8 +487,8 @@
     <string name="vehicle_type_bike_examples">Bicycle or e-bike — usually doesn\'t need spots</string>
 
     <!-- Permissions Rationale screen -->
-    <string name="perm_rationale_title">How Paparcar works</string>
-    <string name="perm_rationale_subtitle">We need a few permissions to detect your parking automatically.</string>
+    <string name="perm_rationale_title">Automate your parking</string>
+    <string name="perm_rationale_subtitle">Remember where you parked, keep an automatic history, and free your spot when you leave — automatically. It takes a few permissions to work.</string>
     <string name="perm_rationale_body">Paparcar detects when you leave your parking spot and automatically shares it with nearby drivers — the same way you\'d benefit when someone else does it for you.\n\nFor this to work, we need access to your location and motion sensors. Your exact location is never shared with other users.</string>
     <string name="perm_rationale_cta">Got it, enable permissions</string>
     <string name="perm_rationale_skip">Not now</string>
@@ -527,6 +530,15 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Auto-detection active</string>
     <string name="detection_banner_pair_bt">Pair Bluetooth</string>
+    <!-- DetectionReadinessBanner [DET-READY-001] -->
+    <string name="detection_ready_armed">Ready · I\'ll detect when you park</string>
+    <string name="detection_monitoring_active">Detection active · on the move</string>
+    <string name="detection_parked_watching">Parked · watching for departure</string>
+    <string name="detection_blocked_title">Detection paused</string>
+    <string name="detection_blocked_cta">Turn on</string>
+    <string name="detection_disabled_no_vehicle">Add your car and automate parking</string>
+    <string name="detection_disabled_no_vehicle_cta">Add</string>
+    <string name="detection_disabled_non_parking">No detection for motorbike/bike</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expired</string>
@@ -635,5 +647,28 @@
     <string name="vehicle_registration_carbody_change">Change</string>
     <string name="vehicle_registration_carbody_picker_title">Pick your body type</string>
     <string name="vehicle_registration_carbody_picker_dismiss">Close</string>
+
+    <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_novehicle_title">Add your car</string>
+    <string name="home_det_novehicle_sub">Park and free spots effortlessly</string>
+    <string name="home_det_novehicle_cta">Add</string>
+    <string name="home_det_core_title">Turn on location</string>
+    <string name="home_det_core_sub">Paparcar needs it to work</string>
+    <string name="home_det_core_cta">Turn on</string>
+    <string name="home_det_producer_title">Turn on detection</string>
+    <string name="home_det_producer_sub">Frees your spot when you drive off</string>
+    <string name="home_det_producer_cta">Turn on</string>
+    <string name="home_det_awaiting_title">Where is your car?</string>
+    <string name="home_det_awaiting_sub">Mark the spot and I will watch it</string>
+    <string name="home_det_awaiting_cta_primary">Mark my spot</string>
+    <string name="home_det_awaiting_cta_secondary">I am driving</string>
+    <string name="home_det_monitoring">Following your trip</string>
+    <string name="home_chip_mark_spot">Mark spot</string>
+    <string name="home_chip_bt_armed">Watching for exit</string>
+
+    <!-- Permissions screen sections [DET-READY-001i] -->
+    <string name="permissions_section_essential">Essential</string>
+    <string name="permissions_section_detection">Auto-detection</string>
+    <string name="permissions_section_optional">Optional · reliability</string>
 
 </resources>

@@ -6,6 +6,7 @@ import platform.Foundation.NSUserDefaults
 
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
 private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_seen"
+private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_requested"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
@@ -37,6 +38,13 @@ class IosAppPreferences : AppPreferences {
 
     override fun setGpsAccuracyDisclaimerSeen() {
         userDefaults.setBool(true, forKey = KEY_GPS_ACCURACY_DISCLAIMER_SEEN)
+    }
+
+    override val hasRequestedLocationPermission: Boolean
+        get() = userDefaults.boolForKey(KEY_LOCATION_PERMISSION_REQUESTED)
+
+    override fun setLocationPermissionRequested() {
+        userDefaults.setBool(true, forKey = KEY_LOCATION_PERMISSION_REQUESTED)
     }
 
     override val autoDetectParking: Boolean

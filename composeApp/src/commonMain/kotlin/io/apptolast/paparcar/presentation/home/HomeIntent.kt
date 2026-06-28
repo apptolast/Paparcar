@@ -40,6 +40,12 @@ sealed class HomeIntent {
     data object ConfirmDetectedParking : HomeIntent()
     data object DismissConfirmation : HomeIntent()
 
+    /**
+     * Cold-start "I'm driving" — start automatic detection now so it catches where the user parks.
+     * [DET-G-01b]
+     */
+    data object StartDrivingDetection : HomeIntent()
+
     // ── Parking lifecycle ─────────────────────────────────────────────────────
 
     /**

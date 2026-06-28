@@ -36,6 +36,7 @@ import paparcar.composeapp.generated.resources.map_cd_my_location
 internal fun HomeMapFabColumn(
     userParking: UserParking?,
     userGpsPoint: GpsPoint?,
+    isParkingSelected: Boolean,
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
@@ -52,7 +53,8 @@ internal fun HomeMapFabColumn(
         ) {
             HomeMapFab(
                 icon = Icons.Outlined.DirectionsCar,
-                tint = MaterialTheme.colorScheme.primary,
+                // White by default; brand green only when this vehicle's parking is selected.
+                tint = if (isParkingSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
                 onClick = onParkedCar,
                 contentDescription = stringResource(Res.string.map_cd_go_to_car),
             )

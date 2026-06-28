@@ -1,7 +1,10 @@
 package io.apptolast.paparcar.presentation.permissions
 
 sealed class PermissionsEffect {
+    /** CORE — request foreground location only (the minimum to use the map). [DET-READY-001i] */
     data object RequestStep1 : PermissionsEffect()
+    /** PRODUCER sensors — activity recognition + notifications, requested together. [DET-READY-001i] */
+    data object RequestProducerSensors : PermissionsEffect()
     data object RequestStep2BackgroundLocation : PermissionsEffect()
     data object RequestStepBluetooth : PermissionsEffect()
     data object RequestBatteryOptimizationExemption : PermissionsEffect()

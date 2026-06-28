@@ -104,4 +104,24 @@ class VehicleCatalogTest {
         assertEquals(VehicleSize.VAN_HIGH, VehicleCatalog.inferSize("Ford", "Transit"))
         assertEquals(VehicleSize.VAN_HIGH, VehicleCatalog.inferSize("Mercedes", "Vito"))
     }
+
+    @Test
+    fun should_resolveNewlyAddedBrands_when_globalCatalogExpanded() {
+        // Brands added in the global catalog expansion must classify correctly.
+        assertEquals(VehicleSize.LARGE_SEDAN, VehicleCatalog.inferSize("Alfa Romeo", "Stelvio"))
+        assertEquals(VehicleSize.MEDIUM_SUV, VehicleCatalog.inferSize("MG", "MG4"))
+        assertEquals(VehicleSize.LARGE_SEDAN, VehicleCatalog.inferSize("BYD", "Seal"))
+        assertEquals(VehicleSize.LARGE_SEDAN, VehicleCatalog.inferSize("Subaru", "Forester"))
+        assertEquals(VehicleSize.VAN_HIGH, VehicleCatalog.inferSize("Toyota", "Hilux"))
+        assertEquals(VehicleSize.MICRO_SMALL, VehicleCatalog.inferSize("Volkswagen", "up!"))
+    }
+
+    @Test
+    fun should_offerBroadBrandCoverage_when_globalCatalog() {
+        // Guards against an accidental catalog shrink — the global list is large.
+        assertTrue(
+            VehicleCatalog.brands().size >= 50,
+            "Global catalog should expose a broad set of brands",
+        )
+    }
 }

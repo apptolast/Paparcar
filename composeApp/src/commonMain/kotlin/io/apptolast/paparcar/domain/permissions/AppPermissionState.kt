@@ -22,4 +22,22 @@ data class AppPermissionState(
             && hasBackgroundLocationPermission
             && hasActivityRecognitionPermission
             && hasNotificationPermission
+
+    /**
+     * CORE tier — the minimum to use the app at all (spot map / consumer side): foreground
+     * location. Notifications are NOT here — you can browse spots without them. Gates entry to
+     * Home. See [RequiredPermission] and [PermissionTier.CORE]. [DET-READY-001a] [DET-READY-001i]
+     */
+    val hasCorePermissions: Boolean
+        get() = hasLocationPermission
+
+    /**
+     * PRODUCER tier — the full automatic-detection experience: background location, activity
+     * recognition AND notifications (so detection can actually tell the user anything). Requested
+     * contextually; never gates Home. [DET-READY-001a] [DET-READY-001i]
+     */
+    val hasProducerPermissions: Boolean
+        get() = hasBackgroundLocationPermission &&
+            hasActivityRecognitionPermission &&
+            hasNotificationPermission
 }

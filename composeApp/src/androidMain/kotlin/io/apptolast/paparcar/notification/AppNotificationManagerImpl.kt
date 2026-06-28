@@ -6,11 +6,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Color
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import io.apptolast.paparcar.MainActivity
 import io.apptolast.paparcar.R
 import io.apptolast.paparcar.detection.receiver.ParkingConfirmationReceiver
@@ -166,6 +163,29 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.CONFIRMATION_FAILED_NOTIFICATION_ID, notification)
     }
 
+    override fun showStillParkedPrompt(geofenceId: String, latitude: Double, longitude: Double) {
+        val leftPi = PendingIntent.getBroadcast(
+            context, RC_STILL_PARKED_LEFT,
+            Intent(ParkingConfirmationReceiver.ACTION_DEPARTURE_CONFIRMED).apply {
+                setClass(context, ParkingConfirmationReceiver::class.java)
+                putExtra(ParkingConfirmationReceiver.EXTRA_GEOFENCE_ID, geofenceId)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_still_parked_title))
+            .setContentText(context.getString(R.string.notif_still_parked_text))
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_CONFIRMATION)
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setContentIntent(buildFocusIntent(RC_STILL_PARKED_FOCUS, latitude, longitude))
+            .addAction(0, context.getString(R.string.notif_action_ive_left), leftPi)
+            .setOnlyAlertOnce(true)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID, notification)
+    }
+
     override fun showDebug(message: String) {
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_debug_title))
@@ -199,7 +219,6 @@ class AppNotificationManagerImpl(
                     .bigText(context.getString(R.string.notif_detection_explainer)),
             )
             .setSmallIcon(R.drawable.ic_notification_logo)
-            .setLargeIcon(logoColorIcon)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setContentIntent(buildOpenAppIntent(RC_DETECTION))
             .setOngoing(true)
@@ -238,22 +257,6 @@ class AppNotificationManagerImpl(
             },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-
-    /**
-     * Full-colour 2022 brand logo (blue disc + white car + wheels) rasterised to a bitmap for use
-     * as the large icon. The small status-bar icon is forced monochrome by the system, so this is the
-     * only place the real logo can appear in colour. The vector has transparent corners (disc only),
-     * so it renders as a circle even on OEM skins (e.g. MIUI) that don't auto-clip large icons.
-     */
-    private val logoColorIcon: Bitmap by lazy {
-        val drawable = ContextCompat.getDrawable(context, R.drawable.ic_logo_color)!!
-        val size = context.resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        bitmap
-    }
 
     private fun createNotificationChannels() {
         val detectionChannel = NotificationChannel(
@@ -310,6 +313,9 @@ class AppNotificationManagerImpl(
         private const val RC_SAVED_FOCUS = 202
         private const val RC_SAVED_ACK = 203
         private const val RC_SAVED_REVERT = 204
+        // [DET-AR-REARM-001] watchdog "still parked?" prompt request codes
+        private const val RC_STILL_PARKED_FOCUS = 205
+        private const val RC_STILL_PARKED_LEFT = 206
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active

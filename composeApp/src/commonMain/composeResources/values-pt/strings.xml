@@ -82,8 +82,8 @@
     <string name="onboarding_cta_setup">Configurar permissões</string>
 
     <!-- PermissionsScreen -->
-    <string name="permissions_title">Ativar permissões</string>
-    <string name="permissions_subtitle">As seguintes permissões são necessárias para o funcionamento da deteção automática.</string>
+    <string name="permissions_title">Automatize o seu estacionamento</string>
+    <string name="permissions_subtitle">Apenas a localização é obrigatória; o resto ativa a deteção automática.</string>
     <string name="permissions_perm_location">Localização precisa</string>
     <string name="permissions_perm_location_desc">Para guardar com precisão onde estacionou o veículo</string>
     <string name="permissions_perm_background">Localização em segundo plano</string>
@@ -104,6 +104,9 @@
     <string name="permissions_status_optional">Opcional</string>
     <string name="permissions_btn_grant">Conceder permissões</string>
     <string name="permissions_btn_background">Ativar localização em segundo plano</string>
+    <!-- DET-READY-001e -->
+    <string name="permissions_btn_activate_detection">Ativar deteção automática</string>
+    <string name="permissions_continue_with_core">Talvez mais tarde</string>
     <string name="permissions_btn_settings">Abrir definições do sistema</string>
     <string name="permissions_rationale">Algumas permissões foram negadas. Conceda-as para continuar.</string>
     <string name="permissions_perm_location_services">Serviços de localização</string>
@@ -364,8 +367,8 @@
     <string name="spot_item_type_manual">Manual</string>
 
     <!-- Ecrã de fundamento de permissões -->
-    <string name="perm_rationale_title">Como funciona o Paparcar</string>
-    <string name="perm_rationale_subtitle">Precisamos de algumas permissões para detetar o seu estacionamento automaticamente.</string>
+    <string name="perm_rationale_title">Automatize o seu estacionamento</string>
+    <string name="perm_rationale_subtitle">Lembre-se de onde estacionou, mantenha um histórico automático e liberte o seu lugar ao sair — automaticamente. Bastam algumas permissões para funcionar.</string>
     <string name="perm_rationale_body">O Paparcar deteta quando sais do teu lugar de estacionamento e partilha-o automaticamente com condutores próximos — da mesma forma que beneficiarias se outra pessoa o fizesse.\n\nPara funcionar, precisamos de acesso à tua localização e sensores de movimento. A tua localização exata nunca é partilhada com outros utilizadores.</string>
     <string name="perm_rationale_cta">Entendi, ativar permissões</string>
     <string name="perm_rationale_skip">Agora não</string>
@@ -404,6 +407,15 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Deteção automática ativa</string>
     <string name="detection_banner_pair_bt">Ligar Bluetooth</string>
+    <!-- DetectionReadinessBanner [DET-READY-001] -->
+    <string name="detection_ready_armed">Pronto · deteto ao estacionar</string>
+    <string name="detection_monitoring_active">Deteção ativa · em viagem</string>
+    <string name="detection_parked_watching">Estacionado · a aguardar a saída</string>
+    <string name="detection_blocked_title">Deteção em pausa</string>
+    <string name="detection_blocked_cta">Ativar</string>
+    <string name="detection_disabled_no_vehicle">Adicione o seu carro e automatize o estacionamento</string>
+    <string name="detection_disabled_no_vehicle_cta">Adicionar</string>
+    <string name="detection_disabled_non_parking">Sem deteção para mota/bicicleta</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d a caminho</string>
     <string name="spot_indicator_ttl_expired">Expirado</string>
@@ -638,4 +650,26 @@
     <string name="vehicle_registration_section_size">Tamanho do veículo</string>
     <string name="vehicle_registration_size_hint">Toca para selecionar o tamanho</string>
 
+    <!-- Home detection surface [DET-READY-001h] -->
+    <string name="home_det_novehicle_title">Adicione o seu carro</string>
+    <string name="home_det_novehicle_sub">Estacione e liberte lugares sem esforço</string>
+    <string name="home_det_novehicle_cta">Adicionar</string>
+    <string name="home_det_core_title">Ative a localização</string>
+    <string name="home_det_core_sub">O Paparcar não funciona sem ela</string>
+    <string name="home_det_core_cta">Ativar</string>
+    <string name="home_det_producer_title">Ative a deteção</string>
+    <string name="home_det_producer_sub">Liberta o seu lugar quando arranca</string>
+    <string name="home_det_producer_cta">Ativar</string>
+    <string name="home_det_awaiting_title">Onde está o seu carro?</string>
+    <string name="home_det_awaiting_sub">Marque o local e eu vigio a saída</string>
+    <string name="home_det_awaiting_cta_primary">Marcar o meu lugar</string>
+    <string name="home_det_awaiting_cta_secondary">Vou a conduzir</string>
+    <string name="home_det_monitoring">A seguir o seu trajeto</string>
+    <string name="home_chip_mark_spot">Marcar lugar</string>
+    <string name="home_chip_bt_armed">A vigiar a saída</string>
+
+    <!-- Permissions screen sections [DET-READY-001i] -->
+    <string name="permissions_section_essential">Essencial</string>
+    <string name="permissions_section_detection">Deteção automática</string>
+    <string name="permissions_section_optional">Opcional · fiabilidade</string>
 </resources>

@@ -2,11 +2,13 @@
 
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.flow.firstOrNull
 import kotlin.time.Clock
 
 /**
@@ -30,6 +32,7 @@ class ProcessConfirmedDepartureUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val geofenceService: GeofenceManager,
     private val departureEventBus: DepartureEventBus,
+    private val activityRecognitionManager: ActivityRecognitionManager,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -64,6 +67,13 @@ class ProcessConfirmedDepartureUseCase(
 
         departureEventBus.reset()
         geofenceService.removeGeofence(geofenceId)
+
+        // [DET-AR-REARM-001] Tear down the scoped IN_VEHICLE_ENTER proximity re-arm only when NO
+        // car remains parked — with multiple parked vehicles the other sessions still need it.
+        val anyStillParked = userParkingRepository.observeActiveSessions().firstOrNull()?.isNotEmpty() == true
+        if (!anyStillParked) {
+            activityRecognitionManager.unregisterVehicleEnterArming()
+        }
         return Result.success(Unit)
     }
 }

@@ -27,4 +27,7 @@ val iosDetectionModule = module {
     single<ParkingEnrichmentScheduler> { IosParkingEnrichmentScheduler(get(), get()) }
     single<ParkingSyncScheduler> { IosParkingSyncScheduler(get(), get()) }
     single<ReportSpotScheduler> { IosReportSpotScheduler(get()) }
+    single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
+        io.apptolast.paparcar.detection.IosManualParkingDetectionImpl()
+    }
 }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.tasks.await
 import java.util.concurrent.TimeUnit
 
 class AndroidLocationDataSourceImpl(
@@ -58,6 +59,21 @@ class AndroidLocationDataSourceImpl(
 
         awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
     }
+
+    // [DET-AR-REARM-001] Passive cached read — fusedLocationClient.lastLocation does NOT request
+    // updates, so it adds no fixes to the fused stream and cannot provoke a registered geofence to
+    // fire a spurious EXIT (unlike requestLocationUpdates). Returns null when nothing is cached.
+    @SuppressLint("MissingPermission")
+    override suspend fun getLastKnownLocation(): GpsPoint? =
+        runCatching { fusedLocationClient.lastLocation.await() }.getOrNull()?.let {
+            GpsPoint(
+                latitude = it.latitude,
+                longitude = it.longitude,
+                accuracy = it.accuracy,
+                timestamp = it.time,
+                speed = it.speed,
+            )
+        }
 
     private companion object {
         const val HIGH_ACCURACY_INTERVAL_S = 5L

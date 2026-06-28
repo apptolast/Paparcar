@@ -199,7 +199,6 @@ private fun HomeVehicleCardParkedPoiDarkPreview() {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSession),
                 userLocation = Pair(40.4165, -3.7030),
-                isSelected = false,
                 onClick = {},
             )
         }
@@ -217,7 +216,6 @@ private fun HomeVehicleCardParkedNoAddressLightPreview() {
                     session = FakeData.activeSession.copy(address = null, placeInfo = null),
                 ),
                 userLocation = null,
-                isSelected = false,
                 onClick = {},
             )
         }
@@ -233,7 +231,6 @@ private fun HomeVehicleCardSelectedDarkPreview() {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSessionSupermarket),
                 userLocation = Pair(40.4165, -3.7030),
-                isSelected = true,
                 onClick = {},
             )
         }
@@ -249,7 +246,6 @@ private fun HomeVehicleCardEmptyDarkPreview() {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
                 userLocation = null,
-                isSelected = false,
                 onClick = {},
             )
         }
@@ -264,7 +260,6 @@ private fun HomeVehicleCardEmptyLightPreview() {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleNoName, session = null),
                 userLocation = null,
-                isSelected = false,
                 onClick = {},
             )
         }
@@ -342,7 +337,6 @@ private fun HomeSpotRowSelectedNoDistanceLightPreview() {
             HomeSpotRow(
                 spot = fakeSpotWithPoi("p4", 7L),
                 userLocation = null,
-                isSelected = true,
                 onSelect = {},
             )
         }
@@ -362,25 +356,6 @@ private fun HomeEmptySpotsDarkPreview() {
 @Composable
 private fun HomeEmptySpotsLightPreview() {
     PaparcarTheme(darkTheme = false) { Column(Modifier.padding(16.dp)) { HomeEmptySpots() } }
-}
-
-// ─── A — HomePermissionsCard ──────────────────────────────────────────────────
-
-@Preview(name = "A — HomePermissionsCard (oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun HomePermissionsCardDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) { HomePermissionsCard(onRequestPermissions = {}) }
-    }
-}
-
-@Preview(name = "A — HomePermissionsCard (claro)", showBackground = true)
-@Composable
-private fun HomePermissionsCardLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        Column(Modifier.padding(16.dp)) { HomePermissionsCard(onRequestPermissions = {}) }
-    }
 }
 
 // ─── A — PaparcarBottomActionBar ──────────────────────────────────────────────
@@ -427,7 +402,7 @@ private fun HomeSheetContentWithParkingAndSpotsDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         PreviewSheet(
             state = HomeState(
-                allPermissionsGranted = true,
+                hasCorePermissions = true,
                 activeSessions = listOf(FakeData.activeSession),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
@@ -442,7 +417,7 @@ private fun HomeSheetContentWithParkingAndSpotsLightPreview() {
     PaparcarTheme(darkTheme = false) {
         PreviewSheet(
             state = HomeState(
-                allPermissionsGranted = true,
+                hasCorePermissions = true,
                 activeSessions = listOf(FakeData.activeSessionSupermarket),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
@@ -458,7 +433,7 @@ private fun HomeSheetContentSpotsFirstDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         PreviewSheet(
             state = HomeState(
-                allPermissionsGranted = true,
+                hasCorePermissions = true,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
@@ -472,7 +447,7 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
     PaparcarTheme(darkTheme = false) {
         PreviewSheet(
             state = HomeState(
-                allPermissionsGranted = true,
+                hasCorePermissions = true,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
             ),
@@ -486,7 +461,7 @@ private fun HomeSheetContentSpotsFirstLightPreview() {
 private fun HomeSheetContentEmptyDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         PreviewSheet(
-            state = HomeState(allPermissionsGranted = true, nearbySpots = emptyList()),
+            state = HomeState(hasCorePermissions = true, nearbySpots = emptyList()),
         )
     }
 }
@@ -496,7 +471,7 @@ private fun HomeSheetContentEmptyDarkPreview() {
 private fun HomeSheetContentNoPermissionsLightPreview() {
     PaparcarTheme(darkTheme = false) {
         PreviewSheet(
-            state = HomeState(allPermissionsGranted = false, nearbySpots = emptyList()),
+            state = HomeState(hasCorePermissions = false, nearbySpots = emptyList()),
         )
     }
 }

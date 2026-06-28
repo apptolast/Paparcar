@@ -50,9 +50,9 @@ import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.PapInk
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.VehicleAccentPalette
+import io.apptolast.paparcar.ui.components.VehicleBadge
+import io.apptolast.paparcar.ui.components.VehicleBadgeTone
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_active_vehicle
@@ -118,20 +118,13 @@ private fun VehicleHeroCard(
     val highlight = monitoring !is VehicleMonitoringStatus.Inactive
     val isBtPaired = vehicle.bluetoothDeviceId != null
     val cs = MaterialTheme.colorScheme
-    // BT-paired vehicles get the logo molde (PapInk + blue ring + blue icon), mirroring
-    // the Home marker/peek/chip so "blue ring = tracked via BT" reads across the app.
-    // Non-BT vehicles keep the existing primary/muted toggle by monitoring state.
-    val btAccent = if (isBtPaired) VehicleAccentPalette.bluetooth() else null
-    val iconBoxBg = when {
-        btAccent != null -> PapInk
-        highlight        -> cs.primary
-        else             -> cs.surfaceContainerHighest
-    }
-    val iconBoxRing = btAccent?.fill ?: Color.Transparent
-    val iconTint = when {
-        btAccent != null -> btAccent.fill
-        highlight        -> cs.onPrimary
-        else             -> cs.primary
+    // Unified semantic badge — same element as the Home chip / map marker. In this screen the
+    // *active* (monitored) vehicle is the one that matters → green (vibrant); BT → blue; the rest
+    // stay neutral grey. Identity still comes from the silhouette + name. [DET-READY-001k]
+    val badgeTone = when {
+        isBtPaired -> VehicleBadgeTone.Bluetooth
+        highlight  -> VehicleBadgeTone.Parked
+        else       -> VehicleBadgeTone.Inactive
     }
 
     Surface(
@@ -140,7 +133,7 @@ private fun VehicleHeroCard(
             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
         shape = PapShapes.cardLarge,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.medium, cs.outline.copy(alpha = HERO_BORDER_ALPHA)),
+        border = BorderStroke(PapBorders.thin, cs.outlineVariant.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(CARD_PADDING.dp)) {
             Row(
@@ -152,21 +145,13 @@ private fun VehicleHeroCard(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(HERO_ICON_BOX_DP.dp)
-                            .clip(CircleShape)
-                            .background(iconBoxBg)
-                            .border(width = HERO_ICON_RING_DP.dp, color = iconBoxRing, shape = CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        io.apptolast.paparcar.ui.components.VehicleIcon(
-                            carbody = vehicle.carbodyType,
-                            size = vehicle.sizeCategory,
-                            tint = iconTint,
-                            modifier = Modifier.size(HERO_ICON_SIZE_DP.dp),
-                        )
-                    }
+                    VehicleBadge(
+                        carbody = vehicle.carbodyType,
+                        size = vehicle.sizeCategory,
+                        tone = badgeTone,
+                        diameter = HERO_ICON_BOX_DP.dp,
+                        ringWidth = HERO_ICON_RING_DP.dp,
+                    )
                     Spacer(Modifier.width(12.dp))
                     Column {
                         Text(
@@ -363,7 +348,7 @@ private fun StatMiniCard(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(STAT_CARD_CORNER_DP.dp),
-        color = cs.surfaceContainerHighest,
+        color = cs.surfaceContainerHigh,
         border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
     ) {
         Column(
@@ -410,9 +395,8 @@ private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
 }
 
 private const val CARD_PADDING = 16
-private const val HERO_BORDER_ALPHA = 0.55f
+private const val CARD_BORDER_ALPHA = 0.5f
 private const val HERO_ICON_BOX_DP = 56
-private const val HERO_ICON_SIZE_DP = 40
 private const val HERO_ICON_RING_DP = 1.5f
 private const val PILL_RADIUS_DP = 999
 private const val ACTIVE_DOT_DP = 6

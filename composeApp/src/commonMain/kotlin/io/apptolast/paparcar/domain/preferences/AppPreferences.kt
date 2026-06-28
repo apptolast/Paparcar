@@ -7,6 +7,12 @@ interface AppPreferences {
     val hasSeenGpsAccuracyDisclaimer: Boolean
     fun setGpsAccuracyDisclaimerSeen()
 
+    /** True once we have ever fired the foreground-location request dialog. Lets the permissions
+     *  screen tell a genuine first launch (offer the system dialog) apart from a permanently denied /
+     *  revoked permission (jump straight to system settings). Android-only concept. [DET-READY-001m] */
+    val hasRequestedLocationPermission: Boolean
+    fun setLocationPermissionRequested()
+
     val autoDetectParking: Boolean
     fun setAutoDetectParking(enabled: Boolean)
 

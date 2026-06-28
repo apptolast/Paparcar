@@ -87,6 +87,21 @@ interface AppNotificationManager {
     fun showDebug(message: String)
 
     /**
+     * Shows a low-confidence "still parked?" prompt when the watchdog
+     * ([io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker]) suspects a missed geofence
+     * EXIT (user is far from the parked car with a recent vehicle signal, detection idle). NEVER
+     * auto-releases — the single action lets the user release the spot if they actually drove away;
+     * ignoring/swiping it leaves the session untouched. Default no-op so non-Android impls and fakes
+     * need no change. [DET-AR-REARM-001 / WATCHDOG]
+     *
+     * @param geofenceId Id of the active session's geofence; travels in the "I've left" action so
+     *                   the departure can be processed for the right session.
+     * @param latitude   Latitude of the parked car — tap on the body opens the map focused here.
+     * @param longitude  Longitude of the parked car.
+     */
+    fun showStillParkedPrompt(geofenceId: String, latitude: Double, longitude: Double) {}
+
+    /**
      * Shows a transient error notification when automatic parking confirmation
      * fails (e.g. Room write error or geofence registration failure). The user
      * can then open the app and confirm manually.
@@ -125,5 +140,8 @@ interface AppNotificationManager {
 
         /** ID for the "parking confirmation failed" error notification. */
         const val CONFIRMATION_FAILED_NOTIFICATION_ID = 2004
+
+        /** ID for the watchdog "still parked?" prompt (channel: ACTION). [DET-AR-REARM-001] */
+        const val STILL_PARKED_NOTIFICATION_ID = 2005
     }
 }

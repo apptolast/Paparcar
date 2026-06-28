@@ -1,43 +1,34 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
-import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.displayName
-import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.home.VehicleCard
-import io.apptolast.paparcar.presentation.util.SpotReliabilityLevel
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
-import io.apptolast.paparcar.ui.icons.icon
-import io.apptolast.paparcar.ui.theme.PapInk
+import io.apptolast.paparcar.ui.components.VehicleBadge
+import io.apptolast.paparcar.ui.components.vehicleBadgeAccent
+import io.apptolast.paparcar.ui.components.vehicleBadgeTone
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.parkedVehicleAccent
-import io.apptolast.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
@@ -47,129 +38,94 @@ import paparcar.composeapp.generated.resources.home_vehicle_chip_status_parked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
 /**
- * Compact chip used in the vehicles LazyRow. Surfaces two orthogonal dimensions:
+ * Compact chip in the vehicles LazyRow. [MULTI-PARKING-001] [DET-READY-001k]
  *
- *  - **Detection badge**: how the vehicle is tracked — "BT" pill, "Active" pill, or nothing.
- *  - **Session status**: "Parked · Xm" in green when [card.session] is non-null;
- *    "Not parked" (muted) otherwise.
- *
- * Border is PapGreen-toned when parked, neutral otherwise.
- * Tap always fires [onClick]; the caller routes to session peek or AddingParking mode.
+ * Uses the unified [VehicleBadge] (semantic, not per-vehicle hue): green parked · blue BT · neutral
+ * idle · dimmed inactive — the same element as the map marker and the parked peek. The second row
+ * surfaces the two orthogonal facts the user needs at a glance: how the vehicle is tracked
+ * (**BT** / **Active**) and its park status (**Parked · Xm** in green, or a muted **Not parked**).
+ * No selection ring: tapping a chip transforms the sheet to the vehicle's state.
  */
 @Composable
 internal fun HomeVehicleChip(
     card: VehicleCard,
     userLocation: Pair<Double, Double>?,
-    isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    stableRank: Int? = null,
 ) {
     val vehicle = card.vehicle
     val session = card.session
     val isParked = session != null
-    val monitoring = vehicle.monitoringStatus()
+    val isBtPaired = vehicle.bluetoothDeviceId != null
+    val isActive = vehicle.isActive
+    val cs = MaterialTheme.colorScheme
+
+    val tone = vehicleBadgeTone(isParked = isParked, isBluetoothPaired = isBtPaired, isActive = isActive)
+    val accent = vehicleBadgeAccent(tone)
+    val muted = cs.onSurface.copy(alpha = MUTED_ALPHA)
 
     val vehicleName = vehicle.displayName(fallback = stringResource(Res.string.home_vehicle_fallback_name))
     val activeLabel = stringResource(Res.string.home_vehicle_chip_badge_active)
-    val statusText = chipStatusText(session, userLocation)
-
-    val accent = parkedVehicleAccent(
-        stableRank = stableRank,
-        isBluetoothPaired = vehicle.bluetoothDeviceId != null,
-    )
-    val parkedAccent = accent.fill
-    val borderColor = when {
-        isSelected -> MaterialTheme.colorScheme.primary
-        isParked   -> parkedAccent
-        else       -> MaterialTheme.colorScheme.outline.copy(alpha = OUTLINE_ALPHA)
-    }
-    val cardBg = if (isSelected) MaterialTheme.colorScheme.primary
-                 else MaterialTheme.colorScheme.surfaceContainerHigh
-    val nameColor = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                   else MaterialTheme.colorScheme.onSurface
-    val mutedColor = if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = MUTED_ALPHA)
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = MUTED_ALPHA)
-    val statusColor = when {
-        isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = MUTED_ALPHA)
-        isParked   -> parkedAccent
-        else       -> mutedColor
-    }
-    // Parked icon box uses logo molde: dark PapInk interior + accent ring + accent-tinted
-    // icon. Mirrors the map marker so "this is yours, parked" reads at-a-glance.
-    // The molde **survives selection**: when a parked chip is selected the card chrome
-    // turns primary green (global "selected" language) but the icon box keeps its dark
-    // accent identity so BT/per-vehicle hue stays legible.
-    val iconBg = when {
-        isParked   -> PapInk
-        isSelected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = ICON_BG_ALPHA)
-        else       -> MaterialTheme.colorScheme.surfaceContainer
-    }
-    val iconRing = when {
-        isParked -> parkedAccent
-        else     -> Color.Transparent
-    }
-    val iconTint = when {
-        isParked   -> parkedAccent
-        isSelected -> MaterialTheme.colorScheme.onPrimary
-        else       -> MaterialTheme.colorScheme.primary
-    }
 
     Surface(
         onClick = onClick,
         modifier = modifier.width(CHIP_WIDTH_DP.dp),
         shape = PapShapes.cardSmall,
-        color = cardBg,
-        border = BorderStroke(BORDER_DP.dp, borderColor),
+        // Only a parked chip earns a coloured border; everything else stays neutral (no amber). [DET-READY-001k]
+        border = BorderStroke(
+            BORDER_DP.dp,
+            if (isParked) accent else cs.outline.copy(alpha = OUTLINE_ALPHA),
+        ),
+        color = cs.surfaceContainerHigh,
     ) {
         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(ICON_BOX_DP.dp)
-                        .clip(CircleShape)
-                        .background(iconBg)
-                        .border(width = ICON_RING_DP.dp, color = iconRing, shape = CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    io.apptolast.paparcar.ui.components.VehicleIcon(
-                        carbody = vehicle.carbodyType,
-                        size = vehicle.sizeCategory,
-                        tint = iconTint,
-                        modifier = Modifier.size(22.dp),
-                    )
-                }
+                VehicleBadge(
+                    carbody = vehicle.carbodyType,
+                    size = vehicle.sizeCategory,
+                    tone = tone,
+                    diameter = ICON_BOX_DP.dp,
+                    ringWidth = 1.5.dp,
+                )
                 Text(
                     vehicleName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = nameColor,
+                    color = cs.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
 
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(4.dp))
 
             Row(
+                // Reserve the pill's height so chips stay equal-height whether or not the
+                // status row renders a DetectionLabel pill (active/BT) vs. plain text
+                // ("Sin aparcar"). LazyRow measures items independently, so IntrinsicSize
+                // can't equalize them — a fixed min on the tallest variant does. [VEH-CHIP-HEIGHT]
+                modifier = Modifier.heightIn(min = STATUS_ROW_MIN_HEIGHT_DP.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                when (monitoring) {
-                    is VehicleMonitoringStatus.Bluetooth -> DetectionLabel(text = "BT", textColor = mutedColor)
-                    VehicleMonitoringStatus.Active       -> DetectionLabel(text = activeLabel, textColor = mutedColor)
-                    VehicleMonitoringStatus.Inactive     -> Unit
+                // Detection indicator: BT supersedes Active; inactive vehicles show nothing.
+                val indicator = when {
+                    isBtPaired -> BT_LABEL
+                    isActive -> activeLabel
+                    else -> null
                 }
-                if (monitoring !is VehicleMonitoringStatus.Inactive) {
-                    Text(BULLET, style = MaterialTheme.typography.labelSmall, color = mutedColor)
+                if (indicator != null) {
+                    DetectionLabel(text = indicator, textColor = muted)
+                    Text(BULLET, style = MaterialTheme.typography.labelSmall, color = muted)
                 }
                 Text(
-                    statusText,
+                    text = statusText(session, userLocation),
                     style = MaterialTheme.typography.labelSmall,
-                    color = statusColor,
+                    fontWeight = if (isParked) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isParked) accent else muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -194,7 +150,7 @@ private fun DetectionLabel(text: String, textColor: Color) {
 }
 
 @Composable
-private fun chipStatusText(session: UserParking?, userLocation: Pair<Double, Double>?): String {
+private fun statusText(session: UserParking?, userLocation: Pair<Double, Double>?): String {
     if (session == null) return stringResource(Res.string.home_vehicle_card_status_empty)
     val distanceM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, session.location.latitude, session.location.longitude)
@@ -207,10 +163,12 @@ private fun chipStatusText(session: UserParking?, userLocation: Pair<Double, Dou
 }
 
 private const val CHIP_WIDTH_DP = 148
+// Min height of the status row — sized to the DetectionLabel pill (labelSmall + 1dp
+// vertical padding ≈ 18dp) so the plain-text variant reserves the same height. [VEH-CHIP-HEIGHT]
+private const val STATUS_ROW_MIN_HEIGHT_DP = 20
 private const val ICON_BOX_DP = 28
-private const val ICON_RING_DP = 1f
 private const val BORDER_DP = 1
 private const val OUTLINE_ALPHA = 0.4f
 private const val MUTED_ALPHA = 0.6f
-private const val ICON_BG_ALPHA = 0.18f
+private const val BT_LABEL = "BT"
 private const val BULLET = "·"

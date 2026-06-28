@@ -29,8 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.apptolast.paparcar.ui.theme.PapInk
-import io.apptolast.paparcar.ui.theme.VehicleAccent
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
@@ -184,25 +182,18 @@ internal fun PeekHeaderIconChip(
  */
 @Composable
 internal fun ParkedVehicleHeaderChip(
-    painter: androidx.compose.ui.graphics.painter.Painter,
-    accent: VehicleAccent,
+    carbody: io.apptolast.paparcar.domain.model.CarbodyType?,
+    size: io.apptolast.paparcar.domain.model.VehicleSize?,
+    tone: io.apptolast.paparcar.ui.components.VehicleBadgeTone,
 ) {
-    Box(
-        modifier = Modifier
-            .size(CHIP_DP.dp)
-            .clip(CircleShape)
-            .background(PapInk)
-            .border(width = PARKED_RING_DP.dp, color = accent.fill, shape = CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        androidx.compose.foundation.Image(
-            painter = painter,
-            contentDescription = null,
-            modifier = Modifier.size(PARKED_ICON_DP.dp),
-            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(accent.fill),
-        )
-    }
+    // Unified semantic badge — identical molde to the map marker and the Home chip. [DET-READY-001k]
+    io.apptolast.paparcar.ui.components.VehicleBadge(
+        carbody = carbody,
+        size = size,
+        tone = tone,
+        diameter = CHIP_DP.dp,
+        ringWidth = PARKED_RING_DP.dp,
+    )
 }
 
 /**
@@ -229,7 +220,6 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
 private const val HORIZONTAL_DP = 20
 private const val CHIP_DP = 44
 private const val PARKED_RING_DP = 2
-private const val PARKED_ICON_DP = 28
 private const val DISMISS_HIT_DP = 48
 private const val DISMISS_ICON_DP = 20
 private const val DISMISS_ALPHA = 0.55f

@@ -48,9 +48,15 @@ class ParkingStrategyResolver(
      * Resolves the strategy by inspecting **all** registered vehicles. Reads BT state
      * at call time so toggling Bluetooth between sessions flips ownership cleanly.
      */
-    suspend fun resolve(): ParkingStrategy {
-        val vehicles = vehicleRepository.observeVehicles().first()
+    suspend fun resolve(): ParkingStrategy = strategyFor(vehicleRepository.observeVehicles().first())
 
+    /**
+     * Pure decision over an already-fetched fleet — single source of truth for both the suspend
+     * [resolve] and reactive callers that combine the vehicle stream themselves (e.g.
+     * [io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase]). Reads BT
+     * adapter state at call time so toggling Bluetooth flips ownership cleanly. [DET-READY-001b]
+     */
+    fun strategyFor(vehicles: List<Vehicle>): ParkingStrategy {
         // BT wins first and independently of which vehicle is primary: a BT-paired
         // car in the fleet is detected by the receiver regardless of `isActive`.
         // SCOOTER/BIKE never count even if they somehow have a BT pairing.
