@@ -120,15 +120,6 @@ private val FAB_ABOVE_SHEET_GAP = 12.dp
 // from the SheetPeekHeightInitial estimate to the real measured height.
 private val PEEK_LAYOUT_SNAP_TOLERANCE = 64.dp
 
-// Hysteresis around peekHeightPx updates. Below this delta we treat the new
-// height as the same value and skip the state write, which kills the
-// sheet-snap-loop seen when AnimatedContent inside the peek transitions
-// between SelectedSpot states with slightly different intrinsic heights:
-// the layout-phase measurement reports sub-pixel oscillations every frame,
-// and without this gate every wobble re-fired the LaunchedEffect that snaps
-// the sheet to peekOffsetPx — making the sheet jitter while the user looked
-// at it. [BUG-PEEK-JITTER-001]
-private val PEEK_HEIGHT_UPDATE_HYSTERESIS = 4.dp
 
 // Minimum visible sheet height when dragged to its smallest "minimized" state.
 // Matches the natural Browse peek (drag pill + CameraLocationRow with title +
@@ -406,7 +397,6 @@ private fun HomeContent(
                 var peekHeightPx by remember {
                     mutableFloatStateOf(with(density) { SheetPeekHeightInitial.toPx() })
                 }
-                val peekHeightHysteresisPx = with(density) { PEEK_HEIGHT_UPDATE_HYSTERESIS.toPx() }
                 val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
 
                 // Minimized snap point — the drag-down floor for non-Browse states.
@@ -447,8 +437,6 @@ private fun HomeContent(
                     // The user can still drag DOWN to minimizedOffsetPx (header-only). [SHEET-DRAG-001]
                     state.mode !is HomeMode.Browse -> peekOffsetPx
                     isParkingSelected -> peekOffsetPx
-                    // Zone selected: peek shows zone detail card, no list below.
-                    state.selectedZoneId != null -> peekOffsetPx
                     // Spot selected with list hidden: no content below the peek
                     // card, so the sheet must not expand above peek height.
                     selectedSpotId != null && !spotListExpanded -> peekOffsetPx
@@ -468,14 +456,14 @@ private fun HomeContent(
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
-                LaunchedEffect(peekOffsetPx, state.selectedItemId, state.selectedZoneId, state.mode) {
+                LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
                     // Entering a non-Browse state resets the sheet to peek (full
                     // peek content visible). The user can then drag DOWN to
                     // minimizedOffsetPx for a header-only view. [SHEET-DRAG-001]
                     val isPinning = state.mode is HomeMode.Reporting ||
                         state.mode is HomeMode.AddingZone ||
                         state.mode is HomeMode.AddingParking
-                    val resetToPeek = isPinning || isParkingSelected || state.selectedZoneId != null
+                    val resetToPeek = isPinning || isParkingSelected
                     if (state.selectedItemId == null || resetToPeek) {
                         val correction = kotlin.math.abs(sheetOffsetPx.value - peekOffsetPx)
                         // Snap (not animate) when: small layout correction OR sheet is already at
@@ -878,11 +866,12 @@ private fun HomeContent(
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
                     onPeekHeightChanged = { h ->
-                        // Reject sub-threshold changes so AnimatedContent transitions inside
-                        // the peek don't whip the sheet around. [BUG-PEEK-JITTER-001]
-                        if (kotlin.math.abs(peekHeightPx - h) >= peekHeightHysteresisPx) {
-                            peekHeightPx = h
-                        }
+                        // EXACT per-state height (no hysteresis): peekOffset = container - peekHeight,
+                        // so the peek header's bottom edge — and its divider — lands flush on the
+                        // bottom-nav divider, with no dp of gap, in every state. Each state keeps its
+                        // own natural height (Browse short, SelectedCar taller). The height is whole-px
+                        // already, so there's no sub-pixel churn. [BUG-PEEK-DIVIDER-ALIGN]
+                        if (h != peekHeightPx) peekHeightPx = h
                     },
                     onIntent = onIntent,
                     onParkingClick = { parking ->
@@ -930,9 +919,6 @@ private fun HomeContent(
                     },
                     onRelease = { showReleaseDialog = true },
                     onNavigateExternal = openExternalNav,
-                    onZoneDismiss = { onIntent(HomeIntent.DismissZone) },
-                    onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
-                    onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
                     onToggle = toggleSheet,
                     // Detection surface actions (reuses existing nav + AddingParking flow).
                     onDetectionAddVehicle = onAddVehicle,
