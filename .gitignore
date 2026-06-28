@@ -745,3 +745,7 @@ build_log.txt
 GoogleService-Info.plist
 movement.sh
 .claude/
+
+# Stray local junk accidentally swept by `git add -A` — never commit.
+firebase_help.txt
+parkdiag*.txt
