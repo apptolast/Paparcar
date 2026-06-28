@@ -828,29 +828,21 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_clear_both_selection_fields_when_entering_AddingZone_with_zone_preselected`() = runTest {
-        val zone = io.apptolast.paparcar.domain.model.Zone(
-            id = "z1",
-            userId = "u1",
-            name = "Casa",
-            lat = 40.0,
-            lon = -3.7,
-            iconKey = "home",
-            createdAt = 0L,
-        )
-        zoneRepo.zones = listOf(zone)
+    fun `should_clear_selection_when_entering_AddingZone`() = runTest {
         vm = buildVm()
 
-        // Pre-condition: a zone is selected.
-        vm.handleIntent(HomeIntent.SelectZone("z1"))
-        assertEquals("z1", vm.state.value.selectedZoneId)
+        // Pre-condition: an item (spot / parking) is selected.
+        // Zones are no longer selectable — SelectZone just moves the camera — so the
+        // selection field exercised here is the unified [selectedItemId]. [ZONE-NOSEL-001]
+        vm.handleIntent(HomeIntent.SelectItem("item-1"))
+        assertEquals("item-1", vm.state.value.selectedItemId)
 
-        // Now enter AddZone — selection invariants demand both selection fields null.
+        // Entering an add-mode must clear any active selection: selection and the
+        // add-modes (Reporting / AddingZone / AddingParking) are mutually exclusive.
         vm.handleIntent(HomeIntent.EnterAddZoneMode(lat = 40.0, lon = -3.7))
 
         val s = vm.state.value
         assertEquals(HomeMode.AddingZone, s.mode)
-        assertNull(s.selectedZoneId)
         assertNull(s.selectedItemId)
     }
 }

@@ -88,8 +88,8 @@ class VehicleRegistrationViewModelTest {
         // User types a brand + model the catalog can't recognise and that matches no
         // keyword pattern — the form must still let them advance with a sensible default
         // (medium hatchback) that they can refine via the manual picker.
-        vm.handleIntent(VehicleRegistrationIntent.SetCustomBrand("Rivian"))
-        vm.handleIntent(VehicleRegistrationIntent.SetCustomModel("R1T"))
+        vm.handleIntent(VehicleRegistrationIntent.SetCustomBrand("MarcaInventada"))
+        vm.handleIntent(VehicleRegistrationIntent.SetCustomModel("ModeloSinPista"))
 
         val s = vm.state.value
         assertEquals(CarbodyType.HATCHBACK_MEDIUM, s.carbodyType)
