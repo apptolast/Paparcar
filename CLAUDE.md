@@ -58,6 +58,21 @@ Ambas estrategias convergen en: ConfirmParkingUseCase → Room + Firestore + Geo
 
 ## REGLAS DE CÓDIGO OBLIGATORIAS
 
+### ⛔ Iconos — sistema de 3 niveles
+Antes de añadir un icono, decide el nivel. Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector propio.*
+- **Nivel 1 · Sistema → Material Symbols (Rounded).** Plumbing de UI: nav inferior, ajustes, buscar, cerrar/atrás, editar, chevron, calendario, filtros, capas. Familia **Rounded** (no Outlined) para casar con Fredoka. `tint = onSurfaceVariant`.
+- **Nivel 2 · Iconos de UI → Material Symbols (Rounded) con `tint`.** Incluye POI/categorías (`Icons.Rounded.ShoppingCart`, etc.). NO creamos glifos custom. El mapeo `PlaceCategory → Icons.Rounded.*` vive en la capa de presentación (domain es Kotlin puro, sin `Icons`).
+- **Nivel 3 · Ilustración/marcadores → vector propio (relleno de marca, multicolor, NO tintar).** Hero, onboarding, empty states, marcadores, vehículos, fiabilidad.
+  - Si el SVG es VectorDrawable-compatible (solo `path`, sin dashes/filtros/text) → VectorDrawable en `composeResources/drawable/` (variante oscura con sufijo `_dark`).
+  - Si usa `stroke-dasharray`, nested-svg, filtros o texto → **dibujar en Compose Canvas** en commonMain (dash vía `PathEffect`, dark por parámetros). VectorDrawable NO soporta trazos discontinuos.
+- **Tema:** Nivel 1/2 se tintan con el color del tema; Nivel 3 trae su color (elige carpeta/variante `light`|`dark`).
+
+### ⛔ Color de acción — verde primario, rojo solo alerta
+- **Verde de marca = primario.** Todo CTA normal usa `primary`.
+- **Rojo (`error`/`PapRed`) RESERVADO** a: bloqueante de permisos, acción destructiva (borrar),
+  error de formulario, y estado "baja/caduca" (fiabilidad LOW, TTL crítico/expirado). NUNCA rojo
+  para un CTA que no sea alerta real.
+
 ### ⛔ Strings — NUNCA hardcoded
 - Todo texto visible al usuario va en `composeResources/values/strings.xml`
 - Usar `stringResource(Res.string.key)` en Compose

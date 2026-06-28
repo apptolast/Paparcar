@@ -1,16 +1,16 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.illustrations.LocationAlertIllustration
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -41,14 +42,22 @@ internal fun HomeLocationBlockedState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = PaparcarSpacing.xxl, vertical = PaparcarSpacing.xl),
+            .padding(horizontal = PaparcarSpacing.xxl)
+            .padding(top = GRABBER_TOP_DP.dp, bottom = PaparcarSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = Icons.Filled.LocationOff,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(ICON_DP.dp),
+        // Modal grabber — same pill as the bottom-sheet so this blocker reads as a modal.
+        Box(
+            modifier = Modifier
+                .size(width = GRABBER_W_DP.dp, height = GRABBER_H_DP.dp)
+                .background(
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = GRABBER_ALPHA),
+                    CircleShape,
+                ),
+        )
+        Spacer(Modifier.height(PaparcarSpacing.lg))
+        LocationAlertIllustration(
+            modifier = Modifier.size(width = ILLUSTRATION_W_DP.dp, height = ILLUSTRATION_H_DP.dp),
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
@@ -80,5 +89,10 @@ internal fun HomeLocationBlockedState(
     }
 }
 
-private const val ICON_DP = 52
 private const val BUTTON_DP = 52
+private const val GRABBER_TOP_DP = 10
+private const val GRABBER_W_DP = 32
+private const val GRABBER_H_DP = 4
+private const val GRABBER_ALPHA = 0.12f
+private const val ILLUSTRATION_W_DP = 132
+private const val ILLUSTRATION_H_DP = 113

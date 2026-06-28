@@ -45,17 +45,17 @@ fun formatDistance(meters: Float, unit: DistanceUnit = DistanceUnit.METRIC): Str
 }
 
 /**
- * Returns the best human-readable label for a location, combining POI emoji+name
- * and address when both are available.  Falls back to coordinate string.
+ * Returns the best human-readable label for a location, combining POI name and
+ * address when both are available. Falls back to coordinate string. The POI
+ * category is shown via a dedicated icon at the render site, never an emoji.
  */
 fun locationDisplayText(
     placeInfo: PlaceInfo?,
     address: AddressInfo?,
     lat: Double,
     lon: Double,
-    showEmoji: Boolean = true,
 ): String {
-    val place = placeInfo?.let { if (showEmoji) "${it.category.emoji} ${it.name}" else it.name }
+    val place = placeInfo?.name
     val addr = address?.displayLine
     return when {
         place != null && addr != null -> "$place  ·  $addr"

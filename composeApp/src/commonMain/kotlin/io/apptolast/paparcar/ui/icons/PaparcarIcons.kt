@@ -4,21 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ElectricScooter
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Hotel
-import androidx.compose.material.icons.filled.LocalCafe
-import androidx.compose.material.icons.filled.LocalGasStation
-import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.LocalMall
-import androidx.compose.material.icons.filled.LocalParking
-import androidx.compose.material.icons.filled.LocalPharmacy
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.ElectricScooter
@@ -35,6 +22,19 @@ import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.TwoWheeler
+import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.Hotel
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.LocalHospital
+import androidx.compose.material.icons.rounded.LocalMall
+import androidx.compose.material.icons.rounded.LocalParking
+import androidx.compose.material.icons.rounded.LocalPharmacy
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -78,19 +78,19 @@ import io.apptolast.paparcar.domain.model.VehicleType
 object PaparcarIcons {
 
     // ── Place categories (Material wrappers) ─────────────────────────────────
-    val Fuel: ImageVector get() = Icons.Filled.LocalGasStation
-    val Supermarket: ImageVector get() = Icons.Filled.ShoppingCart
-    val Mall: ImageVector get() = Icons.Filled.LocalMall
-    val Restaurant: ImageVector get() = Icons.Filled.Restaurant
-    val Cafe: ImageVector get() = Icons.Filled.LocalCafe
-    val Pharmacy: ImageVector get() = Icons.Filled.LocalPharmacy
-    val Hospital: ImageVector get() = Icons.Filled.LocalHospital
-    val ParkingPlace: ImageVector get() = Icons.Filled.LocalParking
-    val Bank: ImageVector get() = Icons.Filled.AccountBalance
-    val Hotel: ImageVector get() = Icons.Filled.Hotel
-    val School: ImageVector get() = Icons.Filled.School
-    val Gym: ImageVector get() = Icons.Filled.FitnessCenter
-    val PlaceGeneric: ImageVector get() = Icons.Filled.Place
+    val Fuel: ImageVector get() = Icons.Rounded.LocalGasStation
+    val Supermarket: ImageVector get() = Icons.Rounded.ShoppingCart
+    val Mall: ImageVector get() = Icons.Rounded.LocalMall
+    val Restaurant: ImageVector get() = Icons.Rounded.Restaurant
+    val Cafe: ImageVector get() = Icons.Rounded.LocalCafe
+    val Pharmacy: ImageVector get() = Icons.Rounded.LocalPharmacy
+    val Hospital: ImageVector get() = Icons.Rounded.LocalHospital
+    val ParkingPlace: ImageVector get() = Icons.Rounded.LocalParking
+    val Bank: ImageVector get() = Icons.Rounded.AccountBalance
+    val Hotel: ImageVector get() = Icons.Rounded.Hotel
+    val School: ImageVector get() = Icons.Rounded.School
+    val Gym: ImageVector get() = Icons.Rounded.FitnessCenter
+    val PlaceGeneric: ImageVector get() = Icons.Rounded.Place
 
     // ── Vehicle sizes ────────────────────────────────────────────────────────
     // All five vehicle sizes are custom vectors matching the casa-rodante.svg visual

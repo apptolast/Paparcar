@@ -91,6 +91,7 @@ import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.PapClearIconButton
+import io.apptolast.paparcar.ui.components.ReliabilityMeter
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
@@ -337,7 +338,8 @@ private fun SpotPeekRow(
     spotListExpanded: Boolean = false,
     onToggleSpotList: () -> Unit = {},
 ) {
-    val palette = spot.toReliabilityUiState().peekPalette()
+    val reliabilityLevel = spot.toReliabilityUiState()
+    val palette = reliabilityLevel.peekPalette()
     val distM = userLocation?.let { (uLat, uLon) ->
         distanceMeters(uLat, uLon, spot.location.latitude, spot.location.longitude)
     }
@@ -350,7 +352,6 @@ private fun SpotPeekRow(
         lon = spot.location.longitude,
     )
     val ttlMinutes = remainingMinutes(spot.expiresAt)
-    val filledSegments = (palette.fillRatio * FIABILITY_SEGMENTS).roundToInt().coerceIn(1, FIABILITY_SEGMENTS)
     val spotAgeMin = ageMinutes(spot.location.timestamp)
 
     PeekStateCard(
@@ -372,7 +373,7 @@ private fun SpotPeekRow(
                 SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.badgeBg)
             }
             Spacer(Modifier.height(12.dp))
-            FiabilityIndicator(filledSegments = filledSegments, expiresInMin = ttlMinutes)
+            FiabilityIndicator(level = reliabilityLevel, expiresInMin = ttlMinutes)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
@@ -505,7 +506,7 @@ private fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color)
 }
 
 @Composable
-private fun FiabilityIndicator(filledSegments: Int, expiresInMin: Int?) {
+private fun FiabilityIndicator(level: SpotReliabilityUiState, expiresInMin: Int?) {
     val cs = MaterialTheme.colorScheme
     val isExpiring = expiresInMin != null && expiresInMin < FIABILITY_EXPIRY_WARN_MIN
 
@@ -533,31 +534,14 @@ private fun FiabilityIndicator(filledSegments: Int, expiresInMin: Int?) {
     }
     Spacer(Modifier.height(5.dp))
 
-    val normalColor = cs.primary
-    val warnColor = cs.secondary
-    val emptyColor = cs.onSurface.copy(alpha = FIABILITY_EMPTY_ALPHA)
-    Row(
+    // Same canonical 5-segment meter as list/ficha, coloured by reliability tier
+    // (verde/ámbar/rojo/azul) — no longer always-green. [IDENTITY-ICONS-001 D]
+    ReliabilityMeter(
+        level = level,
+        fillWidth = true,
+        barHeight = FIABILITY_SEG_HEIGHT_DP.dp,
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(FIABILITY_SEG_GAP_DP.dp),
-    ) {
-        for (i in 1..FIABILITY_SEGMENTS) {
-            val filled = i <= filledSegments
-            val isWarnSeg = isExpiring && filled && i > (filledSegments - FIABILITY_EXPIRY_AMBER_SEGS)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(FIABILITY_SEG_HEIGHT_DP.dp)
-                    .clip(RoundedCornerShape(FIABILITY_SEG_RADIUS_DP.dp))
-                    .background(
-                        when {
-                            !filled -> emptyColor
-                            isWarnSeg -> warnColor
-                            else -> normalColor
-                        }
-                    ),
-            )
-        }
-    }
+    )
 }
 
 @Composable
@@ -624,26 +608,19 @@ private data class SpotPeekPalette(
     val badgeBg: Color,
     val badgeFg: Color,
     val label: String,
-    /** 0..1 — how much of the reliability bar to fill (encodes the level visually). */
-    val fillRatio: Float,
 )
 
 @Composable
 private fun SpotReliabilityUiState.peekPalette(): SpotPeekPalette {
     val sc = stateColors()
-    val (label, fill) = when (this) {
-        SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_peek_spot_high)   to FILL_HIGH
-        SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_peek_spot_medium) to FILL_MEDIUM
-        SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_peek_spot_low)    to FILL_LOW
-        SpotReliabilityUiState.MANUAL -> stringResource(Res.string.home_peek_spot_manual) to FILL_MANUAL
+    val label = when (this) {
+        SpotReliabilityUiState.HIGH   -> stringResource(Res.string.home_peek_spot_high)
+        SpotReliabilityUiState.MEDIUM -> stringResource(Res.string.home_peek_spot_medium)
+        SpotReliabilityUiState.LOW    -> stringResource(Res.string.home_peek_spot_low)
+        SpotReliabilityUiState.MANUAL -> stringResource(Res.string.home_peek_spot_manual)
     }
-    return SpotPeekPalette(sc.bg, sc.on, label, fill)
+    return SpotPeekPalette(sc.bg, sc.on, label)
 }
-
-private const val FILL_HIGH = 1.0f
-private const val FILL_MEDIUM = 0.65f
-private const val FILL_LOW = 0.35f
-private const val FILL_MANUAL = 0.80f
 
 private fun remainingMinutes(expiresAtMs: Long): Int? {
     if (expiresAtMs <= 0L) return null
@@ -1403,12 +1380,8 @@ private const val SIZE_CHIP_RADIUS_DP = 20
 private const val WALK_DISTANCE_THRESHOLD_M = 400f
 private const val HELPER_CORNER_DP = 10
 private const val META_ICON_DP = 18
-private const val FIABILITY_SEGMENTS = 5
 private const val FIABILITY_SEG_HEIGHT_DP = 4
-private const val FIABILITY_SEG_GAP_DP = 3
-private const val FIABILITY_SEG_RADIUS_DP = 2
 private const val FIABILITY_EXPIRY_WARN_MIN = 5
-private const val FIABILITY_EXPIRY_AMBER_SEGS = 2
 private const val COMPAT_CORNER_DP = 8
 private const val COMPAT_ICON_DP = 16
 private const val COMPAT_INCOMPAT_BG_ALPHA = 0.07f
@@ -1418,7 +1391,6 @@ private const val COMPAT_UNKNOWN_FG_ALPHA = 0.40f
 private const val SECTION_TRACKING_SP = 0.8
 private const val SECTION_LABEL_ALPHA = 0.55f
 private const val META_VALUE_ALPHA = 0.7f
-private const val FIABILITY_EMPTY_ALPHA = 0.25f
 private const val COMPAT_BG_ALPHA = 0.12f
 private const val HELPER_BG_ALPHA = 0.5f
 private const val SECONDARY_ALPHA = 0.55f

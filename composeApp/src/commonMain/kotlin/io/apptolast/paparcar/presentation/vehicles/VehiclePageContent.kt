@@ -136,57 +136,54 @@ private fun VehicleHeroCard(
         border = BorderStroke(PapBorders.thin, cs.outlineVariant.copy(alpha = CARD_BORDER_ALPHA)),
     ) {
         Column(modifier = Modifier.padding(CARD_PADDING.dp)) {
+            // Hero header — glyph + name on its own line, type + status pill below,
+            // edit at top-right. The name gets the full column width (never squeezed
+            // to "S…"/"Ford F…" by a wide status pill sharing the row). [IDENTITY-ICONS-001 G]
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // START — circle icon + name/subtitle column
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    VehicleGlyph(
-                        carbody = vehicle.carbodyType,
-                        size = vehicle.sizeCategory,
-                        tone = badgeTone,
-                        glyphSize = HERO_ICON_BOX_DP.dp,
-                        color = vehicle.color,
+                VehicleGlyph(
+                    carbody = vehicle.carbodyType,
+                    size = vehicle.sizeCategory,
+                    tone = badgeTone,
+                    glyphSize = HERO_ICON_BOX_DP.dp,
+                    color = vehicle.color,
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = cs.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = displayName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = cs.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(HERO_NAME_META_GAP.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(HERO_META_GAP.dp),
+                    ) {
                         Text(
                             text = sizeLabel.uppercase(),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                         )
-                    }
-                }
-                // END — edit icon + status badge, centered vertically
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    IconButton(onClick = onEdit) {
-                        Icon(
-                            Icons.Outlined.Edit,
-                            contentDescription = stringResource(Res.string.my_car_edit_vehicle),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EDIT_ICON_ALPHA),
+                        VehicleStatusBadge(
+                            status = monitoring,
+                            isSettingActive = isSettingActive,
+                            onSetActive = onSetActive,
                         )
                     }
-                    VehicleStatusBadge(
-                        status = monitoring,
-                        isSettingActive = isSettingActive,
-                        onSetActive = onSetActive,
+                }
+                Spacer(Modifier.width(8.dp))
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = stringResource(Res.string.my_car_edit_vehicle),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EDIT_ICON_ALPHA),
                     )
                 }
             }
@@ -410,3 +407,5 @@ private const val STAT_ICON_GAP = 6
 private const val STAT_LABEL_ALPHA = 0.5f
 private const val SUBTITLE_ALPHA = 0.55f
 private const val EDIT_ICON_ALPHA = 0.7f
+private const val HERO_NAME_META_GAP = 6
+private const val HERO_META_GAP = 10

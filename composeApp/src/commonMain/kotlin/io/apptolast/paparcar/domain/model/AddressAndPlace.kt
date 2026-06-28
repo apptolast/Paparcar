@@ -6,7 +6,8 @@ package io.apptolast.paparcar.domain.model
  * [address] is always present (may contain nulls if geocoding failed).
  * [placeInfo] is present only when a named place was found nearby.
  *
- * [displayLine] prioritises the POI name (with emoji) over the street address.
+ * [displayLine] prioritises the POI name over the street address. The category
+ * is conveyed by a dedicated icon at the render site, never an inline emoji.
  */
 data class AddressAndPlace(
     val address: AddressInfo,
@@ -14,7 +15,7 @@ data class AddressAndPlace(
 ) {
     val displayLine: String?
         get() = when {
-            placeInfo != null -> "${placeInfo.category.emoji} ${placeInfo.name}"
+            placeInfo != null -> placeInfo.name
             else -> address.displayLine
         }
 }

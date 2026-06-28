@@ -20,13 +20,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.FilterAltOff
-import androidx.compose.material.icons.outlined.LocationOn
+import io.apptolast.paparcar.ui.illustrations.EmptySpotsIllustration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -152,14 +153,28 @@ private fun SpotRowContent(
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = displayText,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(POI_ICON_GAP_DP.dp),
+            ) {
+                spot.placeInfo?.let { place ->
+                    Icon(
+                        imageVector = place.category.icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(POI_ICON_DP.dp),
+                    )
+                }
+                Text(
+                    text = displayText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -249,11 +264,8 @@ internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
-                Icons.Outlined.LocationOn,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_ICON_ALPHA),
-                modifier = Modifier.size(36.dp),
+            EmptySpotsIllustration(
+                modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -393,6 +405,8 @@ internal fun HomeReportSpotCard(
 private const val SELECTION_INDICATOR_W_DP = 3
 private const val SELECTION_INDICATOR_H_DP = 56
 private const val BADGE_DP = 42
+private const val POI_ICON_DP = 15
+private const val POI_ICON_GAP_DP = 5
 private const val SELECTED_ROW_BG_ALPHA = 0.30f
 private const val META_SEPARATOR_ALPHA = 0.3f
 private const val META_VALUE_ALPHA = 0.6f
@@ -402,3 +416,5 @@ private const val PRIMARY_CARD_ICON_BOX_DP = 44
 private const val PRIMARY_CARD_ICON_CORNER_DP = 14
 private const val EMPTY_ICON_ALPHA = 0.25f
 private const val EMPTY_SUBTITLE_ALPHA = 0.5f
+private const val EMPTY_ILLUSTRATION_W = 120
+private const val EMPTY_ILLUSTRATION_H = 103

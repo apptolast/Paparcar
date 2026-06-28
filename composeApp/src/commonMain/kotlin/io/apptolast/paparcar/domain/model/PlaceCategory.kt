@@ -1,17 +1,21 @@
 package io.apptolast.paparcar.domain.model
 
-enum class PlaceCategory(val emoji: String) {
-    FUEL("⛽"),
-    SUPERMARKET("🛒"),
-    MALL("🏬"),
-    RESTAURANT("🍽️"),
-    CAFE("☕"),
-    PHARMACY("💊"),
-    HOSPITAL("🏥"),
-    PARKING("🅿️"),
-    BANK("🏦"),
-    HOTEL("🏨"),
-    SCHOOL("🎓"),
-    GYM("💪"),
-    OTHER("📍"),
+/**
+ * POI category. UI renders each via the dedicated Material Rounded icon
+ * (`PlaceCategory.icon` in `ui/icons/PaparcarIcons.kt`) — never an emoji.
+ */
+enum class PlaceCategory {
+    FUEL,
+    SUPERMARKET,
+    MALL,
+    RESTAURANT,
+    CAFE,
+    PHARMACY,
+    HOSPITAL,
+    PARKING,
+    BANK,
+    HOTEL,
+    SCHOOL,
+    GYM,
+    OTHER,
 }

@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Notifications
@@ -35,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.illustrations.AutomationIllustration
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -54,7 +54,8 @@ private val StepBadgeSize              = 28.dp
 private val StepConnectorWidth         = 2.dp
 private val TOP_CONTENT_PADDING        = 56.dp
 private val BOTTOM_CONTENT_PADDING     = 140.dp
-private val TITLE_ICON_SIZE            = 64.dp
+private val TITLE_ILLUSTRATION_W       = 132.dp
+private val TITLE_ILLUSTRATION_H       = 113.dp
 private val STEP_ICON_SIZE             = 20.dp
 private val STEP_TEXT_SPACER           = 2.dp
 
@@ -76,11 +77,8 @@ fun PermissionsRationaleScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Lock,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(TITLE_ICON_SIZE),
+            AutomationIllustration(
+                modifier = Modifier.size(TITLE_ILLUSTRATION_W, TITLE_ILLUSTRATION_H),
             )
             Spacer(Modifier.height(PaparcarSpacing.lg))
             Text(
