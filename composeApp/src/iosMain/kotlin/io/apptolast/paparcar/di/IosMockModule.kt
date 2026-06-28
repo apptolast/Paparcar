@@ -12,6 +12,7 @@ import io.apptolast.paparcar.data.session.RoomLocalSessionCache
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -42,6 +43,7 @@ import io.apptolast.paparcar.fakes.data.repository.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.data.repository.FakeGeocoderDataSource
 import io.apptolast.paparcar.fakes.data.repository.FakeGeofenceEventBus
 import io.apptolast.paparcar.fakes.data.repository.FakeGeofenceManager
+import io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection
 import io.apptolast.paparcar.fakes.data.repository.FakeOemBackgroundReliabilityManager
 import io.apptolast.paparcar.fakes.data.repository.FakeParkingEnrichmentScheduler
 import io.apptolast.paparcar.fakes.data.repository.FakeParkingSyncScheduler
@@ -77,6 +79,7 @@ val iosMockModule = module {
     single<ParkingEnrichmentScheduler> { FakeParkingEnrichmentScheduler() }
     single<ParkingSyncScheduler> { FakeParkingSyncScheduler() }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
+    single<ManualParkingDetection> { FakeManualParkingDetection() }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }

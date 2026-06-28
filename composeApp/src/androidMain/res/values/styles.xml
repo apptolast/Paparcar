@@ -15,6 +15,9 @@
              DayNight splash fondo. Using @mipmap/ic_launcher here would render the full adaptive
              icon — its solid green background gets masked into a circle and looks off. -->
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <!-- Dark disc behind the glyph so it reads as the app icon (green car on
+             a dark circle) instead of floating bare on the splash fondo. -->
+        <item name="windowSplashScreenIconBackgroundColor">@color/splash_icon_background</item>
         <item name="postSplashScreenTheme">@style/Theme.AppCompat.Light.NoActionBar</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>

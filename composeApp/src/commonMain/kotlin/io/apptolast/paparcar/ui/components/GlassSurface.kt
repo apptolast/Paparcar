@@ -112,10 +112,12 @@ data class GlassColors(
 object GlassDefaults {
 
     internal const val ALPHA_IDLE = 1.0f
-    internal const val ALPHA_INTERACTING = 0.88f
+    // More see-through while dragging so the map clearly reads through every
+    // floating control (search bar, FABs, zone chips). [MAP-GLASS-001]
+    internal const val ALPHA_INTERACTING = 0.78f
     internal const val FADE_IN_MS = 160
     internal const val FADE_OUT_MS = 320
-    internal const val BORDER_ALPHA = 0.18f
+    internal const val BORDER_ALPHA = 0.24f
     private val BORDER_WIDTH = 0.5.dp
 
     @Composable

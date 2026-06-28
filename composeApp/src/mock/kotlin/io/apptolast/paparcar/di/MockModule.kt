@@ -69,6 +69,7 @@ val mockModule = module {
     single<ParkingEnrichmentScheduler> { FakeParkingEnrichmentScheduler() }
     single<ParkingSyncScheduler> { FakeParkingSyncScheduler() }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
+    single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> { io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection() }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }

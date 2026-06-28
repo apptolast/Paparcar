@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.fakes.data.repository
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -22,6 +23,11 @@ class FakeActivityRecognitionManager : ActivityRecognitionManager {
 
 class FakeStepDetectorSource : StepDetectorSource {
     override fun steps(): Flow<Unit> = emptyFlow()
+}
+
+/** No-op: the mock flavor has no Coordinator detection service to kick off. [DET-G-01b] */
+class FakeManualParkingDetection : ManualParkingDetection {
+    override fun start() = Unit
 }
 
 class FakeGeofenceManager : GeofenceManager {

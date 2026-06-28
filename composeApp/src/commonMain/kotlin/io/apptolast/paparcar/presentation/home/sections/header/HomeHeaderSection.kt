@@ -39,8 +39,9 @@ import io.apptolast.paparcar.presentation.home.sections.header.components.HomeGp
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypePicker
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.ZoneChip
+import io.apptolast.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
+import io.apptolast.paparcar.presentation.util.MapCircleFab
 import io.apptolast.paparcar.ui.components.GlassSurface
-import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_header_add_zone
@@ -121,12 +122,13 @@ private fun HeaderZoneChips(
     onEditZone: (String) -> Unit,
 ) {
     LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp),
+        // Inset lives in contentPadding (not an outer padding) so the FAB shadow of
+        // the first/last chip has room and isn't clipped at the row edge; chips also
+        // scroll edge-to-edge. [MAP-GLASS-001]
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = CHIP_SHADOW_ROOM_DP.dp),
     ) {
         items(zones, key = { it.id }) { zone ->
             ZoneChip(
@@ -138,11 +140,14 @@ private fun HeaderZoneChips(
             )
         }
         item("add_zone") {
-            PaparcarAddChip(
+            // Same glass-FAB contract as the zone chips and map FABs: surfaceContainer
+            // fill, FAB shadow, no resting border, glass-on-drag. [MAP-GLASS-001]
+            MapCircleFab(
+                icon = Icons.Outlined.Add,
                 onClick = onAddZone,
+                contentDescription = stringResource(Res.string.home_header_add_zone),
+                size = ADD_ZONE_CHIP_SIZE_DP.dp,
                 iconSize = CHIP_ICON_DP.dp,
-                horizontalPad = 8.dp,
-                verticalPad = 8.dp,
             )
         }
     }
@@ -152,7 +157,7 @@ private fun HeaderZoneChips(
 private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
     GlassSurface(
         shape = RoundedCornerShape(28.dp),
-        shadowElevation = FLOATING_SHADOW_ELEVATION,
+        shadowElevation = MAP_FLOATING_SHADOW_DP.dp,
         onClick = onAddZone,
         modifier = Modifier.padding(start = 14.dp, top = 6.dp),
     ) {
@@ -192,7 +197,8 @@ private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
     }
 }
 
-private val FLOATING_SHADOW_ELEVATION = 6.dp
+private const val ADD_ZONE_CHIP_SIZE_DP = 32
+private const val CHIP_SHADOW_ROOM_DP = 8
 private const val CHIP_ICON_BOX_DP = 28
 private const val CHIP_ICON_DP = 16
 private const val HINT_ALPHA = 0.5f

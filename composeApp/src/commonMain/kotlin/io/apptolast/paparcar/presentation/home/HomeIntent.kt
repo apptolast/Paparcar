@@ -85,7 +85,6 @@ sealed class HomeIntent {
     data class SetZoneRadius(val radius: Float) : HomeIntent()
     data class SetZoneIsPrivate(val isPrivate: Boolean) : HomeIntent()
     data class SelectZone(val zoneId: String) : HomeIntent()
-    data object DismissZone : HomeIntent()
     data class DeleteZone(val zoneId: String) : HomeIntent()
     data class EnterEditZoneMode(val zoneId: String) : HomeIntent()
 

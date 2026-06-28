@@ -20,8 +20,13 @@ object ZoneIcon {
     const val SHOPPING = "shopping"
     const val OTHER = "other"
 
-    /** Fallback when [Zone.iconKey] doesn't match any known preset. */
+    /**
+     * Fallback when [Zone.iconKey] doesn't match any known preset, AND the icon
+     * pre-selected when creating a new zone: [OTHER] is the generic location pin,
+     * the safest neutral default. It leads [PRESETS] so it's the first chip in the
+     * picker.
+     */
     const val DEFAULT = OTHER
 
-    val PRESETS: List<String> = listOf(HOME, WORK, FAMILY, FAVORITE, GYM, SCHOOL, SHOPPING, OTHER)
+    val PRESETS: List<String> = listOf(OTHER, HOME, WORK, FAMILY, FAVORITE, GYM, SCHOOL, SHOPPING)
 }

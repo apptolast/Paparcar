@@ -17,6 +17,13 @@ import io.apptolast.paparcar.ui.components.GlassDefaults
 import io.apptolast.paparcar.ui.components.GlassSurface
 
 /**
+ * Shadow elevation shared by every floating-over-map control (FABs, the add
+ * chip, the zone chips) so they read as one family hovering above the map.
+ * [MAP-GLASS-001]
+ */
+const val MAP_FLOATING_SHADOW_DP = 6
+
+/**
  * Shared circular map FAB used by both HomeMapFabColumn and MapControlButtons.
  */
 @Composable
@@ -29,7 +36,7 @@ fun MapCircleFab(
     containerColor: Color = Color.Unspecified,
     size: Dp = 48.dp,
     iconSize: Dp = 20.dp,
-    shadowElevation: Dp = 6.dp,
+    shadowElevation: Dp = MAP_FLOATING_SHADOW_DP.dp,
 ) {
     val resolvedTint = if (iconTint == Color.Unspecified)
         MaterialTheme.colorScheme.onSurface
