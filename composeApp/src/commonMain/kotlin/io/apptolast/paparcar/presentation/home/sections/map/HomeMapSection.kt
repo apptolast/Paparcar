@@ -50,6 +50,7 @@ internal fun HomeMapSection(
         ),
         spots = state.nearbySpots,
         userLocation = state.userGpsPoint,
+        drivingPuck = state.drivingPuck,
         parkingLocation = state.userParking?.location,
         parkedVehicles = state.parkedVehicles,
         zones = state.zones,

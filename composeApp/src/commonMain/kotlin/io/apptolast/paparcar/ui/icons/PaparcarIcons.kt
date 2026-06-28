@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathBuilder
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.PlaceCategory
@@ -224,6 +225,32 @@ object PaparcarIcons {
             }
         }.build()
     }
+
+    /**
+     * The Paparcar "P" — the filled Fredoka glyph (`glyph-p`), the same mark drawn on the spot
+     * pucks (`SPOT_P_PATH` in PaparcarMapMarkers). Exported as an [ImageVector] so every place that
+     * shows the spot "P" (spot list item, peek reliability badge, report centre-pin) uses one
+     * identical glyph. The host `Icon` tints the fill; viewport 48×48. [MAP-ICONS-V2]
+     */
+    val SpotParkingP: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "SpotParkingP",
+            defaultWidth = 48.dp,
+            defaultHeight = 48.dp,
+            viewportWidth = 48f,
+            viewportHeight = 48f,
+        ).addPath(
+            // Filled Fredoka "P" with a counter (nonzero winding gives the hole) — the standalone
+            // `glyph-p`, the same glyph drawn on the spot pucks. Icon tints the fill.
+            pathData = PathParser().parsePathString(GLYPH_P_PATH).toNodes(),
+            fill = SolidColor(Color.Black),
+        ).build()
+    }
+
+    private const val GLYPH_P_PATH =
+        "M11.46 11.08 a6.08 6.08 0 0 1 12.16 0 L23.62 36.92 a6.08 6.08 0 0 1 -12.16 0 Z " +
+            "M11.46 17.16 a14.06 12.16 0 1 1 28.12 0 a14.06 12.16 0 1 1 -28.12 0 Z " +
+            "M19.33 17.16 a6.19 5.35 0 1 0 12.37 0 a6.19 5.35 0 1 0 -12.37 0 Z"
 }
 
 // ─── Custom vehicle silhouettes ──────────────────────────────────────────────

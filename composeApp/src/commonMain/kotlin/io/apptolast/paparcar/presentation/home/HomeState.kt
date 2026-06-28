@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.home
 import androidx.compose.runtime.Immutable
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.DetectionReadiness
+import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.DisabledReason
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.model.toUiState
@@ -58,6 +59,11 @@ data class HomeState(
 
     val userGpsPoint: GpsPoint? = null,
     val userAddressAndPlace: AddressAndPlace? = null,
+    /**
+     * Live driving puck (own car, top-down, heading-rotated) — non-null only while detection is
+     * actively monitoring a trip. Drives the map's location-active marker. [MAP-ICONS-V2]
+     */
+    val drivingPuck: DrivingPuck? = null,
 
     // ── Community data ────────────────────────────────────────────────────────
 
@@ -82,8 +88,6 @@ data class HomeState(
      * Both share the same UUID space so equality resolves the type. [MULTI-PARKING-001]
      */
     val selectedItemId: String? = null,
-    /** ID of the zone currently shown in the peek card. Null when no zone is selected. */
-    val selectedZoneId: String? = null,
 
     // ── Map / camera ──────────────────────────────────────────────────────────
 
@@ -179,10 +183,6 @@ data class HomeState(
     /** First active session — convenience for code that predates multi-parking. [MULTI-PARKING-001] */
     val userParking: UserParking?
         get() = activeSessions.firstOrNull()
-
-    /** The zone matching [selectedZoneId], or null if no zone is selected. */
-    val selectedZone: Zone?
-        get() = selectedZoneId?.let { id -> zones.find { it.id == id } }
 
     /** The session matching [selectedItemId], or null if the selection is a spot. [MULTI-PARKING-001] */
     val selectedSession: UserParking?

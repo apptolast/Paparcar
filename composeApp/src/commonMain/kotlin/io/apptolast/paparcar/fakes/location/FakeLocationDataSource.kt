@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.data.datasource
 
 import io.apptolast.paparcar.domain.location.LocationDataSource
+import io.apptolast.paparcar.domain.location.UserLocationUi
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,23 @@ class FakeLocationDataSource : LocationDataSource {
     override fun observeHighAccuracyLocation(): Flow<GpsPoint> = flow {
         while (true) {
             emit(mockLocation.copy(timestamp = Clock.System.now().toEpochMilliseconds()))
+            delay(1.seconds)
+        }
+    }
+
+    override fun observeUiLocation(): Flow<UserLocationUi> = flow {
+        var bearing = 0f
+        while (true) {
+            emit(
+                UserLocationUi(
+                    latitude = mockLocation.latitude,
+                    longitude = mockLocation.longitude,
+                    accuracy = mockLocation.accuracy,
+                    speed = 8f,
+                    bearingDegrees = bearing,
+                ),
+            )
+            bearing = (bearing + 15f) % 360f // slow spin so the puck rotation is visible in mocks
             delay(1.seconds)
         }
     }

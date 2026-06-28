@@ -7,9 +7,14 @@ import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.location.LocationDataSource
+import io.apptolast.paparcar.domain.location.UserLocationUi
+import io.apptolast.paparcar.domain.model.DetectionReadiness
+import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
+import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -45,7 +50,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
@@ -119,6 +126,7 @@ class HomeViewModel(
         subscribeNearbySpots()
         subscribeMapFocusEvents()
         subscribeDetectionReadiness()
+        subscribeDrivingPuck()
     }
 
     override fun initState(): HomeState = HomeState()
@@ -195,7 +203,6 @@ class HomeViewModel(
             is HomeIntent.SetZoneRadius -> updateState { copy(addingZoneRadius = intent.radius) }
             is HomeIntent.SetZoneIsPrivate -> updateState { copy(addingZoneIsPrivate = intent.isPrivate) }
             is HomeIntent.SelectZone -> selectZone(intent.zoneId)
-            is HomeIntent.DismissZone -> updateState { copy(selectedZoneId = null) }
             is HomeIntent.DeleteZone -> {
                 if (intent.zoneId in state.value.deletingZoneIds) return@handleIntent
                 updateState { copy(deletingZoneIds = deletingZoneIds + intent.zoneId) }
@@ -334,6 +341,54 @@ class HomeViewModel(
             .onEach { readiness -> updateState { copy(detectionReadiness = readiness) } }
             .launchIn(viewModelScope)
     }
+
+    /**
+     * Drives the live driving puck (own car, top-down, heading-rotated) — only while detection is
+     * actively monitoring a trip. Subscribes the heading-aware high-accuracy stream just for that
+     * window (battery-bounded), tagging it with the active vehicle's body shape. Null otherwise →
+     * the map falls back to the native location dot. [MAP-ICONS-V2]
+     */
+    private fun subscribeDrivingPuck() {
+        observeDetectionReadiness()
+            .map { (it as? DetectionReadiness.Monitoring)?.strategy }
+            .distinctUntilChanged()
+            .flatMapLatest { strategy ->
+                if (strategy != null && state.value.hasCorePermissions) {
+                    locationDataSource.observeUiLocation().map { strategy to it }
+                } else {
+                    flowOf<Pair<ParkingStrategy, UserLocationUi>?>(null)
+                }
+            }
+            .onEach { pair ->
+                val puck = pair?.let { (strategy, loc) ->
+                    val vehicle = monitoredVehicle(state.value.vehicles, strategy)
+                    DrivingPuck(
+                        latitude = loc.latitude,
+                        longitude = loc.longitude,
+                        bearingDegrees = loc.bearingDegrees,
+                        accuracy = loc.accuracy,
+                        carbodyType = vehicle?.carbodyType,
+                        sizeCategory = vehicle?.sizeCategory,
+                    )
+                }
+                updateState { copy(drivingPuck = puck) }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * The vehicle the active detection strategy is following — so the puck shows the right car.
+     * Under [ParkingStrategy.BLUETOOTH] that's the BT-paired vehicle (detected regardless of which
+     * is primary), otherwise the primary/active one. Mirrors [ParkingStrategyResolver.strategyFor].
+     * [MAP-ICONS-V2]
+     */
+    private fun monitoredVehicle(vehicles: List<Vehicle>, strategy: ParkingStrategy): Vehicle? =
+        when (strategy) {
+            ParkingStrategy.BLUETOOTH ->
+                vehicles.firstOrNull { it.bluetoothDeviceId != null } ?: vehicles.firstOrNull { it.isActive }
+            else ->
+                vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()
+        }
 
     private fun subscribeNearbySpots() {
         combine(permissionManager.permissionState, spotQueryCenter, reconnectTick) { perm, center, _ ->
@@ -628,24 +683,26 @@ class HomeViewModel(
 
     private fun selectZone(zoneId: String) {
         val zone = state.value.zones.find { it.id == zoneId } ?: return
-        updateState {
-            clearedModeFields().copy(selectedZoneId = zoneId)
-        }
+        // A zone is a navigation shortcut, not a thing to "manage": fly the camera
+        // there and stay in Browse so the spots at the zone are immediately visible.
+        // No selection state / management peek — edit is long-press on the chip,
+        // delete is the chip's ×. [ZONE-NOSEL-001]
         sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
     }
 
     // ── Mode invariant ────────────────────────────────────────────────────────
     //
-    // Selection (selectedItemId / selectedZoneId) and add-modes (Reporting /
-    // AddingZone / AddingParking) are mutually exclusive:
-    //   mode != Browse                 ⇒  selectedItemId == null && selectedZoneId == null
-    //   selectedItemId or zoneId != 0  ⇒  mode == Browse
+    // Selection (selectedItemId) and add-modes (Reporting / AddingZone /
+    // AddingParking) are mutually exclusive:
+    //   mode != Browse         ⇒  selectedItemId == null
+    //   selectedItemId != null ⇒  mode == Browse
     //
     // Enforcement sites:
     //   • EnterReportMode / EnterAddParkingMode / EnterAddZoneMode / EnterEditZoneMode
-    //     all clear `selectedItemId` (and `selectedZoneId`) on entry.
-    //   • SelectItem / selectZone both call [clearedModeFields] before applying the
-    //     new selection, so picking a marker silently exits any active add-mode.
+    //     all clear `selectedItemId` on entry.
+    //   • SelectItem calls [clearedModeFields] before applying the new selection,
+    //     so picking a marker silently exits any active add-mode. (selectZone only
+    //     moves the camera — a zone is not a selection.)
     //
     // Use this helper for any new transition from a non-Browse mode back to Browse
     // — it wipes every field that belongs to a non-Browse mode in one place, so
@@ -654,23 +711,21 @@ class HomeViewModel(
     /**
      * Returns a copy of this state reset to [HomeMode.Browse], clearing every
      * field that is owned by a non-Browse mode (pin coords, camera-moving flag,
-     * report/zone/parking form fields, editing IDs) AND both selection fields
-     * (selectedItemId, selectedZoneId). Callers that need to set a selection or
-     * re-enter a mode apply their fields via `.copy(...)` on top of this base.
+     * report/zone/parking form fields, editing IDs) AND the selection field
+     * (selectedItemId). Callers that need to set a selection or re-enter a mode
+     * apply their fields via `.copy(...)` on top of this base.
      *
      * In-flight booleans (isReporting / isSavingZone / isSavingParking /
      * isReleasingParking) are intentionally left alone: they reflect a running
      * operation, not the user-facing mode.
      *
-     * **Invariant enforced here:** `mode != Browse ⇒ selectedItemId == null &&
-     * selectedZoneId == null`. Every Enter*Mode / SelectItem / selectZone path
-     * goes through this helper so the invariant cannot drift as new
-     * mode-scoped fields are added. [BUG-5]
+     * **Invariant enforced here:** `mode != Browse ⇒ selectedItemId == null`.
+     * Every Enter*Mode / SelectItem path goes through this helper so the
+     * invariant cannot drift as new mode-scoped fields are added. [BUG-5]
      */
     private fun HomeState.clearedModeFields(): HomeState = copy(
         mode = HomeMode.Browse,
         selectedItemId = null,
-        selectedZoneId = null,
         pinCameraLat = null,
         pinCameraLon = null,
         isCameraMoving = false,

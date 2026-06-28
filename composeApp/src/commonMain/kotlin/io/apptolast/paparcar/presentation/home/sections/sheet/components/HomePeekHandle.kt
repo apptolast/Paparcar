@@ -48,7 +48,6 @@ import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Schedule
@@ -184,9 +183,6 @@ internal fun HomePeekHandle(
     onToggle: () -> Unit = {},
     spotListExpanded: Boolean = false,
     onToggleSpotList: () -> Unit = {},
-    onZoneDismiss: () -> Unit = {},
-    onEditZone: (zoneId: String) -> Unit = {},
-    onDeleteZone: (zoneId: String) -> Unit = {},
     /** CORE/GPS blocker CTA — opens the permission flow focused on location. [DET-READY-001n] */
     onActivateLocation: () -> Unit = {},
 ) {
@@ -204,7 +200,6 @@ internal fun HomePeekHandle(
         state.mode is HomeMode.AddingZone -> PeekState.AddingZone
         selectedSpot != null -> PeekState.SelectedSpot(selectedSpot.id)
         parkingToShow != null -> PeekState.SelectedParking(parkingToShow.id)
-        state.selectedZone != null -> PeekState.SelectedZone(state.selectedZone!!.id)
         else -> PeekState.Browse
     }
 
@@ -281,17 +276,6 @@ internal fun HomePeekHandle(
                         )
                     }
                 }
-                is PeekState.SelectedZone -> {
-                    val zone = state.zones.firstOrNull { it.id == target.zoneId }
-                    if (zone != null) {
-                        ZonePeekRow(
-                            zone = zone,
-                            onDismiss = onZoneDismiss,
-                            onEdit = { onEditZone(zone.id) },
-                            onDelete = { onDeleteZone(zone.id) },
-                        )
-                    }
-                }
                 PeekState.Reporting -> ReportPeekRow(
                     state = state,
                     onCancel = onCancelReport,
@@ -332,7 +316,6 @@ internal fun HomePeekHandle(
 private sealed class PeekState {
     data class SelectedSpot(val spotId: String) : PeekState()
     data class SelectedParking(val sessionId: String) : PeekState()
-    data class SelectedZone(val zoneId: String) : PeekState()
     data object Reporting : PeekState()
     data object AddingZone : PeekState()
     data class AddingParking(val isEditing: Boolean) : PeekState()
@@ -471,7 +454,7 @@ private fun SpotReliabilityBadge(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Outlined.LocalParking,
+            imageVector = PaparcarIcons.SpotParkingP,
             contentDescription = null,
             tint = palette.badgeFg,
             modifier = Modifier.size(SPOT_BADGE_ICON_DP.dp),
@@ -798,68 +781,6 @@ private fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
     }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ZonePeekRow — saved zone selected (view)
-// ═════════════════════════════════════════════════════════════════════════════
-
-@Composable
-private fun ZonePeekRow(
-    zone: Zone,
-    onDismiss: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    val isPrivate = zone.isPrivate
-    val accentColor = if (isPrivate) MaterialTheme.colorScheme.tertiary
-                      else MaterialTheme.colorScheme.primary
-    val accentOnColor = if (isPrivate) MaterialTheme.colorScheme.onTertiary
-                        else MaterialTheme.colorScheme.onPrimary
-
-    PeekStateCard(
-        headerLabel = zone.name,
-        title = stringResource(Res.string.home_zone_radius_meters, zone.radiusMeters.roundToInt()),
-        accentColor = accentColor,
-        onDismiss = onDismiss,
-        leading = {
-            PeekHeaderIconChip(
-                icon = zoneIconFor(zone.iconKey),
-                accentColor = accentColor,
-                iconTint = accentOnColor,
-            )
-        },
-        content = {
-            if (isPrivate) {
-                HelperRow(
-                    icon = Icons.Outlined.Lock,
-                    iconTint = MaterialTheme.colorScheme.tertiary,
-                    primary = stringResource(Res.string.home_zone_private_badge),
-                )
-            }
-            Spacer(Modifier.height(14.dp))
-        },
-        actions = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PapFooterButton(
-                    label = stringResource(Res.string.home_zone_action_edit),
-                    leadingIcon = Icons.Outlined.Edit,
-                    onClick = onEdit,
-                    style = PapFooterButtonStyle.Outlined,
-                    modifier = Modifier.weight(1f),
-                )
-                PapFooterButton(
-                    label = stringResource(Res.string.home_zone_action_delete),
-                    leadingIcon = Icons.Outlined.Delete,
-                    onClick = onDelete,
-                    style = PapFooterButtonStyle.Outlined,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        },
-    )
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AddingParkingPeekRow — modo "Posicionar aparcamiento" (create + edit)
@@ -1187,6 +1108,8 @@ private fun ZoneIconPickerRow(
     modifier: Modifier = Modifier,
 ) {
     LazyRow(
+        // Aligned with the rest of the modal content (the PeekStateCard already
+        // insets this row). On scroll the icons clip at the content box. [ZONE-AREA-001]
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

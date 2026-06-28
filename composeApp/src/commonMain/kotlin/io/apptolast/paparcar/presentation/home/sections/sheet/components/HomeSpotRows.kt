@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -142,11 +143,11 @@ private fun SpotRowContent(
                 .background(palette.badgeBg),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                "P",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = palette.badgeFg,
+            Icon(
+                imageVector = PaparcarIcons.SpotParkingP,
+                contentDescription = null,
+                tint = palette.badgeFg,
+                modifier = Modifier.size((BADGE_DP * 0.62f).dp),
             )
         }
 

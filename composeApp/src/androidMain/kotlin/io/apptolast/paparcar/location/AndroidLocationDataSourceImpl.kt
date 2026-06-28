@@ -8,6 +8,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import io.apptolast.paparcar.domain.location.LocationDataSource
+import io.apptolast.paparcar.domain.location.UserLocationUi
 import io.apptolast.paparcar.domain.model.GpsPoint
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
@@ -60,6 +61,35 @@ class AndroidLocationDataSourceImpl(
         awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
     }
 
+    @SuppressLint("MissingPermission")
+    override fun observeUiLocation(): Flow<UserLocationUi> = callbackFlow {
+        val request = LocationRequest.Builder(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            TimeUnit.SECONDS.toMillis(HIGH_ACCURACY_INTERVAL_S),
+        ).setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(HIGH_ACCURACY_MIN_INTERVAL_S)).build()
+
+        val callback = object : LocationCallback() {
+            override fun onLocationResult(result: LocationResult) {
+                result.lastLocation?.let { loc ->
+                    // Bearing is only trustworthy while actually moving; below the threshold the
+                    // course is noise, so the puck renders without rotation.
+                    val bearing = if (loc.hasBearing() && loc.speed >= MIN_BEARING_SPEED_MPS) loc.bearing else null
+                    trySend(
+                        UserLocationUi(
+                            latitude = loc.latitude,
+                            longitude = loc.longitude,
+                            accuracy = loc.accuracy,
+                            speed = loc.speed,
+                            bearingDegrees = bearing,
+                        ),
+                    )
+                }
+            }
+        }
+        fusedLocationClient.requestLocationUpdates(request, callback, Looper.getMainLooper())
+        awaitClose { fusedLocationClient.removeLocationUpdates(callback) }
+    }
+
     // [DET-AR-REARM-001] Passive cached read — fusedLocationClient.lastLocation does NOT request
     // updates, so it adds no fixes to the fused stream and cannot provoke a registered geofence to
     // fire a spurious EXIT (unlike requestLocationUpdates). Returns null when nothing is cached.
@@ -80,6 +110,8 @@ class AndroidLocationDataSourceImpl(
         const val HIGH_ACCURACY_MIN_INTERVAL_S = 2L
         const val BALANCED_INTERVAL_S = 30L
         const val BALANCED_MIN_INTERVAL_S = 15L
+        // Below ~walking pace the GPS course is unreliable jitter → drop the heading. [MAP-ICONS-V2]
+        const val MIN_BEARING_SPEED_MPS = 1.5f
     }
 
     private fun createCallback(scope: ProducerScope<GpsPoint>) =

@@ -19,6 +19,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocalParking
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.ZoneIcon
+import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
+import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 @Preview(name = "Markers · Claro", showBackground = true, widthDp = 360)
@@ -56,10 +59,21 @@ private fun MarkersShowcase() {
             MyVehicleMarker(selected = true)
         }
 
-        SectionLabel("FreeSpot — default · selected (green, LocalParking)")
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            FreeSpotMarker()
-            FreeSpotMarker(selected = true)
+        SectionLabel("FreeSpot — HIGH · MEDIUM · LOW · MANUAL · selected")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH)
+            FreeSpotMarker(reliability = SpotReliabilityUiState.MEDIUM)
+            FreeSpotMarker(reliability = SpotReliabilityUiState.LOW)
+            FreeSpotMarker(reliability = SpotReliabilityUiState.MANUAL)
+            FreeSpotMarker(reliability = SpotReliabilityUiState.HIGH, selected = true)
+        }
+
+        SectionLabel("FreeSpot · en route — 2 · 5 · 9+")
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Bottom) {
+            FreeSpotMarker(enRouteCount = 2)
+            FreeSpotMarker(enRouteCount = 5)
+            FreeSpotMarker(enRouteCount = 12)
+            FreeSpotMarker(enRouteCount = 5, selected = true)
         }
 
         SectionLabel("Cluster (3 · 12 · 99+)")
@@ -69,12 +83,11 @@ private fun MarkersShowcase() {
             FreeSpotClusterMarker(count = 250)
         }
 
-        SectionLabel("Zone marker — hex blue (normal · private · occupied)")
+        SectionLabel("Zone marker — area label (public · private)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ZoneMarker(zoneCode = "P1")
-            ZoneMarker(zoneCode = "RES", isPrivate = true)
-            ZoneMarker(zoneCode = "MAX", isOccupied = true)
-            ZoneMarker(zoneCode = "VIP", isPrivate = true, isOccupied = true)
+            ZoneMarker(name = "Casa", icon = zoneIconFor(ZoneIcon.HOME))
+            ZoneMarker(name = "Trabajo", icon = zoneIconFor(ZoneIcon.WORK), isPrivate = true)
+            ZoneMarker(name = "Gimnasio del barrio", icon = zoneIconFor(ZoneIcon.GYM))
         }
 
         SectionLabel("Centre pin · Report (rest · lifted)")
