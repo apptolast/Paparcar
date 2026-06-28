@@ -3,10 +3,13 @@ package io.apptolast.paparcar.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.fallbackCarbody
 import org.jetbrains.compose.resources.DrawableResource
@@ -42,17 +45,29 @@ import paparcar.composeapp.generated.resources.ic_car_topdown_van_light_dark
  * Theme-aware (a dark variant with thin white outline) via surface luminance, mirroring
  * [vehicleIconPainter]. Falls back to the length tier's canonical carbody (then SEDAN) so a vehicle
  * with no explicit carbody still renders a real top-down silhouette.
+ *
+ * A non-null [color] recolours only the body (keeping windows, wheels and outline), rebuilt from
+ * the embedded top-down geometry; null keeps the original brand-green drawable. [VEH-COLOR-001]
  */
 @Composable
 fun VehicleTopdownIcon(
     carbody: CarbodyType?,
     size: VehicleSize?,
     modifier: Modifier = Modifier,
+    color: VehicleColor? = null,
 ) {
     val isDark = MaterialTheme.colorScheme.surface.luminance() < TOPDOWN_DARK_LUMINANCE
     val resolved = carbody ?: size?.fallbackCarbody() ?: CarbodyType.SEDAN
+    val painter = if (color != null) {
+        val image = remember(resolved, color, isDark) {
+            buildCarImageVector(topdownCarSpec(resolved), carPaletteOf(color, isDark), isDark, TOPDOWN_WHEEL_STROKE_DARK)
+        }
+        rememberVectorPainter(image)
+    } else {
+        painterResource(topdownDrawable(resolved, isDark))
+    }
     Image(
-        painter = painterResource(topdownDrawable(resolved, isDark)),
+        painter = painter,
         contentDescription = null,
         modifier = modifier,
         contentScale = ContentScale.Fit,

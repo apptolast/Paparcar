@@ -648,6 +648,22 @@
     <string name="vehicle_registration_carbody_picker_title">Pick your body type</string>
     <string name="vehicle_registration_carbody_picker_dismiss">Close</string>
 
+    <!-- VEH-COLOR-001 — Vehicle colour selector -->
+    <string name="vehicle_registration_section_color">Colour</string>
+    <string name="vehicle_color_default">Default</string>
+    <string name="vehicle_color_white">White</string>
+    <string name="vehicle_color_silver">Silver</string>
+    <string name="vehicle_color_gray">Grey</string>
+    <string name="vehicle_color_graphite">Graphite</string>
+    <string name="vehicle_color_black">Black</string>
+    <string name="vehicle_color_blue">Blue</string>
+    <string name="vehicle_color_navy">Navy</string>
+    <string name="vehicle_color_red">Red</string>
+    <string name="vehicle_color_orange">Orange</string>
+    <string name="vehicle_color_yellow">Yellow</string>
+    <string name="vehicle_color_gold">Gold</string>
+    <string name="vehicle_color_brown">Brown</string>
+
     <!-- Home detection surface [DET-READY-001h] -->
     <string name="home_det_novehicle_title">Add your car</string>
     <string name="home_det_novehicle_sub">Park and free spots effortlessly</string>

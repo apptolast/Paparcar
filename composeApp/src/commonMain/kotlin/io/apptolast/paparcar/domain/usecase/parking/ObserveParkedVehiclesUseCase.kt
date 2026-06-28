@@ -40,6 +40,7 @@ class ObserveParkedVehiclesUseCase(
                     privateZoneId = session.privateZoneId,
                     licensePlate = vehicle.licensePlate,
                     isBluetoothPaired = vehicle.bluetoothDeviceId != null,
+                    color = vehicle.color,
                 )
             }
         }

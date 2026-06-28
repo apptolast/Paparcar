@@ -677,4 +677,20 @@
     <string name="permissions_section_detection">Detectare automată</string>
     <string name="permissions_section_optional">Opțional · fiabilitate</string>
 
+
+    <!-- VEH-COLOR-001 — Selector de culoare a vehiculului -->
+    <string name="vehicle_registration_section_color">Culoare</string>
+    <string name="vehicle_color_default">Implicit</string>
+    <string name="vehicle_color_white">Alb</string>
+    <string name="vehicle_color_silver">Argintiu</string>
+    <string name="vehicle_color_gray">Gri</string>
+    <string name="vehicle_color_graphite">Grafit</string>
+    <string name="vehicle_color_black">Negru</string>
+    <string name="vehicle_color_blue">Albastru</string>
+    <string name="vehicle_color_navy">Bleumarin</string>
+    <string name="vehicle_color_red">Roșu</string>
+    <string name="vehicle_color_orange">Portocaliu</string>
+    <string name="vehicle_color_yellow">Galben</string>
+    <string name="vehicle_color_gold">Auriu</string>
+    <string name="vehicle_color_brown">Maro</string>
 </resources>

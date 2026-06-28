@@ -5,6 +5,7 @@ package io.apptolast.paparcar.presentation.vehicleregistration
 import app.cash.turbine.test
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
@@ -132,6 +133,26 @@ class VehicleRegistrationViewModelTest {
 
         val saved = vehicleRepo.observeActiveVehicle().first()
         assertEquals("Ibiza", saved?.model)
+    }
+
+    @Test
+    fun `should_setColor_on_SetColor_and_reset_on_null`() = runTest {
+        vm.handleIntent(VehicleRegistrationIntent.SetColor(VehicleColor.RED))
+        assertEquals(VehicleColor.RED, vm.state.value.color)
+
+        vm.handleIntent(VehicleRegistrationIntent.SetColor(null))
+        assertNull(vm.state.value.color)
+    }
+
+    @Test
+    fun `should_persist_color_on_save`() = runTest {
+        vm.handleIntent(VehicleRegistrationIntent.SelectBrand("Seat"))
+        vm.handleIntent(VehicleRegistrationIntent.SelectModel("Ibiza"))
+        vm.handleIntent(VehicleRegistrationIntent.SetCarbody(CarbodyType.HATCHBACK_SMALL))
+        vm.handleIntent(VehicleRegistrationIntent.SetColor(VehicleColor.BLUE))
+        vm.handleIntent(VehicleRegistrationIntent.Save)
+
+        assertEquals(VehicleColor.BLUE, vehicleRepo.observeActiveVehicle().first()?.color)
     }
 
     @Test

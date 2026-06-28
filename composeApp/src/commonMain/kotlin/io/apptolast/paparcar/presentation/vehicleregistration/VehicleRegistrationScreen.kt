@@ -72,6 +72,7 @@ import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.PapTextField
+import io.apptolast.paparcar.ui.components.VehicleColorSelector
 import io.apptolast.paparcar.ui.components.label
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
@@ -102,6 +103,7 @@ import paparcar.composeapp.generated.resources.vehicle_registration_preview_titl
 import paparcar.composeapp.generated.resources.vehicle_registration_save
 import paparcar.composeapp.generated.resources.vehicle_registration_saving
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_section
+import paparcar.composeapp.generated.resources.vehicle_registration_section_color
 import paparcar.composeapp.generated.resources.vehicle_registration_section_detection
 import paparcar.composeapp.generated.resources.vehicle_registration_section_identity
 import paparcar.composeapp.generated.resources.vehicle_registration_section_optional
@@ -417,6 +419,20 @@ internal fun VehicleRegistrationContent(
                 }
             }
 
+            // ── Colour section — recolours the vehicle body icon (CAR only) ────
+            if (state.expectsCarbody) {
+                Column(
+                    modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_color))
+                    VehicleColorSelector(
+                        selected = state.color,
+                        onSelect = { onIntent(VehicleRegistrationIntent.SetColor(it)) },
+                    )
+                }
+            }
+
             // ── Nickname section — optional ───────────────────────────────────
             Column(
                 modifier = Modifier.padding(horizontal = SCREEN_H_PADDING),
@@ -674,6 +690,9 @@ private fun VehicleHeroCard(
                 carbody = state.carbodyType,
                 size = state.sizeCategory,
                 tint = iconTint,
+                // Show the chosen paint colour once a size is picked; before that the dim
+                // placeholder tint takes over anyway. [VEH-COLOR-001]
+                color = state.color.takeIf { sizeSelected },
                 defaultCarbody = CarbodyType.HATCHBACK_MEDIUM,
                 modifier = Modifier.size(HERO_ICON_SIZE),
             )

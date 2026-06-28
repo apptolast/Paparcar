@@ -107,6 +107,27 @@ The 7 secondary locales (de, fr, it, pt, nl, pl, ro) carry the EN copy as fallba
 
 448 unit tests green.
 
+## Paint colour — a third, independent axis [VEH-COLOR-001]
+
+Beyond `VehicleSize` (length) and `CarbodyType` (shape), a vehicle has an optional
+`VehicleColor` — pure **visual identity**. It never affects detection, sizing, geofence
+or spot publishing.
+
+- `Vehicle.color: VehicleColor?` — `null` = undefined → the original brand-green artwork
+  (unchanged). A non-null value recolours **only the body** of the pictogram, keeping
+  windows, wheels, headlights and the white outline intact.
+- Palette: 12 typical car colours (`WHITE, SILVER, GRAY, GRAPHITE, BLACK, BLUE, NAVY, RED,
+  ORANGE, YELLOW, GOLD, BROWN`) with art-directed `bodyLight`/`bodyDark` per theme.
+- Rendering: the body-family source colours (`#00794A`/`#009F5E` body, `#23C47D` highlight,
+  `#005E39` shade) are swapped at runtime for a palette derived from the chosen colour
+  (`carPaletteOf` + `recolor` in `VehicleCarPaint`), rebuilding the `ImageVector` from the
+  embedded geometry in `VehicleCarGeometry` (both side-profile and top-down). The default
+  (null) path keeps using the real drawables, so existing cars are byte-identical.
+- Applied at every site that depicts a specific vehicle: registration hero, the My Vehicles
+  list, the on-map badge marker, and the top-down driving puck.
+- Persistence: `Vehicle.color` ↔ Room (`vehicles.color`, `MIGRATION_6_7`) ↔ Firestore
+  (`VehicleDto.color`), parsed defensively (unknown/blank → null), mirroring `carbodyType`.
+
 ## Open follow-ups
 
 - **ICON-SVG-001** — replace the 10 `ic_car_*.xml` placeholders with proper Lucide/Material SVGs.

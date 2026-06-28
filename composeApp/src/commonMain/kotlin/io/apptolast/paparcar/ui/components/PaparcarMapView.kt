@@ -240,7 +240,8 @@ private fun vehicleBadgeContentId(
         dim      -> "dim"
         else     -> "nrm"
     }
-    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_$state"
+    // Colour is baked into the key so a recoloured car regenerates its cached bitmap. [VEH-COLOR-001]
+    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_${v.color?.name ?: "def"}_$state"
 }
 
 private const val MARKER_MY_CAR          = "my_car"
@@ -315,8 +316,12 @@ private val LOCATION_MARKER_OPTIONS = AndroidMarkerOptions(
 private fun headingBucket(bearingDegrees: Float?): Int =
     if (bearingDegrees == null) NO_HEADING_BUCKET
     else (((bearingDegrees / HEADING_BUCKET_DEG).roundToInt() * HEADING_BUCKET_DEG) % 360 + 360) % 360
-private fun locationActiveContentId(carbody: CarbodyType?, bucket: Int): String =
-    "$LOCATION_ACTIVE_PREFIX${carbody?.name ?: "def"}_$bucket"
+private fun locationActiveContentId(
+    carbody: CarbodyType?,
+    bucket: Int,
+    color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
+): String =
+    "$LOCATION_ACTIVE_PREFIX${carbody?.name ?: "def"}_${color?.name ?: "def"}_$bucket"
 
 /**
  * Wraps non-focus marker content with a fixed [DIM_MARKER_ALPHA]. This is
@@ -437,6 +442,8 @@ fun PaparcarMapView(
     parkingVehicleSize: VehicleSize? = null,
     /** Vehicle body shape for the fallback single-parking marker — preferred over [parkingVehicleSize] when present. */
     parkingVehicleCarbody: io.apptolast.paparcar.domain.model.CarbodyType? = null,
+    /** Paint colour for the fallback single-parking marker. Null = default green. [VEH-COLOR-001] */
+    parkingVehicleColor: io.apptolast.paparcar.domain.model.VehicleColor? = null,
     /** When false the fallback parking marker renders in the inactive/history palette. */
     parkingIsActive: Boolean = true,
     cameraTarget: CameraTarget? = null,
@@ -642,7 +649,7 @@ fun PaparcarMapView(
                     Marker(
                         coordinates = Coordinates(puck.latitude, puck.longitude),
                         title = null,
-                        contentId = locationActiveContentId(puck.carbodyType, headingBucket(puck.bearingDegrees)),
+                        contentId = locationActiveContentId(puck.carbodyType, headingBucket(puck.bearingDegrees), puck.color),
                         androidMarkerOptions = LOCATION_MARKER_OPTIONS,
                     ),
                 )
@@ -664,7 +671,7 @@ fun PaparcarMapView(
     // never refreshed reliably. [MAP-MARKERS-DIM-002]
     val customMarkerContent = remember(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
-        parkingVehicleSize, parkingVehicleCarbody, parkingIsActive, drivingPuck,
+        parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive, drivingPuck,
     ) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = buildMap {
             // ── Fallback single-parking marker (ParkingLocationScreen) ──
@@ -673,6 +680,7 @@ fun PaparcarMapView(
                     sizeCategory = parkingVehicleSize,
                     carbodyType = parkingVehicleCarbody,
                     isActive = parkingIsActive,
+                    color = parkingVehicleColor,
                 )
             }
             put(MARKER_MY_CAR_DIM) { _ ->
@@ -681,6 +689,7 @@ fun PaparcarMapView(
                         sizeCategory = parkingVehicleSize,
                         carbodyType = parkingVehicleCarbody,
                         isActive = parkingIsActive,
+                        color = parkingVehicleColor,
                     )
                 }
             }
@@ -689,6 +698,7 @@ fun PaparcarMapView(
                     selected = true,
                     sizeCategory = parkingVehicleSize,
                     carbodyType = parkingVehicleCarbody,
+                    color = parkingVehicleColor,
                     isActive = parkingIsActive,
                 )
             }
@@ -742,6 +752,7 @@ fun PaparcarMapView(
                             isActive = true,
                             stableRank = v.stableRank,
                             isBluetoothPaired = v.isBluetoothPaired,
+                            color = v.color,
                         )
                     },
                     vehicleBadgeContentId(v, selected = false, dim = true) to { _: Marker ->
@@ -752,6 +763,7 @@ fun PaparcarMapView(
                                 isActive = true,
                                 stableRank = v.stableRank,
                                 isBluetoothPaired = v.isBluetoothPaired,
+                                color = v.color,
                             )
                         }
                     },
@@ -763,6 +775,7 @@ fun PaparcarMapView(
                             isActive = true,
                             stableRank = v.stableRank,
                             isBluetoothPaired = v.isBluetoothPaired,
+                            color = v.color,
                         )
                     },
                 )
@@ -789,11 +802,12 @@ fun PaparcarMapView(
             val bucket = headingBucket(puck.bearingDegrees)
             val angle = if (bucket == NO_HEADING_BUCKET) 0f else bucket.toFloat()
             mapOf(
-                locationActiveContentId(puck.carbodyType, bucket) to { _: Marker ->
+                locationActiveContentId(puck.carbodyType, bucket, puck.color) to { _: Marker ->
                     LocationActiveMarker(
                         carbody = puck.carbodyType,
                         size = puck.sizeCategory,
                         headingDegrees = angle,
+                        color = puck.color,
                     )
                 },
             )

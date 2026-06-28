@@ -18,4 +18,6 @@ data class VehicleDto(
     val bluetoothDeviceId: String? = null,
     val showBrandModelOnSpot: Boolean = false,
     val isActive: Boolean = false,
+    /** [VehicleColor] enum name. Empty string when undefined (default green). */
+    val color: String = "",
 )

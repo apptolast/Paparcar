@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.vehicleregistration
 
 import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
 
@@ -57,6 +58,8 @@ data class VehicleRegistrationState(
     val hasInteractedWithForm: Boolean = false,
     /** Optional license plate (e.g. "1234 ABC"). On-device only — never sent to Firestore. */
     val licensePlate: String = "",
+    /** Chosen paint colour. Null = undefined → the default green icon. [VEH-COLOR-001] */
+    val color: VehicleColor? = null,
 ) {
     /**
      * The "Car N" placeholder shown in the name field and used as the default name when

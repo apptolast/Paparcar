@@ -88,6 +88,7 @@ internal fun HomeVehicleChip(
                     size = vehicle.sizeCategory,
                     tone = tone,
                     glyphSize = ICON_BOX_DP.dp,
+                    color = vehicle.color,
                 )
                 Text(
                     vehicleName,

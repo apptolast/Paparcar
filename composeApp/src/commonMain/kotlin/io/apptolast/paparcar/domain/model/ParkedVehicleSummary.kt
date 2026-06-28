@@ -27,4 +27,6 @@ data class ParkedVehicleSummary(
      * the remaining 7 palette colours by [stableRank].
      */
     val isBluetoothPaired: Boolean = false,
+    /** Paint colour of the parked vehicle — recolours the badge marker body. Null = default green. */
+    val color: VehicleColor? = null,
 )

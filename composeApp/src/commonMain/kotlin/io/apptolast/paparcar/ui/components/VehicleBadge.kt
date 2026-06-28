@@ -10,6 +10,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 
 /**
@@ -69,6 +70,7 @@ fun VehicleGlyph(
     tone: VehicleBadgeTone,
     glyphSize: Dp,
     modifier: Modifier = Modifier,
+    color: VehicleColor? = null,
 ) {
     val iconAlpha = if (tone == VehicleBadgeTone.Inactive) INACTIVE_ICON_ALPHA else 1f
     // The new isometric pictogram already bakes in its own contact shadow, so the glyph just lays it
@@ -78,7 +80,8 @@ fun VehicleGlyph(
         VehicleIcon(
             carbody = carbody,
             size = size,
-            tint = Color.Unspecified, // native multi-colour artwork
+            tint = Color.Unspecified, // native multi-colour artwork (or recoloured body via [color])
+            color = color,
             modifier = Modifier
                 .fillMaxSize()
                 .alpha(iconAlpha),
