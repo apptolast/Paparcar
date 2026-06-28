@@ -38,3 +38,16 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+/**
+ * v6 → v7: add color to the vehicles table.
+ * - color: [VehicleColor] enum name, nullable — null = undefined → default green icon.
+ *   Non-destructive so on-device-only fields (bluetoothDeviceId, licensePlate) survive. [VEH-COLOR-001]
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE vehicles ADD COLUMN color TEXT"
+        )
+    }
+}
+

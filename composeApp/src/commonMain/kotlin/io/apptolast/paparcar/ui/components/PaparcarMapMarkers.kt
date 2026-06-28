@@ -141,6 +141,7 @@ fun VehicleBadgeMarker(
     isActive: Boolean = true,
     stableRank: Int? = null,
     isBluetoothPaired: Boolean = false,
+    color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
 ) {
     val tone = when {
         !isActive -> VehicleBadgeTone.Inactive
@@ -202,6 +203,7 @@ fun VehicleBadgeMarker(
             carbody = carbodyType,
             size = sizeCategory,
             tint = Color.Unspecified,
+            color = color,
             modifier = Modifier
                 .offset(x = u * 16f, y = u * 13f)
                 .size(width = u * 72f, height = u * 52f)
@@ -238,6 +240,7 @@ fun LocationActiveMarker(
     size: VehicleSize?,
     headingDegrees: Float,
     modifier: Modifier = Modifier,
+    color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
 ) {
     Box(modifier.size(LOC_ACTIVE_DIAM), contentAlignment = Alignment.Center) {
         Canvas(Modifier.matchParentSize()) {
@@ -246,6 +249,7 @@ fun LocationActiveMarker(
         VehicleTopdownIcon(
             carbody = carbody,
             size = size,
+            color = color,
             modifier = Modifier
                 .size(LOC_ACTIVE_CAR)
                 .rotate(headingDegrees),

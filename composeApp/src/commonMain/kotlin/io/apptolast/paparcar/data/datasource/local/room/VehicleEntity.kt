@@ -23,4 +23,6 @@ data class VehicleEntity(
     val isActive: Boolean = false,
     /** On-device only — never synced to Firestore. Used for map marker display. */
     val licensePlate: String? = null,
+    /** [VehicleColor] enum name (e.g. "RED"). Null = undefined → default green icon. */
+    val color: String? = null,
 )

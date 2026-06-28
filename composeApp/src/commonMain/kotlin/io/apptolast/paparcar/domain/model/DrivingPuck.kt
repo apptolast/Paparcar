@@ -15,4 +15,6 @@ data class DrivingPuck(
     val accuracy: Float,
     val carbodyType: CarbodyType?,
     val sizeCategory: VehicleSize?,
+    /** Paint colour of the active vehicle — recolours the top-down puck body. Null = default green. */
+    val color: VehicleColor? = null,
 )

@@ -701,6 +701,7 @@ private fun ParkingPeekRow(
                 carbody = vehicle?.carbodyType,
                 size = vehicle?.sizeCategory,
                 tone = tone,
+                color = vehicle?.color,
             )
         },
         content = {

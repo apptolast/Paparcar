@@ -673,4 +673,20 @@
     <string name="permissions_section_detection">Automatische detectie</string>
     <string name="permissions_section_optional">Optioneel · betrouwbaarheid</string>
 
+
+    <!-- VEH-COLOR-001 — Kleurkiezer voertuig -->
+    <string name="vehicle_registration_section_color">Kleur</string>
+    <string name="vehicle_color_default">Standaard</string>
+    <string name="vehicle_color_white">Wit</string>
+    <string name="vehicle_color_silver">Zilver</string>
+    <string name="vehicle_color_gray">Grijs</string>
+    <string name="vehicle_color_graphite">Grafiet</string>
+    <string name="vehicle_color_black">Zwart</string>
+    <string name="vehicle_color_blue">Blauw</string>
+    <string name="vehicle_color_navy">Marineblauw</string>
+    <string name="vehicle_color_red">Rood</string>
+    <string name="vehicle_color_orange">Oranje</string>
+    <string name="vehicle_color_yellow">Geel</string>
+    <string name="vehicle_color_gold">Goud</string>
+    <string name="vehicle_color_brown">Bruin</string>
 </resources>

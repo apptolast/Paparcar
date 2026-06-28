@@ -369,6 +369,7 @@ class HomeViewModel(
                         accuracy = loc.accuracy,
                         carbodyType = vehicle?.carbodyType,
                         sizeCategory = vehicle?.sizeCategory,
+                        color = vehicle?.color,
                     )
                 }
                 updateState { copy(drivingPuck = puck) }

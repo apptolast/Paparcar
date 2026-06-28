@@ -45,4 +45,11 @@ data class Vehicle(
      * shared on Spot. Displayed on the map marker so the user recognises their car at a glance.
      */
     val licensePlate: String? = null,
+    /**
+     * Optional paint colour. `null` = undefined → the vehicle pictogram renders in the default
+     * brand-green artwork. A non-null value recolours only the body of the icon (side-profile and
+     * top-down) so the user can tell their car apart on the map and in lists. Visual identity only —
+     * does not affect detection, sizing, geofence or spot publishing.
+     */
+    val color: VehicleColor? = null,
 )

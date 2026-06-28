@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.presentation.vehicleregistration
 
 import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleType
 
 sealed class VehicleRegistrationIntent {
@@ -25,6 +26,8 @@ sealed class VehicleRegistrationIntent {
     data class SetCarbody(val body: CarbodyType) : VehicleRegistrationIntent()
     /** Pick a high-level vehicle category (CAR / MOTORCYCLE / SCOOTER / BIKE). [BUG-SCOOTER-001] */
     data class SetVehicleType(val type: VehicleType) : VehicleRegistrationIntent()
+    /** Pick the vehicle's paint colour, or null to reset to the default green. [VEH-COLOR-001] */
+    data class SetColor(val color: VehicleColor?) : VehicleRegistrationIntent()
     data class SetLicensePlate(val value: String) : VehicleRegistrationIntent()
     data class SetShowOnSpot(val enabled: Boolean) : VehicleRegistrationIntent()
     data class LoadVehicle(val vehicleId: String) : VehicleRegistrationIntent()

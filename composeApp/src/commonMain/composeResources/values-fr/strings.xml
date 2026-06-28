@@ -672,4 +672,20 @@
     <string name="permissions_section_essential">Essentiel</string>
     <string name="permissions_section_detection">Détection automatique</string>
     <string name="permissions_section_optional">Optionnel · fiabilité</string>
+
+    <!-- VEH-COLOR-001 — Sélecteur de couleur du véhicule -->
+    <string name="vehicle_registration_section_color">Couleur</string>
+    <string name="vehicle_color_default">Par défaut</string>
+    <string name="vehicle_color_white">Blanc</string>
+    <string name="vehicle_color_silver">Argent</string>
+    <string name="vehicle_color_gray">Gris</string>
+    <string name="vehicle_color_graphite">Graphite</string>
+    <string name="vehicle_color_black">Noir</string>
+    <string name="vehicle_color_blue">Bleu</string>
+    <string name="vehicle_color_navy">Bleu marine</string>
+    <string name="vehicle_color_red">Rouge</string>
+    <string name="vehicle_color_orange">Orange</string>
+    <string name="vehicle_color_yellow">Jaune</string>
+    <string name="vehicle_color_gold">Or</string>
+    <string name="vehicle_color_brown">Marron</string>
 </resources>

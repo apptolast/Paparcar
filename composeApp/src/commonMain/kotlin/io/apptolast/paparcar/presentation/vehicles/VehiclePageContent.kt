@@ -150,6 +150,7 @@ private fun VehicleHeroCard(
                         size = vehicle.sizeCategory,
                         tone = badgeTone,
                         glyphSize = HERO_ICON_BOX_DP.dp,
+                        color = vehicle.color,
                     )
                     Spacer(Modifier.width(12.dp))
                     Column {

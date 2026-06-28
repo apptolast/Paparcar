@@ -300,6 +300,7 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
                 carbody = vehicle.carbodyType,
                 size = vehicle.sizeCategory,
                 tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
+                color = vehicle.color,
                 modifier = Modifier.size(20.dp),
             )
             Text(

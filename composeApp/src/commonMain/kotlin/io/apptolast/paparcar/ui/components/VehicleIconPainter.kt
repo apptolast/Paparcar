@@ -3,6 +3,7 @@ package io.apptolast.paparcar.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -12,6 +13,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.fallbackCarbody
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
@@ -44,12 +46,21 @@ fun vehicleIconPainter(
     size: VehicleSize?,
     fallback: ImageVector = PaparcarIcons.VehicleCar,
     defaultCarbody: CarbodyType? = null,
+    color: VehicleColor? = null,
 ): Painter {
     val resolved = carbody ?: size?.fallbackCarbody() ?: defaultCarbody
     // Theme-aware isometric pictogram: the dark variant adds a thin white outline on body + wheels
     // so the car lifts off a dark map/surface. Detect the active theme by surface luminance (honours
     // the app's ThemeMode override, not just the system -dark qualifier). [BOLT-MARKERS-001]
     val isDark = MaterialTheme.colorScheme.surface.luminance() < DARK_SURFACE_LUMINANCE
+    // A chosen [color] recolours only the body of the pictogram, rebuilt from the embedded geometry
+    // (see VehicleCarGeometry). null keeps the original brand-green drawable untouched. [VEH-COLOR-001]
+    if (color != null && resolved != null) {
+        val image = remember(resolved, color, isDark) {
+            buildCarImageVector(isoCarSpec(resolved), carPaletteOf(color, isDark), isDark, ISO_WHEEL_STROKE_DARK)
+        }
+        return rememberVectorPainter(image)
+    }
     return when {
         resolved != null -> painterResource(if (isDark) resolved.iconDark else resolved.icon)
         size != null -> rememberVectorPainter(size.icon)
@@ -71,6 +82,10 @@ fun vehicleIconPainter(
  * explicit [tint] (as [VehicleBadge] does) to flatten the pictogram to a single
  * status colour via [ColorFilter.tint] — the windows/wheels collapse into the
  * silhouette, which is the intended look inside the dark status badge. [BOLT-MARKERS-001]
+ *
+ * Pass a [color] to recolour only the body of the pictogram (keeping windows, wheels and
+ * outline) — the vehicle's paint colour. null renders the default brand-green artwork. A
+ * non-Unspecified [tint] still overrides everything by flattening to a single colour. [VEH-COLOR-001]
  */
 @Composable
 fun VehicleIcon(
@@ -80,6 +95,7 @@ fun VehicleIcon(
     tint: Color = Color.Unspecified,
     fallback: ImageVector = PaparcarIcons.VehicleCar,
     defaultCarbody: CarbodyType? = null,
+    color: VehicleColor? = null,
 ) {
     Image(
         painter = vehicleIconPainter(
@@ -87,6 +103,7 @@ fun VehicleIcon(
             size = size,
             fallback = fallback,
             defaultCarbody = defaultCarbody,
+            color = color,
         ),
         contentDescription = null,
         modifier = modifier,

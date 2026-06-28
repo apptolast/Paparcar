@@ -4,6 +4,7 @@ import io.apptolast.paparcar.data.datasource.local.room.VehicleEntity
 import io.apptolast.paparcar.data.datasource.remote.dto.VehicleDto
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
 
@@ -23,6 +24,7 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
     licensePlate = licensePlate,
+    color = VehicleColor.fromNameOrNull(color),
 )
 
 fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
@@ -38,6 +40,7 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
     licensePlate = licensePlate,
+    color = color?.name,
 )
 
 // ── VehicleDto → Entity (sync from Firestore) ──────────────────────────────
@@ -58,6 +61,7 @@ fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
     licensePlate = null,
+    color = color.ifBlank { null },
 )
 
 // ── Domain → VehicleDto (write to Firestore) ────────────────────────────────
@@ -75,6 +79,7 @@ fun Vehicle.toDto(): VehicleDto = VehicleDto(
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
+    color = color?.name ?: "",
 )
 
 private fun String.toCarbodyTypeOrNull(): CarbodyType? =

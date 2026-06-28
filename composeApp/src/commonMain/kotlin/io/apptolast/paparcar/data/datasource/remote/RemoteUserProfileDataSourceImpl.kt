@@ -132,6 +132,7 @@ class RemoteUserProfileDataSourceImpl(
                 bluetoothDeviceId = get<String?>(FIELD_BLUETOOTH_DEVICE_ID),
                 showBrandModelOnSpot = get<Boolean?>(FIELD_SHOW_BRAND_MODEL_ON_SPOT) ?: false,
                 isActive = get<Boolean?>(FIELD_IS_ACTIVE) ?: false,
+                color = get<String?>(FIELD_COLOR).orEmpty(),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toVehicleDto failed — doc=$id", e)
@@ -196,6 +197,7 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_SIZE_CATEGORY = "sizeCategory"
         const val FIELD_CARBODY_TYPE = "carbodyType"
         const val FIELD_VEHICLE_TYPE = "vehicleType"
+        const val FIELD_COLOR = "color"
         const val FIELD_BLUETOOTH_DEVICE_ID = "bluetoothDeviceId"
         const val FIELD_SHOW_BRAND_MODEL_ON_SPOT = "showBrandModelOnSpot"
         const val FIELD_LATITUDE = "latitude"

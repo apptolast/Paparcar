@@ -152,6 +152,8 @@ class VehicleRegistrationViewModel(
                     )
                 }
             }
+            is VehicleRegistrationIntent.SetColor ->
+                updateState { copy(color = intent.color, hasInteractedWithForm = true) }
             is VehicleRegistrationIntent.SetLicensePlate ->
                 updateState { copy(licensePlate = intent.value) }
             is VehicleRegistrationIntent.SetShowOnSpot ->
@@ -226,6 +228,7 @@ class VehicleRegistrationViewModel(
                         vehicleType = vehicle.vehicleType,
                         showBrandModelOnSpot = vehicle.showBrandModelOnSpot,
                         licensePlate = vehicle.licensePlate ?: "",
+                        color = vehicle.color,
                     )
                 }
             }.onFailure { e ->
@@ -288,6 +291,7 @@ class VehicleRegistrationViewModel(
                     showBrandModelOnSpot = current.showBrandModelOnSpot,
                     isActive = shouldBeDefault,
                     licensePlate = current.licensePlate.trim().ifBlank { null },
+                    color = current.color,
                 )
                 vehicleRepository.saveVehicle(vehicle).getOrThrow()
                 if (!isEditing && shouldBeDefault) vehicleRepository.setActiveVehicle(vehicle.id).getOrThrow()
