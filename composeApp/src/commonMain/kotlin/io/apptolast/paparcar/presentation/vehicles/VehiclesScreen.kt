@@ -276,7 +276,6 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
     )
     val bg = if (selected) cs.primary.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
     val fg = if (selected) cs.primary else cs.onSurface
-    val iconTint = cs.primary
     val monitoring = vehicle.monitoringStatus()
     // Status dot — tertiary (BT accent) when paired, primary when AR-active, hidden when inactive.
     val dotColor = when (monitoring) {
@@ -300,7 +299,7 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
             io.apptolast.paparcar.ui.components.VehicleIcon(
                 carbody = vehicle.carbodyType,
                 size = vehicle.sizeCategory,
-                tint = iconTint,
+                tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
                 modifier = Modifier.size(20.dp),
             )
             Text(

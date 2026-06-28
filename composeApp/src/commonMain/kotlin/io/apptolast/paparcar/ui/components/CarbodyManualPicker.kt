@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
@@ -156,7 +157,7 @@ private fun CarbodyRow(
                 Icon(
                     painter = painterResource(body.icon),
                     contentDescription = null,
-                    tint = cs.primary,
+                    tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
                     modifier = Modifier.size(22.dp),
                 )
             }

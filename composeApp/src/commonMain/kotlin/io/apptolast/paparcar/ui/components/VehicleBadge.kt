@@ -1,23 +1,16 @@
 package io.apptolast.paparcar.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.ui.theme.PapBlue
-import io.apptolast.paparcar.ui.theme.PapGreen
-import io.apptolast.paparcar.ui.theme.PapInk
 
 /**
  * Semantic state of a vehicle, driving the [VehicleBadge] accent. [DET-READY-001k]
@@ -57,70 +50,46 @@ fun vehicleBadgeOnAccent(tone: VehicleBadgeTone): Color = when (tone) {
 }
 
 /**
- * The canonical "this is a vehicle" badge — one element shown at several sizes across the app. [DET-READY-001k]
+ * The bare vehicle pictogram — **no surrounding disc** — for in-sheet/in-list surfaces
+ * (Home chip, parked peek header, My Vehicles hero). [BOLT-MARKERS-001]
  *
- * Logo molde: dark [PapInk] interior + semantic accent ring + accent-tinted carbody pictogram. The
- * single source of truth for the vehicle marker (map), the vehicles chip (Home sheet), the parked
- * peek header and the My Vehicles hero — so the same car always reads the same way everywhere.
+ * Only the on-map [VehicleBadgeMarker] keeps the light "tag" container; everywhere else the car
+ * shows on its own — drawn larger than the old badge ([GLYPH_CAR_SCALE]×) with a brief contact
+ * shadow underneath so it still feels grounded. Identity = the full-colour silhouette; an inactive
+ * (monitoring-stopped) vehicle reads muted (the whole pictogram + its shadow fade together).
  *
- * @param diameter outer circle Ø. Use 28 (chip) / 44 (peek) / 46 (marker) / 56 (hero).
- * @param selected when true the ring turns white to signal map/list selection.
+ * @param glyphSize the nominal box the old badge `diameter` used; the side-profile car is scaled
+ *   relative to this. The composable lays out at [GLYPH_CAR_SCALE]× width and a shorter height
+ *   (car aspect + shadow), so a row's vertical rhythm is unchanged while the car reads bigger.
  */
 @Composable
-fun VehicleBadge(
+fun VehicleGlyph(
     carbody: CarbodyType?,
     size: VehicleSize?,
     tone: VehicleBadgeTone,
-    diameter: Dp,
+    glyphSize: Dp,
     modifier: Modifier = Modifier,
-    selected: Boolean = false,
-    ringWidth: Dp = 2.dp,
 ) {
-    // Always the dark logo molde — the same badge for active and inactive vehicles. The inactive
-    // one just reads muted (dim icon, no accent ring). [VEH-BADGE-NEUTRAL-RING]
-    val interior = PapInk
-    // The disc is a fixed-dark colour, so its icon/ring must use the bright on-dark brand accents
-    // directly — the colourScheme primary/tertiary darken in the light theme (PapGreenLight /
-    // PapBlueLight) and the pictogram muddied against the dark disc. Neutral tones can't use the
-    // theme's onSurfaceVariant either (dark in the light theme); they get a fixed light tint,
-    // dimmed further for inactive. [VEH-BADGE-ONINK]
-    val iconTint = when (tone) {
-        VehicleBadgeTone.Parked -> PapGreen
-        VehicleBadgeTone.Bluetooth -> PapBlue
-        VehicleBadgeTone.Idle -> Color.White.copy(alpha = NEUTRAL_ICON_ALPHA)
-        VehicleBadgeTone.Inactive -> Color.White.copy(alpha = NEUTRAL_ICON_INACTIVE_ALPHA)
-    }
-    val ring = when {
-        selected -> Color.White
-        tone == VehicleBadgeTone.Parked -> PapGreen
-        tone == VehicleBadgeTone.Bluetooth -> PapBlue
-        // The dark disc contrasts on a light chip, but in the dark theme it sits on an equally dark
-        // card — a faint light hairline keeps the circle defined there. [VEH-BADGE-NEUTRAL-RING]
-        else -> Color.White.copy(alpha = NEUTRAL_RING_ALPHA)
-    }
-    Box(
-        modifier = modifier
-            .size(diameter)
-            .clip(CircleShape)
-            .background(interior)
-            .border(width = ringWidth, color = ring, shape = CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
+    val iconAlpha = if (tone == VehicleBadgeTone.Inactive) INACTIVE_ICON_ALPHA else 1f
+    // The new isometric pictogram already bakes in its own contact shadow, so the glyph just lays it
+    // out larger than a square box (it's a wide side-on shape) and lets ContentScale.Fit centre it —
+    // no extra drawn shadow (that doubled up). [BOLT-MARKERS-001]
+    Box(modifier.size(width = glyphSize * GLYPH_CAR_SCALE, height = glyphSize)) {
         VehicleIcon(
             carbody = carbody,
             size = size,
-            tint = iconTint,
-            modifier = Modifier.size(diameter * ICON_RATIO),
+            tint = Color.Unspecified, // native multi-colour artwork
+            modifier = Modifier
+                .fillMaxSize()
+                .alpha(iconAlpha),
         )
     }
 }
 
-private const val ICON_RATIO = 0.64f
+// VehicleGlyph sizing — the bare car is drawn wider than the nominal box so the side-on pictogram
+// reads big; its contact shadow comes baked into the drawable. [BOLT-MARKERS-001]
+private const val GLYPH_CAR_SCALE = 1.5f        // box width = glyphSize × this (wide side-on shape)
+
+// Alpha for an inactive (monitoring-stopped) vehicle — used by the accent helper and the glyph.
 private const val INACTIVE_ALPHA = 0.45f
-// Faint light hairline that keeps the dark neutral disc defined against dark-theme card surfaces.
-// [VEH-BADGE-NEUTRAL-RING]
-private const val NEUTRAL_RING_ALPHA = 0.18f
-// Muted light icon tints on the dark PapInk disc — idle near-full, inactive dimmer but still
-// clearly readable against the near-black disc (a low alpha greyed it into the dark molde).
-private const val NEUTRAL_ICON_ALPHA = 0.90f
-private const val NEUTRAL_ICON_INACTIVE_ALPHA = 0.74f
+private const val INACTIVE_ICON_ALPHA = 0.45f

@@ -51,8 +51,8 @@ import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.components.VehicleBadge
 import io.apptolast.paparcar.ui.components.VehicleBadgeTone
+import io.apptolast.paparcar.ui.components.VehicleGlyph
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_active_vehicle
@@ -145,12 +145,11 @@ private fun VehicleHeroCard(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    VehicleBadge(
+                    VehicleGlyph(
                         carbody = vehicle.carbodyType,
                         size = vehicle.sizeCategory,
                         tone = badgeTone,
-                        diameter = HERO_ICON_BOX_DP.dp,
-                        ringWidth = HERO_ICON_RING_DP.dp,
+                        glyphSize = HERO_ICON_BOX_DP.dp,
                     )
                     Spacer(Modifier.width(12.dp))
                     Column {
@@ -397,7 +396,6 @@ private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
 private const val CARD_PADDING = 16
 private const val CARD_BORDER_ALPHA = 0.5f
 private const val HERO_ICON_BOX_DP = 56
-private const val HERO_ICON_RING_DP = 1.5f
 private const val PILL_RADIUS_DP = 999
 private const val ACTIVE_DOT_DP = 6
 private const val BADGE_ICON_DP = 14

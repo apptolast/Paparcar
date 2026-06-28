@@ -25,7 +25,7 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
-import io.apptolast.paparcar.ui.components.VehicleBadge
+import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.ui.components.vehicleBadgeAccent
 import io.apptolast.paparcar.ui.components.vehicleBadgeTone
 import io.apptolast.paparcar.ui.theme.PapShapes
@@ -40,8 +40,8 @@ import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 /**
  * Compact chip in the vehicles LazyRow. [MULTI-PARKING-001] [DET-READY-001k]
  *
- * Uses the unified [VehicleBadge] (semantic, not per-vehicle hue): green parked · blue BT · neutral
- * idle · dimmed inactive — the same element as the map marker and the parked peek. The second row
+ * Uses the bare full-colour car ([VehicleGlyph], no disc) — the same pictogram as the parked peek
+ * and (framed in its tag) the map marker; an inactive vehicle reads dimmed. The second row
  * surfaces the two orthogonal facts the user needs at a glance: how the vehicle is tracked
  * (**BT** / **Active**) and its park status (**Parked · Xm** in green, or a muted **Not parked**).
  * No selection ring: tapping a chip transforms the sheet to the vehicle's state.
@@ -83,12 +83,11 @@ internal fun HomeVehicleChip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                VehicleBadge(
+                VehicleGlyph(
                     carbody = vehicle.carbodyType,
                     size = vehicle.sizeCategory,
                     tone = tone,
-                    diameter = ICON_BOX_DP.dp,
-                    ringWidth = 1.5.dp,
+                    glyphSize = ICON_BOX_DP.dp,
                 )
                 Text(
                     vehicleName,

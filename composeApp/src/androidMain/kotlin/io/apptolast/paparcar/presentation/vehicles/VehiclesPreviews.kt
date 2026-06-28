@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -192,7 +193,7 @@ private fun HeaderBody(vehicle: Vehicle, modifier: Modifier = Modifier) {
             io.apptolast.paparcar.ui.components.VehicleIcon(
                 carbody = vehicle.carbodyType,
                 size = vehicle.sizeCategory,
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
                 modifier = Modifier.size(60.dp),
             )
             Spacer(Modifier.width(PaparcarSpacing.md))

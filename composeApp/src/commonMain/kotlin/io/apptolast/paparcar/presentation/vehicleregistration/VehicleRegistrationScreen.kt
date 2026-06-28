@@ -649,7 +649,9 @@ private fun VehicleHeroCard(
     }
 
     val sizeSelected = state.sizeCategory != null
-    val iconTint = if (sizeSelected) cs.primary
+    // Selected → native multi-colour pictogram; not-yet-picked → dimmed flat
+    // placeholder so the hero reads as "choose a size". [BOLT-MARKERS-001]
+    val iconTint = if (sizeSelected) Color.Unspecified
                    else cs.onSurface.copy(alpha = HERO_ICON_INACTIVE_ALPHA)
     val nameColor = if (sizeSelected) cs.primary else cs.onPrimaryContainer
     val subtitleColor = if (sizeSelected) cs.primary.copy(alpha = HERO_SUBTITLE_ALPHA)

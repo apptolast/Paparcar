@@ -63,7 +63,7 @@ internal fun PeekStateCard(
     content: @Composable ColumnScope.() -> Unit = {},
     actions: @Composable ColumnScope.() -> Unit = {},
 ) {
-    Column(modifier = modifier.padding(horizontal = HORIZONTAL_DP.dp)) {
+    Column(modifier = modifier.padding(horizontal = PEEK_CARD_HORIZONTAL_PAD_DP.dp)) {
 
         // ── Header (chip + [label/title column] + close ×) ───────────────
         Row(
@@ -174,11 +174,11 @@ internal fun PeekHeaderIconChip(
 }
 
 /**
- * "This is yours, parked" leading chip — logo-style molde. Dark PapInk interior +
- * accent ring + accent-tinted carbody pictogram. Distinct from [PeekHeaderIconChip]
- * (filled accent + dark icon) so the user instantly reads "my car" vs. "a free spot".
+ * "This is yours, parked" leading chip — the bare full-colour car ([VehicleGlyph], no disc),
+ * larger and unframed. Distinct from [PeekHeaderIconChip] (filled accent + dark icon) so the
+ * user instantly reads "my car" vs. "a free spot". [BOLT-MARKERS-001]
  *
- * Same 44dp outer footprint as the standard chip so the header rhythm stays uniform.
+ * Same 44dp footprint as the standard chip so the header rhythm stays uniform.
  */
 @Composable
 internal fun ParkedVehicleHeaderChip(
@@ -186,13 +186,12 @@ internal fun ParkedVehicleHeaderChip(
     size: io.apptolast.paparcar.domain.model.VehicleSize?,
     tone: io.apptolast.paparcar.ui.components.VehicleBadgeTone,
 ) {
-    // Unified semantic badge — identical molde to the map marker and the Home chip. [DET-READY-001k]
-    io.apptolast.paparcar.ui.components.VehicleBadge(
+    // Bare full-colour car (no disc) — only the on-map marker keeps the tag container. [BOLT-MARKERS-001]
+    io.apptolast.paparcar.ui.components.VehicleGlyph(
         carbody = carbody,
         size = size,
         tone = tone,
-        diameter = CHIP_DP.dp,
-        ringWidth = PARKED_RING_DP.dp,
+        glyphSize = CHIP_DP.dp,
     )
 }
 
@@ -217,9 +216,10 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
     }
 }
 
-private const val HORIZONTAL_DP = 20
+/** Horizontal content inset of every peek card. Exposed so a full-bleed child
+ *  (e.g. a horizontally-scrolling picker) can cancel it and run edge-to-edge. */
+internal const val PEEK_CARD_HORIZONTAL_PAD_DP = 20
 private const val CHIP_DP = 44
-private const val PARKED_RING_DP = 2
 private const val DISMISS_HIT_DP = 48
 private const val DISMISS_ICON_DP = 20
 private const val DISMISS_ALPHA = 0.55f
