@@ -18,7 +18,6 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.fallbackCarbody
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
-import org.jetbrains.compose.resources.painterResource
 
 /**
  * Resolves the icon to render for a vehicle given the bidimensional taxonomy.
@@ -53,16 +52,18 @@ fun vehicleIconPainter(
     // so the car lifts off a dark map/surface. Detect the active theme by surface luminance (honours
     // the app's ThemeMode override, not just the system -dark qualifier). [BOLT-MARKERS-001]
     val isDark = MaterialTheme.colorScheme.surface.luminance() < DARK_SURFACE_LUMINANCE
-    // A chosen [color] recolours only the body of the pictogram, rebuilt from the embedded geometry
-    // (see VehicleCarGeometry). null keeps the original brand-green drawable untouched. [VEH-COLOR-001]
-    if (color != null && resolved != null) {
+    // Every carbody renders through the same geometry builder so it always carries the white body +
+    // wheel border (light and dark). A chosen [color] recolours only the body; with no colour we use
+    // the identity brand-green palette, which reproduces the original artwork. [VEH-COLOR-001]
+    // [CAR-WHITE-BORDER-001]
+    if (resolved != null) {
+        val palette = color?.let { carPaletteOf(it, isDark) } ?: defaultCarPalette(topdown = false)
         val image = remember(resolved, color, isDark) {
-            buildCarImageVector(isoCarSpec(resolved), carPaletteOf(color, isDark), isDark, ISO_WHEEL_STROKE_DARK)
+            buildCarImageVector(isoCarSpec(resolved), palette, isDark, ISO_WHEEL_STROKE)
         }
         return rememberVectorPainter(image)
     }
     return when {
-        resolved != null -> painterResource(if (isDark) resolved.iconDark else resolved.icon)
         size != null -> rememberVectorPainter(size.icon)
         else -> rememberVectorPainter(fallback)
     }

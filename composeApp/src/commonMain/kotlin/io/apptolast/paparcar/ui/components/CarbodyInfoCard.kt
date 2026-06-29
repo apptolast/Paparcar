@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.getParkingRules
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_auto_label
@@ -86,7 +85,7 @@ fun CarbodyInfoCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        painter = painterResource(carbody.icon),
+                        painter = vehicleIconPainter(carbody = carbody, size = null),
                         contentDescription = null,
                         tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
                         modifier = Modifier.size(ICON_SIZE_DP.dp),

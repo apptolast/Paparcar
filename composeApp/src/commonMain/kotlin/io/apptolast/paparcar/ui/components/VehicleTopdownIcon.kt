@@ -12,29 +12,6 @@ import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.fallbackCarbody
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
-import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.ic_car_topdown_family
-import paparcar.composeapp.generated.resources.ic_car_topdown_family_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_hatchback_medium
-import paparcar.composeapp.generated.resources.ic_car_topdown_hatchback_medium_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_hatchback_small
-import paparcar.composeapp.generated.resources.ic_car_topdown_hatchback_small_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_pickup
-import paparcar.composeapp.generated.resources.ic_car_topdown_pickup_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_sedan
-import paparcar.composeapp.generated.resources.ic_car_topdown_sedan_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_suv_large
-import paparcar.composeapp.generated.resources.ic_car_topdown_suv_large_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_suv_medium
-import paparcar.composeapp.generated.resources.ic_car_topdown_suv_medium_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_suv_small
-import paparcar.composeapp.generated.resources.ic_car_topdown_suv_small_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_van_commercial
-import paparcar.composeapp.generated.resources.ic_car_topdown_van_commercial_dark
-import paparcar.composeapp.generated.resources.ic_car_topdown_van_light
-import paparcar.composeapp.generated.resources.ic_car_topdown_van_light_dark
 
 /**
  * Top-down (aerial) vehicle pictogram with a baked heading wedge — used as the **location-active**
@@ -42,12 +19,10 @@ import paparcar.composeapp.generated.resources.ic_car_topdown_van_light_dark
  * pictogram points "up" in its own frame; the marker composable rotates it to the heading.
  * [MAP-ICONS-V2]
  *
- * Theme-aware (a dark variant with thin white outline) via surface luminance, mirroring
- * [vehicleIconPainter]. Falls back to the length tier's canonical carbody (then SEDAN) so a vehicle
- * with no explicit carbody still renders a real top-down silhouette.
- *
- * A non-null [color] recolours only the body (keeping windows, wheels and outline), rebuilt from
- * the embedded top-down geometry; null keeps the original brand-green drawable. [VEH-COLOR-001]
+ * Rendered through the shared geometry builder so it always carries the white body + wheel border in
+ * both themes (theme-neutral colours still follow surface luminance for dark glass/shadow). A non-null
+ * [color] recolours only the body; with no colour the identity brand-green palette reproduces the
+ * original artwork. Falls back to the length tier's canonical carbody (then SEDAN). [CAR-WHITE-BORDER-001]
  */
 @Composable
 fun VehicleTopdownIcon(
@@ -58,16 +33,12 @@ fun VehicleTopdownIcon(
 ) {
     val isDark = MaterialTheme.colorScheme.surface.luminance() < TOPDOWN_DARK_LUMINANCE
     val resolved = carbody ?: size?.fallbackCarbody() ?: CarbodyType.SEDAN
-    val painter = if (color != null) {
-        val image = remember(resolved, color, isDark) {
-            buildCarImageVector(topdownCarSpec(resolved), carPaletteOf(color, isDark), isDark, TOPDOWN_WHEEL_STROKE_DARK)
-        }
-        rememberVectorPainter(image)
-    } else {
-        painterResource(topdownDrawable(resolved, isDark))
+    val palette = color?.let { carPaletteOf(it, isDark) } ?: defaultCarPalette(topdown = true)
+    val image = remember(resolved, color, isDark) {
+        buildCarImageVector(topdownCarSpec(resolved), palette, isDark, TOPDOWN_WHEEL_STROKE)
     }
     Image(
-        painter = painter,
+        painter = rememberVectorPainter(image),
         contentDescription = null,
         modifier = modifier,
         contentScale = ContentScale.Fit,
@@ -75,16 +46,3 @@ fun VehicleTopdownIcon(
 }
 
 private const val TOPDOWN_DARK_LUMINANCE = 0.5f
-
-private fun topdownDrawable(carbody: CarbodyType, isDark: Boolean): DrawableResource = when (carbody) {
-    CarbodyType.HATCHBACK_SMALL -> if (isDark) Res.drawable.ic_car_topdown_hatchback_small_dark else Res.drawable.ic_car_topdown_hatchback_small
-    CarbodyType.SUV_SMALL -> if (isDark) Res.drawable.ic_car_topdown_suv_small_dark else Res.drawable.ic_car_topdown_suv_small
-    CarbodyType.HATCHBACK_MEDIUM -> if (isDark) Res.drawable.ic_car_topdown_hatchback_medium_dark else Res.drawable.ic_car_topdown_hatchback_medium
-    CarbodyType.SUV_MEDIUM -> if (isDark) Res.drawable.ic_car_topdown_suv_medium_dark else Res.drawable.ic_car_topdown_suv_medium
-    CarbodyType.SEDAN -> if (isDark) Res.drawable.ic_car_topdown_sedan_dark else Res.drawable.ic_car_topdown_sedan
-    CarbodyType.FAMILY_LONG -> if (isDark) Res.drawable.ic_car_topdown_family_dark else Res.drawable.ic_car_topdown_family
-    CarbodyType.SUV_LARGE -> if (isDark) Res.drawable.ic_car_topdown_suv_large_dark else Res.drawable.ic_car_topdown_suv_large
-    CarbodyType.VAN_LIGHT -> if (isDark) Res.drawable.ic_car_topdown_van_light_dark else Res.drawable.ic_car_topdown_van_light
-    CarbodyType.VAN_COMMERCIAL -> if (isDark) Res.drawable.ic_car_topdown_van_commercial_dark else Res.drawable.ic_car_topdown_van_commercial
-    CarbodyType.PICKUP -> if (isDark) Res.drawable.ic_car_topdown_pickup_dark else Res.drawable.ic_car_topdown_pickup
-}
