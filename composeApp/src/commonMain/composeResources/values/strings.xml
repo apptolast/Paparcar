@@ -117,7 +117,6 @@
     <string name="onboarding_page3_subtitle">The app works automatically in the background. We only use your location to detect parking — never shared with third parties.</string>
     <string name="onboarding_cta_next">Next</string>
     <string name="onboarding_cta_setup">Set up permissions</string>
-    <string name="onboarding_step_counter">Step %1$d of %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automate your parking</string>

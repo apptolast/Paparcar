@@ -35,7 +35,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.onboarding.OnboardingStepLabel
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.illustrations.OnboardingHero
@@ -66,7 +65,6 @@ import paparcar.composeapp.generated.resources.permissions_section_optional
 private val TOP_CONTENT_PADDING    = 56.dp
 private val HERO_ILLUSTRATION_W    = 140.dp
 private val HERO_ILLUSTRATION_H    = 120.dp
-private const val RATIONALE_FLOW_STEP = 4   // Welcome·How·Why(1-3) → Automate(4) → Grant(5)
 
 /**
  * Pantalla explicativa previa a la concesión ("Automate your parking"). Lee como "la lista que
@@ -203,8 +201,6 @@ fun PermissionsRationaleScreen(
                 .onSizeChanged { footerHeightPx = it.height },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            OnboardingStepLabel(step = RATIONALE_FLOW_STEP)
-            Spacer(Modifier.height(PaparcarSpacing.lg))
             PapPrimaryButton(
                 label = stringResource(Res.string.perm_rationale_cta),
                 onClick = onAccept,

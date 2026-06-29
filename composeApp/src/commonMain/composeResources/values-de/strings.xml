@@ -80,7 +80,6 @@
     <string name="onboarding_page3_subtitle">Die App funktioniert automatisch im Hintergrund. Wir nutzen deinen Standort nur zur Parkerkennung — niemals mit Dritten geteilt.</string>
     <string name="onboarding_cta_next">Weiter</string>
     <string name="onboarding_cta_setup">Berechtigungen einrichten</string>
-    <string name="onboarding_step_counter">Schritt %1$d von %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatisiere dein Parken</string>

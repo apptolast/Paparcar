@@ -43,7 +43,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.onboarding.OnboardingStepLabel
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.illustrations.OnboardingHero
@@ -88,7 +87,6 @@ import paparcar.composeapp.generated.resources.permissions_title
 private val   BUTTON_HEIGHT           = 52.dp
 private val   HERO_ILLUSTRATION_W     = 140.dp
 private val   HERO_ILLUSTRATION_H     = 120.dp
-private const val GRANT_FLOW_STEP     = 5   // último paso del flujo lineal (ver ONBOARDING_FLOW_STEPS)
 
 @Composable
 internal fun PermissionsContent(
@@ -307,12 +305,6 @@ internal fun PermissionsContent(
                     .onSizeChanged { footerHeightPx = it.height },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Indicador de paso solo en el flujo lineal de alta; en visitas focalizadas desde Home
-                // (focus != All) no hay flujo de pasos. [ONB-IDENTITY-001 G]
-                if (focus == PermissionsFocus.All) {
-                    OnboardingStepLabel(step = GRANT_FLOW_STEP)
-                    Spacer(Modifier.height(PaparcarSpacing.lg))
-                }
                 // Location permanently denied / revoked → the request dialog would no-op, so jump
                 // straight to the amber "open settings" CTA from the first frame. [DET-READY-001m]
                 val coreNeedsSettings = isCorePending && state.locationPermanentlyDenied

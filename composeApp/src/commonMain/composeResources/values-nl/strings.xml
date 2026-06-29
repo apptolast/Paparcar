@@ -80,7 +80,6 @@
     <string name="onboarding_page3_subtitle">De app werkt automatisch op de achtergrond. We gebruiken uw locatie alleen voor parkeerdetectie — nooit gedeeld met derden.</string>
     <string name="onboarding_cta_next">Volgende</string>
     <string name="onboarding_cta_setup">Machtigingen instellen</string>
-    <string name="onboarding_step_counter">Stap %1$d van %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatiseer je parkeren</string>

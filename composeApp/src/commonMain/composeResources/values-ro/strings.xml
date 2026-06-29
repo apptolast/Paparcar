@@ -80,7 +80,6 @@
     <string name="onboarding_page3_subtitle">Aplicația funcționează automat în fundal. Folosim locația ta doar pentru detectarea parcării — niciodată partajată cu terțe părți.</string>
     <string name="onboarding_cta_next">Înainte</string>
     <string name="onboarding_cta_setup">Configurează permisiunile</string>
-    <string name="onboarding_step_counter">Pasul %1$d din %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatizează-ți parcarea</string>

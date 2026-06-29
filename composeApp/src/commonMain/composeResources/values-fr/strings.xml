@@ -80,7 +80,6 @@
     <string name="onboarding_page3_subtitle">L\'app fonctionne automatiquement en arrière-plan. Nous utilisons uniquement votre position pour détecter le stationnement — jamais partagée avec des tiers.</string>
     <string name="onboarding_cta_next">Suivant</string>
     <string name="onboarding_cta_setup">Configurer les permissions</string>
-    <string name="onboarding_step_counter">Étape %1$d sur %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatisez votre stationnement</string>
