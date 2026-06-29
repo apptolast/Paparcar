@@ -16,4 +16,8 @@ interface GeocoderCacheDao {
 
     @Query("DELETE FROM geocoder_cache WHERE cachedAt < :expiryMs")
     suspend fun evictExpired(expiryMs: Long)
+
+    /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
+    @Query("DELETE FROM geocoder_cache")
+    suspend fun deleteAll()
 }

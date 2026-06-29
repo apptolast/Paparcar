@@ -85,12 +85,6 @@ class IosLocationDataSourceImpl : LocationDataSource {
             )
         }
     }
-
-    private companion object {
-        const val HIGH_ACCURACY_DISTANCE_FILTER_M = 5.0
-        const val BALANCED_DISTANCE_FILTER_M = 50.0
-        const val MILLIS_PER_SECOND = 1_000.0
-    }
 }
 
 private class UiLocationDelegate(
@@ -118,10 +112,6 @@ private class UiLocationDelegate(
     override fun locationManager(manager: CLLocationManager, didFailWithError: NSError) {
         // Same rationale as [LocationDelegate]: transient CoreLocation errors are routine.
     }
-
-    private companion object {
-        const val MIN_BEARING_SPEED_MPS = 1.5f
-    }
 }
 
 private class LocationDelegate(
@@ -148,8 +138,13 @@ private class LocationDelegate(
         // for a fix. Closing the flow here would force every consumer to retry — let upstream
         // timeouts handle persistent failures instead.
     }
-
-    private companion object {
-        const val MILLIS_PER_SECOND = 1_000.0
-    }
 }
+
+// File-level constants: Kotlin/Native forbids companion objects with fields inside
+// subclasses of ObjC types (NSObject), so the delegate constants live here. MILLIS_PER_SECOND
+// is shared by the data source and LocationDelegate, so it belongs at module scope anyway.
+// [IOS-BUILD-FIX]
+private const val HIGH_ACCURACY_DISTANCE_FILTER_M = 5.0
+private const val BALANCED_DISTANCE_FILTER_M = 50.0
+private const val MILLIS_PER_SECOND = 1_000.0
+private const val MIN_BEARING_SPEED_MPS = 1.5f

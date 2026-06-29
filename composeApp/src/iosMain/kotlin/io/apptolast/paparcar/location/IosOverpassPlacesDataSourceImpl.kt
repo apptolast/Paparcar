@@ -12,14 +12,15 @@ import platform.Foundation.NSCharacterSet
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSString
 import platform.Foundation.NSURL
-import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.NSURLSession
-import platform.Foundation.characterSetWithCharactersInString
-import platform.Foundation.dataUsingEncoding
+import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.create
+import platform.Foundation.dataTaskWithRequest
+import platform.Foundation.dataUsingEncoding
 import platform.Foundation.setHTTPBody
 import platform.Foundation.setHTTPMethod
 import platform.Foundation.setValue
+import platform.Foundation.stringByAddingPercentEncodingWithAllowedCharacters
 import kotlin.coroutines.resume
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -64,7 +65,7 @@ class IosOverpassPlacesDataSourceImpl : PlacesDataSource {
             request.setHTTPMethod("POST")
             request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField = "Content-Type")
             request.setValue(CONNECT_TIMEOUT_S.toString(), forHTTPHeaderField = "X-Connect-Timeout")
-            request.timeoutInterval = READ_TIMEOUT_S.toDouble()
+            request.setTimeoutInterval(READ_TIMEOUT_S.toDouble())
 
             // percent-encode the query as an application/x-www-form-urlencoded value
             val unreserved = NSCharacterSet.characterSetWithCharactersInString(

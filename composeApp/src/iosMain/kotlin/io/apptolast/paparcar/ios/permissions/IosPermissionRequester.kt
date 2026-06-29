@@ -55,6 +55,16 @@ class IosPermissionRequester(private val permissionManager: PermissionManager) {
         locationManager.requestAlwaysAuthorization()
     }
 
+    /**
+     * PRODUCER sensors: the iOS counterpart of Android's activity-recognition +
+     * notifications request. Presents the Motion & Fitness and Notifications
+     * dialogs; both are idempotent once the user has answered.
+     */
+    fun requestProducerSensors() {
+        requestNotifications()
+        requestActivityRecognition()
+    }
+
     private fun requestNotifications() {
         val options = UNAuthorizationOptionAlert or
             UNAuthorizationOptionBadge or

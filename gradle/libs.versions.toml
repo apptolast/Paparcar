@@ -12,46 +12,46 @@ android-minSdk = "26"      # NotificationChannel (26) + FOREGROUND_SERVICE_LOCAT
 android-targetSdk = "36"
 
 # ── Kotlin & KMP ─────────────────────────────────────────────────────────────
-componentsResources = "1.11.0"
-foundation = "1.11.0"
-kotlin = "2.3.21"
+componentsResources = "1.11.1"
+foundation = "1.11.1"
+kotlin = "2.4.0"
 ksp = "2.3.9"   # Actualizado para Kotlin 2.3.21 según el nuevo esquema
 # ── Compose ──────────────────────────────────────────────────────────────────
-compose-plugin = "1.11.0"
+compose-plugin = "1.11.1"
 
 # ── AndroidX ─────────────────────────────────────────────────────────────────
-androidx-activityCompose = "1.12.4"
+androidx-activityCompose = "1.13.0"
 androidx-appcompat = "1.7.1"
-androidx-core-ktx = "1.17.0"
-androidx-lifecycle = "2.10.0"
-androidx-material = "1.13.0"
-material = "1.11.0"
+androidx-core-ktx = "1.19.0"
+androidx-lifecycle = "2.11.0"
+androidx-material = "1.14.0"
+material = "1.11.1"
 material3 = "1.9.0"
 materialIconsExtended = "1.7.3"
-runtime = "1.11.0"
-ui = "1.11.0"
-uiToolingPreview = "1.11.0"
-work-runtime = "2.11.1"
+runtime = "1.11.1"
+ui = "1.11.1"
+uiToolingPreview = "1.11.1"
+work-runtime = "2.11.2"
 androidx-splashscreen = "1.2.0"
-androidx-datastore = "1.1.7"
+androidx-datastore = "1.2.1"
 
 # ── Test ─────────────────────────────────────────────────────────────────────
 junit = "4.13.2"
 androidx-test-junit = "1.3.0"
 androidx-espresso-core = "3.7.0"
-turbine = "1.2.0"
+turbine = "1.2.1"
 konsist = "0.17.3"
-robolectric = "4.14.1"
-androidx-test-core = "1.6.1"
+robolectric = "4.16.1"
+androidx-test-core = "1.7.0"
 
 # ── Kotlinx ──────────────────────────────────────────────────────────────────
-kotlinx-coroutines = "1.10.2"
-kotlinx-datetime = "0.7.1"
-kotlinx-serialization = "1.10.0"
+kotlinx-coroutines = "1.11.0"
+kotlinx-datetime = "0.8.0"
+kotlinx-serialization = "1.11.0"
 
 # ── DI — Koin ────────────────────────────────────────────────────────────────
 # Todos los módulos de Koin usan la misma versión. No hay versión separada.
-koin = "4.1.1"
+koin = "4.2.2"
 
 # ── Persistencia local — Room KMP ────────────────────────────────────────────
 # 2.7.x es la primera línea con soporte KMP completo (commonMain)
@@ -60,15 +60,15 @@ sqlite = "2.6.2"
 
 # ── Firebase ─────────────────────────────────────────────────────────────────
 # GitLive SDK: wrapper KMP sobre Firebase oficial → va en commonMain
-firebase-bom = "34.10.0"
-firebase-crashlytics-plugin = "3.0.4"
-firebase-appdistribution-plugin = "5.0.0"
+firebase-bom = "34.15.0"
+firebase-crashlytics-plugin = "3.0.7"
+firebase-appdistribution-plugin = "5.3.0"
 firebase-gitlive = "2.4.0"
-google-services = "4.4.4"
+google-services = "4.5.0"
 
 # ── KMP Maps (Software Mansion) ──────────────────────────────────────────────
 # Core: Google Maps en Android + Apple Maps en iOS (sin CocoaPods)
-kmp-maps = "0.8.1"
+kmp-maps = "0.9.1"
 
 # ── Logging — Napier ─────────────────────────────────────────────────────────
 napier = "2.7.1"
@@ -83,13 +83,15 @@ coil = "3.3.0"
 ktor = "3.3.0"
 
 # ── Login Library ────────────────────────────────────────────────────────────
-baselogin = "1.0.17"
+# JitPack commit-hash build of feature/improve-custom-login-integration (host-integration fix).
+# TODO: switch to a release tag (e.g. 1.0.18) once the branch is merged + tagged.
+baselogin = "35a5e15fc4"
 
 # ── Android-only ─────────────────────────────────────────────────────────────
 # play-services-location incluye Activity Recognition Transitions desde v17+
-play-services-location = "21.3.0"
+play-services-location = "21.4.0"
 geofire = "3.2.0"
-lifecycleService = "2.10.0"
+lifecycleService = "2.11.0"
 navigation-compose = "2.9.2"
 
 

@@ -27,4 +27,8 @@ interface ZoneDao {
 
     @Query("DELETE FROM zones WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
+
+    /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
+    @Query("DELETE FROM zones")
+    suspend fun deleteAll()
 }

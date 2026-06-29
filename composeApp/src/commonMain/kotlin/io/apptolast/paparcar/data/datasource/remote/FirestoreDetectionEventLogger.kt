@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
+import kotlin.concurrent.Volatile
 
 /**
  * Firestore-backed [DetectionEventLogger] for field diagnostics. [DET-LOG-02]

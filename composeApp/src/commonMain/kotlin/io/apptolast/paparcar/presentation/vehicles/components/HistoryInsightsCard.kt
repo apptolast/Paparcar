@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.vehicles.DAY_SHORT_RES
 import io.apptolast.paparcar.presentation.vehicles.HistoryStatsData
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_insights_avg_week
@@ -62,7 +63,7 @@ internal fun HistoryInsightsCard(
             ) {
                 InsightChip(
                     label = stringResource(Res.string.history_insights_avg_week),
-                    value = stats.avgSessionsPerWeek?.let { "%.1f".format(it) } ?: NO_DATA,
+                    value = stats.avgSessionsPerWeek?.toOneDecimalString() ?: NO_DATA,
                     modifier = Modifier.weight(1f),
                 )
                 InsightChip(
@@ -143,6 +144,16 @@ private fun InsightChip(
     }
 }
 
+/**
+ * Formats a non-negative [Float] to exactly one decimal place without `String.format`,
+ * which is JVM-only and unavailable on Kotlin/Native (iOS). [IOS-BUILD-FIX]
+ */
+private fun Float.toOneDecimalString(): String {
+    val scaled = (this * DECIMAL_SCALE).roundToInt()
+    return "${scaled / DECIMAL_SCALE}.${scaled % DECIMAL_SCALE}"
+}
+
+private const val DECIMAL_SCALE = 10
 private const val NO_DATA = "—"
 private const val CARD_CORNER_DP = 16
 private const val CHIP_CORNER_DP = 10

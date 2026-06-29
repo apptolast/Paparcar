@@ -53,6 +53,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.savedstate.read
 import com.apptolast.customlogin.domain.model.AuthState
 import com.apptolast.customlogin.presentation.navigation.AuthRoutesFlow
 import com.apptolast.customlogin.presentation.navigation.LoginRoute
@@ -421,8 +422,8 @@ private fun MainAppNavigation(
                     navArgument("vehicleId") { nullable = true; defaultValue = null },
                 ),
             ) { backStack ->
-                val origin = backStack.arguments?.getString("origin") ?: "onboarding"
-                val vehicleId = backStack.arguments?.getString("vehicleId")
+                val origin = backStack.arguments?.read { getStringOrNull("origin") } ?: "onboarding"
+                val vehicleId = backStack.arguments?.read { getStringOrNull("vehicleId") }
                 VehicleRegistrationScreen(
                     vehicleId = vehicleId,
                     onRegistrationComplete = {
@@ -481,7 +482,7 @@ private fun MainAppNavigation(
                 ),
             ) { backStackEntry ->
                 val focus = io.apptolast.paparcar.presentation.permissions.PermissionsFocus
-                    .fromArg(backStackEntry.arguments?.getString("focus"))
+                    .fromArg(backStackEntry.arguments?.read { getStringOrNull("focus") })
                 PermissionsScreen(
                     focus = focus,
                     onPermissionsGranted = {
@@ -543,9 +544,9 @@ private fun MainAppNavigation(
                     navArgument("sessionId") { type = NavType.StringType; defaultValue = "" },
                 ),
             ) { backStack ->
-                val lat = backStack.arguments?.getString("lat")?.toDoubleOrNull()
-                val lon = backStack.arguments?.getString("lon")?.toDoubleOrNull()
-                val sessionId = backStack.arguments?.getString("sessionId") ?: ""
+                val lat = backStack.arguments?.read { getStringOrNull("lat") }?.toDoubleOrNull()
+                val lon = backStack.arguments?.read { getStringOrNull("lon") }?.toDoubleOrNull()
+                val sessionId = backStack.arguments?.read { getStringOrNull("sessionId") } ?: ""
                 HistoryParkingDetailScreen(
                     onNavigateBack = { navController.popBackStack() },
                     initialFocus = if (lat != null && lon != null) Pair(lat, lon) else null,
@@ -596,7 +597,7 @@ private fun MainAppNavigation(
                 route = "${Routes.BT_CONFIG}/{vehicleId}",
                 arguments = listOf(navArgument("vehicleId") { type = NavType.StringType }),
             ) { backStack ->
-                val vehicleId = backStack.arguments?.getString("vehicleId") ?: return@composable
+                val vehicleId = backStack.arguments?.read { getStringOrNull("vehicleId") } ?: return@composable
                 BluetoothConfigScreen(
                     vehicleId = vehicleId,
                     onNavigateBack = { navController.popBackStack() },

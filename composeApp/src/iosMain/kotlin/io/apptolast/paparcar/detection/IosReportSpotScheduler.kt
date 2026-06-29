@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.detection
 
 import io.apptolast.paparcar.domain.model.AddressInfo
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
@@ -11,12 +12,13 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.service.ReportSpotScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * iOS implementation of [ReportSpotScheduler].
@@ -40,7 +42,7 @@ class IosReportSpotScheduler(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    override fun schedule(
+    override fun enqueueReportSpot(
         spotId: String,
         lat: Double,
         lon: Double,
@@ -49,6 +51,7 @@ class IosReportSpotScheduler(
         spotType: SpotType,
         confidence: Float,
         sizeCategory: VehicleSize?,
+        carbodyType: CarbodyType?,
         reporterName: String?,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
@@ -68,6 +71,7 @@ class IosReportSpotScheduler(
             type = spotType,
             confidence = confidence,
             sizeCategory = sizeCategory,
+            carbodyType = carbodyType,
             expiresAt = expiresAt,
         )
 
@@ -82,15 +86,15 @@ class IosReportSpotScheduler(
             attempt++
             val backoffMs = INITIAL_BACKOFF_MS shl (attempt - 1)
             PaparcarLogger.w(TAG, "ReportSpot attempt $attempt failed for ${spot.id} — retry in ${backoffMs}ms")
-            delay(backoffMs)
+            delay(backoffMs.milliseconds)
         }
         PaparcarLogger.e(TAG, "ReportSpot exhausted retries for ${spot.id}")
     }
 
-    private fun ttlForType(type: SpotType): Long = when (type) {
-        SpotType.MANUAL_REPORT -> MANUAL_SPOT_TTL_MS
-        SpotType.AUTO_DETECTED -> AUTO_SPOT_TTL_MS
-    }
+    // Mirrors Android's ReportSpotWorker: manual reports get a short TTL; everything
+    // else (auto-detected and home-geofence spots) uses the longer auto TTL.
+    private fun ttlForType(type: SpotType): Long =
+        if (type == SpotType.MANUAL_REPORT) MANUAL_SPOT_TTL_MS else AUTO_SPOT_TTL_MS
 
     private companion object {
         const val TAG = "IosReportSpotScheduler"

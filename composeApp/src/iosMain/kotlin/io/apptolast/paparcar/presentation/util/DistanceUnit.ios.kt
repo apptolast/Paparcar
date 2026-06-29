@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.presentation.util
 
 import platform.Foundation.NSLocale
+import platform.Foundation.currentLocale
+import platform.Foundation.localeIdentifier
 
 private val IMPERIAL_COUNTRIES = setOf("US", "LR", "MM")
 
