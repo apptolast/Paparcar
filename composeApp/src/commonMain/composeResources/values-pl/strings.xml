@@ -82,6 +82,7 @@
     <string name="onboarding_page3_subtitle">Aplikacja działa automatycznie w tle. Używamy Twojej lokalizacji tylko do wykrywania parkowania — nigdy nie udostępniamy jej osobom trzecim.</string>
     <string name="onboarding_cta_next">Dalej</string>
     <string name="onboarding_cta_setup">Skonfiguruj uprawnienia</string>
+    <string name="onboarding_step_counter">Krok %1$d z %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Zautomatyzuj parkowanie</string>

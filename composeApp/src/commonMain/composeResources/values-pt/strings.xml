@@ -80,6 +80,7 @@
     <string name="onboarding_page3_subtitle">A app funciona automaticamente em segundo plano. Usamos apenas a sua localização para detetar o estacionamento — nunca partilhada com terceiros.</string>
     <string name="onboarding_cta_next">Seguinte</string>
     <string name="onboarding_cta_setup">Configurar permissões</string>
+    <string name="onboarding_step_counter">Passo %1$d de %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatize o seu estacionamento</string>

@@ -1,9 +1,6 @@
 package io.apptolast.paparcar.presentation.permissions
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -34,7 +29,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,19 +38,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.presentation.onboarding.OnboardingStepLabel
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapSectionHeader
+import io.apptolast.paparcar.ui.illustrations.OnboardingHero
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.ic_shield_3d
 import paparcar.composeapp.generated.resources.permissions_bg_guide_body
 import paparcar.composeapp.generated.resources.permissions_bg_guide_cta
 import paparcar.composeapp.generated.resources.permissions_bg_guide_dismiss
@@ -89,19 +82,13 @@ import paparcar.composeapp.generated.resources.permissions_rationale
 import paparcar.composeapp.generated.resources.permissions_section_detection
 import paparcar.composeapp.generated.resources.permissions_section_essential
 import paparcar.composeapp.generated.resources.permissions_section_optional
-import paparcar.composeapp.generated.resources.permissions_status_granted
-import paparcar.composeapp.generated.resources.permissions_status_optional
-import paparcar.composeapp.generated.resources.permissions_status_pending
 import paparcar.composeapp.generated.resources.permissions_subtitle
 import paparcar.composeapp.generated.resources.permissions_title
 
 private val   BUTTON_HEIGHT           = 52.dp
-private val   ROW_VERTICAL_PADDING    = 14.dp
-private val   ROW_CONTENT_SPACING     = 14.dp
-private val   ICON_BOX_SIZE           = 40.dp
-private val   ICON_SIZE               = 22.dp
-private val   BADGE_ICON_SIZE         = 14.dp
-private const val HERO_ICON_DP        = 72
+private val   HERO_ILLUSTRATION_W     = 140.dp
+private val   HERO_ILLUSTRATION_H     = 120.dp
+private const val GRANT_FLOW_STEP     = 5   // último paso del flujo lineal (ver ONBOARDING_FLOW_STEPS)
 
 @Composable
 internal fun PermissionsContent(
@@ -146,40 +133,41 @@ internal fun PermissionsContent(
                 .padding(horizontal = PaparcarSpacing.xxl)
                 .padding(
                     top = PaparcarSpacing.xxxl,
-                    bottom = with(density) { footerHeightPx.toDp() } + PaparcarSpacing.xxxl,
+                    // Reserva exacta = altura medida del footer (botón + nav bar) + 16dp de holgura,
+                    // para que la última card (Bluetooth) nunca quede bajo el CTA. [ONB-IDENTITY-001 F]
+                    bottom = with(density) { footerHeightPx.toDp() } + PaparcarSpacing.lg,
                 )
                 .verticalScroll(rememberScrollState()),
         ) {
             val showEssential = focus != PermissionsFocus.Producer
             val showProducer = focus != PermissionsFocus.Core
 
-            // Header — 3D brand shield badge (green gradient + check + drop shadow, designed in Figma)
-            // to the LEFT of the title, vertically centred against it; subtitle below full width. More
-            // dynamic than a flat top-left stack. [DET-READY-001i]
-            Row(
+            // Header — hero ilustrado de marca (escudo-check) centrado arriba + título debajo, mismo
+            // patrón que la pantalla explicativa (rationale) y los slides de onboarding. [ONB-IDENTITY-001 B/H]
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.md),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Image(
-                    painter = painterResource(Res.drawable.ic_shield_3d),
-                    contentDescription = null,
-                    modifier = Modifier.size(HERO_ICON_DP.dp),
+                OnboardingHero(
+                    hero = OnboardingHero.AUTOMATION,
+                    modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
                 )
+                Spacer(Modifier.height(PaparcarSpacing.md))
                 Text(
                     text = stringResource(Res.string.permissions_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(PaparcarSpacing.sm))
+                Text(
+                    text = stringResource(Res.string.permissions_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
-            Spacer(Modifier.height(PaparcarSpacing.sm))
-            Text(
-                text = stringResource(Res.string.permissions_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             Spacer(Modifier.height(PaparcarSpacing.xxxl))
 
             // ── ESSENTIAL (CORE) — the minimum to use the map ───────────────
@@ -191,15 +179,15 @@ internal fun PermissionsContent(
                 PermissionRow(
                     icon = Icons.Default.LocationOn,
                     title = stringResource(Res.string.permissions_perm_location),
-                    desc = stringResource(Res.string.permissions_perm_location_desc),
-                    granted = state.hasFineLocation,
+                    reason = stringResource(Res.string.permissions_perm_location_desc),
+                    state = requiredState(state.hasFineLocation),
                 )
                 Spacer(Modifier.height(PaparcarSpacing.md))
                 PermissionRow(
                     icon = Icons.Default.Settings,
                     title = stringResource(Res.string.permissions_perm_location_services),
-                    desc = stringResource(Res.string.permissions_perm_location_services_desc),
-                    granted = state.isLocationServicesEnabled,
+                    reason = stringResource(Res.string.permissions_perm_location_services_desc),
+                    state = requiredState(state.isLocationServicesEnabled),
                 )
             }
 
@@ -213,22 +201,22 @@ internal fun PermissionsContent(
                 PermissionRow(
                     icon = Icons.Outlined.Explore,
                     title = stringResource(Res.string.permissions_perm_background),
-                    desc = stringResource(Res.string.permissions_perm_background_desc),
-                    granted = state.hasBackgroundLocation,
+                    reason = stringResource(Res.string.permissions_perm_background_desc),
+                    state = requiredState(state.hasBackgroundLocation),
                 )
                 Spacer(Modifier.height(PaparcarSpacing.md))
                 PermissionRow(
                     icon = Icons.Default.Person,
                     title = stringResource(Res.string.permissions_perm_activity),
-                    desc = stringResource(Res.string.permissions_perm_activity_desc),
-                    granted = state.hasActivityRecognition,
+                    reason = stringResource(Res.string.permissions_perm_activity_desc),
+                    state = requiredState(state.hasActivityRecognition),
                 )
                 Spacer(Modifier.height(PaparcarSpacing.md))
                 PermissionRow(
                     icon = Icons.Default.Notifications,
                     title = stringResource(Res.string.permissions_perm_notifications),
-                    desc = stringResource(Res.string.permissions_perm_notifications_desc),
-                    granted = state.hasNotifications,
+                    reason = stringResource(Res.string.permissions_perm_notifications_desc),
+                    state = requiredState(state.hasNotifications),
                 )
 
                 // ── OPTIONAL — reliability on aggressive OEMs ────────────────
@@ -237,19 +225,19 @@ internal fun PermissionsContent(
                     title = stringResource(Res.string.permissions_section_optional),
                     modifier = Modifier.padding(bottom = PaparcarSpacing.md),
                 )
-                OptionalPermissionRow(
+                PermissionRow(
                     icon = Icons.Outlined.Bluetooth,
                     title = stringResource(Res.string.permissions_perm_bluetooth),
-                    desc = stringResource(Res.string.permissions_perm_bluetooth_desc),
-                    granted = state.hasBluetoothConnect,
+                    reason = stringResource(Res.string.permissions_perm_bluetooth_desc),
+                    state = optionalState(state.hasBluetoothConnect),
                     onGrant = onRequestBluetooth,
                 )
                 Spacer(Modifier.height(PaparcarSpacing.md))
-                OptionalPermissionRow(
+                PermissionRow(
                     icon = Icons.Outlined.BatteryFull,
                     title = stringResource(Res.string.permissions_perm_battery),
-                    desc = stringResource(Res.string.permissions_perm_battery_desc),
-                    granted = state.isBatteryOptimizationExempt,
+                    reason = stringResource(Res.string.permissions_perm_battery_desc),
+                    state = optionalState(state.isBatteryOptimizationExempt),
                     onGrant = onRequestBatteryOptimization,
                 )
                 if (!state.isBatteryOptimizationExempt) {
@@ -265,11 +253,11 @@ internal fun PermissionsContent(
                 // toggle; we track whether the user opened the settings screen this session.
                 if (state.showAutostartCard) {
                     Spacer(Modifier.height(PaparcarSpacing.md))
-                    OptionalPermissionRow(
+                    PermissionRow(
                         icon = Icons.Outlined.RocketLaunch,
                         title = stringResource(Res.string.permissions_perm_autostart),
-                        desc = stringResource(Res.string.permissions_perm_autostart_desc),
-                        granted = state.hasAcknowledgedAutostart,
+                        reason = stringResource(Res.string.permissions_perm_autostart_desc),
+                        state = optionalState(state.hasAcknowledgedAutostart),
                         onGrant = onRequestOemAutostart,
                     )
                 }
@@ -278,11 +266,11 @@ internal fun PermissionsContent(
                 // processes even when autostart is whitelisted. Only shown on ColorOS. [OEM-002]
                 if (state.showOemBatteryCard) {
                     Spacer(Modifier.height(PaparcarSpacing.md))
-                    OptionalPermissionRow(
+                    PermissionRow(
                         icon = Icons.Outlined.BatteryAlert,
                         title = stringResource(Res.string.permissions_perm_oem_battery),
-                        desc = stringResource(Res.string.permissions_perm_oem_battery_desc),
-                        granted = state.hasAcknowledgedOemBattery,
+                        reason = stringResource(Res.string.permissions_perm_oem_battery_desc),
+                        state = optionalState(state.hasAcknowledgedOemBattery),
                         onGrant = onRequestOemBatterySettings,
                     )
                 }
@@ -317,7 +305,14 @@ internal fun PermissionsContent(
                     .navigationBarsPadding()
                     .padding(bottom = PaparcarSpacing.xxxl)
                     .onSizeChanged { footerHeightPx = it.height },
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // Indicador de paso solo en el flujo lineal de alta; en visitas focalizadas desde Home
+                // (focus != All) no hay flujo de pasos. [ONB-IDENTITY-001 G]
+                if (focus == PermissionsFocus.All) {
+                    OnboardingStepLabel(step = GRANT_FLOW_STEP)
+                    Spacer(Modifier.height(PaparcarSpacing.lg))
+                }
                 // Location permanently denied / revoked → the request dialog would no-op, so jump
                 // straight to the amber "open settings" CTA from the first frame. [DET-READY-001m]
                 val coreNeedsSettings = isCorePending && state.locationPermanentlyDenied
@@ -362,193 +357,6 @@ internal fun PermissionsContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun OptionalPermissionRow(
-    icon: ImageVector,
-    title: String,
-    desc: String,
-    granted: Boolean,
-    onGrant: () -> Unit,
-) {
-    val surfaceColor by animateColorAsState(
-        targetValue = if (granted) MaterialTheme.colorScheme.primaryContainer
-        else MaterialTheme.colorScheme.surface,
-        label = "opt_perm_row_bg",
-    )
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = surfaceColor,
-        onClick = { if (!granted) onGrant() },
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = PaparcarSpacing.lg, vertical = ROW_VERTICAL_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ROW_CONTENT_SPACING),
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = if (granted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(ICON_BOX_SIZE),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (granted) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(ICON_SIZE),
-                    )
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = desc,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = if (granted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.secondaryContainer,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = PaparcarSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
-                ) {
-                    if (granted) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(BADGE_ICON_SIZE),
-                        )
-                    }
-                    Text(
-                        text = if (granted) stringResource(Res.string.permissions_status_granted)
-                        else stringResource(Res.string.permissions_status_optional),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (granted) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PermissionRow(
-    icon: ImageVector,
-    title: String,
-    desc: String,
-    granted: Boolean,
-) {
-    val surfaceColor by animateColorAsState(
-        targetValue = if (granted) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        label = "perm_row_bg",
-    )
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = surfaceColor,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = PaparcarSpacing.lg, vertical = ROW_VERTICAL_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ROW_CONTENT_SPACING),
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = if (granted) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-                modifier = Modifier.size(ICON_BOX_SIZE),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (granted) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(ICON_SIZE),
-                    )
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = desc,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            // Status chip
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = if (granted) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant
-                },
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = PaparcarSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
-                ) {
-                    if (granted) {
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(BADGE_ICON_SIZE),
-                        )
-                    }
-                    Text(
-                        text = if (granted) {
-                            stringResource(Res.string.permissions_status_granted)
-                        } else {
-                            stringResource(Res.string.permissions_status_pending)
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (granted) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontWeight = FontWeight.Medium,
-                    )
                 }
             }
         }

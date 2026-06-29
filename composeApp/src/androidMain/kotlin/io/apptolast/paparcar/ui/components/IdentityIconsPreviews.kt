@@ -15,9 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
-import io.apptolast.paparcar.ui.illustrations.AutomationIllustration
 import io.apptolast.paparcar.ui.illustrations.EmptySpotsIllustration
 import io.apptolast.paparcar.ui.illustrations.LocationAlertIllustration
+import io.apptolast.paparcar.ui.illustrations.OnboardingHero
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 @Composable
@@ -36,11 +36,18 @@ private fun IdentityIconsShowcase() {
             }
             ReliabilityMeter(SpotReliabilityUiState.HIGH, pct = 0.6f)
 
-            Text("Ilustraciones Nivel 3", style = MaterialTheme.typography.titleSmall)
+            Text("Ilustraciones Nivel 3 (Canvas)", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AutomationIllustration(Modifier.size(96.dp, 82.dp))
                 LocationAlertIllustration(Modifier.size(96.dp, 82.dp))
                 EmptySpotsIllustration(Modifier.size(96.dp, 82.dp))
+            }
+
+            Text("Onboarding heroes (VectorDrawable)", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OnboardingHero(OnboardingHero.WELCOME, Modifier.size(80.dp, 70.dp))
+                OnboardingHero(OnboardingHero.HOW, Modifier.size(80.dp, 70.dp))
+                OnboardingHero(OnboardingHero.PRIVACY, Modifier.size(80.dp, 70.dp))
+                OnboardingHero(OnboardingHero.AUTOMATION, Modifier.size(80.dp, 70.dp))
             }
         }
     }

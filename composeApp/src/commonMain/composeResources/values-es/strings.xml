@@ -115,6 +115,7 @@
     <string name="onboarding_page3_subtitle">La app funciona automáticamente en segundo plano. Solo usamos tu ubicación para detectar aparcamientos — nunca se comparte con terceros.</string>
     <string name="onboarding_cta_next">Siguiente</string>
     <string name="onboarding_cta_setup">Configurar permisos</string>
+    <string name="onboarding_step_counter">Paso %1$d de %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatiza tu aparcamiento</string>

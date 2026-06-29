@@ -44,32 +44,6 @@ private const val SHADOW_LIGHT_ALPHA = 0.06f
 private const val SHADOW_DARK_ALPHA = 0.24f
 private const val WHEEL_RIM = 1.4f
 
-/** "Automatiza tu aparcamiento" — escudo-check con destellos. Onboarding. */
-@Composable
-fun AutomationIllustration(
-    modifier: Modifier = Modifier,
-    dark: Boolean = isAppDark(),
-) {
-    Canvas(modifier.size(140.dp, 120.dp)) {
-        viewBox {
-            // Sombra base
-            drawShadowEllipse(70f, 106f, 38f, 6f, dark)
-            // Escudo (cara izquierda + cara derecha más oscura)
-            val shieldLeft = if (dark) Color(0xFF1BB873) else Color(0xFF009F5E)
-            val shieldRight = if (dark) Color(0xFF0E8C57) else Color(0xFF00824D)
-            drawPath(shieldFront(), shieldLeft)
-            drawPath(shieldBack(), shieldRight)
-            // Check
-            val check = Path().apply { moveTo(56f, 56f); lineTo(66f, 66f); lineTo(86f, 44f) }
-            drawPath(check, Color.White, style = Stroke(7f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            // Destellos
-            val spark = if (dark) Color(0xFF2DF58E) else Color(0xFF23C47D)
-            drawPath(sparkle(), spark)
-            drawCircle(spark, 4.5f, Offset(112f, 74f))
-        }
-    }
-}
-
 /**
  * "Activa la ubicación" — pin de marca + badge de alerta + coche. Gate bloqueante (rojo
  * justificado), pero leído como "serio y amable", no error de sistema.
@@ -216,38 +190,6 @@ private fun DrawScope.miniCar(translateX: Float, translateY: Float, scale: Float
         drawCircle(Color.White, 2.4f, Offset(9f, 49f))
         drawCircle(Color.White, 2.4f, Offset(47f, 49f))
     }
-}
-
-private fun shieldFront(): Path = Path().apply {
-    moveTo(70f, 20f)
-    lineTo(102f, 32f)
-    lineTo(102f, 54f)
-    cubicTo(102f, 73f, 89f, 87f, 70f, 93f)
-    cubicTo(51f, 87f, 38f, 73f, 38f, 54f)
-    lineTo(38f, 32f)
-    close()
-}
-
-private fun shieldBack(): Path = Path().apply {
-    moveTo(70f, 20f)
-    lineTo(102f, 32f)
-    lineTo(102f, 54f)
-    cubicTo(102f, 73f, 89f, 87f, 70f, 93f)
-    close()
-}
-
-private fun sparkle(): Path = Path().apply {
-    moveTo(26f, 30f)
-    lineTo(28.5f, 35f)
-    lineTo(33.5f, 35.7f)
-    lineTo(29.9f, 39.2f)
-    lineTo(30.8f, 44.2f)
-    lineTo(26f, 47f)
-    lineTo(21.2f, 49.2f)
-    lineTo(22.1f, 44.2f)
-    lineTo(18.5f, 41f)
-    lineTo(23.5f, 40.3f)
-    close()
 }
 
 private fun locationPin(): Path = Path().apply {

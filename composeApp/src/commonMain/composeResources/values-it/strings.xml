@@ -80,6 +80,7 @@
     <string name="onboarding_page3_subtitle">L\'app funziona automaticamente in background. Usiamo la tua posizione solo per rilevare il parcheggio — mai condivisa con terze parti.</string>
     <string name="onboarding_cta_next">Avanti</string>
     <string name="onboarding_cta_setup">Configura i permessi</string>
+    <string name="onboarding_step_counter">Passo %1$d di %2$d</string>
 
     <!-- PermissionsScreen -->
     <string name="permissions_title">Automatizza il tuo parcheggio</string>
