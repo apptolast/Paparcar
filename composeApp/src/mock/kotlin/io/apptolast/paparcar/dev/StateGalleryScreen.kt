@@ -6,6 +6,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -39,6 +40,7 @@ import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.map.components.MonitoringPillContent
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.SpotFitRow
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsContent
@@ -48,6 +50,9 @@ import io.apptolast.paparcar.presentation.settings.SettingsContent
 import io.apptolast.paparcar.presentation.settings.SettingsState
 import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistrationContent
 import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistrationState
+import io.apptolast.paparcar.presentation.vehicles.HistoryContent
+import io.apptolast.paparcar.presentation.vehicles.HistoryFilter
+import io.apptolast.paparcar.presentation.vehicles.HistoryState
 import io.apptolast.paparcar.presentation.vehicles.VehiclesContent
 import io.apptolast.paparcar.presentation.vehicles.VehiclesState
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
@@ -121,6 +126,30 @@ private fun sheet(state: HomeState) {
     }
 }
 
+@Composable
+private fun history(state: HistoryState) {
+    HistoryContent(
+        state = state,
+        contentPadding = PaddingValues(0.dp),
+        onViewOnMap = { _, _, _ -> },
+        onFilterSelected = {},
+    )
+}
+
+// SpotFit outcomes derived from computeSpotFit(spot, vehicle): same body = OPTIMAL,
+// car ≤ spot length = FITS, car > spot = DOES_NOT_FIT, spot without size = UNKNOWN.
+private fun fitSpot(size: VehicleSize?, carbody: CarbodyType? = null) =
+    FakeData.nearbySpots.first().copy(sizeCategory = size, carbodyType = carbody)
+private fun fitVehicle(size: VehicleSize, carbody: CarbodyType? = null) =
+    FakeData.vehicleSedan.copy(sizeCategory = size, carbodyType = carbody)
+
+@Composable
+private fun spotFit(spot: io.apptolast.paparcar.domain.model.Spot, vehicle: io.apptolast.paparcar.domain.model.Vehicle) {
+    Column(
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
+    ) { SpotFitRow(spot = spot, vehicle = vehicle) }
+}
+
 // Recipes mirror the existing *Previews.kt so the gallery shows the same curated states on-device.
 private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
@@ -184,6 +213,45 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Sheet · sin spots (vacío)") {
                 sheet(HomeState(hasCorePermissions = true, nearbySpots = emptyList()))
             },
+        ),
+    ),
+    ScreenGroup(
+        "Home · compatibilidad (SpotFit)",
+        listOf(
+            Variant("OPTIMAL (mismo carrocería)") {
+                spotFit(
+                    fitSpot(VehicleSize.MEDIUM_SUV, CarbodyType.HATCHBACK_MEDIUM),
+                    fitVehicle(VehicleSize.MEDIUM_SUV, CarbodyType.HATCHBACK_MEDIUM),
+                )
+            },
+            Variant("FITS (coche ≤ plaza)") {
+                spotFit(fitSpot(VehicleSize.MEDIUM_SUV), fitVehicle(VehicleSize.MICRO_SMALL))
+            },
+            Variant("DOES_NOT_FIT (coche > plaza)") {
+                spotFit(fitSpot(VehicleSize.MICRO_SMALL), fitVehicle(VehicleSize.VAN_HIGH))
+            },
+            Variant("UNKNOWN (plaza sin tamaño)") {
+                spotFit(fitSpot(null), fitVehicle(VehicleSize.MEDIUM_SUV))
+            },
+        ),
+    ),
+    ScreenGroup(
+        "Historial",
+        listOf(
+            Variant("Lista (con sesiones)") {
+                history(HistoryState(sessions = FakeData.allSessions, filteredSessions = FakeData.allSessions))
+            },
+            Variant("Filtro: esta semana") {
+                history(
+                    HistoryState(
+                        sessions = FakeData.allSessions,
+                        filteredSessions = FakeData.allSessions,
+                        activeFilter = HistoryFilter.ThisWeek,
+                    ),
+                )
+            },
+            Variant("Vacío") { history(HistoryState()) },
+            Variant("Cargando") { history(HistoryState(isLoading = true)) },
         ),
     ),
     ScreenGroup(
@@ -279,6 +347,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Registro de vehículo",
         listOf(
             Variant("Nuevo") { VehicleRegistrationContent(state = VehicleRegistrationState()) },
+            Variant("Error de validación (marca vacía)") {
+                VehicleRegistrationContent(state = VehicleRegistrationState(hasInteractedWithForm = true))
+            },
             Variant("Edición") {
                 VehicleRegistrationContent(
                     state = VehicleRegistrationState(
