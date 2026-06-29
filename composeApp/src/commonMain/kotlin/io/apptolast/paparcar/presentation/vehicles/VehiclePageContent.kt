@@ -89,16 +89,14 @@ internal fun VehiclePageContent(
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
         modifier = Modifier.fillMaxSize(),
         showInternalStats = false,
-        headerSlot = {
-            item(key = "vehicle_hero") {
-                VehicleHeroCard(
-                    vehicleWithStats = vehicleWithStats,
-                    reliabilityPct = historyState.statsData?.avgReliabilityPct,
-                    isSettingActive = isSettingActive,
-                    onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
-                    onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
-                )
-            }
+        header = {
+            VehicleHeroCard(
+                vehicleWithStats = vehicleWithStats,
+                reliabilityPct = historyState.statsData?.avgReliabilityPct,
+                isSettingActive = isSettingActive,
+                onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
+                onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
+            )
         },
     )
 }

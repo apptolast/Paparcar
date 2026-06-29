@@ -1,0 +1,33 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="103dp"
+    android:viewportWidth="140"
+    android:viewportHeight="120">
+    <!-- sombra de suelo -->
+    <path android:fillColor="#000000" android:fillAlpha="0.22"
+        android:pathData="M32,106 a38,6 0 1,0 76,0 a38,6 0 1,0 -76,0 z"/>
+    <!-- ficha trasera -->
+    <path android:fillColor="#1B2B45"
+        android:pathData="M60,40 h34 a10,10 0 0 1 10,10 v22 a10,10 0 0 1 -10,10 h-34 a10,10 0 0 1 -10,-10 v-22 a10,10 0 0 1 10,-10 z"/>
+    <!-- ficha frontal -->
+    <path android:fillColor="#16243C" android:strokeColor="#2A3A55" android:strokeWidth="2.4"
+        android:pathData="M46,46 h40 a10,10 0 0 1 10,10 v22 a10,10 0 0 1 -10,10 h-40 a10,10 0 0 1 -10,-10 v-22 a10,10 0 0 1 10,-10 z"/>
+    <!-- esfera del reloj -->
+    <path android:fillColor="#133D28" android:strokeColor="#2DF58E" android:strokeWidth="2.6"
+        android:pathData="M44.5,67 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0 z"/>
+    <!-- agujas -->
+    <path android:strokeColor="#2DF58E" android:strokeWidth="2.4" android:strokeLineCap="round"
+        android:pathData="M55,67 L55,60.5 M55,67 L60,70"/>
+    <!-- punto central -->
+    <path android:fillColor="#2DF58E"
+        android:pathData="M53.4,67 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0 z"/>
+    <!-- barra de texto 1 -->
+    <path android:fillColor="#34466A"
+        android:pathData="M74.5,61 h15 a2.5,2.5 0 0 1 0,5 h-15 a2.5,2.5 0 0 1 0,-5 z"/>
+    <!-- barra de texto 2 -->
+    <path android:fillColor="#2A3A55"
+        android:pathData="M74.5,71 h8 a2.5,2.5 0 0 1 0,5 h-8 a2.5,2.5 0 0 1 0,-5 z"/>
+    <!-- destello -->
+    <path android:fillColor="#2DF58E"
+        android:pathData="M98,30 l1.8,4 4,0.6 -2.9,2.8 0.7,4 -3.6,-1.9 -3.6,1.9 0.7,-4 -2.9,-2.8 4,-0.6 z"/>
+</vector>

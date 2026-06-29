@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -129,7 +128,7 @@ internal fun HistoryContent(
     onFilterSelected: (HistoryFilter) -> Unit = {},
     modifier: Modifier = Modifier,
     showInternalStats: Boolean = true,
-    headerSlot: (LazyListScope.() -> Unit)? = null,
+    header: (@Composable () -> Unit)? = null,
 ) {
     val todayLabel = stringResource(Res.string.history_today)
     val yesterdayLabel = stringResource(Res.string.history_yesterday)
@@ -151,24 +150,32 @@ internal fun HistoryContent(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = if (headerSlot != null) 0.dp else 8.dp,
+                top = if (header != null) 0.dp else 8.dp,
                 bottom = 8.dp,
             ),
         ) {
-            headerSlot?.invoke(this)
-
             if (state.isLoading) {
+                if (header != null) item(key = "header") { header() }
                 item(key = "sk_section") {
-                    HistorySkeletonSection(fillMaxSize = headerSlot == null)
+                    HistorySkeletonSection(fillMaxSize = header == null)
                 }
             } else if (state.sessions.isEmpty()) {
                 item(key = "empty") {
-                    EmptyHistoryState(
-                        modifier = if (headerSlot == null) Modifier.fillParentMaxSize()
-                        else Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                    )
+                    // Un único item a viewport completo: la hero card arriba y el bloque vacío
+                    // centrado en el hueco restante con weight(1f), así queda encuadrado en el
+                    // centro del espacio bajo la card (no del viewport entero). [empty-records]
+                    Column(modifier = Modifier.fillParentMaxSize()) {
+                        header?.invoke()
+                        Box(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            EmptyHistoryState(modifier = Modifier.fillMaxWidth())
+                        }
+                    }
                 }
             } else {
+                if (header != null) item(key = "header") { header() }
                 item(key = "chart_spacer") { Spacer(Modifier.height(8.dp)) }
                 item(key = "chart") {
                     Box(Modifier.padding(horizontal = 16.dp)) {

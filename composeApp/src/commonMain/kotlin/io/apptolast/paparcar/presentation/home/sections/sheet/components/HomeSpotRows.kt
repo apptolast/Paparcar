@@ -270,13 +270,13 @@ internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
             Spacer(Modifier.height(2.dp))
             Text(
                 stringResource(Res.string.home_empty_title),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 stringResource(Res.string.home_empty_subtitle),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
             )
         }
@@ -416,5 +416,5 @@ private const val PRIMARY_CARD_ICON_BOX_DP = 44
 private const val PRIMARY_CARD_ICON_CORNER_DP = 14
 private const val EMPTY_ICON_ALPHA = 0.25f
 private const val EMPTY_SUBTITLE_ALPHA = 0.5f
-private const val EMPTY_ILLUSTRATION_W = 120
-private const val EMPTY_ILLUSTRATION_H = 103
+private const val EMPTY_ILLUSTRATION_W = 180
+private const val EMPTY_ILLUSTRATION_H = 154

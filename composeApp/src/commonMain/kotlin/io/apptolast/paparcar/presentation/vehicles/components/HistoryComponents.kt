@@ -1,31 +1,30 @@
 package io.apptolast.paparcar.presentation.vehicles.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DirectionsCar
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.empty_records
+import paparcar.composeapp.generated.resources.empty_records_dark
 import paparcar.composeapp.generated.resources.history_empty_subtitle
 import paparcar.composeapp.generated.resources.history_empty_title
 
@@ -50,51 +49,56 @@ internal fun ActiveSectionHeader(text: String) {
 }
 
 /**
- * Empty history state (v1 redesign) — circular surfaceVariant container with
- * centred icon, then bold title + muted body. 32dp horizontal / 60dp vertical
- * padding keeps copy comfortable on wide phones.
+ * Empty history state (Nivel 3) — ilustración de marca `empty-records` (claro+oscuro), luego bold
+ * title + muted body. El bloque se centra vertical/horizontalmente en el espacio que le da el caller
+ * (en historial, [HistoryContent] le pasa `fillParentMaxSize` → queda encuadrado en el hueco entre la
+ * hero card y la bottom nav). La ilustración va pegada a su texto (gap mínimo) porque el propio
+ * drawable ya reserva aire inferior con la sombra de suelo.
+ *
+ * La ilustración trae su propio color (multicolor) → se pinta con [Image] SIN tint/colorFilter.
+ * Theme-aware por luminancia de `surface` (no `isSystemInDarkTheme()`, que devuelve la variante
+ * clara con tema forzado), espejando [io.apptolast.paparcar.ui.illustrations.OnboardingHero].
  */
 @Composable
 internal fun EmptyHistoryState(modifier: Modifier = Modifier) {
+    val dark = MaterialTheme.colorScheme.surface.luminance() < ILLUSTRATION_DARK_LUMINANCE
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 60.dp),
+            .padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.Center,
     ) {
-        Box(
+        Image(
+            painter = painterResource(
+                if (dark) Res.drawable.empty_records_dark else Res.drawable.empty_records,
+            ),
+            contentDescription = null,
             modifier = Modifier
-                .size(ICON_CIRCLE_DP.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = CIRCLE_BG_ALPHA)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.DirectionsCar,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = ICON_ALPHA),
-                modifier = Modifier.size(36.dp),
-            )
-        }
-        Spacer(Modifier.height(8.dp))
+                .width(ILLUSTRATION_WIDTH_DP.dp)
+                .height(ILLUSTRATION_HEIGHT_DP.dp),
+        )
+        Spacer(Modifier.height(ILLUSTRATION_TEXT_GAP_DP.dp))
         Text(
             stringResource(Res.string.history_empty_title),
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
+        Spacer(Modifier.height(TITLE_SUBTITLE_GAP_DP.dp))
         Text(
             stringResource(Res.string.history_empty_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
             textAlign = TextAlign.Center,
         )
     }
 }
 
-private const val ICON_CIRCLE_DP = 72
-private const val CIRCLE_BG_ALPHA = 0.5f
-private const val ICON_ALPHA = 0.55f
+private const val ILLUSTRATION_WIDTH_DP = 180
+private const val ILLUSTRATION_HEIGHT_DP = 154
+private const val ILLUSTRATION_TEXT_GAP_DP = 2
+private const val TITLE_SUBTITLE_GAP_DP = 4
+private const val ILLUSTRATION_DARK_LUMINANCE = 0.5f
 private const val SUBTITLE_ALPHA = 0.55f
