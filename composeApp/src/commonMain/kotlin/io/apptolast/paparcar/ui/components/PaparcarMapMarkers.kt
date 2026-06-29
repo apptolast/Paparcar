@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale as drawScale
@@ -64,6 +65,7 @@ import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBlueLight
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapGreenLight
+import io.apptolast.paparcar.ui.theme.PapInk
 import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
 import kotlinx.coroutines.launch
@@ -164,10 +166,10 @@ fun VehicleBadgeMarker(
     }
     val onSurface = MaterialTheme.colorScheme.onSurface
     val borderColor = if (selected) onSurface else stateColor
-    // Card tone, not the near-black app `surface`: in dark `surface` (PapInk #0D1117) reads as total
-    // black, so use the "cards" token (surfaceContainerHigh ≈ #1A2232 dark / off-white light) so the
-    // tag floats like a card in both themes. [MAP-ICONS-V2]
-    val tagFill = MaterialTheme.colorScheme.surfaceContainerHigh
+    // Theme-aware tag fill: white in light, near-black ink in dark — the original look. The full-colour
+    // car pops on it in both themes. Detect dark by theme luminance (not isSystemInDarkTheme, which can
+    // disagree with the resolved app theme). [MAP-ICONS-V2]
+    val tagFill = if (MaterialTheme.colorScheme.surface.luminance() < TAG_DARK_LUMINANCE) PapInk else Color.White
     val shadowColor = onSurface.copy(alpha = TAG_SHADOW_ALPHA)
     val borderUnits = if (selected) TAG_SEL_BORDER_U else TAG_BORDER_U
 
@@ -234,6 +236,7 @@ private const val TAG_BORDER_U      = 3.6f  // default state-colour border — m
 private const val TAG_SEL_BORDER_U  = 4f    // selected onSurface border
 private const val TAG_DOT_R         = 4.5f  // position-dot radius (viewBox units)
 private const val TAG_SHADOW_ALPHA  = 0.18f
+private const val TAG_DARK_LUMINANCE = 0.5f // theme surface below this ⇒ dark ⇒ ink fill, else white
 private const val ORIGIN_DOT_SCALE      = 1.4f // blue trip-origin dot, larger than the normal dot [TRIP-TRAIL-001]
 private const val ORIGIN_DOT_HALO_SCALE = 1.9f // white halo behind the origin dot
 
