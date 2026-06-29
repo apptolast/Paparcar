@@ -74,9 +74,13 @@ kmp-maps = "0.8.1"
 napier = "2.7.1"
 
 # ── Image loading — Coil 3 (KMP) ─────────────────────────────────────────────
-# coil-compose en commonMain (AsyncImage); el fetcher de red se auto-registra
-# vía el artefacto coil-network-* presente en el classpath (okhttp en Android).
+# coil-compose en commonMain (AsyncImage). Fetcher de red multiplataforma vía
+# coil-network-ktor3 (commonMain) + engine Ktor por plataforma: okhttp (Android),
+# darwin (iOS). Coil auto-registra el fetcher al estar en el classpath.
 coil = "3.3.0"
+
+# ── Ktor client — engine de red para Coil (KMP) ──────────────────────────────
+ktor = "3.3.0"
 
 # ── Login Library ────────────────────────────────────────────────────────────
 baselogin = "1.0.17"
@@ -175,7 +179,11 @@ napier = { module = "io.github.aakira:napier", version.ref = "napier" }
 
 # ── Image loading — Coil 3 (KMP) ─────────────────────────────────────────────
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+
+# ── Ktor client engines (motor de red de Coil, uno por plataforma) ───────────
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }  # androidMain
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }  # iosMain
 
 # ── Login Library (JitPack) ───────────────────────────────────────────────────
 baselogin = { module = "com.github.apptolast.BaseLogin:baselogin", version.ref = "baselogin" }

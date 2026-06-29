@@ -124,9 +124,11 @@ kotlin {
             // KMP Maps — Google Maps en Android + Apple Maps en iOS
             implementation(libs.kmp.maps.core)
 
-            // Image loading — Coil 3 (AsyncImage en commonMain). El fetcher de red
-            // se añade por plataforma (okhttp en androidMain; ktor en iOS a futuro).
+            // Image loading — Coil 3 (AsyncImage en commonMain). Fetcher de red
+            // multiplataforma vía Ktor; el engine concreto va por plataforma
+            // (okhttp en androidMain, darwin en iosMain).
             implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
         }
 
         // ── androidMain — exclusivo Android ──────────────────────────────────
@@ -165,9 +167,14 @@ kotlin {
             // GeoFirestore — proximity queries via geohash
             implementation(libs.geofire.android)
 
-            // Coil 3 — fetcher de red (OkHttp). Coil lo auto-registra al estar en
-            // el classpath, así AsyncImage carga http(s) sin configuración extra.
-            implementation(libs.coil.network.okhttp)
+            // Engine Ktor (OkHttp) para el fetcher de red de Coil en Android.
+            implementation(libs.ktor.client.okhttp)
+        }
+
+        // ── iosMain — exclusivo iOS ──────────────────────────────────────────
+        iosMain.dependencies {
+            // Engine Ktor (Darwin/NSURLSession) para el fetcher de red de Coil en iOS.
+            implementation(libs.ktor.client.darwin)
         }
 
         // ── commonTest ────────────────────────────────────────────────────────
