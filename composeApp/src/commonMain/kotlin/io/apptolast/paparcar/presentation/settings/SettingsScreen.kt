@@ -15,7 +15,11 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapCardLight
+import io.apptolast.paparcar.ui.theme.PapInk
+import io.apptolast.paparcar.ui.theme.PapInkHigh
 import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.PapSurfaceLight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,20 +37,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Logout
-import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -80,11 +82,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.ui.components.PapAlertDialog
@@ -101,7 +105,6 @@ import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.settings_auto_detect
 import paparcar.composeapp.generated.resources.settings_auto_detect_desc
-import paparcar.composeapp.generated.resources.settings_cd_back
 import paparcar.composeapp.generated.resources.settings_contact
 import paparcar.composeapp.generated.resources.settings_danger_zone
 import paparcar.composeapp.generated.resources.settings_danger_zone_subtitle
@@ -223,11 +226,11 @@ internal fun SettingsContent(
     if (state.showDeleteAccountConfirmation) {
         PapAlertDialog(
             onDismiss = { onIntent(SettingsIntent.DismissDeleteAccount) },
-            icon = Icons.Outlined.Delete,
+            icon = Icons.Rounded.Delete,
             title = stringResource(Res.string.settings_delete_account_confirm_title),
             body = stringResource(Res.string.settings_delete_account_confirm_message),
             primaryLabel = stringResource(Res.string.settings_delete_account_confirm_action),
-            primaryLeadingIcon = Icons.Outlined.Delete,
+            primaryLeadingIcon = Icons.Rounded.Delete,
             onPrimary = { onIntent(SettingsIntent.ConfirmDeleteAccount) },
             cancelLabel = stringResource(Res.string.settings_delete_account_cancel),
             accent = PapDialogAccent.Destructive,
@@ -270,6 +273,7 @@ internal fun SettingsContent(
                     displayName = state.userProfile?.displayName
                         ?: stringResource(Res.string.settings_profile_name_placeholder),
                     email = state.userProfile?.email,
+                    photoUrl = state.userProfile?.photoUrl,
                     createdAtMs = state.userProfile?.createdAt,
                     onLogout = { onIntent(SettingsIntent.Logout) },
                 )
@@ -289,7 +293,7 @@ internal fun SettingsContent(
                     )
                 }
                 SettingsDropdownItem(
-                    icon = Icons.Outlined.Language,
+                    icon = Icons.Rounded.Language,
                     label = stringResource(Res.string.settings_language),
                     description = stringResource(Res.string.settings_language_desc),
                     options = languageOptions,
@@ -302,7 +306,7 @@ internal fun SettingsContent(
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_map)) }
             item {
                 SettingsSwitchItem(
-                    icon = Icons.Outlined.Map,
+                    icon = Icons.Rounded.Map,
                     label = stringResource(Res.string.settings_distance_unit),
                     description = stringResource(Res.string.settings_distance_unit_desc),
                     checked = imperialUnits,
@@ -314,7 +318,7 @@ internal fun SettingsContent(
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_detection)) }
             item {
                 SettingsSwitchItem(
-                    icon = Icons.Outlined.DirectionsCar,
+                    icon = Icons.Rounded.DirectionsCar,
                     label = stringResource(Res.string.settings_auto_detect),
                     description = stringResource(Res.string.settings_auto_detect_desc),
                     checked = state.autoDetectParking,
@@ -347,28 +351,28 @@ internal fun SettingsContent(
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_about)) }
             item {
                 SettingsInfoItem(
-                    icon = Icons.Outlined.Info,
+                    icon = Icons.Rounded.Info,
                     label = stringResource(Res.string.settings_version),
                     value = state.appVersion,
                 )
             }
             item {
                 SettingsNavItem(
-                    icon = Icons.Outlined.Shield,
+                    icon = Icons.Rounded.Lock,
                     label = stringResource(Res.string.settings_privacy),
                     onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
                 )
             }
             item {
                 SettingsNavItem(
-                    icon = Icons.Outlined.VerifiedUser,
+                    icon = Icons.Rounded.Description,
                     label = stringResource(Res.string.settings_licenses),
                     onClick = { onIntent(SettingsIntent.OpenLicenses) },
                 )
             }
             item {
                 SettingsNavItem(
-                    icon = Icons.Outlined.Email,
+                    icon = Icons.Rounded.Email,
                     label = stringResource(Res.string.settings_contact),
                     onClick = { onIntent(SettingsIntent.OpenContact) },
                 )
@@ -417,6 +421,7 @@ private fun SectionHeaderDanger(title: String) {
 private fun ProfileCardV2(
     displayName: String,
     email: String?,
+    photoUrl: String?,
     createdAtMs: Long?,
     onLogout: () -> Unit,
 ) {
@@ -429,20 +434,7 @@ private fun ProfileCardV2(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(AVATAR_DP.dp)
-                        .clip(CircleShape)
-                        .background(cs.primary),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = cs.onPrimary,
-                    )
-                }
+                ProfileAvatar(displayName = displayName, photoUrl = photoUrl)
                 Spacer(Modifier.size(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -481,7 +473,7 @@ private fun ProfileCardV2(
                     .height(44.dp),
                 shape = RoundedCornerShape(10.dp),
             ) {
-                Icon(Icons.Outlined.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.size(6.dp))
                 Text(
                     stringResource(Res.string.settings_profile_logout),
@@ -489,6 +481,41 @@ private fun ProfileCardV2(
                     fontWeight = FontWeight.SemiBold,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Profile avatar: loads [photoUrl] when present, falling back to the display
+ * name's initial on a brand-green disc while loading, on error, or when no URL
+ * exists. The fallback is identical to the no-photo state so there's never an
+ * empty circle. [photoUrl] image fills the disc (crop-to-fill).
+ */
+@Composable
+private fun ProfileAvatar(displayName: String, photoUrl: String?) {
+    val cs = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier
+            .size(AVATAR_DP.dp)
+            .clip(CircleShape)
+            .background(cs.primary),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Initial sits underneath; the photo (when it resolves) paints over it,
+        // so loading/error/no-URL all degrade gracefully to the initial.
+        Text(
+            text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = cs.onPrimary,
+        )
+        if (!photoUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = photoUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }
@@ -782,7 +809,7 @@ private fun MapTypeSelectedBadge(selected: Boolean, modifier: Modifier = Modifie
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                Icons.Filled.Check,
+                Icons.Rounded.Check,
                 contentDescription = null,
                 tint = cs.onPrimary,
                 modifier = Modifier.size(12.dp),
@@ -817,7 +844,7 @@ private fun NotificationsGroupCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                SettingsIconBox(icon = Icons.Outlined.Notifications)
+                SettingsIconBox(icon = Icons.Rounded.Notifications)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         stringResource(Res.string.settings_notifications_title),
@@ -938,7 +965,7 @@ private fun DangerZoneCard(
                         )
                     } else {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.size(6.dp))
                             Text(label, fontWeight = FontWeight.Bold)
                         }
@@ -1032,7 +1059,7 @@ private fun SettingsNavItem(
                 }
             }
             Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
                 tint = cs.onSurface.copy(alpha = CHEVRON_DIM_ALPHA),
                 modifier = Modifier.size(20.dp),
@@ -1046,7 +1073,7 @@ private fun SettingsIconBox(icon: ImageVector) {
     val cs = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
-            .size(38.dp)
+            .size(ICON_BOX_DP.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(cs.primaryContainer),
         contentAlignment = Alignment.Center,
@@ -1109,7 +1136,7 @@ private fun SettingsDropdownItem(
                         text = { Text(displayName) },
                         onClick = { onSelect(tag); expanded = false },
                         leadingIcon = if (tag == selected) {
-                            { Icon(Icons.Filled.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp)) }
+                            { Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp)) }
                         } else null,
                     )
                 }
@@ -1127,6 +1154,9 @@ private const val AVATAR_DP = 56
 
 private const val THEME_PREVIEW_RATIO = 0.85f
 
+/** Row-icon container size — homogeneous across every Settings row. */
+private const val ICON_BOX_DP = 40
+
 private const val CARD_BORDER_ALPHA = 0.3f
 private const val SECTION_LABEL_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA = 0.55f
@@ -1138,10 +1168,12 @@ private const val DANGER_BORDER_ALPHA = 0.7f
 private const val DANGER_SUBTITLE_ALPHA = 0.6f
 private const val STRIPE_ALPHA = 0.7f
 
-private val THEME_LIGHT_BG = Color(0xFFF5FBF4)
-private val THEME_LIGHT_SURFACE = Color(0xFFFFFFFF)
-private val THEME_DARK_BG = Color(0xFF0D1C14)
-private val THEME_DARK_SURFACE = Color(0xFF0F2218)
+// Mirror the *real* theme surfaces so the swatches (and the System diagonal)
+// preview exactly what the app renders — not a stand-in greenish palette.
+private val THEME_LIGHT_BG = PapSurfaceLight   // light page background (#F0F4FB)
+private val THEME_LIGHT_SURFACE = PapCardLight // light card surface (#FFFFFF)
+private val THEME_DARK_BG = PapInk             // dark app base (#0D1117)
+private val THEME_DARK_SURFACE = PapInkHigh    // dark card surface (#1A2232)
 
 private val MAP_SAT_A = Color(0xFF2D3B2D)
 private val MAP_SAT_B = Color(0xFF4A5942)

@@ -73,6 +73,11 @@ kmp-maps = "0.8.1"
 # ── Logging — Napier ─────────────────────────────────────────────────────────
 napier = "2.7.1"
 
+# ── Image loading — Coil 3 (KMP) ─────────────────────────────────────────────
+# coil-compose en commonMain (AsyncImage); el fetcher de red se auto-registra
+# vía el artefacto coil-network-* presente en el classpath (okhttp en Android).
+coil = "3.3.0"
+
 # ── Login Library ────────────────────────────────────────────────────────────
 baselogin = "1.0.17"
 
@@ -167,6 +172,10 @@ kmp-maps-core = { module = "com.swmansion.kmpmaps:core", version.ref = "kmp-maps
 
 # ── Logging — Napier (KMP) ───────────────────────────────────────────────────
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
+
+# ── Image loading — Coil 3 (KMP) ─────────────────────────────────────────────
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 
 # ── Login Library (JitPack) ───────────────────────────────────────────────────
 baselogin = { module = "com.github.apptolast.BaseLogin:baselogin", version.ref = "baselogin" }
