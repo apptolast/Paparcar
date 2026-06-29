@@ -1,8 +1,8 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.runtime.Composable
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import org.jetbrains.compose.resources.stringResource
@@ -31,14 +31,14 @@ internal fun HomeReleaseDialog(
     PapAlertDialog(
         onDismiss = onDismiss,
         isLoading = isLoading,
-        icon = Icons.Outlined.Campaign,
+        icon = Icons.Rounded.Campaign,
         title = stringResource(Res.string.home_release_dialog_title),
         body = stringResource(Res.string.home_release_dialog_message),
         primaryLabel = stringResource(Res.string.home_release_dialog_publish),
-        primaryLeadingIcon = Icons.Outlined.Campaign,
+        primaryLeadingIcon = Icons.Rounded.Campaign,
         onPrimary = onPublishSpot,
         secondaryLabel = stringResource(Res.string.home_release_dialog_delete_only),
-        secondaryLeadingIcon = Icons.AutoMirrored.Outlined.Logout,
+        secondaryLeadingIcon = Icons.AutoMirrored.Rounded.Logout,
         onSecondary = onDeleteOnly,
         cancelLabel = stringResource(Res.string.home_release_dialog_cancel),
     )

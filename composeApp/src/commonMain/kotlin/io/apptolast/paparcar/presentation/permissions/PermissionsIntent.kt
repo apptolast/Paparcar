@@ -1,7 +1,22 @@
 package io.apptolast.paparcar.presentation.permissions
 
 sealed class PermissionsIntent {
+    /** Footer CTA — guided sequential flow (CORE → GPS → PRODUCER). [DET-READY-001i] */
     data object RequestPermissions : PermissionsIntent()
+
+    // ── Per-card direct grants — each permission row is independently tappable, in addition to the
+    //    footer's guided flow. [ONB-CARDS-001]
+    /** Foreground (fine) location row. Routes to system settings if permanently denied. */
+    data object RequestForegroundLocation : PermissionsIntent()
+    /** Location services (GPS toggle) row → opens system location settings. */
+    data object OpenLocationServices : PermissionsIntent()
+    /** Background location row → guide dialog, then the always-on request (needs foreground first). */
+    data object RequestBackgroundLocation : PermissionsIntent()
+    /** Activity recognition row → its own system dialog (no longer bundled with notifications). */
+    data object RequestActivityRecognition : PermissionsIntent()
+    /** Notifications row → its own system dialog. */
+    data object RequestNotifications : PermissionsIntent()
+
     data object RequestBluetoothPermission : PermissionsIntent()
     data object RequestBatteryOptimization : PermissionsIntent()
     /** Open the manufacturer's autostart / background-activity settings screen. */

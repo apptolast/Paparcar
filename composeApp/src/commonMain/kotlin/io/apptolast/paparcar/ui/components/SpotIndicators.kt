@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -92,7 +92,7 @@ fun TTLIndicator(
         label = label,
         containerColor = containerColor,
         contentColor = contentColor,
-        icon = Icons.Outlined.Timer,
+        icon = Icons.Rounded.Timer,
         modifier = modifier,
     )
 }
@@ -121,7 +121,7 @@ fun EnRouteIndicator(
         horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
     ) {
         Icon(
-            imageVector = Icons.Outlined.Group,
+            imageVector = Icons.Rounded.Group,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
             modifier = Modifier.size(IndicatorIconSize),

@@ -13,10 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -100,11 +100,11 @@ fun ConfirmationBottomSheet(
             headerLabel = stringResource(Res.string.confirmation_sheet_title),
             title = stringResource(Res.string.confirmation_sheet_question),
             onDismiss = onDismiss,
-            leading = { PeekHeaderIconChip(icon = Icons.Outlined.DirectionsCar) },
+            leading = { PeekHeaderIconChip(icon = Icons.Rounded.DirectionsCar) },
             modifier = Modifier.padding(bottom = SHEET_BOTTOM_DP.dp),
             content = {
                 HelperRow(
-                    icon = Icons.Outlined.LocationOn,
+                    icon = Icons.Rounded.LocationOn,
                     primary = resolvedAddress,
                     secondary = methodLine,
                 )
@@ -113,7 +113,7 @@ fun ConfirmationBottomSheet(
             actions = {
                 PapFooterButton(
                     label = stringResource(Res.string.confirmation_sheet_confirm),
-                    leadingIcon = Icons.Outlined.Check,
+                    leadingIcon = Icons.Rounded.Check,
                     onClick = onConfirm,
                     style = PapFooterButtonStyle.Filled,
                     modifier = Modifier.fillMaxWidth(),
@@ -121,7 +121,7 @@ fun ConfirmationBottomSheet(
                 Spacer(Modifier.height(8.dp))
                 PapFooterButton(
                     label = stringResource(Res.string.confirmation_sheet_withdraw),
-                    leadingIcon = Icons.Outlined.Close,
+                    leadingIcon = Icons.Rounded.Close,
                     onClick = onDismiss,
                     style = PapFooterButtonStyle.Outlined,
                     modifier = Modifier.fillMaxWidth(),

@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -101,7 +101,7 @@ private fun BtActiveBanner(deviceLabel: String) {
             horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
         ) {
             Icon(
-                imageVector = Icons.Outlined.Bluetooth,
+                imageVector = Icons.Rounded.Bluetooth,
                 contentDescription = null,
                 tint = PapBlue,
                 modifier = Modifier.size(BannerIconSize),
@@ -129,7 +129,7 @@ private fun ArActiveBanner(onConfigureBluetooth: (() -> Unit)?) {
             horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
         ) {
             Icon(
-                imageVector = Icons.Outlined.DirectionsCar,
+                imageVector = Icons.Rounded.DirectionsCar,
                 contentDescription = null,
                 tint = PapGreen,
                 modifier = Modifier.size(BannerIconSize),

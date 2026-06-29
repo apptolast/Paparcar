@@ -20,7 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -145,7 +145,7 @@ private fun HeaderZoneChips(
             // Same glass-FAB contract as the zone chips and map FABs: surfaceContainer
             // fill, FAB shadow, no resting border, glass-on-drag. [MAP-GLASS-001]
             MapCircleFab(
-                icon = Icons.Outlined.Add,
+                icon = Icons.Rounded.Add,
                 onClick = onAddZone,
                 contentDescription = stringResource(Res.string.home_header_add_zone),
                 size = ADD_ZONE_CHIP_SIZE_DP.dp,
@@ -175,7 +175,7 @@ private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Outlined.Add,
+                        imageVector = Icons.Rounded.Add,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(CHIP_ICON_DP.dp),

@@ -370,12 +370,10 @@
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Ręczne</string>
 
-    <!-- Ekran uzasadnienia uprawnień -->
-    <string name="perm_rationale_title">Zautomatyzuj swoje parkowanie</string>
-    <string name="perm_rationale_subtitle">Zapamiętaj, gdzie zaparkowałeś, prowadź automatyczną historię i zwolnij swoje miejsce, gdy odjeżdżasz — automatycznie. Wystarczy kilka uprawnień, aby to działało.</string>
-    <string name="perm_rationale_body">Paparcar wykrywa, gdy opuszczasz swoje miejsce parkingowe i automatycznie udostępnia je pobliskim kierowcom — tak samo jak Ty skorzystałbyś, gdyby ktoś inny to zrobił.\n\nAby to działało, potrzebujemy dostępu do Twojej lokalizacji i czujników ruchu. Twoja dokładna lokalizacja nigdy nie jest udostępniana innym użytkownikom.</string>
-    <string name="perm_rationale_cta">Rozumiem, włącz uprawnienia</string>
-    <string name="perm_rationale_skip">Nie teraz</string>
+    <!-- Hasła korzyści dla poziomów uprawnień [ONB-SCAFFOLD-001] -->
+    <string name="permissions_tier_essential_benefit">Aby znajdować i widzieć miejsca na mapie</string>
+    <string name="permissions_tier_detection_benefit">Aby udostępnić miejsce po odjeździe — bez dotykania</string>
+    <string name="permissions_tier_optional_benefit">Przydatne tylko przy włączonym automatycznym wykrywaniu — by nigdy nie zawiodło</string>
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Powiedz nam o swoim aucie</string>

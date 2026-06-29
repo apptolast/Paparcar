@@ -18,14 +18,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.icons.icon
-import androidx.compose.material.icons.outlined.Bolt
-import androidx.compose.material.icons.outlined.EditLocationAlt
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.EditLocationAlt
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -164,7 +164,7 @@ private fun FloatingBackButton(onClick: () -> Unit, modifier: Modifier = Modifie
         shadowElevation = BACK_BUTTON_ELEVATION,
     ) {
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
             contentDescription = stringResource(Res.string.map_cd_back),
             tint = cs.onSurface,
             modifier = Modifier
@@ -229,7 +229,7 @@ private fun HistoryDetailSheet(
             }
             PapFooterButton(
                 label = stringResource(Res.string.parking_detail_navigate_action),
-                leadingIcon = Icons.Outlined.Navigation,
+                leadingIcon = Icons.Rounded.Navigation,
                 onClick = { onNavigate(lat, lon) },
                 style = PapFooterButtonStyle.Filled,
                 enabled = session != null,
@@ -336,7 +336,7 @@ private fun DateTimeRow(timestampMs: Long, isActive: Boolean) {
         " ${dateTime.year}"
 
     MetaRow(
-        icon = Icons.Outlined.Schedule,
+        icon = Icons.Rounded.Schedule,
         tint = if (isActive) cs.primary else cs.onSurfaceVariant,
         text = "$dateStr · $timeStr",
     )
@@ -347,17 +347,17 @@ private fun DetectionRow(spotType: SpotType, isActive: Boolean) {
     val cs = MaterialTheme.colorScheme
     val (icon, label, tint) = when (spotType) {
         SpotType.AUTO_DETECTED -> Triple(
-            Icons.Outlined.Bolt,
+            Icons.Rounded.Bolt,
             stringResource(Res.string.parking_detail_detection_auto),
             if (isActive) cs.primary else cs.onSurfaceVariant,
         )
         SpotType.MANUAL_REPORT -> Triple(
-            Icons.Outlined.EditLocationAlt,
+            Icons.Rounded.EditLocationAlt,
             stringResource(Res.string.parking_detail_detection_manual),
             if (isActive) cs.secondary else cs.onSurfaceVariant,
         )
         SpotType.HOME_GEOFENCE -> Triple(
-            Icons.Outlined.Home,
+            Icons.Rounded.Home,
             stringResource(Res.string.parking_detail_detection_home),
             if (isActive) cs.primary else cs.onSurfaceVariant,
         )

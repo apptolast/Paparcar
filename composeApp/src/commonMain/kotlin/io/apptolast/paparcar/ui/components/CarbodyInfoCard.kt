@@ -16,10 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -67,7 +67,7 @@ fun CarbodyInfoCard(
     val cs = MaterialTheme.colorScheme
     val rules = carbody.getParkingRules()
     val alertCopy = rules.alertKey.label()
-    val alertIcon = if (rules.requiresHighCeiling) Icons.Outlined.WarningAmber else Icons.Outlined.Info
+    val alertIcon = if (rules.requiresHighCeiling) Icons.Rounded.WarningAmber else Icons.Rounded.Info
     val alertTint = if (rules.requiresHighCeiling) cs.error else cs.primary
 
     Surface(
@@ -123,7 +123,7 @@ fun CarbodyInfoCard(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Edit,
+                            imageVector = Icons.Rounded.Edit,
                             contentDescription = null,
                             tint = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                             modifier = Modifier.size(14.dp),
@@ -145,7 +145,7 @@ fun CarbodyInfoCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(
-                    imageVector = if (isManualOverride) Icons.Outlined.Edit else Icons.Outlined.AutoAwesome,
+                    imageVector = if (isManualOverride) Icons.Rounded.Edit else Icons.Rounded.AutoAwesome,
                     contentDescription = null,
                     tint = cs.primary,
                     modifier = Modifier.size(14.dp),

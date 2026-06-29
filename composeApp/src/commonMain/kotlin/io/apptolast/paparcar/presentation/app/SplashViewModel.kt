@@ -238,7 +238,8 @@ class SplashViewModel(
         // being re-routed through the permission rationale on every launch.
         val route = when {
             !isOnboardingCompleted -> Routes.ONBOARDING
-            !perms.hasCorePermissions -> Routes.PERMISSIONS_RATIONALE
+            // Single explain-and-grant permissions surface (rationale screen retired). [ONB-SCAFFOLD-001]
+            !perms.hasCorePermissions -> Routes.PERMISSIONS
             !perms.isLocationServicesEnabled -> Routes.PERMISSIONS
             else -> postPermissionsRoute
         }

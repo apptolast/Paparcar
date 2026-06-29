@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +35,7 @@ fun PaparcarBottomActionBar(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    icon: ImageVector? = Icons.Outlined.Navigation,
+    icon: ImageVector? = Icons.Rounded.Navigation,
     isLoading: Boolean = false,
     enabled: Boolean = true,
 ) {

@@ -17,8 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -95,12 +95,12 @@ fun VehicleSizeExplainerScreen(
 
             val items = listOf(
                 Triple(
-                    Icons.Outlined.Straighten,
+                    Icons.Rounded.Straighten,
                     stringResource(Res.string.vehicle_size_explainer_card1_title),
                     stringResource(Res.string.vehicle_size_explainer_card1_desc),
                 ),
                 Triple(
-                    Icons.Outlined.Lock,
+                    Icons.Rounded.Lock,
                     stringResource(Res.string.vehicle_size_explainer_card2_title),
                     stringResource(Res.string.vehicle_size_explainer_card2_desc),
                 ),

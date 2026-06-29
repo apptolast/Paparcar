@@ -20,13 +20,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.LocalParking
-import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.LocalParking
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -98,7 +98,7 @@ private enum class DesignState(val label: String) {
 @Composable
 private fun visualFor(state: DesignState): RVisual = when (state) {
     DesignState.NoVehicle -> RVisual(
-        icon = Icons.Outlined.Add,
+        icon = Icons.Rounded.Add,
         tint = PapAmber,
         title = "Add your car",
         subtitle = "Automate parking — find-my-car & history",
@@ -109,7 +109,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.BlockedCore -> RVisual(
-        icon = Icons.Outlined.Warning,
+        icon = Icons.Rounded.Warning,
         tint = PapRed,
         title = "Location is off",
         subtitle = "Paparcar needs location to show spots near you",
@@ -120,7 +120,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.BlockedProducer -> RVisual(
-        icon = Icons.Outlined.Explore,
+        icon = Icons.Rounded.Explore,
         tint = PapAmber,
         title = "Turn on auto-detection",
         subtitle = "Save your spot automatically when you drive off",
@@ -131,7 +131,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.AwaitingFirstPark -> RVisual(
-        icon = Icons.Outlined.LocalParking,
+        icon = Icons.Rounded.LocalParking,
         tint = PapBlue,
         title = "Where's your car?",
         subtitle = "Mark your spot to start automating parking",
@@ -142,7 +142,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.Monitoring -> RVisual(
-        icon = Icons.Outlined.DirectionsCar,
+        icon = Icons.Rounded.DirectionsCar,
         tint = PapGreen,
         title = "Following your trip",
         subtitle = "We'll catch where you park",
@@ -153,7 +153,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.Parked -> RVisual(
-        icon = Icons.Outlined.LocalParking,
+        icon = Icons.Rounded.LocalParking,
         tint = PapGreen,
         title = "Parked & protected",
         subtitle = "Watching for departure — handled by the existing parked-car card",
@@ -164,7 +164,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.NonParking -> RVisual(
-        icon = Icons.AutoMirrored.Outlined.DirectionsBike,
+        icon = Icons.AutoMirrored.Rounded.DirectionsBike,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         title = "Detection off",
         subtitle = "Active vehicle doesn't take parking spots — nothing to show",
@@ -175,7 +175,7 @@ private fun visualFor(state: DesignState): RVisual = when (state) {
     )
 
     DesignState.ReadyBluetooth -> RVisual(
-        icon = Icons.Outlined.Bluetooth,
+        icon = Icons.Rounded.Bluetooth,
         tint = PapGreen,
         title = "Bluetooth armed",
         subtitle = "Fully automatic — no manual action ever needed",
@@ -612,7 +612,7 @@ private fun MockVehicleChip(name: String, parked: Boolean, status: @Composable (
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.DirectionsCar,
+                        imageVector = Icons.Rounded.DirectionsCar,
                         contentDescription = null,
                         tint = if (parked) PapGreen else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp),
@@ -640,7 +640,7 @@ private fun TapToParkAffordance() {
             horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
         ) {
             Icon(
-                imageVector = Icons.Outlined.Add,
+                imageVector = Icons.Rounded.Add,
                 contentDescription = null,
                 tint = PapBlue,
                 modifier = Modifier.size(14.dp),

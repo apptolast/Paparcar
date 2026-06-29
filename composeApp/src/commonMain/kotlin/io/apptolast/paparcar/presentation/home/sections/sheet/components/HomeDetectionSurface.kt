@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AddLocationAlt
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.LocationOff
-import androidx.compose.material.icons.outlined.Sensors
+import androidx.compose.material.icons.rounded.AddLocationAlt
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -86,7 +86,7 @@ internal fun HomeDetectionSurface(
     when (state) {
         DetectionUiState.NoVehicle -> ActionRow(
             tone = amber,
-            icon = Icons.Outlined.DirectionsCar,
+            icon = Icons.Rounded.DirectionsCar,
             title = stringResource(Res.string.home_det_novehicle_title),
             subtitle = stringResource(Res.string.home_det_novehicle_sub),
             primaryLabel = stringResource(Res.string.home_det_novehicle_cta),
@@ -96,7 +96,7 @@ internal fun HomeDetectionSurface(
 
         DetectionUiState.BlockedCore -> ActionRow(
             tone = error,
-            icon = Icons.Outlined.LocationOff,
+            icon = Icons.Rounded.LocationOff,
             title = stringResource(Res.string.home_det_core_title),
             subtitle = stringResource(Res.string.home_det_core_sub),
             primaryLabel = stringResource(Res.string.home_det_core_cta),
@@ -106,7 +106,7 @@ internal fun HomeDetectionSurface(
 
         DetectionUiState.BlockedProducer -> ActionRow(
             tone = amber,
-            icon = Icons.Outlined.Sensors,
+            icon = Icons.Rounded.Sensors,
             title = stringResource(Res.string.home_det_producer_title),
             subtitle = stringResource(Res.string.home_det_producer_sub),
             primaryLabel = stringResource(Res.string.home_det_producer_cta),
@@ -116,7 +116,7 @@ internal fun HomeDetectionSurface(
 
         DetectionUiState.AwaitingFirstPark -> ActionRow(
             tone = info,
-            icon = Icons.Outlined.AddLocationAlt,
+            icon = Icons.Rounded.AddLocationAlt,
             title = stringResource(Res.string.home_det_awaiting_title),
             subtitle = stringResource(Res.string.home_det_awaiting_sub),
             primaryLabel = stringResource(Res.string.home_det_awaiting_cta_primary),

@@ -19,9 +19,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.EditCalendar
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.EditCalendar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -66,7 +66,7 @@ private fun MockSearchBar(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(
-                Icons.Outlined.EditCalendar,
+                Icons.Rounded.EditCalendar,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.36f),
                 modifier = Modifier.size(18.dp),
@@ -105,7 +105,7 @@ private fun OptionAChip(onAddZone: () -> Unit = {}) {
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Outlined.Add,
+                        imageVector = Icons.Rounded.Add,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(CHIP_ICON_SIZE.dp),
@@ -189,7 +189,7 @@ private fun OptionBEmptyZoneCard(onAddZone: () -> Unit = {}) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Outlined.Bookmark,
+                    Icons.Rounded.Bookmark,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp),
@@ -219,7 +219,7 @@ private fun OptionBEmptyZoneCard(onAddZone: () -> Unit = {}) {
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Icon(
-                        Icons.Outlined.Add,
+                        Icons.Rounded.Add,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(14.dp),
@@ -255,7 +255,7 @@ private fun OptionBPreviewLight() {
                             border = BorderStroke(PapBorders.thin, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                         ) {
                             Box(Modifier.padding(8.dp)) {
-                                Icon(Icons.Outlined.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -296,7 +296,7 @@ private fun OptionBPreviewDark() {
                             border = BorderStroke(PapBorders.thin, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                         ) {
                             Box(Modifier.padding(8.dp)) {
-                                Icon(Icons.Outlined.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -396,7 +396,7 @@ private fun OptionCScene(modifier: Modifier = Modifier) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Add,
+                        imageVector = Icons.Rounded.Add,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp),

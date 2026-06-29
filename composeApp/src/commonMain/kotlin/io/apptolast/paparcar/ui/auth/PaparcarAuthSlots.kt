@@ -12,11 +12,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -193,7 +193,7 @@ private fun CompactEmailField(
         label = { Text(stringResource(Res.string.auth_field_email)) },
         leadingIcon = {
             Icon(
-                imageVector = Icons.Outlined.Email,
+                imageVector = Icons.Rounded.Email,
                 contentDescription = null,
                 modifier = Modifier.size(FIELD_ICON_SIZE),
             )
@@ -224,7 +224,7 @@ private fun CompactNameField(
         label = { Text(stringResource(Res.string.auth_field_name)) },
         leadingIcon = {
             Icon(
-                imageVector = Icons.Outlined.Person,
+                imageVector = Icons.Rounded.Person,
                 contentDescription = null,
                 modifier = Modifier.size(FIELD_ICON_SIZE),
             )
@@ -259,7 +259,7 @@ private fun CompactPasswordField(
         label = { Text(label) },
         leadingIcon = {
             Icon(
-                imageVector = Icons.Outlined.Lock,
+                imageVector = Icons.Rounded.Lock,
                 contentDescription = null,
                 modifier = Modifier.size(FIELD_ICON_SIZE),
             )
@@ -277,7 +277,7 @@ private fun CompactPasswordField(
         trailingIcon = {
             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                 Icon(
-                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    imageVector = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
                     contentDescription = stringResource(
                         if (passwordVisible) Res.string.auth_cd_hide_password
                         else Res.string.auth_cd_show_password,

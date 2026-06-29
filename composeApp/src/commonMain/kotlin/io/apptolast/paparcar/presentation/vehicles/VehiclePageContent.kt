@@ -25,11 +25,11 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.GppGood
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.GppGood
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -174,7 +174,7 @@ private fun VehicleHeroCard(
                 Spacer(Modifier.width(8.dp))
                 IconButton(onClick = onEdit) {
                     Icon(
-                        Icons.Outlined.Edit,
+                        Icons.Rounded.Edit,
                         contentDescription = stringResource(Res.string.my_car_edit_vehicle),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EDIT_ICON_ALPHA),
                     )
@@ -277,7 +277,7 @@ private fun VehicleStatusPill(
                         .background(accent),
                 )
                 leading == PillLeading.BtIcon -> Icon(
-                    imageVector = Icons.Outlined.Bluetooth,
+                    imageVector = Icons.Rounded.Bluetooth,
                     contentDescription = null,
                     tint = accent,
                     modifier = Modifier.size(BADGE_ICON_DP.dp),
@@ -315,19 +315,19 @@ private fun InlineStatsRow(
         horizontalArrangement = Arrangement.spacedBy(STAT_CARD_GAP.dp),
     ) {
         StatMiniCard(
-            icon = Icons.Outlined.TrendingUp,
+            icon = Icons.AutoMirrored.Rounded.TrendingUp,
             value = sessionCount.toString(),
             label = stringResource(Res.string.vehicle_stats_sessions),
             modifier = Modifier.weight(1f),
         )
         StatMiniCard(
-            icon = Icons.Outlined.Schedule,
+            icon = Icons.Rounded.Schedule,
             value = lastSessionMs?.let { compactRelativeTimeText(it) } ?: "—",
             label = stringResource(Res.string.vehicle_stats_last_session),
             modifier = Modifier.weight(1f),
         )
         StatMiniCard(
-            icon = Icons.Outlined.GppGood,
+            icon = Icons.Rounded.GppGood,
             value = reliabilityPct?.let { "$it%" } ?: "—",
             label = stringResource(Res.string.vehicle_stats_reliability),
             modifier = Modifier.weight(1f),

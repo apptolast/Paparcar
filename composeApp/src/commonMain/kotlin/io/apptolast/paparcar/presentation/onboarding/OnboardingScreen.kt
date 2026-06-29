@@ -20,8 +20,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -177,7 +177,7 @@ private fun OnboardingPage2() {
         )
         Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
         OnboardingStep(
-            icon = Icons.Outlined.DirectionsCar,
+            icon = Icons.Rounded.DirectionsCar,
             title = stringResource(Res.string.onboarding_step1_title),
             desc = stringResource(Res.string.onboarding_step1_desc),
         )
@@ -189,7 +189,7 @@ private fun OnboardingPage2() {
         )
         Spacer(Modifier.height(PaparcarSpacing.lg))
         OnboardingStep(
-            icon = Icons.Outlined.LocationOn,
+            icon = Icons.Rounded.LocationOn,
             title = stringResource(Res.string.onboarding_step3_title),
             desc = stringResource(Res.string.onboarding_step3_desc),
         )

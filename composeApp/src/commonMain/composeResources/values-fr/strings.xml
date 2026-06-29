@@ -366,12 +366,10 @@
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Manuel</string>
 
-    <!-- Écran de justification des autorisations -->
-    <string name="perm_rationale_title">Automatisez votre stationnement</string>
-    <string name="perm_rationale_subtitle">Souvenez-vous où vous vous êtes garé, gardez un historique automatique et libérez votre place en partant — automatiquement. Quelques autorisations suffisent pour fonctionner.</string>
-    <string name="perm_rationale_body">Paparcar détecte quand vous quittez votre place et la partage automatiquement avec les conducteurs proches — comme vous en bénéficieriez si quelqu\'un d\'autre le faisait.\n\nPour fonctionner, nous avons besoin d\'accès à votre position et à vos capteurs de mouvement. Votre position exacte n\'est jamais partagée avec d\'autres utilisateurs.</string>
-    <string name="perm_rationale_cta">Compris, activer les autorisations</string>
-    <string name="perm_rationale_skip">Pas maintenant</string>
+    <!-- Slogans de bénéfice par palier d'autorisations [ONB-SCAFFOLD-001] -->
+    <string name="permissions_tier_essential_benefit">Pour trouver et voir les places sur la carte</string>
+    <string name="permissions_tier_detection_benefit">Pour publier votre place en partant, sans rien faire</string>
+    <string name="permissions_tier_optional_benefit">Utiles seulement avec la détection automatique activée — pour qu\'elle ne rate jamais</string>
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Parlez-nous de votre voiture</string>

@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -92,7 +92,7 @@ private fun FitPill(
     // first-person ("your X is too tight for this bay").
     val visual = when (fit) {
         SpotFit.OPTIMAL -> PillVisual(
-            icon = Icons.Outlined.Star,
+            icon = Icons.Rounded.Star,
             tint = cs.primary,
             bg = cs.primary.copy(alpha = PILL_BG_ALPHA),
             label = stringResource(
@@ -101,7 +101,7 @@ private fun FitPill(
             ),
         )
         SpotFit.FITS -> PillVisual(
-            icon = Icons.Outlined.CheckCircle,
+            icon = Icons.Rounded.CheckCircle,
             tint = cs.tertiary,
             bg = cs.tertiary.copy(alpha = PILL_BG_ALPHA),
             label = stringResource(
@@ -110,7 +110,7 @@ private fun FitPill(
             ),
         )
         SpotFit.DOES_NOT_FIT -> PillVisual(
-            icon = Icons.Outlined.WarningAmber,
+            icon = Icons.Rounded.WarningAmber,
             tint = cs.error,
             bg = cs.error.copy(alpha = PILL_BG_ALPHA),
             label = stringResource(
@@ -119,7 +119,7 @@ private fun FitPill(
             ),
         )
         SpotFit.UNKNOWN -> PillVisual(
-            icon = Icons.Outlined.Info,
+            icon = Icons.Rounded.Info,
             tint = cs.onSurface.copy(alpha = UNKNOWN_FG_ALPHA),
             bg = cs.onSurface.copy(alpha = UNKNOWN_BG_ALPHA),
             label = stringResource(Res.string.home_peek_spot_size_unknown),

@@ -6,9 +6,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.MyLocation
-import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,7 +47,7 @@ internal fun MapControlButtons(
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
             MapCircleFab(
-                icon = Icons.Outlined.Route,
+                icon = Icons.Rounded.Route,
                 contentDescription = stringResource(Res.string.map_cd_midpoint),
                 onClick = onMidpoint,
                 modifier = Modifier.padding(bottom = 10.dp),
@@ -61,7 +61,7 @@ internal fun MapControlButtons(
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
             MapCircleFab(
-                icon = Icons.Outlined.DirectionsCar,
+                icon = Icons.Rounded.DirectionsCar,
                 contentDescription = stringResource(Res.string.map_cd_go_to_car),
                 iconTint = MaterialTheme.colorScheme.primary,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -72,7 +72,7 @@ internal fun MapControlButtons(
         }
 
         MapCircleFab(
-            icon = Icons.Outlined.MyLocation,
+            icon = Icons.Rounded.MyLocation,
             contentDescription = stringResource(Res.string.map_cd_my_location),
             onClick = onMyLocation,
             shadowElevation = 4.dp,

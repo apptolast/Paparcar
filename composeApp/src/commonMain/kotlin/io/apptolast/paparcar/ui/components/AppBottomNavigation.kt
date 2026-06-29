@@ -20,18 +20,18 @@ import androidx.compose.ui.unit.sp
 data class AppBottomNavItem(
     val route: String,
     val label: @Composable () -> String,
-    val iconFilled: ImageVector,
-    val iconOutline: ImageVector,
+    val icon: ImageVector,
 )
 
 /**
  * Single source of truth for the app's bottom navigation. Rendered at the
  * root Scaffold in App.kt — no screen should declare its own NavigationBar.
  *
- * Style: icon always visible (filled / outlined based on selection), label
- * always visible on all items. Selected item highlighted with a translucent
- * primary pill indicator. Matches the visual language of the bottom sheet
- * above it (`surfaceContainer` token, no tonal elevation, hairline divider).
+ * Style: a single Rounded icon per tab (no filled/outlined swap — design-system
+ * rule: UI icons are Material Symbols Rounded). Label always visible. Selection
+ * is shown by primary color + a translucent primary pill indicator. Matches the
+ * visual language of the bottom sheet above it (`surfaceContainer` token, no
+ * tonal elevation, hairline divider).
  */
 @Composable
 fun AppBottomNavigation(
@@ -55,7 +55,7 @@ fun AppBottomNavigation(
                     onClick = { onNavigate(item.route) },
                     icon = {
                         Icon(
-                            imageVector = if (selected) item.iconFilled else item.iconOutline,
+                            imageVector = item.icon,
                             contentDescription = label,
                         )
                     },

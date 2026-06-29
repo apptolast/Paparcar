@@ -14,16 +14,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
-import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.EditLocationAlt
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.LocalParking
-import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.EditLocationAlt
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.LocalParking
+import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -151,7 +151,7 @@ private fun CompatRow(text: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(Icons.Outlined.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+        Icon(Icons.Rounded.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
         Text(text, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
     }
 }
@@ -168,11 +168,11 @@ private fun CurrentSpotModal() {
         label = "High",
         title = "Calle Serrano, 41",
         accentColor = accent,
-        leadingIcon = Icons.Outlined.LocalParking,
+        leadingIcon = Icons.Rounded.LocalParking,
         content = {
             CompatRow("Fits medium car")
             Spacer(Modifier.height(8.dp))
-            InfoRow(Icons.Outlined.Navigation, "320m  ·  4 min drive", accent)
+            InfoRow(Icons.Rounded.Navigation, "320m  ·  4 min drive", accent)
             Spacer(Modifier.height(6.dp))
             // SpotMetaRow ACTUAL — todo inline, labelSmall
             val metaColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
@@ -182,11 +182,11 @@ private fun CurrentSpotModal() {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Outlined.Group, null, tint = metaColor, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Group, null, tint = metaColor, modifier = Modifier.size(18.dp))
                     Text("2 on the way", style = MaterialTheme.typography.labelSmall, color = metaColor)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Outlined.Schedule, null, tint = metaColor, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Rounded.Schedule, null, tint = metaColor, modifier = Modifier.size(18.dp))
                     Text("Posted 5 min ago", style = MaterialTheme.typography.labelSmall, color = metaColor)
                 }
             }
@@ -196,9 +196,9 @@ private fun CurrentSpotModal() {
             Spacer(Modifier.height(14.dp))
         },
         actions = {
-            PapFooterButton("Navigate to spot", onClick = {}, leadingIcon = Icons.Outlined.Navigation, style = PapFooterButtonStyle.Filled, modifier = Modifier.fillMaxWidth())
+            PapFooterButton("Navigate to spot", onClick = {}, leadingIcon = Icons.Rounded.Navigation, style = PapFooterButtonStyle.Filled, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            PapFooterButton("Mark as occupied", onClick = {}, leadingIcon = Icons.Outlined.Block, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
+            PapFooterButton("Mark as occupied", onClick = {}, leadingIcon = Icons.Rounded.Block, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
         },
     )
 }
@@ -215,20 +215,20 @@ private fun CurrentParkingModal() {
         title = "Avda. de América, 12",
         subtitle = "Cupra Born",
         accentColor = accent,
-        leadingIcon = Icons.Filled.DirectionsCar,
+        leadingIcon = Icons.Rounded.DirectionsCar,
         content = {
             // ParkingDurationRow ACTUAL — bodyMedium SemiBold, igual que DistanceRow
-            InfoRow(Icons.AutoMirrored.Outlined.DirectionsWalk, "500m  ·  6 min walk", accent)
+            InfoRow(Icons.AutoMirrored.Rounded.DirectionsWalk, "500m  ·  6 min walk", accent)
             Spacer(Modifier.height(8.dp))
-            InfoRow(Icons.Outlined.Schedule, "Parked 25 min", accent)
+            InfoRow(Icons.Rounded.Schedule, "Parked 25 min", accent)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
-            PapFooterButton("Walk to car", onClick = {}, leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk, style = PapFooterButtonStyle.Filled, modifier = Modifier.fillMaxWidth())
+            PapFooterButton("Walk to car", onClick = {}, leadingIcon = Icons.AutoMirrored.Rounded.DirectionsWalk, style = PapFooterButtonStyle.Filled, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            PapFooterButton("Move location", onClick = {}, leadingIcon = Icons.Outlined.EditLocationAlt, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
+            PapFooterButton("Move location", onClick = {}, leadingIcon = Icons.Rounded.EditLocationAlt, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            PapFooterButton("Release parking", onClick = {}, leadingIcon = Icons.AutoMirrored.Outlined.Logout, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
+            PapFooterButton("Release parking", onClick = {}, leadingIcon = Icons.AutoMirrored.Rounded.Logout, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
         },
     )
 }
@@ -244,24 +244,24 @@ private fun ProposedSpotModal() {
         label = "High",
         title = "Calle Serrano, 41",
         accentColor = accent,
-        leadingIcon = Icons.Outlined.LocalParking,
+        leadingIcon = Icons.Rounded.LocalParking,
         content = {
             CompatRow("Fits medium car")
             Spacer(Modifier.height(8.dp))
-            InfoRow(Icons.Outlined.Navigation, "320m  ·  4 min drive", accent)
+            InfoRow(Icons.Rounded.Navigation, "320m  ·  4 min drive", accent)
             Spacer(Modifier.height(8.dp))
             // SpotMetaRow NUEVO — misma fila prominente que ParkingDurationRow
-            InfoRow(Icons.Outlined.Schedule, "Posted 5 min ago", accent)
+            InfoRow(Icons.Rounded.Schedule, "Posted 5 min ago", accent)
             Spacer(Modifier.height(8.dp))
-            InfoRow(Icons.Outlined.Group, "2 on the way", accent)
+            InfoRow(Icons.Rounded.Group, "2 on the way", accent)
             Spacer(Modifier.height(12.dp))
             FiabilityStub(accent)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
-            PapFooterButton("Navigate to spot", onClick = {}, leadingIcon = Icons.Outlined.Navigation, style = PapFooterButtonStyle.Filled, modifier = Modifier.fillMaxWidth())
+            PapFooterButton("Navigate to spot", onClick = {}, leadingIcon = Icons.Rounded.Navigation, style = PapFooterButtonStyle.Filled, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            PapFooterButton("Mark as occupied", onClick = {}, leadingIcon = Icons.Outlined.Block, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
+            PapFooterButton("Mark as occupied", onClick = {}, leadingIcon = Icons.Rounded.Block, style = PapFooterButtonStyle.Outlined, modifier = Modifier.fillMaxWidth())
         },
     )
 }
