@@ -33,9 +33,13 @@ import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigContent
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigState
+import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.map.components.MonitoringPillContent
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsContent
 import io.apptolast.paparcar.presentation.permissions.PermissionsState
@@ -91,6 +95,32 @@ private fun detectionSurface(state: DetectionUiState) {
     }
 }
 
+private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
+
+/** Renders a Home peek (collapsed handle) on the sheet container background. */
+@Composable
+private fun peek(state: HomeState) {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
+        HomePeekHandle(state = state)
+    }
+}
+
+/** Renders the expanded Home sheet (spots list + own-parking card) via homeSheetItems. */
+@Composable
+private fun sheet(state: HomeState) {
+    LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
+        homeSheetItems(
+            state = state,
+            onIntent = {},
+            onCameraMove = { _, _ -> },
+            onParkingClick = {},
+            onParkVehicle = {},
+            onSpotSelect = { _, _, _ -> },
+            onEnterReportMode = {},
+        )
+    }
+}
+
 // Recipes mirror the existing *Previews.kt so the gallery shows the same curated states on-device.
 private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
@@ -106,6 +136,53 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         MonitoringPillContent(elapsedLabel = "4 min")
                     }
                 }
+            },
+        ),
+    ),
+    ScreenGroup(
+        "Home · peek / sheet",
+        listOf(
+            Variant("Peek · spots cerca (POI)") {
+                peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceFuel, nearbySpots = FakeData.nearbySpots))
+            },
+            Variant("Peek · dirección simple") {
+                peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = FakeData.nearbySpots))
+            },
+            Variant("Peek · spot seleccionado") {
+                peek(
+                    HomeState(
+                        nearbySpots = FakeData.nearbySpots,
+                        userGpsPoint = sampleGps,
+                        selectedItemId = FakeData.nearbySpots.first().id,
+                    ),
+                )
+            },
+            Variant("Peek · plaza propia seleccionada") {
+                peek(
+                    HomeState(
+                        activeSessions = listOf(FakeData.activeSession),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                        selectedItemId = FakeData.activeSession.id,
+                    ),
+                )
+            },
+            Variant("Peek · cargando (skeleton)") { peek(HomeState()) },
+            Variant("Sheet · coche + spots") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        activeSessions = listOf(FakeData.activeSession),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
+            Variant("Sheet · spots primero (sin coche)") {
+                sheet(HomeState(hasCorePermissions = true, userGpsPoint = sampleGps, nearbySpots = FakeData.nearbySpots))
+            },
+            Variant("Sheet · sin spots (vacío)") {
+                sheet(HomeState(hasCorePermissions = true, nearbySpots = emptyList()))
             },
         ),
     ),
