@@ -144,6 +144,20 @@ chore/FND-008-repo-cleanup
 - No escribir strings en español en el código — EN es siempre la base
 - No mezclar señales Bluetooth dentro del Coordinator scoring
 - No crear pantallas sin sus correspondientes State/Intent/Effect sealed classes
+- No añadir pantalla/estado/flujo nuevo sin actualizar el sistema de pruebas mock (ver regla ⛔ abajo)
+
+### ⛔ Sistema de pruebas mock (Dev Catalog) — mantener SIEMPRE en sync
+Existe un modo solo-mock (flavor `mock`, `src/mock/.../dev/`) para entrar a la app sin OAuth/Firebase
+y probar pantallas y estados en el dispositivo: **Dev Catalog** (launcher, `DevMainActivity` →
+`DevRoot`/`DevCatalogScreen`) con escenarios de sesión/permisos (`MockScenario` + fakes
+scenario-aware) y una **galería de estados** (`StateGalleryScreen`). Al implementar algo nuevo hay
+que actualizarlo en la MISMA tarea, o queda fuera del set probable:
+- **Pantalla nueva** → nuevo `ScreenGroup` en `StateGalleryScreen.kt` llamando a su `XxxContent(state=…)`
+  (espejar su `*Previews.kt`).
+- **Estado/variante nuevo** (loading/empty/error/modo) → añadir la variante a la galería; paridad con `*Previews.kt`.
+- **Condición que afecte routing** (sesión, permisos, onboarding, vehículo) → reflejar en `MockScenario`,
+  el fake que la lee, y un preset/control en `DevCatalogScreen.kt`.
+- Verificar `assembleMockDebug` (y no romper prod). Solo se toca `src/mock/` + fakes de `commonMain/fakes/`.
 
 ## Modelos de datos clave
 - `Spot` — plaza comunitaria: location, type (AUTO_DETECTED/MANUAL_REPORT), status, confidence, sizeCategory, carbodyType, enRouteCount, TTL
