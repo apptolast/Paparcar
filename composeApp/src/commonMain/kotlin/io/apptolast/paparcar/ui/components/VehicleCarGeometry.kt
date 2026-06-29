@@ -9,15 +9,13 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
 
 /**
- * Vector geometry of the vehicle pictograms, transcribed verbatim from the light-theme
- * drawables (`ic_car_*` and `ic_car_topdown_*`). Kept here so a chosen [VehicleColor] can
- * recolour the body at runtime by rebuilding the [ImageVector] with a [CarPalette] instead
- * of shipping one drawable per (shape × colour). Colours are stored as the original opaque
- * ARGB longs so `recolor` can swap only the body-family ones. [VEH-COLOR-001]
- *
- * The default (null colour) path still uses the real drawables via `vehicleIconPainter` /
- * `VehicleTopdownIcon`, so the existing green look is untouched — this geometry only drives
- * the recoloured variants.
+ * Vector geometry of the vehicle pictograms — the single source of truth for every car render
+ * (side-profile + top-down), so a chosen [VehicleColor] can recolour the body at runtime by
+ * rebuilding the [ImageVector] with a [CarPalette] instead of shipping one drawable per
+ * (shape × colour). Colours are stored as the original opaque ARGB longs so `recolor` can swap
+ * only the body-family ones; the default brand-green renders via the identity [defaultCarPalette].
+ * The old per-shape `ic_car_*` drawables were retired once everything routed through here.
+ * [VEH-COLOR-001] [CAR-WHITE-BORDER-001]
  */
 internal class CarPath(
     val data: String,
@@ -343,15 +341,16 @@ internal fun topdownCarSpec(carbody: CarbodyType): CarSpec = TOPDOWN.getValue(ca
 
 /**
  * Rebuilds [spec] as an [ImageVector], swapping the body-family colours for [palette]. Theme-neutral
- * colours follow [isDark] (dark glass, accent hubs, lighter shadow) and — crucially — the wheels gain
- * the white ring the `*_dark` drawables draw, which the light geometry omits. [wheelStrokeDark] is the
- * ring width for this orientation (side-profile vs the smaller top-down wheels). [VEH-COLOR-001]
+ * colours follow [isDark] (dark glass, accent hubs, lighter shadow). The body keeps its baked white
+ * outline and the wheels always gain a white ring — in BOTH themes — so every car lifts off any
+ * surface with the same white border. [wheelStroke] is the ring width for this orientation
+ * (side-profile vs the smaller top-down wheels). [VEH-COLOR-001] [CAR-WHITE-BORDER-001]
  */
 internal fun buildCarImageVector(
     spec: CarSpec,
     palette: CarPalette,
     isDark: Boolean,
-    wheelStrokeDark: Float,
+    wheelStroke: Float,
 ): ImageVector {
     val builder = ImageVector.Builder(
         defaultWidth = spec.viewportWidth.dp,
@@ -360,8 +359,9 @@ internal fun buildCarImageVector(
         viewportHeight = spec.viewportHeight,
     )
     spec.paths.forEach { path ->
-        // A bare tyre (filled, no stroke) gets a white ring in dark theme to match the default art.
-        val addWheelRing = isDark && path.fill == TIRE && path.stroke == null
+        // A bare tyre (filled, no stroke) always gets a white ring so the wheels carry the same white
+        // border as the body, on every surface in light and dark. [CAR-WHITE-BORDER-001]
+        val addWheelRing = path.fill == TIRE && path.stroke == null
         builder.addPath(
             pathData = PathParser().parsePathString(path.data).toNodes(),
             fill = path.fill?.let { SolidColor(recolor(it, palette, isDark)) },
@@ -372,13 +372,13 @@ internal fun buildCarImageVector(
                 else -> null
             },
             strokeAlpha = path.strokeAlpha,
-            strokeLineWidth = if (addWheelRing) wheelStrokeDark else path.strokeWidth,
+            strokeLineWidth = if (addWheelRing) wheelStroke else path.strokeWidth,
             strokeLineJoin = if (path.round) StrokeJoin.Round else StrokeJoin.Miter,
         )
     }
     return builder.build()
 }
 
-// White wheel-ring widths matching the *_dark drawables (side-profile wheels r≈8, top-down r≈2.6).
-internal const val ISO_WHEEL_STROKE_DARK = 2f
-internal const val TOPDOWN_WHEEL_STROKE_DARK = 1.4f
+// White wheel-ring widths (side-profile wheels r≈8, top-down r≈2.6). Applied in both themes.
+internal const val ISO_WHEEL_STROKE = 2f
+internal const val TOPDOWN_WHEEL_STROKE = 1.4f

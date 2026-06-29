@@ -46,6 +46,20 @@ private const val DARK_SHADOW = 0xFF7C8BA1
 private const val HIGHLIGHT_LIGHTNESS_DELTA = 0.15f
 private const val SHADE_LIGHTNESS_DELTA = -0.09f
 
+/**
+ * Identity palette reproducing the original brand-green artwork (no recolour). Used for the
+ * default (no chosen [VehicleColor]) path so every car renders through the same geometry builder
+ * and therefore carries the white body + wheel border. The side-profile body green (`SRC_BODY_A`)
+ * and the top-down body green (`SRC_BODY_B`) differ, so [topdown] picks the right one — recolor()
+ * collapses both body-family sources onto [CarPalette.body], so each orientation maps to itself.
+ * [CAR-WHITE-BORDER-001]
+ */
+internal fun defaultCarPalette(topdown: Boolean): CarPalette = CarPalette(
+    body = Color(if (topdown) SRC_BODY_B else SRC_BODY_A),
+    bodyHi = Color(SRC_BODY_HI),
+    bodyLo = Color(SRC_BODY_LO),
+)
+
 /** Builds the [CarPalette] for [color] in the active theme. */
 internal fun carPaletteOf(color: VehicleColor, isDark: Boolean): CarPalette {
     val base = Color(if (isDark) color.bodyDarkArgb else color.bodyLightArgb)

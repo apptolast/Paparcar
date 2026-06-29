@@ -35,7 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_picker_dismiss
@@ -155,7 +154,7 @@ private fun CarbodyRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painter = painterResource(body.icon),
+                    painter = vehicleIconPainter(carbody = body, size = null),
                     contentDescription = null,
                     tint = Color.Unspecified, // native multi-colour silhouette [BOLT-MARKERS-001]
                     modifier = Modifier.size(22.dp),
