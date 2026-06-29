@@ -1,8 +1,6 @@
 package io.apptolast.paparcar.ui.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,10 +21,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
+import io.apptolast.paparcar.ui.components.PaparcarLogo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,8 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -47,7 +44,6 @@ import com.apptolast.customlogin.presentation.slots.AuthScreenSlots
 import com.apptolast.customlogin.presentation.slots.LoginScreenSlots
 import com.apptolast.customlogin.presentation.slots.RegisterScreenSlots
 import com.apptolast.customlogin.presentation.slots.defaultslots.SocialLoginButtonsSection
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.auth_cd_hide_password
@@ -59,10 +55,8 @@ import paparcar.composeapp.generated.resources.auth_field_name
 import paparcar.composeapp.generated.resources.auth_field_password
 import paparcar.composeapp.generated.resources.auth_forgot_password
 import paparcar.composeapp.generated.resources.auth_header_tagline
-import paparcar.composeapp.generated.resources.ic_paparcar_round
 
 private val LOGO_BADGE_SIZE = 72.dp
-private val LOGO_IMAGE_SIZE = 60.dp
 private val LOGO_BADGE_ELEVATION = 6.dp
 private val HEADER_TOP_SPACING = 4.dp
 private val HEADER_LOGO_TEXT_GAP = 14.dp
@@ -153,23 +147,13 @@ private fun PaparcarAuthHeader() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(HEADER_LOGO_TEXT_GAP),
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shadowElevation = LOGO_BADGE_ELEVATION,
-                modifier = Modifier.size(LOGO_BADGE_SIZE),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(Res.drawable.ic_paparcar_round),
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .size(LOGO_IMAGE_SIZE)
-                            .clip(CircleShape),
-                    )
-                }
-            }
+            // Brand badge — the self-contained design-system logo (neon-green disc +
+            // forest car glyph). Drawn with a CircleShape drop-shadow so it keeps the
+            // raised "app icon" reading without an extra coloured Surface behind it.
+            PaparcarLogo(
+                modifier = Modifier.shadow(LOGO_BADGE_ELEVATION, CircleShape),
+                size = LOGO_BADGE_SIZE,
+            )
 
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
