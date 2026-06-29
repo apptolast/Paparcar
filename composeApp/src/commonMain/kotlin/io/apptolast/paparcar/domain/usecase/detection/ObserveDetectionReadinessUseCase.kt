@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
 import io.apptolast.paparcar.domain.permissions.missingPermissions
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.combine
  *
  * Precedence (first match wins): **Disabled → Blocked → Parked → Monitoring → Ready**.
  * - Disabled before everything: no point asking for permissions when nothing can be detected.
+ *   This also covers the user turning auto-detection OFF in Settings (TURNED_OFF) — if you disabled
+ *   it, we surface "activate detection", not a permission nag. [DET-TOGGLE-001]
  * - Blocked before Parked: surface a broken permission even while a car is parked, so the user
  *   knows departure detection won't fire.
  */
@@ -32,14 +35,16 @@ class ObserveDetectionReadinessUseCase(
     private val permissionManager: PermissionManager,
     private val detectionRuntime: DetectionRuntimeState,
     private val strategyResolver: ParkingStrategyResolver,
+    private val appPreferences: AppPreferences,
 ) {
     operator fun invoke(): Flow<DetectionReadiness> = combine(
         vehicleRepository.observeVehicles(),
         userParkingRepository.observeActiveSessions(),
         permissionManager.permissionState,
         detectionRuntime.isRunning,
-    ) { vehicles, sessions, permissions, isRunning ->
-        resolve(vehicles, sessions, permissions, isRunning)
+        appPreferences.observeAutoDetectParking(),
+    ) { vehicles, sessions, permissions, isRunning, autoDetectEnabled ->
+        resolve(vehicles, sessions, permissions, isRunning, autoDetectEnabled)
     }
 
     private fun resolve(
@@ -47,6 +52,7 @@ class ObserveDetectionReadinessUseCase(
         sessions: List<UserParking>,
         permissions: AppPermissionState,
         isRunning: Boolean,
+        autoDetectEnabled: Boolean,
     ): DetectionReadiness {
         if (vehicles.isEmpty()) {
             return DetectionReadiness.Disabled(DisabledReason.NO_VEHICLE)
@@ -55,6 +61,12 @@ class ObserveDetectionReadinessUseCase(
         val strategy = strategyResolver.strategyFor(vehicles)
         if (strategy == ParkingStrategy.NONE) {
             return DetectionReadiness.Disabled(DisabledReason.NON_PARKING_VEHICLE)
+        }
+
+        // User intent wins over permissions and parked state: if auto-detection is switched off,
+        // Home shows the "activate detection" nudge rather than asking for permissions. [DET-TOGGLE-001]
+        if (!autoDetectEnabled) {
+            return DetectionReadiness.Disabled(DisabledReason.TURNED_OFF)
         }
 
         // GPS toggle off is, for the user, the same "location is off" problem as a missing

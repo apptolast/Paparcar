@@ -658,6 +658,10 @@
     <string name="home_det_producer_title">Detectie inschakelen</string>
     <string name="home_det_producer_sub">Geeft je plek vrij als je wegrijdt</string>
     <string name="home_det_producer_cta">Inschakelen</string>
+    <string name="home_det_turnedoff_title">Detectie staat uit</string>
+    <string name="home_det_turnedoff_sub">Zet aan om je plek automatisch vrij te geven</string>
+    <string name="home_det_turnedoff_cta">Activeren</string>
+    <string name="home_det_enabled_confirm">Automatische detectie geactiveerd</string>
     <string name="home_det_awaiting_title">Waar staat je auto?</string>
     <string name="home_det_awaiting_sub">Markeer de plek, ik houd hem in de gaten</string>
     <string name="home_det_awaiting_cta_primary">Plek markeren</string>

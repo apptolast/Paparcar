@@ -21,7 +21,7 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 private val actionStates = listOf(
     "BlockedCore" to DetectionUiState.BlockedCore,
-    "BlockedProducer" to DetectionUiState.BlockedProducer,
+    "Inactive" to DetectionUiState.Inactive,
     "NoVehicle" to DetectionUiState.NoVehicle,
     "AwaitingFirstPark" to DetectionUiState.AwaitingFirstPark,
 )
@@ -43,6 +43,7 @@ private fun Gallery() {
                 onOpenPermissions = {},
                 onMarkSpot = {},
                 onStartDrivingDetection = {},
+                onActivateDetection = {},
                 allowDrivingDetection = true, // preview shows the full two-CTA cold-start layout
             )
         }

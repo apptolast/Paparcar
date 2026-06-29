@@ -10,7 +10,10 @@ import io.apptolast.paparcar.domain.permissions.PermissionTier
  *
  * The domain [DetectionReadiness] is the single source of truth (resolved by
  * `ObserveDetectionReadinessUseCase`). This type only **collapses it for the UI**:
- *  - splits `Blocked` into CORE (error) vs PRODUCER (upsell) by permission tier,
+ *  - keeps the CORE block (location/GPS off — the app barely works) as its own urgent state,
+ *  - folds **everything else that means "detection isn't running but can be"** — the Settings flag
+ *    switched off OR the producer permissions missing — into one [Inactive] "activate detection"
+ *    state with a single button that asks for whatever is missing (flag + permissions). [DET-TOGGLE-001]
  *  - renames the Coordinator cold-start (`Ready` COORDINATOR) to [AwaitingFirstPark],
  *  - folds every "show nothing" case (Bluetooth armed, non-parking vehicle) into [Silent].
  *
@@ -22,11 +25,16 @@ sealed interface DetectionUiState {
     /** No vehicle registered — nothing to detect. Action: add a car. */
     data object NoVehicle : DetectionUiState
 
+    /**
+     * Detection is not running but could be — either auto-detection is OFF in Settings, or the
+     * producer permissions (background location + activity recognition) are missing. A single
+     * "activate detection" button flips the flag on AND requests any missing permissions in one
+     * tap, so the user never faces two separate steps. [DET-TOGGLE-001]
+     */
+    data object Inactive : DetectionUiState
+
     /** Foreground location / notifications missing — the app barely works. Action: grant CORE. */
     data object BlockedCore : DetectionUiState
-
-    /** Background location / activity recognition missing — auto-detection off. Action: grant PRODUCER. */
-    data object BlockedProducer : DetectionUiState
 
     /** Parked with a geofence watching for departure — rendered by the existing parked-car card. */
     data object Parked : DetectionUiState
@@ -52,12 +60,15 @@ fun DetectionReadiness.toUiState(): DetectionUiState = when (this) {
     is DetectionReadiness.Disabled -> when (reason) {
         DisabledReason.NO_VEHICLE -> DetectionUiState.NoVehicle
         DisabledReason.NON_PARKING_VEHICLE -> DetectionUiState.Silent
+        DisabledReason.TURNED_OFF -> DetectionUiState.Inactive
     }
 
     is DetectionReadiness.Blocked ->
-        // A missing CORE permission is the more severe failure and wins the surface.
+        // A missing CORE permission (location/GPS) is the more severe failure — the app barely works
+        // — and keeps its own urgent surface. Producer-only missing folds into the same "activate
+        // detection" surface as the Settings-off case: one button, one flow. [DET-TOGGLE-001]
         if (missing.any { it.tier == PermissionTier.CORE }) DetectionUiState.BlockedCore
-        else DetectionUiState.BlockedProducer
+        else DetectionUiState.Inactive
 
     is DetectionReadiness.Parked -> DetectionUiState.Parked
 
@@ -72,6 +83,6 @@ fun DetectionReadiness.toUiState(): DetectionUiState = when (this) {
 /** True for the four states that render the action surface row (`HomeDetectionSurface`). */
 val DetectionUiState.rendersActionSurface: Boolean
     get() = this == DetectionUiState.NoVehicle ||
+        this == DetectionUiState.Inactive ||
         this == DetectionUiState.BlockedCore ||
-        this == DetectionUiState.BlockedProducer ||
         this == DetectionUiState.AwaitingFirstPark

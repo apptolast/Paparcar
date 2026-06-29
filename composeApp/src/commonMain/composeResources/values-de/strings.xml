@@ -658,6 +658,10 @@
     <string name="home_det_producer_title">Erkennung aktivieren</string>
     <string name="home_det_producer_sub">Gibt deinen Platz frei, wenn du losfährst</string>
     <string name="home_det_producer_cta">Aktivieren</string>
+    <string name="home_det_turnedoff_title">Erkennung ist aus</string>
+    <string name="home_det_turnedoff_sub">Aktiviere sie, um deinen Platz automatisch freizugeben</string>
+    <string name="home_det_turnedoff_cta">Aktivieren</string>
+    <string name="home_det_enabled_confirm">Automatische Erkennung aktiviert</string>
     <string name="home_det_awaiting_title">Wo ist dein Auto?</string>
     <string name="home_det_awaiting_sub">Markiere den Platz, ich beobachte ihn</string>
     <string name="home_det_awaiting_cta_primary">Platz markieren</string>

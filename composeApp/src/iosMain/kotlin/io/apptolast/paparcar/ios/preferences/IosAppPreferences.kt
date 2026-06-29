@@ -2,6 +2,9 @@ package io.apptolast.paparcar.ios.preferences
 
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import platform.Foundation.NSUserDefaults
 
 private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
@@ -51,9 +54,16 @@ class IosAppPreferences : AppPreferences {
         get() = if (userDefaults.objectForKey(KEY_AUTO_DETECT_PARKING) == null) true
                 else userDefaults.boolForKey(KEY_AUTO_DETECT_PARKING)
 
+    // Single-process app: a StateFlow seeded from the stored value and updated in the setter is enough
+    // for Home/orchestration to react live (NSUserDefaults has no native Kotlin Flow). [DET-TOGGLE-001]
+    private val autoDetectFlow = MutableStateFlow(autoDetectParking)
+
     override fun setAutoDetectParking(enabled: Boolean) {
         userDefaults.setBool(enabled, forKey = KEY_AUTO_DETECT_PARKING)
+        autoDetectFlow.value = enabled
     }
+
+    override fun observeAutoDetectParking(): Flow<Boolean> = autoDetectFlow.asStateFlow()
 
     override val notifyParkingDetected: Boolean
         get() = if (userDefaults.objectForKey(KEY_NOTIFY_PARKING_DETECTED) == null) true

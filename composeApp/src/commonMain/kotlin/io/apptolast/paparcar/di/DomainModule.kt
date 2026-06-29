@@ -153,6 +153,7 @@ val domainModule = module {
             permissionManager = get(),
             detectionRuntime = get(),
             strategyResolver = get(),
+            appPreferences = get(),
         )
     }
 

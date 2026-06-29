@@ -125,6 +125,7 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private val _autoDetectParking = MutableStateFlow(true)
     override val autoDetectParking: Boolean get() = _autoDetectParking.value
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }
+    override fun observeAutoDetectParking(): kotlinx.coroutines.flow.Flow<Boolean> = _autoDetectParking
 
     private val _notifyParkingDetected = MutableStateFlow(true)
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected.value

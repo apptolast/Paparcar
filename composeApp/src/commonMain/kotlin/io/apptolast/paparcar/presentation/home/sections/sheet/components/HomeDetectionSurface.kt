@@ -18,7 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOff
-import androidx.compose.material.icons.rounded.Sensors
+import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -55,8 +55,8 @@ import paparcar.composeapp.generated.resources.home_det_producer_title
  * The Home **detection action surface** — a single accent-bar row that communicates the
  * automatic-detection state and offers the relevant action. [DET-READY-001h]
  *
- * Renders for the four action states only ([DetectionUiState.NoVehicle], [BlockedCore],
- * [BlockedProducer], [AwaitingFirstPark]); [Parked] is owned by the existing parked-car card and
+ * Renders for the four action states only ([DetectionUiState.NoVehicle], [DetectionUiState.Inactive],
+ * [DetectionUiState.BlockedCore], [DetectionUiState.AwaitingFirstPark]); [Parked] is owned by the existing parked-car card and
  * [Monitoring]/[Silent] render nothing here (Monitoring uses its own ephemeral pill).
  *
  * Prominence is **severity-adaptive**: a CORE block (the app barely works) is an error-toned,
@@ -71,6 +71,7 @@ internal fun HomeDetectionSurface(
     onOpenPermissions: () -> Unit,
     onMarkSpot: () -> Unit,
     onStartDrivingDetection: () -> Unit,
+    onActivateDetection: () -> Unit,
     modifier: Modifier = Modifier,
     /**
      * Whether the cold-start row offers the secondary "I'm driving" action. Off until the manual
@@ -94,22 +95,24 @@ internal fun HomeDetectionSurface(
             modifier = modifier,
         )
 
+        // One "activate detection" surface for both causes — Settings flag off OR producer
+        // permissions missing. The single button asks for whatever is missing. [DET-TOGGLE-001]
+        DetectionUiState.Inactive -> ActionRow(
+            tone = info,
+            icon = Icons.Rounded.SensorsOff,
+            title = stringResource(Res.string.home_det_producer_title),
+            subtitle = stringResource(Res.string.home_det_producer_sub),
+            primaryLabel = stringResource(Res.string.home_det_producer_cta),
+            onPrimary = onActivateDetection,
+            modifier = modifier,
+        )
+
         DetectionUiState.BlockedCore -> ActionRow(
             tone = error,
             icon = Icons.Rounded.LocationOff,
             title = stringResource(Res.string.home_det_core_title),
             subtitle = stringResource(Res.string.home_det_core_sub),
             primaryLabel = stringResource(Res.string.home_det_core_cta),
-            onPrimary = onOpenPermissions,
-            modifier = modifier,
-        )
-
-        DetectionUiState.BlockedProducer -> ActionRow(
-            tone = amber,
-            icon = Icons.Rounded.Sensors,
-            title = stringResource(Res.string.home_det_producer_title),
-            subtitle = stringResource(Res.string.home_det_producer_sub),
-            primaryLabel = stringResource(Res.string.home_det_producer_cta),
             onPrimary = onOpenPermissions,
             modifier = modifier,
         )

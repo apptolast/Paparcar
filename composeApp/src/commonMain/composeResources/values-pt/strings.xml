@@ -658,6 +658,10 @@
     <string name="home_det_producer_title">Ative a deteção</string>
     <string name="home_det_producer_sub">Liberta o seu lugar quando arranca</string>
     <string name="home_det_producer_cta">Ativar</string>
+    <string name="home_det_turnedoff_title">Deteção desativada</string>
+    <string name="home_det_turnedoff_sub">Ativa-a para libertar o teu lugar sozinho</string>
+    <string name="home_det_turnedoff_cta">Ativar</string>
+    <string name="home_det_enabled_confirm">Deteção automática ativada</string>
     <string name="home_det_awaiting_title">Onde está o seu carro?</string>
     <string name="home_det_awaiting_sub">Marque o local e eu vigio a saída</string>
     <string name="home_det_awaiting_cta_primary">Marcar o meu lugar</string>

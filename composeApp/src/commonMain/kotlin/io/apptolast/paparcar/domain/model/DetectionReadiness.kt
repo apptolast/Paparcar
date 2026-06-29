@@ -34,4 +34,8 @@ enum class DisabledReason {
 
     /** Active vehicle is a SCOOTER / BIKE that never occupies a parking spot. [BUG-SCOOTER-001] */
     NON_PARKING_VEHICLE,
+
+    /** The user switched auto-detection OFF from Settings — an intent flag, independent of
+     *  permissions. Home offers a one-tap "activate detection" to flip it back on. [DET-TOGGLE-001] */
+    TURNED_OFF,
 }

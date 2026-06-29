@@ -2,6 +2,8 @@ package io.apptolast.paparcar.fakes
 
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class FakeAppPreferences(
     initialCompleted: Boolean = false,
@@ -33,9 +35,10 @@ class FakeAppPreferences(
     override val hasRequestedLocationPermission: Boolean get() = _hasRequestedLocationPermission
     override fun setLocationPermissionRequested() { _hasRequestedLocationPermission = true }
 
-    private var _autoDetectParking = initialAutoDetect
-    override val autoDetectParking: Boolean get() = _autoDetectParking
-    override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking = enabled }
+    private val _autoDetectParking = MutableStateFlow(initialAutoDetect)
+    override val autoDetectParking: Boolean get() = _autoDetectParking.value
+    override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }
+    override fun observeAutoDetectParking(): Flow<Boolean> = _autoDetectParking
 
     private var _notifyParkingDetected = initialNotifyParking
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected

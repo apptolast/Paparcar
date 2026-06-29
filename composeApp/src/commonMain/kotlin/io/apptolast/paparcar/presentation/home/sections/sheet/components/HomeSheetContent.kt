@@ -103,6 +103,7 @@ internal fun LazyListScope.homeSheetItems(
                 onOpenPermissions = onDetectionOpenPermissions,
                 onMarkSpot = onDetectionMarkSpot,
                 onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection) }, // [DET-G-01b]
+                onActivateDetection = { onIntent(HomeIntent.EnableAutoDetection) }, // [DET-TOGGLE-001]
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
             )

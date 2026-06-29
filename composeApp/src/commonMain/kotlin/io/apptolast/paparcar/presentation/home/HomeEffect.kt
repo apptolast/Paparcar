@@ -16,4 +16,9 @@ sealed class HomeEffect {
     /** Move the map camera to (lat, lon). Used by the zone-chip tap flow. */
     data class MoveCameraTo(val lat: Double, val lon: Double) : HomeEffect()
     data object ZoneSaved : HomeEffect()
+    /** Auto-detection just re-enabled from the Home banner — confirm with a snackbar. [DET-TOGGLE-001] */
+    data object DetectionEnabled : HomeEffect()
+    /** Auto-detection enabled but permissions still missing — open the permissions screen at [focus]
+     *  ("producer" or "all") so one banner tap brings detection fully online. [DET-TOGGLE-001] */
+    data class OpenDetectionPermissions(val focus: String) : HomeEffect()
 }

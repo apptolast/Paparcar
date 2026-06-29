@@ -45,12 +45,22 @@ class DetectionUiStateTest {
     }
 
     @Test
-    fun should_mapBlockedProducer_when_onlyProducerMissing() {
+    fun should_mapInactive_when_onlyProducerMissing() {
+        // Producer-only missing folds into the unified "activate detection" surface. [DET-TOGGLE-001]
         assertEquals(
-            DetectionUiState.BlockedProducer,
+            DetectionUiState.Inactive,
             DetectionReadiness.Blocked(
                 setOf(RequiredPermission.BACKGROUND_LOCATION, RequiredPermission.ACTIVITY_RECOGNITION),
             ).toUiState(),
+        )
+    }
+
+    @Test
+    fun should_mapInactive_when_turnedOff() {
+        // Auto-detection off in Settings → same "activate detection" surface as producer-missing.
+        assertEquals(
+            DetectionUiState.Inactive,
+            DetectionReadiness.Disabled(DisabledReason.TURNED_OFF).toUiState(),
         )
     }
 

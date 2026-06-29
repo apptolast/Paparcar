@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.ContextCompat
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
@@ -46,12 +47,20 @@ import org.koin.core.component.inject
 class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val vehicleRepository: VehicleRepository by inject()
+    private val appPreferences: AppPreferences by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
         if (action != BluetoothDevice.ACTION_ACL_CONNECTED
             && action != BluetoothDevice.ACTION_ACL_DISCONNECTED
         ) return
+
+        // Master gate: auto-detection switched OFF in Settings → ignore BT connect/disconnect, the
+        // deterministic detection path must not arm either. Independent of permissions. [DET-TOGGLE-001]
+        if (!appPreferences.autoDetectParking) {
+            PaparcarLogger.d(TAG, "  ⊘ auto-detection OFF in Settings — ignoring BT event")
+            return
+        }
 
         val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)

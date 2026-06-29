@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.preferences
 
+import kotlinx.coroutines.flow.Flow
+
 interface AppPreferences {
     val isOnboardingCompleted: Boolean
     fun setOnboardingCompleted()
@@ -15,6 +17,9 @@ interface AppPreferences {
 
     val autoDetectParking: Boolean
     fun setAutoDetectParking(enabled: Boolean)
+    /** Reactive view of [autoDetectParking] so Home's detection banner and the Android arming
+     *  orchestration update live when the user flips the Settings toggle. [DET-TOGGLE-001] */
+    fun observeAutoDetectParking(): Flow<Boolean>
 
     val notifyParkingDetected: Boolean
     fun setNotifyParkingDetected(enabled: Boolean)

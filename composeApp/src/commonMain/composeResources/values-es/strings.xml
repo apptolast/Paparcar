@@ -645,6 +645,10 @@
     <string name="home_det_producer_title">Activa la detección</string>
     <string name="home_det_producer_sub">Detecta cuándo te vas y libera tu plaza</string>
     <string name="home_det_producer_cta">Activar</string>
+    <string name="home_det_turnedoff_title">Detección desactivada</string>
+    <string name="home_det_turnedoff_sub">Actívala para liberar tu plaza sola</string>
+    <string name="home_det_turnedoff_cta">Activar</string>
+    <string name="home_det_enabled_confirm">Detección automática activada</string>
     <string name="home_det_awaiting_title">¿Dónde está tu coche?</string>
     <string name="home_det_awaiting_sub">Marca el sitio y vigilo la salida</string>
     <string name="home_det_awaiting_cta_primary">Marcar mi sitio</string>

@@ -174,6 +174,19 @@ class HomeViewModel(
             // (the ephemeral pill) as the service marks itself running, which is the user's feedback.
             is HomeIntent.StartDrivingDetection -> manualParkingDetection.start()
 
+            // [DET-TOGGLE-001] Single "activate detection" action: flip the Settings flag on AND, if
+            // the producer permissions are still missing, open the permissions screen — so one tap
+            // brings detection fully online whatever was missing (config and/or permissions).
+            is HomeIntent.EnableAutoDetection -> {
+                appPreferences.setAutoDetectParking(true)
+                val perms = permissionManager.permissionState.value
+                if (perms.hasProducerPermissions) {
+                    sendEffect(HomeEffect.DetectionEnabled)
+                } else {
+                    sendEffect(HomeEffect.OpenDetectionPermissions(if (perms.hasCorePermissions) "producer" else "all"))
+                }
+            }
+
             // Parking lifecycle
             is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon, intent.publishSpot)
             is HomeIntent.EnterAddParkingMode -> updateState {

@@ -662,6 +662,10 @@
     <string name="home_det_producer_title">Włącz wykrywanie</string>
     <string name="home_det_producer_sub">Zwalnia miejsce, gdy odjeżdżasz</string>
     <string name="home_det_producer_cta">Włącz</string>
+    <string name="home_det_turnedoff_title">Wykrywanie wyłączone</string>
+    <string name="home_det_turnedoff_sub">Włącz, aby automatycznie zwalniać miejsce</string>
+    <string name="home_det_turnedoff_cta">Włącz</string>
+    <string name="home_det_enabled_confirm">Automatyczne wykrywanie włączone</string>
     <string name="home_det_awaiting_title">Gdzie jest auto?</string>
     <string name="home_det_awaiting_sub">Zaznacz miejsce, a ja go przypilnuję</string>
     <string name="home_det_awaiting_cta_primary">Zaznacz miejsce</string>

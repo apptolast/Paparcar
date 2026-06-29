@@ -24,7 +24,7 @@ import org.koin.dsl.module
 val androidDetectionModule = module {
 
     // --- Activity Recognition ---
-    single<ActivityRecognitionManager> { ActivityRecognitionManagerImpl(androidContext()) }
+    single<ActivityRecognitionManager> { ActivityRecognitionManagerImpl(androidContext(), get()) }
     single { ActivityRecognition.getClient(androidContext()) }
 
     // --- Step Detector (Sensor.TYPE_STEP_DETECTOR) [BUG-GARAGE-COLA-001] ---

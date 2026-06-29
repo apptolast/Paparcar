@@ -25,8 +25,8 @@ import io.apptolast.paparcar.presentation.app.SplashViewModel
 import androidx.work.WorkManager
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -91,23 +91,29 @@ class MainActivity : ComponentActivity() {
                 splashViewModel = splashViewModel,
             )
 
-            // Start detection infrastructure when the PRODUCER tier (background location +
-            // activity recognition) is granted — that's what AR registration and the transitions
-            // worker need. CORE-only users have no detection to arm. [DET-READY-001d]
-            // distinctUntilChanged + filter ensures we trigger only on false → true transition,
-            // not on every permission state update.
+            // Arm/disarm detection from the combination of the PRODUCER permission tier (background
+            // location + activity recognition) AND the user's Settings auto-detect flag. Both must be
+            // true to arm; flipping either off disarms. The two are orthogonal: revoking permissions is
+            // not the same as turning the feature off, but either one stops detection. [DET-READY-001d]
+            // [DET-TOGGLE-001]
             LaunchedEffect(Unit) {
-                permissionManager.permissionState
-                    .map { it.hasProducerPermissions }
+                combine(
+                    permissionManager.permissionState.map { it.hasProducerPermissions },
+                    appPreferences.observeAutoDetectParking(),
+                ) { hasProducer, autoDetectEnabled -> hasProducer && autoDetectEnabled }
                     .distinctUntilChanged()
-                    .filter { granted -> granted }
-                    .onEach {
-                        activityRecognitionManager.registerTransitions()
-                        // Re-enqueue the periodic worker so it runs with the newly granted
-                        // ACTIVITY_RECOGNITION permission (KEEP avoids interrupting a running job).
-                        RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(this@MainActivity))
+                    .onEach { shouldArm ->
+                        if (shouldArm) {
+                            activityRecognitionManager.registerTransitions()
+                            // Re-enqueue the periodic worker so it runs with the newly granted
+                            // ACTIVITY_RECOGNITION permission (KEEP avoids interrupting a running job).
+                            RegisterActivityTransitionsWorker.enqueueKeep(WorkManager.getInstance(this@MainActivity))
+                        } else {
+                            // Producer revoked OR auto-detection turned off in Settings → stop arming.
+                            activityRecognitionManager.unregisterTransitions()
+                        }
                     }
-                    .catch { e -> Log.e("Paparcar", "Error starting detection on permissions grant", e) }
+                    .catch { e -> Log.e("Paparcar", "Error toggling detection arming", e) }
                     .launchIn(this)
             }
         }

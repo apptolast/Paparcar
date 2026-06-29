@@ -658,6 +658,10 @@
     <string name="home_det_producer_title">Attiva il rilevamento</string>
     <string name="home_det_producer_sub">Libera il posto quando riparti</string>
     <string name="home_det_producer_cta">Attiva</string>
+    <string name="home_det_turnedoff_title">Rilevamento disattivato</string>
+    <string name="home_det_turnedoff_sub">Attivalo per liberare il posto da solo</string>
+    <string name="home_det_turnedoff_cta">Attiva</string>
+    <string name="home_det_enabled_confirm">Rilevamento automatico attivato</string>
     <string name="home_det_awaiting_title">Dov\'è la tua auto?</string>
     <string name="home_det_awaiting_sub">Segna il posto e lo controllo</string>
     <string name="home_det_awaiting_cta_primary">Segna il posto</string>

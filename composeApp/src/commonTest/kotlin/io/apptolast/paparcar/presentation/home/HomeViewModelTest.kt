@@ -109,6 +109,7 @@ class HomeViewModelTest {
             permissionManager = permissions,
             detectionRuntime = StaticDetectionRuntimeState(),
             strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
+            appPreferences = FakeAppPreferences(),
         )
         return HomeViewModel(
             permissionManager = permissions,

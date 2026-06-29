@@ -100,6 +100,7 @@ private fun detectionSurface(state: DetectionUiState) {
         onOpenPermissions = {},
         onMarkSpot = {},
         onStartDrivingDetection = {},
+        onActivateDetection = {},
         allowDrivingDetection = true,
     )
 }
@@ -152,7 +153,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
         "Home · detección",
         listOf(
             Variant("Sin permiso CORE (BlockedCore)", Placement.Surface) { detectionSurface(DetectionUiState.BlockedCore) },
-            Variant("Sin permiso detección (BlockedProducer)", Placement.Surface) { detectionSurface(DetectionUiState.BlockedProducer) },
+            Variant("Detección inactiva — flag off o permisos (Inactive)", Placement.Surface) { detectionSurface(DetectionUiState.Inactive) },
             Variant("Sin coche registrado (NoVehicle)", Placement.Surface) { detectionSurface(DetectionUiState.NoVehicle) },
             Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionUiState.AwaitingFirstPark) },
             Variant("Coordinator corriendo (Monitoring)", Placement.Surface) {

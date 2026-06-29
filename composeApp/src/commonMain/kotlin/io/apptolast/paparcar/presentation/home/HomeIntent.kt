@@ -46,6 +46,10 @@ sealed class HomeIntent {
      */
     data object StartDrivingDetection : HomeIntent()
 
+    /** "Activate detection" from the Home banner — flips the Settings auto-detect flag back on
+     *  (independent of permissions). [DET-TOGGLE-001] */
+    data object EnableAutoDetection : HomeIntent()
+
     // ── Parking lifecycle ─────────────────────────────────────────────────────
 
     /**

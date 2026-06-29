@@ -672,6 +672,10 @@
     <string name="home_det_producer_title">Turn on detection</string>
     <string name="home_det_producer_sub">Frees your spot when you drive off</string>
     <string name="home_det_producer_cta">Turn on</string>
+    <string name="home_det_turnedoff_title">Detection is off</string>
+    <string name="home_det_turnedoff_sub">Turn it back on to free your spot automatically</string>
+    <string name="home_det_turnedoff_cta">Activate</string>
+    <string name="home_det_enabled_confirm">Auto-detection activated</string>
     <string name="home_det_awaiting_title">Where is your car?</string>
     <string name="home_det_awaiting_sub">Mark the spot and I will watch it</string>
     <string name="home_det_awaiting_cta_primary">Mark my spot</string>

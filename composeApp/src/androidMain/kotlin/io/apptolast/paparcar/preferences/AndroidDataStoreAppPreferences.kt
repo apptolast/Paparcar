@@ -13,8 +13,11 @@ import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -79,6 +82,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         get() = get(Keys.AUTO_DETECT_PARKING, true)
 
     override fun setAutoDetectParking(enabled: Boolean) = set(Keys.AUTO_DETECT_PARKING, enabled)
+
+    override fun observeAutoDetectParking(): Flow<Boolean> =
+        store.data.map { it[Keys.AUTO_DETECT_PARKING] ?: true }.distinctUntilChanged()
 
     // ── Notifications ────────────────────────────────────────────────────────
 

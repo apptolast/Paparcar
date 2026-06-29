@@ -77,10 +77,12 @@ import paparcar.composeapp.generated.resources.error_load_spots
 import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_unknown
+import paparcar.composeapp.generated.resources.home_det_enabled_confirm
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
 import paparcar.composeapp.generated.resources.home_zone_saved_message
+import kotlin.time.Duration.Companion.milliseconds
 
 // Initial/fallback peek size used before the handle has been measured.
 // After first layout, peekHeightPx tracks the handle's real measured height
@@ -160,6 +162,7 @@ fun HomeScreen(
     val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
     val msgOfflineBlocked = stringResource(Res.string.connectivity_action_blocked_offline)
     val msgZoneSaved = stringResource(Res.string.home_zone_saved_message)
+    val msgDetectionEnabled = stringResource(Res.string.home_det_enabled_confirm)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -181,6 +184,10 @@ fun HomeScreen(
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
                 HomeEffect.OfflineActionBlocked -> snackbarHostState.showSnackbar(msgOfflineBlocked)
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
+                HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
+                // Flag enabled but permissions still needed → open the permissions screen so the one
+                // "activate detection" tap brings detection fully online. [DET-TOGGLE-001]
+                is HomeEffect.OpenDetectionPermissions -> onActivateDetection(effect.focus)
                 HomeEffect.RequestLocationPermission -> {}
                 // MoveCameraTo needs the HomeUiController which lives inside
                 // HomeContent; a dedicated collector down there handles it.
@@ -925,15 +932,9 @@ private fun HomeContent(
                     onToggle = toggleSheet,
                     // Detection surface actions (reuses existing nav + AddingParking flow).
                     onDetectionAddVehicle = onAddVehicle,
-                    onDetectionOpenPermissions = {
-                        // Focus the permissions screen on the tier that triggered the CTA. [DET-READY-001i]
-                        val focus = when (state.detectionUiState) {
-                            DetectionUiState.BlockedCore -> "core"
-                            DetectionUiState.BlockedProducer -> "producer"
-                            else -> "all"
-                        }
-                        onActivateDetection(focus)
-                    },
+                    // Only the CORE block still routes here (Inactive uses the unified EnableAutoDetection
+                    // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
+                    onDetectionOpenPermissions = { onActivateDetection("core") },
                     onDetectionMarkSpot = {
                         val markVehicleId = state.vehicles.firstOrNull { it.isActive }?.id
                             ?: state.vehicles.firstOrNull()?.id

@@ -662,6 +662,10 @@
     <string name="home_det_producer_title">Activează detecția</string>
     <string name="home_det_producer_sub">Eliberează locul când pleci</string>
     <string name="home_det_producer_cta">Activează</string>
+    <string name="home_det_turnedoff_title">Detectarea este oprită</string>
+    <string name="home_det_turnedoff_sub">Activeaz-o ca să eliberezi locul automat</string>
+    <string name="home_det_turnedoff_cta">Activează</string>
+    <string name="home_det_enabled_confirm">Detectare automată activată</string>
     <string name="home_det_awaiting_title">Unde e mașina?</string>
     <string name="home_det_awaiting_sub">Marchează locul și îl supraveghez</string>
     <string name="home_det_awaiting_cta_primary">Marchează locul</string>

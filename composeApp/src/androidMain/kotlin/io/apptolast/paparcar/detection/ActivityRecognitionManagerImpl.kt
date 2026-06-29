@@ -15,10 +15,12 @@ import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.receiver.ActivityTransitionReceiver
 import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 
 class ActivityRecognitionManagerImpl(
     private val context: Context,
+    private val appPreferences: AppPreferences,
 ) : ActivityRecognitionManager {
 
     // createAttributionContext (API 30+) ties AppOps operations to the "detection" tag declared
@@ -68,6 +70,14 @@ class ActivityRecognitionManagerImpl(
     @SuppressLint("MissingPermission")
     override fun registerTransitions() {
         PaparcarLogger.d(TAG, "▶ registerTransitions called (IN_VEHICLE EXIT, always-on)")
+        // Master gate: the user can switch auto-detection OFF from Settings — an intent flag
+        // independent of permissions. Off → never arm (and clear any existing arming), so every
+        // caller (MainActivity, BootCompletedReceiver, the periodic worker) respects it. [DET-TOGGLE-001]
+        if (!appPreferences.autoDetectParking) {
+            PaparcarLogger.d(TAG, "  ⊘ skipped — auto-detection turned OFF in Settings; unregistering")
+            unregisterTransitions()
+            return
+        }
         if (!hasActivityRecognitionPermission()) {
             PaparcarLogger.w(TAG, "  ✗ skipped — ACTIVITY_RECOGNITION permission not granted")
             return

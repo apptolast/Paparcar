@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
+import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeBluetoothScanner
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -44,6 +45,21 @@ class ObserveDetectionReadinessUseCaseTest {
         val blocked = assertIs<DetectionReadiness.Blocked>(readiness)
         assertTrue(RequiredPermission.BACKGROUND_LOCATION in blocked.missing)
         assertTrue(RequiredPermission.ACTIVITY_RECOGNITION in blocked.missing)
+    }
+
+    @Test
+    fun `should be Disabled TURNED_OFF when auto-detection is switched off in settings`() = runTest {
+        val car = vehicle(type = VehicleType.CAR)
+        val readiness = buildUseCase(vehicle = car, permissions = allGranted(), autoDetect = false).invoke().first()
+        assertEquals(DetectionReadiness.Disabled(DisabledReason.TURNED_OFF), readiness)
+    }
+
+    @Test
+    fun `TURNED_OFF wins over Blocked — no permission nag when detection is off by choice`() = runTest {
+        val car = vehicle(type = VehicleType.CAR)
+        // Permissions missing AND auto-detection off: the user's intent (off) takes precedence.
+        val readiness = buildUseCase(vehicle = car, permissions = coreOnly(), autoDetect = false).invoke().first()
+        assertEquals(DetectionReadiness.Disabled(DisabledReason.TURNED_OFF), readiness)
     }
 
     @Test
@@ -113,6 +129,7 @@ class ObserveDetectionReadinessUseCaseTest {
         permissions: io.apptolast.paparcar.domain.permissions.AppPermissionState = FakePermissionManager.allDenied(),
         session: UserParking? = null,
         running: Boolean = false,
+        autoDetect: Boolean = true,
     ): ObserveDetectionReadinessUseCase {
         val vehicleRepo = FakeVehicleRepository(defaultVehicle = vehicle)
         val parkingRepo = FakeUserParkingRepository(initialSession = session)
@@ -127,6 +144,7 @@ class ObserveDetectionReadinessUseCaseTest {
             permissionManager = permissionManager,
             detectionRuntime = StaticDetectionRuntimeState(running = running),
             strategyResolver = resolver,
+            appPreferences = FakeAppPreferences(initialAutoDetect = autoDetect),
         )
     }
 

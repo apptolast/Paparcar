@@ -1127,3 +1127,15 @@ Reducing the geofence radius was rejected: below ~100 m Android geofencing gets 
 **Open follow-ups.**
 - **Device validation required.** Two AR transition registrations with distinct PendingIntents (EXIT global + ENTER scoped) must be confirmed to coexist on real Play Services — especially on the OEM killers (Xiaomi/Oppo). Detection-core changes are not proven by green compile/tests.
 - `RevertParkingUseCase` and the sign-out drain do not explicitly unregister the scoped ENTER arming; it is self-correcting (the handler fails closed when no session exists) but could be wired for tidiness.
+
+### DET-TOGGLE-001 — master enable/disable from Settings
+
+Auto-detection has a **master intent flag** (`AppPreferences.autoDetectParking`, default `true`) toggled from Settings. It is **orthogonal to permissions**: revoking a permission is not the same as turning the feature off, but **either one stops detection**. Detection runs only when `autoDetectParking == true` **AND** the producer permissions are granted.
+
+- **Reactive source.** `AppPreferences.observeAutoDetectParking(): Flow<Boolean>` (Android DataStore-mapped; iOS/fakes via `MutableStateFlow`) so the UI and the Android arming both react live to the toggle.
+- **Home banner.** `ObserveDetectionReadinessUseCase` reads the flag and emits `DetectionReadiness.Disabled(TURNED_OFF)` with **top precedence** (after the structural NO_VEHICLE / NON_PARKING, before Blocked/Parked): if you turned it off, Home shows a one-tap "activate detection" nudge (`DetectionUiState.TurnedOff`) instead of nagging for permissions. The CTA dispatches `HomeIntent.EnableAutoDetection` → `setAutoDetectParking(true)` + a confirmation snackbar; the reactive flag flips the banner away automatically.
+- **Android gating (two layers).**
+  1. **Chokepoint guard:** `ActivityRecognitionManagerImpl.registerTransitions()` returns early (and calls `unregisterTransitions()`) when the flag is off, so every caller (MainActivity, `BootCompletedReceiver`, `RegisterActivityTransitionsWorker`) respects it for free. `BluetoothConnectionReceiver` ignores ACL connect/disconnect when off (the deterministic BT path must not arm either).
+  2. **Runtime toggle:** `MainActivity` arms/disarms from `combine(hasProducerPermissions, observeAutoDetectParking())` — both true → `registerTransitions()`; either false → `unregisterTransitions()`.
+- **First-run.** The flag defaults `true`, so granting the producer permissions (the "Activate detection" step) is what brings detection online; the user can disable it manually from Settings afterwards.
+- **Open follow-up — device validation required.** Like all detection-core changes, the OFF path (no arming + runtime disarm) is not proven by green compile/tests: confirm on device that toggling off actually stops AR/BT arming and toggling back on re-arms.
