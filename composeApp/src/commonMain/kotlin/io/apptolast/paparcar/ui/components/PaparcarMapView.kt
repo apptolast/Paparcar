@@ -16,11 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,9 +36,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.swmansion.kmpmaps.core.AndroidMapProperties
 import com.swmansion.kmpmaps.core.AndroidMarkerOptions
 import com.swmansion.kmpmaps.core.AndroidUISettings
@@ -64,14 +58,10 @@ import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
-import io.apptolast.paparcar.domain.model.ZoneIcon
-
 import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.zoneIconFor
-import io.apptolast.paparcar.ui.theme.PapBlue
-import io.apptolast.paparcar.ui.theme.PapForestDark
 import io.apptolast.paparcar.ui.theme.PapGreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -974,11 +964,15 @@ fun PaparcarMapView(
                 zoneIdByCoords[circle.center]?.let(onZoneClick)
             },
             onCameraMove = { pos ->
-                actualCamLat = pos.coordinates.latitude.toFloat()
-                actualCamLon = pos.coordinates.longitude.toFloat()
-                currentZoom = pos.zoom
-                if (!isReadOnly) {
-                    onCameraMove(pos.coordinates.latitude, pos.coordinates.longitude)
+                // kmp-maps 0.9.1 made CameraPosition.coordinates nullable (it can be absent
+                // briefly mid-gesture); zoom always updates, lat/lon only when coords are present.
+                pos.zoom?.let { currentZoom = it }
+                pos.coordinates?.let { coords ->
+                    actualCamLat = coords.latitude.toFloat()
+                    actualCamLon = coords.longitude.toFloat()
+                    if (!isReadOnly) {
+                        onCameraMove(coords.latitude, coords.longitude)
+                    }
                 }
             },
             onMarkerClick = { marker ->

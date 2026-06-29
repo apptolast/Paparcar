@@ -3,13 +3,14 @@
 package io.apptolast.paparcar
 
 import androidx.compose.ui.window.ComposeUIViewController
+import com.apptolast.customlogin.di.LoginLibraryConfig
+import com.apptolast.customlogin.di.initLoginKoin
 import io.apptolast.paparcar.di.dataModule
 import io.apptolast.paparcar.di.domainModule
 import io.apptolast.paparcar.di.iosDetectionModule
 import io.apptolast.paparcar.di.iosPlatformModule
 import io.apptolast.paparcar.di.presentationModule
 import io.apptolast.paparcar.notification.IosNotificationActionHandler
-import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatform
 import platform.UserNotifications.UNUserNotificationCenter
 
@@ -28,7 +29,12 @@ private var notificationDelegate: IosNotificationActionHandler? = null
 private fun initKoin() {
     if (koinInitialized) return
     koinInitialized = true
-    startKoin {
+    // Start Koin via the BaseLogin initializer so the library's auth modules (AuthRepository,
+    // login data/presentation) are registered alongside the app modules — mirrors PaparcarApp on
+    // Android. Without this, resolving anything that depends on AuthRepository crashes at launch.
+    // Email/password + magic-link work out of the box; Google/Apple sign-in on iOS additionally
+    // require provider config here plus native OAuth setup (Info.plist URL scheme + plist client id).
+    initLoginKoin(config = LoginLibraryConfig()) {
         modules(
             presentationModule,
             domainModule,

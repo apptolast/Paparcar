@@ -49,6 +49,10 @@ interface UserParkingDao {
     @Query("DELETE FROM parking_sessions WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
 
+    /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
+    @Query("DELETE FROM parking_sessions")
+    suspend fun deleteAll()
+
     @Query("""
         UPDATE parking_sessions SET
             addressStreet      = :street,

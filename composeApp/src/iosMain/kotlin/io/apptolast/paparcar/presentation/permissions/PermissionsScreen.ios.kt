@@ -27,6 +27,8 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
             when (effect) {
                 PermissionsEffect.RequestStep1 ->
                     requester.requestStep1()
+                PermissionsEffect.RequestProducerSensors ->
+                    requester.requestProducerSensors()
                 PermissionsEffect.RequestStep2BackgroundLocation ->
                     requester.requestAlwaysLocation()
                 PermissionsEffect.RequestStepBluetooth ->
@@ -35,6 +37,8 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
                     Unit // no battery optimization concept on iOS
                 PermissionsEffect.LaunchOemAutostartSettings ->
                     Unit // no OEM autostart whitelist concept on iOS
+                PermissionsEffect.LaunchOemBatterySettings ->
+                    Unit // no OEM battery whitelist concept on iOS
                 PermissionsEffect.OpenAppSettings,
                 PermissionsEffect.OpenLocationSettings -> openIosSettings()
                 PermissionsEffect.NavigateToHome ->

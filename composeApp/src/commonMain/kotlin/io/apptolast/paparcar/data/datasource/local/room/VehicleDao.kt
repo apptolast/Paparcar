@@ -57,4 +57,8 @@ interface VehicleDao {
 
     @Query("DELETE FROM vehicles WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
+
+    /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
+    @Query("DELETE FROM vehicles")
+    suspend fun deleteAll()
 }

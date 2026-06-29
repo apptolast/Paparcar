@@ -23,4 +23,8 @@ interface UserProfileDao {
 
     @Query("DELETE FROM user_profile WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
+
+    /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
+    @Query("DELETE FROM user_profile")
+    suspend fun deleteAll()
 }

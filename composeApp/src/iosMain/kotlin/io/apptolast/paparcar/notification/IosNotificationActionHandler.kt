@@ -63,8 +63,8 @@ class IosNotificationActionHandler(
         }
         withCompletionHandler()
     }
-
-    private companion object {
-        const val TAG = "IosNotificationActionHandler"
-    }
 }
+
+// File-level constant: Kotlin/Native forbids companion objects with fields inside
+// subclasses of ObjC types (this class is a UNUserNotificationCenterDelegate). [IOS-BUILD-FIX]
+private const val TAG = "IosNotificationActionHandler"

@@ -2,20 +2,23 @@ package io.apptolast.paparcar.data.session
 
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.domain.session.LocalSessionCache
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class RoomLocalSessionCache(
     private val database: AppDatabase,
 ) : LocalSessionCache {
     /**
-     * `RoomDatabase.clearAllTables()` is a blocking method (not `suspend`) and Room asserts
-     * it is NOT called on the Main thread. The enclosing `wipe()` is suspending but that
-     * alone doesn't switch dispatchers — `viewModelScope.launch` runs on `Main.immediate`,
-     * so we have to hop to IO explicitly. Without this, `clearAllTables()` throws
-     * `IllegalStateException` and the wipe silently fails. [SESSION-ISOLATION-001]
+     * Clears every table that belongs to the active user. Room KMP exposes no
+     * common `clearAllTables()` (it is Android-only), so we delete each table
+     * through its DAO instead. The `suspend` DAO calls are dispatched onto
+     * Room's own executor, so no manual `Dispatchers.IO` hop is required.
+     * [SESSION-ISOLATION-001]
      */
-    override suspend fun wipe() = withContext(Dispatchers.IO) {
-        database.clearAllTables()
+    override suspend fun wipe() {
+        database.parkingSessionDao().deleteAll()
+        database.spotDao().deleteAll()
+        database.vehicleDao().deleteAll()
+        database.userProfileDao().deleteAll()
+        database.zoneDao().deleteAll()
+        database.geocoderCacheDao().deleteAll()
     }
 }

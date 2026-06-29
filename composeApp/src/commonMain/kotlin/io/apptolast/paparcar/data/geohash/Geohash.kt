@@ -58,7 +58,7 @@ private fun geohashSuccessor(hash: String): String {
         val idx = BASE32.indexOf(chars[i])
         if (idx < BASE32.lastIndex) {
             chars[i] = BASE32[idx + 1]
-            return String(chars)
+            return chars.concatToString()
         }
         chars[i] = BASE32[0]
         i--

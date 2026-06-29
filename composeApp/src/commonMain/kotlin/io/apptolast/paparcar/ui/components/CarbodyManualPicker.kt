@@ -87,7 +87,8 @@ fun CarbodyManualPicker(
 
                 CarbodyType.entries
                     .groupBy { it.sizeCategory }
-                    .toSortedMap(compareBy { it.ordinal })
+                    .entries
+                    .sortedBy { it.key.ordinal }
                     .forEach { (size, bodies) ->
                         if (size == VehicleSize.MOTORCYCLE) return@forEach
                         SizeHeader(size = size)
