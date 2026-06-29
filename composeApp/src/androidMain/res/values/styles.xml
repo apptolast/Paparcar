@@ -11,13 +11,14 @@
          to the user's choice, not just the system setting. -->
     <style name="Theme.Paparcar.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_background</item>
-        <!-- Brand mark only (the green car glyph, transparent background) so it floats on the
-             DayNight splash fondo. Using @mipmap/ic_launcher here would render the full adaptive
-             icon — its solid green background gets masked into a circle and looks off. -->
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <!-- Dark disc behind the glyph so it reads as the app icon (green car on
-             a dark circle) instead of floating bare on the splash fondo. -->
-        <item name="windowSplashScreenIconBackgroundColor">@color/splash_icon_background</item>
+        <!-- DayNight brand badge (splash_glyph + drawable-night variant): the disc is
+             baked INTO the drawable — Ink disc + green glyph in day, green disc + Ink glyph
+             in night — so the badge stays visible on either splash fondo (mirrors
+             PaparcarLogo). windowSplashScreenIconBackgroundColor was dropped because the
+             platform splash ignored it here, leaving only the bare glyph. Kept separate
+             from ic_launcher_foreground: a night override there would also repaint the
+             adaptive launcher icon. -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_glyph</item>
         <item name="postSplashScreenTheme">@style/Theme.AppCompat.Light.NoActionBar</item>
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>

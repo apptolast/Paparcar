@@ -14,9 +14,14 @@ import paparcar.composeapp.generated.resources.paparcar_iconmark_forest
 import paparcar.composeapp.generated.resources.paparcar_iconmark_green
 import paparcar.composeapp.generated.resources.paparcar_iconmark_white
 import paparcar.composeapp.generated.resources.paparcar_logo
+import paparcar.composeapp.generated.resources.paparcar_logo_dark
 
 /**
- * Full Paparcar logo (neon-green circle + forest car glyph).
+ * Full Paparcar logo (disc + car glyph). Auto-resolves the disc treatment from
+ * the current Material colour scheme so the badge stays visible on any surface:
+ *  - light theme → Ink disc + neon-green glyph
+ *  - dark theme  → neon-green disc + Ink glyph (the Ink disc would otherwise
+ *                  blend into the dark surface)
  *
  * Use for splash, onboarding hero, headers — anywhere the brand needs to
  * stand alone on a neutral surface.
@@ -26,8 +31,10 @@ fun PaparcarLogo(
     modifier: Modifier = Modifier,
     size: Dp = 96.dp,
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val resource = if (isDark) Res.drawable.paparcar_logo_dark else Res.drawable.paparcar_logo
     Image(
-        painter = painterResource(Res.drawable.paparcar_logo),
+        painter = painterResource(resource),
         contentDescription = "Paparcar",
         modifier = modifier.size(size),
     )

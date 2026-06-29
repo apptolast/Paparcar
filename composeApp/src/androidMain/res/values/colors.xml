@@ -5,11 +5,4 @@
          Compose light theme that draws right after it. Dark variant lives in
          values-night/colors.xml. -->
     <color name="splash_background">#F0F4FB</color>
-
-    <!-- Circle behind the splash icon. Matches the adaptive icon background
-         (ic_launcher_background ≈ #141918) so the green glyph gets the same
-         dark "app icon" disc on the splash as it does on the launcher. Kept
-         dark in both light/dark (no values-night override) to mirror the icon,
-         which is always dark regardless of theme. -->
-    <color name="splash_icon_background">#141918</color>
 </resources>
