@@ -47,6 +47,7 @@ import com.swmansion.kmpmaps.core.AndroidUISettings
 import com.swmansion.kmpmaps.core.CameraPosition
 import com.swmansion.kmpmaps.core.Circle
 import com.swmansion.kmpmaps.core.Coordinates
+import com.swmansion.kmpmaps.core.Polyline
 import com.swmansion.kmpmaps.core.GoogleMapsAnchor
 import com.swmansion.kmpmaps.core.GoogleMapsMapStyleOptions
 import com.swmansion.kmpmaps.core.Map
@@ -70,6 +71,7 @@ import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.theme.PapBlue
 import io.apptolast.paparcar.ui.theme.PapForestDark
+import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapGreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -252,6 +254,12 @@ private fun vehicleBadgeContentId(
 private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
+private const val MARKER_DEPARTURE       = "departure" // faded last-parking point during a trip [TRIP-TRAIL-001]
+// How much of the departure car is left visible — clearly readable but faded ("no longer yours"),
+// over a fully-opaque ground dot that the trail line starts from. [TRIP-TRAIL-001]
+private const val DEPARTURE_CONTENT_ALPHA = 0.55f
+// Trip breadcrumb polyline width (screen px in Google Maps). [TRIP-TRAIL-001]
+private const val TRIP_TRAIL_WIDTH = 14f
 
 // Google Maps renders billboard markers by screen-Y when zIndex is equal,
 // so the selected marker must carry an explicit higher zIndex to always
@@ -436,6 +444,17 @@ fun PaparcarMapView(
      * detection is actively monitoring a trip. [MAP-ICONS-V2]
      */
     drivingPuck: DrivingPuck? = null,
+    /** Breadcrumb of the current trip — drawn as a navigation-style polyline behind the puck. [TRIP-TRAIL-001] */
+    tripTrail: List<GpsPoint> = emptyList(),
+    /** Faded "departure" point — where the car left from, shown while a trip runs. [TRIP-TRAIL-001] */
+    departurePoint: GpsPoint? = null,
+    /**
+     * When true (camera is following the trip), the driving puck is drawn as a CENTERED overlay rather
+     * than a moving marker. kmpmaps keys markers by hashCode (incl. coordinates), so a marker that moves
+     * every GPS frame is torn down + recreated each frame → flicker. Centered + camera-follow is the
+     * nav-app pattern: the car stays put, the map slides under it — smooth, no flicker. [FOLLOW-001]
+     */
+    centerDrivingPuck: Boolean = false,
     /**
      * Enriched parking sessions from [ObserveParkedVehiclesUseCase].
      * When non-empty, badge markers are rendered instead of the legacy
@@ -557,7 +576,7 @@ fun PaparcarMapView(
     // bitmap by contentId. [MAP-MARKERS-DIM-002]
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
-        drivingPuck,
+        drivingPuck, departurePoint, centerDrivingPuck,
     ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
@@ -649,17 +668,31 @@ fun PaparcarMapView(
                     )
                 }
             }
-            // Driving puck — own car, top-down, rotated to heading; added last (top zIndex). The
-            // native location dot is suppressed while this is shown. [MAP-ICONS-V2]
-            drivingPuck?.let { puck ->
+            // Faded "departure" point — where the car left from, under the trail + puck. [TRIP-TRAIL-001]
+            departurePoint?.let { dp ->
                 add(
                     Marker(
-                        coordinates = Coordinates(puck.latitude, puck.longitude),
+                        coordinates = Coordinates(dp.latitude, dp.longitude),
                         title = null,
-                        contentId = locationActiveContentId(puck.carbodyType, headingBucket(puck.bearingDegrees), puck.color),
-                        androidMarkerOptions = LOCATION_MARKER_OPTIONS,
+                        contentId = MARKER_DEPARTURE,
+                        androidMarkerOptions = NORMAL_MARKER_OPTIONS,
                     ),
                 )
+            }
+            // Driving puck — own car, top-down, rotated to heading; added last (top zIndex). The
+            // native location dot is suppressed while this is shown. While the camera follows the trip
+            // it's drawn as a centered overlay instead (no per-frame marker churn → no flicker). [FOLLOW-001]
+            if (!centerDrivingPuck) {
+                drivingPuck?.let { puck ->
+                    add(
+                        Marker(
+                            coordinates = Coordinates(puck.latitude, puck.longitude),
+                            title = null,
+                            contentId = locationActiveContentId(puck.carbodyType, headingBucket(puck.bearingDegrees), puck.color),
+                            androidMarkerOptions = LOCATION_MARKER_OPTIONS,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -707,6 +740,18 @@ fun PaparcarMapView(
                     carbodyType = parkingVehicleCarbody,
                     color = parkingVehicleColor,
                     isActive = parkingIsActive,
+                )
+            }
+            // Departure point: the trip's vehicle ghosted out (low contentAlpha) over a fully-opaque
+            // position dot — a clear "you left from here" point with the car barely there. [TRIP-TRAIL-001]
+            put(MARKER_DEPARTURE) { _ ->
+                VehicleBadgeMarker(
+                    carbodyType = drivingPuck?.carbodyType,
+                    sizeCategory = drivingPuck?.sizeCategory,
+                    color = drivingPuck?.color,
+                    isActive = false,
+                    contentAlpha = DEPARTURE_CONTENT_ALPHA,
+                    originDot = true,
                 )
             }
             // ── Free-spot bitmaps — 12 cached variants (4 tiers × nrm/dim/sel) ──
@@ -932,6 +977,20 @@ fun PaparcarMapView(
         }
     }
 
+    // Live trip breadcrumb as a native polyline (en-route blue), rendered below the markers. Starts at
+    // the departure point so the line visibly leaves the parking marker, then traces the puck. [TRIP-TRAIL-001]
+    val tripPolylines = remember(tripTrail, departurePoint) {
+        val coords = buildList {
+            departurePoint?.let { add(Coordinates(it.latitude, it.longitude)) }
+            tripTrail.forEach { add(Coordinates(it.latitude, it.longitude)) }
+        }
+        if (coords.size < 2) {
+            emptyList()
+        } else {
+            listOf(Polyline(coordinates = coords, width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
+        }
+    }
+
     Box(modifier = modifier) {
         Map(
             modifier = Modifier.fillMaxSize(),
@@ -962,6 +1021,7 @@ fun PaparcarMapView(
             ),
             markers = markers,
             circles = zoneCircles,
+            polylines = tripPolylines,
             customMarkerContent = customMarkerContent,
             onCircleClick = { circle ->
                 // Circles carry no id, so we recover the zone by its centre coords
@@ -1053,7 +1113,21 @@ fun PaparcarMapView(
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-        } else {
+        } else if (drivingPuck != null && centerDrivingPuck) {
+            // Centered driving puck — the camera follows it, so it stays put while the map slides
+            // underneath. Drawn HERE (not as a marker) to avoid the per-frame marker teardown that
+            // flickers; rotates to the exact heading, smoothly. [FOLLOW-001]
+            LocationActiveMarker(
+                carbody = drivingPuck.carbodyType,
+                size = drivingPuck.sizeCategory,
+                headingDegrees = drivingPuck.bearingDegrees ?: 0f,
+                color = drivingPuck.color,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        } else if (drivingPuck == null) {
+            // The centre crosshair marks "the map centre" for picking a location in Browse. During a
+            // detected trip the centre IS the moving car (the driving puck), so the crosshair would
+            // just sit on top of it — visual noise with no meaning. Hide it while driving. [FOLLOW-001]
             // Crosshair tracks the theme so it contrasts with the map tiles, but uses the softer
             // onSurfaceVariant (light: blue-dark grey #374460 / dark: cool grey #8EA0B4) rather than
             // the near-black onSurface, which read as invasive on light maps. [MAP-ICONS-V2]

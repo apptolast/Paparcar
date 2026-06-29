@@ -172,6 +172,10 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Peek · dirección simple", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = FakeData.nearbySpots))
             },
+            // Empty discovery: the badge reads a calm "Sin plazas cerca", not a dead grey "0". [FOCUS-003]
+            Variant("Peek · sin plazas (vacío)", Placement.Surface) {
+                peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = emptyList()))
+            },
             Variant("Peek · spot seleccionado", Placement.Surface) {
                 peek(
                     HomeState(
@@ -204,6 +208,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             },
             Variant("Sheet · spots primero (sin coche)") {
                 sheet(HomeState(hasCorePermissions = true, userGpsPoint = sampleGps, nearbySpots = FakeData.nearbySpots))
+            },
+            // Driving chip: the monitored vehicle's trip is in progress (drivingPuck.vehicleId == its
+            // id, no active session) → chip shows "Conduciendo" + radar halo, floated first. [CHIP-DRIVING-001]
+            Variant("Sheet · coche conduciendo (driving)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        drivingPuck = io.apptolast.paparcar.domain.model.DrivingPuck(
+                            latitude = sampleGps.latitude,
+                            longitude = sampleGps.longitude,
+                            bearingDegrees = 42f,
+                            accuracy = 8f,
+                            carbodyType = FakeData.vehicleSedan.carbodyType,
+                            sizeCategory = FakeData.vehicleSedan.sizeCategory,
+                            color = FakeData.vehicleSedan.color,
+                            vehicleId = FakeData.vehicleSedan.id,
+                        ),
+                    ),
+                )
             },
             Variant("Sheet · sin spots (vacío)") {
                 sheet(HomeState(hasCorePermissions = true, nearbySpots = emptyList()))

@@ -178,8 +178,13 @@ private fun LazyListScope.vehiclesSection(
     onParkVehicle: (vehicleId: String) -> Unit,
 ) {
     val userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
+    // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
+    val drivingVehicleId = state.drivingPuck?.vehicleId
+    fun VehicleCard.isDriving() = session == null && vehicle.id == drivingVehicleId
+    // Live state floats first: driving → parked → monitoring config (BT, Active, Inactive).
     val sorted = vehicleCards.sortedWith(
-        compareByDescending<VehicleCard> { it.session != null }
+        compareByDescending<VehicleCard> { it.isDriving() }
+            .thenByDescending { it.session != null }
             .thenBy { it.vehicle.monitoringStatus().sortRank() }
     )
     item("vehicles_row") {
@@ -199,6 +204,7 @@ private fun LazyListScope.vehiclesSection(
                 HomeVehicleChip(
                     card = card,
                     userLocation = userLocation,
+                    isDriving = card.isDriving(),
                     onClick = onCardClick,
                 )
             }

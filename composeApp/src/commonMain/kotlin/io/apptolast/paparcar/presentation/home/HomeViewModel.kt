@@ -112,6 +112,10 @@ class HomeViewModel(
 
     private var cameraSettledJob: Job? = null
 
+    // Last parking location seen while a session was active — reused as the faded "departure point"
+    // once the car leaves and a trip starts (the session is already gone by then). [TRIP-TRAIL-001]
+    private var lastParkingLocation: GpsPoint? = null
+
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
@@ -271,7 +275,12 @@ class HomeViewModel(
 
     private fun subscribeActiveSessions() {
         userParkingRepository.observeActiveSessions()
-            .onEach { sessions -> updateState { copy(activeSessions = sessions) } }
+            .onEach { sessions ->
+                // Remember where the car is parked so we can show it as the faded departure point once
+                // the session clears and the trip begins. [TRIP-TRAIL-001]
+                sessions.firstOrNull()?.let { lastParkingLocation = it.location }
+                updateState { copy(activeSessions = sessions) }
+            }
             .catch { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: ""))) }
             .launchIn(viewModelScope)
     }
@@ -383,9 +392,24 @@ class HomeViewModel(
                         carbodyType = vehicle?.carbodyType,
                         sizeCategory = vehicle?.sizeCategory,
                         color = vehicle?.color,
+                        vehicleId = vehicle?.id,
                     )
                 }
-                updateState { copy(drivingPuck = puck) }
+                updateState {
+                    if (puck == null) {
+                        // Trip ended — drop the live trail and the departure marker.
+                        copy(drivingPuck = null, tripTrail = emptyList(), departurePoint = null)
+                    } else {
+                        // Extend the breadcrumb and surface the just-vacated parking as the faded
+                        // departure point. A trip means you're not parked, so the last parking IS the
+                        // departure — no need to gate on the (laggy) activeSessions state. [TRIP-TRAIL-001]
+                        copy(
+                            drivingPuck = puck,
+                            tripTrail = TripTrail.append(tripTrail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f)),
+                            departurePoint = lastParkingLocation,
+                        )
+                    }
+                }
             }
             .launchIn(viewModelScope)
     }

@@ -7,12 +7,14 @@
     <string name="home_cd_profile">Profil</string>
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_stats_free_spots_badge">%1$d libere</string>
+    <string name="home_peek_no_spots">Niciun loc în apropiere</string>
     <string name="home_banner_since">%1$s</string>
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Ești parcat</string>
     <string name="home_where_to_park_title">Unde doriți să parcați?</string>
     <string name="home_vehicle_chip_badge_active">Activ</string>
     <string name="home_vehicle_chip_status_parked">Parcat · %1$s</string>
+    <string name="home_vehicle_chip_status_driving">În mers</string>
     <string name="home_active_vehicle_title">Vehiculul dumneavoastră activ</string>
     <string name="home_parking_release">Eliberează locul</string>
     <string name="home_navigate_to_spot">Indicații</string>

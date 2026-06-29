@@ -62,7 +62,8 @@ val mockModule = module {
     viewModelOf(::LoginViewModel)
 
     // DataSources
-    single<LocationDataSource> { FakeLocationDataSource() }
+    // Pass the shared detection runtime so the mock location can "drive" while a trip is running. [DRIVE-SIM-001]
+    single<LocationDataSource> { FakeLocationDataSource(get<io.apptolast.paparcar.domain.detection.DetectionRuntimeState>()) }
     single<FirebaseDataSource> { FakeFirebaseDataSource() }
     single<AppNotificationManager> { FakeAppNotificationManager() }
     single<GeocoderDataSource> { FakeGeocoderDataSource() }
@@ -80,7 +81,10 @@ val mockModule = module {
     single<ParkingEnrichmentScheduler> { FakeParkingEnrichmentScheduler() }
     single<ParkingSyncScheduler> { FakeParkingSyncScheduler() }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
-    single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> { io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection() }
+    single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
+        // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]
+        io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection(get<io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState>())
+    }
 
     // Session
     single<LocalSessionCache> { RoomLocalSessionCache(get()) }
@@ -89,7 +93,8 @@ val mockModule = module {
     single<SpotRepository> { FakeSpotRepository() }
     single<AuthRepository> { FakeAuthRepository(get()) }
     single<VehicleRepository> { FakeVehicleRepository(get()) }
-    single<UserParkingRepository> { FakeUserParkingRepository() }
+    // Runtime-aware: while the driving sim runs, report no active session so readiness reaches Monitoring. [DRIVE-SIM-001]
+    single<UserParkingRepository> { FakeUserParkingRepository(get<io.apptolast.paparcar.domain.detection.DetectionRuntimeState>()) }
     single<UserProfileRepository> { FakeUserProfileRepository() }
     single<ZoneRepository> { FakeZoneRepository() }
     single<AddressAndPlaceRepository> { AddressAndPlaceRepositoryImpl(get(), get(), get()) }

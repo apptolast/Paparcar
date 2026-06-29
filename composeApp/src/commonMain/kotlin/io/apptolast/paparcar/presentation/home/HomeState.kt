@@ -65,6 +65,19 @@ data class HomeState(
      */
     val drivingPuck: DrivingPuck? = null,
 
+    /**
+     * Breadcrumb of the current trip — the path the car has driven, drawn as a navigation-style
+     * polyline behind the puck. Accumulated while [drivingPuck] is non-null, cleared when the trip
+     * ends. [TRIP-TRAIL-001]
+     */
+    val tripTrail: List<GpsPoint> = emptyList(),
+
+    /**
+     * Where the car departed from — the last parking location, shown faded on the map while a trip is
+     * in progress (you've left it, it's no longer yours). Null outside a trip. [TRIP-TRAIL-001]
+     */
+    val departurePoint: GpsPoint? = null,
+
     // ── Community data ────────────────────────────────────────────────────────
 
     /** Raw active parking sessions — source of truth for behavioural logic. [MULTI-PARKING-001] */

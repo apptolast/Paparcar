@@ -277,7 +277,7 @@ private fun HomeContent(
     // already true — it only needs to clear it when the animation is done.
     LaunchedEffect(uiController.cameraTarget?.token) {
         if (!uiController.isProgrammaticMove) return@LaunchedEffect
-        delay(PROGRAMMATIC_MOVE_GUARD_MS)
+        delay(PROGRAMMATIC_MOVE_GUARD_MS.milliseconds)
         uiController.clearProgrammaticMove()
     }
 
@@ -287,7 +287,7 @@ private fun HomeContent(
                 if (!isMapInteracting) isMapInteracting = true
                 idleJobHolder[0]?.cancel()
                 idleJobHolder[0] = coroutineScope.launch {
-                    delay(MAP_INTERACTION_IDLE_DELAY_MS)
+                    delay(MAP_INTERACTION_IDLE_DELAY_MS.milliseconds)
                     isMapInteracting = false
                 }
             }
@@ -319,13 +319,33 @@ private fun HomeContent(
 
     LaunchedEffect(state.userGpsPoint) {
         val gps = state.userGpsPoint ?: return@LaunchedEffect
-        val parking = state.userParking
-        val spot = state.selectedSpot
-        when {
-            parking != null -> uiController.onUserLocationAvailable(parking.location.latitude, parking.location.longitude)
-            spot != null -> uiController.onUserLocationAvailable(spot.location.latitude, spot.location.longitude)
-            else -> uiController.onUserLocationAvailable(gps.latitude, gps.longitude)
-        }
+        // Stateful initial focus: frame the parked car (with the user, if close), else centre on the
+        // user so nearby free spots reveal around them. One-shot, inside the controller. [FOCUS-001]
+        uiController.centerInitialFocus(
+            parking = state.userParking?.let { it.location.latitude to it.location.longitude },
+            selectedSpot = state.selectedSpot?.let { it.location.latitude to it.location.longitude },
+            user = gps.latitude to gps.longitude,
+        )
+    }
+
+    // Re-frame the car once if its session loads just after the first GPS fix (common race), unless
+    // the user already panned by hand — the controller enforces those guards. [FOCUS-002]
+    LaunchedEffect(state.userParking?.id) {
+        val parking = state.userParking ?: return@LaunchedEffect
+        uiController.refocusOnParkingArrival(
+            parking = parking.location.latitude to parking.location.longitude,
+            user = state.userGpsPoint?.let { it.latitude to it.longitude },
+        )
+    }
+
+    // Driver-follow: engage when a detected trip starts (the driving puck appears) and disengage when
+    // it ends; while engaged, the camera tracks each puck update without changing the user's zoom.
+    // A manual pan pauses it (handled in the controller), and the map shows a resume FAB. [FOLLOW-001]
+    LaunchedEffect(state.drivingPuck != null) {
+        uiController.setDriverFollowActive(state.drivingPuck != null)
+    }
+    LaunchedEffect(state.drivingPuck) {
+        state.drivingPuck?.let { uiController.followDriver(it.latitude, it.longitude) }
     }
 
     LaunchedEffect(selectedSpotId) {
@@ -589,6 +609,7 @@ private fun HomeContent(
                 val currentUserParking = rememberUpdatedState(state.userParking)
                 val currentActiveSessions = rememberUpdatedState(state.activeSessions)
                 val currentUserGpsPoint = rememberUpdatedState(state.userGpsPoint)
+                val currentDrivingPuck = rememberUpdatedState(state.drivingPuck)
 
                 // Stable lambda — remember(coroutineScope, sheetOffsetPx) so the
                 // object identity is preserved across recompositions; snap-target
@@ -710,6 +731,8 @@ private fun HomeContent(
                     onMyCarClick = onMyCarMarkerClick,
                     onZoneClick = onZoneClick,
                     onCameraMove = onMapCameraMove,
+                    onUserMapGesture = { uiController.onUserMapGesture() },
+                    followingDriver = uiController.followingDriver,
                     previewZoneLat = if (isAddingZone) uiController.cameraLat else null,
                     previewZoneLon = if (isAddingZone) uiController.cameraLon else null,
                     previewZoneRadius = state.addingZoneRadius,
@@ -769,22 +792,21 @@ private fun HomeContent(
                             modifier = Modifier,
                         )
                     }
-                    // Ephemeral "following your trip" pill — floats centred under the search bar
-                    // while a tracking job runs (Monitoring). Hidden when the sheet is engaged.
-                    HomeMonitoringPill(
-                        visible = state.detectionUiState == DetectionUiState.Monitoring && overlayVisible,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(top = 6.dp),
-                    )
                 }
 
                 // Stable event lambdas for FABs layer and report button.
                 // GPS and parking are read via rememberUpdatedState at call-time.
                 val onMyLocation: () -> Unit = remember(uiController) {
                     {
-                        currentUserGpsPoint.value?.let {
-                            uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                        // Mid-trip, "locate me" means the moving car: re-engage driver-follow and snap onto
+                        // the puck (paused earlier by a map gesture). Otherwise recentre on GPS. [FOLLOW-001]
+                        val puck = currentDrivingPuck.value
+                        if (puck != null) {
+                            uiController.resumeDriverFollow(puck.latitude, puck.longitude)
+                        } else {
+                            currentUserGpsPoint.value?.let {
+                                uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                            }
                         }
                     }
                 }
@@ -864,6 +886,23 @@ private fun HomeContent(
                 ) {
                     HomeReportFab(onClick = onReportFabClick)
                 }
+
+                // ── "Following your trip" pill — REPLACES the GPS FAB during a trip: anchored bottom-end
+                // where the location FAB sits, and tappable to recentre on the moving car (resume follow).
+                // The report FAB stays at bottom-start, so there's no overlap. Hidden when the sheet
+                // engages; lifts above the sheet with the same offset as the FABs. [FOLLOW-001]
+                HomeMonitoringPill(
+                    visible = state.detectionUiState == DetectionUiState.Monitoring && overlayVisible,
+                    onClick = onMyLocation,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 14.dp)
+                        .offset {
+                            val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
+                                .coerceAtLeast(0f)
+                            IntOffset(0, -(sheetH + fabGapPx).roundToInt())
+                        },
+                )
 
                 // ── Bottom sheet ─────────────────────────────────────────────
                 HomeBottomSheet(

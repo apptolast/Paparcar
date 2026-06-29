@@ -1,24 +1,39 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.displayName
@@ -28,6 +43,7 @@ import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.ui.components.VehicleBadgeTone
 import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.ui.components.vehicleBadgeAccent
+import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
@@ -35,6 +51,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_vehicle_card_status_empty
 import paparcar.composeapp.generated.resources.home_vehicle_chip_badge_active
+import paparcar.composeapp.generated.resources.home_vehicle_chip_status_driving
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_parked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
@@ -53,6 +70,7 @@ internal fun HomeVehicleChip(
     userLocation: Pair<Double, Double>?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isDriving: Boolean = false,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -79,6 +97,13 @@ internal fun HomeVehicleChip(
         VehicleBadgeTone.Inactive  -> PapOutlineVariantLight // exact marker inactive grey
         else                       -> cs.primary
     }
+    // Driving is a LIVE state and supersedes the rest: vivid en-route blue border (matches the
+    // driving puck on the map) so the chip in motion grabs the eye. [CHIP-DRIVING-001]
+    val borderColor = when {
+        isDriving -> PapDriveBlue
+        isParked  -> parkedBorderColor
+        else      -> cs.outline.copy(alpha = OUTLINE_ALPHA)
+    }
     val muted = cs.onSurface.copy(alpha = MUTED_ALPHA)
 
     val vehicleName = vehicle.displayName(fallback = stringResource(Res.string.home_vehicle_fallback_name))
@@ -88,11 +113,7 @@ internal fun HomeVehicleChip(
         onClick = onClick,
         modifier = modifier.width(CHIP_WIDTH_DP.dp),
         shape = PapShapes.cardSmall,
-        // Only a parked chip earns a coloured border; everything else stays neutral (no amber). [DET-READY-001k]
-        border = BorderStroke(
-            BORDER_DP.dp,
-            if (isParked) parkedBorderColor else cs.outline.copy(alpha = OUTLINE_ALPHA),
-        ),
+        border = BorderStroke(if (isDriving) DRIVING_BORDER_DP.dp else BORDER_DP.dp, borderColor),
         color = cs.surfaceContainerHigh,
     ) {
         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
@@ -100,12 +121,17 @@ internal fun HomeVehicleChip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                VehicleGlyph(
-                    carbody = vehicle.carbodyType,
-                    size = vehicle.sizeCategory,
-                    glyphSize = ICON_BOX_DP.dp,
-                    color = vehicle.color,
-                )
+                // While driving, a pulsing "radar" halo expands behind the car — the same en-route
+                // blue as its map puck, so the eye is drawn to the vehicle in motion. [CHIP-DRIVING-001]
+                Box(contentAlignment = Alignment.Center) {
+                    if (isDriving) DrivingRadarHalo(diameter = ICON_BOX_DP.dp)
+                    VehicleGlyph(
+                        carbody = vehicle.carbodyType,
+                        size = vehicle.sizeCategory,
+                        glyphSize = ICON_BOX_DP.dp,
+                        color = vehicle.color,
+                    )
+                }
                 Text(
                     vehicleName,
                     style = MaterialTheme.typography.titleSmall,
@@ -127,28 +153,93 @@ internal fun HomeVehicleChip(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                // Detection indicator: BT supersedes Active; inactive vehicles show nothing.
-                val indicator = when {
-                    isBtPaired -> BT_LABEL
-                    isActive -> activeLabel
-                    else -> null
+                if (isDriving) {
+                    // Live "driving" state supersedes the BT/Active pill: a pulsing dot + the
+                    // en-route-blue label signal a trip in progress, not yet parked. [CHIP-DRIVING-001]
+                    DrivingLiveDot()
+                    Text(
+                        text = stringResource(Res.string.home_vehicle_chip_status_driving),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PapDriveBlue,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } else {
+                    // Detection indicator: BT supersedes Active; inactive vehicles show nothing.
+                    val indicator = when {
+                        isBtPaired -> BT_LABEL
+                        isActive -> activeLabel
+                        else -> null
+                    }
+                    if (indicator != null) {
+                        DetectionLabel(text = indicator, textColor = muted)
+                        Text(BULLET, style = MaterialTheme.typography.labelSmall, color = muted)
+                    }
+                    Text(
+                        text = statusText(session, userLocation),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (isParked) FontWeight.SemiBold else FontWeight.Normal,
+                        // Parked → always green (active parking session), even if the vehicle is inactive.
+                        color = if (isParked) parkedColor else muted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                if (indicator != null) {
-                    DetectionLabel(text = indicator, textColor = muted)
-                    Text(BULLET, style = MaterialTheme.typography.labelSmall, color = muted)
-                }
-                Text(
-                    text = statusText(session, userLocation),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = if (isParked) FontWeight.SemiBold else FontWeight.Normal,
-                    // Parked → always green (active parking session), even if the vehicle is inactive.
-                    color = if (isParked) parkedColor else muted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
             }
         }
     }
+}
+
+/**
+ * Pulsing "radar" halo behind the car glyph while a trip is being detected — two en-route-blue rings
+ * expanding outward and fading, half a period out of phase. Contained within [diameter] so it never
+ * shifts the chip layout; reads as "this car is live / in motion". [CHIP-DRIVING-001]
+ */
+@Composable
+private fun DrivingRadarHalo(diameter: Dp) {
+    val transition = rememberInfiniteTransition(label = "driving_radar")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(RADAR_PERIOD_MS, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "driving_radar_progress",
+    )
+    Canvas(Modifier.size(diameter)) {
+        val maxR = size.minDimension / 2f
+        val stroke = RADAR_STROKE.toPx()
+        listOf(progress, (progress + RADAR_PHASE_OFFSET) % 1f).forEach { p ->
+            drawCircle(
+                color = PapDriveBlue.copy(alpha = (1f - p) * RADAR_MAX_ALPHA),
+                radius = maxR * (RADAR_MIN_FRACTION + p * (1f - RADAR_MIN_FRACTION)),
+                style = Stroke(width = stroke),
+            )
+        }
+    }
+}
+
+/** Small breathing dot prefixing the "Driving" label — a calm "live" indicator. [CHIP-DRIVING-001] */
+@Composable
+private fun DrivingLiveDot() {
+    val transition = rememberInfiniteTransition(label = "driving_dot")
+    val alpha by transition.animateFloat(
+        initialValue = LIVE_DOT_ALPHA_MIN,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(LIVE_DOT_PERIOD_MS, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "driving_dot_alpha",
+    )
+    Box(
+        Modifier
+            .size(LIVE_DOT_SIZE)
+            .clip(CircleShape)
+            .background(PapDriveBlue.copy(alpha = alpha)),
+    )
 }
 
 @Composable
@@ -185,7 +276,18 @@ private const val CHIP_WIDTH_DP = 148
 private const val STATUS_ROW_MIN_HEIGHT_DP = 20
 private const val ICON_BOX_DP = 28
 private const val BORDER_DP = 1
+private const val DRIVING_BORDER_DP = 1.5f // thicker live-blue border while driving [CHIP-DRIVING-001]
 private const val OUTLINE_ALPHA = 0.4f
 private const val MUTED_ALPHA = 0.6f
 private const val BT_LABEL = "BT"
 private const val BULLET = "·"
+
+// Driving "radar" halo + live dot animation tuning. [CHIP-DRIVING-001]
+private const val RADAR_PERIOD_MS = 1600
+private const val RADAR_PHASE_OFFSET = 0.5f  // second ring half a cycle behind the first
+private const val RADAR_MIN_FRACTION = 0.45f // rings start at 45% of the glyph radius, expand to full
+private const val RADAR_MAX_ALPHA = 0.45f
+private val RADAR_STROKE = 1.5.dp
+private const val LIVE_DOT_PERIOD_MS = 900
+private const val LIVE_DOT_ALPHA_MIN = 0.35f
+private val LIVE_DOT_SIZE = 6.dp

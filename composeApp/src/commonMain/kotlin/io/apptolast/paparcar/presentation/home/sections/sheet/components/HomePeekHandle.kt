@@ -141,6 +141,7 @@ import paparcar.composeapp.generated.resources.home_report_helper_primary
 import paparcar.composeapp.generated.resources.home_report_helper_secondary
 import paparcar.composeapp.generated.resources.home_report_size_section
 import paparcar.composeapp.generated.resources.home_spot_peek_show_list
+import paparcar.composeapp.generated.resources.home_peek_no_spots
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import paparcar.composeapp.generated.resources.home_zone_action_delete
@@ -1294,8 +1295,12 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
                 )
             }
         }
+        // Free-spots badge. With spots → green "N libres" + live dot. With none → a calm, readable
+        // "Sin plazas cerca" chip (NOT a faded grey "0", which read like the app was broken): the map
+        // is still anchored on you, there just aren't spots right now. [FOCUS-003]
+        val hasSpots = freeCount > 0
         Surface(
-            color = if (freeCount > 0) MaterialTheme.colorScheme.primaryContainer
+            color = if (hasSpots) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(8.dp),
         ) {
@@ -1304,21 +1309,21 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (freeCount > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                        ),
-                )
+                if (hasSpots) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                    )
+                }
                 Text(
-                    stringResource(Res.string.home_stats_free_spots_badge, freeCount),
+                    text = if (hasSpots) stringResource(Res.string.home_stats_free_spots_badge, freeCount)
+                           else stringResource(Res.string.home_peek_no_spots),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (freeCount > 0) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    color = if (hasSpots) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

@@ -44,6 +44,7 @@ internal fun HomeMapFabColumn(
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
     modifier: Modifier = Modifier,
+    showMyLocation: Boolean = true,
 ) {
     Column(
         modifier = modifier,
@@ -73,11 +74,14 @@ internal fun HomeMapFabColumn(
                 contentDescription = stringResource(Res.string.map_cd_midpoint),
             )
         }
-        HomeMapFab(
-            icon = Icons.Rounded.MyLocation,
-            onClick = onMyLocation,
-            contentDescription = stringResource(Res.string.map_cd_my_location),
-        )
+        // Hidden during a trip — the "Following your trip" pill takes its place and its recenter role. [FOLLOW-001]
+        if (showMyLocation) {
+            HomeMapFab(
+                icon = Icons.Rounded.MyLocation,
+                onClick = onMyLocation,
+                contentDescription = stringResource(Res.string.map_cd_my_location),
+            )
+        }
     }
 }
 

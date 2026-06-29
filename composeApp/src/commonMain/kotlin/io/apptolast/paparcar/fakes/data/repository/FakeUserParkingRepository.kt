@@ -1,12 +1,16 @@
-@file:OptIn(ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package io.apptolast.paparcar.fakes.data.repository
 
+import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.model.*
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -19,7 +23,9 @@ import kotlin.time.ExperimentalTime
  *   mock_vehicle_003 — Honda CBR 600, motorcycle, rarely used
  *   mock_vehicle_004 — Ford Transit, van, BT configured, moderate use
  */
-class FakeUserParkingRepository : UserParkingRepository {
+class FakeUserParkingRepository(
+    private val runtime: DetectionRuntimeState? = null,
+) : UserParkingRepository {
     private val now = Clock.System.now().toEpochMilliseconds()
 
     private val mockSessions: List<UserParking> = buildList {
@@ -131,8 +137,20 @@ class FakeUserParkingRepository : UserParkingRepository {
     override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
         mockSessions.find { it.isActive && it.geofenceId == geofenceId }
 
-    override fun observeActiveSessions(): Flow<List<UserParking>> =
-        _sessionsFlow.map { list -> list.filter { it.isActive } }
+    override fun observeActiveSessions(): Flow<List<UserParking>> {
+        val active = _sessionsFlow.map { list -> list.filter { it.isActive } }
+        val rt = runtime ?: return active
+        // Sim fidelity: ALWAYS surface the parked session first, so a starting trip captures it as the
+        // faded "departure point", THEN clear it while running so readiness can reach Monitoring (Parked
+        // otherwise wins). Mirrors a real park → depart transition even when the toggle is flipped before
+        // entering the app. [DRIVE-SIM-001] [TRIP-TRAIL-001]
+        return active.flatMapLatest { sessions ->
+            flow {
+                emit(sessions)
+                emitAll(rt.isRunning.map { running -> if (running) emptyList() else sessions })
+            }
+        }
+    }
 
     override fun observeAllSessions(): Flow<List<UserParking>> = _sessionsFlow.asStateFlow()
 

@@ -62,6 +62,7 @@ import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBlueLight
+import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapGreenLight
 import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import io.apptolast.paparcar.ui.theme.rememberOutfitFontFamily
@@ -145,6 +146,8 @@ fun VehicleBadgeMarker(
     stableRank: Int? = null,
     isBluetoothPaired: Boolean = false,
     color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
+    contentAlpha: Float = 1f,
+    originDot: Boolean = false,
 ) {
     // Bluetooth supersedes monitoring state (matches Vehicle.monitoringStatus): a BT car always reads
     // blue; a non-BT car is green when its monitoring is active, grey when inactive. [MAP-ICONS-V2]
@@ -185,24 +188,30 @@ fun VehicleBadgeMarker(
                 topLeft = Offset((52f - 5f) * s, (82.5f - 1.6f) * s),
                 size = Size(10f * s, 3.2f * s),
             )
-            // 2 · position dot — the exact ground point. Same colour as the border (so it carries
-            // the same state and flips with selection). Replaces the old floating half-disc, which
-            // read as a shapeless blob. [MAP-ICONS-V2]
-            drawCircle(color = borderColor, radius = TAG_DOT_R * s, center = Offset(52f * s, 80.5f * s))
-            // 3 · the tag — rounded surface card + state/selection border
+            // 2 · position dot — the exact ground point. For the departure marker ([originDot]) it's a
+            // blue dot with a white halo: the clear point the trip breadcrumb line starts from. Otherwise
+            // the state-coloured dot, kept opaque even when [contentAlpha] fades the rest. [TRIP-TRAIL-001]
+            val dotCenter = Offset(52f * s, 80.5f * s)
+            if (originDot) {
+                drawCircle(color = Color.White, radius = TAG_DOT_R * s * ORIGIN_DOT_HALO_SCALE, center = dotCenter)
+                drawCircle(color = PapDriveBlue, radius = TAG_DOT_R * s * ORIGIN_DOT_SCALE, center = dotCenter)
+            } else {
+                drawCircle(color = borderColor, radius = TAG_DOT_R * s, center = dotCenter)
+            }
+            // 3 · the tag — rounded surface card + state/selection border (faded by contentAlpha)
             val tagTopLeft = Offset(10f * s, 6f * s)
             val tagSize = Size(84f * s, 66f * s)
             val corner = CornerRadius(20f * s, 20f * s)
-            drawRoundRect(color = tagFill, topLeft = tagTopLeft, size = tagSize, cornerRadius = corner)
+            drawRoundRect(color = tagFill.copy(alpha = tagFill.alpha * contentAlpha), topLeft = tagTopLeft, size = tagSize, cornerRadius = corner)
             drawRoundRect(
-                color = borderColor,
+                color = borderColor.copy(alpha = borderColor.alpha * contentAlpha),
                 topLeft = tagTopLeft,
                 size = tagSize,
                 cornerRadius = corner,
                 style = Stroke(width = borderUnits * s),
             )
         }
-        // 4 · the isometric carbody, centred in the tag interior (ContentScale.Fit)
+        // 4 · the isometric carbody, centred in the tag interior (ContentScale.Fit); faded with the tag.
         VehicleIcon(
             carbody = carbodyType,
             size = sizeCategory,
@@ -210,7 +219,8 @@ fun VehicleBadgeMarker(
             color = color,
             modifier = Modifier
                 .offset(x = u * 16f, y = u * 13f)
-                .size(width = u * 72f, height = u * 52f),
+                .size(width = u * 72f, height = u * 52f)
+                .alpha(contentAlpha),
         )
     }
 }
@@ -224,6 +234,8 @@ private const val TAG_BORDER_U      = 3.6f  // default state-colour border — m
 private const val TAG_SEL_BORDER_U  = 4f    // selected onSurface border
 private const val TAG_DOT_R         = 4.5f  // position-dot radius (viewBox units)
 private const val TAG_SHADOW_ALPHA  = 0.18f
+private const val ORIGIN_DOT_SCALE      = 1.4f // blue trip-origin dot, larger than the normal dot [TRIP-TRAIL-001]
+private const val ORIGIN_DOT_HALO_SCALE = 1.9f // white halo behind the origin dot
 
 // ─── Marker 1c — Location-active driving puck (LocationActiveMarker) ─────────
 

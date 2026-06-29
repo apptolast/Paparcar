@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
+import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.fakes.MockScenario
+import org.koin.compose.koinInject
 
 /**
  * Mock-only launcher. Lets you pick a session/permission scenario and enter the **real** app
@@ -49,6 +51,10 @@ fun DevCatalogScreen(
     val tier by scenario.permissionTier.collectAsStateWithLifecycle()
     val gps by scenario.gpsEnabled.collectAsStateWithLifecycle()
     val online by scenario.online.collectAsStateWithLifecycle()
+    // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
+    // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
+    val runtime: MutableDetectionRuntimeState = koinInject()
+    val driving by runtime.isRunning.collectAsStateWithLifecycle()
 
     Scaffold(containerColor = cs.surface) { pad ->
         Column(
@@ -90,6 +96,9 @@ fun DevCatalogScreen(
             SwitchRow("Onboarding completado", onboarding) { scenario.onboardingCompleted.value = it }
             SwitchRow("GPS activado", gps) { scenario.gpsEnabled.value = it }
             SwitchRow("Conexión online", online) { scenario.online.value = it }
+
+            SectionTitle("Simulación")
+            SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { runtime.setRunning(it) }
 
             Spacer(Modifier.height(4.dp))
             Button(onClick = onEnter, modifier = Modifier.fillMaxWidth().height(48.dp)) {

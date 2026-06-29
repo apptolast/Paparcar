@@ -57,21 +57,23 @@ internal fun HomeMonitoringPill(
     visible: Boolean,
     modifier: Modifier = Modifier,
     elapsedLabel: String? = null,
+    onClick: (() -> Unit)? = null,
 ) {
     AnimatedVisibility(
         visible = visible,
-        // Sober "settle" spring (no overshoot) — alive but not bouncy.
+        // Sober "settle" spring (no overshoot) — alive but not bouncy. Slides UP from below since the
+        // pill now lives at the bottom of the map, between the FABs. [FOLLOW-001]
         enter = slideInVertically(
             animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
-            initialOffsetY = { -it / ENTER_SLIDE_DIVISOR },
+            initialOffsetY = { it / ENTER_SLIDE_DIVISOR },
         ) + scaleIn(initialScale = ENTER_INITIAL_SCALE) + fadeIn(),
         exit = slideOutVertically(
             animationSpec = tween(EXIT_DURATION_MS),
-            targetOffsetY = { -it / EXIT_SLIDE_DIVISOR },
+            targetOffsetY = { it / EXIT_SLIDE_DIVISOR },
         ) + fadeOut(animationSpec = tween(EXIT_DURATION_MS)),
         modifier = modifier,
     ) {
-        MonitoringPillContent(elapsedLabel = elapsedLabel)
+        MonitoringPillContent(elapsedLabel = elapsedLabel, onClick = onClick)
     }
 }
 
@@ -81,25 +83,20 @@ internal fun HomeMonitoringPill(
  * transition's first frame — alpha 0 — and shows nothing).
  */
 @Composable
-internal fun MonitoringPillContent(elapsedLabel: String? = null) {
-    Surface(
-        shape = PapShapes.chip,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = PILL_ELEVATION_DP.dp,
-        border = BorderStroke(BORDER_DP.dp, MaterialTheme.colorScheme.primary.copy(alpha = BORDER_ALPHA)),
-    ) {
+internal fun MonitoringPillContent(elapsedLabel: String? = null, onClick: (() -> Unit)? = null) {
+    val shape = PapShapes.chip
+    val color = MaterialTheme.colorScheme.surfaceContainer
+    val border = BorderStroke(BORDER_DP.dp, MaterialTheme.colorScheme.primary.copy(alpha = BORDER_ALPHA))
+    // Symmetric bookends: a live dot leads, the route icon trails — mirroring each other around the
+    // label — and the whole pill replaces the GPS FAB during a trip, so tapping it recentres on the
+    // moving car (resumes follow). Thicker primary border gives it presence. [FOLLOW-001]
+    val pill = @Composable {
         Row(
             modifier = Modifier.padding(horizontal = PILL_PADDING_H_DP.dp, vertical = PILL_PADDING_V_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PILL_GAP_DP.dp),
         ) {
             LiveDot()
-            Icon(
-                imageVector = Icons.Rounded.Route,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(ICON_DP.dp),
-            )
             Text(
                 text = stringResource(Res.string.home_det_monitoring),
                 style = MaterialTheme.typography.titleSmall,
@@ -113,7 +110,18 @@ internal fun MonitoringPillContent(elapsedLabel: String? = null) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Icon(
+                imageVector = Icons.Rounded.Route,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(ICON_DP.dp),
+            )
         }
+    }
+    if (onClick != null) {
+        Surface(onClick = onClick, shape = shape, color = color, shadowElevation = PILL_ELEVATION_DP.dp, border = border) { pill() }
+    } else {
+        Surface(shape = shape, color = color, shadowElevation = PILL_ELEVATION_DP.dp, border = border) { pill() }
     }
 }
 
@@ -143,12 +151,13 @@ private const val ENTER_INITIAL_SCALE = 0.95f
 private const val EXIT_DURATION_MS = 260
 private const val EXIT_SLIDE_DIVISOR = 5
 private const val PILL_ELEVATION_DP = 6
-private const val PILL_PADDING_H_DP = 14
-private const val PILL_PADDING_V_DP = 8
-private const val PILL_GAP_DP = 8
-private const val ICON_DP = 18
-private const val DOT_DP = 8
+// Bigger at the bottom — there's room between the FABs, and a trip-in-progress status earns presence. [FOLLOW-001]
+private const val PILL_PADDING_H_DP = 18
+private const val PILL_PADDING_V_DP = 11
+private const val PILL_GAP_DP = 9
+private const val ICON_DP = 20
+private const val DOT_DP = 9
 private const val DOT_ALPHA_MIN = 0.3f
 private const val DOT_PULSE_MS = PapMotion.PulseExpand
-private const val BORDER_DP = 1
-private const val BORDER_ALPHA = 0.4f
+private const val BORDER_DP = 2          // thicker border for presence [FOLLOW-001]
+private const val BORDER_ALPHA = 0.55f

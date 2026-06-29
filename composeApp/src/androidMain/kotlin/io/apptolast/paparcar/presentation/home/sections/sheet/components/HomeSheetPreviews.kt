@@ -266,6 +266,39 @@ private fun HomeVehicleCardEmptyLightPreview() {
     }
 }
 
+// Driving state — live "Conduciendo" chip with radar halo (animation only runs in interactive
+// preview / on device; static render shows the blue border + label). [CHIP-DRIVING-001]
+@Preview(name = "A — HomeVehicleCard: driving (oscuro)", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun HomeVehicleCardDrivingDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        Column(Modifier.padding(16.dp)) {
+            HomeVehicleChip(
+                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
+                userLocation = null,
+                isDriving = true,
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "A — HomeVehicleCard: driving (claro)", showBackground = true)
+@Composable
+private fun HomeVehicleCardDrivingLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        Column(Modifier.padding(16.dp)) {
+            HomeVehicleChip(
+                card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
+                userLocation = null,
+                isDriving = true,
+                onClick = {},
+            )
+        }
+    }
+}
+
 // ─── A — PapSectionHeader ─────────────────────────────────────────────────────
 
 @Preview(name = "A — PapSectionHeader (oscuro)", showBackground = true,

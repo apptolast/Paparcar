@@ -52,6 +52,10 @@ val PapBlue          = Color(0xFF5B9EFF)   // manual report — info / neutral
 val PapBlueMuted     = Color(0xFF0F1F3D)   // blue container dark
 val PapOnBlue        = Color(0xFF061021)
 
+// Live "driving / en-route" blue — matches the driving puck halo + en-route spot pin (0xFF2F6BFF).
+// Fixed brand tone (not theme-inverted) so the "Driving" chip reads identical to its map marker.
+val PapDriveBlue     = Color(0xFF2F6BFF)
+
 // ── Light theme counterparts ──────────────────────────────────────────────────
 
 // ── Azure ramp — blue-navy surfaces for light theme (H≈217°, mirrors PapInk DNA) ─

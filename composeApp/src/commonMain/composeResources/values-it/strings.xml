@@ -7,12 +7,14 @@
     <string name="home_cd_profile">Profilo</string>
     <string name="home_search_placeholder">Cerca una zona, una via…</string>
     <string name="home_stats_free_spots_badge">%1$d liberi</string>
+    <string name="home_peek_no_spots">Nessun posto nelle vicinanze</string>
     <string name="home_banner_since">%1$s</string>
     <string name="home_banner_accuracy">±%1$dm</string>
     <string name="home_parked_section">Sei parcheggiato</string>
     <string name="home_where_to_park_title">Dove vuoi parcheggiare?</string>
     <string name="home_vehicle_chip_badge_active">Attivo</string>
     <string name="home_vehicle_chip_status_parked">Parcheggiato · %1$s</string>
+    <string name="home_vehicle_chip_status_driving">Alla guida</string>
     <string name="home_active_vehicle_title">Il tuo veicolo attivo</string>
     <string name="home_parking_release">Libera posto</string>
     <string name="home_navigate_to_spot">Indicazioni</string>
