@@ -317,7 +317,7 @@
     <string name="my_car_no_vehicle">Brak zarejestrowanego pojazdu</string>
     <string name="my_car_add_vehicle">Dodaj pojazd</string>
     <string name="my_car_active_vehicle">Aktywny pojazd</string>
-    <string name="my_car_set_active">Ustaw jako aktywny</string>
+    <string name="my_car_set_active">Aktywuj</string>
     <string name="my_car_more_actions">Więcej akcji</string>
     <string name="my_car_unnamed_vehicle">Pojazd bez nazwy</string>
     <string name="veh_bt_recommendation_title">Popraw dokładność wykrywania</string>

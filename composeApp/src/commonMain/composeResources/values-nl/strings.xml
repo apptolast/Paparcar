@@ -313,7 +313,7 @@
     <string name="my_car_no_vehicle">Nog geen voertuig geregistreerd</string>
     <string name="my_car_add_vehicle">Voertuig toevoegen</string>
     <string name="my_car_active_vehicle">Actief voertuig</string>
-    <string name="my_car_set_active">Instellen als actief</string>
+    <string name="my_car_set_active">Activeren</string>
     <string name="my_car_more_actions">Meer acties</string>
     <string name="my_car_unnamed_vehicle">Voertuig zonder naam</string>
     <string name="veh_bt_recommendation_title">Verbeter de detectienauwkeurigheid</string>

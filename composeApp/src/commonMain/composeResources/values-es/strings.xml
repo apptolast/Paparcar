@@ -416,7 +416,7 @@
     <string name="vehicle_detail_cd_back">Volver</string>
     <string name="vehicle_detail_history_empty">Todavía no hay sesiones de aparcamiento registradas para este vehículo.</string>
     <string name="my_car_active_vehicle">Vehículo activo</string>
-    <string name="my_car_set_active">Establecer como activo</string>
+    <string name="my_car_set_active">Activar</string>
     <string name="my_car_more_actions">Más acciones</string>
     <string name="my_car_unnamed_vehicle">Vehículo sin nombre</string>
     <string name="veh_bt_recommendation_title">Mejora la precisión de detección</string>

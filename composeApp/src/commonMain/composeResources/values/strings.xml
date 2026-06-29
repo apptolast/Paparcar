@@ -422,7 +422,7 @@
     <string name="vehicle_detail_cd_back">Back</string>
     <string name="vehicle_detail_history_empty">No parking sessions recorded yet for this vehicle.</string>
     <string name="my_car_active_vehicle">Active vehicle</string>
-    <string name="my_car_set_active">Set as active</string>
+    <string name="my_car_set_active">Activate</string>
     <string name="my_car_more_actions">More actions</string>
     <string name="my_car_unnamed_vehicle">Unnamed vehicle</string>
     <string name="veh_bt_recommendation_title">Improve detection accuracy</string>

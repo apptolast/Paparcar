@@ -313,7 +313,7 @@
     <string name="my_car_no_vehicle">Aucun véhicule enregistré</string>
     <string name="my_car_add_vehicle">Ajouter un véhicule</string>
     <string name="my_car_active_vehicle">Véhicule actif</string>
-    <string name="my_car_set_active">Définir comme actif</string>
+    <string name="my_car_set_active">Activer</string>
     <string name="my_car_more_actions">Plus d\'actions</string>
     <string name="my_car_unnamed_vehicle">Véhicule sans nom</string>
     <string name="veh_bt_recommendation_title">Améliorez la précision de détection</string>

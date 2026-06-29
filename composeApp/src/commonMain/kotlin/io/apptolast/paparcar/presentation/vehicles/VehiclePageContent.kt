@@ -8,13 +8,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
@@ -143,6 +144,15 @@ private fun VehicleHeroCard(
                 )
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
+                    // Status pill rides as an eyebrow / overline above the name so it
+                    // gets a line of its own and never wraps the way it did when it
+                    // shared the meta row with the size label. [CHIP-DRIVING-001]
+                    VehicleStatusBadge(
+                        status = monitoring,
+                        isSettingActive = isSettingActive,
+                        onSetActive = onSetActive,
+                    )
+                    Spacer(Modifier.height(HERO_EYEBROW_GAP.dp))
                     Text(
                         text = displayName,
                         style = MaterialTheme.typography.titleMedium,
@@ -152,22 +162,12 @@ private fun VehicleHeroCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Spacer(Modifier.height(HERO_NAME_META_GAP.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(HERO_META_GAP.dp),
-                    ) {
-                        Text(
-                            text = sizeLabel.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                        )
-                        VehicleStatusBadge(
-                            status = monitoring,
-                            isSettingActive = isSettingActive,
-                            onSetActive = onSetActive,
-                        )
-                    }
+                    Text(
+                        text = sizeLabel.uppercase(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+                    )
                 }
                 Spacer(Modifier.width(8.dp))
                 IconButton(onClick = onEdit) {
@@ -210,24 +210,35 @@ private fun VehicleStatusBadge(
         transitionSpec = { fadeIn(PapMotion.medium()) togetherWith fadeOut(PapMotion.medium()) },
         label = "vehicle_status_badge",
     ) { (s, loading) ->
+        // Tonal-container fills (not the vivid primary/tertiary) so the eyebrow
+        // stays a quiet overline and the name keeps the visual hierarchy; the
+        // saturated colour survives only in the small leading marker. [CHIP-DRIVING-001]
         when (s) {
             is VehicleMonitoringStatus.Bluetooth -> VehicleStatusPill(
                 text = stringResource(Res.string.vehicle_card_detection_bt),
-                accent = cs.tertiary,
+                fill = cs.tertiaryContainer,
+                content = cs.onTertiaryContainer,
+                marker = cs.tertiary,
                 leading = PillLeading.BtIcon,
                 onClick = null,
                 isLoading = false,
             )
             VehicleMonitoringStatus.Active -> VehicleStatusPill(
                 text = stringResource(Res.string.my_car_active_vehicle),
-                accent = cs.primary,
+                fill = cs.primaryContainer,
+                content = cs.onPrimaryContainer,
+                marker = cs.primary,
                 leading = PillLeading.Dot,
                 onClick = null,
                 isLoading = false,
             )
+            // Soft-filled so it still reads as a tappable CTA (not a flat-grey
+            // "disabled" chip); the primary dot hints the activation action.
             VehicleMonitoringStatus.Inactive -> VehicleStatusPill(
                 text = stringResource(Res.string.my_car_set_active),
-                accent = cs.outline,
+                fill = cs.surfaceContainerHighest,
+                content = cs.onSurface,
+                marker = cs.primary,
                 leading = PillLeading.Dot,
                 onClick = onSetActive,
                 isLoading = loading,
@@ -239,62 +250,74 @@ private fun VehicleStatusBadge(
 private enum class PillLeading { None, Dot, BtIcon }
 
 /**
- * Outlined pill used for the three vehicle-monitoring states. Same height, padding
+ * Filled eyebrow pill for the three vehicle-monitoring states. Same height, padding
  * and typography across states so Active / Bluetooth / Set-active align visually
- * in the hero card. Text stays high-contrast ([onSurface]) so the [accent] only
- * paints the border + leading marker. The action variant ([onClick] non-null)
- * drops the marker. When [isLoading] is true the leading marker is replaced by
- * a spinner and the click is suppressed.
+ * above the name. [fill] paints the background, [content] the uppercase overline
+ * text and [marker] the leading dot / BT icon / spinner. The action variant
+ * ([onClick] non-null) keeps its marker as an activation hint. When [isLoading]
+ * is true the leading marker is replaced by a spinner and the click is suppressed.
  */
 @Composable
 private fun VehicleStatusPill(
     text: String,
-    accent: Color,
+    fill: Color,
+    content: Color,
+    marker: Color,
     leading: PillLeading,
     onClick: (() -> Unit)?,
     isLoading: Boolean,
 ) {
     val shape = RoundedCornerShape(PILL_RADIUS_DP.dp)
-    val border = BorderStroke(1.dp, accent)
-    val content: @Composable () -> Unit = {
+    // Fixed pill height so every state (Active / Bluetooth / Activate) is exactly
+    // the same size and the gap down to the name is identical regardless of the
+    // label or marker. [CHIP-DRIVING-001]
+    val pillModifier = Modifier.height(EYEBROW_PILL_H_DP.dp)
+    val inner: @Composable () -> Unit = {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(horizontal = PILL_H_PAD.dp),
         ) {
             when {
                 isLoading -> CircularProgressIndicator(
                     modifier = Modifier.size(BADGE_ICON_DP.dp),
                     strokeWidth = 2.dp,
-                    color = accent,
+                    color = marker,
                 )
                 leading == PillLeading.Dot -> Box(
                     modifier = Modifier
                         .size(ACTIVE_DOT_DP.dp)
                         .clip(CircleShape)
-                        .background(accent),
+                        .background(marker),
                 )
                 leading == PillLeading.BtIcon -> Icon(
                     imageVector = Icons.Rounded.Bluetooth,
                     contentDescription = null,
-                    tint = accent,
+                    tint = marker,
                     modifier = Modifier.size(BADGE_ICON_DP.dp),
                 )
                 else -> Unit
             }
             Text(
-                text = text,
+                text = text.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = EYEBROW_TEXT_SP.sp,
+                lineHeight = EYEBROW_TEXT_SP.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = EYEBROW_TRACKING_SP.sp,
+                color = content,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
     val safeOnClick: (() -> Unit)? = onClick?.takeIf { !isLoading }
     if (safeOnClick != null) {
-        Surface(onClick = safeOnClick, shape = shape, color = Color.Transparent, border = border) { content() }
+        Surface(onClick = safeOnClick, modifier = pillModifier, shape = shape, color = fill) { inner() }
     } else {
-        Surface(shape = shape, color = Color.Transparent, border = border) { content() }
+        Surface(modifier = pillModifier, shape = shape, color = fill) { inner() }
     }
 }
 
@@ -394,8 +417,12 @@ private const val CARD_PADDING = 16
 private const val CARD_BORDER_ALPHA = 0.5f
 private const val HERO_ICON_BOX_DP = 56
 private const val PILL_RADIUS_DP = 999
-private const val ACTIVE_DOT_DP = 6
-private const val BADGE_ICON_DP = 14
+private const val PILL_H_PAD = 8
+private const val EYEBROW_PILL_H_DP = 19
+private const val EYEBROW_TRACKING_SP = 0.4f
+private const val EYEBROW_TEXT_SP = 9f
+private const val ACTIVE_DOT_DP = 5
+private const val BADGE_ICON_DP = 11
 private const val STATS_DIVIDER_PAD = 12
 private const val STAT_CARD_GAP = 6
 private const val STAT_CARD_CORNER_DP = 10
@@ -406,5 +433,5 @@ private const val STAT_ICON_GAP = 6
 private const val STAT_LABEL_ALPHA = 0.5f
 private const val SUBTITLE_ALPHA = 0.55f
 private const val EDIT_ICON_ALPHA = 0.7f
-private const val HERO_NAME_META_GAP = 6
-private const val HERO_META_GAP = 10
+private const val HERO_EYEBROW_GAP = 4
+private const val HERO_NAME_META_GAP = 4
