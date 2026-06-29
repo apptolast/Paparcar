@@ -680,7 +680,6 @@ private fun ParkingPeekRow(
             ParkedVehicleHeaderChip(
                 carbody = vehicle?.carbodyType,
                 size = vehicle?.sizeCategory,
-                tone = tone,
                 color = vehicle?.color,
             )
         },
@@ -809,15 +808,9 @@ private fun AddingParkingPeekRow(
     // close affordance — the CD is read by accessibility for that button.
     @Suppress("UnusedExpression") stringResource(Res.string.home_add_parking_cancel_cd)
 
-    // Show the actual car (carbody glyph) being parked, not a generic DirectionsCar — matches its
-    // on-map marker (icon + state tone) so the user recognises the vehicle and its monitoring state:
-    // BT blue, inactive grey, active green. [MOTION-POLISH-001]
-    val addParkingTone = when {
-        targetVehicle?.bluetoothDeviceId != null -> io.apptolast.paparcar.ui.components.VehicleBadgeTone.Bluetooth
-        targetVehicle?.isActive == false         -> io.apptolast.paparcar.ui.components.VehicleBadgeTone.Inactive
-        else                                     -> io.apptolast.paparcar.ui.components.VehicleBadgeTone.Parked
-    }
-
+    // Show the actual car (carbody glyph) being parked, not a generic DirectionsCar so the user
+    // recognises the vehicle. The car stays full-colour/opaque regardless of monitoring state — that
+    // state reads on its on-map marker border, not by dimming the glyph here. [INACTIVE-OPAQUE-001]
     PeekStateCard(
         headerLabel = headerLabel,
         title = primaryText,
@@ -826,7 +819,6 @@ private fun AddingParkingPeekRow(
             ParkedVehicleHeaderChip(
                 carbody = targetVehicle?.carbodyType,
                 size = targetVehicle?.sizeCategory,
-                tone = addParkingTone,
                 color = targetVehicle?.color,
             )
         },

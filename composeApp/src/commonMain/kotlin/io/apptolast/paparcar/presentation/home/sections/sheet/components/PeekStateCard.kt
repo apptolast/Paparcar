@@ -184,14 +184,12 @@ internal fun PeekHeaderIconChip(
 internal fun ParkedVehicleHeaderChip(
     carbody: io.apptolast.paparcar.domain.model.CarbodyType?,
     size: io.apptolast.paparcar.domain.model.VehicleSize?,
-    tone: io.apptolast.paparcar.ui.components.VehicleBadgeTone,
     color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
 ) {
     // Bare full-colour car (no disc) — only the on-map marker keeps the tag container. [BOLT-MARKERS-001]
     io.apptolast.paparcar.ui.components.VehicleGlyph(
         carbody = carbody,
         size = size,
-        tone = tone,
         glyphSize = CHIP_DP.dp,
         color = color,
     )

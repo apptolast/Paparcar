@@ -124,13 +124,16 @@ private const val GROUND_SHADOW_ALPHA = 0.35f
  * the design viewBox `104 × 88` scaled into [TAG_MARKER_W]; the bitmap is anchored bottom-centre so
  * the dome base pins the coordinate.
  *
- * **State lives in the tag border**, not by recolouring the car: green = parked/active,
- * blue = Bluetooth, grey = inactive (monitoring stopped). **Selection** flips the border to the
- * theme's max-contrast `onSurface` (white on dark, black on light) — unified across every marker —
- * and thickens it. The default border is the state colour (no white-by-default). [MAP-ICONS-V2]
+ * **State lives in the tag border**, not by recolouring or dimming the car: green = parked/active,
+ * blue = Bluetooth, grey = inactive (monitoring stopped). The carbody stays fully opaque/full-colour
+ * in every state — it's identity, not status — so an inactive car never reads as "fading away".
+ * **Selection** flips the border to the theme's max-contrast `onSurface` (white on dark, black on
+ * light) — unified across every marker — and thickens it. The default border is the state colour
+ * (no white-by-default). [MAP-ICONS-V2]
  *
  * @param selected when true the border becomes onSurface + thicker to signal selection.
- * @param isActive when false the car dims and the border greys (monitoring stopped).
+ * @param isActive when false the tag border + position dot grey out (monitoring stopped); the car
+ *   itself stays opaque.
  */
 @Composable
 fun VehicleBadgeMarker(
@@ -167,7 +170,6 @@ fun VehicleBadgeMarker(
 
     // dp-per-viewBox-unit, so the overlaid carbody lands exactly inside the drawn tag interior.
     val u = TAG_MARKER_W / TAG_VB_W
-    val iconAlpha = if (tone == VehicleBadgeTone.Inactive) TAG_INACTIVE_ALPHA else 1f
 
     Box(
         modifier = modifier.size(
@@ -208,8 +210,7 @@ fun VehicleBadgeMarker(
             color = color,
             modifier = Modifier
                 .offset(x = u * 16f, y = u * 13f)
-                .size(width = u * 72f, height = u * 52f)
-                .alpha(iconAlpha),
+                .size(width = u * 72f, height = u * 52f),
         )
     }
 }
@@ -223,7 +224,6 @@ private const val TAG_BORDER_U      = 3.6f  // default state-colour border — m
 private const val TAG_SEL_BORDER_U  = 4f    // selected onSurface border
 private const val TAG_DOT_R         = 4.5f  // position-dot radius (viewBox units)
 private const val TAG_SHADOW_ALPHA  = 0.18f
-private const val TAG_INACTIVE_ALPHA = 0.5f
 
 // ─── Marker 1c — Location-active driving puck (LocationActiveMarker) ─────────
 

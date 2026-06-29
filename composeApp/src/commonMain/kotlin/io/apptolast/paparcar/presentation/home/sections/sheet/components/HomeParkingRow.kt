@@ -103,7 +103,6 @@ internal fun HomeVehicleChip(
                 VehicleGlyph(
                     carbody = vehicle.carbodyType,
                     size = vehicle.sizeCategory,
-                    tone = tone,
                     glyphSize = ICON_BOX_DP.dp,
                     color = vehicle.color,
                 )

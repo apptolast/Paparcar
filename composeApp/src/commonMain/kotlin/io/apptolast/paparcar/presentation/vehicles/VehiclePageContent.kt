@@ -56,7 +56,6 @@ import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.components.VehicleBadgeTone
 import io.apptolast.paparcar.ui.components.VehicleGlyph
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -120,17 +119,7 @@ private fun VehicleHeroCard(
     val displayName = vehicle.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle))
     val sizeLabel = vehicleSizeLabel(vehicle.sizeCategory)
     val monitoring = vehicle.monitoringStatus()
-    val highlight = monitoring !is VehicleMonitoringStatus.Inactive
-    val isBtPaired = vehicle.bluetoothDeviceId != null
     val cs = MaterialTheme.colorScheme
-    // Unified semantic badge — same element as the Home chip / map marker. In this screen the
-    // *active* (monitored) vehicle is the one that matters → green (vibrant); BT → blue; the rest
-    // stay neutral grey. Identity still comes from the silhouette + name. [DET-READY-001k]
-    val badgeTone = when {
-        isBtPaired -> VehicleBadgeTone.Bluetooth
-        highlight  -> VehicleBadgeTone.Parked
-        else       -> VehicleBadgeTone.Inactive
-    }
 
     Surface(
         modifier = Modifier
@@ -151,7 +140,6 @@ private fun VehicleHeroCard(
                 VehicleGlyph(
                     carbody = vehicle.carbodyType,
                     size = vehicle.sizeCategory,
-                    tone = badgeTone,
                     glyphSize = HERO_ICON_BOX_DP.dp,
                     color = vehicle.color,
                 )
