@@ -6,7 +6,6 @@
     <string name="home_peek_no_spots">No spots nearby</string>
     <!-- Sheet section header above the per-vehicle rows. [MULTI-PARKING-001] -->
     <string name="home_vehicles_section_header">Your vehicles</string>
-    <!-- Per-vehicle row when the vehicle has no active session — CTA pill on the right. -->
     <!-- Per-vehicle row when the vehicle has no active session — subtitle. -->
     <string name="home_vehicle_card_status_empty">Not parked</string>
     <!-- Fallback label when a Vehicle has no name, brand or model set. -->
@@ -41,18 +40,14 @@
     <string name="home_release_dialog_publish">Release and notify</string>
     <string name="home_release_dialog_delete_only">Just release</string>
     <string name="home_release_dialog_cancel">Cancel</string>
-    <!-- Parking detection confidence badge shown in HomeParkingRow -->
     <!-- HomeSearchBar -->
     <string name="home_search_clear_cd">Clear search</string>
     <string name="pap_field_clear_cd">Clear field</string>
-    <!-- HomeFloatingHeader -->
-    <!-- HomeSpotRows freshness chip — %1$d = minutes or hours -->
     <!-- HomeSpotRow reliability tier label (uppercase badge in meta row) -->
     <string name="home_spot_reliability_high">Reliable</string>
     <string name="home_spot_reliability_medium">Medium</string>
     <string name="home_spot_reliability_low">Low</string>
     <string name="home_spot_reliability_manual">Manual</string>
-    <!-- SpotCard — %1$d = number of users currently en route -->
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welcome to Paparcar</string>
@@ -145,7 +140,6 @@
     <string name="history_insights_peak_day">Peak day</string>
     <string name="history_insights_top_street">Top street</string>
     <string name="history_insights_reliability">Reliability</string>
-    <!-- %1$d = day, %2$s = month name, %3$s = hour (padded), %4$s = minute (padded) -->
     <!-- Short month names (3 chars) for date headers in timeline -->
     <string name="history_month_short_1">Jan</string>
     <string name="history_month_short_2">Feb</string>
@@ -203,8 +197,6 @@
     <string name="error_bootstrap_fatal_body">Something went wrong while loading your data. Please sign in again.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Could not save your parking spot. Please try again.</string>
-
-    <!-- Address fallback -->
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Spot reported — uploading…</string>
@@ -294,8 +286,6 @@
     <string name="nav_tab_home">Home</string>
     <string name="nav_tab_vehicles">Vehicles</string>
     <string name="nav_tab_settings">Settings</string>
-
-    <!-- Vehicles screen actions -->
 
     <!-- My Car screen -->
     <string name="my_car_title">My vehicles</string>
@@ -399,7 +389,6 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Auto-detection active</string>
     <string name="detection_banner_pair_bt">Pair Bluetooth</string>
-    <!-- DetectionReadinessBanner [DET-READY-001] -->
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expired</string>

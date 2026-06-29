@@ -25,7 +25,6 @@
     <string name="home_release_dialog_cancel">Annuler</string>
     <string name="home_search_clear_cd">Effacer la recherche</string>
     <string name="pap_field_clear_cd">Effacer le champ</string>
-    <!-- SpotCard — %1$d = number of users currently en route -->
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenue sur Paparcar</string>
@@ -188,8 +187,6 @@
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Impossible d\'enregistrer votre place de parking. Veuillez réessayer.</string>
 
-    <!-- Emplacement inconnu -->
-
     <!-- Messages de succès Home -->
     <string name="home_spot_reported">Place signalée — chargement…</string>
     <string name="home_cd_map_type">Changer le type de carte</string>
@@ -294,7 +291,6 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Détection automatique active</string>
     <string name="detection_banner_pair_bt">Associer Bluetooth</string>
-    <!-- DetectionReadinessBanner [DET-READY-001] -->
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expiré</string>
@@ -326,10 +322,6 @@
     <string name="home_peek_vehicle_parked_label">%1$s garé</string>
     <string name="bt_config_cd_back">Retour</string>
 
-    <!-- ───────────────────────────────────────────────────────────────── -->
-    <!-- v1 redesign — peek cards, modal states, vehicle stats, etc.       -->
-    <!-- ───────────────────────────────────────────────────────────────── -->
-
     <!-- ConfirmationBottomSheet (détection de stationnement) -->
     <string name="confirmation_sheet_question">Tu t\'es garé ici ?</string>
     <string name="confirmation_sheet_method_bt">Détecté par Bluetooth · il y a %1$s</string>
@@ -339,8 +331,6 @@
     <string name="connectivity_offline_banner">Hors ligne</string>
     <string name="connectivity_restored_snackbar">De retour en ligne</string>
     <string name="connectivity_action_blocked_offline">Connecte-toi à Internet pour faire ça</string>
-
-    <!-- Home cd_spot accessibility label -->
 
     <!-- Pills CTA des cards Home -->
     <string name="home_header_add_zone">Ajouter une zone habituelle</string>

@@ -6,7 +6,6 @@
     <string name="home_peek_no_spots">Sin plazas cerca</string>
     <!-- Header de la sección "Tus vehículos" en el sheet. [MULTI-PARKING-001] -->
     <string name="home_vehicles_section_header">Tus vehículos</string>
-    <!-- Píldora CTA en la fila por vehículo cuando no hay sesión activa. -->
     <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
     <string name="home_vehicle_card_status_empty">Sin aparcar</string>
     <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
@@ -38,18 +37,14 @@
     <string name="home_release_dialog_publish">Liberar y avisar</string>
     <string name="home_release_dialog_delete_only">Solo liberar</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
-    <!-- Badge de confianza de detección en HomeParkingRow -->
     <!-- HomeSearchBar -->
     <string name="home_search_clear_cd">Limpiar búsqueda</string>
     <string name="pap_field_clear_cd">Limpiar campo</string>
-    <!-- HomeFloatingHeader -->
-    <!-- HomeSpotRows chip de frescura — %1$d = minutos u horas -->
     <!-- HomeSpotRow etiqueta de fiabilidad (badge en mayúsculas) -->
     <string name="home_spot_reliability_high">Fiable</string>
     <string name="home_spot_reliability_medium">Media</string>
     <string name="home_spot_reliability_low">Baja</string>
     <string name="home_spot_reliability_manual">Manual</string>
-    <!-- SpotCard — %1$d = number of users currently en route -->
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenido a Paparcar</string>
@@ -238,8 +233,6 @@
     <string name="error_bootstrap_fatal_dismiss">Aceptar</string>
     <string name="error_parking_save_failed">No se pudo guardar tu plaza de aparcamiento. Inténtalo de nuevo.</string>
 
-    <!-- Dirección desconocida -->
-
     <!-- Mensajes de éxito de Home -->
     <string name="home_spot_reported">Plaza reportada — subiendo…</string>
     <string name="home_cd_map_type">Cambiar tipo de mapa</string>
@@ -287,8 +280,6 @@
     <string name="nav_tab_home">Inicio</string>
     <string name="nav_tab_vehicles">Vehículos</string>
     <string name="nav_tab_settings">Ajustes</string>
-
-    <!-- Acciones de la pantalla de vehículos -->
 
     <!-- Pantalla Mi Coche -->
     <string name="my_car_title">Mis vehículos</string>
@@ -383,7 +374,6 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Detección automática activa</string>
     <string name="detection_banner_pair_bt">Vincular Bluetooth</string>
-    <!-- DetectionReadinessBanner [DET-READY-001] -->
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en camino</string>
     <string name="spot_indicator_ttl_expired">Expirado</string>

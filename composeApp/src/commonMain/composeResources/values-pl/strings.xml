@@ -27,7 +27,6 @@
     <string name="home_release_dialog_cancel">Anuluj</string>
     <string name="home_search_clear_cd">Wyczyść wyszukiwanie</string>
     <string name="pap_field_clear_cd">Wyczyść pole</string>
-    <!-- SpotCard — %1$d = number of users currently en route -->
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Witaj w Paparcar</string>
@@ -192,8 +191,6 @@
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Nie udało się zapisać miejsca parkingowego. Spróbuj ponownie.</string>
 
-    <!-- Address fallback -->
-
     <!-- Home success messages -->
     <string name="home_spot_reported">Miejsce zgłoszone — przesyłanie…</string>
     <string name="home_cd_map_type">Zmień typ mapy</string>
@@ -298,7 +295,6 @@
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Automatyczne wykrywanie aktywne</string>
     <string name="detection_banner_pair_bt">Połącz Bluetooth</string>
-    <!-- DetectionReadinessBanner [DET-READY-001] -->
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d w drodze</string>
     <string name="spot_indicator_ttl_expired">Wygasło</string>
@@ -330,10 +326,6 @@
     <string name="home_peek_vehicle_parked_label">%1$s zaparkowany</string>
     <string name="bt_config_cd_back">Wróć</string>
 
-    <!-- ───────────────────────────────────────────────────────────────── -->
-    <!-- v1 redesign — peek cards, modal states, vehicle stats, etc.       -->
-    <!-- ───────────────────────────────────────────────────────────────── -->
-
     <!-- ConfirmationBottomSheet (wykrywanie parkowania) -->
     <string name="confirmation_sheet_question">Tu zaparkowałeś?</string>
     <string name="confirmation_sheet_method_bt">Wykryto przez Bluetooth · %1$s temu</string>
@@ -343,8 +335,6 @@
     <string name="connectivity_offline_banner">Jesteś offline</string>
     <string name="connectivity_restored_snackbar">Znowu online</string>
     <string name="connectivity_action_blocked_offline">Połącz się z internetem, aby to zrobić</string>
-
-    <!-- Home cd_spot accessibility label -->
 
     <!-- CTA pills w kartach Home -->
     <string name="home_header_add_zone">Dodaj strefę</string>
