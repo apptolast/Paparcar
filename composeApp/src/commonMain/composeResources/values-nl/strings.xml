@@ -1,72 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- HomeScreen -->
-    <string name="home_brand_name">PAPARCAR</string>
-    <string name="home_eco_driver_label">Eco-rijder</string>
-    <string name="home_parking_row_label">Uw voertuig</string>
-    <string name="home_cd_profile">Profiel</string>
     <string name="home_search_placeholder">Zoek een gebied, straat…</string>
     <string name="home_stats_free_spots_badge">%1$d vrij</string>
     <string name="home_peek_no_spots">Geen plekken in de buurt</string>
-    <string name="home_banner_since">%1$s</string>
-    <string name="home_banner_accuracy">±%1$dm</string>
-    <string name="home_parked_section">U bent geparkeerd</string>
-    <string name="home_where_to_park_title">Waar wilt u parkeren?</string>
     <string name="home_vehicle_chip_badge_active">Actief</string>
     <string name="home_vehicle_chip_status_parked">Geparkeerd · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Onderweg</string>
-    <string name="home_active_vehicle_title">Uw actieve voertuig</string>
     <string name="home_parking_release">Parkeerplaats vrijgeven</string>
     <string name="home_navigate_to_spot">Route</string>
     <string name="home_navigate_to_vehicle">Navigeer naar voertuig</string>
-    <string name="home_nav_button">Navigeren</string>
-    <string name="home_nav_your_car">Uw auto</string>
-    <string name="home_nav_free_spot">Vrije parkeerplaats</string>
     <string name="home_feed_nearby">In uw buurt</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d vrije parkeerplaats in uw buurt</item>
         <item quantity="other">%1$d vrije parkeerplaatsen in uw buurt</item>
     </plurals>
-    <string name="home_feed_activity">Recente activiteit</string>
-    <string name="home_permissions_message">Schakel locatie in om parkeerplaatsen in de buurt te zien</string>
-    <string name="home_permissions_button">Machtigingen inschakelen</string>
     <string name="home_empty_title">Geen parkeerplaatsen in de buurt</string>
     <string name="home_empty_subtitle">Wees de eerste die er een meldt</string>
-    <string name="home_spot_status_occupied">Bezet</string>
-    <string name="home_spot_status_free">Vrij</string>
-    <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Onbekende locatie</string>
     <string name="home_release_dialog_title">Parkeerplaats vrijgeven?</string>
     <string name="home_release_dialog_message">Deel je plek met bestuurders in de buurt, of verwijder hem zonder te delen.</string>
     <string name="home_release_dialog_publish">Plek publiceren</string>
     <string name="home_release_dialog_delete_only">Alleen verwijderen</string>
     <string name="home_release_dialog_cancel">Annuleren</string>
-    <string name="home_parking_peek_label">U bent geparkeerd · %1$s</string>
-    <string name="home_manual_park_title">Hier parkeren</string>
-    <string name="home_manual_park_subtitle">Parkeerlocatie handmatig opslaan</string>
-    <string name="home_action_report">Melden</string>
-    <string name="home_action_park">Parkeren</string>
-    <string name="home_parking_view_on_map">Op kaart bekijken</string>
-    <string name="home_reliability_confirmed">Bevestigd</string>
-    <string name="home_reliability_high">Automatisch gedetecteerd</string>
-    <string name="home_reliability_auto">Ongeveer</string>
     <string name="home_search_clear_cd">Zoekopdracht wissen</string>
     <string name="pap_field_clear_cd">Veld wissen</string>
-    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
-    <string name="home_spot_freshness_minutes">%1$d min geleden</string>
-    <string name="home_spot_freshness_hours">%1$d u geleden</string>
     <!-- SpotCard — %1$d = number of users currently en route -->
-    <string name="spot_card_en_route">%1$d onderweg</string>
-    <string name="spot_card_reliability_high">Auto</string>
-    <string name="spot_card_reliability_high_desc">Automatisch gedetecteerd met hoge betrouwbaarheid — waarschijnlijk nog vrij.</string>
-    <string name="spot_card_reliability_medium">Circa</string>
-    <string name="spot_card_reliability_medium_desc">Automatisch gedetecteerd met gemiddelde betrouwbaarheid — mogelijk al bezet.</string>
-    <string name="spot_card_reliability_low">Oud</string>
-    <string name="spot_card_reliability_low_desc">Automatisch gedetecteerd met lage betrouwbaarheid — controleer voor vertrek.</string>
-    <string name="spot_card_reliability_manual">Handmatig</string>
-    <string name="spot_card_reliability_manual_desc">Handmatig gemeld door een community-bestuurder.</string>
-    <string name="spot_signal_still_there">Nog vrij</string>
-    <string name="spot_signal_gone">Weg</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Welkom bij Paparcar</string>
@@ -105,7 +64,6 @@
     <string name="permissions_perm_oem_battery_desc">Optioneel — uw OPPO/Realme-apparaat kan apps op de achtergrond bevriezen. Zonder dit kan GPS uitvallen tijdens detectie. Schakel energiebesparing voor Paparcar uit in de batterij-instellingen. Minimale impact op de batterij.</string>
     <string name="permissions_status_optional">Optioneel</string>
     <string name="permissions_btn_grant">Machtigingen verlenen</string>
-    <string name="permissions_btn_background">Achtergrondlocatie activeren</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Automatische detectie inschakelen</string>
     <string name="permissions_continue_with_core">Misschien later</string>
@@ -123,20 +81,11 @@
         <item quantity="one">parkeerder deze week</item>
         <item quantity="other">parkeerders deze week</item>
     </plurals>
-    <string name="history_minutes_suffix">min</string>
     <string name="history_today">Vandaag</string>
     <string name="history_yesterday">Gisteren</string>
-    <string name="history_title">Parkeergeschiedenis</string>
-    <string name="history_subtitle">%1$d records</string>
-    <string name="history_cd_back">Terug</string>
     <string name="history_empty_title">Nog geen parkeergeschiedenis</string>
     <string name="history_empty_subtitle">Uw records verschijnen hier</string>
-    <string name="history_status_active">Actief</string>
-    <string name="history_status_finished">Beëindigd</string>
     <string name="history_active_section">Momenteel geparkeerd</string>
-    <string name="history_active_since">Geparkeerd %1$s</string>
-    <string name="history_ended_section">Eerdere parkeergeschiedenissen</string>
-    <string name="history_precision">±%1$dm</string>
     <string name="history_view_map">Bekijk op kaart</string>
     <!-- Relative time -->
     <string name="relative_time_just_now">zojuist</string>
@@ -160,19 +109,6 @@
     <string name="history_insights_peak_day">Piekdag</string>
     <string name="history_insights_top_street">Topstraat</string>
     <string name="history_insights_reliability">Betrouwbaarheid</string>
-    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
-    <string name="history_month_1">Januari</string>
-    <string name="history_month_2">Februari</string>
-    <string name="history_month_3">Maart</string>
-    <string name="history_month_4">April</string>
-    <string name="history_month_5">Mei</string>
-    <string name="history_month_6">Juni</string>
-    <string name="history_month_7">Juli</string>
-    <string name="history_month_8">Augustus</string>
-    <string name="history_month_9">September</string>
-    <string name="history_month_10">Oktober</string>
-    <string name="history_month_11">November</string>
-    <string name="history_month_12">December</string>
     <string name="history_month_short_1">jan</string>
     <string name="history_month_short_2">feb</string>
     <string name="history_month_short_3">mrt</string>
@@ -201,7 +137,6 @@
     <string name="history_day_full_sun">Zondag</string>
 
     <!-- MapScreen (legacy keep) -->
-    <string name="map_title">Parkeerplaatsenkaart</string>
     <string name="map_cd_back">Terug</string>
 
     <!-- HistoryParkingDetailScreen -->
@@ -212,19 +147,12 @@
     <string name="parking_detail_detection_auto">Automatisch gedetecteerd</string>
     <string name="parking_detail_detection_manual">Handmatige melding</string>
     <string name="parking_detail_detection_home">Privézone</string>
-    <string name="map_marker_my_car">Uw geparkeerde auto</string>
-    <string name="map_marker_car_here">Hier geparkeerde auto</string>
-    <string name="map_marker_free">Vrije parkeerplaats</string>
-    <string name="map_marker_occupied">Bezette parkeerplaats</string>
-    <string name="map_marker_reported_by">Gemeld door %1$s</string>
     <string name="map_cd_midpoint">Middelpunt tussen mij en de auto</string>
     <string name="map_cd_go_to_car">Naar mijn geparkeerde auto</string>
     <string name="map_cd_my_location">Centreer op mijn locatie</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Instellingen</string>
-    <string name="settings_cd_back">Terug</string>
-        <string name="settings_section_profile">Profiel</string>
     <string name="settings_profile_logout">Uitloggen</string>
     <string name="settings_profile_name_placeholder">Gebruiker</string>
     <string name="settings_section_appearance">Weergave</string>
@@ -236,8 +164,6 @@
     <string name="settings_section_detection">Detectie</string>
     <string name="settings_auto_detect">Automatische parkeerdetectie</string>
     <string name="settings_auto_detect_desc">Parkeerplaats automatisch opslaan</string>
-    <string name="settings_nav_my_car">Mijn auto en Bluetooth</string>
-    <string name="settings_nav_my_car_desc">Beheer je voertuigen en Bluetooth-koppeling</string>
     <string name="settings_section_notifications">Meldingen</string>
     <string name="settings_notif_parking">Parkeren gedetecteerd</string>
     <string name="settings_notif_parking_desc">Melding wanneer een parkeerplaats wordt opgeslagen</string>
@@ -252,11 +178,8 @@
     <string name="error_unknown">Er is iets misgegaan</string>
     <string name="error_load_spots">Kon parkeerplaatsen in de buurt niet laden</string>
     <string name="error_load_session">Kon parkeersessie niet laden</string>
-    <string name="error_load_history">Kon parkeergeschiedenis niet laden</string>
     <string name="error_release_parking">Kon parkeerplaats niet vrijgeven</string>
     <string name="error_gps_unavailable">Wachten op GPS-signaal…</string>
-    <string name="error_network_no_connection">Geen internetverbinding</string>
-    <string name="error_profile_sync">Kon uw profiel niet laden. Meld u opnieuw aan</string>
     <string name="error_bootstrap_offline_title">Geen internetverbinding</string>
     <string name="error_bootstrap_offline_body">Paparcar heeft een verbinding nodig om je gegevens te laden. Controleer je netwerk en probeer het opnieuw.</string>
     <string name="error_bootstrap_retry">Opnieuw proberen</string>
@@ -264,19 +187,11 @@
     <string name="error_bootstrap_fatal_body">Er is iets misgegaan bij het laden van je gegevens. Meld je opnieuw aan.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Kon je parkeerplaats niet opslaan. Probeer het opnieuw.</string>
-    <string name="error_vehicle_save_failed">Kon het voertuig niet opslaan. Probeer het opnieuw.</string>
-    <string name="error_vehicle_delete_failed">Kon het voertuig niet verwijderen. Probeer het opnieuw.</string>
-    <string name="error_delete_account_failed">Kon het account niet verwijderen. Probeer het opnieuw.</string>
 
     <!-- Address fallback -->
-    <string name="address_unknown">Onbekende locatie</string>
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Parkeerplaats gemeld — uploaden…</string>
-    <string name="home_manual_spot_reported">Parkeerplaats gemeld — bedankt!</string>
-    <string name="home_fab_release_car">Mijn auto vrijgeven</string>
-    <string name="home_fab_actions_expand">Acties openen</string>
-    <string name="home_fab_actions_collapse">Acties sluiten</string>
     <string name="home_cd_map_type">Kaarttype wisselen</string>
     <string name="home_test_spot_sent">Testparkeerplaats verzonden</string>
     <string name="home_spot_signal_sent">Bedankt voor de update!</string>
@@ -284,19 +199,12 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Een vrije plek die je hebt gezien en wilt delen.</string>
     <string name="home_report_fab_cd">Vrije plek melden</string>
-    <string name="home_report_cancel_cd">Melding annuleren</string>
 
     <!-- Home Zones — vaste plekken -->
     <string name="home_zone_name_placeholder">Naam (bv. Thuis, Werk)</string>
     <string name="home_zone_save_action">Zone opslaan</string>
     <string name="home_zone_private_label">Privézone</string>
     <string name="home_zone_private_hint">Plek wordt niet gedeeld als je vertrekt</string>
-    <string name="home_zone_cancel_cd">Nieuwe zone annuleren</string>
-    <string name="home_zone_add_chip_cd">Nieuwe zone toevoegen</string>
-    <string name="home_zone_icon_picker_cd">Kies een pictogram</string>
-    <string name="home_zones_section">Vaste plekken</string>
-    <string name="home_zones_empty_title">Vaste plek opslaan</string>
-    <string name="home_zones_empty_subtitle">Thuis, werk, familie\u2026 navigatie met &#xE9;&#xE9;n tik</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -308,13 +216,11 @@
 
     <!-- Mijn Auto scherm -->
     <string name="my_car_title">Mijn voertuigen</string>
-    <string name="my_car_placeholder_desc">Voertuigbeheer is beschikbaar in een toekomstige update.</string>
 
     <string name="my_car_no_vehicle">Nog geen voertuig geregistreerd</string>
     <string name="my_car_add_vehicle">Voertuig toevoegen</string>
     <string name="my_car_active_vehicle">Actief voertuig</string>
     <string name="my_car_set_active">Activeren</string>
-    <string name="my_car_more_actions">Meer acties</string>
     <string name="my_car_unnamed_vehicle">Voertuig zonder naam</string>
     <string name="veh_bt_recommendation_title">Verbeter de detectienauwkeurigheid</string>
     <string name="veh_bt_recommendation_body">Door de Bluetooth van je auto te koppelen, kan Paparcar veel betrouwbaarder detecteren wanneer je parkeert, zelfs op korte trajecten. Je kunt dit later instellen via het menu van het voertuig.</string>
@@ -328,8 +234,6 @@
     <string name="vehicle_registration_save">Opslaan</string>
     <string name="vehicle_registration_name_label">Naam</string>
     <string name="vehicle_registration_name_placeholder">Auto %1$d</string>
-    <string name="vehicle_default_name_format">Auto %1$d</string>
-    <string name="vehicle_registration_other_option">Andere…</string>
     <string name="vehicle_registration_section_identity">Jouw voertuig</string>
     <string name="vehicle_registration_section_optional">Bijnaam (optioneel)</string>
     <string name="vehicle_registration_brand_hint">Merk</string>
@@ -338,25 +242,17 @@
     <string name="vehicle_registration_brand_error">Selecteer een merk om door te gaan</string>
     <string name="vehicle_registration_size_required_hint">Kies een maat om door te gaan</string>
     <string name="vehicle_registration_saving">Opslaan…</string>
-    <string name="vehicle_registration_bt_new_hint">Sla het voertuig eerst op om Bluetooth te koppelen</string>
     <string name="vehicle_registration_license_plate_label">Kenteken</string>
     <string name="vehicle_show_on_spot">Merk en model tonen op vrije parkeerplaatsen</string>
     <string name="vehicle_show_on_spot_desc">Merk en model zijn privé — alleen gebruikt om de parkeerplaatsgrootte te schatten. Schakel in zodat anderen zien welke auto de plek heeft vrijgemaakt.</string>
-    <string name="vehicle_size_label">Voertuiggrootte</string>
     <string name="vehicle_size_moto">Motor</string>
-    <string name="vehicle_size_moto_examples">bijv. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
     <string name="vehicle_size_small">Klein</string>
-    <string name="vehicle_size_small_examples">bijv. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
     <string name="vehicle_size_medium">Middelgroot</string>
-    <string name="vehicle_size_medium_examples">bijv. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
     <string name="vehicle_size_large">Groot</string>
-    <string name="vehicle_size_large_examples">bijv. BMW 5 Serie, Mercedes E-Klasse, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Bestelbus / SUV</string>
-    <string name="vehicle_size_van_examples">bijv. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
     <string name="vehicle_size_unknown">Onbekend</string>
 
     <!-- Voertuigtype-keuze — registratie / bewerk scherm -->
-    <string name="vehicle_type_label">Voertuigtype</string>
     <string name="vehicle_type_car">Auto</string>
     <string name="vehicle_type_car_examples">Auto, SUV of bestelbus — heeft een parkeerplek nodig</string>
     <string name="vehicle_type_motorcycle">Motor</string>
@@ -365,8 +261,6 @@
     <string name="vehicle_type_scooter_examples">Bromfiets of e-step — meestal geen parkeerplek nodig</string>
     <string name="vehicle_type_bike">Fiets</string>
     <string name="vehicle_type_bike_examples">Fiets of e-bike — meestal geen parkeerplek nodig</string>
-    <string name="spot_item_type_auto">Auto</string>
-    <string name="spot_item_type_manual">Handmatig</string>
 
     <!-- Voordeel-taglines per machtigingsniveau [ONB-SCAFFOLD-001] -->
     <string name="permissions_tier_essential_benefit">Om plekken op de kaart te vinden en te zien</string>
@@ -391,31 +285,16 @@
     <string name="bt_config_no_devices">Geen gekoppelde Bluetooth-apparaten gevonden. Koppel eerst het Bluetooth van je auto via de systeeminstellingen.</string>
     <string name="bt_config_save">Opslaan</string>
     <string name="bt_config_none">Geen auto Bluetooth</string>
-    <string name="bt_config_remove">Koppeling verwijderen</string>
     <string name="bt_config_device_classic">Klassiek</string>
     <string name="bt_config_device_le">Bluetooth LE</string>
     <string name="bt_config_device_dual">Dual</string>
-    <string name="my_car_bt_configure">Bluetooth configureren</string>
-    <string name="my_car_bt_device">Auto Bluetooth</string>
-    <string name="my_car_bt_not_configured">Niet geconfigureerd</string>
-    <string name="my_car_cannot_delete_last_vehicle">Je moet ten minste één geregistreerd voertuig behouden.</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
-    <string name="vehicle_card_detection_ar">Auto-detectie</string>
-    <string name="vehicle_card_detection_off">Geen detectie</string>
     <!-- DetectionStatusBanner -->
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Automatische detectie actief</string>
     <string name="detection_banner_pair_bt">Bluetooth koppelen</string>
     <!-- DetectionReadinessBanner [DET-READY-001] -->
-    <string name="detection_ready_armed">Klaar · ik detecteer bij het parkeren</string>
-    <string name="detection_monitoring_active">Detectie actief · onderweg</string>
-    <string name="detection_parked_watching">Geparkeerd · let op vertrek</string>
-    <string name="detection_blocked_title">Detectie gepauzeerd</string>
-    <string name="detection_blocked_cta">Inschakelen</string>
-    <string name="detection_disabled_no_vehicle">Voeg je auto toe en automatiseer het parkeren</string>
-    <string name="detection_disabled_no_vehicle_cta">Toevoegen</string>
-    <string name="detection_disabled_non_parking">Geen detectie voor motor/fiets</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d onderweg</string>
     <string name="spot_indicator_ttl_expired">Verlopen</string>
@@ -425,14 +304,11 @@
 
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Parkeerplaats gedetecteerd</string>
-    <string name="confirmation_sheet_subtitle">Heeft u zojuist geparkeerd? Automatisch publiceren in %1$s.</string>
     <string name="confirmation_sheet_confirm">Plaats publiceren</string>
     <string name="confirmation_sheet_withdraw">Nu niet</string>
     <string name="settings_section_map">Kaart</string>
     <string name="settings_distance_unit">Imperiale eenheden</string>
     <string name="settings_distance_unit_desc">Toon afstanden in mijlen en voet</string>
-    <string name="settings_distance_imperial">Imperiaal</string>
-    <string name="settings_distance_metric">Metrisch</string>
     <string name="settings_map_type">Kaarttype</string>
     <string name="settings_map_type_desc">Standaardweergave bij het openen van de kaart</string>
     <string name="settings_map_type_satellite">Satelliet</string>
@@ -465,31 +341,21 @@
     <string name="connectivity_action_blocked_offline">Maak verbinding met internet om dat te doen</string>
 
     <!-- Home cd_spot accessibility label -->
-    <string name="home_cd_spot">Vrije parkeerplek bij %1$s</string>
 
     <!-- CTA pills in Home cards -->
-    <string name="home_manual_park_pill">Markeren</string>
-    <string name="home_zones_empty_pill">Toevoegen</string>
     <string name="home_header_add_zone">Gewone zone toevoegen</string>
     <string name="home_header_add_zone_hint">Thuis, werk, sportschool\u2026</string>
 
     <!-- Sheet section headers + permissies -->
     <string name="home_vehicles_section_header">Jouw voertuigen</string>
-    <string name="home_vehicle_card_park_cta">Parkeren</string>
     <string name="home_vehicle_card_status_empty">Niet geparkeerd</string>
     <string name="home_vehicle_fallback_name">Voertuig</string>
-    <string name="home_permissions_title">Locatie inschakelen</string>
 
     <!-- ParkingPeekRow (hero card van geselecteerd voertuig) -->
-    <string name="home_peek_active_session">Actieve sessie</string>
     <string name="home_peek_parked_label">Geparkeerd</string>
-    <string name="home_peek_walk_label">Te voet</string>
 
     <!-- SpotPeekRow (hero card van geselecteerde plek) -->
-    <string name="home_peek_reliability_label">Betrouwbaarheid</string>
     <string name="home_peek_spot_expires">Verloopt over %1$d min</string>
-    <string name="home_peek_spot_posted_by">door %1$s</string>
-    <string name="home_peek_spot_still_free_hint">Nog vrij? Tik om te bevestigen bij aankomst</string>
     <string name="home_peek_spot_high">Vrije betrouwbare plek</string>
     <string name="home_peek_spot_medium">Gemiddelde plek</string>
     <string name="home_peek_spot_low">Lage plek</string>
@@ -511,7 +377,6 @@
     <string name="home_add_parking_confirm_edit">Nieuwe locatie opslaan</string>
     <string name="home_add_parking_cancel_cd">Parkeerbewerking annuleren</string>
     <string name="home_parking_action_move_location">Locatie verplaatsen</string>
-    <string name="home_parking_action_move_location_cd">Geparkeerde auto naar een andere positie verplaatsen</string>
 
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">Betrouwbaar</string>
@@ -546,8 +411,6 @@
     <string name="settings_language_auto">Systeemstandaard</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — UI refactor -->
-    <string name="settings_active_vehicle_label">Actief voertuig</string>
-    <string name="settings_active_vehicle_subtitle">Tik om te beheren</string>
     <string name="settings_notifications_title">Meldingen</string>
     <string name="settings_notifications_subtitle">App-meldingen ontvangen</string>
     <string name="settings_danger_zone">Gevarenzone</string>
@@ -560,14 +423,9 @@
     <string name="settings_delete_account_cancel">Annuleren</string>
 
     <!-- Vehicle detail + vehicles history -->
-    <string name="vehicle_detail_tab_details">Details</string>
-    <string name="vehicle_detail_tab_history">Geschiedenis</string>
-    <string name="vehicle_detail_cd_back">Terug</string>
-    <string name="vehicle_detail_history_empty">Nog geen parkeersessies geregistreerd voor dit voertuig.</string>
     <string name="vehicle_registration_edit_title">Voertuig bewerken</string>
     <string name="auth_cd_show_password">Wachtwoord tonen</string>
     <string name="auth_cd_hide_password">Wachtwoord verbergen</string>
-    <string name="vehicles_view_history">Parkeergeschiedenis bekijken</string>
 
     <!-- VehicleStatsRow inline cards -->
     <string name="vehicle_stats_sessions">sessies</string>
@@ -586,8 +444,6 @@
     <string name="home_zone_action_delete">Zone verwijderen</string>
     <string name="home_zone_private_badge">Privézone</string>
     <string name="home_spot_peek_show_list">Nabijgelegen plekken</string>
-    <string name="home_spot_peek_hide_list">Lijst verbergen</string>
-    <string name="history_load_more">Meer laden</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
     <string name="home_peek_spot_fit_optimal">Optimaal voor je %1$s</string>
@@ -644,7 +500,6 @@
     <string name="vehicle_registration_bt_desc">Detecteer je parkeren betrouwbaar</string>
     <string name="vehicle_registration_bt_cta">Koppelen</string>
     <string name="vehicle_registration_preview_title">Jouw auto</string>
-    <string name="vehicle_registration_preview_subtitle_default">Middelgrote auto</string>
     <string name="vehicle_registration_section_detection">Automatische detectie</string>
     <string name="vehicle_registration_section_privacy">Privacy</string>
     <string name="vehicle_registration_section_size">Voertuiggrootte</string>
@@ -660,17 +515,12 @@
     <string name="home_det_producer_title">Detectie inschakelen</string>
     <string name="home_det_producer_sub">Geeft je plek vrij als je wegrijdt</string>
     <string name="home_det_producer_cta">Inschakelen</string>
-    <string name="home_det_turnedoff_title">Detectie staat uit</string>
-    <string name="home_det_turnedoff_sub">Zet aan om je plek automatisch vrij te geven</string>
-    <string name="home_det_turnedoff_cta">Activeren</string>
     <string name="home_det_enabled_confirm">Automatische detectie geactiveerd</string>
     <string name="home_det_awaiting_title">Waar staat je auto?</string>
     <string name="home_det_awaiting_sub">Markeer de plek, ik houd hem in de gaten</string>
     <string name="home_det_awaiting_cta_primary">Plek markeren</string>
     <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
     <string name="home_det_monitoring">Je rit volgen</string>
-    <string name="home_chip_mark_spot">Plek markeren</string>
-    <string name="home_chip_bt_armed">Let op vertrek</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Essentieel</string>

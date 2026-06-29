@@ -1,72 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- HomeScreen -->
-    <string name="home_brand_name">PAPARCAR</string>
-    <string name="home_eco_driver_label">Éco-conducteur</string>
-    <string name="home_parking_row_label">Votre véhicule</string>
-    <string name="home_cd_profile">Profil</string>
     <string name="home_search_placeholder">Rechercher une zone, une rue…</string>
     <string name="home_stats_free_spots_badge">%1$d libres</string>
     <string name="home_peek_no_spots">Aucune place à proximité</string>
-    <string name="home_banner_since">%1$s</string>
-    <string name="home_banner_accuracy">±%1$dm</string>
-    <string name="home_parked_section">Vous êtes garé</string>
-    <string name="home_where_to_park_title">Où voulez-vous vous garer ?</string>
     <string name="home_vehicle_chip_badge_active">Actif</string>
     <string name="home_vehicle_chip_status_parked">Garé · %1$s</string>
     <string name="home_vehicle_chip_status_driving">En route</string>
-    <string name="home_active_vehicle_title">Votre véhicule actif</string>
     <string name="home_parking_release">Libérer la place</string>
     <string name="home_navigate_to_spot">Itinéraire</string>
     <string name="home_navigate_to_vehicle">Naviguer jusqu\'au véhicule</string>
-    <string name="home_nav_button">Naviguer</string>
-    <string name="home_nav_your_car">Votre voiture</string>
-    <string name="home_nav_free_spot">Place libre</string>
     <string name="home_feed_nearby">Près de vous</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d place libre près de vous</item>
         <item quantity="other">%1$d places libres près de vous</item>
     </plurals>
-    <string name="home_feed_activity">Activité récente</string>
-    <string name="home_permissions_message">Activez la localisation pour voir les places à proximité</string>
-    <string name="home_permissions_button">Activer les permissions</string>
     <string name="home_empty_title">Aucune place à proximité</string>
     <string name="home_empty_subtitle">Soyez le premier à en signaler une</string>
-    <string name="home_spot_status_occupied">Occupée</string>
-    <string name="home_spot_status_free">Libre</string>
-    <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Emplacement inconnu</string>
     <string name="home_release_dialog_title">Libérer la place ?</string>
     <string name="home_release_dialog_message">Partagez votre place avec les conducteurs à proximité, ou supprimez-la sans la partager.</string>
     <string name="home_release_dialog_publish">Publier la place</string>
     <string name="home_release_dialog_delete_only">Supprimer seulement</string>
     <string name="home_release_dialog_cancel">Annuler</string>
-    <string name="home_parking_peek_label">Vous êtes garé · %1$s</string>
-    <string name="home_manual_park_title">Se garer ici</string>
-    <string name="home_manual_park_subtitle">Enregistrer manuellement votre position de stationnement</string>
-    <string name="home_action_report">Signaler</string>
-    <string name="home_action_park">Se garer</string>
-    <string name="home_parking_view_on_map">Voir sur la carte</string>
-    <string name="home_reliability_confirmed">Confirmé</string>
-    <string name="home_reliability_high">Détecté automatiquement</string>
-    <string name="home_reliability_auto">Approx.</string>
     <string name="home_search_clear_cd">Effacer la recherche</string>
     <string name="pap_field_clear_cd">Effacer le champ</string>
-    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
-    <string name="home_spot_freshness_minutes">%1$d min</string>
-    <string name="home_spot_freshness_hours">%1$d h</string>
     <!-- SpotCard — %1$d = number of users currently en route -->
-    <string name="spot_card_en_route">%1$d en route</string>
-    <string name="spot_card_reliability_high">Auto</string>
-    <string name="spot_card_reliability_high_desc">Détecté automatiquement avec une haute fiabilité — probablement encore libre.</string>
-    <string name="spot_card_reliability_medium">Approx.</string>
-    <string name="spot_card_reliability_medium_desc">Détecté automatiquement avec une fiabilité modérée — peut-être déjà pris.</string>
-    <string name="spot_card_reliability_low">Ancienne</string>
-    <string name="spot_card_reliability_low_desc">Détecté automatiquement avec une faible fiabilité — vérifiez avant d’y aller.</string>
-    <string name="spot_card_reliability_manual">Manuel</string>
-    <string name="spot_card_reliability_manual_desc">Signalé manuellement par un conducteur de la communauté.</string>
-    <string name="spot_signal_still_there">Encore là</string>
-    <string name="spot_signal_gone">Parti</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bienvenue sur Paparcar</string>
@@ -105,7 +64,6 @@
     <string name="permissions_perm_oem_battery_desc">Facultatif — votre appareil OPPO/Realme peut geler les apps en arriere-plan. Sans cela, le GPS peut s interrompre pendant la detection. Desactivez l economie de batterie pour Paparcar dans les parametres batterie. Impact minimal sur la batterie.</string>
     <string name="permissions_status_optional">Optionnel</string>
     <string name="permissions_btn_grant">Accorder les permissions</string>
-    <string name="permissions_btn_background">Activer la position en arrière-plan</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activer la détection automatique</string>
     <string name="permissions_continue_with_core">Peut-être plus tard</string>
@@ -123,20 +81,11 @@
         <item quantity="one">stationnement cette semaine</item>
         <item quantity="other">stationnements cette semaine</item>
     </plurals>
-    <string name="history_minutes_suffix">min</string>
     <string name="history_today">Aujourd\'hui</string>
     <string name="history_yesterday">Hier</string>
-    <string name="history_title">Historique de stationnement</string>
-    <string name="history_subtitle">%1$d enregistrements</string>
-    <string name="history_cd_back">Retour</string>
     <string name="history_empty_title">Aucun stationnement</string>
     <string name="history_empty_subtitle">Vos enregistrements apparaîtront ici</string>
-    <string name="history_status_active">Actif</string>
-    <string name="history_status_finished">Terminé</string>
     <string name="history_active_section">Actuellement garé</string>
-    <string name="history_active_since">Garé %1$s</string>
-    <string name="history_ended_section">Stationnements précédents</string>
-    <string name="history_precision">±%1$dm</string>
     <string name="history_view_map">Voir sur la carte</string>
     <!-- Relative time -->
     <string name="relative_time_just_now">à l\'instant</string>
@@ -160,19 +109,6 @@
     <string name="history_insights_peak_day">Jour de pointe</string>
     <string name="history_insights_top_street">Rue favorite</string>
     <string name="history_insights_reliability">Fiabilité</string>
-    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
-    <string name="history_month_1">Janvier</string>
-    <string name="history_month_2">Février</string>
-    <string name="history_month_3">Mars</string>
-    <string name="history_month_4">Avril</string>
-    <string name="history_month_5">Mai</string>
-    <string name="history_month_6">Juin</string>
-    <string name="history_month_7">Juillet</string>
-    <string name="history_month_8">Août</string>
-    <string name="history_month_9">Septembre</string>
-    <string name="history_month_10">Octobre</string>
-    <string name="history_month_11">Novembre</string>
-    <string name="history_month_12">Décembre</string>
     <string name="history_month_short_1">jan</string>
     <string name="history_month_short_2">fév</string>
     <string name="history_month_short_3">mar</string>
@@ -201,7 +137,6 @@
     <string name="history_day_full_sun">Dimanche</string>
 
     <!-- MapScreen (legacy keep) -->
-    <string name="map_title">Carte des places</string>
     <string name="map_cd_back">Retour</string>
 
     <!-- HistoryParkingDetailScreen -->
@@ -212,19 +147,12 @@
     <string name="parking_detail_detection_auto">Détection automatique</string>
     <string name="parking_detail_detection_manual">Signalement manuel</string>
     <string name="parking_detail_detection_home">Zone privée</string>
-    <string name="map_marker_my_car">Ma voiture garée</string>
-    <string name="map_marker_car_here">Voiture garée ici</string>
-    <string name="map_marker_free">Place libre</string>
-    <string name="map_marker_occupied">Place occupée</string>
-    <string name="map_marker_reported_by">Signalé par %1$s</string>
     <string name="map_cd_midpoint">Point médian entre moi et la voiture</string>
     <string name="map_cd_go_to_car">Aller à ma voiture garée</string>
     <string name="map_cd_my_location">Centrer sur ma position</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Paramètres</string>
-    <string name="settings_cd_back">Retour</string>
-        <string name="settings_section_profile">Profil</string>
     <string name="settings_profile_logout">Se d&#xE9;connecter</string>
     <string name="settings_profile_name_placeholder">Utilisateur</string>
     <string name="settings_section_appearance">Apparence</string>
@@ -236,8 +164,6 @@
     <string name="settings_section_detection">Détection</string>
     <string name="settings_auto_detect">Détection automatique du stationnement</string>
     <string name="settings_auto_detect_desc">Enregistrer automatiquement votre place de stationnement</string>
-    <string name="settings_nav_my_car">Ma voiture et Bluetooth</string>
-    <string name="settings_nav_my_car_desc">Gérez vos véhicules et l\'association Bluetooth</string>
     <string name="settings_section_notifications">Notifications</string>
     <string name="settings_notif_parking">Stationnement détecté</string>
     <string name="settings_notif_parking_desc">Alerte quand une place de stationnement est enregistrée</string>
@@ -252,11 +178,8 @@
     <string name="error_unknown">Une erreur est survenue</string>
     <string name="error_load_spots">Impossible de charger les places à proximité</string>
     <string name="error_load_session">Impossible de charger la session de stationnement</string>
-    <string name="error_load_history">Impossible de charger l\'historique</string>
     <string name="error_release_parking">Impossible de libérer le stationnement</string>
     <string name="error_gps_unavailable">En attente du signal GPS…</string>
-    <string name="error_network_no_connection">Pas de connexion internet</string>
-    <string name="error_profile_sync">Impossible de charger votre profil. Veuillez vous reconnecter</string>
     <string name="error_bootstrap_offline_title">Pas de connexion internet</string>
     <string name="error_bootstrap_offline_body">Paparcar a besoin d\'une connexion pour charger tes données. Vérifie ton réseau et réessaie.</string>
     <string name="error_bootstrap_retry">Réessayer</string>
@@ -264,19 +187,11 @@
     <string name="error_bootstrap_fatal_body">Une erreur est survenue lors du chargement de tes données. Reconnecte-toi.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Impossible d\'enregistrer votre place de parking. Veuillez réessayer.</string>
-    <string name="error_vehicle_save_failed">Impossible d\'enregistrer le véhicule. Veuillez réessayer.</string>
-    <string name="error_vehicle_delete_failed">Impossible de supprimer le véhicule. Veuillez réessayer.</string>
-    <string name="error_delete_account_failed">Impossible de supprimer le compte. Veuillez réessayer.</string>
 
     <!-- Emplacement inconnu -->
-    <string name="address_unknown">Emplacement inconnu</string>
 
     <!-- Messages de succès Home -->
     <string name="home_spot_reported">Place signalée — chargement…</string>
-    <string name="home_manual_spot_reported">Place signalée — merci !</string>
-    <string name="home_fab_release_car">Libérer mon véhicule</string>
-    <string name="home_fab_actions_expand">Ouvrir les actions</string>
-    <string name="home_fab_actions_collapse">Fermer les actions</string>
     <string name="home_cd_map_type">Changer le type de carte</string>
     <string name="home_test_spot_sent">Place de test envoyée</string>
     <string name="home_spot_signal_sent">Merci pour la mise &#xE0; jour !</string>
@@ -284,19 +199,12 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Une place libre que vous avez vue et souhaitez partager.</string>
     <string name="home_report_fab_cd">Signaler une place libre</string>
-    <string name="home_report_cancel_cd">Annuler le signalement</string>
 
     <!-- Home Zones — lieux habituels -->
     <string name="home_zone_name_placeholder">Nom (ex. Maison, Travail)</string>
     <string name="home_zone_save_action">Enregistrer la zone</string>
     <string name="home_zone_private_label">Zone privée</string>
     <string name="home_zone_private_hint">La place ne sera pas partagée quand vous partez</string>
-    <string name="home_zone_cancel_cd">Annuler la nouvelle zone</string>
-    <string name="home_zone_add_chip_cd">Ajouter une nouvelle zone</string>
-    <string name="home_zone_icon_picker_cd">Choisir une icône</string>
-    <string name="home_zones_section">Lieux habituels</string>
-    <string name="home_zones_empty_title">Enregistrer un lieu habituel</string>
-    <string name="home_zones_empty_subtitle">Maison, travail, famille\u2026 navigation en un toucher</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -308,13 +216,11 @@
 
     <!-- Écran Mon Véhicule -->
     <string name="my_car_title">Mes véhicules</string>
-    <string name="my_car_placeholder_desc">La gestion des véhicules sera disponible dans une prochaine mise à jour.</string>
 
     <string name="my_car_no_vehicle">Aucun véhicule enregistré</string>
     <string name="my_car_add_vehicle">Ajouter un véhicule</string>
     <string name="my_car_active_vehicle">Véhicule actif</string>
     <string name="my_car_set_active">Activer</string>
-    <string name="my_car_more_actions">Plus d\'actions</string>
     <string name="my_car_unnamed_vehicle">Véhicule sans nom</string>
     <string name="veh_bt_recommendation_title">Améliorez la précision de détection</string>
     <string name="veh_bt_recommendation_body">Associer le Bluetooth de votre voiture permet à Paparcar de détecter quand vous vous garez de façon beaucoup plus fiable, même sur de courts trajets. Vous pourrez toujours le configurer plus tard depuis le menu du véhicule.</string>
@@ -328,8 +234,6 @@
     <string name="vehicle_registration_save">Enregistrer</string>
     <string name="vehicle_registration_name_label">Nom</string>
     <string name="vehicle_registration_name_placeholder">Voiture %1$d</string>
-    <string name="vehicle_default_name_format">Voiture %1$d</string>
-    <string name="vehicle_registration_other_option">Autre…</string>
     <string name="vehicle_registration_section_identity">Votre véhicule</string>
     <string name="vehicle_registration_section_optional">Surnom (facultatif)</string>
     <string name="vehicle_registration_brand_hint">Marque</string>
@@ -338,25 +242,17 @@
     <string name="vehicle_registration_brand_error">Sélectionnez une marque pour continuer</string>
     <string name="vehicle_registration_size_required_hint">Choisissez une taille pour continuer</string>
     <string name="vehicle_registration_saving">Enregistrement…</string>
-    <string name="vehicle_registration_bt_new_hint">Enregistrez le véhicule d\'abord pour associer le Bluetooth</string>
     <string name="vehicle_registration_license_plate_label">Plaque d\'immatriculation</string>
     <string name="vehicle_show_on_spot">Afficher la marque et le modèle sur les places libres</string>
     <string name="vehicle_show_on_spot_desc">La marque et le modèle sont privés — utilisés uniquement pour estimer la taille de la place. Activez pour que les autres voient quel véhicule a libéré la place.</string>
-    <string name="vehicle_size_label">Taille du véhicule</string>
     <string name="vehicle_size_moto">Moto</string>
-    <string name="vehicle_size_moto_examples">ex. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
     <string name="vehicle_size_small">Petite</string>
-    <string name="vehicle_size_small_examples">ex. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
     <string name="vehicle_size_medium">Moyenne</string>
-    <string name="vehicle_size_medium_examples">ex. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
     <string name="vehicle_size_large">Grande</string>
-    <string name="vehicle_size_large_examples">ex. BMW Série 5, Mercedes Classe E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Fourgon / SUV</string>
-    <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
     <string name="vehicle_size_unknown">Indéfini</string>
 
     <!-- Sélecteur de type de véhicule — écran d\'enregistrement / édition -->
-    <string name="vehicle_type_label">Type de véhicule</string>
     <string name="vehicle_type_car">Voiture</string>
     <string name="vehicle_type_car_examples">Voiture, SUV ou fourgon — occupe une place</string>
     <string name="vehicle_type_motorcycle">Moto</string>
@@ -365,8 +261,6 @@
     <string name="vehicle_type_scooter_examples">Cyclomoteur ou trottinette électrique — n\'a normalement pas besoin de place</string>
     <string name="vehicle_type_bike">Vélo</string>
     <string name="vehicle_type_bike_examples">Vélo ou e-bike — n\'a normalement pas besoin de place</string>
-    <string name="spot_item_type_auto">Auto</string>
-    <string name="spot_item_type_manual">Manuel</string>
 
     <!-- Slogans de bénéfice par palier d'autorisations [ONB-SCAFFOLD-001] -->
     <string name="permissions_tier_essential_benefit">Pour trouver et voir les places sur la carte</string>
@@ -391,31 +285,16 @@
     <string name="bt_config_no_devices">Aucun appareil Bluetooth associé trouvé. Associez d\'abord le Bluetooth de votre voiture dans les paramètres système.</string>
     <string name="bt_config_save">Enregistrer</string>
     <string name="bt_config_none">Pas de Bluetooth de voiture</string>
-    <string name="bt_config_remove">Supprimer l\'association</string>
     <string name="bt_config_device_classic">Classique</string>
     <string name="bt_config_device_le">Bluetooth LE</string>
     <string name="bt_config_device_dual">Dual</string>
-    <string name="my_car_bt_configure">Configurer le Bluetooth</string>
-    <string name="my_car_bt_device">Bluetooth de la voiture</string>
-    <string name="my_car_bt_not_configured">Non configuré</string>
-    <string name="my_car_cannot_delete_last_vehicle">Vous devez conserver au moins un véhicule enregistré.</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
-    <string name="vehicle_card_detection_ar">Détection auto</string>
-    <string name="vehicle_card_detection_off">Sans détection</string>
     <!-- DetectionStatusBanner -->
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Détection automatique active</string>
     <string name="detection_banner_pair_bt">Associer Bluetooth</string>
     <!-- DetectionReadinessBanner [DET-READY-001] -->
-    <string name="detection_ready_armed">Prêt · je détecte quand vous vous garez</string>
-    <string name="detection_monitoring_active">Détection active · en route</string>
-    <string name="detection_parked_watching">Garé · surveille le départ</string>
-    <string name="detection_blocked_title">Détection en pause</string>
-    <string name="detection_blocked_cta">Activer</string>
-    <string name="detection_disabled_no_vehicle">Ajoutez votre voiture et automatisez le stationnement</string>
-    <string name="detection_disabled_no_vehicle_cta">Ajouter</string>
-    <string name="detection_disabled_non_parking">Pas de détection pour moto/vélo</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expiré</string>
@@ -425,14 +304,11 @@
 
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Stationnement détecté</string>
-    <string name="confirmation_sheet_subtitle">Venez-vous de vous garer ? Publication automatique dans %1$s.</string>
     <string name="confirmation_sheet_confirm">Publier la place</string>
     <string name="confirmation_sheet_withdraw">Pas maintenant</string>
     <string name="settings_section_map">Carte</string>
     <string name="settings_distance_unit">Unités impériales</string>
     <string name="settings_distance_unit_desc">Afficher les distances en miles et pieds</string>
-    <string name="settings_distance_imperial">Impérial</string>
-    <string name="settings_distance_metric">Métrique</string>
     <string name="settings_map_type">Type de carte</string>
     <string name="settings_map_type_desc">Vue par défaut à l\'ouverture de la carte</string>
     <string name="settings_map_type_satellite">Satellite</string>
@@ -465,31 +341,21 @@
     <string name="connectivity_action_blocked_offline">Connecte-toi à Internet pour faire ça</string>
 
     <!-- Home cd_spot accessibility label -->
-    <string name="home_cd_spot">Place libre à %1$s</string>
 
     <!-- Pills CTA des cards Home -->
-    <string name="home_manual_park_pill">Marquer</string>
-    <string name="home_zones_empty_pill">Ajouter</string>
     <string name="home_header_add_zone">Ajouter une zone habituelle</string>
     <string name="home_header_add_zone_hint">Domicile, travail, gym\u2026</string>
 
     <!-- Sheet section headers + permissions -->
     <string name="home_vehicles_section_header">Tes véhicules</string>
-    <string name="home_vehicle_card_park_cta">Garer</string>
     <string name="home_vehicle_card_status_empty">Non garé</string>
     <string name="home_vehicle_fallback_name">Véhicule</string>
-    <string name="home_permissions_title">Activer la localisation</string>
 
     <!-- ParkingPeekRow (hero card du véhicule sélectionné) -->
-    <string name="home_peek_active_session">Session active</string>
     <string name="home_peek_parked_label">Stationné</string>
-    <string name="home_peek_walk_label">À pied</string>
 
     <!-- SpotPeekRow (hero card de la place sélectionnée) -->
-    <string name="home_peek_reliability_label">Fiabilité</string>
     <string name="home_peek_spot_expires">Expire dans %1$d min</string>
-    <string name="home_peek_spot_posted_by">par %1$s</string>
-    <string name="home_peek_spot_still_free_hint">Toujours libre ? Touche pour confirmer à ton arrivée</string>
     <string name="home_peek_spot_high">Place libre fiable</string>
     <string name="home_peek_spot_medium">Place moyenne</string>
     <string name="home_peek_spot_low">Place faible</string>
@@ -511,7 +377,6 @@
     <string name="home_add_parking_confirm_edit">Enregistrer la nouvelle position</string>
     <string name="home_add_parking_cancel_cd">Annuler la modification du stationnement</string>
     <string name="home_parking_action_move_location">Déplacer l\'emplacement</string>
-    <string name="home_parking_action_move_location_cd">Déplacer la voiture garée vers une autre position</string>
 
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">Fiable</string>
@@ -546,8 +411,6 @@
     <string name="settings_language_auto">Par défaut du système</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — refactor UI -->
-    <string name="settings_active_vehicle_label">Véhicule actif</string>
-    <string name="settings_active_vehicle_subtitle">Touche pour gérer</string>
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_subtitle">Recevoir des alertes de l\'app</string>
     <string name="settings_danger_zone">Zone de danger</string>
@@ -560,14 +423,9 @@
     <string name="settings_delete_account_cancel">Annuler</string>
 
     <!-- Vehicle detail + vehicles history -->
-    <string name="vehicle_detail_tab_details">Détails</string>
-    <string name="vehicle_detail_tab_history">Historique</string>
-    <string name="vehicle_detail_cd_back">Retour</string>
-    <string name="vehicle_detail_history_empty">Aucune session de stationnement enregistrée pour ce véhicule.</string>
     <string name="vehicle_registration_edit_title">Modifier le véhicule</string>
     <string name="auth_cd_show_password">Afficher le mot de passe</string>
     <string name="auth_cd_hide_password">Masquer le mot de passe</string>
-    <string name="vehicles_view_history">Voir l\'historique des stationnements</string>
 
     <!-- VehicleStatsRow inline cards -->
     <string name="vehicle_stats_sessions">sessions</string>
@@ -586,8 +444,6 @@
     <string name="home_zone_action_delete">Supprimer la zone</string>
     <string name="home_zone_private_badge">Zone privée</string>
     <string name="home_spot_peek_show_list">Places proches</string>
-    <string name="home_spot_peek_hide_list">Masquer la liste</string>
-    <string name="history_load_more">Charger plus</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
     <string name="home_peek_spot_fit_optimal">Optimal pour votre %1$s</string>
@@ -643,7 +499,6 @@
     <string name="vehicle_registration_bt_cta">Associer</string>
     <string name="vehicle_registration_bt_desc">Détectez votre stationnement de façon fiable</string>
     <string name="vehicle_registration_bt_title">Associer le Bluetooth</string>
-    <string name="vehicle_registration_preview_subtitle_default">Voiture moyenne</string>
     <string name="vehicle_registration_preview_title">Votre voiture</string>
     <string name="vehicle_registration_section_detection">Détection automatique</string>
     <string name="vehicle_registration_section_privacy">Confidentialité</string>
@@ -660,17 +515,12 @@
     <string name="home_det_producer_title">Activez la détection</string>
     <string name="home_det_producer_sub">Libère votre place quand vous partez</string>
     <string name="home_det_producer_cta">Activer</string>
-    <string name="home_det_turnedoff_title">Détection désactivée</string>
-    <string name="home_det_turnedoff_sub">Activez-la pour libérer votre place automatiquement</string>
-    <string name="home_det_turnedoff_cta">Activer</string>
     <string name="home_det_enabled_confirm">Détection automatique activée</string>
     <string name="home_det_awaiting_title">Où est votre voiture ?</string>
     <string name="home_det_awaiting_sub">Marquez la place, je la surveille</string>
     <string name="home_det_awaiting_cta_primary">Marquer ma place</string>
     <string name="home_det_awaiting_cta_secondary">Je conduis</string>
     <string name="home_det_monitoring">Suivi de votre trajet</string>
-    <string name="home_chip_mark_spot">Marquer la place</string>
-    <string name="home_chip_bt_armed">Surveille la sortie</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Essentiel</string>

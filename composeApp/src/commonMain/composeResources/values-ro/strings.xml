@@ -1,72 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- HomeScreen -->
-    <string name="home_brand_name">PAPARCAR</string>
-    <string name="home_eco_driver_label">Șofer eco</string>
-    <string name="home_parking_row_label">Vehiculul tău</string>
-    <string name="home_cd_profile">Profil</string>
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_stats_free_spots_badge">%1$d libere</string>
     <string name="home_peek_no_spots">Niciun loc în apropiere</string>
-    <string name="home_banner_since">%1$s</string>
-    <string name="home_banner_accuracy">±%1$dm</string>
-    <string name="home_parked_section">Ești parcat</string>
-    <string name="home_where_to_park_title">Unde doriți să parcați?</string>
     <string name="home_vehicle_chip_badge_active">Activ</string>
     <string name="home_vehicle_chip_status_parked">Parcat · %1$s</string>
     <string name="home_vehicle_chip_status_driving">În mers</string>
-    <string name="home_active_vehicle_title">Vehiculul dumneavoastră activ</string>
     <string name="home_parking_release">Eliberează locul</string>
     <string name="home_navigate_to_spot">Indicații</string>
     <string name="home_navigate_to_vehicle">Navighează către vehicul</string>
-    <string name="home_nav_button">Navigare</string>
-    <string name="home_nav_your_car">Mașina ta</string>
-    <string name="home_nav_free_spot">Loc liber</string>
     <string name="home_feed_nearby">În apropierea ta</string>
     <plurals name="home_feed_nearby_with_count">
         <item quantity="one">%1$d loc liber în apropierea ta</item>
         <item quantity="other">%1$d locuri libere în apropierea ta</item>
     </plurals>
-    <string name="home_feed_activity">Activitate recentă</string>
-    <string name="home_permissions_message">Activează locația pentru a vedea locuri în apropiere</string>
-    <string name="home_permissions_button">Activează permisiunile</string>
     <string name="home_empty_title">Niciun loc în apropiere</string>
     <string name="home_empty_subtitle">Fii primul care raportează unul</string>
-    <string name="home_spot_status_occupied">Ocupat</string>
-    <string name="home_spot_status_free">Liber</string>
-    <string name="home_spot_reported_by">%1$s</string>
     <string name="home_address_unknown">Locație necunoscută</string>
     <string name="home_release_dialog_title">Eliberezi locul?</string>
     <string name="home_release_dialog_message">Distribuie locul către șoferii din apropiere sau șterge-l fără să-l distribui.</string>
     <string name="home_release_dialog_publish">Publică locul</string>
     <string name="home_release_dialog_delete_only">Doar șterge</string>
     <string name="home_release_dialog_cancel">Anulează</string>
-    <string name="home_parking_peek_label">Ești parcat · %1$s</string>
-    <string name="home_manual_park_title">Parchează aici</string>
-    <string name="home_manual_park_subtitle">Salvează manual locația de parcare</string>
-    <string name="home_action_report">Raportează</string>
-    <string name="home_action_park">Parchează</string>
-    <string name="home_parking_view_on_map">Afișează pe hartă</string>
-    <string name="home_reliability_confirmed">Confirmat</string>
-    <string name="home_reliability_high">Detectat automat</string>
-    <string name="home_reliability_auto">Aproximativ</string>
     <string name="home_search_clear_cd">Șterge căutarea</string>
     <string name="pap_field_clear_cd">Șterge câmpul</string>
-    <string name="home_spot_freshness_under_min">&lt; 1 min</string>
-    <string name="home_spot_freshness_minutes">acum %1$d min</string>
-    <string name="home_spot_freshness_hours">acum %1$d ore</string>
     <!-- SpotCard — %1$d = number of users currently en route -->
-    <string name="spot_card_en_route">%1$d în drum</string>
-    <string name="spot_card_reliability_high">Auto</string>
-    <string name="spot_card_reliability_high_desc">Detectat automat cu încredere ridicată — probabil încă liber.</string>
-    <string name="spot_card_reliability_medium">Aprox.</string>
-    <string name="spot_card_reliability_medium_desc">Detectat automat cu încredere moderată — poate fi deja ocupat.</string>
-    <string name="spot_card_reliability_low">Veche</string>
-    <string name="spot_card_reliability_low_desc">Detectat automat cu încredere scăzută — verificați înainte de a merge.</string>
-    <string name="spot_card_reliability_manual">Manual</string>
-    <string name="spot_card_reliability_manual_desc">Raportat manual de un șofer din comunitate.</string>
-    <string name="spot_signal_still_there">Încă acolo</string>
-    <string name="spot_signal_gone">Nu mai e</string>
 
     <!-- OnboardingScreen -->
     <string name="onboarding_page1_title">Bun venit la Paparcar</string>
@@ -105,7 +64,6 @@
     <string name="permissions_perm_oem_battery_desc">Optional — dispozitivul tau OPPO/Realme poate ingheta aplicatiile in fundal. Fara aceasta, GPS-ul poate cadea in timpul detectarii. Dezactiveaza economisirea bateriei pentru Paparcar in setarile bateriei. Impact minim asupra bateriei.</string>
     <string name="permissions_status_optional">Opțional</string>
     <string name="permissions_btn_grant">Acordă permisiunile</string>
-    <string name="permissions_btn_background">Activează locația în fundal</string>
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activează detectarea automată</string>
     <string name="permissions_continue_with_core">Poate mai târziu</string>
@@ -123,20 +81,11 @@
         <item quantity="one">parcare în această săptămână</item>
         <item quantity="other">parcări în această săptămână</item>
     </plurals>
-    <string name="history_minutes_suffix">min</string>
     <string name="history_today">Astăzi</string>
     <string name="history_yesterday">Ieri</string>
-    <string name="history_title">Istoric parcare</string>
-    <string name="history_subtitle">%1$d înregistrări</string>
-    <string name="history_cd_back">Înapoi</string>
     <string name="history_empty_title">Nicio parcare încă</string>
     <string name="history_empty_subtitle">Înregistrările tale vor apărea aici</string>
-    <string name="history_status_active">Activ</string>
-    <string name="history_status_finished">Terminat</string>
     <string name="history_active_section">În prezent parcat</string>
-    <string name="history_active_since">Parcat %1$s</string>
-    <string name="history_ended_section">Parcări anterioare</string>
-    <string name="history_precision">±%1$dm</string>
     <string name="history_view_map">Vezi pe hartă</string>
     <!-- Relative time -->
     <string name="relative_time_just_now">chiar acum</string>
@@ -160,19 +109,6 @@
     <string name="history_insights_peak_day">Ziua de vârf</string>
     <string name="history_insights_top_street">Strada preferată</string>
     <string name="history_insights_reliability">Fiabilitate</string>
-    <string name="history_date_pattern">%1$d %2$s, %3$s:%4$s</string>
-    <string name="history_month_1">Ianuarie</string>
-    <string name="history_month_2">Februarie</string>
-    <string name="history_month_3">Martie</string>
-    <string name="history_month_4">Aprilie</string>
-    <string name="history_month_5">Mai</string>
-    <string name="history_month_6">Iunie</string>
-    <string name="history_month_7">Iulie</string>
-    <string name="history_month_8">August</string>
-    <string name="history_month_9">Septembrie</string>
-    <string name="history_month_10">Octombrie</string>
-    <string name="history_month_11">Noiembrie</string>
-    <string name="history_month_12">Decembrie</string>
     <string name="history_month_short_1">ian</string>
     <string name="history_month_short_2">feb</string>
     <string name="history_month_short_3">mar</string>
@@ -201,7 +137,6 @@
     <string name="history_day_full_sun">Duminică</string>
 
     <!-- MapScreen (legacy keep) -->
-    <string name="map_title">Harta locurilor</string>
     <string name="map_cd_back">Înapoi</string>
 
     <!-- HistoryParkingDetailScreen -->
@@ -212,19 +147,12 @@
     <string name="parking_detail_detection_auto">Detectat automat</string>
     <string name="parking_detail_detection_manual">Raport manual</string>
     <string name="parking_detail_detection_home">Zonă privată</string>
-    <string name="map_marker_my_car">Mașina ta parcată</string>
-    <string name="map_marker_car_here">Mașină parcată aici</string>
-    <string name="map_marker_free">Loc liber</string>
-    <string name="map_marker_occupied">Loc ocupat</string>
-    <string name="map_marker_reported_by">Raportat de %1$s</string>
     <string name="map_cd_midpoint">Punctul de mijloc între mine și mașină</string>
     <string name="map_cd_go_to_car">Mergi la mașina mea parcată</string>
     <string name="map_cd_my_location">Centrează pe locația mea</string>
 
     <!-- SettingsScreen -->
     <string name="settings_title">Setări</string>
-    <string name="settings_cd_back">Înapoi</string>
-        <string name="settings_section_profile">Profil</string>
     <string name="settings_profile_logout">Deconectare</string>
     <string name="settings_profile_name_placeholder">Utilizator</string>
     <string name="settings_section_appearance">Aspect</string>
@@ -236,8 +164,6 @@
     <string name="settings_section_detection">Detecție</string>
     <string name="settings_auto_detect">Detecție automată parcare</string>
     <string name="settings_auto_detect_desc">Salvează automat locul de parcare</string>
-    <string name="settings_nav_my_car">Mașina mea și Bluetooth</string>
-    <string name="settings_nav_my_car_desc">Gestionează vehiculele și asocierea Bluetooth</string>
     <string name="settings_section_notifications">Notificări</string>
     <string name="settings_notif_parking">Parcare detectată</string>
     <string name="settings_notif_parking_desc">Alertă când un loc de parcare este salvat</string>
@@ -252,11 +178,8 @@
     <string name="error_unknown">Ceva a mers greșit</string>
     <string name="error_load_spots">Nu s-au putut încărca locurile din apropiere</string>
     <string name="error_load_session">Nu s-a putut încărca sesiunea de parcare</string>
-    <string name="error_load_history">Nu s-a putut încărca istoricul parcării</string>
     <string name="error_release_parking">Nu s-a putut elibera locul de parcare</string>
     <string name="error_gps_unavailable">Se așteaptă semnalul GPS…</string>
-    <string name="error_network_no_connection">Nicio conexiune la internet</string>
-    <string name="error_profile_sync">Nu s-a putut încărca profilul. Te rugăm să te conectezi din nou</string>
     <string name="error_bootstrap_offline_title">Fără conexiune la internet</string>
     <string name="error_bootstrap_offline_body">Paparcar are nevoie de o conexiune pentru a-ți încărca datele. Verifică rețeaua și încearcă din nou.</string>
     <string name="error_bootstrap_retry">Reîncearcă</string>
@@ -264,19 +187,11 @@
     <string name="error_bootstrap_fatal_body">A apărut o eroare la încărcarea datelor. Te rugăm să te conectezi din nou.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>
     <string name="error_parking_save_failed">Nu s-a putut salva locul de parcare. Încearcă din nou.</string>
-    <string name="error_vehicle_save_failed">Nu s-a putut salva vehiculul. Încearcă din nou.</string>
-    <string name="error_vehicle_delete_failed">Nu s-a putut șterge vehiculul. Încearcă din nou.</string>
-    <string name="error_delete_account_failed">Nu s-a putut șterge contul. Încearcă din nou.</string>
 
     <!-- Address fallback -->
-    <string name="address_unknown">Locație necunoscută</string>
 
     <!-- Home success messages -->
     <string name="home_spot_reported">Loc raportat — se încarcă…</string>
-    <string name="home_manual_spot_reported">Loc raportat — mulțumim!</string>
-    <string name="home_fab_release_car">Eliberează mașina mea</string>
-    <string name="home_fab_actions_expand">Deschide acțiuni</string>
-    <string name="home_fab_actions_collapse">Închide acțiuni</string>
     <string name="home_cd_map_type">Schimbă tipul hărții</string>
     <string name="home_test_spot_sent">Loc de test trimis</string>
     <string name="home_spot_signal_sent">Mul&#x21B;umim pentru actualizare!</string>
@@ -284,19 +199,12 @@
     <!-- Home Reporting mode -->
     <string name="home_report_subtitle">Un loc liber pe care l-ai v&#xE3;zut &#x219;i vrei s&#x103;-l &#xEE;mp&#x103;rt&#x103;&#x219;e&#x219;ti.</string>
     <string name="home_report_fab_cd">Raporteaz&#x103; un loc liber</string>
-    <string name="home_report_cancel_cd">Anuleaz&#x103; raportarea</string>
 
     <!-- Home Zones — locuri obi&#x219;nuite -->
     <string name="home_zone_name_placeholder">Nume (ex. Acas&#x103;, Munc&#x103;)</string>
     <string name="home_zone_save_action">Salveaz&#x103; zona</string>
     <string name="home_zone_private_label">Zonă privată</string>
     <string name="home_zone_private_hint">Locul nu va fi distribuit când pleci</string>
-    <string name="home_zone_cancel_cd">Anuleaz&#x103; zona nou&#x103;</string>
-    <string name="home_zone_add_chip_cd">Adaug&#x103; o zon&#x103; nou&#x103;</string>
-    <string name="home_zone_icon_picker_cd">Alege o pictogram&#x103;</string>
-    <string name="home_zones_section">Locuri obi&#x219;nuite</string>
-    <string name="home_zones_empty_title">Salveaz&#x103; un loc obi&#x219;nuit</string>
-    <string name="home_zones_empty_subtitle">Acas&#x103;, munc&#x103;, familie\u2026 naviga&#x21B;ie cu un singur clic</string>
 
     <!-- GPS accuracy banner -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -308,13 +216,11 @@
 
     <!-- Ecranul Mașina Mea -->
     <string name="my_car_title">Vehiculele mele</string>
-    <string name="my_car_placeholder_desc">Gestionarea vehiculelor va fi disponibilă într-o actualizare viitoare.</string>
 
     <string name="my_car_no_vehicle">Niciun vehicul înregistrat</string>
     <string name="my_car_add_vehicle">Adaugă vehicul</string>
     <string name="my_car_active_vehicle">Vehicul activ</string>
     <string name="my_car_set_active">Activează</string>
-    <string name="my_car_more_actions">Mai multe acțiuni</string>
     <string name="my_car_unnamed_vehicle">Vehicul fără nume</string>
     <string name="veh_bt_recommendation_title">Îmbunătățește precizia detectării</string>
     <string name="veh_bt_recommendation_body">Asocierea Bluetooth-ului mașinii permite Paparcar să detecteze mult mai fiabil când parchezi, chiar și pe trasee scurte. Poți configura asta mai târziu din meniul vehiculului.</string>
@@ -328,8 +234,6 @@
     <string name="vehicle_registration_save">Salvează</string>
     <string name="vehicle_registration_name_label">Nume</string>
     <string name="vehicle_registration_name_placeholder">Mașină %1$d</string>
-    <string name="vehicle_default_name_format">Mașină %1$d</string>
-    <string name="vehicle_registration_other_option">Altul…</string>
     <string name="vehicle_registration_section_identity">Vehiculul tău</string>
     <string name="vehicle_registration_section_optional">Poreclă (opțional)</string>
     <string name="vehicle_registration_brand_hint">Marcă</string>
@@ -338,25 +242,17 @@
     <string name="vehicle_registration_brand_error">Selectează o marcă pentru a continua</string>
     <string name="vehicle_registration_size_required_hint">Alege o dimensiune pentru a continua</string>
     <string name="vehicle_registration_saving">Se salvează…</string>
-    <string name="vehicle_registration_bt_new_hint">Salvează vehiculul mai întâi pentru a asocia Bluetooth</string>
     <string name="vehicle_registration_license_plate_label">Număr de înmatriculare</string>
     <string name="vehicle_show_on_spot">Afișează marca și modelul pe locurile libere</string>
     <string name="vehicle_show_on_spot_desc">Marca și modelul sunt private — folosite doar pentru a estima dimensiunea locului. Activează pentru ca alții să vadă ce mașină a eliberat locul.</string>
-    <string name="vehicle_size_label">Mărimea vehiculului</string>
     <string name="vehicle_size_moto">Motocicletă</string>
-    <string name="vehicle_size_moto_examples">ex. Kawasaki Ninja, Honda CB500, Vespa GTS 300</string>
     <string name="vehicle_size_small">Mic</string>
-    <string name="vehicle_size_small_examples">ex. Opel Corsa, Seat Ibiza, Renault Clio, Toyota Aygo</string>
     <string name="vehicle_size_medium">Mediu</string>
-    <string name="vehicle_size_medium_examples">ex. VW Golf, Toyota Corolla, Seat León, Ford Focus</string>
     <string name="vehicle_size_large">Mare</string>
-    <string name="vehicle_size_large_examples">ex. BMW Seria 5, Mercedes Clasa E, Audi A6, Volvo XC60</string>
     <string name="vehicle_size_van">Dubă / SUV</string>
-    <string name="vehicle_size_van_examples">ex. VW Transporter, Mercedes Vito, Ford Transit, Toyota RAV4</string>
     <string name="vehicle_size_unknown">Nedefinit</string>
 
     <!-- Selector tip vehicul — ecran de înregistrare / editare -->
-    <string name="vehicle_type_label">Tip vehicul</string>
     <string name="vehicle_type_car">Mașină</string>
     <string name="vehicle_type_car_examples">Mașină, SUV sau dubă — ocupă un loc</string>
     <string name="vehicle_type_motorcycle">Motocicletă</string>
@@ -365,8 +261,6 @@
     <string name="vehicle_type_scooter_examples">Moped sau trotinetă electrică — de obicei nu are nevoie de loc</string>
     <string name="vehicle_type_bike">Bicicletă</string>
     <string name="vehicle_type_bike_examples">Bicicletă sau e-bike — de obicei nu are nevoie de loc</string>
-    <string name="spot_item_type_auto">Auto</string>
-    <string name="spot_item_type_manual">Manual</string>
 
     <!-- Sloganuri de beneficiu pe niveluri de permisiuni [ONB-SCAFFOLD-001] -->
     <string name="permissions_tier_essential_benefit">Pentru a găsi și vedea locurile pe hartă</string>
@@ -391,31 +285,16 @@
     <string name="bt_config_no_devices">Nu s-au găsit dispozitive Bluetooth asociate. Asociază mai întâi Bluetooth-ul mașinii din setările de sistem.</string>
     <string name="bt_config_save">Salvează</string>
     <string name="bt_config_none">Fără Bluetooth auto</string>
-    <string name="bt_config_remove">Elimină asocierea</string>
     <string name="bt_config_device_classic">Clasic</string>
     <string name="bt_config_device_le">Bluetooth LE</string>
     <string name="bt_config_device_dual">Dual</string>
-    <string name="my_car_bt_configure">Configurează Bluetooth</string>
-    <string name="my_car_bt_device">Bluetooth auto</string>
-    <string name="my_car_bt_not_configured">Neconfigurat</string>
-    <string name="my_car_cannot_delete_last_vehicle">Trebuie să păstrezi cel puțin un vehicul înregistrat.</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
-    <string name="vehicle_card_detection_ar">Detectare auto</string>
-    <string name="vehicle_card_detection_off">Fără detectare</string>
     <!-- DetectionStatusBanner -->
     <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
     <string name="detection_banner_ar_active">Detectare automată activă</string>
     <string name="detection_banner_pair_bt">Asociază Bluetooth</string>
     <!-- DetectionReadinessBanner [DET-READY-001] -->
-    <string name="detection_ready_armed">Gata · detectez când parchezi</string>
-    <string name="detection_monitoring_active">Detectare activă · în mișcare</string>
-    <string name="detection_parked_watching">Parcat · urmăresc plecarea</string>
-    <string name="detection_blocked_title">Detectare în pauză</string>
-    <string name="detection_blocked_cta">Activează</string>
-    <string name="detection_disabled_no_vehicle">Adaugă mașina și automatizează parcarea</string>
-    <string name="detection_disabled_no_vehicle_cta">Adaugă</string>
-    <string name="detection_disabled_non_parking">Fără detectare pentru motocicletă/bicicletă</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d în drum</string>
     <string name="spot_indicator_ttl_expired">Expirat</string>
@@ -425,14 +304,11 @@
 
     <!-- ConfirmationBottomSheet -->
     <string name="confirmation_sheet_title">Parcare detectată</string>
-    <string name="confirmation_sheet_subtitle">Tocmai ați parcat? Publicare automată în %1$s.</string>
     <string name="confirmation_sheet_confirm">Publică locul</string>
     <string name="confirmation_sheet_withdraw">Nu acum</string>
     <string name="settings_section_map">Hartă</string>
     <string name="settings_distance_unit">Unități imperiale</string>
     <string name="settings_distance_unit_desc">Afișează distanțele în mile și picioare</string>
-    <string name="settings_distance_imperial">Imperial</string>
-    <string name="settings_distance_metric">Metric</string>
     <string name="settings_map_type">Tip hartă</string>
     <string name="settings_map_type_desc">Vedere implicită la deschiderea hărții</string>
     <string name="settings_map_type_satellite">Satelit</string>
@@ -465,31 +341,21 @@
     <string name="connectivity_action_blocked_offline">Conectează-te la internet pentru a face asta</string>
 
     <!-- Home cd_spot accessibility label -->
-    <string name="home_cd_spot">Loc liber la %1$s</string>
 
     <!-- CTA pills în cardurile Home -->
-    <string name="home_manual_park_pill">Marchează</string>
-    <string name="home_zones_empty_pill">Adaugă</string>
     <string name="home_header_add_zone">Adaugă o zonă</string>
     <string name="home_header_add_zone_hint">Acasă, muncă, sală\u2026</string>
 
     <!-- Sheet section headers + permisiuni -->
     <string name="home_vehicles_section_header">Vehiculele tale</string>
-    <string name="home_vehicle_card_park_cta">Parchează</string>
     <string name="home_vehicle_card_status_empty">Neparcat</string>
     <string name="home_vehicle_fallback_name">Vehicul</string>
-    <string name="home_permissions_title">Activează locația</string>
 
     <!-- ParkingPeekRow (card vehicul selectat) -->
-    <string name="home_peek_active_session">Sesiune activă</string>
     <string name="home_peek_parked_label">Parcat</string>
-    <string name="home_peek_walk_label">Pe jos</string>
 
     <!-- SpotPeekRow (card loc selectat) -->
-    <string name="home_peek_reliability_label">Fiabilitate</string>
     <string name="home_peek_spot_expires">Expiră în %1$d min</string>
-    <string name="home_peek_spot_posted_by">de %1$s</string>
-    <string name="home_peek_spot_still_free_hint">Încă liber? Atinge pentru a confirma la sosire</string>
     <string name="home_peek_spot_high">Loc liber de încredere</string>
     <string name="home_peek_spot_medium">Loc cu fiabilitate medie</string>
     <string name="home_peek_spot_low">Loc cu fiabilitate scăzută</string>
@@ -511,7 +377,6 @@
     <string name="home_add_parking_confirm_edit">Salvează noua locație</string>
     <string name="home_add_parking_cancel_cd">Anulează editarea parcării</string>
     <string name="home_parking_action_move_location">Mută locația</string>
-    <string name="home_parking_action_move_location_cd">Mută mașina parcată într-o altă poziție</string>
 
     <!-- HomeSpotRow reliability tier label -->
     <string name="home_spot_reliability_high">De încredere</string>
@@ -546,8 +411,6 @@
     <string name="settings_language_auto">Implicit din sistem</string>
     <string name="settings_contact">Contact</string>
     <!-- Settings v2 — refactor UI -->
-    <string name="settings_active_vehicle_label">Vehicul activ</string>
-    <string name="settings_active_vehicle_subtitle">Atinge pentru a gestiona</string>
     <string name="settings_notifications_title">Notificări</string>
     <string name="settings_notifications_subtitle">Primește alerte ale aplicației</string>
     <string name="settings_danger_zone">Zonă de pericol</string>
@@ -560,14 +423,9 @@
     <string name="settings_delete_account_cancel">Anulează</string>
 
     <!-- Vehicle detail + vehicles history -->
-    <string name="vehicle_detail_tab_details">Detalii</string>
-    <string name="vehicle_detail_tab_history">Istoric</string>
-    <string name="vehicle_detail_cd_back">Înapoi</string>
-    <string name="vehicle_detail_history_empty">Nicio sesiune de parcare înregistrată încă pentru acest vehicul.</string>
     <string name="vehicle_registration_edit_title">Editează vehiculul</string>
     <string name="auth_cd_show_password">Afiseaza parola</string>
     <string name="auth_cd_hide_password">Ascunde parola</string>
-    <string name="vehicles_view_history">Vezi istoricul parcărilor</string>
 
     <!-- VehicleStatsRow inline cards -->
     <string name="vehicle_stats_sessions">sesiuni</string>
@@ -586,8 +444,6 @@
     <string name="home_zone_action_delete">Șterge zona</string>
     <string name="home_zone_private_badge">Zonă privată</string>
     <string name="home_spot_peek_show_list">Locuri din apropiere</string>
-    <string name="home_spot_peek_hide_list">Ascunde lista</string>
-    <string name="history_load_more">Încarcă mai mult</string>
 
     <!-- VEHICLE-CATEGORIZATION-001 -->
     <string name="home_peek_spot_fit_optimal">Optim pentru %1$s</string>
@@ -648,7 +504,6 @@
     <string name="vehicle_registration_bt_desc">Detectează-ți parcarea în mod fiabil</string>
     <string name="vehicle_registration_bt_cta">Asociază</string>
     <string name="vehicle_registration_preview_title">Mașina ta</string>
-    <string name="vehicle_registration_preview_subtitle_default">Mașină medie</string>
     <string name="vehicle_registration_section_detection">Detectare automată</string>
     <string name="vehicle_registration_section_privacy">Confidențialitate</string>
     <string name="vehicle_registration_section_size">Dimensiunea vehiculului</string>
@@ -664,17 +519,12 @@
     <string name="home_det_producer_title">Activează detecția</string>
     <string name="home_det_producer_sub">Eliberează locul când pleci</string>
     <string name="home_det_producer_cta">Activează</string>
-    <string name="home_det_turnedoff_title">Detectarea este oprită</string>
-    <string name="home_det_turnedoff_sub">Activeaz-o ca să eliberezi locul automat</string>
-    <string name="home_det_turnedoff_cta">Activează</string>
     <string name="home_det_enabled_confirm">Detectare automată activată</string>
     <string name="home_det_awaiting_title">Unde e mașina?</string>
     <string name="home_det_awaiting_sub">Marchează locul și îl supraveghez</string>
     <string name="home_det_awaiting_cta_primary">Marchează locul</string>
     <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
     <string name="home_det_monitoring">Urmăresc traseul tău</string>
-    <string name="home_chip_mark_spot">Marchează locul</string>
-    <string name="home_chip_bt_armed">Aștept plecarea</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Esențial</string>
