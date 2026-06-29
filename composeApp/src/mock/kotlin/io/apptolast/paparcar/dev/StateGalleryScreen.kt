@@ -1,8 +1,11 @@
 package io.apptolast.paparcar.dev
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,6 +33,9 @@ import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigContent
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigState
+import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.sections.map.components.MonitoringPillContent
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsContent
 import io.apptolast.paparcar.presentation.permissions.PermissionsState
@@ -55,8 +61,54 @@ private val sampleProfile = UserProfile(
     updatedAt = 0L,
 )
 
+/**
+ * Hosts a Home detection surface on the sheet's container background, as it appears in Home.
+ * (Full HomeContent is private + map-bound, so the gallery shows the detection surface in
+ * isolation — that's where the no-permission / no-vehicle / coordinator-running states live.)
+ */
+@Composable
+private fun DetectionHost(content: @Composable () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) { content() }
+}
+
+@Composable
+private fun detectionSurface(state: DetectionUiState) {
+    DetectionHost {
+        HomeDetectionSurface(
+            state = state,
+            onAddVehicle = {},
+            onOpenPermissions = {},
+            onMarkSpot = {},
+            onStartDrivingDetection = {},
+            allowDrivingDetection = true,
+        )
+    }
+}
+
 // Recipes mirror the existing *Previews.kt so the gallery shows the same curated states on-device.
 private val galleryGroups: List<ScreenGroup> = listOf(
+    ScreenGroup(
+        "Home · detección",
+        listOf(
+            Variant("Sin permiso CORE (BlockedCore)") { detectionSurface(DetectionUiState.BlockedCore) },
+            Variant("Sin permiso detección (BlockedProducer)") { detectionSurface(DetectionUiState.BlockedProducer) },
+            Variant("Sin coche registrado (NoVehicle)") { detectionSurface(DetectionUiState.NoVehicle) },
+            Variant("Sin aparcar aún (AwaitingFirstPark)") { detectionSurface(DetectionUiState.AwaitingFirstPark) },
+            Variant("Coordinator corriendo (Monitoring)") {
+                DetectionHost {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        MonitoringPillContent(elapsedLabel = "4 min")
+                    }
+                }
+            },
+        ),
+    ),
     ScreenGroup(
         "Settings",
         listOf(
