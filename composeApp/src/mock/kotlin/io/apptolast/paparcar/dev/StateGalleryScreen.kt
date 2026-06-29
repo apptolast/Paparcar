@@ -1,16 +1,22 @@
 package io.apptolast.paparcar.dev
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.HorizontalDivider
@@ -57,8 +63,21 @@ import io.apptolast.paparcar.presentation.vehicles.VehiclesContent
 import io.apptolast.paparcar.presentation.vehicles.VehiclesState
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
-/** One renderable screen state. [content] must NOT wrap a theme — the gallery owns the theme. */
-private class Variant(val name: String, val content: @Composable () -> Unit)
+/**
+ * How a variant should be presented in the viewer.
+ * - [FullScreen]: the composable already fills the screen (Settings, History, the expanded sheet…).
+ * - [Surface]: a partial Home surface (detection card, peek handle, SpotFit row, monitoring pill).
+ *   Shown bottom-anchored like Home's sheet by default ("Completa"), with a "Solo" toggle to inspect
+ *   the bare composable centered.
+ */
+private enum class Placement { FullScreen, Surface }
+
+/** One renderable screen state. [content] is the RAW composable — the viewer owns theme + host. */
+private class Variant(
+    val name: String,
+    val placement: Placement = Placement.FullScreen,
+    val content: @Composable () -> Unit,
+)
 private class ScreenGroup(val title: String, val variants: List<Variant>)
 
 private val sampleProfile = UserProfile(
@@ -70,45 +89,25 @@ private val sampleProfile = UserProfile(
     updatedAt = 0L,
 )
 
-/**
- * Hosts a Home detection surface on the sheet's container background, as it appears in Home.
- * (Full HomeContent is private + map-bound, so the gallery shows the detection surface in
- * isolation — that's where the no-permission / no-vehicle / coordinator-running states live.)
- */
-@Composable
-private fun DetectionHost(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) { content() }
-}
-
+// Full HomeContent is private + map-bound, so the gallery renders the partial Home surfaces
+// (detection card / peek / SpotFit / monitoring pill) on their own; the viewer hosts them
+// bottom-anchored (Placement.Surface) so they read like Home's sheet.
 @Composable
 private fun detectionSurface(state: DetectionUiState) {
-    DetectionHost {
-        HomeDetectionSurface(
-            state = state,
-            onAddVehicle = {},
-            onOpenPermissions = {},
-            onMarkSpot = {},
-            onStartDrivingDetection = {},
-            allowDrivingDetection = true,
-        )
-    }
+    HomeDetectionSurface(
+        state = state,
+        onAddVehicle = {},
+        onOpenPermissions = {},
+        onMarkSpot = {},
+        onStartDrivingDetection = {},
+        allowDrivingDetection = true,
+    )
 }
 
 private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
 
-/** Renders a Home peek (collapsed handle) on the sheet container background. */
 @Composable
-private fun peek(state: HomeState) {
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
-        HomePeekHandle(state = state)
-    }
-}
+private fun peek(state: HomeState) = HomePeekHandle(state = state)
 
 /** Renders the expanded Home sheet (spots list + own-parking card) via homeSheetItems. */
 @Composable
@@ -144,26 +143,21 @@ private fun fitVehicle(size: VehicleSize, carbody: CarbodyType? = null) =
     FakeData.vehicleSedan.copy(sizeCategory = size, carbodyType = carbody)
 
 @Composable
-private fun spotFit(spot: io.apptolast.paparcar.domain.model.Spot, vehicle: io.apptolast.paparcar.domain.model.Vehicle) {
-    Column(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer).padding(16.dp),
-    ) { SpotFitRow(spot = spot, vehicle = vehicle) }
-}
+private fun spotFit(spot: io.apptolast.paparcar.domain.model.Spot, vehicle: io.apptolast.paparcar.domain.model.Vehicle) =
+    SpotFitRow(spot = spot, vehicle = vehicle)
 
 // Recipes mirror the existing *Previews.kt so the gallery shows the same curated states on-device.
 private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Home · detección",
         listOf(
-            Variant("Sin permiso CORE (BlockedCore)") { detectionSurface(DetectionUiState.BlockedCore) },
-            Variant("Sin permiso detección (BlockedProducer)") { detectionSurface(DetectionUiState.BlockedProducer) },
-            Variant("Sin coche registrado (NoVehicle)") { detectionSurface(DetectionUiState.NoVehicle) },
-            Variant("Sin aparcar aún (AwaitingFirstPark)") { detectionSurface(DetectionUiState.AwaitingFirstPark) },
-            Variant("Coordinator corriendo (Monitoring)") {
-                DetectionHost {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        MonitoringPillContent(elapsedLabel = "4 min")
-                    }
+            Variant("Sin permiso CORE (BlockedCore)", Placement.Surface) { detectionSurface(DetectionUiState.BlockedCore) },
+            Variant("Sin permiso detección (BlockedProducer)", Placement.Surface) { detectionSurface(DetectionUiState.BlockedProducer) },
+            Variant("Sin coche registrado (NoVehicle)", Placement.Surface) { detectionSurface(DetectionUiState.NoVehicle) },
+            Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionUiState.AwaitingFirstPark) },
+            Variant("Coordinator corriendo (Monitoring)", Placement.Surface) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    MonitoringPillContent(elapsedLabel = "4 min")
                 }
             },
         ),
@@ -171,13 +165,13 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Home · peek / sheet",
         listOf(
-            Variant("Peek · spots cerca (POI)") {
+            Variant("Peek · spots cerca (POI)", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceFuel, nearbySpots = FakeData.nearbySpots))
             },
-            Variant("Peek · dirección simple") {
+            Variant("Peek · dirección simple", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = FakeData.nearbySpots))
             },
-            Variant("Peek · spot seleccionado") {
+            Variant("Peek · spot seleccionado", Placement.Surface) {
                 peek(
                     HomeState(
                         nearbySpots = FakeData.nearbySpots,
@@ -186,7 +180,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            Variant("Peek · plaza propia seleccionada") {
+            Variant("Peek · plaza propia seleccionada", Placement.Surface) {
                 peek(
                     HomeState(
                         activeSessions = listOf(FakeData.activeSession),
@@ -196,7 +190,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            Variant("Peek · cargando (skeleton)") { peek(HomeState()) },
+            Variant("Peek · cargando (skeleton)", Placement.Surface) { peek(HomeState()) },
             Variant("Sheet · coche + spots") {
                 sheet(
                     HomeState(
@@ -218,19 +212,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Home · compatibilidad (SpotFit)",
         listOf(
-            Variant("OPTIMAL (mismo carrocería)") {
+            Variant("OPTIMAL (mismo carrocería)", Placement.Surface) {
                 spotFit(
                     fitSpot(VehicleSize.MEDIUM_SUV, CarbodyType.HATCHBACK_MEDIUM),
                     fitVehicle(VehicleSize.MEDIUM_SUV, CarbodyType.HATCHBACK_MEDIUM),
                 )
             },
-            Variant("FITS (coche ≤ plaza)") {
+            Variant("FITS (coche ≤ plaza)", Placement.Surface) {
                 spotFit(fitSpot(VehicleSize.MEDIUM_SUV), fitVehicle(VehicleSize.MICRO_SMALL))
             },
-            Variant("DOES_NOT_FIT (coche > plaza)") {
+            Variant("DOES_NOT_FIT (coche > plaza)", Placement.Surface) {
                 spotFit(fitSpot(VehicleSize.MICRO_SMALL), fitVehicle(VehicleSize.VAN_HIGH))
             },
-            Variant("UNKNOWN (plaza sin tamaño)") {
+            Variant("UNKNOWN (plaza sin tamaño)", Placement.Surface) {
                 spotFit(fitSpot(null), fitVehicle(VehicleSize.MEDIUM_SUV))
             },
         ),
@@ -486,20 +480,53 @@ fun StateGalleryScreen(onBack: () -> Unit) {
     } else {
         val current = selected!!
         var dark by remember { mutableStateOf(false) }
+        // Surface variants default to the contextual (bottom-sheet) presentation; "Solo" isolates.
+        var isolated by remember(current) { mutableStateOf(false) }
         BackHandler { selected = null }
         PaparcarTheme(darkTheme = dark) {
-            Box(Modifier.fillMaxSize()) {
-                current.content()
-                // Overlay controls — kept compact + at opposite corners to minimise clash with
-                // each screen's own chrome. Hardware/gesture back also returns to the list.
-                ElevatedButton(
-                    onClick = { selected = null },
-                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
-                ) { Text("← Lista") }
-                ElevatedButton(
-                    onClick = { dark = !dark },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                ) { Text(if (dark) "☀ Claro" else "🌙 Oscuro") }
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                when (current.placement) {
+                    Placement.FullScreen -> current.content()
+                    Placement.Surface -> if (isolated) {
+                        // Bare composable, centered with its own bounds visible.
+                        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            ) {
+                                Box(Modifier.padding(16.dp)) { current.content() }
+                            }
+                        }
+                    } else {
+                        // Contextual: anchored at the bottom like Home's sheet.
+                        Column(Modifier.fillMaxSize()) {
+                            Spacer(Modifier.weight(1f))
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceContainer,
+                                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                            ) {
+                                Box(Modifier.padding(16.dp).navigationBarsPadding()) { current.content() }
+                            }
+                        }
+                    }
+                }
+
+                // Control row — top-start, below the status bar, drawn last so it's always tappable.
+                // (DEV button lives top-end at the DevRoot level.)
+                Row(
+                    modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ElevatedButton(onClick = { selected = null }) { Text("← Lista") }
+                    if (current.placement == Placement.Surface) {
+                        ElevatedButton(onClick = { isolated = !isolated }) {
+                            Text(if (isolated) "Completa" else "Solo")
+                        }
+                    }
+                    ElevatedButton(onClick = { dark = !dark }) { Text(if (dark) "☀" else "🌙") }
+                }
             }
         }
     }
