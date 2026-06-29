@@ -41,6 +41,7 @@ class ObserveParkedVehiclesUseCase(
                     licensePlate = vehicle.licensePlate,
                     isBluetoothPaired = vehicle.bluetoothDeviceId != null,
                     color = vehicle.color,
+                    isActive = vehicle.isActive,
                 )
             }
         }

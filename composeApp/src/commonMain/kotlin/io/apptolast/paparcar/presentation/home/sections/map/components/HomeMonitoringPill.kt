@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import org.jetbrains.compose.resources.stringResource
@@ -59,8 +60,9 @@ internal fun HomeMonitoringPill(
 ) {
     AnimatedVisibility(
         visible = visible,
+        // Sober "settle" spring (no overshoot) — alive but not bouncy.
         enter = slideInVertically(
-            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
             initialOffsetY = { -it / ENTER_SLIDE_DIVISOR },
         ) + scaleIn(initialScale = ENTER_INITIAL_SCALE) + fadeIn(),
         exit = slideOutVertically(
@@ -122,7 +124,7 @@ private fun LiveDot() {
         initialValue = DOT_ALPHA_MIN,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(DOT_PULSE_MS),
+            animation = tween(DOT_PULSE_MS, easing = PapMotion.EaseInOut),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "monitoring_live_dot_alpha",
@@ -147,6 +149,6 @@ private const val PILL_GAP_DP = 8
 private const val ICON_DP = 18
 private const val DOT_DP = 8
 private const val DOT_ALPHA_MIN = 0.3f
-private const val DOT_PULSE_MS = 900
+private const val DOT_PULSE_MS = PapMotion.PulseExpand
 private const val BORDER_DP = 1
 private const val BORDER_ALPHA = 0.4f

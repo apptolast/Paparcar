@@ -44,6 +44,7 @@ import io.apptolast.paparcar.presentation.vehicles.components.HistoryFilterBar
 import io.apptolast.paparcar.presentation.vehicles.components.HistoryInsightsCard
 import io.apptolast.paparcar.presentation.vehicles.components.StatsRow
 import io.apptolast.paparcar.presentation.vehicles.components.WeeklyActivityCard
+import io.apptolast.paparcar.ui.theme.PapMotion
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
@@ -228,7 +229,9 @@ internal fun HistoryContent(
                 }
 
                 items(items = timelineItems, key = { it.key }) { timelineItem ->
-                    Box(Modifier.padding(horizontal = 16.dp)) {
+                    // Filter changes swap the timeline set — animate item insert/remove/move
+                    // so rows glide instead of snapping. [MOTION-POLISH-001]
+                    Box(Modifier.animateItem().padding(horizontal = 16.dp)) {
                         when (timelineItem) {
                             is TimelineItem.Header -> DayHeaderRow(label = timelineItem.label)
                             is TimelineItem.Session -> EndedSessionTimelineNode(
@@ -320,11 +323,11 @@ private const val SKELETON_SESSION_HEIGHT_DP = 72
 private const val SKELETON_HEADER_WIDTH_DP = 80
 private const val SKELETON_HEADER_HEIGHT_DP = 12
 private const val SKELETON_CORNER_DP = 16
-private const val SKELETON_ANIM_MS = 700
+private const val SKELETON_ANIM_MS = PapMotion.Breathe
 private const val SKELETON_FILTER_COUNT = 4
 private const val SKELETON_ROW_COUNT = 3
 private const val SKELETON_ALPHA_MIN = 0.06f
-private const val SKELETON_ALPHA_MAX = 0.14f
+private const val SKELETON_ALPHA_MAX = 0.18f
 private const val SKELETON_CHIP_ALPHA_FACTOR = 0.85f
 private const val SKELETON_HEADER_ALPHA_FACTOR = 0.7f
 

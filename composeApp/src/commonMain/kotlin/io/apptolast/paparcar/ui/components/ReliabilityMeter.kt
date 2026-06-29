@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
@@ -16,6 +19,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.stateColors
 import kotlin.math.roundToInt
 
@@ -62,10 +66,21 @@ fun ReliabilityMeter(
             } else {
                 Modifier.size(barWidth, barHeight)
             }
+            // Staggered recolour: when the level/pct changes, segments light up
+            // left-to-right instead of snapping all at once.
+            val segmentColor by animateColorAsState(
+                targetValue = if (index < filled) activeColor else trackColor,
+                animationSpec = tween(
+                    durationMillis = PapMotion.Medium,
+                    delayMillis = index * PapMotion.StaggerStep,
+                    easing = PapMotion.Standard,
+                ),
+                label = "reliability_segment_$index",
+            )
             Box(
                 barModifier
                     .clip(CircleShape)
-                    .background(if (index < filled) activeColor else trackColor),
+                    .background(segmentColor),
             )
         }
     }

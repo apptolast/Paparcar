@@ -143,9 +143,11 @@ fun VehicleBadgeMarker(
     isBluetoothPaired: Boolean = false,
     color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
 ) {
+    // Bluetooth supersedes monitoring state (matches Vehicle.monitoringStatus): a BT car always reads
+    // blue; a non-BT car is green when its monitoring is active, grey when inactive. [MAP-ICONS-V2]
     val tone = when {
-        !isActive -> VehicleBadgeTone.Inactive
         isBluetoothPaired -> VehicleBadgeTone.Bluetooth
+        !isActive -> VehicleBadgeTone.Inactive
         else -> VehicleBadgeTone.Parked
     }
     // State colour = the tag border by default; identity colours stay brand-fixed in both themes.
@@ -821,6 +823,15 @@ private fun LiftedCenterPin(
 ) {
     val offsetY = remember { Animatable(0f) }
     val pinScale = remember { Animatable(1f) }
+    // One-shot drop-in from above when the placement mode opens: the pin falls into
+    // place and fades up to its ghost alpha, so it reads as "being placed". [MOTION-POLISH-001]
+    val entry = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        entry.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        )
+    }
     LaunchedEffect(cameraMoving) {
         val (target, scaleTarget) = if (cameraMoving) ROUND_PIN_LIFT_DP to ROUND_PIN_LIFT_SCALE
                                     else              ROUND_PIN_REST_DP to ROUND_PIN_REST_SCALE
@@ -829,7 +840,10 @@ private fun LiftedCenterPin(
     }
     Box(
         modifier = modifier
-            .offset(y = offsetY.value.dp)
+            // Entry drop (negative = from above) added to the camera-move lift.
+            .offset(y = (offsetY.value + (1f - entry.value) * PLACING_ENTRY_DROP_DP).dp)
+            // Translucent "ghost" so the placing pin never looks like a real, placed marker.
+            .alpha(entry.value * PLACING_GHOST_ALPHA)
             .scale(pinScale.value),
         contentAlignment = Alignment.BottomCenter,
     ) { content() }
@@ -854,11 +868,19 @@ fun ParkingCenterPin(
     modifier: Modifier = Modifier,
     carbodyType: io.apptolast.paparcar.domain.model.CarbodyType? = null,
     sizeCategory: VehicleSize? = null,
+    color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
+    isActive: Boolean = true,
+    isBluetoothPaired: Boolean = false,
 ) {
     LiftedCenterPin(cameraMoving, modifier) {
+        // Same marker the vehicle will get when placed — icon, paint colour AND state border
+        // (grey inactive / blue BT / green active) — so the preview matches the result. [MOTION-POLISH-001]
         VehicleBadgeMarker(
             carbodyType = carbodyType ?: io.apptolast.paparcar.domain.model.CarbodyType.SEDAN,
             sizeCategory = sizeCategory,
+            color = color,
+            isActive = isActive,
+            isBluetoothPaired = isBluetoothPaired,
         )
     }
 }
@@ -888,6 +910,10 @@ private const val ROUND_PIN_REST_DP      = 0f
 private const val ROUND_PIN_LIFT_DP      = -10f
 private const val ROUND_PIN_REST_SCALE   = 1.0f
 private const val ROUND_PIN_LIFT_SCALE   = 1.04f
+// Placement-pin treatment: starts this far above (drops in) and settles to a translucent ghost so
+// the pin the user is positioning is clearly distinct from real, placed markers. [MOTION-POLISH-001]
+private const val PLACING_ENTRY_DROP_DP  = -34f
+private const val PLACING_GHOST_ALPHA    = 0.72f
 private val ZONE_AREA_ICON_SIZE = 22.dp
 private val ZONE_AREA_ICON_VNUDGE = 2.dp
 

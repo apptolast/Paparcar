@@ -2,8 +2,20 @@
 
 package io.apptolast.paparcar.presentation.settings
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -571,7 +583,17 @@ private fun ThemePreview(
         ThemeMode.DARK   -> THEME_DARK_BG to THEME_DARK_SURFACE
         ThemeMode.SYSTEM -> THEME_LIGHT_BG to THEME_DARK_SURFACE
     }
-    val borderColor = if (selected) cs.primary else cs.outline.copy(alpha = CARD_BORDER_ALPHA)
+    // Smoothly grow/recolour the selection ring instead of a hard swap.
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) cs.primary else cs.outline.copy(alpha = CARD_BORDER_ALPHA),
+        animationSpec = PapMotion.fast(),
+        label = "theme_preview_border_color",
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (selected) PapBorders.strong else PapBorders.thin,
+        animationSpec = PapMotion.fast(),
+        label = "theme_preview_border_width",
+    )
 
     Column(
         modifier = modifier,
@@ -584,7 +606,7 @@ private fun ThemePreview(
                 .aspectRatio(THEME_PREVIEW_RATIO),
             shape = RoundedCornerShape(10.dp),
             color = bg,
-            border = BorderStroke(if (selected) PapBorders.strong else PapBorders.thin, borderColor),
+            border = BorderStroke(borderWidth, borderColor),
         ) {
             if (mode == ThemeMode.SYSTEM) {
                 // diagonal split light/dark
@@ -689,6 +711,16 @@ private fun MapTypeThumb(
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) cs.primary else cs.outline.copy(alpha = CARD_BORDER_ALPHA),
+        animationSpec = PapMotion.fast(),
+        label = "map_thumb_border_color",
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = if (selected) PapBorders.strong else PapBorders.thin,
+        animationSpec = PapMotion.fast(),
+        label = "map_thumb_border_width",
+    )
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -698,10 +730,7 @@ private fun MapTypeThumb(
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             shape = RoundedCornerShape(12.dp),
             color = Color.Transparent,
-            border = BorderStroke(
-                if (selected) 2.dp else 1.dp,
-                if (selected) cs.primary else cs.outline.copy(alpha = CARD_BORDER_ALPHA),
-            ),
+            border = BorderStroke(borderWidth, borderColor),
         ) {
             Box(modifier = Modifier.fillMaxSize().background(gradient)) {
                 if (stripeColor != null) {
@@ -713,24 +742,11 @@ private fun MapTypeThumb(
                             .background(stripeColor.copy(alpha = STRIPE_ALPHA)),
                     )
                 }
-                if (selected) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(4.dp)
-                            .size(18.dp)
-                            .clip(CircleShape)
-                            .background(cs.primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = cs.onPrimary,
-                            modifier = Modifier.size(12.dp),
-                        )
-                    }
-                }
+                // Check badge pops in/out with a scale+fade when selection changes.
+                MapTypeSelectedBadge(
+                    selected = selected,
+                    modifier = Modifier.align(Alignment.TopEnd),
+                )
             }
         }
         Spacer(Modifier.size(6.dp))
@@ -740,6 +756,38 @@ private fun MapTypeThumb(
             fontWeight = FontWeight.Bold,
             color = if (selected) cs.primary else cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
         )
+    }
+}
+
+/**
+ * Selected-state check badge for [MapTypeThumb]. Extracted to its own composable so
+ * [AnimatedVisibility] resolves to the plain (non-scoped) overload — calling it inside
+ * the thumbnail [Box] would otherwise bind to the outer Column's `ColumnScope` receiver.
+ */
+@Composable
+private fun MapTypeSelectedBadge(selected: Boolean, modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    AnimatedVisibility(
+        visible = selected,
+        modifier = modifier,
+        enter = scaleIn(PapMotion.medium()) + fadeIn(PapMotion.medium()),
+        exit = scaleOut(PapMotion.medium()) + fadeOut(PapMotion.medium()),
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(4.dp)
+                .size(18.dp)
+                .clip(CircleShape)
+                .background(cs.primary),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.Check,
+                contentDescription = null,
+                tint = cs.onPrimary,
+                modifier = Modifier.size(12.dp),
+            )
+        }
     }
 }
 
@@ -785,21 +833,29 @@ private fun NotificationsGroupCard(
                 }
                 Switch(checked = masterOn, onCheckedChange = onMasterChange)
             }
-            if (masterOn) {
-                HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
-                SubNotifRow(
-                    label = stringResource(Res.string.settings_notif_parking),
-                    description = stringResource(Res.string.settings_notif_parking_desc),
-                    checked = parkingOn,
-                    onCheckedChange = onParkingChange,
-                )
-                HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
-                SubNotifRow(
-                    label = stringResource(Res.string.settings_notif_spot),
-                    description = stringResource(Res.string.settings_notif_spot_desc),
-                    checked = spotOn,
-                    onCheckedChange = onSpotChange,
-                )
+            // Accordion: sub-toggles grow/collapse from the top edge under the master
+            // switch instead of snapping in. [MOTION-POLISH-001]
+            AnimatedVisibility(
+                visible = masterOn,
+                enter = expandVertically(PapMotion.medium(), expandFrom = Alignment.Top) + fadeIn(PapMotion.medium()),
+                exit = shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top) + fadeOut(PapMotion.medium()),
+            ) {
+                Column {
+                    HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                    SubNotifRow(
+                        label = stringResource(Res.string.settings_notif_parking),
+                        description = stringResource(Res.string.settings_notif_parking_desc),
+                        checked = parkingOn,
+                        onCheckedChange = onParkingChange,
+                    )
+                    HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                    SubNotifRow(
+                        label = stringResource(Res.string.settings_notif_spot),
+                        description = stringResource(Res.string.settings_notif_spot_desc),
+                        checked = spotOn,
+                        onCheckedChange = onSpotChange,
+                    )
+                }
             }
         }
     }
@@ -869,16 +925,24 @@ private fun DangerZoneCard(
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.error),
                 border = BorderStroke(1.5.dp, cs.error),
             ) {
-                if (deleting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                        color = cs.error,
-                    )
-                } else {
-                    Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.size(6.dp))
-                    Text(label, fontWeight = FontWeight.Bold)
+                AnimatedContent(
+                    targetState = deleting,
+                    transitionSpec = { fadeIn(PapMotion.fast()) togetherWith fadeOut(PapMotion.fast()) },
+                    label = "delete_account_button",
+                ) { isDeleting ->
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = cs.error,
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text(label, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }

@@ -29,4 +29,9 @@ data class ParkedVehicleSummary(
     val isBluetoothPaired: Boolean = false,
     /** Paint colour of the parked vehicle — recolours the badge marker body. Null = default green. */
     val color: VehicleColor? = null,
+    /**
+     * Monitoring state of the underlying vehicle ([Vehicle.isActive]). Drives the marker tone for
+     * non-BT cars: active → green, inactive → grey. BT-paired cars always read blue regardless.
+     */
+    val isActive: Boolean = true,
 )

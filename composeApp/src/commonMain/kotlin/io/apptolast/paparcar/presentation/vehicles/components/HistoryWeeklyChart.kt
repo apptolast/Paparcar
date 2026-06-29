@@ -53,8 +53,14 @@ private const val CHART_ENTER_DURATION = 800
  */
 @Composable
 internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
+    val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(1)
+    val total = data.sumOf { it.sessions }
+
+    // Re-grow the bars whenever the dataset changes (e.g. a new session lands)
+    // instead of animating only on first composition.
     val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(total, maxSessions) {
+        progress.snapTo(0f)
         progress.animateTo(
             targetValue = 1f,
             animationSpec = tween(durationMillis = CHART_ENTER_DURATION, easing = FastOutSlowInEasing),
@@ -62,8 +68,6 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
     }
 
     val anim = progress.value
-    val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(1)
-    val total = data.sumOf { it.sessions }
     val textMeasurer = rememberTextMeasurer()
     val dataType = rememberDataTypography()
 

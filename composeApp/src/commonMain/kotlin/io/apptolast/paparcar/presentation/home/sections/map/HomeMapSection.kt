@@ -5,6 +5,8 @@ import io.apptolast.paparcar.presentation.home.sections.map.components.HomeMapFa
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,6 +20,7 @@ import io.apptolast.paparcar.presentation.map.CameraTarget
 import io.apptolast.paparcar.ui.components.CenterPinKind
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
 import io.apptolast.paparcar.ui.components.PaparcarMapView
+import io.apptolast.paparcar.ui.theme.PapMotion
 
 /**
  * The map tile layer with its right-side floating FAB column (location,
@@ -43,6 +46,15 @@ internal fun HomeMapSection(
     onCameraMove: (lat: Double, lon: Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Resolve the vehicle being positioned so its centre pin matches its real map marker
+    // (icon, paint colour AND state border). Mirrors AddingParkingPeekRow's resolution. [MOTION-POLISH-001]
+    val addParkingVehicle = run {
+        val vid = state.editingParkingId
+            ?.let { id -> state.activeSessions.firstOrNull { it.id == id }?.vehicleId }
+            ?: state.addingParkingVehicleId
+        vid?.let { id -> state.vehicles.firstOrNull { it.id == id } }
+    }
+
     PaparcarMapView(
         config = PaparcarMapConfig(
             mapType = state.mapType,
@@ -52,6 +64,11 @@ internal fun HomeMapSection(
         userLocation = state.userGpsPoint,
         drivingPuck = state.drivingPuck,
         parkingLocation = state.userParking?.location,
+        parkingVehicleCarbody = addParkingVehicle?.carbodyType,
+        parkingVehicleSize = addParkingVehicle?.sizeCategory,
+        parkingVehicleColor = addParkingVehicle?.color,
+        parkingIsActive = addParkingVehicle?.isActive ?: true,
+        parkingIsBluetoothPaired = addParkingVehicle?.bluetoothDeviceId != null,
         parkedVehicles = state.parkedVehicles,
         zones = state.zones,
         previewZoneLat = previewZoneLat,
@@ -90,8 +107,9 @@ internal fun HomeMapFabsLayer(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut(),
+        // Right-edge controls slide out to the right (toward their origin) instead of a flat fade.
+        enter = fadeIn(PapMotion.medium()) + slideInHorizontally(PapMotion.medium()) { it / 2 },
+        exit = fadeOut(PapMotion.medium()) + slideOutHorizontally(PapMotion.medium()) { it / 2 },
         modifier = modifier,
     ) {
         Column(

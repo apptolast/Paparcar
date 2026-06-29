@@ -2,6 +2,10 @@
 
 package io.apptolast.paparcar.presentation.vehicles
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,6 +54,7 @@ import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.components.VehicleBadgeTone
 import io.apptolast.paparcar.ui.components.VehicleGlyph
@@ -212,28 +217,36 @@ private fun VehicleStatusBadge(
     onSetActive: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    when (status) {
-        is VehicleMonitoringStatus.Bluetooth -> VehicleStatusPill(
-            text = stringResource(Res.string.vehicle_card_detection_bt),
-            accent = cs.tertiary,
-            leading = PillLeading.BtIcon,
-            onClick = null,
-            isLoading = false,
-        )
-        VehicleMonitoringStatus.Active -> VehicleStatusPill(
-            text = stringResource(Res.string.my_car_active_vehicle),
-            accent = cs.primary,
-            leading = PillLeading.Dot,
-            onClick = null,
-            isLoading = false,
-        )
-        VehicleMonitoringStatus.Inactive -> VehicleStatusPill(
-            text = stringResource(Res.string.my_car_set_active),
-            accent = cs.outline,
-            leading = PillLeading.Dot,
-            onClick = onSetActive,
-            isLoading = isSettingActive,
-        )
+    // Crossfade between Active / Inactive / Bluetooth and the loading flip so the
+    // pill morphs instead of swapping abruptly. [MOTION-POLISH-001]
+    AnimatedContent(
+        targetState = status to isSettingActive,
+        transitionSpec = { fadeIn(PapMotion.medium()) togetherWith fadeOut(PapMotion.medium()) },
+        label = "vehicle_status_badge",
+    ) { (s, loading) ->
+        when (s) {
+            is VehicleMonitoringStatus.Bluetooth -> VehicleStatusPill(
+                text = stringResource(Res.string.vehicle_card_detection_bt),
+                accent = cs.tertiary,
+                leading = PillLeading.BtIcon,
+                onClick = null,
+                isLoading = false,
+            )
+            VehicleMonitoringStatus.Active -> VehicleStatusPill(
+                text = stringResource(Res.string.my_car_active_vehicle),
+                accent = cs.primary,
+                leading = PillLeading.Dot,
+                onClick = null,
+                isLoading = false,
+            )
+            VehicleMonitoringStatus.Inactive -> VehicleStatusPill(
+                text = stringResource(Res.string.my_car_set_active),
+                accent = cs.outline,
+                leading = PillLeading.Dot,
+                onClick = onSetActive,
+                isLoading = loading,
+            )
+        }
     }
 }
 

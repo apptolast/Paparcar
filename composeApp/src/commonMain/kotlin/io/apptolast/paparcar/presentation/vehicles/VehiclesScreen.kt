@@ -46,11 +46,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.absoluteValue
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.displayName
@@ -220,12 +222,26 @@ private fun VehiclesPager(
             // pager slide animation, making the incoming page appear to have the wrong content.
             val pageHistoryState = state.historyCache[vehicleWithStats.vehicle.id]
                 ?: HistoryState(isLoading = false)
-            VehiclePageContent(
-                vehicleWithStats = vehicleWithStats,
-                historyState = pageHistoryState,
-                isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
-                onIntent = onIntent,
-            )
+            // Carousel polish: the off-centre page eases out (alpha + scale) as you
+            // swipe, so the incoming vehicle "settles" into focus instead of a flat slide.
+            val pageOffset =
+                ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+                    .absoluteValue.coerceIn(0f, 1f)
+            Box(
+                modifier = Modifier.graphicsLayer {
+                    alpha = PAGER_MIN_ALPHA + (1f - pageOffset) * (1f - PAGER_MIN_ALPHA)
+                    val scale = PAGER_MIN_SCALE + (1f - pageOffset) * (1f - PAGER_MIN_SCALE)
+                    scaleX = scale
+                    scaleY = scale
+                },
+            ) {
+                VehiclePageContent(
+                    vehicleWithStats = vehicleWithStats,
+                    historyState = pageHistoryState,
+                    isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
+                    onIntent = onIntent,
+                )
+            }
         }
     }
 }
@@ -410,6 +426,9 @@ private fun EmptyVehicleState(
 
 private const val PILL_RADIUS_DP = 999
 private const val TAB_HEIGHT_DP = 36
+// Carousel page transform: off-centre pages dim to this alpha and shrink to this scale.
+private const val PAGER_MIN_ALPHA = 0.5f
+private const val PAGER_MIN_SCALE = 0.92f
 private const val ACTIVE_DOT_DP = 6
 private const val SELECTED_FILL_ALPHA = 0.14f
 private const val EMPTY_ICON_CIRCLE_DP = 120

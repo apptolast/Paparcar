@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PapMotion
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_gps_accuracy_banner
@@ -53,8 +54,8 @@ fun HomeGpsAccuracyBanner(
 
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn() + slideInVertically { -it / 2 },
-        exit = fadeOut() + slideOutVertically { -it / 2 },
+        enter = fadeIn(PapMotion.medium()) + slideInVertically(PapMotion.medium()) { -it / 2 },
+        exit = fadeOut(PapMotion.medium()) + slideOutVertically(PapMotion.medium()) { -it / 2 },
         modifier = modifier,
     ) {
         val containerColor = if (level == GpsAccuracyLevel.POOR) {

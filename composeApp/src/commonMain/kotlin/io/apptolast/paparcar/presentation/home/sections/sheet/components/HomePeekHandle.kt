@@ -96,6 +96,7 @@ import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -227,13 +228,15 @@ internal fun HomePeekHandle(
         } else AnimatedContent(
             targetState = peekState,
             transitionSpec = {
+                // Explicit duration coordinated with the sheet snap (PapMotion.Emphasized)
+                // so the peek content and the sheet move as one piece.
                 val incomingEngaged = targetState !is PeekState.Browse
                 if (incomingEngaged) {
-                    (slideInVertically { it / 2 } + fadeIn()) togetherWith
-                        (slideOutVertically { -it / 2 } + fadeOut())
+                    (slideInVertically(PapMotion.emphasized()) { it / 2 } + fadeIn(PapMotion.emphasized())) togetherWith
+                        (slideOutVertically(PapMotion.emphasized()) { -it / 2 } + fadeOut(PapMotion.emphasized()))
                 } else {
-                    (slideInVertically { -it / 2 } + fadeIn()) togetherWith
-                        (slideOutVertically { it / 2 } + fadeOut())
+                    (slideInVertically(PapMotion.emphasized()) { -it / 2 } + fadeIn(PapMotion.emphasized())) togetherWith
+                        (slideOutVertically(PapMotion.emphasized()) { it / 2 } + fadeOut(PapMotion.emphasized()))
                 }
             },
             label = "peek_content",
@@ -412,7 +415,7 @@ private fun SpotListToggleRow(
 ) {
     val rotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(200),
+        animationSpec = PapMotion.medium(),
         label = "spot_list_chevron",
     )
     Row(
@@ -806,11 +809,27 @@ private fun AddingParkingPeekRow(
     // close affordance — the CD is read by accessibility for that button.
     @Suppress("UnusedExpression") stringResource(Res.string.home_add_parking_cancel_cd)
 
+    // Show the actual car (carbody glyph) being parked, not a generic DirectionsCar — matches its
+    // on-map marker (icon + state tone) so the user recognises the vehicle and its monitoring state:
+    // BT blue, inactive grey, active green. [MOTION-POLISH-001]
+    val addParkingTone = when {
+        targetVehicle?.bluetoothDeviceId != null -> io.apptolast.paparcar.ui.components.VehicleBadgeTone.Bluetooth
+        targetVehicle?.isActive == false         -> io.apptolast.paparcar.ui.components.VehicleBadgeTone.Inactive
+        else                                     -> io.apptolast.paparcar.ui.components.VehicleBadgeTone.Parked
+    }
+
     PeekStateCard(
         headerLabel = headerLabel,
         title = primaryText,
         onDismiss = onCancel,
-        leading = { PeekHeaderIconChip(icon = PaparcarIcons.VehicleCar) },
+        leading = {
+            ParkedVehicleHeaderChip(
+                carbody = targetVehicle?.carbodyType,
+                size = targetVehicle?.sizeCategory,
+                tone = addParkingTone,
+                color = targetVehicle?.color,
+            )
+        },
         content = {
             HelperRow(
                 icon = Icons.Outlined.Info,
@@ -1321,7 +1340,7 @@ private fun PeekLocationSkeleton(onToggle: () -> Unit = {}) {
         initialValue = 0.15f,
         targetValue = 0.40f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = PapMotion.Breathe, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "skeleton_pulse",
@@ -1401,4 +1420,4 @@ private const val MOVE_OUTLINE_ALPHA = 0.30f
 
 private const val SHIMMER_ALPHA_MIN = 0.10f
 private const val SHIMMER_ALPHA_MAX = 0.80f
-private const val SHIMMER_DURATION_MS = 550
+private const val SHIMMER_DURATION_MS = PapMotion.Breathe

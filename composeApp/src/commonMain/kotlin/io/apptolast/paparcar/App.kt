@@ -82,6 +82,7 @@ import io.apptolast.paparcar.presentation.util.applyAppLocale
 import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistrationScreen
 import io.apptolast.paparcar.presentation.vehicleregistration.VehicleSizeExplainerScreen
 import io.apptolast.paparcar.ui.auth.paparcarAuthSlots
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -401,9 +402,9 @@ private fun MainAppNavigation(
                 val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.route)
                 if (fromIdx >= 0 && toIdx >= 0) {
                     val dir = if (toIdx > fromIdx) 1 else -1
-                    fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { dir * it / NAV_SLIDE_FRACTION }
+                    fadeIn(navEnterSpec()) + slideInHorizontally(navEnterSpec()) { dir * it / NAV_SLIDE_FRACTION }
                 } else {
-                    fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { it / NAV_SLIDE_FRACTION }
+                    fadeIn(navEnterSpec()) + slideInHorizontally(navEnterSpec()) { it / NAV_SLIDE_FRACTION }
                 }
             },
             exitTransition = {
@@ -411,13 +412,13 @@ private fun MainAppNavigation(
                 val toIdx = BOTTOM_NAV_TAB_ORDER.indexOf(targetState.destination.route)
                 if (fromIdx >= 0 && toIdx >= 0) {
                     val dir = if (toIdx > fromIdx) 1 else -1
-                    fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { -dir * it / NAV_SLIDE_FRACTION }
+                    fadeOut(navExitSpec()) + slideOutHorizontally(navExitSpec()) { -dir * it / NAV_SLIDE_FRACTION }
                 } else {
-                    fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { -it / NAV_SLIDE_FRACTION }
+                    fadeOut(navExitSpec()) + slideOutHorizontally(navExitSpec()) { -it / NAV_SLIDE_FRACTION }
                 }
             },
-            popEnterTransition = { fadeIn(tween(NAV_ENTER_MS)) + slideInHorizontally { -it / NAV_SLIDE_FRACTION } },
-            popExitTransition = { fadeOut(tween(NAV_EXIT_MS)) + slideOutHorizontally { it / NAV_SLIDE_FRACTION } },
+            popEnterTransition = { fadeIn(navEnterSpec()) + slideInHorizontally(navEnterSpec()) { -it / NAV_SLIDE_FRACTION } },
+            popExitTransition = { fadeOut(navExitSpec()) + slideOutHorizontally(navExitSpec()) { it / NAV_SLIDE_FRACTION } },
         ) {
             composable(
                 route = "${Routes.VEHICLE_REGISTRATION}?origin={origin}&vehicleId={vehicleId}",
@@ -652,6 +653,11 @@ private val bottomNavItems = listOf(
 private const val NAV_ENTER_MS = 280
 private const val NAV_EXIT_MS = 200
 private const val NAV_SLIDE_FRACTION = 6
+
+// Shared specs so the fade and the horizontal slide of a tab transition run on the
+// exact same curve/duration (default slide* uses a spring → it would desync the fade).
+private fun <T> navEnterSpec() = tween<T>(NAV_ENTER_MS, easing = PapMotion.Standard)
+private fun <T> navExitSpec() = tween<T>(NAV_EXIT_MS, easing = PapMotion.Standard)
 
 private fun NavController.navigateToTab(route: String) {
     navigate(route) {

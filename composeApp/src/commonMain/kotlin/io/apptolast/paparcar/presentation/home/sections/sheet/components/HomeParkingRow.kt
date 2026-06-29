@@ -25,9 +25,10 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
+import io.apptolast.paparcar.ui.components.VehicleBadgeTone
 import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.ui.components.vehicleBadgeAccent
-import io.apptolast.paparcar.ui.components.vehicleBadgeTone
+import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -60,8 +61,24 @@ internal fun HomeVehicleChip(
     val isActive = vehicle.isActive
     val cs = MaterialTheme.colorScheme
 
-    val tone = vehicleBadgeTone(isParked = isParked, isBluetoothPaired = isBtPaired, isActive = isActive)
-    val accent = vehicleBadgeAccent(tone)
+    // Vehicle identity tone — mirrors the on-map marker so the chip reads the same: BT blue,
+    // inactive grey (even when parked), active green. The "Parked · Xm" status text below stays
+    // green regardless, to signal that the parking SESSION is active. [MOTION-POLISH-001]
+    val tone = when {
+        isBtPaired -> VehicleBadgeTone.Bluetooth
+        !isActive  -> VehicleBadgeTone.Inactive
+        isParked   -> VehicleBadgeTone.Parked
+        else       -> VehicleBadgeTone.Idle
+    }
+    val parkedColor = vehicleBadgeAccent(VehicleBadgeTone.Parked)
+    // Border colour for a PARKED chip — solid state colour at the same weight as the green, mirroring
+    // the map marker: BT blue, inactive solid grey (NOT the faded "no session" outline), active green.
+    // Non-parked chips keep the faded neutral outline below. [MOTION-POLISH-001]
+    val parkedBorderColor = when (tone) {
+        VehicleBadgeTone.Bluetooth -> cs.tertiary
+        VehicleBadgeTone.Inactive  -> PapOutlineVariantLight // exact marker inactive grey
+        else                       -> cs.primary
+    }
     val muted = cs.onSurface.copy(alpha = MUTED_ALPHA)
 
     val vehicleName = vehicle.displayName(fallback = stringResource(Res.string.home_vehicle_fallback_name))
@@ -74,7 +91,7 @@ internal fun HomeVehicleChip(
         // Only a parked chip earns a coloured border; everything else stays neutral (no amber). [DET-READY-001k]
         border = BorderStroke(
             BORDER_DP.dp,
-            if (isParked) accent else cs.outline.copy(alpha = OUTLINE_ALPHA),
+            if (isParked) parkedBorderColor else cs.outline.copy(alpha = OUTLINE_ALPHA),
         ),
         color = cs.surfaceContainerHigh,
     ) {
@@ -125,7 +142,8 @@ internal fun HomeVehicleChip(
                     text = statusText(session, userLocation),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = if (isParked) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isParked) accent else muted,
+                    // Parked → always green (active parking session), even if the vehicle is inactive.
+                    color = if (isParked) parkedColor else muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

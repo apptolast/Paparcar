@@ -240,8 +240,15 @@ private fun vehicleBadgeContentId(
         dim      -> "dim"
         else     -> "nrm"
     }
+    // Monitoring tone is baked into the key so the marker bitmap regenerates when a car goes
+    // active↔inactive (kmpmaps caches by contentId). BT > active > inactive. [MAP-ICONS-V2]
+    val tone = when {
+        v.isBluetoothPaired -> "bt"
+        v.isActive          -> "act"
+        else                -> "ina"
+    }
     // Colour is baked into the key so a recoloured car regenerates its cached bitmap. [VEH-COLOR-001]
-    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_${v.color?.name ?: "def"}_$state"
+    return "vehicle_badge_${v.vehicleId.take(8)}_${v.sizeCategory?.name ?: "def"}_${v.color?.name ?: "def"}_${state}_$tone"
 }
 
 private const val MARKER_MY_CAR          = "my_car"
@@ -446,6 +453,8 @@ fun PaparcarMapView(
     parkingVehicleColor: io.apptolast.paparcar.domain.model.VehicleColor? = null,
     /** When false the fallback parking marker renders in the inactive/history palette. */
     parkingIsActive: Boolean = true,
+    /** When true the add-parking centre pin reads as a Bluetooth-tracked car (blue border). */
+    parkingIsBluetoothPaired: Boolean = false,
     cameraTarget: CameraTarget? = null,
     /** User's saved habitual places. Rendered as circular markers with the chosen icon. */
     zones: List<Zone> = emptyList(),
@@ -749,7 +758,7 @@ fun PaparcarMapView(
                         VehicleBadgeMarker(
                             sizeCategory = v.sizeCategory,
                             carbodyType = v.carbodyType,
-                            isActive = true,
+                            isActive = v.isActive,
                             stableRank = v.stableRank,
                             isBluetoothPaired = v.isBluetoothPaired,
                             color = v.color,
@@ -760,7 +769,7 @@ fun PaparcarMapView(
                             VehicleBadgeMarker(
                                 sizeCategory = v.sizeCategory,
                                 carbodyType = v.carbodyType,
-                                isActive = true,
+                                isActive = v.isActive,
                                 stableRank = v.stableRank,
                                 isBluetoothPaired = v.isBluetoothPaired,
                                 color = v.color,
@@ -772,7 +781,7 @@ fun PaparcarMapView(
                             selected = true,
                             sizeCategory = v.sizeCategory,
                             carbodyType = v.carbodyType,
-                            isActive = true,
+                            isActive = v.isActive,
                             stableRank = v.stableRank,
                             isBluetoothPaired = v.isBluetoothPaired,
                             color = v.color,
@@ -1033,6 +1042,9 @@ fun PaparcarMapView(
                     cameraMoving = cameraMoving,
                     carbodyType = parkingVehicleCarbody,
                     sizeCategory = parkingVehicleSize,
+                    color = parkingVehicleColor,
+                    isActive = parkingIsActive,
+                    isBluetoothPaired = parkingIsBluetoothPaired,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .mapCenterPinAnchor(),

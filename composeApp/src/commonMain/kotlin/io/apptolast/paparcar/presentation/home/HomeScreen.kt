@@ -6,6 +6,8 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -62,6 +64,7 @@ import io.apptolast.paparcar.presentation.util.zoneIconOutlinedFor
 import io.apptolast.paparcar.ui.components.CenterPinKind
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
+import io.apptolast.paparcar.ui.theme.PapMotion
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -734,8 +737,8 @@ private fun HomeContent(
                 ) {
                     AnimatedVisibility(
                         visible = overlayVisible,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
+                        enter = fadeIn(PapMotion.medium()),
+                        exit = fadeOut(PapMotion.medium()),
                     ) {
                         HomeHeaderSection(
                             state = state,
@@ -841,8 +844,9 @@ private fun HomeContent(
                 // ── Left FAB (report a free spot — entry to Reporting mode) ──
                 AnimatedVisibility(
                     visible = overlayVisible,
-                    enter = fadeIn(),
-                    exit = fadeOut(),
+                    // Left-edge control slides out to the left (mirrors the right FAB column).
+                    enter = fadeIn(PapMotion.medium()) + slideInHorizontally(PapMotion.medium()) { -it / 2 },
+                    exit = fadeOut(PapMotion.medium()) + slideOutHorizontally(PapMotion.medium()) { -it / 2 },
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 14.dp)

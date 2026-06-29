@@ -38,6 +38,7 @@ import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypePicker
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.ZoneChip
 import io.apptolast.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
 import io.apptolast.paparcar.presentation.util.MapCircleFab
@@ -91,8 +92,9 @@ internal fun HomeHeaderSection(
         }
         AnimatedVisibility(
             visible = state.hasCorePermissions,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
+            // Chips hang under the search bar → grow/collapse from the top edge.
+            enter = fadeIn(PapMotion.medium()) + expandVertically(PapMotion.medium(), expandFrom = Alignment.Top),
+            exit = fadeOut(PapMotion.medium()) + shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top),
         ) {
             if (state.zones.isNotEmpty()) {
                 HeaderZoneChips(

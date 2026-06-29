@@ -1,5 +1,9 @@
 package io.apptolast.paparcar.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +31,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import io.apptolast.paparcar.ui.theme.PapMotion
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,7 +101,19 @@ fun PapAlertDialog(
     val accentContainer = accent.container()
     val onAccent = accent.onAccent()
 
+    // Drive a one-shot enter the first time the dialog enters composition so it
+    // scales+fades up from 92% instead of popping in (BasicAlertDialog has no
+    // built-in transition). Centralised here → every dialog in the app inherits it.
+    val visibleState = remember { MutableTransitionState(false) }.apply { targetState = true }
+
     BasicAlertDialog(onDismissRequest = onDismiss, modifier = modifier) {
+        AnimatedVisibility(
+            visibleState = visibleState,
+            enter = scaleIn(
+                initialScale = DIALOG_ENTER_SCALE,
+                animationSpec = PapMotion.medium(),
+            ) + fadeIn(animationSpec = PapMotion.medium()),
+        ) {
         Surface(
             shape = PapShapes.dialog,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -176,6 +194,7 @@ fun PapAlertDialog(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -265,6 +284,7 @@ private fun PapDialogAccent.onAccent(): Color = when (this) {
     PapDialogAccent.Destructive -> MaterialTheme.colorScheme.onError
 }
 
+private const val DIALOG_ENTER_SCALE = 0.92f
 private const val ICON_CIRCLE_DP = 56
 private const val BUTTON_HEIGHT_DP = 48
 private const val BUTTON_CORNER_DP = 12

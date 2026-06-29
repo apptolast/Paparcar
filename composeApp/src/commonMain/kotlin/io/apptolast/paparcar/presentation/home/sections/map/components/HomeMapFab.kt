@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.presentation.home.sections.map.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.MapCircleFab
+import io.apptolast.paparcar.ui.theme.PapMotion
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.map_cd_go_to_car
@@ -48,8 +51,8 @@ internal fun HomeMapFabColumn(
     ) {
         AnimatedVisibility(
             visible = userParking != null,
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
+            enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),
+            exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {
             HomeMapFab(
                 icon = Icons.Outlined.DirectionsCar,
@@ -61,8 +64,8 @@ internal fun HomeMapFabColumn(
         }
         AnimatedVisibility(
             visible = userParking != null && userGpsPoint != null,
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
+            enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),
+            exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {
             HomeMapFab(
                 icon = Icons.Outlined.Route,
