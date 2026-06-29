@@ -14,9 +14,17 @@ import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
+import io.apptolast.paparcar.fakes.MockScenario
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 class FakeGeocoderDataSource : GeocoderDataSource {
     override suspend fun getAddress(lat: Double, lon: Double): Result<AddressInfo> =
@@ -31,17 +39,60 @@ class FakePlacesDataSource : PlacesDataSource {
         Result.success(null)
 }
 
-class FakePermissionManager : PermissionManager {
+/**
+ * @param scenario when non-null, [permissionState] reflects [MockScenario.permissionTier] +
+ * [MockScenario.gpsEnabled] so the Dev Catalog can land on the rationale/permissions screens.
+ * When null it reports everything granted (original behaviour, used by tests/default boot).
+ */
+class FakePermissionManager(private val scenario: MockScenario? = null) : PermissionManager {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     override val permissionState: StateFlow<AppPermissionState> =
-        MutableStateFlow(AppPermissionState(
+        if (scenario != null) {
+            combine(scenario.permissionTier, scenario.gpsEnabled) { tier, gps -> tier.toState(gps) }
+                .stateIn(
+                    scope,
+                    SharingStarted.Eagerly,
+                    scenario.permissionTier.value.toState(scenario.gpsEnabled.value),
+                )
+        } else {
+            MutableStateFlow(
+                AppPermissionState(
+                    hasLocationPermission = true,
+                    hasBackgroundLocationPermission = true,
+                    hasActivityRecognitionPermission = true,
+                    hasNotificationPermission = true,
+                    isLocationServicesEnabled = true,
+                ),
+            ).asStateFlow()
+        }
+
+    override fun refreshPermissions() {}
+
+    private fun MockScenario.PermissionTier.toState(gps: Boolean): AppPermissionState = when (this) {
+        MockScenario.PermissionTier.None -> AppPermissionState(isLocationServicesEnabled = gps)
+        MockScenario.PermissionTier.Core -> AppPermissionState(
+            hasLocationPermission = true,
+            hasNotificationPermission = true,
+            isLocationServicesEnabled = gps,
+        )
+        MockScenario.PermissionTier.Producer -> AppPermissionState(
             hasLocationPermission = true,
             hasBackgroundLocationPermission = true,
             hasActivityRecognitionPermission = true,
             hasNotificationPermission = true,
-            isLocationServicesEnabled = true
-        )).asStateFlow()
-
-    override fun refreshPermissions() {}
+            isLocationServicesEnabled = gps,
+        )
+        MockScenario.PermissionTier.All -> AppPermissionState(
+            hasLocationPermission = true,
+            hasBackgroundLocationPermission = true,
+            hasActivityRecognitionPermission = true,
+            hasNotificationPermission = true,
+            isLocationServicesEnabled = gps,
+            hasBluetoothConnectPermission = true,
+            isBatteryOptimizationExempt = true,
+        )
+    }
 }
 
 class FakeOemBackgroundReliabilityManager : OemBackgroundReliabilityManager {
@@ -51,10 +102,17 @@ class FakeOemBackgroundReliabilityManager : OemBackgroundReliabilityManager {
     override suspend fun launchOemBatterySettings(): Boolean = false
 }
 
-class FakeAppPreferences : AppPreferences {
+/**
+ * @param scenario when non-null, [isOnboardingCompleted] is backed by [MockScenario.onboardingCompleted]
+ * so the Dev Catalog can route into the onboarding flow. Other prefs keep their in-memory defaults.
+ */
+class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPreferences {
     private val _isOnboardingCompleted = MutableStateFlow(true)
-    override val isOnboardingCompleted: Boolean get() = _isOnboardingCompleted.value
-    override fun setOnboardingCompleted() { _isOnboardingCompleted.value = true }
+    override val isOnboardingCompleted: Boolean
+        get() = scenario?.onboardingCompleted?.value ?: _isOnboardingCompleted.value
+    override fun setOnboardingCompleted() {
+        scenario?.let { it.onboardingCompleted.value = true } ?: run { _isOnboardingCompleted.value = true }
+    }
 
     private val _hasSeenGpsAccuracyDisclaimer = MutableStateFlow(true)
     override val hasSeenGpsAccuracyDisclaimer: Boolean get() = _hasSeenGpsAccuracyDisclaimer.value
@@ -98,9 +156,25 @@ class FakeBluetoothScanner : BluetoothScanner {
     override fun getBondedDevices(): List<BluetoothDeviceInfo> = emptyList()
 }
 
-class FakeConnectivityObserver : ConnectivityObserver {
+/**
+ * @param scenario when non-null, [status] tracks [MockScenario.online] so the Dev Catalog can
+ * exercise the offline banner + bootstrap-offline dialog. When null it is always Online.
+ */
+class FakeConnectivityObserver(private val scenario: MockScenario? = null) : ConnectivityObserver {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     override val status: StateFlow<ConnectivityStatus> =
-        MutableStateFlow(ConnectivityStatus.Online).asStateFlow()
+        if (scenario != null) {
+            scenario.online
+                .map { online -> if (online) ConnectivityStatus.Online else ConnectivityStatus.Offline }
+                .stateIn(
+                    scope,
+                    SharingStarted.Eagerly,
+                    if (scenario.online.value) ConnectivityStatus.Online else ConnectivityStatus.Offline,
+                )
+        } else {
+            MutableStateFlow(ConnectivityStatus.Online).asStateFlow()
+        }
 
     override fun start() {}
     override fun stop() {}

@@ -46,21 +46,32 @@ import io.apptolast.paparcar.fakes.data.repository.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.data.repository.FakeUserProfileRepository
 import io.apptolast.paparcar.fakes.data.repository.FakeVehicleRepository
 import io.apptolast.paparcar.fakes.data.repository.FakeZoneRepository
+import io.apptolast.paparcar.fakes.MockScenario
+import com.apptolast.customlogin.presentation.screens.login.LoginViewModel
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val mockModule = module {
+    // Dev scenario shared by the scenario-aware fakes below and by the Dev Catalog UI.
+    single { MockScenario() }
+
+    // Library login screen's ViewModel (needs only AuthRepository, faked below). The library's
+    // own presentationModule is internal, so we register this one explicitly — without it the
+    // login screen crashes (NoDefinitionFound) when the Dev Catalog shows the LoggedOut flow.
+    viewModelOf(::LoginViewModel)
+
     // DataSources
     single<LocationDataSource> { FakeLocationDataSource() }
     single<FirebaseDataSource> { FakeFirebaseDataSource() }
     single<AppNotificationManager> { FakeAppNotificationManager() }
     single<GeocoderDataSource> { FakeGeocoderDataSource() }
     single<PlacesDataSource> { FakePlacesDataSource() }
-    single<PermissionManager> { FakePermissionManager() }
+    single<PermissionManager> { FakePermissionManager(get()) }
     single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager() }
-    single<AppPreferences> { FakeAppPreferences() }
+    single<AppPreferences> { FakeAppPreferences(get()) }
     single<BluetoothScanner> { FakeBluetoothScanner() }
-    single<ConnectivityObserver> { FakeConnectivityObserver() }
+    single<ConnectivityObserver> { FakeConnectivityObserver(get()) }
     single<ActivityRecognitionManager> { FakeActivityRecognitionManager() }
     single<StepDetectorSource> { FakeStepDetectorSource() }
     single<GeofenceManager> { FakeGeofenceManager() }
@@ -76,8 +87,8 @@ val mockModule = module {
 
     // Repositories
     single<SpotRepository> { FakeSpotRepository() }
-    single<AuthRepository> { FakeAuthRepository() }
-    single<VehicleRepository> { FakeVehicleRepository() }
+    single<AuthRepository> { FakeAuthRepository(get()) }
+    single<VehicleRepository> { FakeVehicleRepository(get()) }
     single<UserParkingRepository> { FakeUserParkingRepository() }
     single<UserProfileRepository> { FakeUserProfileRepository() }
     single<ZoneRepository> { FakeZoneRepository() }

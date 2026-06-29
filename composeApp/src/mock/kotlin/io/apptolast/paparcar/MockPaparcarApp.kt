@@ -17,14 +17,16 @@ class MockPaparcarApp : Application() {
         appContext = this
         Napier.base(DebugAntilog())
 
-        // Use startKoin directly instead of initLoginKoin to bypass 
-        // the library's internal DataModule that depends on Firebase.
+        // Use startKoin directly instead of initLoginKoin to bypass the library's internal
+        // DataModule (Firebase-dependent). The library's auth LoginViewModel is registered
+        // explicitly in mockModule (its presentationModule is library-internal, so we can't
+        // include it) — otherwise the login screen crashes when the LoggedOut scenario shows it.
         startKoin {
             androidContext(this@MockPaparcarApp)
             modules(
                 presentationModule,
                 domainModule,
-                mockModule
+                mockModule,
             )
         }
     }

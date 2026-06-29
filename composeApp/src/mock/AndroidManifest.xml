@@ -4,6 +4,26 @@
 
     <application
         android:name=".MockPaparcarApp"
-        tools:replace="android:name" />
+        tools:replace="android:name">
+
+        <!-- Mock launcher = Dev Catalog. Strip the prod MainActivity's launcher filter so the
+             app opens straight into the dev tooling; MainActivity is unused in mock. -->
+        <activity android:name=".MainActivity">
+            <intent-filter tools:node="removeAll" />
+        </activity>
+
+        <activity
+            android:name=".DevMainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Paparcar.Starting"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
 
 </manifest>

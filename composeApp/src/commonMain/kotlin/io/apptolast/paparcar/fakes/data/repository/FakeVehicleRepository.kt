@@ -4,6 +4,7 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.fakes.MockScenario
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.map
  *   vehicle_003 — motorcycle, no BT, rarely used
  *   vehicle_004 — van + BT configured, moderate use
  */
-class FakeVehicleRepository : VehicleRepository {
+class FakeVehicleRepository(private val scenario: MockScenario? = null) : VehicleRepository {
     private val mockVehicles = listOf(
         Vehicle(
             id = "mock_vehicle_001",
@@ -64,19 +65,34 @@ class FakeVehicleRepository : VehicleRepository {
 
     private val _vehiclesFlow = MutableStateFlow(mockVehicles)
 
-    override fun observeVehicles(): Flow<List<Vehicle>> = _vehiclesFlow.asStateFlow()
+    /** Empty when the scenario simulates a freshly-registered account with no vehicle yet. */
+    private fun currentList(): List<Vehicle> =
+        if (scenario != null && scenario.session.value != MockScenario.Session.LoggedInWithVehicles) {
+            emptyList()
+        } else {
+            mockVehicles
+        }
+
+    override fun observeVehicles(): Flow<List<Vehicle>> =
+        if (scenario != null) {
+            scenario.session.map { s ->
+                if (s == MockScenario.Session.LoggedInWithVehicles) mockVehicles else emptyList()
+            }
+        } else {
+            _vehiclesFlow.asStateFlow()
+        }
 
     override fun observeActiveVehicle(): Flow<Vehicle?> =
-        _vehiclesFlow.map { list -> list.find { it.isActive } }
+        observeVehicles().map { list -> list.find { it.isActive } }
 
     override suspend fun getActiveVehicle(userId: String): Vehicle? =
-        mockVehicles.find { it.isActive }
+        currentList().find { it.isActive }
 
     override suspend fun getVehicleById(userId: String, vehicleId: String): Vehicle? =
-        mockVehicles.find { it.id == vehicleId }
+        currentList().find { it.id == vehicleId }
 
     override suspend fun getVehicleByBluetoothDeviceId(deviceAddress: String): Vehicle? =
-        mockVehicles.find { it.bluetoothDeviceId == deviceAddress }
+        currentList().find { it.bluetoothDeviceId == deviceAddress }
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
 
@@ -90,5 +106,5 @@ class FakeVehicleRepository : VehicleRepository {
 
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 
-    override suspend fun hasVehicles(userId: String): Boolean = true
+    override suspend fun hasVehicles(userId: String): Boolean = currentList().isNotEmpty()
 }
