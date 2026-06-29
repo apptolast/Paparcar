@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -86,7 +86,7 @@ internal fun ZoneChip(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Close,
+                    imageVector = Icons.Rounded.Close,
                     contentDescription = stringResource(Res.string.home_zone_action_delete),
                     tint = cs.onSurface.copy(alpha = ZONE_CHIP_TRAILING_ALPHA),
                     modifier = Modifier.size(ZONE_CHIP_CLOSE_DP.dp),

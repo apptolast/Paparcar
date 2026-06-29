@@ -69,6 +69,20 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
         viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
     }
 
+    // Per-card direct grants: activity recognition and notifications each in their own dialog
+    // (the footer still asks them together via producerSensorsLauncher). [ONB-CARDS-001]
+    val activityRecognitionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
+    }
+
+    val notificationsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) {
+        viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
+    }
+
     val btLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
@@ -109,6 +123,18 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
                 PermissionsEffect.RequestProducerSensors ->
                     if (producerSensorsPermissions.isNotEmpty()) {
                         producerSensorsLauncher.launch(producerSensorsPermissions)
+                    } else {
+                        viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
+                    }
+                PermissionsEffect.RequestActivityRecognition ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                    } else {
+                        viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
+                    }
+                PermissionsEffect.RequestNotifications ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     } else {
                         viewModel.handleIntent(PermissionsIntent.RefreshPermissions)
                     }
@@ -154,6 +180,11 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
     PermissionsContent(
         state = state,
         onRequestPermissions = { viewModel.handleIntent(PermissionsIntent.RequestPermissions) },
+        onRequestForegroundLocation = { viewModel.handleIntent(PermissionsIntent.RequestForegroundLocation) },
+        onOpenLocationServices = { viewModel.handleIntent(PermissionsIntent.OpenLocationServices) },
+        onRequestBackgroundLocation = { viewModel.handleIntent(PermissionsIntent.RequestBackgroundLocation) },
+        onRequestActivityRecognition = { viewModel.handleIntent(PermissionsIntent.RequestActivityRecognition) },
+        onRequestNotifications = { viewModel.handleIntent(PermissionsIntent.RequestNotifications) },
         onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
         onRequestBatteryOptimization = { viewModel.handleIntent(PermissionsIntent.RequestBatteryOptimization) },
         onRequestOemAutostart = { viewModel.handleIntent(PermissionsIntent.RequestOemAutostart) },

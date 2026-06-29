@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -210,7 +210,7 @@ private fun HeaderBody(vehicle: Vehicle, modifier: Modifier = Modifier) {
                 )
             }
             IconButton(onClick = {}) {
-                Icon(Icons.Outlined.MoreVert, contentDescription = null)
+                Icon(Icons.Rounded.MoreVert, contentDescription = null)
             }
         }
         Row(
@@ -227,7 +227,7 @@ private fun HeaderBody(vehicle: Vehicle, modifier: Modifier = Modifier) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(Icons.Outlined.DirectionsCar, contentDescription = null,
+                    Icon(Icons.Rounded.DirectionsCar, contentDescription = null,
                          modifier = Modifier.width(14.dp))
                     Text("Auto-detect", style = MaterialTheme.typography.labelSmall)
                 }

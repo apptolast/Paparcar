@@ -60,6 +60,28 @@ class PermissionsViewModel(
     override fun handleIntent(intent: PermissionsIntent) {
         when (intent) {
             PermissionsIntent.RequestPermissions -> handleRequestPermissions()
+
+            // ── Per-card direct grants [ONB-CARDS-001] ──────────────────────────────
+            PermissionsIntent.RequestForegroundLocation -> requestForegroundLocation()
+            PermissionsIntent.OpenLocationServices -> sendEffect(PermissionsEffect.OpenLocationSettings)
+            PermissionsIntent.RequestBackgroundLocation ->
+                // Android only grants background once foreground is held; if it isn't, get that first.
+                if (!state.value.hasFineLocation) {
+                    requestForegroundLocation()
+                } else {
+                    updateState { copy(showBackgroundLocationGuide = true) }
+                }
+            PermissionsIntent.RequestActivityRecognition -> {
+                escalateIfNeeded()
+                requestCount++
+                sendEffect(PermissionsEffect.RequestActivityRecognition)
+            }
+            PermissionsIntent.RequestNotifications -> {
+                escalateIfNeeded()
+                requestCount++
+                sendEffect(PermissionsEffect.RequestNotifications)
+            }
+
             PermissionsIntent.RequestBluetoothPermission -> sendEffect(PermissionsEffect.RequestStepBluetooth)
             PermissionsIntent.RequestBatteryOptimization -> sendEffect(PermissionsEffect.RequestBatteryOptimizationExemption)
             PermissionsIntent.RequestOemAutostart -> {
@@ -88,6 +110,18 @@ class PermissionsViewModel(
             is PermissionsIntent.SetLocationPermanentlyDenied ->
                 updateState { copy(locationPermanentlyDenied = intent.value) }
         }
+    }
+
+    /** Foreground-location request shared by the footer CORE step and the per-card tap. [ONB-CARDS-001] */
+    private fun requestForegroundLocation() {
+        val current = state.value
+        if (current.showSettingsPrompt || (!current.hasFineLocation && current.locationPermanentlyDenied)) {
+            sendEffect(PermissionsEffect.OpenAppSettings)
+            return
+        }
+        escalateIfNeeded()
+        requestCount++
+        sendEffect(PermissionsEffect.RequestStep1)
     }
 
     private fun handleRequestPermissions() {

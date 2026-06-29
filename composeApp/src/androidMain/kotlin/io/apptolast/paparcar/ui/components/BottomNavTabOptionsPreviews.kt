@@ -6,16 +6,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Explore
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.Radar
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Explore
-import androidx.compose.material.icons.outlined.NearMe
-import androidx.compose.material.icons.outlined.Radar
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.NearMe
+import androidx.compose.material.icons.rounded.Radar
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,15 +25,13 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 private val tabVehicles = AppBottomNavItem(
     route = "vehicles",
     label = { "Vehicles" },
-    iconFilled = Icons.Filled.DirectionsCar,
-    iconOutline = Icons.Outlined.DirectionsCar,
+    icon = Icons.Rounded.DirectionsCar,
 )
 
 private val tabSettings = AppBottomNavItem(
     route = "settings",
     label = { "Settings" },
-    iconFilled = Icons.Filled.Settings,
-    iconOutline = Icons.Outlined.Settings,
+    icon = Icons.Rounded.Settings,
 )
 
 // ── Option A — Spots + NearMe ─────────────────────────────────────────────────
@@ -46,8 +39,7 @@ private val tabSettings = AppBottomNavItem(
 private val tabSpots = AppBottomNavItem(
     route = "home",
     label = { "Spots" },
-    iconFilled = Icons.Filled.NearMe,
-    iconOutline = Icons.Outlined.NearMe,
+    icon = Icons.Rounded.NearMe,
 )
 
 // ── Option B — Nearby + Explore ───────────────────────────────────────────────
@@ -55,8 +47,7 @@ private val tabSpots = AppBottomNavItem(
 private val tabNearby = AppBottomNavItem(
     route = "home",
     label = { "Nearby" },
-    iconFilled = Icons.Filled.Explore,
-    iconOutline = Icons.Outlined.Explore,
+    icon = Icons.Rounded.Explore,
 )
 
 // ── Option C — Radar + Radar ──────────────────────────────────────────────────
@@ -64,8 +55,7 @@ private val tabNearby = AppBottomNavItem(
 private val tabRadar = AppBottomNavItem(
     route = "home",
     label = { "Radar" },
-    iconFilled = Icons.Filled.Radar,
-    iconOutline = Icons.Outlined.Radar,
+    icon = Icons.Rounded.Radar,
 )
 
 // ── Preview helpers ───────────────────────────────────────────────────────────

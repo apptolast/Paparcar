@@ -12,10 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.GridView
-import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Schedule
 import io.apptolast.paparcar.presentation.vehicles.HistoryFilter
 import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
 import org.jetbrains.compose.resources.stringResource
@@ -26,10 +26,10 @@ import paparcar.composeapp.generated.resources.history_filter_this_month
 import paparcar.composeapp.generated.resources.history_filter_this_week
 
 private val FILTER_ICONS = mapOf(
-    HistoryFilter.All to Icons.Outlined.GridView,
-    HistoryFilter.ThisWeek to Icons.Outlined.DateRange,
-    HistoryFilter.ThisMonth to Icons.Outlined.CalendarMonth,
-    HistoryFilter.Last3Months to Icons.Outlined.Schedule,
+    HistoryFilter.All to Icons.Rounded.GridView,
+    HistoryFilter.ThisWeek to Icons.Rounded.DateRange,
+    HistoryFilter.ThisMonth to Icons.Rounded.CalendarMonth,
+    HistoryFilter.Last3Months to Icons.Rounded.Schedule,
 )
 
 @Composable

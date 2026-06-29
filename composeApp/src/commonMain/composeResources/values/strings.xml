@@ -486,12 +486,10 @@
     <string name="vehicle_type_bike">Bike</string>
     <string name="vehicle_type_bike_examples">Bicycle or e-bike — usually doesn\'t need spots</string>
 
-    <!-- Permissions Rationale screen -->
-    <string name="perm_rationale_title">Automate your parking</string>
-    <string name="perm_rationale_subtitle">Remember where you parked, keep an automatic history, and free your spot when you leave — automatically. It takes a few permissions to work.</string>
-    <string name="perm_rationale_body">Paparcar detects when you leave your parking spot and automatically shares it with nearby drivers — the same way you\'d benefit when someone else does it for you.\n\nFor this to work, we need access to your location and motion sensors. Your exact location is never shared with other users.</string>
-    <string name="perm_rationale_cta">Got it, enable permissions</string>
-    <string name="perm_rationale_skip">Not now</string>
+    <!-- Permissions tier benefit taglines [ONB-SCAFFOLD-001] -->
+    <string name="permissions_tier_essential_benefit">To find and see spots on the map</string>
+    <string name="permissions_tier_detection_benefit">To publish your spot when you leave — hands-free</string>
+    <string name="permissions_tier_optional_benefit">Only useful with auto-detection on — so it never misses</string>
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Tell us about your car</string>

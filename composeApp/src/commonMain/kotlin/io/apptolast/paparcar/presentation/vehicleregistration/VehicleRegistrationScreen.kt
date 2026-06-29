@@ -22,10 +22,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -187,11 +187,11 @@ private fun BluetoothRecommendationDialog(
 ) {
     PapAlertDialog(
         onDismiss = onSkip,
-        icon = Icons.Outlined.Bluetooth,
+        icon = Icons.Rounded.Bluetooth,
         title = stringResource(Res.string.veh_bt_recommendation_title),
         body = stringResource(Res.string.veh_bt_recommendation_body),
         primaryLabel = stringResource(Res.string.veh_bt_recommendation_configure),
-        primaryLeadingIcon = Icons.Outlined.Bluetooth,
+        primaryLeadingIcon = Icons.Rounded.Bluetooth,
         onPrimary = onConfigure,
         cancelLabel = stringResource(Res.string.veh_bt_recommendation_skip),
     )
@@ -256,7 +256,7 @@ internal fun VehicleRegistrationContent(
                 },
                 navigationIcon = {
                     IconButton(onClick = { onIntent(VehicleRegistrationIntent.NavigateBack) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -498,7 +498,7 @@ internal fun VehicleRegistrationContent(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Bluetooth,
+                                    imageVector = Icons.Rounded.Bluetooth,
                                     contentDescription = null,
                                     modifier = Modifier.size(BT_ICON_SIZE),
                                     tint = cs.primary,
@@ -590,7 +590,7 @@ internal fun VehicleRegistrationContent(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Delete,
+                            imageVector = Icons.Rounded.Delete,
                             contentDescription = null,
                             tint = cs.error,
                             modifier = Modifier.size(DELETE_ICON_SIZE),
@@ -608,11 +608,11 @@ internal fun VehicleRegistrationContent(
             if (showDeleteDialog) {
                 PapAlertDialog(
                     onDismiss = { if (!state.isDeleting) showDeleteDialog = false },
-                    icon = Icons.Outlined.Delete,
+                    icon = Icons.Rounded.Delete,
                     title = stringResource(Res.string.my_car_delete_confirm_title),
                     body = stringResource(Res.string.my_car_delete_confirm_message),
                     primaryLabel = stringResource(Res.string.my_car_delete_confirm_action),
-                    primaryLeadingIcon = Icons.Outlined.Delete,
+                    primaryLeadingIcon = Icons.Rounded.Delete,
                     onPrimary = {
                         // Don't close the dialog: the VM navigates away on success and
                         // resets isDeleting on failure (dialog stays open for retry).
@@ -765,7 +765,7 @@ private fun VehicleRegistrationBottomBar(
                     )
                 } else {
                     Icon(
-                        imageVector = Icons.Default.Check,
+                        imageVector = Icons.Rounded.Check,
                         contentDescription = null,
                         modifier = Modifier.size(SAVE_BUTTON_ICON_SIZE),
                     )

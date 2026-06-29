@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.presentation.home.sections.map.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -23,7 +23,7 @@ internal fun HomeReportFab(
     modifier: Modifier = Modifier,
 ) {
     MapCircleFab(
-        icon = Icons.Outlined.Campaign,
+        icon = Icons.Rounded.Campaign,
         onClick = onClick,
         contentDescription = stringResource(Res.string.home_report_fab_cd),
         iconTint = MaterialTheme.colorScheme.primary,

@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -208,7 +208,7 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            Icons.Outlined.Close,
+            Icons.Rounded.Close,
             contentDescription = stringResource(Res.string.home_peek_dismiss_cd),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISMISS_ALPHA),
             modifier = Modifier.size(DISMISS_ICON_DP.dp),

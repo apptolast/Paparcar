@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Campaign
-import androidx.compose.material.icons.outlined.FilterAltOff
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.FilterAltOff
 import io.apptolast.paparcar.ui.illustrations.EmptySpotsIllustration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Icon
@@ -305,7 +305,7 @@ internal fun HomeEmptyFilteredSpots(
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(
-                Icons.Outlined.FilterAltOff,
+                Icons.Rounded.FilterAltOff,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_ICON_ALPHA),
                 modifier = Modifier.size(36.dp),
@@ -368,7 +368,7 @@ internal fun HomeReportSpotCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Outlined.Campaign,
+                    Icons.Rounded.Campaign,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp),
@@ -393,7 +393,7 @@ internal fun HomeReportSpotCard(
                 )
             }
             Icon(
-                Icons.Outlined.Add,
+                Icons.Rounded.Add,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp),

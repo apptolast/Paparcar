@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -77,7 +77,7 @@ fun CarbodyManualPicker(
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(
-                            imageVector = Icons.Outlined.Close,
+                            imageVector = Icons.Rounded.Close,
                             contentDescription = stringResource(Res.string.vehicle_registration_carbody_picker_dismiss),
                         )
                     }

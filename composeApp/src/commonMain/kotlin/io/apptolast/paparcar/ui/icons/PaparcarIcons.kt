@@ -1,27 +1,27 @@
 package io.apptolast.paparcar.ui.icons
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.outlined.AccountBalance
-import androidx.compose.material.icons.automirrored.outlined.DirectionsBike
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.ElectricScooter
-import androidx.compose.material.icons.filled.TwoWheeler
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.ElectricScooter
-import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material.icons.outlined.Hotel
-import androidx.compose.material.icons.outlined.LocalCafe
-import androidx.compose.material.icons.outlined.LocalGasStation
-import androidx.compose.material.icons.outlined.LocalHospital
-import androidx.compose.material.icons.outlined.LocalMall
-import androidx.compose.material.icons.outlined.LocalParking
-import androidx.compose.material.icons.outlined.LocalPharmacy
-import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material.icons.outlined.Restaurant
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material.icons.outlined.ShoppingCart
-import androidx.compose.material.icons.outlined.TwoWheeler
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.ElectricScooter
+import androidx.compose.material.icons.rounded.TwoWheeler
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.ElectricScooter
+import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.Hotel
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.LocalGasStation
+import androidx.compose.material.icons.rounded.LocalHospital
+import androidx.compose.material.icons.rounded.LocalMall
+import androidx.compose.material.icons.rounded.LocalParking
+import androidx.compose.material.icons.rounded.LocalPharmacy
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Restaurant
+import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.ShoppingCart
+import androidx.compose.material.icons.rounded.TwoWheeler
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Hotel
@@ -62,7 +62,7 @@ import io.apptolast.paparcar.domain.model.VehicleType
  *  - **Material wrappers** — for categories where the Material outlined
  *    catalogue already provides the canonical glyph (gas pump, pharmacy
  *    cross, etc.). We re-export under our namespace so call sites read
- *    [PaparcarIcons.Pharmacy] instead of `Icons.Outlined.LocalPharmacy` and
+ *    [PaparcarIcons.Pharmacy] instead of `Icons.Rounded.LocalPharmacy` and
  *    we can swap the source later without touching call sites.
  *  - **Custom canvas-declared `ImageVector`s** — for in-house marks (parking
  *    bay, brand pin) and the 4-wheeled vehicle sizes Material doesn't
@@ -104,10 +104,10 @@ object PaparcarIcons {
     // ── Vehicle types (high-level taxonomy, independent of size) ─────────────
     // Used in registration/edit to pick the user's vehicle category. Drives
     // detection strategy: SCOOTER / BIKE never enter the Coordinator algorithm.
-    val VehicleCar: ImageVector get() = Icons.Filled.DirectionsCar
-    val VehicleMotorcycle: ImageVector get() = Icons.Filled.TwoWheeler
-    val VehicleScooter: ImageVector get() = Icons.Filled.ElectricScooter
-    val VehicleBike: ImageVector get() = Icons.AutoMirrored.Filled.DirectionsBike
+    val VehicleCar: ImageVector get() = Icons.Rounded.DirectionsCar
+    val VehicleMotorcycle: ImageVector get() = Icons.Rounded.TwoWheeler
+    val VehicleScooter: ImageVector get() = Icons.Rounded.ElectricScooter
+    val VehicleBike: ImageVector get() = Icons.AutoMirrored.Rounded.DirectionsBike
 
 
     /**

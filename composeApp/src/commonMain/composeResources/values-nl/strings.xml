@@ -366,12 +366,10 @@
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Handmatig</string>
 
-    <!-- Machtigingen uitleg scherm -->
-    <string name="perm_rationale_title">Automatiseer uw parkeren</string>
-    <string name="perm_rationale_subtitle">Onthoud waar u parkeerde, houd een automatische geschiedenis bij en geef uw plek vrij wanneer u vertrekt — automatisch. Er zijn maar een paar machtigingen voor nodig.</string>
-    <string name="perm_rationale_body">Paparcar detecteert wanneer je je parkeerplaats verlaat en deelt deze automatisch met nabijgelegen bestuurders — net zoals jij hiervan zou profiteren als iemand anders hetzelfde doet.\n\nHiervoor hebben we toegang nodig tot je locatie en bewegingssensoren. Je exacte locatie wordt nooit gedeeld met andere gebruikers.</string>
-    <string name="perm_rationale_cta">Begrepen, machtigingen inschakelen</string>
-    <string name="perm_rationale_skip">Nu niet</string>
+    <!-- Voordeel-taglines per machtigingsniveau [ONB-SCAFFOLD-001] -->
+    <string name="permissions_tier_essential_benefit">Om plekken op de kaart te vinden en te zien</string>
+    <string name="permissions_tier_detection_benefit">Om je plek bij vertrek automatisch te delen</string>
+    <string name="permissions_tier_optional_benefit">Alleen nuttig met automatische detectie aan — zodat het nooit mist</string>
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Vertel ons over je auto</string>

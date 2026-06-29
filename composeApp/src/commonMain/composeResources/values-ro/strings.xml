@@ -366,12 +366,10 @@
     <string name="spot_item_type_auto">Auto</string>
     <string name="spot_item_type_manual">Manual</string>
 
-    <!-- Ecranul de justificare a permisiunilor -->
-    <string name="perm_rationale_title">Automatizează-ți parcarea</string>
-    <string name="perm_rationale_subtitle">Reține unde ai parcat, păstrează un istoric automat și eliberează-ți locul când pleci — automat. Sunt necesare doar câteva permisiuni pentru a funcționa.</string>
-    <string name="perm_rationale_body">Paparcar detectează când pleci de pe locul tău de parcare și îl distribuie automat șoferilor din apropiere — la fel cum ai beneficia dacă altcineva ar face asta.\n\nPentru a funcționa, avem nevoie de acces la locația ta și la senzorii de mișcare. Locația ta exactă nu este niciodată partajată cu alți utilizatori.</string>
-    <string name="perm_rationale_cta">Înțeles, activează permisiunile</string>
-    <string name="perm_rationale_skip">Nu acum</string>
+    <!-- Sloganuri de beneficiu pe niveluri de permisiuni [ONB-SCAFFOLD-001] -->
+    <string name="permissions_tier_essential_benefit">Pentru a găsi și vedea locurile pe hartă</string>
+    <string name="permissions_tier_detection_benefit">Pentru a publica locul tău la plecare, fără să atingi nimic</string>
+    <string name="permissions_tier_optional_benefit">Utile doar cu detecția automată activă — ca să nu rateze niciodată</string>
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Spune-ne despre mașina ta</string>

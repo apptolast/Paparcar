@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.BluetoothDisabled
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.BluetoothDisabled
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -138,7 +138,7 @@ internal fun BluetoothConfigContent(
                 navigationIcon = {
                     IconButton(onClick = { onIntent(BluetoothConfigIntent.NavigateBack) }) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(Res.string.bt_config_cd_back),
                         )
                     }
@@ -250,7 +250,7 @@ private fun BtOffState(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            imageVector = Icons.Outlined.BluetoothDisabled,
+            imageVector = Icons.Rounded.BluetoothDisabled,
             contentDescription = null,
             modifier = Modifier.size(BT_OFF_ICON_SIZE),
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = BT_STATE_ICON_ALPHA),
@@ -278,7 +278,7 @@ private fun BtPermissionState(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            imageVector = Icons.Outlined.Bluetooth,
+            imageVector = Icons.Rounded.Bluetooth,
             contentDescription = null,
             modifier = Modifier.size(BT_OFF_ICON_SIZE),
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = BT_STATE_ICON_ALPHA),

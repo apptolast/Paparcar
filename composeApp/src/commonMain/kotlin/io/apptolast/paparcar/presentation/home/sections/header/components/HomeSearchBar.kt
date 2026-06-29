@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -109,7 +109,7 @@ internal fun HomeSearchBar(
                         CircularProgressIndicator(modifier = Modifier.size(SEARCH_LEADING_ICON_SIZE), strokeWidth = 2.dp)
                     } else {
                         Icon(
-                            imageVector = Icons.Outlined.Search,
+                            imageVector = Icons.Rounded.Search,
                             contentDescription = null,
                             tint = onSurfaceFaded,
                             modifier = Modifier.size(SEARCH_LEADING_ICON_SIZE),
@@ -162,7 +162,7 @@ internal fun HomeSearchBar(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.Outlined.Search,
+                                    Icons.Rounded.Search,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp),

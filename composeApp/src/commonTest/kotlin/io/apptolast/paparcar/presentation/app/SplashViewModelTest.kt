@@ -295,7 +295,7 @@ class SplashViewModelTest {
     }
 
     @Test
-    fun `startRoute resolves to PERMISSIONS_RATIONALE when onboarding done but missing runtime perms (vehicle present)`() = runTest {
+    fun `startRoute resolves to PERMISSIONS when onboarding done but missing runtime perms (vehicle present)`() = runTest {
         fakePrefs.setOnboardingCompleted()
         setProfileWithVehicle()
         // permissions remain default (none granted)
@@ -303,20 +303,20 @@ class SplashViewModelTest {
         val vm = buildViewModel()
         fakeAuth.emitState(AuthState.Authenticated(session))
 
-        assertEquals(Routes.PERMISSIONS_RATIONALE, vm.state.value.startRoute)
+        assertEquals(Routes.PERMISSIONS, vm.state.value.startRoute)
     }
 
     @Test
-    fun `startRoute resolves to PERMISSIONS_RATIONALE when onboarding done and no perms (regardless of vehicle)`() = runTest {
-        // First-run flow: permissions take priority over vehicle. The user lands on the
-        // rationale before being asked for a vehicle.
+    fun `startRoute resolves to PERMISSIONS when onboarding done and no perms (regardless of vehicle)`() = runTest {
+        // First-run flow: permissions take priority over vehicle. The user lands on the single
+        // explain-and-grant permissions surface before being asked for a vehicle.
         fakePrefs.setOnboardingCompleted()
         // No vehicle, no permissions granted.
 
         val vm = buildViewModel()
         fakeAuth.emitState(AuthState.Authenticated(session))
 
-        assertEquals(Routes.PERMISSIONS_RATIONALE, vm.state.value.startRoute)
+        assertEquals(Routes.PERMISSIONS, vm.state.value.startRoute)
     }
 
     @Test

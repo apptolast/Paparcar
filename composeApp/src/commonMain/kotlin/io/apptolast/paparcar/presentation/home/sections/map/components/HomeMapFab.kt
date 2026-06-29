@@ -8,9 +8,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.MyLocation
-import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -55,7 +55,7 @@ internal fun HomeMapFabColumn(
             exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {
             HomeMapFab(
-                icon = Icons.Outlined.DirectionsCar,
+                icon = Icons.Rounded.DirectionsCar,
                 // White by default; brand green only when this vehicle's parking is selected.
                 tint = if (isParkingSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
                 onClick = onParkedCar,
@@ -68,13 +68,13 @@ internal fun HomeMapFabColumn(
             exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {
             HomeMapFab(
-                icon = Icons.Outlined.Route,
+                icon = Icons.Rounded.Route,
                 onClick = onMidpoint,
                 contentDescription = stringResource(Res.string.map_cd_midpoint),
             )
         }
         HomeMapFab(
-            icon = Icons.Outlined.MyLocation,
+            icon = Icons.Rounded.MyLocation,
             onClick = onMyLocation,
             contentDescription = stringResource(Res.string.map_cd_my_location),
         )

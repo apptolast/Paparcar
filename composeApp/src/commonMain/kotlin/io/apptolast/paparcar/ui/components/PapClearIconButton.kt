@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -44,7 +44,7 @@ fun PapClearIconButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Outlined.Close,
+            imageVector = Icons.Rounded.Close,
             contentDescription = contentDescription,
             modifier = Modifier.size(CLEAR_ICON_SIZE),
             tint = cs.onSurface.copy(alpha = CLEAR_TINT_ALPHA),

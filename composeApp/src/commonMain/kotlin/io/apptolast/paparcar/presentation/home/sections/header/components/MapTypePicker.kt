@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.SatelliteAlt
-import androidx.compose.material.icons.outlined.Terrain
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.SatelliteAlt
+import androidx.compose.material.icons.rounded.Terrain
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -84,7 +84,7 @@ internal fun MapTypePicker(
 
     Box(modifier = modifier) {
         MapCircleFab(
-            icon = Icons.Outlined.Layers,
+            icon = Icons.Rounded.Layers,
             onClick = { expanded = !expanded },
             contentDescription = triggerContentDescription,
             size = FAB_SIZE,
@@ -120,19 +120,19 @@ internal fun MapTypePicker(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         MapTypeStackEntry(
-                            icon = Icons.Outlined.Terrain,
+                            icon = Icons.Rounded.Terrain,
                             contentDescription = stringResource(Res.string.settings_map_type_terrain),
                             selected = currentType == MapType.TERRAIN,
                             onClick = { onTypeSelected(MapType.TERRAIN) },
                         )
                         MapTypeStackEntry(
-                            icon = Icons.Outlined.SatelliteAlt,
+                            icon = Icons.Rounded.SatelliteAlt,
                             contentDescription = stringResource(Res.string.settings_map_type_satellite),
                             selected = currentType == MapType.SATELLITE,
                             onClick = { onTypeSelected(MapType.SATELLITE) },
                         )
                         MapTypeStackEntry(
-                            icon = Icons.Outlined.Public,
+                            icon = Icons.Rounded.Public,
                             contentDescription = stringResource(Res.string.settings_map_type_hybrid),
                             selected = currentType == MapType.HYBRID,
                             onClick = { onTypeSelected(MapType.HYBRID) },

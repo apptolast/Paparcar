@@ -60,7 +60,6 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeRel
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetSpotItemIndex
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.presentation.util.zoneIconFor
-import io.apptolast.paparcar.presentation.util.zoneIconOutlinedFor
 import io.apptolast.paparcar.ui.components.CenterPinKind
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
@@ -669,7 +668,7 @@ private fun HomeContent(
                 // glyph / zone icon). Null in Browse → default crosshair.
                 val centerPinKind: CenterPinKind? = when (state.mode) {
                     is HomeMode.Reporting -> CenterPinKind.Report
-                    is HomeMode.AddingZone -> CenterPinKind.Zone(zoneIconOutlinedFor(state.addingZoneIconKey))
+                    is HomeMode.AddingZone -> CenterPinKind.Zone(zoneIconFor(state.addingZoneIconKey))
                     is HomeMode.AddingParking -> CenterPinKind.Parking
                     else -> null
                 }

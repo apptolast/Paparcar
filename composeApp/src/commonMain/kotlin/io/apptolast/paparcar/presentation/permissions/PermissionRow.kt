@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -160,7 +160,7 @@ private fun StatusChip(state: PermissionUiState) {
         ) {
             if (state == PermissionUiState.Granted) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = Icons.Rounded.CheckCircle,
                     contentDescription = null,
                     tint = chipFg,
                     modifier = Modifier.size(BADGE_ICON_SIZE),

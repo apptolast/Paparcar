@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.LocalParking
+import androidx.compose.material.icons.rounded.LocalParking
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
@@ -104,8 +104,8 @@ private fun MarkersShowcase() {
 
         SectionLabel("Centre pin · Zone (rest · lifted)")
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Outlined.LocalParking, cameraMoving = false) }
-            CenterPinSlot { ZoneCenterPin(icon = Icons.Outlined.LocalParking, cameraMoving = true) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = false) }
+            CenterPinSlot { ZoneCenterPin(icon = Icons.Rounded.LocalParking, cameraMoving = true) }
         }
     }
 }

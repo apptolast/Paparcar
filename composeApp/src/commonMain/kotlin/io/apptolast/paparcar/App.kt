@@ -24,12 +24,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.DirectionsCar
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -74,7 +71,6 @@ import io.apptolast.paparcar.presentation.vehicles.VehiclesScreen
 import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsScreen
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigScreen
-import io.apptolast.paparcar.presentation.permissions.PermissionsRationaleScreen
 import io.apptolast.paparcar.presentation.settings.SettingsScreen
 import io.apptolast.paparcar.presentation.util.DistanceUnit
 import io.apptolast.paparcar.presentation.util.LocalDistanceUnit
@@ -108,7 +104,6 @@ object Routes {
     const val SETTINGS = "settings"
     const val ONBOARDING = "onboarding"
     const val PERMISSIONS = "permissions"
-    const val PERMISSIONS_RATIONALE = "permissions_rationale"
     const val VEHICLE_REGISTRATION = "vehicle_registration"
     /** First-run rationale shown before VEHICLE_REGISTRATION. Explains why size is required. */
     const val VEHICLE_SIZE_EXPLAINER = "vehicle_size_explainer"
@@ -134,7 +129,6 @@ private const val PERMISSIONS_ROUTE = "${Routes.PERMISSIONS}?focus={focus}"
 
 private val GATE_SCREENS = setOf(
     PERMISSIONS_ROUTE,
-    Routes.PERMISSIONS_RATIONALE,
     Routes.ONBOARDING,
     Routes.VEHICLE_SIZE_EXPLAINER,
     Routes.GPS_DISCLAIMER,
@@ -469,19 +463,10 @@ private fun MainAppNavigation(
                 OnboardingScreen(
                     onComplete = {
                         onMarkOnboardingCompleted()
-                        // The onboarding's last page narrates "set up permissions",
-                        // so the next linear step is the permissions rationale.
-                        navController.navigate(Routes.PERMISSIONS_RATIONALE) {
-                            popUpTo(Routes.ONBOARDING) { inclusive = true }
-                        }
-                    },
-                )
-            }
-            composable(Routes.PERMISSIONS_RATIONALE) {
-                PermissionsRationaleScreen(
-                    onAccept = {
+                        // The onboarding's last page narrates "set up permissions". The permissions
+                        // screen is now the single explain-and-grant surface (no separate rationale).
                         navController.navigate(Routes.PERMISSIONS) {
-                            popUpTo(Routes.PERMISSIONS_RATIONALE) { inclusive = true }
+                            popUpTo(Routes.ONBOARDING) { inclusive = true }
                         }
                     },
                 )
@@ -629,20 +614,17 @@ private val bottomNavItems = listOf(
     AppBottomNavItem(
         route = Routes.HOME,
         label = { stringResource(Res.string.nav_tab_home) },
-        iconFilled = Icons.Filled.Home,
-        iconOutline = Icons.Outlined.Home,
+        icon = Icons.Rounded.Home,
     ),
     AppBottomNavItem(
         route = Routes.VEHICLES,
         label = { stringResource(Res.string.nav_tab_vehicles) },
-        iconFilled = Icons.Filled.DirectionsCar,
-        iconOutline = Icons.Outlined.DirectionsCar,
+        icon = Icons.Rounded.DirectionsCar,
     ),
     AppBottomNavItem(
         route = Routes.SETTINGS,
         label = { stringResource(Res.string.nav_tab_settings) },
-        iconFilled = Icons.Filled.Settings,
-        iconOutline = Icons.Outlined.Settings,
+        icon = Icons.Rounded.Settings,
     ),
 )
 

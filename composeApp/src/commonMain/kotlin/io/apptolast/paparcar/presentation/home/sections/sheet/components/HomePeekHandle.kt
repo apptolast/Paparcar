@@ -35,22 +35,22 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
-import androidx.compose.material.icons.automirrored.outlined.Logout
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.outlined.Block
-import androidx.compose.material.icons.outlined.Bookmark
-import androidx.compose.material.icons.outlined.Campaign
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.EditLocationAlt
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Group
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.EditLocationAlt
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Navigation
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -382,7 +382,7 @@ private fun SpotPeekRow(
         actions = {
             PapFooterButton(
                 label = stringResource(Res.string.home_navigate_to_spot),
-                leadingIcon = Icons.Outlined.Navigation,
+                leadingIcon = Icons.Rounded.Navigation,
                 onClick = onNavigate,
                 style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
@@ -390,7 +390,7 @@ private fun SpotPeekRow(
             Spacer(Modifier.height(8.dp))
             PapFooterButton(
                 label = stringResource(Res.string.home_peek_spot_occupied),
-                leadingIcon = Icons.Outlined.Block,
+                leadingIcon = Icons.Rounded.Block,
                 onClick = onRejectSpot,
                 style = PapFooterButtonStyle.Outlined,
                 modifier = Modifier.fillMaxWidth(),
@@ -433,7 +433,7 @@ private fun SpotListToggleRow(
         )
         Spacer(Modifier.width(4.dp))
         Icon(
-            imageVector = Icons.Outlined.ExpandMore,
+            imageVector = Icons.Rounded.ExpandMore,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = TOGGLE_ROW_ALPHA),
             modifier = Modifier.size(18.dp).rotate(rotation),
@@ -479,8 +479,8 @@ private fun vehicleSummary(vehicle: Vehicle?): String? {
 private fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color) {
     if (distanceM == null) return
     val icon = when (mode) {
-        TravelMode.WALKING -> Icons.AutoMirrored.Outlined.DirectionsWalk
-        TravelMode.DRIVING -> Icons.Outlined.Navigation
+        TravelMode.WALKING -> Icons.AutoMirrored.Rounded.DirectionsWalk
+        TravelMode.DRIVING -> Icons.Rounded.Navigation
     }
     val timeText = when (mode) {
         TravelMode.WALKING -> walkTimeString(distanceM)
@@ -559,7 +559,7 @@ private fun SpotAgeRow(ageMinutes: Int, accentColor: Color) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            imageVector = Icons.Outlined.Schedule,
+            imageVector = Icons.Rounded.Schedule,
             contentDescription = null,
             tint = accentColor,
             modifier = Modifier.size(META_ICON_DP.dp),
@@ -583,7 +583,7 @@ private fun SpotEnRouteRow(count: Int, accentColor: Color) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            imageVector = Icons.Outlined.Group,
+            imageVector = Icons.Rounded.Group,
             contentDescription = null,
             tint = accentColor,
             modifier = Modifier.size(META_ICON_DP.dp),
@@ -692,7 +692,7 @@ private fun ParkingPeekRow(
         actions = {
             PapFooterButton(
                 label = stringResource(Res.string.home_navigate_to_vehicle),
-                leadingIcon = Icons.AutoMirrored.Outlined.DirectionsWalk,
+                leadingIcon = Icons.AutoMirrored.Rounded.DirectionsWalk,
                 onClick = onWalkToCar,
                 style = PapFooterButtonStyle.Filled,
                 containerColor = accentColor,
@@ -704,7 +704,7 @@ private fun ParkingPeekRow(
             // recedes below the two real actions (navigate / release). [PEEK-ACTIONS-002]
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_action_move_location),
-                leadingIcon = Icons.Outlined.EditLocationAlt,
+                leadingIcon = Icons.Rounded.EditLocationAlt,
                 onClick = onMoveLocation,
                 style = PapFooterButtonStyle.Outlined,
                 containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = MOVE_OUTLINE_ALPHA),
@@ -718,7 +718,7 @@ private fun ParkingPeekRow(
             // primary. Bottom placement is the conventional slot for the "leave" action. [PEEK-ACTIONS-002]
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_release),
-                leadingIcon = Icons.AutoMirrored.Outlined.Logout,
+                leadingIcon = Icons.AutoMirrored.Rounded.Logout,
                 onClick = onRelease,
                 style = PapFooterButtonStyle.Filled,
                 containerColor = MaterialTheme.colorScheme.inverseSurface,
@@ -745,7 +745,7 @@ private fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
-            imageVector = Icons.Outlined.Schedule,
+            imageVector = Icons.Rounded.Schedule,
             contentDescription = null,
             tint = accentColor,
             modifier = Modifier.size(META_ICON_DP.dp),
@@ -824,7 +824,7 @@ private fun AddingParkingPeekRow(
         },
         content = {
             HelperRow(
-                icon = Icons.Outlined.Info,
+                icon = Icons.Rounded.Info,
                 iconTint = MaterialTheme.colorScheme.secondary,
                 primary = helperPrimary,
                 secondary = stringResource(Res.string.home_add_parking_helper_secondary),
@@ -834,7 +834,7 @@ private fun AddingParkingPeekRow(
         actions = {
             PapFooterButton(
                 label = ctaLabel,
-                leadingIcon = if (isEditing) Icons.Outlined.EditLocationAlt
+                leadingIcon = if (isEditing) Icons.Rounded.EditLocationAlt
                               else PaparcarIcons.VehicleCar,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
@@ -863,10 +863,10 @@ private fun ReportPeekRow(
         headerLabel = stringResource(Res.string.home_report_header_label),
         title = primaryText,
         onDismiss = onCancel,
-        leading = { PeekHeaderIconChip(icon = Icons.Outlined.Campaign) },
+        leading = { PeekHeaderIconChip(icon = Icons.Rounded.Campaign) },
         content = {
             HelperRow(
-                icon = Icons.Outlined.Info,
+                icon = Icons.Rounded.Info,
                 iconTint = MaterialTheme.colorScheme.secondary,
                 primary = stringResource(Res.string.home_report_helper_primary),
                 secondary = stringResource(Res.string.home_report_helper_secondary),
@@ -886,7 +886,7 @@ private fun ReportPeekRow(
         actions = {
             PapFooterButton(
                 label = stringResource(Res.string.home_report_confirm_here),
-                leadingIcon = Icons.Outlined.Campaign,
+                leadingIcon = Icons.Rounded.Campaign,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
                 enabled = !state.isCameraMoving && !state.isReporting,
@@ -1052,7 +1052,7 @@ private fun AddingZonePeekRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.Lock,
+                        imageVector = Icons.Rounded.Lock,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(18.dp),
@@ -1079,7 +1079,7 @@ private fun AddingZonePeekRow(
         actions = {
             PapFooterButton(
                 label = stringResource(Res.string.home_zone_save_action),
-                leadingIcon = Icons.Outlined.Bookmark,
+                leadingIcon = Icons.Rounded.Bookmark,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
                 enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone && !state.isCameraMoving,
@@ -1262,7 +1262,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(
-            imageVector = info.placeInfo?.category?.icon ?: Icons.Filled.LocationOn,
+            imageVector = info.placeInfo?.category?.icon ?: Icons.Rounded.LocationOn,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(30.dp),
