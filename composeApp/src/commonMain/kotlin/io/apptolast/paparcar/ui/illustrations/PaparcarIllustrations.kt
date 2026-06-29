@@ -1,8 +1,8 @@
 package io.apptolast.paparcar.ui.illustrations
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -16,8 +16,17 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import kotlin.math.min
+
+/**
+ * Dark detection from the **app theme** (not the system). The app's theme is not driven by
+ * `isSystemInDarkTheme()`, so the illustrations must read the rendered surface luminance —
+ * same convention as `SpotStateColors` — or they paint the light variant over a dark UI.
+ */
+@Composable
+private fun isAppDark(): Boolean = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
 /**
  * Nivel 3 — ilustraciones de marca dibujadas en Compose Canvas (no VectorDrawable).
@@ -33,12 +42,13 @@ private const val VIEW_W = 140f
 private const val VIEW_H = 120f
 private const val SHADOW_LIGHT_ALPHA = 0.06f
 private const val SHADOW_DARK_ALPHA = 0.24f
+private const val WHEEL_RIM = 1.4f
 
 /** "Automatiza tu aparcamiento" — escudo-check con destellos. Onboarding. */
 @Composable
 fun AutomationIllustration(
     modifier: Modifier = Modifier,
-    dark: Boolean = isSystemInDarkTheme(),
+    dark: Boolean = isAppDark(),
 ) {
     Canvas(modifier.size(140.dp, 120.dp)) {
         viewBox {
@@ -67,7 +77,7 @@ fun AutomationIllustration(
 @Composable
 fun LocationAlertIllustration(
     modifier: Modifier = Modifier,
-    dark: Boolean = isSystemInDarkTheme(),
+    dark: Boolean = isAppDark(),
 ) {
     Canvas(modifier.size(140.dp, 120.dp)) {
         viewBox {
@@ -109,7 +119,7 @@ fun LocationAlertIllustration(
 @Composable
 fun EmptySpotsIllustration(
     modifier: Modifier = Modifier,
-    dark: Boolean = isSystemInDarkTheme(),
+    dark: Boolean = isAppDark(),
 ) {
     Canvas(modifier.size(140.dp, 120.dp)) {
         viewBox {
@@ -172,8 +182,12 @@ private fun DrawScope.miniCar(translateX: Float, translateY: Float, scale: Float
         scale(scale, scale, Offset.Zero)
     }) {
         drawOval(Color.Black.copy(alpha = if (dark) 0.25f else 0.12f), Offset(12f, 59f), Size(32f, 6f))
+        // Tyres with a white rim so they read on dark backgrounds (body is drawn on top,
+        // so only the lower arc of the rim shows — like the map marker wheels).
         drawCircle(wheel, 6f, Offset(9f, 49f))
         drawCircle(wheel, 6f, Offset(47f, 49f))
+        drawCircle(Color.White, 6f, Offset(9f, 49f), style = Stroke(WHEEL_RIM))
+        drawCircle(Color.White, 6f, Offset(47f, 49f), style = Stroke(WHEEL_RIM))
         val bodyPath = Path().apply {
             moveTo(5f, 41f)
             cubicTo(5f, 35f, 9f, 30f, 14f, 30f)
