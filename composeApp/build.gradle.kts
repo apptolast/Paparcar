@@ -320,11 +320,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-//            if (hasReleaseSigning) {
-//                signingConfig = signingConfigs.getByName("release")
-//            } else {
-//                logger.warn("⚠️  RELEASE signing keys not found — build will be UNSIGNED.")
-//            }
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                logger.warn("⚠️  RELEASE signing keys not found — build will be UNSIGNED.")
+            }
             firebaseAppDistribution {
                 artifactType = "APK"
                 releaseNotesFile = "$rootDir/distribution/release-notes.txt"
