@@ -14,7 +14,12 @@ import androidx.room.RoomDatabaseConstructor
         ZoneEntity::class,
         GeocoderCacheEntity::class,
     ],
-    version = 7,
+    // v8: parking_sessions gains addressCountryCode so the published Spot keeps its
+    // country code on the Room round-trip (ProcessConfirmedDepartureUseCase reloads the
+    // session from Room before publishing). No explicit MIGRATION_7_8 is registered;
+    // the configured fallbackToDestructiveMigration recreates the table on upgrade and
+    // the active session is restored from Firestore on next bootstrap.
+    version = 8,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

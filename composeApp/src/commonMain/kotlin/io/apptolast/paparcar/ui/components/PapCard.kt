@@ -44,30 +44,3 @@ fun PapCard(
         }
     }
 }
-
-/**
- * Clickable card variant. Identical to [PapCard] but interactive (ripple on tap).
- */
-@Composable
-fun PapClickableCard(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    tonalElevation: Dp = CardElevation,
-    shadowElevation: Dp = CardShadowElevation,
-    padding: Dp = PaparcarSpacing.lg,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        color = containerColor,
-        tonalElevation = tonalElevation,
-        shadowElevation = shadowElevation,
-    ) {
-        Column(modifier = Modifier.padding(padding)) {
-            content()
-        }
-    }
-}

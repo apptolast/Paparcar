@@ -22,7 +22,7 @@ iosMain/     → (futuro) CLLocation, CMMotion, CoreBluetooth, BGTask wrappers
 
 ## Arquitectura
 - Domain layer es Kotlin puro — sin imports de Android/iOS
-- Todo UseCase retorna `Flow<T>` o `AppResult<T>`
+- Todo UseCase retorna `Flow<T>` (observables) o `Result<T>` (stdlib, operaciones one-shot); los evaluadores puros y síncronos pueden retornar un value object de dominio
 - ViewModels usan MVI: sealed class State, Intent, Effect
 - Repositorios exponen interfaces en domain/, implementación en data/
 - Persistencia dual: Room (offline-first local) + Firestore (sync real-time)
@@ -105,12 +105,13 @@ if (score >= 0.75) { ... }
 ```
 
 ### Error handling
+- El estándar es `kotlin.Result<T>` (stdlib) — NO hay wrapper `AppResult` propio.
+- Operaciones one-shot (UseCase/repo) retornan `Result<T>` vía `runCatching`:
 ```kotlin
-sealed class AppResult<out T> {
-    data class Success<T>(val data: T) : AppResult<T>()
-    data class Error(val exception: Throwable) : AppResult<Nothing>()
-}
+suspend operator fun invoke(...): Result<Unit> = runCatching { /* ... */ }
 ```
+- Los `Flow` aíslan errores con `.catch { e -> ... }` para no matar el stream (la UI sigue sirviendo la cache).
+- Los errores de negocio que llegan a la UI se modelan con `PaparcarError` (sealed: `Location`, `Network`, `Database`, `Detection`, `Auth`, `Parking`, `Vehicle`) y se emiten vía `Effect.ShowError(PaparcarError)` → `when` en la pantalla → `SnackbarHost`.
 
 ### Testing
 - Toda UseCase nueva debe tener test unitario

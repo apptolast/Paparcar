@@ -293,10 +293,6 @@
     <string name="bt_config_device_dual">Dual</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
-    <!-- DetectionStatusBanner -->
-    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
-    <string name="detection_banner_ar_active">Détection automatique active</string>
-    <string name="detection_banner_pair_bt">Associer Bluetooth</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expiré</string>
@@ -311,8 +307,6 @@
     <string name="settings_section_map">Carte</string>
     <string name="settings_distance_unit">Unités impériales</string>
     <string name="settings_distance_unit_desc">Afficher les distances en miles et pieds</string>
-    <string name="settings_map_type">Type de carte</string>
-    <string name="settings_map_type_desc">Vue par défaut à l\'ouverture de la carte</string>
     <string name="settings_map_type_satellite">Satellite</string>
     <string name="settings_map_type_terrain">Relief</string>
     <string name="settings_map_type_hybrid">Hybride</string>

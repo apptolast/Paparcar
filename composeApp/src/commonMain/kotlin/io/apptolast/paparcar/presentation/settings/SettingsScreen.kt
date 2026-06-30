@@ -9,8 +9,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
@@ -93,7 +91,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
@@ -124,11 +121,6 @@ import paparcar.composeapp.generated.resources.settings_language
 import paparcar.composeapp.generated.resources.settings_language_auto
 import paparcar.composeapp.generated.resources.settings_language_desc
 import paparcar.composeapp.generated.resources.settings_licenses
-import paparcar.composeapp.generated.resources.settings_map_type
-import paparcar.composeapp.generated.resources.settings_map_type_desc
-import paparcar.composeapp.generated.resources.settings_map_type_hybrid
-import paparcar.composeapp.generated.resources.settings_map_type_satellite
-import paparcar.composeapp.generated.resources.settings_map_type_terrain
 import paparcar.composeapp.generated.resources.settings_notif_parking
 import paparcar.composeapp.generated.resources.settings_notif_parking_desc
 import paparcar.composeapp.generated.resources.settings_notif_spot
@@ -696,152 +688,6 @@ private fun ThemePreview(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Map type picker — thumbnails
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun MapTypePickerCard(selected: MapType, onSelect: (MapType) -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                stringResource(Res.string.settings_map_type),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = cs.onSurface,
-            )
-            Text(
-                stringResource(Res.string.settings_map_type_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-            )
-            Spacer(Modifier.size(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MapTypeThumb(
-                    selected = selected == MapType.TERRAIN,
-                    label = stringResource(Res.string.settings_map_type_terrain),
-                    onClick = { onSelect(MapType.TERRAIN) },
-                    gradient = Brush.linearGradient(listOf(MAP_TERRAIN_A, MAP_TERRAIN_B)),
-                    stripeColor = MAP_TERRAIN_STRIPE,
-                    modifier = Modifier.weight(1f),
-                )
-                MapTypeThumb(
-                    selected = selected == MapType.SATELLITE,
-                    label = stringResource(Res.string.settings_map_type_satellite),
-                    onClick = { onSelect(MapType.SATELLITE) },
-                    gradient = Brush.linearGradient(listOf(MAP_SAT_A, MAP_SAT_B, MAP_SAT_C)),
-                    stripeColor = null,
-                    modifier = Modifier.weight(1f),
-                )
-                MapTypeThumb(
-                    selected = selected == MapType.HYBRID,
-                    label = stringResource(Res.string.settings_map_type_hybrid),
-                    onClick = { onSelect(MapType.HYBRID) },
-                    gradient = Brush.linearGradient(listOf(MAP_SAT_A, MAP_SAT_B, MAP_SAT_C)),
-                    stripeColor = Color.White,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MapTypeThumb(
-    selected: Boolean,
-    label: String,
-    onClick: () -> Unit,
-    gradient: Brush,
-    stripeColor: Color?,
-    modifier: Modifier = Modifier,
-) {
-    val cs = MaterialTheme.colorScheme
-    val borderColor by animateColorAsState(
-        targetValue = if (selected) cs.primary else cs.outline.copy(alpha = CARD_BORDER_ALPHA),
-        animationSpec = PapMotion.fast(),
-        label = "map_thumb_border_color",
-    )
-    val borderWidth by animateDpAsState(
-        targetValue = if (selected) PapBorders.strong else PapBorders.thin,
-        animationSpec = PapMotion.fast(),
-        label = "map_thumb_border_width",
-    )
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Surface(
-            onClick = onClick,
-            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-            shape = RoundedCornerShape(12.dp),
-            color = Color.Transparent,
-            border = BorderStroke(borderWidth, borderColor),
-        ) {
-            Box(modifier = Modifier.fillMaxSize().background(gradient)) {
-                if (stripeColor != null) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxWidth(0.7f)
-                            .height(2.dp)
-                            .background(stripeColor.copy(alpha = STRIPE_ALPHA)),
-                    )
-                }
-                // Check badge pops in/out with a scale+fade when selection changes.
-                MapTypeSelectedBadge(
-                    selected = selected,
-                    modifier = Modifier.align(Alignment.TopEnd),
-                )
-            }
-        }
-        Spacer(Modifier.size(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = if (selected) cs.primary else cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-        )
-    }
-}
-
-/**
- * Selected-state check badge for [MapTypeThumb]. Extracted to its own composable so
- * [AnimatedVisibility] resolves to the plain (non-scoped) overload — calling it inside
- * the thumbnail [Box] would otherwise bind to the outer Column's `ColumnScope` receiver.
- */
-@Composable
-private fun MapTypeSelectedBadge(selected: Boolean, modifier: Modifier = Modifier) {
-    val cs = MaterialTheme.colorScheme
-    AnimatedVisibility(
-        visible = selected,
-        modifier = modifier,
-        enter = scaleIn(PapMotion.medium()) + fadeIn(PapMotion.medium()),
-        exit = scaleOut(PapMotion.medium()) + fadeOut(PapMotion.medium()),
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(4.dp)
-                .size(18.dp)
-                .clip(CircleShape)
-                .background(cs.primary),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Rounded.Check,
-                contentDescription = null,
-                tint = cs.onPrimary,
-                modifier = Modifier.size(12.dp),
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Notifications group card — master + sub
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1189,7 +1035,6 @@ private const val DIVIDER_ALPHA = 0.15f
 private const val DANGER_BG_ALPHA = 0.15f
 private const val DANGER_BORDER_ALPHA = 0.7f
 private const val DANGER_SUBTITLE_ALPHA = 0.6f
-private const val STRIPE_ALPHA = 0.7f
 
 // Mirror the *real* theme surfaces so the swatches (and the System diagonal)
 // preview exactly what the app renders — not a stand-in greenish palette.
@@ -1198,9 +1043,3 @@ private val THEME_LIGHT_SURFACE = PapCardLight // light card surface (#FFFFFF)
 private val THEME_DARK_BG = PapInk             // dark app base (#0D1117)
 private val THEME_DARK_SURFACE = PapInkHigh    // dark card surface (#1A2232)
 
-private val MAP_SAT_A = Color(0xFF2D3B2D)
-private val MAP_SAT_B = Color(0xFF4A5942)
-private val MAP_SAT_C = Color(0xFF6B7B5C)
-private val MAP_TERRAIN_A = Color(0xFFD7C3A0)
-private val MAP_TERRAIN_B = Color(0xFFA89478)
-private val MAP_TERRAIN_STRIPE = Color(0xFF8B7960)

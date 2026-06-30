@@ -36,8 +36,8 @@ Aunque se inyecta por placeholder, acaba en el APK. Hubiese encapsulado el rende
 ### 5. Migraciones Room desde el día uno
 Empezamos sin `Migration` definidos y ya vamos por v3. Toda subida de versión es una potencial bomba. Hoy habría incorporado `MigrationTestHelper` desde la v1→v2.
 
-### 6. Decidir antes el patrón de retorno: `Result<T>` vs `AppResult<T>` vs `Flow<T>`
-Hoy conviven los tres. `Result` (stdlib) en algunos UseCases, `AppResult` (interno) declarado pero usado parcialmente, `Flow` para observables. Si volviera a empezar, **un solo wrapper** (`AppResult` sealed) + `Flow<AppResult<T>>` para todo lo demás. Consistencia > brevedad.
+### 6. Decidir antes el patrón de retorno: `Result<T>` vs `Flow<T>`
+**Resuelto [ARCH-CLEANUP-001].** El estándar es `kotlin.Result<T>` (one-shot) + `Flow<T>` (observables) + value objects en evaluadores puros. El `AppResult` sealed que figuraba en los docs nunca llegó a existir en el código (cero referencias); se eliminó de la documentación en lugar de migrar ~30 UseCases a un wrapper propio. `PaparcarError` (sealed) cubre los errores de negocio de cara a la UI.
 
 ### 7. iOS no como "target futuro" sino como ciudadano de primera
 Hoy iOS tiene 8 implementaciones reales pero el wire AR → coordinator está incompleto. Esto pasó porque iOS fue siempre "lo haré después". Resultado: el después llegó y hay deuda.

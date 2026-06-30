@@ -15,8 +15,8 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 /**
  * Semantic state of a vehicle, driving the [VehicleBadge] accent. [DET-READY-001k]
  *
- * Replaces the old per-vehicle hue palette ([io.apptolast.paparcar.ui.theme.VehicleAccentPalette]):
- * the badge now reads the same in every surface (chip, peek, map marker, My Vehicles) because the
+ * Replaces the old per-vehicle hue palette: the badge now reads the same in every
+ * surface (chip, peek, map marker, My Vehicles) because the
  * colour is **status**, not identity. Vehicle identity comes from the carbody silhouette + name/plate.
  */
 enum class VehicleBadgeTone { Parked, Bluetooth, Idle, Inactive }

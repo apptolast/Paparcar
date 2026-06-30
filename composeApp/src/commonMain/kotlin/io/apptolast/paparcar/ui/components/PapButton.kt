@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,27 +37,6 @@ fun PapPrimaryButton(
     enabled: Boolean = true,
 ) {
     Button(
-        onClick = onClick,
-        modifier = modifier,
-        enabled = enabled && !isLoading,
-        contentPadding = DefaultContentPadding,
-    ) {
-        ButtonContent(label = label, isLoading = isLoading)
-    }
-}
-
-/**
- * Secondary outlined button. Use for secondary actions alongside a primary CTA.
- */
-@Composable
-fun PapSecondaryButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    isLoading: Boolean = false,
-    enabled: Boolean = true,
-) {
-    OutlinedButton(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled && !isLoading,

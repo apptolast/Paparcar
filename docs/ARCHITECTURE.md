@@ -264,16 +264,11 @@ Colecciones principales: `userParkings`, `spots`, `vehicles`, `zones`, `userProf
 
 ## Errores y resultados
 
-```kotlin
-sealed class AppResult<out T> {
-    data class Success<T>(val data: T) : AppResult<T>()
-    data class Error(val exception: Throwable) : AppResult<Nothing>()
-}
-```
+Operaciones one-shot (UseCases/repos) retornan `kotlin.Result<T>` (stdlib) vía `runCatching`. Los observables son `Flow<T>` y aíslan errores con `.catch { e -> … }` para no matar el flujo (la UI sigue sirviendo la cache). Los evaluadores puros y síncronos retornan un value object de dominio.
 
-UseCases retornan `Result<T>` (stdlib) o `AppResult<T>` (interno). Flows usan `.catch { e → … }` para aislar errores de red sin matar el flujo.
+> No existe un wrapper `AppResult` propio: el estándar es `kotlin.Result<T>`.
 
-`PaparcarError` (sealed) describe errores de negocio (Auth, Permission, Location, Network, Storage, Detection).
+Los errores de negocio que se muestran al usuario se modelan con `PaparcarError` (sealed): `Location`, `Network`, `Database`, `Detection`, `Auth`, `Parking`, `Vehicle`. Se emiten vía `Effect.ShowError(PaparcarError)`, se mapean con un `when` en la pantalla y se muestran en un `SnackbarHost`.
 
 ---
 

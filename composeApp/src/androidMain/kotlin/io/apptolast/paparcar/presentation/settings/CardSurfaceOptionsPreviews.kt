@@ -14,7 +14,6 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 //  Elementos que usan surfaceContainerHigh en esta pantalla:
 //    · ProfileCardV2 (tarjeta de perfil + stats)
 //    · ThemePickerCard
-//    · MapTypePickerCard
 //    · NotificationsGroupCard
 //    · SettingsSwitchItem / SettingsInfoItem / SettingsNavItem / SettingsDropdownItem
 //

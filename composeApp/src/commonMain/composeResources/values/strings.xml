@@ -392,10 +392,6 @@
     <string name="vehicle_stats_sessions">sessions</string>
     <string name="vehicle_stats_last_session">last</string>
     <string name="vehicle_stats_reliability">reliability</string>
-    <!-- DetectionStatusBanner -->
-    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
-    <string name="detection_banner_ar_active">Auto-detection active</string>
-    <string name="detection_banner_pair_bt">Pair Bluetooth</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en route</string>
     <string name="spot_indicator_ttl_expired">Expired</string>
@@ -414,8 +410,6 @@
     <string name="settings_section_map">Map</string>
     <string name="settings_distance_unit">Imperial units</string>
     <string name="settings_distance_unit_desc">Show distances in miles and feet</string>
-    <string name="settings_map_type">Map type</string>
-    <string name="settings_map_type_desc">Default view when opening the map</string>
     <string name="settings_map_type_satellite">Satellite</string>
     <string name="settings_map_type_terrain">Terrain</string>
     <string name="settings_map_type_hybrid">Hybrid</string>

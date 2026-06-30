@@ -376,10 +376,6 @@
     <string name="vehicle_stats_sessions">sesiones</string>
     <string name="vehicle_stats_last_session">última</string>
     <string name="vehicle_stats_reliability">fiabilidad</string>
-    <!-- DetectionStatusBanner -->
-    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
-    <string name="detection_banner_ar_active">Detección automática activa</string>
-    <string name="detection_banner_pair_bt">Vincular Bluetooth</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d en camino</string>
     <string name="spot_indicator_ttl_expired">Expirado</string>
@@ -398,8 +394,6 @@
     <string name="settings_section_map">Mapa</string>
     <string name="settings_distance_unit">Unidades imperiales</string>
     <string name="settings_distance_unit_desc">Mostrar distancias en millas y pies</string>
-    <string name="settings_map_type">Tipo de mapa</string>
-    <string name="settings_map_type_desc">Vista predeterminada al abrir el mapa</string>
     <string name="settings_map_type_satellite">Satélite</string>
     <string name="settings_map_type_terrain">Terreno</string>
     <string name="settings_map_type_hybrid">Híbrido</string>

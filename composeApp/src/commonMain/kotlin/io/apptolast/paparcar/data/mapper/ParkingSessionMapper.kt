@@ -44,6 +44,7 @@ private fun UserParkingEntity.addressOrNull(): AddressInfo? =
             city = addressCity,
             region = addressRegion,
             country = addressCountry,
+            countryCode = addressCountryCode,
         )
     } else null
 
@@ -70,6 +71,7 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     addressCity = address?.city,
     addressRegion = address?.region,
     addressCountry = address?.country,
+    addressCountryCode = address?.countryCode,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category?.name,
     detectionReliability = detectionReliability,
@@ -127,6 +129,7 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     addressCity = address?.city,
     addressRegion = address?.region,
     addressCountry = address?.country,
+    addressCountryCode = address?.countryCode,
     placeInfoName = placeInfo?.name,
     placeInfoCategory = placeInfo?.category,
     detectionReliability = detectionReliability,
@@ -141,6 +144,7 @@ fun AddressInfo.toAddressDto() = AddressDto(
     city = city,
     region = region,
     country = country,
+    countryCode = countryCode,
 )
 
 fun PlaceInfo.toPlaceInfoDto() = PlaceInfoDto(

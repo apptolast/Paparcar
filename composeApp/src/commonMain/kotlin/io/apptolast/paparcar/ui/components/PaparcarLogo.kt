@@ -12,7 +12,6 @@ import org.jetbrains.compose.resources.painterResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.paparcar_iconmark_forest
 import paparcar.composeapp.generated.resources.paparcar_iconmark_green
-import paparcar.composeapp.generated.resources.paparcar_iconmark_white
 import paparcar.composeapp.generated.resources.paparcar_logo
 import paparcar.composeapp.generated.resources.paparcar_logo_dark
 
@@ -58,22 +57,6 @@ fun PaparcarIconmark(
                    else Res.drawable.paparcar_iconmark_forest
     Image(
         painter = painterResource(resource),
-        contentDescription = "Paparcar",
-        modifier = modifier.size(size),
-    )
-}
-
-/**
- * White iconmark — tintable variant. Pair with a `colorFilter` to apply any
- * design-system colour (e.g. error red, manual blue, on-primary).
- */
-@Composable
-fun PaparcarIconmarkWhite(
-    modifier: Modifier = Modifier,
-    size: Dp = 48.dp,
-) {
-    Image(
-        painter = painterResource(Res.drawable.paparcar_iconmark_white),
         contentDescription = "Paparcar",
         modifier = modifier.size(size),
     )

@@ -15,15 +15,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.ui.theme.PapAmber
-import io.apptolast.paparcar.ui.theme.PapAmberMuted
-import io.apptolast.paparcar.ui.theme.PapBlue
-import io.apptolast.paparcar.ui.theme.PapBlueMuted
-import io.apptolast.paparcar.ui.theme.PapGreen
-import io.apptolast.paparcar.ui.theme.PapGreenMuted
-import io.apptolast.paparcar.ui.theme.PapOnDark
-import io.apptolast.paparcar.ui.theme.PapRed
-import io.apptolast.paparcar.ui.theme.PapRedMuted
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 
 private val BadgeIconSize       = 12.dp
@@ -71,30 +62,6 @@ fun PapBadge(
 }
 
 // ── Pre-built semantic variants ───────────────────────────────────────────────
-
-/** Spot reliability HIGH — neon green on dark green muted. */
-@Composable
-fun PapHighReliabilityBadge(label: String, modifier: Modifier = Modifier, icon: ImageVector? = null) {
-    PapBadge(label = label, containerColor = PapGreenMuted, contentColor = PapGreen, modifier = modifier, icon = icon)
-}
-
-/** Spot reliability MEDIUM — amber on amber muted. */
-@Composable
-fun PapMediumReliabilityBadge(label: String, modifier: Modifier = Modifier, icon: ImageVector? = null) {
-    PapBadge(label = label, containerColor = PapAmberMuted, contentColor = PapAmber, modifier = modifier, icon = icon)
-}
-
-/** Spot reliability LOW / urgency — red on red muted. */
-@Composable
-fun PapLowReliabilityBadge(label: String, modifier: Modifier = Modifier, icon: ImageVector? = null) {
-    PapBadge(label = label, containerColor = PapRedMuted, contentColor = PapRed, modifier = modifier, icon = icon)
-}
-
-/** Manual report badge — blue on blue muted. */
-@Composable
-fun PapManualReportBadge(label: String, modifier: Modifier = Modifier, icon: ImageVector? = null) {
-    PapBadge(label = label, containerColor = PapBlueMuted, contentColor = PapBlue, modifier = modifier, icon = icon)
-}
 
 /** Generic "new" / positive badge — uses primary surface variant. */
 @Composable

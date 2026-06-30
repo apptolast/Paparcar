@@ -6,7 +6,6 @@ import androidx.compose.ui.graphics.Color
 
 // Primary accent
 val PapGreen         = Color(0xFF25F48C)   // neon green — brand primary (dark theme)
-val PapGreenDark     = Color(0xFF1AC070)   // pressed / hover variant
 
 // ── Ink ramp — near-black surfaces (dark theme primary surfaces) ─────────────
 // Neutral-cool dark palette; green brand DNA lives in accent tokens, not surfaces.
@@ -18,11 +17,7 @@ val PapInkHighest    = Color(0xFF222C3E)   // surfaceContainerHighest — modals
 
 // Forest greens — demoted from surface to interactive accents (containers, outlines)
 val PapForest        = Color(0xFF0D1C14)   // legacy — kept for light-theme inverseSurface
-val PapForestMid     = Color(0xFF0F2218)   // legacy — kept for reference, no longer a surface
-val PapForestDark    = Color(0xFF0D3D2E)   // active-session hero card background
-val PapForestMedium  = Color(0xFF1A5C40)   // icon box inside hero card
 val PapGreenMuted    = Color(0xFF133D28)   // primaryContainer — dark green accent
-val PapGreenElement  = Color(0xFF226D49)   // outline — interactive borders
 
 // On-dark text
 val PapNeutralOutline      = Color(0xFF3B4A5E)   // neutral-cool outline for dark surfaces
@@ -30,7 +25,6 @@ val PapNeutralOutlineLight = Color(0xFF7A8FA0)   // neutral-cool outline for lig
 
 val PapOnDark        = Color(0xFFEBF2EF)   // primary text on dark surfaces
 val PapOnDarkMuted   = Color(0xFF8EA0B4)   // secondary / disabled text — neutral cool
-val PapOnGreenMuted  = Color(0xFF9CBCAC)   // text on surface variant
 
 // Amber (secondary / warning)
 val PapAmber         = Color(0xFFF4A825)
@@ -64,14 +58,11 @@ val PapDriveBlue     = Color(0xFF2F6BFF)
 val PapAzureLowest   = Color(0xFFFFFFFF)   // surfaceContainerLowest
 val PapAzureLow      = Color(0xFFF4F6FC)   // surfaceContainerLow
 val PapAzure         = Color(0xFFECF0F9)   // surfaceContainer — sheet, nav
-val PapAzureHigh     = Color(0xFFE0E6F4)   // surfaceContainerHigh — cards, chips
-val PapAzureHighest  = Color(0xFFD4DCF0)   // surfaceContainerHighest — modals
 
 // Teal-shifted emerald ramp — same hue DNA as PapGreen (#25F48C ≈ H150°).
 // #009F5E → H152°, L31% — electric/vibrant. onPrimary = Color.White in light theme
 // so filled surfaces (buttons, chips, icon circles) use white content on the green fill.
 val PapGreenLight            = Color(0xFF009F5E)
-val PapOnGreenLight          = Color(0xFF001E12)
 val PapGreenContainerLight   = Color(0xFFA8F5D0)
 val PapOnGreenContainerLight = Color(0xFF002819)
 val PapSurfaceLight          = Color(0xFFF0F4FB)  // page background — blue-tinted (H217°)
@@ -79,7 +70,6 @@ val PapCardLight             = Color(0xFFFFFFFF)  // card / sheet surface — wh
 val PapOnSurfaceLight        = Color(0xFF0E1A2E)  // primary text — deep navy
 val PapVariantLight          = Color(0xFFD8E0EE)  // surfaceVariant — blue-grey
 val PapOnVariantLight        = Color(0xFF374460)  // onSurfaceVariant — blue-dark
-val PapOutlineLight          = Color(0xFF226D49)
 val PapOutlineVariantLight   = Color(0xFFBDC8DF)  // subtle dividers — blue-grey
 val PapInverseSurfaceLight   = Color(0xFF0D1B33)  // dark navy for Snackbar/Toast
 val PapInverseOnSurfaceLight = Color(0xFFE8EDF8)  // text on inverse surface
@@ -89,6 +79,5 @@ val PapOnAmberContainerLight = Color(0xFF3D2A10)
 
 // Light semantic counterparts
 val PapRedLight       = Color(0xFFBA1A1A)
-val PapRedContainerLight = Color(0xFFFFDAD6)
 val PapBlueLight      = Color(0xFF0057CA)
 val PapBlueContainerLight = Color(0xFFD8E2FF)

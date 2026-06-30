@@ -274,13 +274,57 @@ class ParkingSessionMapperTest {
 
     @Test
     fun `AddressInfo toAddressDto maps all fields`() {
-        val info = AddressInfo(street = "s", city = "c", region = "r", country = "es")
+        val info = AddressInfo(street = "s", city = "c", region = "r", country = "es", countryCode = "ES")
         val dto = info.toAddressDto()
 
         assertEquals("s", dto.street)
         assertEquals("c", dto.city)
         assertEquals("r", dto.region)
         assertEquals("es", dto.country)
+        assertEquals("ES", dto.countryCode)
+    }
+
+    // ── countryCode round-trip (regression: published Spot lost its country code) ──
+
+    @Test
+    fun `parking toEntity preserves countryCode`() {
+        val parking = baseParking.copy(
+            address = AddressInfo(street = null, city = "Madrid", region = null, country = "Spain", countryCode = "ES"),
+        )
+        assertEquals("ES", parking.toEntity().addressCountryCode)
+    }
+
+    @Test
+    fun `entity toDomain preserves countryCode`() {
+        val entity = baseEntity.copy(addressCity = "Madrid", addressCountryCode = "ES")
+        assertEquals("ES", entity.toDomain().address?.countryCode)
+    }
+
+    @Test
+    fun `parking round-trips countryCode through entity`() {
+        val original = baseParking.copy(
+            address = AddressInfo(street = "Gran Vía", city = "Madrid", region = null, country = "Spain", countryCode = "ES"),
+        )
+        val restored = original.toEntity().toDomain()
+        assertEquals("ES", restored.address?.countryCode)
+    }
+
+    @Test
+    fun `parking round-trips countryCode through dto and entity`() {
+        // Mirrors the Firestore sync round-trip: domain → dto (write) → entity (read).
+        val original = baseParking.copy(
+            address = AddressInfo(street = null, city = "Barcelona", region = null, country = "Spain", countryCode = "ES"),
+        )
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals("ES", restored.address?.countryCode)
+    }
+
+    @Test
+    fun `toParkingHistoryDto preserves countryCode in address dto`() {
+        val parking = baseParking.copy(
+            address = AddressInfo(street = null, city = "Madrid", region = null, country = "Spain", countryCode = "ES"),
+        )
+        assertEquals("ES", parking.toParkingHistoryDto().address?.countryCode)
     }
 
     @Test

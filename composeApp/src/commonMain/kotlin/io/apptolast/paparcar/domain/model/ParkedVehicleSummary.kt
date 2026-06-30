@@ -6,7 +6,7 @@ package io.apptolast.paparcar.domain.model
  *
  * [stableRank] is a deterministic ordinal derived from the lexicographic sort
  * of all vehicleIds belonging to the user. Stable across restarts regardless
- * of insertion order — the UI maps it to an accent colour via VehicleAccentPalette.
+ * of insertion order — the UI maps it to an accent colour.
  */
 data class ParkedVehicleSummary(
     val sessionId: String,

@@ -293,10 +293,6 @@
     <string name="bt_config_device_dual">Dual</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
-    <!-- DetectionStatusBanner -->
-    <string name="detection_banner_bt_active">Bluetooth · %1$s</string>
-    <string name="detection_banner_ar_active">Detectare automată activă</string>
-    <string name="detection_banner_pair_bt">Asociază Bluetooth</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d în drum</string>
     <string name="spot_indicator_ttl_expired">Expirat</string>
@@ -311,8 +307,6 @@
     <string name="settings_section_map">Hartă</string>
     <string name="settings_distance_unit">Unități imperiale</string>
     <string name="settings_distance_unit_desc">Afișează distanțele în mile și picioare</string>
-    <string name="settings_map_type">Tip hartă</string>
-    <string name="settings_map_type_desc">Vedere implicită la deschiderea hărții</string>
     <string name="settings_map_type_satellite">Satelit</string>
     <string name="settings_map_type_terrain">Teren</string>
     <string name="settings_map_type_hybrid">Hibrid</string>
