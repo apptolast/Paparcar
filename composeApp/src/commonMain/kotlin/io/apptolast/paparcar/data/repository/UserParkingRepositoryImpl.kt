@@ -79,6 +79,11 @@ class UserParkingRepositoryImpl(
         runCatching {
             val remoteEntities = userProfileDataSource.getParkingHistory(userId)
                 .map { it.toEntity() }
+            // Telemetry: how many sessions (and crucially, how many ACTIVE) came back from Firestore.
+            // After a reinstall this is the single fact that tells "active session was synced and
+            // restored" apart from "it never reached Firestore" (offline window). [SESSION-RESTORE-001]
+            val activeCount = remoteEntities.count { it.isActive }
+            PaparcarLogger.i(TAG, "syncFromRemote restored ${remoteEntities.size} sessions ($activeCount active) for user=$userId")
             if (remoteEntities.isEmpty()) return@runCatching
             dao.upsertAll(remoteEntities)
             // [GEOF-001] Room now holds this user's active session(s); restore their GMS geofences

@@ -12,6 +12,7 @@ import androidx.work.WorkerParameters
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent
@@ -66,11 +67,15 @@ class GeofenceJanitorWorker(
         var failures = 0
         activeSessions.forEach { session ->
             val geofenceId = session.geofenceId ?: return@forEach
+            // Re-register with the SAME size/accuracy-aware radius the session was first created with
+            // (ConfirmParkingUseCase.geofenceRadiusFor), not the flat default — otherwise a restored
+            // geofence drifts to a different exit sensitivity than the original. [SESSION-RESTORE-001]
+            val size = session.sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
             val result = geofenceManager.createGeofence(
                 geofenceId = geofenceId,
                 latitude = session.latitude,
                 longitude = session.longitude,
-                radiusMeters = config.geofenceRadiusMeters,
+                radiusMeters = config.geofenceRadiusFor(size, session.accuracy),
             )
             if (result.isFailure) {
                 PaparcarLogger.w(TAG, "  ⚠ failed to re-register geofence=$geofenceId", result.exceptionOrNull())
