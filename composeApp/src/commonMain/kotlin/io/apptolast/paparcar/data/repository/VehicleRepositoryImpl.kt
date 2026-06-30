@@ -3,13 +3,13 @@ package io.apptolast.paparcar.data.repository
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.data.datasource.local.room.UserProfileDao
 import io.apptolast.paparcar.data.datasource.local.room.VehicleDao
-import io.apptolast.paparcar.data.datasource.local.room.VehicleEntity
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toDto
 import io.apptolast.paparcar.data.mapper.toEntity
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -96,7 +96,11 @@ class VehicleRepositoryImpl(
             PaparcarLogger.e(DIAG, "  ✗ no vehicles from Firestore — upsert skipped")
             return@runCatching
         }
-        val normalized = enforceAtMostOneActive(remoteEntities)
+        val normalized = VehicleActiveStatePolicy.normalizeSingleActive(
+            items = remoteEntities,
+            isActive = { it.isActive },
+            deactivate = { it.copy(isActive = false) },
+        )
         if (normalized.count { it.isActive } != remoteEntities.count { it.isActive }) {
             PaparcarLogger.w(DIAG, "  ⚠ multiple isActive=true in remote data — normalized to single active")
         }
@@ -137,10 +141,10 @@ class VehicleRepositoryImpl(
             val cached = profileDao.getProfile(uid)
             if (cached?.defaultVehicleId == id) {
                 val remaining = dao.getByUser(uid)
-                val newActive = remaining.firstOrNull()
-                profileDao.updateDefaultVehicleId(uid, newActive?.id)
-                userProfileDataSource.updateDefaultVehicleId(uid, newActive?.id)
-                if (newActive != null) dao.setActive(newActive.id)
+                val newActiveId = VehicleActiveStatePolicy.promotionTarget(remaining.map { it.id })
+                profileDao.updateDefaultVehicleId(uid, newActiveId)
+                userProfileDataSource.updateDefaultVehicleId(uid, newActiveId)
+                if (newActiveId != null) dao.setActive(newActiveId)
             }
         }
     }
@@ -181,18 +185,6 @@ class VehicleRepositoryImpl(
 
     override suspend fun hasVehicles(userId: String): Boolean =
         dao.countByUser(userId) > 0
-
-    private fun enforceAtMostOneActive(entities: List<VehicleEntity>): List<VehicleEntity> {
-        if (entities.count { it.isActive } <= 1) return entities
-        var kept = false
-        return entities.map { entity ->
-            when {
-                !entity.isActive -> entity
-                !kept -> entity.also { kept = true }
-                else -> entity.copy(isActive = false)
-            }
-        }
-    }
 
     private companion object {
         const val DIAG = "PARKDIAG/VehicleSync"
