@@ -354,10 +354,6 @@ private const val MARKER_CLUSTER_DIM = "cluster_dim"
 private const val LOCATION_ACTIVE_PREFIX = "loc_active_"
 private const val HEADING_BUCKET_DEG = 5
 private const val NO_HEADING_BUCKET = -1
-private val LOCATION_MARKER_OPTIONS = AndroidMarkerOptions(
-    anchor = GoogleMapsAnchor(0.5f, 0.5f),
-    zIndex = MARKER_Z_INDEX_SELECTED,
-)
 private fun headingBucket(bearingDegrees: Float?): Int =
     if (bearingDegrees == null) NO_HEADING_BUCKET
     else (((bearingDegrees / HEADING_BUCKET_DEG).roundToInt() * HEADING_BUCKET_DEG) % 360 + 360) % 360
@@ -711,21 +707,12 @@ fun PaparcarMapView(
                     ),
                 )
             }
-            // Driving puck — own car, top-down, rotated to heading; added last (top zIndex). The
-            // native location dot is suppressed while this is shown. While the camera follows the trip
-            // it's drawn as a centered overlay instead (no per-frame marker churn → no flicker). [FOLLOW-001]
-            if (!centerDrivingPuck) {
-                drivingPuck?.let { puck ->
-                    add(
-                        Marker(
-                            coordinates = Coordinates(puck.latitude, puck.longitude),
-                            title = null,
-                            contentId = locationActiveContentId(puck.carbodyType, headingBucket(puck.bearingDegrees), puck.color),
-                            androidMarkerOptions = LOCATION_MARKER_OPTIONS,
-                        ),
-                    )
-                }
-            }
+            // Driving puck — own car, top-down, rotated to heading. While the camera follows the trip
+            // it's drawn as a CENTERED OVERLAY (smooth). When follow is paused (the user panned away),
+            // we do NOT add a moving Marker: kmpmaps keys markers by hashCode(incl. coordinates), so a
+            // per-frame position change tears the marker down and recreates it → flicker. Instead the
+            // native location dot takes over (see isMyLocationEnabled below) — no flicker, real position,
+            // still pannable. [FOLLOW-001] [PUCK-FLICKER-001]
         }
     }
 
@@ -1023,8 +1010,10 @@ fun PaparcarMapView(
             modifier = Modifier.fillMaxSize(),
             cameraPosition = cameraPosition,
             properties = MapProperties(
-                // Native location dot off while the custom driving puck owns the user's position.
-                isMyLocationEnabled = drivingPuck == null,
+                // Native location dot off ONLY while the centered overlay puck owns the position (camera
+                // following). When idle or when follow is paused, the native dot shows the real position
+                // without the moving-marker flicker. [FOLLOW-001] [PUCK-FLICKER-001]
+                isMyLocationEnabled = drivingPuck == null || !centerDrivingPuck,
                 isTrafficEnabled = false,
                 mapTheme = if (resolvedDark) MapTheme.DARK else MapTheme.LIGHT,
                 mapType = config.mapType,
