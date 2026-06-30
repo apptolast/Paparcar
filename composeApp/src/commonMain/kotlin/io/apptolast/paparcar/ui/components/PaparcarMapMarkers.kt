@@ -274,8 +274,8 @@ fun LocationActiveMarker(
     }
 }
 
-private val LOC_ACTIVE_DIAM = 46.dp
-private val LOC_ACTIVE_CAR  = 30.dp
+private val LOC_ACTIVE_DIAM = 54.dp
+private val LOC_ACTIVE_CAR  = 38.dp
 private val LOC_HALO_BLUE   = Color(0xFF2F6BFF) // matches the design's location halo / en-route blue
 private const val LOC_HALO_ALPHA = 0.16f
 
