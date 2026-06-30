@@ -3,6 +3,7 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -46,6 +47,10 @@ class ProcessConfirmedDepartureUseCase(
 
         // Public spots are published to the community; private zones are not reported.
         if (session != null && lat != null && lon != null && session.privateZoneId == null) {
+            // Reuse the address/POI enriched on the session at park time instead of
+            // re-geocoding the same coordinates. Null when not yet enriched → the use
+            // case geocodes inline. [SPOT-PREFETCH-001]
+            val prefetched = session.address?.let { AddressAndPlace(it, session.placeInfo) }
             reportSpotReleased(
                 lat = lat,
                 lon = lon,
@@ -54,6 +59,7 @@ class ProcessConfirmedDepartureUseCase(
                 confidence = session.detectionReliability ?: 1f,
                 sizeCategory = session.sizeCategory,
                 carbodyType = session.carbodyType,
+                prefetched = prefetched,
             )
         }
 

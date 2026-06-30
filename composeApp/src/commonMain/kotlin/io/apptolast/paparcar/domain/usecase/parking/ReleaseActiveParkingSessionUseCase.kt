@@ -2,6 +2,7 @@
 
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -38,6 +39,10 @@ class ReleaseActiveParkingSessionUseCase(
             val confidence = currentSession?.detectionReliability ?: 1f
             val sizeCategory = currentSession?.sizeCategory
             val carbodyType = currentSession?.carbodyType
+            // The session was geocoded (enriched) at park time, so reuse its stored
+            // address/POI instead of re-hitting the network — same coordinates, same
+            // result. Null when not yet enriched → use case geocodes inline. [SPOT-PREFETCH-001]
+            val prefetched = currentSession?.address?.let { AddressAndPlace(it, currentSession.placeInfo) }
 
             // Schedule WorkManager job BEFORE clearing so the spot report is durably
             // enqueued even if the app is killed immediately after.
@@ -49,6 +54,7 @@ class ReleaseActiveParkingSessionUseCase(
                 confidence = confidence,
                 sizeCategory = sizeCategory,
                 carbodyType = carbodyType,
+                prefetched = prefetched,
             )
         }
 

@@ -570,6 +570,9 @@ class HomeViewModel(
                     confidence = 1f,
                     sizeCategory = resolvedSize,
                     carbodyType = resolvedCarbody,
+                    // Reuse the address/POI already geocoded for the settled pin centre
+                    // instead of re-hitting the network from the use case. [SPOT-PREFETCH-001]
+                    prefetched = current.cameraAddressAndPlace,
                 )
             }
                 .onSuccess {

@@ -1,6 +1,7 @@
 package io.apptolast.paparcar.domain.usecase.spot
 
 import com.apptolast.customlogin.domain.AuthRepository
+import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -22,6 +23,12 @@ import kotlin.time.Duration.Companion.milliseconds
  * Geocoding is bounded by [GEOCODE_TIMEOUT_MS] so [ReportSpotScheduler.schedule] is
  * always called regardless of network conditions — even if the geocoder or Overpass API
  * are unreachable.
+ *
+ * When the caller already has the address/POI for these coordinates (e.g. the manual
+ * report screen geocodes the pin centre as it settles), it passes them via [prefetched]
+ * and the inline geocode is skipped — same result, no redundant network round-trip.
+ * Callers without a prior lookup (auto departure worker, release-parking) pass null and
+ * the inline geocode runs as before. [SPOT-PREFETCH-001]
  */
 class ReportSpotReleasedUseCase(
     private val reportSpotScheduler: ReportSpotScheduler,
@@ -36,17 +43,23 @@ class ReportSpotReleasedUseCase(
         confidence: Float = 1f,
         sizeCategory: VehicleSize? = null,
         carbodyType: CarbodyType? = null,
+        prefetched: AddressAndPlace? = null,
     ) {
         val reporterName = authRepository.getCurrentSession()?.displayName
-        var address: AddressInfo? = null
-        var placeInfo: PlaceInfo? = null
-        withTimeoutOrNull(GEOCODE_TIMEOUT_MS.milliseconds) {
-            getAddressAndPlace(lat, lon)
-                .catch { /* best-effort: schedule with whatever info we have */ }
-                .collect { info ->
-                    address = info.address
-                    placeInfo = info.placeInfo ?: placeInfo
-                }
+        var address: AddressInfo? = prefetched?.address
+        var placeInfo: PlaceInfo? = prefetched?.placeInfo
+        // Only hit the network when the caller didn't already geocode these coords.
+        // AddressAndPlace.address is non-null, so a non-null [prefetched] always
+        // gives us an address → skip the redundant, blocking inline lookup. [SPOT-PREFETCH-001]
+        if (prefetched == null) {
+            withTimeoutOrNull(GEOCODE_TIMEOUT_MS.milliseconds) {
+                getAddressAndPlace(lat, lon)
+                    .catch { /* best-effort: schedule with whatever info we have */ }
+                    .collect { info ->
+                        address = info.address
+                        placeInfo = info.placeInfo ?: placeInfo
+                    }
+            }
         }
         reportSpotScheduler.enqueueReportSpot(
             spotId = spotId,
