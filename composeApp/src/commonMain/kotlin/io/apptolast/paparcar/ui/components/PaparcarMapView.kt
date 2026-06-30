@@ -249,6 +249,43 @@ private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
 private const val MARKER_DEPARTURE       = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
 // Trip breadcrumb polyline width (screen px in Google Maps). [TRIP-TRAIL-001]
 private const val TRIP_TRAIL_WIDTH = 14f
+// Interpolated points inserted per original span when smoothing the trail. Higher = rounder curves,
+// heavier polyline. [ROUTE-SMOOTH-002]
+private const val TRAIL_SMOOTH_SEGMENTS = 8
+
+/**
+ * Catmull-Rom spline through the raw breadcrumb points: the curve passes through every original GPS
+ * point and inserts [TRAIL_SMOOTH_SEGMENTS] interpolated points per span, so sparse fixes around a
+ * roundabout render as a curve instead of a chord polygon. Endpoints duplicate the terminal point as
+ * the virtual control point. Returns the input unchanged when there are too few points to interpolate.
+ * [ROUTE-SMOOTH-002]
+ */
+private fun smoothTrail(pts: List<Coordinates>): List<Coordinates> {
+    if (pts.size < 3) return pts
+    val out = ArrayList<Coordinates>((pts.size - 1) * TRAIL_SMOOTH_SEGMENTS + 1)
+    out.add(pts.first())
+    for (i in 0 until pts.size - 1) {
+        val p0 = pts[if (i == 0) 0 else i - 1]
+        val p1 = pts[i]
+        val p2 = pts[i + 1]
+        val p3 = pts[if (i + 2 > pts.lastIndex) pts.lastIndex else i + 2]
+        for (s in 1..TRAIL_SMOOTH_SEGMENTS) {
+            val t = s.toDouble() / TRAIL_SMOOTH_SEGMENTS
+            val t2 = t * t
+            val t3 = t2 * t
+            val lat = 0.5 * (2 * p1.latitude +
+                (-p0.latitude + p2.latitude) * t +
+                (2 * p0.latitude - 5 * p1.latitude + 4 * p2.latitude - p3.latitude) * t2 +
+                (-p0.latitude + 3 * p1.latitude - 3 * p2.latitude + p3.latitude) * t3)
+            val lon = 0.5 * (2 * p1.longitude +
+                (-p0.longitude + p2.longitude) * t +
+                (2 * p0.longitude - 5 * p1.longitude + 4 * p2.longitude - p3.longitude) * t2 +
+                (-p0.longitude + 3 * p1.longitude - 3 * p2.longitude + p3.longitude) * t3)
+            out.add(Coordinates(lat, lon))
+        }
+    }
+    return out
+}
 
 // Google Maps renders billboard markers by screen-Y when zIndex is equal,
 // so the selected marker must carry an explicit higher zIndex to always
@@ -975,7 +1012,9 @@ fun PaparcarMapView(
         if (coords.size < 2) {
             emptyList()
         } else {
-            listOf(Polyline(coordinates = coords, width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
+            // Smooth the coarse GPS breadcrumb into a flowing curve so tight turns (roundabouts) read as
+            // curves rather than chord polygons, Google-Maps style. [ROUTE-SMOOTH-002]
+            listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
         }
     }
 

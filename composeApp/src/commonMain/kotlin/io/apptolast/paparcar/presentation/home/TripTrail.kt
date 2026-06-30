@@ -9,8 +9,10 @@ import io.apptolast.paparcar.domain.util.haversineMeters
  * decimation + cap policy is isolated and unit-testable. [TRIP-TRAIL-001]
  */
 object TripTrail {
-    /** Skip points closer than this to the previous one — keeps the polyline light without visible gaps. */
-    const val MIN_POINT_DISTANCE_M = 8.0
+    /** Skip points closer than this to the previous one — keeps the polyline light without visible gaps.
+     *  Lowered from 8 m so slow-speed turns keep more curvature detail for the spline to round.
+     *  [ROUTE-SMOOTH-001] */
+    const val MIN_POINT_DISTANCE_M = 4.0
 
     /** Bounded sliding window: on long trips the oldest points drop off the tail, the line never grows unbounded. */
     const val MAX_POINTS = 500
