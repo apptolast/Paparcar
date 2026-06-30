@@ -61,7 +61,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -365,18 +364,15 @@ class HomeViewModel(
     }
 
     /** The cold-start nudge notification ("Marcar mi plaza" / tap) asks Home to drop the user straight
-     *  into manual add-parking mode, pre-centred on their GPS and tagged with the active vehicle —
-     *  mirrors the detection banner's "mark spot" action. [DET-TOGGLE-002] */
+     *  into manual add-parking mode, tagged with the active vehicle so the peek shows its real glyph +
+     *  name. We stay in Browse until the vehicles flow emits, then enter — it is backed by local Room
+     *  data already synced at splash, so on cold start this resolves near-instantly with no
+     *  generic-icon flash. The nudge only fires when a Coordinator vehicle exists, so it always
+     *  arrives. [DET-TOGGLE-002] */
     private fun subscribeStartAddParkingRequests() {
         startAddParkingEventBus.requests
             .onEach {
-                // Cold-start race: the nudge launches the app from a killed process, so the vehicles
-                // flow may not have emitted yet when the request arrives. Wait briefly for it to load
-                // so the peek shows the real vehicle glyph (not a generic car) and the session is
-                // attributed to the right car. [DET-TOGGLE-002]
-                val vehicles = withTimeoutOrNull(ADD_PARKING_VEHICLE_WAIT_MS) {
-                    state.map { it.vehicles }.first { it.isNotEmpty() }
-                } ?: state.value.vehicles
+                val vehicles = state.map { it.vehicles }.first { it.isNotEmpty() }
                 val markVehicleId = vehicles.firstOrNull { it.isActive }?.id
                     ?: vehicles.firstOrNull()?.id
                 handleIntent(
@@ -895,10 +891,6 @@ class HomeViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
         const val CAMERA_SETTLED_MS = 280L
-
-        // Max wait for the vehicles flow to load before honouring a cold-start "add parking"
-        // deep-link from the nudge notification, so the right vehicle is resolved. [DET-TOGGLE-002]
-        const val ADD_PARKING_VEHICLE_WAIT_MS = 3000L
 
         // Distance thresholds
         // Both at 300m so GPS drift alone never triggers a Firestore reconnect —
