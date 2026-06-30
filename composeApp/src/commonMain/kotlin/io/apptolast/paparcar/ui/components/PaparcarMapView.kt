@@ -474,6 +474,9 @@ fun PaparcarMapView(
     drivingPuck: DrivingPuck? = null,
     /** Breadcrumb of the current trip — drawn as a navigation-style polyline behind the puck. [TRIP-TRAIL-001] */
     tripTrail: List<GpsPoint> = emptyList(),
+    /** Trip trail snapped onto OSM streets; preferred over [tripTrail] when non-empty (follows the
+     *  road). Already includes the departure origin as its first point. [ROUTE-SNAP-001] */
+    matchedTrail: List<GpsPoint> = emptyList(),
     /** Faded "departure" point — where the car left from, shown while a trip runs. [TRIP-TRAIL-001] */
     departurePoint: GpsPoint? = null,
     /**
@@ -989,19 +992,27 @@ fun PaparcarMapView(
         }
     }
 
-    // Live trip breadcrumb as a native polyline (en-route blue), rendered below the markers. Starts at
-    // the departure point so the line visibly leaves the parking marker, then traces the puck. [TRIP-TRAIL-001]
-    val tripPolylines = remember(tripTrail, departurePoint) {
-        val coords = buildList {
-            departurePoint?.let { add(Coordinates(it.latitude, it.longitude)) }
-            tripTrail.forEach { add(Coordinates(it.latitude, it.longitude)) }
-        }
-        if (coords.size < 2) {
-            emptyList()
+    // Live trip breadcrumb as a native polyline (en-route blue), rendered below the markers. Prefer the
+    // OSM-matched trail (follows the road, includes the origin); otherwise start at the departure point
+    // and trace the raw puck path. [TRIP-TRAIL-001] [ROUTE-SNAP-001]
+    val tripPolylines = remember(tripTrail, departurePoint, matchedTrail) {
+        if (matchedTrail.size >= 2) {
+            // Matched points are dense and already on the road — connect them directly. Do NOT spline:
+            // Catmull-Rom overshoots into loops where consecutive snaps jump between lanes. [ROUTE-SNAP-001]
+            listOf(Polyline(
+                coordinates = matchedTrail.map { Coordinates(it.latitude, it.longitude) },
+                width = TRIP_TRAIL_WIDTH,
+                lineColor = PapDriveBlue,
+            ))
         } else {
-            // Smooth the coarse GPS breadcrumb into a flowing curve so tight turns (roundabouts) read as
-            // curves rather than chord polygons, Google-Maps style. [ROUTE-SMOOTH-002]
-            listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
+            // Raw fallback (no roads matched): sparse GPS, so smooth it into a flowing curve so tight
+            // turns read as curves rather than chord polygons. [ROUTE-SMOOTH-002]
+            val coords = buildList {
+                departurePoint?.let { add(Coordinates(it.latitude, it.longitude)) }
+                tripTrail.forEach { add(Coordinates(it.latitude, it.longitude)) }
+            }
+            if (coords.size < 2) emptyList()
+            else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
         }
     }
 

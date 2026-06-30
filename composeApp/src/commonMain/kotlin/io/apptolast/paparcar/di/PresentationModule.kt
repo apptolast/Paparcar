@@ -16,12 +16,14 @@ import org.koin.dsl.module
 val presentationModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AppViewModel)
-    // Explicit constructor (not viewModelOf): HomeViewModel now has 23 ctor params and
-    // viewModelOf's reflection helper only supports up to 22. [DET-TOGGLE-002]
+    // Explicit constructor (not viewModelOf): HomeViewModel has >22 ctor params and viewModelOf's
+    // reflection helper only supports up to 22. Last arg getOrNull(): the OSM road source is
+    // Android-only (iOS leaves it null → map-matching skipped). [DET-TOGGLE-002][ROUTE-SNAP-001]
     viewModel {
         HomeViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            getOrNull(),
         )
     }
     viewModelOf(::ParkingLocationViewModel)

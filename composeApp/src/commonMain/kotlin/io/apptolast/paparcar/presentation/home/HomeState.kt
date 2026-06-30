@@ -73,6 +73,13 @@ data class HomeState(
     val tripTrail: List<GpsPoint> = emptyList(),
 
     /**
+     * The trip trail snapped onto OSM streets (free map-matching via Overpass) — non-empty once roads
+     * are fetched and matched. When present the polyline uses this (it follows the road); empty falls
+     * back to the raw [tripTrail] + spline. Includes the departure origin as its first point. [ROUTE-SNAP-001]
+     */
+    val matchedTrail: List<GpsPoint> = emptyList(),
+
+    /**
      * Where the car departed from — the last parking location, shown faded on the map while a trip is
      * in progress (you've left it, it's no longer yours). Null outside a trip. [TRIP-TRAIL-001]
      */

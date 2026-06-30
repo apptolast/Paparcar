@@ -107,7 +107,8 @@ fun DevCatalogScreen(
                 if (on) {
                     runtime.setTrip(
                         io.apptolast.paparcar.domain.detection.TripContext(
-                            departurePoint = io.apptolast.paparcar.domain.model.GpsPoint(36.5928, -6.2319, 8.5f, 0L, 0f),
+                            // Origin at the driving-sim route start (El Puerto, Av. de Valencia). [ROUTE-SNAP-001]
+                            departurePoint = io.apptolast.paparcar.domain.model.GpsPoint(36.6068, -6.2270, 8.5f, 0L, 0f),
                             departingVehicleId = "mock_vehicle_002",
                         ),
                     )

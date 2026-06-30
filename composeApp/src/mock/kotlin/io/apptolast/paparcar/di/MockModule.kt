@@ -18,6 +18,8 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.places.PlacesDataSource
+import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
+import io.apptolast.paparcar.location.OverpassRoadNetworkDataSourceImpl
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.*
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
@@ -68,6 +70,8 @@ val mockModule = module {
     single<AppNotificationManager> { FakeAppNotificationManager() }
     single<GeocoderDataSource> { FakeGeocoderDataSource() }
     single<PlacesDataSource> { FakePlacesDataSource() }
+    // Real Overpass road source so the mock sim exercises live OSM map-matching on-device. [ROUTE-SNAP-001]
+    single<RoadNetworkDataSource> { OverpassRoadNetworkDataSourceImpl() }
     single<PermissionManager> { FakePermissionManager(get()) }
     single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager() }
     single<AppPreferences> { FakeAppPreferences(get()) }

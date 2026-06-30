@@ -17,8 +17,11 @@ import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
+import io.apptolast.paparcar.domain.matching.TrailMapMatcher
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
+import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
+import io.apptolast.paparcar.domain.places.RoadWay
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -44,8 +47,10 @@ import io.apptolast.paparcar.presentation.home.model.isDetectionWorking
 import io.apptolast.paparcar.presentation.home.model.toUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -89,6 +94,9 @@ class HomeViewModel(
     private val startAddParkingEventBus: StartAddParkingEventBus,
     private val notificationPort: AppNotificationManager,
     private val manualParkingDetection: ManualParkingDetection,
+    // Free OSM map-matching of the trip trail. Nullable so platforms without a road source (iOS for
+    // now) skip matching gracefully and keep the raw/smoothed trail. [ROUTE-SNAP-001]
+    private val roadNetworkDataSource: RoadNetworkDataSource? = null,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     // ── Private flows ─────────────────────────────────────────────────────────
@@ -122,6 +130,13 @@ class HomeViewModel(
     // once the car leaves and a trip starts (the session is already gone by then). [TRIP-TRAIL-001]
     private var lastParkingLocation: GpsPoint? = null
 
+    // ── Map-matching (free OSM snap-to-roads) ───────────────────────────────────
+    // The origin + raw trail fed to the matcher; debounced so we snap off the hot path. Roads are
+    // cached per trip bbox so a growing trip only refetches when it leaves the cached area. [ROUTE-SNAP-001]
+    private val trailForMatching = MutableStateFlow<List<GpsPoint>>(emptyList())
+    private var cachedRoads: List<RoadWay> = emptyList()
+    private var cachedRoadsBbox: Bbox? = null
+
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
@@ -138,6 +153,7 @@ class HomeViewModel(
         subscribeStartAddParkingRequests()
         subscribeDetectionReadiness()
         subscribeDrivingPuck()
+        subscribeMapMatching()
     }
 
     override fun initState(): HomeState = HomeState()
@@ -441,23 +457,82 @@ class HomeViewModel(
                         phase = monitoring.phase,
                     )
                 }
-                updateState {
-                    if (puck == null) {
-                        // Trip ended — drop the live trail and the departure marker.
-                        copy(drivingPuck = null, tripTrail = emptyList(), departurePoint = null)
-                    } else {
-                        // Extend the breadcrumb and anchor the origin dot to the departing vehicle's
-                        // spot. Prefer the service-resolved departure point (on Monitoring); fall back to
-                        // the last seen parking location for manual/BT trips with no origin. [DEPART-CONSISTENCY-001]
-                        copy(
-                            drivingPuck = puck,
-                            tripTrail = TripTrail.append(tripTrail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f)),
-                            departurePoint = pair.first.departurePoint ?: lastParkingLocation,
-                        )
-                    }
+                if (puck == null) {
+                    // Trip ended — drop the live trail, the matched trail and the departure marker.
+                    trailForMatching.value = emptyList()
+                    cachedRoads = emptyList()
+                    cachedRoadsBbox = null
+                    updateState { copy(drivingPuck = null, tripTrail = emptyList(), matchedTrail = emptyList(), departurePoint = null) }
+                } else {
+                    // Extend the breadcrumb and anchor the origin dot to the departing vehicle's
+                    // spot. Prefer the service-resolved departure point (on Monitoring); fall back to
+                    // the last seen parking location for manual/BT trips with no origin. [DEPART-CONSISTENCY-001]
+                    val newTrail = TripTrail.append(state.value.tripTrail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
+                    val depart = pair.first.departurePoint ?: lastParkingLocation
+                    // Feed the matcher the origin + trail so the snapped line starts at the parking
+                    // spot (also fixes the straight parking→first-fix chord). [ROUTE-SNAP-001]
+                    trailForMatching.value = (listOfNotNull(depart) + newTrail)
+                    updateState { copy(drivingPuck = puck, tripTrail = newTrail, departurePoint = depart) }
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Snaps the live trail onto OSM streets for free (Overpass map-matching) so the polyline follows
+     * the road instead of cutting across blocks from GPS drift. Roads are fetched once per trip bbox
+     * (refetched only when the trip leaves the cached area) and the snap runs debounced off the main
+     * thread. Any failure leaves [HomeState.matchedTrail] empty → the map keeps the raw/smoothed trail.
+     * No-op when no road source is wired (e.g. iOS). [ROUTE-SNAP-001]
+     */
+    private fun subscribeMapMatching() {
+        val roadSource = roadNetworkDataSource ?: return
+        trailForMatching
+            .debounce(MAP_MATCH_DEBOUNCE_MS)
+            .onEach { trail ->
+                if (trail.size < MIN_MATCH_POINTS) {
+                    if (state.value.matchedTrail.isNotEmpty()) updateState { copy(matchedTrail = emptyList()) }
+                    return@onEach
+                }
+                val tight = boundingBox(trail, 0.0)
+                if (cachedRoadsBbox?.contains(tight) != true) {
+                    val fetch = boundingBox(trail, ROADS_FETCH_MARGIN_DEG)
+                    roadSource.getRoads(fetch.minLat, fetch.minLon, fetch.maxLat, fetch.maxLon)
+                        .onSuccess { roads ->
+                            if (roads.isNotEmpty()) {
+                                cachedRoads = roads
+                                cachedRoadsBbox = fetch
+                            }
+                        }
+                        .onFailure { e -> PaparcarLogger.w(TAG, "road fetch failed — keeping raw trail", e) }
+                }
+                if (cachedRoads.isEmpty()) {
+                    PaparcarLogger.d(TAG, "map-match: no roads for bbox — keeping raw trail")
+                    return@onEach
+                }
+                val matched = withContext(Dispatchers.Default) { TrailMapMatcher.snap(trail, cachedRoads) }
+                PaparcarLogger.d(TAG, "map-match: ${trail.size} pts → ${matched.size} snapped, roads=${cachedRoads.size} ways")
+                updateState { copy(matchedTrail = matched) }
+            }
+            .catch { e -> PaparcarLogger.w(TAG, "map-matching error", e) }
+            .launchIn(viewModelScope)
+    }
+
+    /** Lat/lon bounding box of [points] padded by [marginDeg] degrees on every side. */
+    private fun boundingBox(points: List<GpsPoint>, marginDeg: Double): Bbox {
+        val lats = points.map { it.latitude }
+        val lons = points.map { it.longitude }
+        return Bbox(
+            minLat = lats.min() - marginDeg,
+            minLon = lons.min() - marginDeg,
+            maxLat = lats.max() + marginDeg,
+            maxLon = lons.max() + marginDeg,
+        )
+    }
+
+    private data class Bbox(val minLat: Double, val minLon: Double, val maxLat: Double, val maxLon: Double) {
+        fun contains(o: Bbox): Boolean =
+            o.minLat >= minLat && o.minLon >= minLon && o.maxLat <= maxLat && o.maxLon <= maxLon
     }
 
     /**
@@ -898,6 +973,11 @@ class HomeViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
         const val CAMERA_SETTLED_MS = 280L
+        // Map-matching: debounce the snap so a growing trail doesn't re-match every fix; min points to
+        // bother snapping; how much to pad the road-fetch bbox so a growing trip rarely refetches.
+        const val MAP_MATCH_DEBOUNCE_MS = 2500L
+        const val MIN_MATCH_POINTS = 3
+        const val ROADS_FETCH_MARGIN_DEG = 0.004 // ~400 m around the trip bbox [ROUTE-SNAP-001]
 
         // Distance thresholds
         // Both at 300m so GPS drift alone never triggers a Firestore reconnect —

@@ -70,6 +70,7 @@ internal fun HomeMapSection(
         userLocation = state.userGpsPoint,
         drivingPuck = state.drivingPuck,
         tripTrail = state.tripTrail,
+        matchedTrail = state.matchedTrail,
         departurePoint = state.departurePoint,
         centerDrivingPuck = followingDriver,
         parkingLocation = state.userParking?.location,
@@ -95,15 +96,31 @@ internal fun HomeMapSection(
         onZoneClick = onZoneClick,
         onCameraMove = onCameraMove,
         cameraTarget = cameraTarget,
-        // Observe the user's first touch WITHOUT consuming it (Initial pass), so the map still pans,
-        // but we can tell a real gesture apart from a programmatic follow/center move — the camera
-        // frames alone can't. This is what pauses driver-follow on a manual pan. [FOLLOW-001]
+        // Observe touches WITHOUT consuming them (Initial pass), so the map still pans, but we can tell
+        // a real gesture apart from a programmatic follow/center move. Pause driver-follow only on an
+        // actual PAN (movement past touch slop) — a stationary TAP must NOT pause it, or the driving
+        // puck would vanish: it only renders while following, and the [PUCK-FLICKER-001] change removed
+        // the moving-marker fallback, so a tap-triggered pause left only the bare native dot.
+        // [FOLLOW-001] [DRIVE-FOLLOW-002]
         modifier = modifier
             .fillMaxWidth()
             .pointerInput(Unit) {
                 awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    onUserMapGesture()
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val slop = viewConfiguration.touchSlop
+                    var travel = 0f
+                    var last = down.position
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val change = event.changes.firstOrNull { it.id == down.id }
+                        if (change == null || !change.pressed) break // released/cancelled = tap, follow untouched
+                        travel += (change.position - last).getDistance()
+                        last = change.position
+                        if (travel > slop) {
+                            onUserMapGesture()
+                            break
+                        }
+                    }
                 }
             },
     )
