@@ -107,11 +107,11 @@ class SpotRepositoryImplTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // reportSpotReleased — Firestore + cache eviction
+    // reportSpotReleased — publish-only (cache left to the Firestore listener)
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    fun reportSpotReleased_calls_firestore_and_removes_spot_from_local_cache() = runTest {
+    fun reportSpotReleased_calls_firestore_and_leaves_local_cache_untouched() = runTest {
         val dao = FakeSpotDao().apply { seed(listOf(spotEntity("released-1"))) }
         val firebase = FakeFirebaseDataSource()
         val repo = SpotRepositoryImpl(firebase, dao)
@@ -129,7 +129,9 @@ class SpotRepositoryImplTest {
         assertEquals(1, firebase.reportSpotReleasedCallCount)
         assertNotNull(firebase.lastReportedSpot)
         assertEquals("released-1", firebase.lastReportedSpot!!.id)
-        // Local cache no longer contains the released spot.
-        assertEquals(emptyList(), dao.snapshot())
+        // Publish-only: the method deliberately does NOT touch the local cache — a local delete
+        // would race the Firestore real-time listener's echo (insert → delete → re-insert) and
+        // flash the marker. Room is pruned reactively by that listener, not here. [SPOT-FLICKER-001]
+        assertEquals(listOf(spotEntity("released-1")), dao.snapshot())
     }
 }
