@@ -429,14 +429,20 @@ class HomeViewModel(
         }
 
     private fun subscribeNearbySpots() {
-        combine(permissionManager.permissionState, spotQueryCenter, reconnectTick) { perm, center, _ ->
+        // Depends ONLY on (CORE permission, query centre). No reconnectTick: the
+        // Firestore listener inside observeNearbySpots auto-reconnects, and the
+        // centre is already fed by the GPS stream (which owns its own reconnect),
+        // so a connectivity flap never tears this subscription down. When the
+        // centre is null (no permission), we emit an empty list down the SAME
+        // pipe instead of mutating state inside the transform — one sink,
+        // applyNewSpots, owns every state write. [SPOT-FLICKER-001]
+        combine(permissionManager.permissionState, spotQueryCenter) { perm, center ->
             if (perm.hasCorePermissions) center else null
         }
             .distinctUntilChanged { old, new -> old.closeEnoughTo(new) }
             .flatMapLatest { center ->
                 if (center == null) {
-                    updateState { copy(nearbySpots = emptyList()) }
-                    emptyFlow()
+                    flowOf(emptyList())
                 } else {
                     observeNearbySpots(center, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
                         .catch { e ->

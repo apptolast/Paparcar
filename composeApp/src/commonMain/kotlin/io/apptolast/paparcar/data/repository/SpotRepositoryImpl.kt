@@ -11,11 +11,13 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.cos
@@ -30,7 +32,9 @@ import kotlin.time.Clock
  *   which triggers a new emission from the Room Flow.
  *
  * **Write strategy:**
- * - [reportSpotReleased] calls Firestore and removes the spot from the local cache.
+ * - [reportSpotReleased] publishes to Firestore only; the real-time listener
+ *   echoes the new spot back into Room so it appears (and stays) reactively.
+ *   No local-cache mutation — that would race the echo and flicker the marker.
  */
 class SpotRepositoryImpl(
     private val firebaseDataSource: FirebaseDataSource,
@@ -65,7 +69,21 @@ class SpotRepositoryImpl(
             //    UI Flow never sees an intermediate empty-list state.
             //    .catch{} isolates Firestore errors — the UI keeps showing cached spots.
             firebaseDataSource.observeNearbySpots(location.latitude, location.longitude, radiusMeters)
-                .catch { e -> PaparcarLogger.w(TAG, "Firestore spots listener error — using cache", e) }
+                // Self-heal a listener that actually errors out (not normal offline —
+                // the native SDK queues those and resyncs on reconnect by itself). Room
+                // keeps serving cache during the backoff, so markers never blink. Gives
+                // up after MAX_LISTENER_RETRIES for a persistent error (e.g. permission),
+                // falling through to .catch which leaves the cache showing. [SPOT-FLICKER-001]
+                .retryWhen { cause, attempt ->
+                    if (attempt >= MAX_LISTENER_RETRIES) {
+                        false
+                    } else {
+                        PaparcarLogger.w(TAG, "Firestore spots listener error — retry #${attempt + 1}", cause)
+                        delay(LISTENER_RETRY_DELAY_MS * (attempt + 1))
+                        true
+                    }
+                }
+                .catch { e -> PaparcarLogger.w(TAG, "Firestore spots listener gave up — using cache", e) }
                 .collect { dtoMap ->
                     val now = Clock.System.now().toEpochMilliseconds()
                     val bboxDtos = dtoMap.values.filter { dto ->
@@ -94,8 +112,14 @@ class SpotRepositoryImpl(
     }
 
     override suspend fun reportSpotReleased(spot: Spot): Result<Unit> = runCatching {
+        // Publish only. The Firestore .set() makes the real-time listener in
+        // observeNearbySpots fire, which writes the spot into Room — so the new
+        // marker appears reactively and stays. We deliberately do NOT touch the
+        // local cache here: a local spotDao.delete() would race that echo
+        // (insert → delete → re-insert on the next snapshot) and flash the
+        // marker. To HIDE a spot for everyone, delete it from Firestore
+        // (firebaseDataSource.deleteSpot) and let the listener prune Room. [SPOT-FLICKER-001]
         firebaseDataSource.reportSpotReleased(spot.toDto())
-        spotDao.delete(spot.id)
     }
 
     override suspend fun sendSpotSignal(spotId: String, accepted: Boolean): Result<Unit> =
@@ -126,5 +150,9 @@ class SpotRepositoryImpl(
         const val TAG = "SpotRepositoryImpl"
         /** Approximate metres per degree of latitude (constant). */
         const val METERS_PER_DEGREE_LAT = 111_111.0
+        /** Max self-heal attempts before the listener gives up and leaves cache showing. */
+        const val MAX_LISTENER_RETRIES = 5L
+        /** Base backoff between listener retries (multiplied by attempt number). */
+        const val LISTENER_RETRY_DELAY_MS = 2_000L
     }
 }
