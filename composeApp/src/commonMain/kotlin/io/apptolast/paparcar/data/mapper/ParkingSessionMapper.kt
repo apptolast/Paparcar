@@ -32,8 +32,8 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     address = addressOrNull(),
     placeInfo = placeInfoOrNull(),
     detectionReliability = detectionReliability,
-    sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
-    carbodyType = carbodyType?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() },
+    sizeCategory = sizeCategory.toEnumOrNull<VehicleSize>(),
+    carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
     privateZoneId = privateZoneId,
 )
 
@@ -50,8 +50,8 @@ private fun UserParkingEntity.addressOrNull(): AddressInfo? =
 
 private fun UserParkingEntity.placeInfoOrNull(): PlaceInfo? {
     val name = placeInfoName ?: return null
-    val cat = placeInfoCategory ?: return null
-    return runCatching { PlaceInfo(name, PlaceCategory.valueOf(cat)) }.getOrNull()
+    val category = placeInfoCategory.toEnumOrNull<PlaceCategory>() ?: return null
+    return PlaceInfo(name, category)
 }
 
 // ── Domain → UserParkingEntity ────────────────────────────────────────────────

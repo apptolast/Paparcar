@@ -47,6 +47,7 @@ import io.apptolast.paparcar.presentation.util.driveTimeString
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.ui.components.EnRouteIndicator
+import io.apptolast.paparcar.ui.components.PapEmptyStateCard
 import io.apptolast.paparcar.ui.components.TTLIndicator
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -248,38 +249,22 @@ private fun SpotReliabilityUiState.palette(): ReliabilityPalette {
 
 @Composable
 internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = PapShapes.cardSmall,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(
-            width = PapBorders.thin,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            EmptySpotsIllustration(
-                modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                stringResource(Res.string.home_empty_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                stringResource(Res.string.home_empty_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
-            )
-        }
+    PapEmptyStateCard(modifier = modifier) {
+        EmptySpotsIllustration(
+            modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            stringResource(Res.string.home_empty_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            stringResource(Res.string.home_empty_subtitle),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
+        )
     }
 }
 
@@ -288,49 +273,33 @@ internal fun HomeEmptyFilteredSpots(
     onClearFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = PapShapes.cardSmall,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(
-            width = PapBorders.thin,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(
-                Icons.Rounded.FilterAltOff,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_ICON_ALPHA),
-                modifier = Modifier.size(36.dp),
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                stringResource(Res.string.home_filter_empty_title),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                stringResource(Res.string.home_filter_empty_subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                stringResource(Res.string.home_filter_empty_clear),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onClearFilter),
-            )
-        }
+    PapEmptyStateCard(modifier = modifier) {
+        Icon(
+            Icons.Rounded.FilterAltOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_ICON_ALPHA),
+            modifier = Modifier.size(36.dp),
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            stringResource(Res.string.home_filter_empty_title),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            stringResource(Res.string.home_filter_empty_subtitle),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            stringResource(Res.string.home_filter_empty_clear),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable(onClick = onClearFilter),
+        )
     }
 }
 

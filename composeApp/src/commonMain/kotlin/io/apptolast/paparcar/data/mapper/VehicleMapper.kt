@@ -17,9 +17,9 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     // Legacy/blank rows synced from a Firestore doc that pre-dated VEHICLE-CATEGORIZATION-001
     // get a safe MEDIUM_SUV fallback so the rest of the app (geofence sizing, peek fit pill,
     // marker icons) keeps working instead of crashing on VehicleSize.valueOf("").
-    sizeCategory = runCatching { VehicleSize.valueOf(sizeCategory) }.getOrDefault(VehicleSize.MEDIUM_SUV),
-    carbodyType = carbodyType?.toCarbodyTypeOrNull(),
-    vehicleType = runCatching { VehicleType.valueOf(vehicleType) }.getOrDefault(VehicleType.CAR),
+    sizeCategory = sizeCategory.toEnumOrDefault(VehicleSize.MEDIUM_SUV),
+    carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
+    vehicleType = vehicleType.toEnumOrDefault(VehicleType.CAR),
     bluetoothDeviceId = bluetoothDeviceId,
     showBrandModelOnSpot = showBrandModelOnSpot,
     isActive = isActive,
@@ -81,6 +81,3 @@ fun Vehicle.toDto(): VehicleDto = VehicleDto(
     isActive = isActive,
     color = color?.name ?: "",
 )
-
-private fun String.toCarbodyTypeOrNull(): CarbodyType? =
-    runCatching { CarbodyType.valueOf(this) }.getOrNull()

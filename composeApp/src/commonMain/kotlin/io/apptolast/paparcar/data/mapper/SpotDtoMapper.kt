@@ -31,9 +31,9 @@ fun SpotDto.toDomain(): Spot = Spot(
         AddressInfo(street = it.street, city = it.city, region = it.region, country = it.country, countryCode = it.countryCode)
     },
     placeInfo = placeInfo?.let { dto ->
-        runCatching { PlaceInfo(dto.name, PlaceCategory.valueOf(dto.category)) }.getOrNull()
+        dto.category.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(dto.name, it) }
     },
-    type = runCatching { SpotType.valueOf(type) }.getOrDefault(SpotType.AUTO_DETECTED),
+    type = type.toEnumOrDefault(SpotType.AUTO_DETECTED),
     confidence = decayedConfidence(
         storedConfidence = confidence.coerceIn(0f, 1f),
         acceptCount = acceptCount,
@@ -42,8 +42,8 @@ fun SpotDto.toDomain(): Spot = Spot(
         expiresAt = expiresAt,
         nowMs = Clock.System.now().toEpochMilliseconds(),
     ),
-    sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
-    carbodyType = carbodyType?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() },
+    sizeCategory = sizeCategory.toEnumOrNull<VehicleSize>(),
+    carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
 )
@@ -115,11 +115,9 @@ fun SpotEntity.toDomain(): Spot = Spot(
         AddressInfo(street = addressStreet, city = addressCity, region = addressRegion, country = addressCountry, countryCode = addressCountryCode)
     else null,
     placeInfo = placeInfoName?.let { name ->
-        placeInfoCategory?.let { cat ->
-            runCatching { PlaceInfo(name, PlaceCategory.valueOf(cat)) }.getOrNull()
-        }
+        placeInfoCategory.toEnumOrNull<PlaceCategory>()?.let { PlaceInfo(name, it) }
     },
-    type = runCatching { SpotType.valueOf(type) }.getOrDefault(SpotType.AUTO_DETECTED),
+    type = type.toEnumOrDefault(SpotType.AUTO_DETECTED),
     confidence = decayedConfidence(
         storedConfidence = confidence.coerceIn(0f, 1f),
         acceptCount = acceptCount,
@@ -128,8 +126,8 @@ fun SpotEntity.toDomain(): Spot = Spot(
         expiresAt = expiresAt,
         nowMs = Clock.System.now().toEpochMilliseconds(),
     ),
-    sizeCategory = sizeCategory?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() },
-    carbodyType = carbodyType?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() },
+    sizeCategory = sizeCategory.toEnumOrNull<VehicleSize>(),
+    carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
     enRouteCount = enRouteCount.coerceAtLeast(0),
     expiresAt = expiresAt,
 )

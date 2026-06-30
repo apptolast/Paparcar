@@ -2,26 +2,13 @@ package io.apptolast.paparcar.presentation.util
 
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.PlaceInfo
-import kotlin.math.PI
+import io.apptolast.paparcar.domain.util.haversineMeters
 import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.roundToInt
-import kotlin.math.sin
-import kotlin.math.sqrt
 
-private fun toRadians(deg: Double): Double = deg * PI / 180.0
-
-fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
-    val earthRadiusM = 6_371_000.0
-    val dLat = toRadians(lat2 - lat1)
-    val dLon = toRadians(lon2 - lon1)
-    val a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(toRadians(lat1)) * cos(toRadians(lat2)) *
-        sin(dLon / 2) * sin(dLon / 2)
-    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return (earthRadiusM * c).toFloat()
-}
+/** UI-facing `Float` wrapper over the domain [haversineMeters] great-circle distance. */
+fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float =
+    haversineMeters(lat1, lon1, lat2, lon2).toFloat()
 
 fun formatDistance(meters: Float, unit: DistanceUnit = DistanceUnit.METRIC): String = when (unit) {
     DistanceUnit.METRIC -> when {

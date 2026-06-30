@@ -1,6 +1,5 @@
 package io.apptolast.paparcar.presentation.bluetooth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,8 +50,7 @@ import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceInfo
 import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import io.apptolast.paparcar.ui.components.PapFooterButton
-import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -303,12 +301,9 @@ private fun DeviceRow(
     onClick: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    Surface(
+    PapOutlinedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
     ) {
         Row(
             modifier = Modifier.padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),

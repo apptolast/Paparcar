@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.repository.SpotRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.domain.util.boundingBox
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -19,8 +20,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.time.Clock
 
 /**
@@ -128,28 +127,8 @@ class SpotRepositoryImpl(
 
     override suspend fun clearCache(): Result<Unit> = runCatching { spotDao.deleteAll() }
 
-    private fun boundingBox(lat: Double, lon: Double, radiusMeters: Double): BoundingBox {
-        val deltaLat = radiusMeters / METERS_PER_DEGREE_LAT
-        val deltaLon = radiusMeters / (METERS_PER_DEGREE_LAT * cos(lat * PI / 180.0))
-        return BoundingBox(
-            minLat = lat - deltaLat,
-            maxLat = lat + deltaLat,
-            minLon = lon - deltaLon,
-            maxLon = lon + deltaLon,
-        )
-    }
-
-    private data class BoundingBox(
-        val minLat: Double,
-        val maxLat: Double,
-        val minLon: Double,
-        val maxLon: Double,
-    )
-
     private companion object {
         const val TAG = "SpotRepositoryImpl"
-        /** Approximate metres per degree of latitude (constant). */
-        const val METERS_PER_DEGREE_LAT = 111_111.0
         /** Max self-heal attempts before the listener gives up and leaves cache showing. */
         const val MAX_LISTENER_RETRIES = 5L
         /** Base backoff between listener retries (multiplied by attempt number). */

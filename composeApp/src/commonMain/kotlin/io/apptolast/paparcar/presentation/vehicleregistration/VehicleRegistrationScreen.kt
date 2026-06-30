@@ -70,6 +70,7 @@ import io.apptolast.paparcar.ui.components.CarbodyManualPicker
 import io.apptolast.paparcar.ui.components.NonCarSizeBadge
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
+import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.PapTextField
 import io.apptolast.paparcar.ui.components.VehicleColorSelector
@@ -479,11 +480,8 @@ internal fun VehicleRegistrationContent(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_detection))
-                    Surface(
+                    PapOutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = PapShapes.card,
-                        color = cs.surfaceContainerHigh,
-                        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -539,11 +537,8 @@ internal fun VehicleRegistrationContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 PapSectionHeader(title = stringResource(Res.string.vehicle_registration_section_privacy))
-                Surface(
+                PapOutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = PapShapes.card,
-                    color = cs.surfaceContainerHigh,
-                    border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
                 ) {
                     Row(
                         modifier = Modifier
@@ -673,11 +668,10 @@ private fun VehicleHeroCard(
     val subtitleColor = if (sizeSelected) cs.primary.copy(alpha = HERO_SUBTITLE_ALPHA)
                         else cs.onSurfaceVariant
 
-    Surface(
+    PapOutlinedCard(
         modifier = modifier.fillMaxWidth(),
         shape = PapShapes.cardLarge,
-        color = cs.primaryContainer.copy(alpha = HERO_CARD_BG_ALPHA),
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
+        containerColor = cs.primaryContainer.copy(alpha = HERO_CARD_BG_ALPHA),
     ) {
         Column(
             modifier = Modifier
