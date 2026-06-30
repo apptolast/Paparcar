@@ -7,6 +7,7 @@
     <string name="home_vehicle_chip_badge_active">Actief</string>
     <string name="home_vehicle_chip_status_parked">Geparkeerd · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Onderweg</string>
+    <string name="home_vehicle_chip_status_candidate">Parkeren…</string>
     <string name="home_parking_release">Parkeerplaats vrijgeven</string>
     <string name="home_navigate_to_spot">Route</string>
     <string name="home_navigate_to_vehicle">Navigeer naar voertuig</string>

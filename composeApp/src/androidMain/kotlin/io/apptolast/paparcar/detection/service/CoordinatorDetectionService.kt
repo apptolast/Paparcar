@@ -19,6 +19,7 @@ import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.displayName
@@ -339,7 +340,13 @@ class CoordinatorDetectionService : LifecycleService() {
                     val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m"
                     PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01]")
                     cancelDetectionJob()
-                    startParkingDetection(DetectionTrigger.GEOFENCE_EXIT, detail)
+                    // Anchor the trip to the departing vehicle's exact session so Home's origin dot +
+                    // puck bind to the car that actually left. [DEPART-CONSISTENCY-001]
+                    startParkingDetection(
+                        DetectionTrigger.GEOFENCE_EXIT,
+                        detail,
+                        trip = TripContext(session.location, session.vehicleId),
+                    )
                 }
                 ParkingStrategy.BLUETOOTH, ParkingStrategy.NONE -> {
                     PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — strategy not COORDINATOR; not arming")
@@ -434,13 +441,22 @@ class CoordinatorDetectionService : LifecycleService() {
         fgs.stopForegroundAndSelf() // [FIX BUG-FGS-100]
     }
 
-    private fun startParkingDetection(trigger: DetectionTrigger, detail: String? = null) {
+    private fun startParkingDetection(
+        trigger: DetectionTrigger,
+        detail: String? = null,
+        trip: TripContext? = null,
+    ) {
         logArmTrigger(trigger, detail)
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
         // [DET-READY-001c] Mark detection as actively running so the Home banner shows Monitoring.
         // Set synchronously here (not inside the coroutine) so a superseded old job's finally — which
         // only flips the flag when it is still the current job — never races this to false.
         detectionRuntime.setRunning(true)
+        // Publish the trip's origin AFTER setRunning(true) so the first Monitoring emission already
+        // carries it. setRunning(true) does not touch the trip; setTrip(null) clears any stale origin
+        // from a previous trip (manual start). Set after — never before cancelDetectionJob — so a
+        // superseded job's finally (which clears on setRunning(false)) can't wipe it. [DEPART-CONSISTENCY-001]
+        detectionRuntime.setTrip(trip)
         detectionJob = lifecycleScope.launch {
             val thisJob = coroutineContext[Job]
 

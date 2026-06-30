@@ -107,6 +107,7 @@ val domainModule = module {
             config = get(),
             detectionEventLogger = get(),
             evaluateParkingDecision = get(),
+            phaseSink = get<MutableDetectionRuntimeState>(),
         )
     }
 

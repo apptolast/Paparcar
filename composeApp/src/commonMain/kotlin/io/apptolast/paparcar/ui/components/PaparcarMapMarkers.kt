@@ -279,6 +279,28 @@ private val LOC_ACTIVE_CAR  = 30.dp
 private val LOC_HALO_BLUE   = Color(0xFF2F6BFF) // matches the design's location halo / en-route blue
 private const val LOC_HALO_ALPHA = 0.16f
 
+// ─── Marker 1d — Trip origin dot (DepartureDotMarker) ────────────────────────
+
+/**
+ * The trip's origin: a small blue dot with a white halo, marking exactly where the departing vehicle
+ * left from — the point the breadcrumb trail starts at. Center-anchored on the map so the dot sits on
+ * the coordinate. Replaces the old faded-car departure badge: the origin is now just the clear dot.
+ * [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001]
+ */
+@Composable
+fun DepartureDotMarker(modifier: Modifier = Modifier) {
+    Box(modifier.size(DEPARTURE_DOT_BOX), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.matchParentSize()) {
+            val r = size.minDimension / 2f
+            drawCircle(color = Color.White, radius = r)
+            drawCircle(color = PapDriveBlue, radius = r * DEPARTURE_DOT_INNER_SCALE)
+        }
+    }
+}
+
+private val DEPARTURE_DOT_BOX = 16.dp
+private const val DEPARTURE_DOT_INNER_SCALE = 0.6f
+
 // ─── Marker 1b — License plate marker (LicensePlateMarker) ───────────────────
 
 /**

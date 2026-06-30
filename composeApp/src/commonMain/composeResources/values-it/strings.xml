@@ -7,6 +7,7 @@
     <string name="home_vehicle_chip_badge_active">Attivo</string>
     <string name="home_vehicle_chip_status_parked">Parcheggiato · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Alla guida</string>
+    <string name="home_vehicle_chip_status_candidate">In sosta…</string>
     <string name="home_parking_release">Libera posto</string>
     <string name="home_navigate_to_spot">Indicazioni</string>
     <string name="home_navigate_to_vehicle">Naviga al veicolo</string>

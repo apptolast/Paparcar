@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -181,6 +182,9 @@ private fun LazyListScope.vehiclesSection(
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
     val drivingVehicleId = state.drivingPuck?.vehicleId
     fun VehicleCard.isDriving() = session == null && vehicle.id == drivingVehicleId
+    // The trip stopped and the user appears to be leaving the car — the chip flips to the candidate
+    // ("Parking…") treatment. Only meaningful for the driving vehicle. [DET-PHASE-001]
+    val isCandidatePhase = state.drivingPuck?.phase == DetectionPhase.Candidate
     // Live state floats first: driving → parked → monitoring config (BT, Active, Inactive).
     val sorted = vehicleCards.sortedWith(
         compareByDescending<VehicleCard> { it.isDriving() }
@@ -205,6 +209,7 @@ private fun LazyListScope.vehiclesSection(
                     card = card,
                     userLocation = userLocation,
                     isDriving = card.isDriving(),
+                    isCandidate = card.isDriving() && isCandidatePhase,
                     onClick = onCardClick,
                 )
             }

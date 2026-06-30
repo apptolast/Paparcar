@@ -411,18 +411,24 @@ class HomeViewModel(
      */
     private fun subscribeDrivingPuck() {
         observeDetectionReadiness()
-            .map { (it as? DetectionReadiness.Monitoring)?.strategy }
+            .map { it as? DetectionReadiness.Monitoring }
             .distinctUntilChanged()
-            .flatMapLatest { strategy ->
-                if (strategy != null && state.value.hasCorePermissions) {
-                    locationDataSource.observeUiLocation().map { strategy to it }
+            .flatMapLatest { monitoring ->
+                if (monitoring != null && state.value.hasCorePermissions) {
+                    locationDataSource.observeUiLocation().map { monitoring to it }
                 } else {
-                    flowOf<Pair<ParkingStrategy, UserLocationUi>?>(null)
+                    flowOf<Pair<DetectionReadiness.Monitoring, UserLocationUi>?>(null)
                 }
             }
             .onEach { pair ->
-                val puck = pair?.let { (strategy, loc) ->
-                    val vehicle = monitoredVehicle(state.value.vehicles, strategy)
+                val puck = pair?.let { (monitoring, loc) ->
+                    // Prefer the vehicle that actually departed (resolved by the service from the
+                    // geofence-exit session, carried on Monitoring) over the "active vehicle" guess,
+                    // so the puck shows the right car after the user switches active vehicles.
+                    // [DEPART-CONSISTENCY-001]
+                    val vehicle = monitoring.departingVehicleId
+                        ?.let { vid -> state.value.vehicles.firstOrNull { it.id == vid } }
+                        ?: monitoredVehicle(state.value.vehicles, monitoring.strategy)
                     DrivingPuck(
                         latitude = loc.latitude,
                         longitude = loc.longitude,
@@ -432,6 +438,7 @@ class HomeViewModel(
                         sizeCategory = vehicle?.sizeCategory,
                         color = vehicle?.color,
                         vehicleId = vehicle?.id,
+                        phase = monitoring.phase,
                     )
                 }
                 updateState {
@@ -439,13 +446,13 @@ class HomeViewModel(
                         // Trip ended — drop the live trail and the departure marker.
                         copy(drivingPuck = null, tripTrail = emptyList(), departurePoint = null)
                     } else {
-                        // Extend the breadcrumb and surface the just-vacated parking as the faded
-                        // departure point. A trip means you're not parked, so the last parking IS the
-                        // departure — no need to gate on the (laggy) activeSessions state. [TRIP-TRAIL-001]
+                        // Extend the breadcrumb and anchor the origin dot to the departing vehicle's
+                        // spot. Prefer the service-resolved departure point (on Monitoring); fall back to
+                        // the last seen parking location for manual/BT trips with no origin. [DEPART-CONSISTENCY-001]
                         copy(
                             drivingPuck = puck,
                             tripTrail = TripTrail.append(tripTrail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f)),
-                            departurePoint = lastParkingLocation,
+                            departurePoint = pair.first.departurePoint ?: lastParkingLocation,
                         )
                     }
                 }

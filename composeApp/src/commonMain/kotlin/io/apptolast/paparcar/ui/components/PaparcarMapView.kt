@@ -246,10 +246,7 @@ private fun vehicleBadgeContentId(
 private const val MARKER_MY_CAR          = "my_car"
 private const val MARKER_MY_CAR_DIM      = "my_car_dim"
 private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
-private const val MARKER_DEPARTURE       = "departure" // faded last-parking point during a trip [TRIP-TRAIL-001]
-// How much of the departure car is left visible — clearly readable but faded ("no longer yours"),
-// over a fully-opaque ground dot that the trail line starts from. [TRIP-TRAIL-001]
-private const val DEPARTURE_CONTENT_ALPHA = 0.55f
+private const val MARKER_DEPARTURE       = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
 // Trip breadcrumb polyline width (screen px in Google Maps). [TRIP-TRAIL-001]
 private const val TRIP_TRAIL_WIDTH = 14f
 
@@ -260,6 +257,12 @@ private const val MARKER_Z_INDEX_SELECTED = 1f
 private const val MARKER_Z_INDEX_NORMAL   = 0f
 private val SELECTED_MARKER_OPTIONS = AndroidMarkerOptions(zIndex = MARKER_Z_INDEX_SELECTED)
 private val NORMAL_MARKER_OPTIONS   = AndroidMarkerOptions(zIndex = MARKER_Z_INDEX_NORMAL)
+// Trip origin dot is centred on its coordinate (0.5, 0.5) — the dot IS the point — and kept under
+// the trail + puck (normal zIndex). [DEPART-CONSISTENCY-001]
+private val DEPARTURE_MARKER_OPTIONS = AndroidMarkerOptions(
+    anchor = GoogleMapsAnchor(0.5f, 0.5f),
+    zIndex = MARKER_Z_INDEX_NORMAL,
+)
 // Zone label is centred on the circle centre (0.5, 0.5) — not bottom-anchored — so
 // it sits IN the middle of the radius ring instead of floating above it. Lowest
 // zIndex so spot/vehicle markers always render on top. [ZONE-AREA-001]
@@ -660,14 +663,14 @@ fun PaparcarMapView(
                     )
                 }
             }
-            // Faded "departure" point — where the car left from, under the trail + puck. [TRIP-TRAIL-001]
+            // Trip origin — a blue dot where the car left from, under the trail + puck. [DEPART-CONSISTENCY-001]
             departurePoint?.let { dp ->
                 add(
                     Marker(
                         coordinates = Coordinates(dp.latitude, dp.longitude),
                         title = null,
                         contentId = MARKER_DEPARTURE,
-                        androidMarkerOptions = NORMAL_MARKER_OPTIONS,
+                        androidMarkerOptions = DEPARTURE_MARKER_OPTIONS,
                     ),
                 )
             }
@@ -734,17 +737,10 @@ fun PaparcarMapView(
                     isActive = parkingIsActive,
                 )
             }
-            // Departure point: the trip's vehicle ghosted out (low contentAlpha) over a fully-opaque
-            // position dot — a clear "you left from here" point with the car barely there. [TRIP-TRAIL-001]
+            // Departure point: a small blue dot with a white halo — a clean "you left from here"
+            // origin where the breadcrumb trail starts. [DEPART-CONSISTENCY-001] [TRIP-TRAIL-001]
             put(MARKER_DEPARTURE) { _ ->
-                VehicleBadgeMarker(
-                    carbodyType = drivingPuck?.carbodyType,
-                    sizeCategory = drivingPuck?.sizeCategory,
-                    color = drivingPuck?.color,
-                    isActive = false,
-                    contentAlpha = DEPARTURE_CONTENT_ALPHA,
-                    originDot = true,
-                )
+                DepartureDotMarker()
             }
             // ── Free-spot bitmaps — 12 cached variants (4 tiers × nrm/dim/sel) ──
             // Each (tier, state) pair gets its own contentId so kmpmaps caches a distinct

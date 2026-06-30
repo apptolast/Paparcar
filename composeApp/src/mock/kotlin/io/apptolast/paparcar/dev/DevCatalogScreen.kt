@@ -55,6 +55,7 @@ fun DevCatalogScreen(
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
     val driving by runtime.isRunning.collectAsStateWithLifecycle()
+    val candidate by runtime.phase.collectAsStateWithLifecycle()
 
     Scaffold(containerColor = cs.surface) { pad ->
         Column(
@@ -98,7 +99,32 @@ fun DevCatalogScreen(
             SwitchRow("Conexión online", online) { scenario.online.value = it }
 
             SectionTitle("Simulación")
-            SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { runtime.setRunning(it) }
+            SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { on ->
+                // Mirror a geofence-exit: stamp the trip's origin (route start) + the DEPARTING vehicle
+                // (mock_vehicle_002, deliberately NOT the active mock_vehicle_001) so Home's blue origin
+                // dot and the puck bind to the car that left — exercising DEPART-CONSISTENCY-001 in the
+                // mock, not just the fallback. setRunning(false) clears the trip. [DEPART-CONSISTENCY-001]
+                if (on) {
+                    runtime.setTrip(
+                        io.apptolast.paparcar.domain.detection.TripContext(
+                            departurePoint = io.apptolast.paparcar.domain.model.GpsPoint(36.5928, -6.2319, 8.5f, 0L, 0f),
+                            departingVehicleId = "mock_vehicle_002",
+                        ),
+                    )
+                }
+                runtime.setRunning(on)
+            }
+            // Candidate phase: stopped + walking away. Flips the Home chip from "Conduciendo" (blue) to
+            // "Aparcando…" (green). Only visible while the driving sim is on. [DET-PHASE-001]
+            SwitchRow(
+                "Candidato (parado, andando)",
+                candidate == io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate,
+            ) { on ->
+                runtime.setPhase(
+                    if (on) io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate
+                    else io.apptolast.paparcar.domain.detection.DetectionPhase.Driving
+                )
+            }
 
             Spacer(Modifier.height(4.dp))
             Button(onClick = onEnter, modifier = Modifier.fillMaxWidth().height(48.dp)) {

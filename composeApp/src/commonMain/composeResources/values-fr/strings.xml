@@ -7,6 +7,7 @@
     <string name="home_vehicle_chip_badge_active">Actif</string>
     <string name="home_vehicle_chip_status_parked">Garé · %1$s</string>
     <string name="home_vehicle_chip_status_driving">En route</string>
+    <string name="home_vehicle_chip_status_candidate">Stationnement…</string>
     <string name="home_parking_release">Libérer la place</string>
     <string name="home_navigate_to_spot">Itinéraire</string>
     <string name="home_navigate_to_vehicle">Naviguer jusqu\'au véhicule</string>

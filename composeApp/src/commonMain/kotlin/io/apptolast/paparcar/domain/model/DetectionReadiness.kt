@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.model
 
+import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
 
@@ -16,14 +17,23 @@ import io.apptolast.paparcar.domain.permissions.RequiredPermission
  *  - [Disabled]: detection does not apply (no vehicle, or active vehicle is a non-parking type).
  *  - [Blocked]: a required permission is missing — detection can't run until granted.
  *  - [Ready]: armed and idle, waiting to detect the next parking. The "no geofence yet" state.
- *  - [Monitoring]: a tracking job is actively following the current trip.
+ *  - [Monitoring]: a tracking job is actively following the current trip. Carries the trip's origin
+ *    ([departurePoint] + [departingVehicleId]) when the service resolved it (geofence-exit); both
+ *    null for trips armed without a known origin (manual start). [DEPART-CONSISTENCY-001]
  *  - [Parked]: the vehicle is parked with a geofence watching for departure.
  */
 sealed class DetectionReadiness {
     data class Disabled(val reason: DisabledReason) : DetectionReadiness()
     data class Blocked(val missing: Set<RequiredPermission>) : DetectionReadiness()
     data class Ready(val strategy: ParkingStrategy) : DetectionReadiness()
-    data class Monitoring(val strategy: ParkingStrategy) : DetectionReadiness()
+    data class Monitoring(
+        val strategy: ParkingStrategy,
+        val departurePoint: GpsPoint? = null,
+        val departingVehicleId: String? = null,
+        // Coarse phase of the trip — Driving vs Candidate ("looking for / confirming a spot"). Drives
+        // the distinct chip/puck treatment when the user stops and walks away. [DET-PHASE-001]
+        val phase: DetectionPhase = DetectionPhase.Driving,
+    ) : DetectionReadiness()
     data class Parked(val session: UserParking) : DetectionReadiness()
 }
 

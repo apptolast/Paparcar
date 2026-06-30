@@ -1,8 +1,10 @@
 package io.apptolast.paparcar.domain.usecase.detection
 
+import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DisabledReason
 import io.apptolast.paparcar.domain.model.UserParking
@@ -41,10 +43,14 @@ class ObserveDetectionReadinessUseCase(
         vehicleRepository.observeVehicles(),
         userParkingRepository.observeActiveSessions(),
         permissionManager.permissionState,
-        detectionRuntime.isRunning,
+        // isRunning decides Monitoring vs Ready; trip + phase carry the Monitoring payload. Pre-combined
+        // into one source so the outer combine stays within its 5-arg arity. [DEPART-CONSISTENCY-001] [DET-PHASE-001]
+        combine(detectionRuntime.isRunning, detectionRuntime.trip, detectionRuntime.phase) { running, trip, phase ->
+            Triple(running, trip, phase)
+        },
         appPreferences.observeAutoDetectParking(),
-    ) { vehicles, sessions, permissions, isRunning, autoDetectEnabled ->
-        resolve(vehicles, sessions, permissions, isRunning, autoDetectEnabled)
+    ) { vehicles, sessions, permissions, runtime, autoDetectEnabled ->
+        resolve(vehicles, sessions, permissions, runtime.first, runtime.second, runtime.third, autoDetectEnabled)
     }
 
     private fun resolve(
@@ -52,6 +58,8 @@ class ObserveDetectionReadinessUseCase(
         sessions: List<UserParking>,
         permissions: AppPermissionState,
         isRunning: Boolean,
+        trip: TripContext?,
+        phase: DetectionPhase,
         autoDetectEnabled: Boolean,
     ): DetectionReadiness {
         if (vehicles.isEmpty()) {
@@ -88,7 +96,12 @@ class ObserveDetectionReadinessUseCase(
         }
 
         return if (isRunning) {
-            DetectionReadiness.Monitoring(strategy)
+            DetectionReadiness.Monitoring(
+                strategy = strategy,
+                departurePoint = trip?.departurePoint,
+                departingVehicleId = trip?.departingVehicleId,
+                phase = phase,
+            )
         } else {
             DetectionReadiness.Ready(strategy)
         }

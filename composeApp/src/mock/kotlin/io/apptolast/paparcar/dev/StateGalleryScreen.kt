@@ -231,6 +231,28 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // Candidate phase: stopped + walking away → chip flips to "Aparcando…" in green. [DET-PHASE-001]
+            Variant("Sheet · coche candidato (aparcando)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        nearbySpots = FakeData.nearbySpots,
+                        drivingPuck = io.apptolast.paparcar.domain.model.DrivingPuck(
+                            latitude = sampleGps.latitude,
+                            longitude = sampleGps.longitude,
+                            bearingDegrees = 42f,
+                            accuracy = 8f,
+                            carbodyType = FakeData.vehicleSedan.carbodyType,
+                            sizeCategory = FakeData.vehicleSedan.sizeCategory,
+                            color = FakeData.vehicleSedan.color,
+                            vehicleId = FakeData.vehicleSedan.id,
+                            phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate,
+                        ),
+                    ),
+                )
+            },
             Variant("Sheet · sin spots (vacío)") {
                 sheet(HomeState(hasCorePermissions = true, nearbySpots = emptyList()))
             },

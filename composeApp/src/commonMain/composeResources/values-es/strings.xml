@@ -13,6 +13,7 @@
     <string name="home_vehicle_chip_badge_active">Activo</string>
     <string name="home_vehicle_chip_status_parked">Aparcado · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Conduciendo</string>
+    <string name="home_vehicle_chip_status_candidate">Aparcando…</string>
     <!-- ParkingPeekRow (hero card del coche seleccionado) — fallback. -->
     <string name="home_peek_parked_label">Aparcado</string>
     <!-- SpotPeekRow (hero card de plaza seleccionada) -->

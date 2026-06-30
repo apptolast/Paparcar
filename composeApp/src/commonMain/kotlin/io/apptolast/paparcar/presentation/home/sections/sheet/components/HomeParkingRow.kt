@@ -51,6 +51,7 @@ import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_vehicle_card_status_empty
 import paparcar.composeapp.generated.resources.home_vehicle_chip_badge_active
+import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_driving
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_parked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
@@ -71,6 +72,9 @@ internal fun HomeVehicleChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isDriving: Boolean = false,
+    // Candidate phase: the trip stopped and the user is walking away — show a distinct
+    // "parking…" label (green, hinting the upcoming parked state) instead of "Driving". [DET-PHASE-001]
+    isCandidate: Boolean = false,
 ) {
     val vehicle = card.vehicle
     val session = card.session
@@ -156,12 +160,17 @@ internal fun HomeVehicleChip(
                 if (isDriving) {
                     // Live "driving" state supersedes the BT/Active pill: a pulsing dot + the
                     // en-route-blue label signal a trip in progress, not yet parked. [CHIP-DRIVING-001]
+                    // In the candidate phase (stopped + walking away) the label flips to "Parking…" in
+                    // the brand green, hinting the transition into the parked state. [DET-PHASE-001]
                     DrivingLiveDot()
                     Text(
-                        text = stringResource(Res.string.home_vehicle_chip_status_driving),
+                        text = stringResource(
+                            if (isCandidate) Res.string.home_vehicle_chip_status_candidate
+                            else Res.string.home_vehicle_chip_status_driving
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = PapDriveBlue,
+                        color = if (isCandidate) cs.primary else PapDriveBlue,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

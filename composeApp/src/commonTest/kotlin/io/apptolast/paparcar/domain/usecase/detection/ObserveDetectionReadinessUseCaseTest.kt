@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.usecase.detection
 
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.StaticDetectionRuntimeState
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DisabledReason
@@ -81,6 +82,27 @@ class ObserveDetectionReadinessUseCaseTest {
     }
 
     @Test
+    fun `should carry the candidate phase on Monitoring`() = runTest {
+        val car = vehicle(type = VehicleType.CAR)
+        val readiness = buildUseCase(
+            vehicle = car,
+            permissions = allGranted(),
+            running = true,
+            phase = DetectionPhase.Candidate,
+        ).invoke().first()
+        val monitoring = assertIs<DetectionReadiness.Monitoring>(readiness)
+        assertEquals(DetectionPhase.Candidate, monitoring.phase)
+    }
+
+    @Test
+    fun `should default Monitoring phase to Driving`() = runTest {
+        val car = vehicle(type = VehicleType.CAR)
+        val readiness = buildUseCase(vehicle = car, permissions = allGranted(), running = true).invoke().first()
+        val monitoring = assertIs<DetectionReadiness.Monitoring>(readiness)
+        assertEquals(DetectionPhase.Driving, monitoring.phase)
+    }
+
+    @Test
     fun `should be Parked when an active session has a geofence`() = runTest {
         val car = vehicle(type = VehicleType.CAR)
         val session = session(geofenceId = "gf-1")
@@ -129,6 +151,7 @@ class ObserveDetectionReadinessUseCaseTest {
         permissions: io.apptolast.paparcar.domain.permissions.AppPermissionState = FakePermissionManager.allDenied(),
         session: UserParking? = null,
         running: Boolean = false,
+        phase: DetectionPhase = DetectionPhase.Driving,
         autoDetect: Boolean = true,
     ): ObserveDetectionReadinessUseCase {
         val vehicleRepo = FakeVehicleRepository(defaultVehicle = vehicle)
@@ -142,7 +165,7 @@ class ObserveDetectionReadinessUseCaseTest {
             vehicleRepository = vehicleRepo,
             userParkingRepository = parkingRepo,
             permissionManager = permissionManager,
-            detectionRuntime = StaticDetectionRuntimeState(running = running),
+            detectionRuntime = StaticDetectionRuntimeState(running = running, phase = phase),
             strategyResolver = resolver,
             appPreferences = FakeAppPreferences(initialAutoDetect = autoDetect),
         )

@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.domain.coordinator
 
+import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -25,7 +27,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
@@ -96,6 +100,10 @@ class CoordinatorParkingDetector(
     private val config: ParkingDetectionConfig,
     private val detectionEventLogger: DetectionEventLogger,
     private val evaluateParkingDecision: EvaluateParkingDecisionUseCase,
+    /** Receives the coarse [DetectionPhase] mapped from the internal confirmation phase, so Home can
+     *  show a distinct "candidate / looking for spot" treatment while a trip is being evaluated.
+     *  Nullable so existing test doubles need no change. [DET-PHASE-001] */
+    private val phaseSink: DetectionPhaseSink? = null,
     /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
      *  can be unit-tested without sleeping. Defaults to the system clock. */
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
@@ -322,6 +330,19 @@ class CoordinatorParkingDetector(
                 throw e
             } catch (e: Exception) {
                 PaparcarLogger.w(DIAG, "  ⚠ stepDetector failed — falling back to window-based confirm: ${e.message}")
+            }
+        }
+
+        // Mirror the internal confirmation phase to the UI as a coarse [DetectionPhase], so Home shows
+        // a distinct "candidate" treatment the moment the user stops and starts walking away. A reactive
+        // collector covers every phase mutation (and every return@collect path) with one emit point;
+        // cancelled in the finally alongside stepJob. [DET-PHASE-001]
+        val phaseJob = phaseSink?.let { sink ->
+            launch {
+                _detectionState
+                    .map { it.phase.toDetectionPhase() }
+                    .distinctUntilChanged()
+                    .collect { sink.setPhase(it) }
             }
         }
 
@@ -556,6 +577,7 @@ class CoordinatorParkingDetector(
                 }
         } finally {
             stepJob.cancel()
+            phaseJob?.cancel()
             // [FIX BUG-SERVICE-109: reset state on session exit so cross-session reads of
             //  hasDetectedMovement and any other state fields return defaults. Without this,
             //  the next session start would briefly observe stale `hasEverReachedDrivingSpeed`.
@@ -980,3 +1002,11 @@ class CoordinatorParkingDetector(
         const val DIAG = "PARKDIAG/Coord"
     }
 }
+
+/**
+ * Coarse mapping for the UI: any non-[ConfirmationPhase.Idle] phase means the detector is actively
+ * evaluating a stop (the user appears to be parking / walking away) → [DetectionPhase.Candidate];
+ * [ConfirmationPhase.Idle] is a normal in-motion trip → [DetectionPhase.Driving]. [DET-PHASE-001]
+ */
+private fun ConfirmationPhase.toDetectionPhase(): DetectionPhase =
+    if (this is ConfirmationPhase.Idle) DetectionPhase.Driving else DetectionPhase.Candidate

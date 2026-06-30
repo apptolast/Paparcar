@@ -16,6 +16,8 @@
     <string name="home_vehicle_chip_status_parked">Parked · %1$s</string>
     <!-- Vehicle chip — live status while a trip is being detected (driving, not yet parked). -->
     <string name="home_vehicle_chip_status_driving">Driving</string>
+    <!-- Vehicle chip — candidate phase: stopped and being evaluated for parking (DET-PHASE-001). -->
+    <string name="home_vehicle_chip_status_candidate">Parking…</string>
     <!-- ParkingPeekRow (selected vehicle hero card) — fallback when vehicle lookup fails. -->
     <string name="home_peek_parked_label">Parked</string>
     <!-- SpotPeekRow (selected spot hero card) -->
