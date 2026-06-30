@@ -19,6 +19,7 @@ import com.apptolast.customlogin.platform.ActivityHolder
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
+import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.presentation.app.SplashViewModel
@@ -41,6 +42,7 @@ class MainActivity : ComponentActivity() {
     private val connectivityObserver: ConnectivityObserver by inject()
     private val appPreferences: AppPreferences by inject()
     private val mapFocusEventBus: MapFocusEventBus by inject()
+    private val startAddParkingEventBus: StartAddParkingEventBus by inject()
 
     // Detects GPS toggled on/off from the quick-settings panel without leaving the app.
     // Registered dynamically (not in manifest) so it is scoped to the Activity lifecycle.
@@ -154,10 +156,18 @@ class MainActivity : ComponentActivity() {
         val lat = intent?.getDoubleExtra(EXTRA_FOCUS_LAT, Double.NaN)?.takeIf { !it.isNaN() }
         val lon = intent?.getDoubleExtra(EXTRA_FOCUS_LON, Double.NaN)?.takeIf { !it.isNaN() }
         if (lat != null && lon != null) mapFocusEventBus.focusAt(lat, lon)
+
+        // Cold-start nudge notification → drop straight into manual add-parking mode. The bus
+        // (CONFLATED Channel) buffers this until Home subscribes, so it survives launch from a
+        // killed process. [DET-TOGGLE-002]
+        if (intent?.getBooleanExtra(EXTRA_START_ADD_PARKING, false) == true) {
+            startAddParkingEventBus.request()
+        }
     }
 
     companion object {
         const val EXTRA_FOCUS_LAT = "extra_focus_lat"
         const val EXTRA_FOCUS_LON = "extra_focus_lon"
+        const val EXTRA_START_ADD_PARKING = "extra_start_add_parking"
     }
 }

@@ -66,6 +66,11 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Automatische Erkennung aktivieren</string>
     <string name="permissions_continue_with_core">Vielleicht später</string>
+    <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
+    <string name="permissions_skip_dialog_title">Automatische Erkennung überspringen?</string>
+    <string name="permissions_skip_dialog_body">Die beste Funktion von Paparcar erkennt und gibt deinen Parkplatz automatisch frei, wenn du losfährst. Ohne sie musst du alles von Hand erledigen.</string>
+    <string name="permissions_skip_dialog_activate">Jetzt aktivieren</string>
+    <string name="permissions_skip_dialog_later">Vielleicht später</string>
     <string name="permissions_btn_settings">Systemeinstellungen öffnen</string>
     <string name="permissions_rationale">Einige Berechtigungen wurden verweigert. Bitte erteile sie, um fortzufahren.</string>
     <string name="permissions_perm_location_services">Standortdienste</string>
@@ -506,6 +511,9 @@
     <string name="home_det_producer_sub">Gibt deinen Platz frei, wenn du losfährst</string>
     <string name="home_det_producer_cta">Aktivieren</string>
     <string name="home_det_enabled_confirm">Automatische Erkennung aktiviert</string>
+    <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
+    <string name="home_det_stopped_msg">Automatische Erkennung gestoppt</string>
+    <string name="home_det_stopped_action">Aktivieren</string>
     <string name="home_det_awaiting_title">Wo ist dein Auto?</string>
     <string name="home_det_awaiting_sub">Markiere den Platz, ich beobachte ihn</string>
     <string name="home_det_awaiting_cta_primary">Platz markieren</string>

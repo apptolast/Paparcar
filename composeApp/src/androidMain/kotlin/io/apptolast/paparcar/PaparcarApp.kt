@@ -14,6 +14,7 @@ import com.apptolast.customlogin.config.GoogleSignInConfig
 import com.apptolast.customlogin.di.LoginLibraryConfig
 import com.apptolast.customlogin.di.initLoginKoin
 import io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker
+import io.apptolast.paparcar.detection.worker.FirstParkNudgeWorker
 import io.apptolast.paparcar.detection.worker.GeofenceJanitorWorker
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.di.androidDetectionModule
@@ -84,6 +85,10 @@ class PaparcarApp : Application() {
         // Heartbeat: restart the detection foreground service every 15 min if a session is active
         // and the service was killed by Doze / OEM battery management. [DOZE-001]
         DetectionHeartbeatWorker.enqueueKeep(workManager)
+
+        // Daily cold-start nudge for users who enabled detection but never parked with it. Fires at
+        // most a few throttled reminders and self-disables after the first park. [DET-TOGGLE-002]
+        FirstParkNudgeWorker.enqueueKeep(workManager)
     }
 
     private fun hasActivityRecognitionPermission(): Boolean =

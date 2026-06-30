@@ -51,5 +51,9 @@
     <!-- Notificatie: watchdog "nog geparkeerd?" (mogelijk gemiste geofence-uitgang) -->
     <string name="notif_still_parked_title">Nog steeds hier geparkeerd?</string>
     <string name="notif_still_parked_text">Als je al weg bent, geef de plek vrij voor de community.</string>
+    <!-- DET-TOGGLE-002: cold-start nudge -->
+    <string name="notif_first_park_nudge_title">Parkeer één keer om detectie te starten</string>
+    <string name="notif_first_park_nudge_text">Parkeer één keer met Paparcar; daarna geven we je plek automatisch vrij bij elk vertrek.</string>
+    <string name="notif_first_park_nudge_action">Mijn plek markeren</string>
     <string name="notif_action_ive_left">Ik ben weg</string>
 </resources>

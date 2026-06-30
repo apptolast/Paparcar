@@ -127,6 +127,16 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override fun setAutoDetectParking(enabled: Boolean) { _autoDetectParking.value = enabled }
     override fun observeAutoDetectParking(): kotlinx.coroutines.flow.Flow<Boolean> = _autoDetectParking
 
+    private var _firstParkNudgeCount = 0
+    override val firstParkNudgeCount: Int get() = _firstParkNudgeCount
+    override fun setFirstParkNudgeCount(count: Int) { _firstParkNudgeCount = count }
+    private var _lastFirstParkNudgeAt = 0L
+    override val lastFirstParkNudgeAtMillis: Long get() = _lastFirstParkNudgeAt
+    override fun setLastFirstParkNudgeAt(millis: Long) { _lastFirstParkNudgeAt = millis }
+    private var _hasConfirmedFirstPark = false
+    override val hasConfirmedFirstPark: Boolean get() = _hasConfirmedFirstPark
+    override fun setHasConfirmedFirstPark() { _hasConfirmedFirstPark = true }
+
     private val _notifyParkingDetected = MutableStateFlow(true)
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected.value
     override fun setNotifyParkingDetected(enabled: Boolean) { _notifyParkingDetected.value = enabled }

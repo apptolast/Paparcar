@@ -89,6 +89,11 @@
     <!-- DET-READY-001e: CORE-required, PRODUCER-optional onboarding -->
     <string name="permissions_btn_activate_detection">Turn on auto-detection</string>
     <string name="permissions_continue_with_core">Maybe later</string>
+    <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
+    <string name="permissions_skip_dialog_title">Skip automatic detection?</string>
+    <string name="permissions_skip_dialog_body">Paparcar’s best feature finds and frees your parking spot automatically when you drive off. Without it, you’ll have to do everything by hand.</string>
+    <string name="permissions_skip_dialog_activate">Activate now</string>
+    <string name="permissions_skip_dialog_later">Maybe later</string>
     <string name="permissions_btn_settings">Open system settings</string>
     <string name="permissions_rationale">Some permissions were denied. Please grant them to continue.</string>
     <string name="permissions_perm_location_services">Location services</string>
@@ -520,6 +525,9 @@
     <string name="home_det_producer_sub">Frees your spot when you drive off</string>
     <string name="home_det_producer_cta">Turn on</string>
     <string name="home_det_enabled_confirm">Auto-detection activated</string>
+    <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
+    <string name="home_det_stopped_msg">Auto-detection stopped</string>
+    <string name="home_det_stopped_action">Turn on</string>
     <string name="home_det_awaiting_title">Where is your car?</string>
     <string name="home_det_awaiting_sub">Mark the spot and I will watch it</string>
     <string name="home_det_awaiting_cta_primary">Mark my spot</string>

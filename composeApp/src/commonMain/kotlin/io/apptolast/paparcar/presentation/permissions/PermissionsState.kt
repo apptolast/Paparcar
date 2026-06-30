@@ -37,6 +37,9 @@ data class PermissionsState(
      *  Android 11+ takes the user directly to Settings with no dialog — without this
      *  guide users don't know they must select "Allow all the time" then press Back. */
     val showBackgroundLocationGuide: Boolean = false,
+    /** Educational confirmation shown when the user taps "Maybe later" — warns they'll miss the core
+     *  value (automatic spot detection) before deferring the producer tier. [DET-TOGGLE-002] */
+    val showSkipDetectionDialog: Boolean = false,
 ) {
     /**
      * True when the CORE tier (foreground location + notifications) and GPS are satisfied but the

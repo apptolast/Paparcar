@@ -34,10 +34,14 @@ import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
+import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.presentation.base.BaseViewModel
+import io.apptolast.paparcar.presentation.home.model.isDetectionStopped
+import io.apptolast.paparcar.presentation.home.model.isDetectionWorking
+import io.apptolast.paparcar.presentation.home.model.toUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -49,6 +53,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -56,6 +61,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -81,6 +87,7 @@ class HomeViewModel(
     private val saveZone: SaveZoneUseCase,
     private val appPreferences: AppPreferences,
     private val mapFocusEventBus: MapFocusEventBus,
+    private val startAddParkingEventBus: StartAddParkingEventBus,
     private val notificationPort: AppNotificationManager,
     private val manualParkingDetection: ManualParkingDetection,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
@@ -129,6 +136,7 @@ class HomeViewModel(
         subscribeGpsLocation()
         subscribeNearbySpots()
         subscribeMapFocusEvents()
+        subscribeStartAddParkingRequests()
         subscribeDetectionReadiness()
         subscribeDrivingPuck()
     }
@@ -356,11 +364,46 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
-    /** Drives the persistent detection-readiness banner. [DET-READY-001g] */
+    /** The cold-start nudge notification ("Marcar mi plaza" / tap) asks Home to drop the user straight
+     *  into manual add-parking mode, pre-centred on their GPS and tagged with the active vehicle —
+     *  mirrors the detection banner's "mark spot" action. [DET-TOGGLE-002] */
+    private fun subscribeStartAddParkingRequests() {
+        startAddParkingEventBus.requests
+            .onEach {
+                // Cold-start race: the nudge launches the app from a killed process, so the vehicles
+                // flow may not have emitted yet when the request arrives. Wait briefly for it to load
+                // so the peek shows the real vehicle glyph (not a generic car) and the session is
+                // attributed to the right car. [DET-TOGGLE-002]
+                val vehicles = withTimeoutOrNull(ADD_PARKING_VEHICLE_WAIT_MS) {
+                    state.map { it.vehicles }.first { it.isNotEmpty() }
+                } ?: state.value.vehicles
+                val markVehicleId = vehicles.firstOrNull { it.isActive }?.id
+                    ?: vehicles.firstOrNull()?.id
+                handleIntent(
+                    HomeIntent.EnterAddParkingMode(
+                        initialGps = state.value.userGpsPoint,
+                        targetVehicleId = markVehicleId,
+                    ),
+                )
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /** Drives the persistent detection-readiness banner [DET-READY-001g] and fires the transient
+     *  "detection stopped" snackbar on a working→stopped drop. [DET-TOGGLE-002] */
     private fun subscribeDetectionReadiness() {
         observeDetectionReadiness()
             .distinctUntilChanged()
-            .onEach { readiness -> updateState { copy(detectionReadiness = readiness) } }
+            .onEach { readiness ->
+                val wasWorking = state.value.detectionReadiness.toUiState().isDetectionWorking
+                updateState { copy(detectionReadiness = readiness) }
+                // Detection just dropped from a working state into a stopped one (Settings flag off, or
+                // a producer/core permission revoked). Surface a snackbar with one-tap re-activation —
+                // the persistent banner stays; this catches the moment of the change. [DET-TOGGLE-002]
+                if (wasWorking && readiness.toUiState().isDetectionStopped) {
+                    sendEffect(HomeEffect.DetectionStopped)
+                }
+            }
             .launchIn(viewModelScope)
     }
 
@@ -852,6 +895,10 @@ class HomeViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
         const val CAMERA_SETTLED_MS = 280L
+
+        // Max wait for the vehicles flow to load before honouring a cold-start "add parking"
+        // deep-link from the nudge notification, so the right vehicle is resolved. [DET-TOGGLE-002]
+        const val ADD_PARKING_VEHICLE_WAIT_MS = 3000L
 
         // Distance thresholds
         // Both at 300m so GPS drift alone never triggers a Firestore reconnect —

@@ -21,4 +21,7 @@ sealed class HomeEffect {
     /** Auto-detection enabled but permissions still missing — open the permissions screen at [focus]
      *  ("producer" or "all") so one banner tap brings detection fully online. [DET-TOGGLE-001] */
     data class OpenDetectionPermissions(val focus: String) : HomeEffect()
+    /** Detection just dropped from a working state into a stopped one (turned off in Settings, or a
+     *  producer/core permission revoked) — show a snackbar with one-tap re-activation. [DET-TOGGLE-002] */
+    data object DetectionStopped : HomeEffect()
 }

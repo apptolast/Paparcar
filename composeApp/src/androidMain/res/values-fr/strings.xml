@@ -51,5 +51,9 @@
     <!-- Notification : watchdog « toujours garé ? » (sortie de géofence probablement manquée) -->
     <string name="notif_still_parked_title">Toujours garé ici ?</string>
     <string name="notif_still_parked_text">Si vous êtes déjà parti, libérez la place pour la communauté.</string>
+    <!-- DET-TOGGLE-002: cold-start nudge -->
+    <string name="notif_first_park_nudge_title">Garez-vous une fois pour activer la détection</string>
+    <string name="notif_first_park_nudge_text">Garez-vous une fois avec Paparcar ; ensuite nous libérons votre place automatiquement à chaque départ.</string>
+    <string name="notif_first_park_nudge_action">Marquer ma place</string>
     <string name="notif_action_ive_left">Je suis parti</string>
 </resources>

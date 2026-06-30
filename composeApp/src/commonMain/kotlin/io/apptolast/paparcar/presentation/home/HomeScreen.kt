@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -78,6 +80,8 @@ import paparcar.composeapp.generated.resources.error_parking_save_failed
 import paparcar.composeapp.generated.resources.error_release_parking
 import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
+import paparcar.composeapp.generated.resources.home_det_stopped_action
+import paparcar.composeapp.generated.resources.home_det_stopped_msg
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
@@ -163,6 +167,8 @@ fun HomeScreen(
     val msgOfflineBlocked = stringResource(Res.string.connectivity_action_blocked_offline)
     val msgZoneSaved = stringResource(Res.string.home_zone_saved_message)
     val msgDetectionEnabled = stringResource(Res.string.home_det_enabled_confirm)
+    val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
+    val msgDetectionStoppedAction = stringResource(Res.string.home_det_stopped_action)
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
@@ -185,6 +191,18 @@ fun HomeScreen(
                 HomeEffect.OfflineActionBlocked -> snackbarHostState.showSnackbar(msgOfflineBlocked)
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
                 HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
+                // Detection dropped to a stopped state → snackbar with a one-tap re-activation that
+                // reuses the same EnableAutoDetection flow as the banner. [DET-TOGGLE-002]
+                HomeEffect.DetectionStopped -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = msgDetectionStopped,
+                        actionLabel = msgDetectionStoppedAction,
+                        duration = SnackbarDuration.Long,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.handleIntent(HomeIntent.EnableAutoDetection)
+                    }
+                }
                 // Flag enabled but permissions still needed → open the permissions screen so the one
                 // "activate detection" tap brings detection fully online. [DET-TOGGLE-001]
                 is HomeEffect.OpenDetectionPermissions -> onActivateDetection(effect.focus)

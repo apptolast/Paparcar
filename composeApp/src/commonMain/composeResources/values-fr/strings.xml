@@ -66,6 +66,11 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activer la détection automatique</string>
     <string name="permissions_continue_with_core">Peut-être plus tard</string>
+    <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
+    <string name="permissions_skip_dialog_title">Ignorer la détection automatique ?</string>
+    <string name="permissions_skip_dialog_body">La meilleure fonction de Paparcar détecte et libère votre place automatiquement quand vous partez. Sans elle, vous devrez tout faire à la main.</string>
+    <string name="permissions_skip_dialog_activate">Activer maintenant</string>
+    <string name="permissions_skip_dialog_later">Peut-être plus tard</string>
     <string name="permissions_btn_settings">Ouvrir les paramètres système</string>
     <string name="permissions_rationale">Certaines permissions ont été refusées. Veuillez les accorder pour continuer.</string>
     <string name="permissions_perm_location_services">Services de localisation</string>
@@ -506,6 +511,9 @@
     <string name="home_det_producer_sub">Libère votre place quand vous partez</string>
     <string name="home_det_producer_cta">Activer</string>
     <string name="home_det_enabled_confirm">Détection automatique activée</string>
+    <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
+    <string name="home_det_stopped_msg">Détection automatique arrêtée</string>
+    <string name="home_det_stopped_action">Activer</string>
     <string name="home_det_awaiting_title">Où est votre voiture ?</string>
     <string name="home_det_awaiting_sub">Marquez la place, je la surveille</string>
     <string name="home_det_awaiting_cta_primary">Marquer ma place</string>

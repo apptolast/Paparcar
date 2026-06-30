@@ -86,3 +86,15 @@ val DetectionUiState.rendersActionSurface: Boolean
         this == DetectionUiState.Inactive ||
         this == DetectionUiState.BlockedCore ||
         this == DetectionUiState.AwaitingFirstPark
+
+/** Detection is running or armed — a real "working" state that can be lost. Used to fire the
+ *  in-app "detection stopped" snackbar only on a genuine working→stopped drop. [DET-TOGGLE-002] */
+val DetectionUiState.isDetectionWorking: Boolean
+    get() = this == DetectionUiState.Monitoring ||
+        this == DetectionUiState.Parked ||
+        this == DetectionUiState.AwaitingFirstPark
+
+/** Detection has stopped but can be re-activated in one tap (off in Settings, or producer/core
+ *  permissions missing). [DET-TOGGLE-002] */
+val DetectionUiState.isDetectionStopped: Boolean
+    get() = this == DetectionUiState.Inactive || this == DetectionUiState.BlockedCore

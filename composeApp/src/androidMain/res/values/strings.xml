@@ -37,6 +37,10 @@
     <!-- Notification: watchdog "still parked?" prompt (suspected missed geofence exit) -->
     <string name="notif_still_parked_title">Still parked here?</string>
     <string name="notif_still_parked_text">If you\'ve already driven off, free the spot for the community.</string>
+    <!-- DET-TOGGLE-002: cold-start nudge -->
+    <string name="notif_first_park_nudge_title">Park once to start auto-detection</string>
+    <string name="notif_first_park_nudge_text">Park with Paparcar once — after that we free your spot automatically every time you leave.</string>
+    <string name="notif_first_park_nudge_action">Mark my spot</string>
     <string name="notif_action_ive_left">I\'ve left</string>
 
     <!-- Notification: debug (dev builds only) -->

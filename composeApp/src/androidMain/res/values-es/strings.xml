@@ -51,5 +51,9 @@
     <!-- Notificación: watchdog "¿sigues aparcado?" (posible salida de geocerca perdida) -->
     <string name="notif_still_parked_title">¿Sigues aparcado aquí?</string>
     <string name="notif_still_parked_text">Si ya te has ido, libera la plaza para la comunidad.</string>
+    <!-- DET-TOGGLE-002: cold-start nudge -->
+    <string name="notif_first_park_nudge_title">Aparca una vez para activar la detección</string>
+    <string name="notif_first_park_nudge_text">Aparca con Paparcar una vez; después liberamos tu plaza automáticamente cada vez que salgas.</string>
+    <string name="notif_first_park_nudge_action">Marcar mi plaza</string>
     <string name="notif_action_ive_left">Ya he salido</string>
 </resources>

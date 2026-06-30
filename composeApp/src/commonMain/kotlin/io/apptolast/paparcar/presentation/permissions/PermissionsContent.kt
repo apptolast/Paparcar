@@ -45,6 +45,10 @@ import paparcar.composeapp.generated.resources.permissions_btn_grant
 import paparcar.composeapp.generated.resources.permissions_btn_location_settings
 import paparcar.composeapp.generated.resources.permissions_btn_settings
 import paparcar.composeapp.generated.resources.permissions_continue_with_core
+import paparcar.composeapp.generated.resources.permissions_skip_dialog_activate
+import paparcar.composeapp.generated.resources.permissions_skip_dialog_body
+import paparcar.composeapp.generated.resources.permissions_skip_dialog_later
+import paparcar.composeapp.generated.resources.permissions_skip_dialog_title
 import paparcar.composeapp.generated.resources.permissions_perm_activity
 import paparcar.composeapp.generated.resources.permissions_perm_activity_desc
 import paparcar.composeapp.generated.resources.permissions_perm_autostart
@@ -94,6 +98,8 @@ internal fun PermissionsContent(
     onConfirmBackgroundLocationGuide: () -> Unit = {},
     onDismissBackgroundLocationGuide: () -> Unit = {},
     onContinueWithCore: () -> Unit = {},
+    onRequestSkipDetection: () -> Unit = {},
+    onDismissSkipDetectionDialog: () -> Unit = {},
     focus: PermissionsFocus = PermissionsFocus.All,
 ) {
     if (state.showBackgroundLocationGuide) {
@@ -105,6 +111,22 @@ internal fun PermissionsContent(
             primaryLabel = stringResource(Res.string.permissions_bg_guide_cta),
             onPrimary = onConfirmBackgroundLocationGuide,
             cancelLabel = stringResource(Res.string.permissions_bg_guide_dismiss),
+        )
+    }
+
+    // "Maybe later" confirmation — nudge the user to activate before deferring auto-detection. The
+    // emphasised primary keeps them here; the secondary lets them skip. Outside-tap is safe (stays).
+    // [DET-TOGGLE-002]
+    if (state.showSkipDetectionDialog) {
+        PapAlertDialog(
+            onDismiss = onDismissSkipDetectionDialog,
+            icon = Icons.Rounded.Sensors,
+            title = stringResource(Res.string.permissions_skip_dialog_title),
+            body = stringResource(Res.string.permissions_skip_dialog_body),
+            primaryLabel = stringResource(Res.string.permissions_skip_dialog_activate),
+            onPrimary = onDismissSkipDetectionDialog,
+            secondaryLabel = stringResource(Res.string.permissions_skip_dialog_later),
+            onSecondary = onContinueWithCore,
         )
     }
 
@@ -128,7 +150,7 @@ internal fun PermissionsContent(
                     isCorePending = isCorePending,
                     isGpsPending = isGpsPending,
                     onRequestPermissions = onRequestPermissions,
-                    onContinueWithCore = onContinueWithCore,
+                    onRequestSkipDetection = onRequestSkipDetection,
                 )
             }
         } else {
@@ -302,7 +324,7 @@ private fun ColumnScope.PermissionsFooter(
     isCorePending: Boolean,
     isGpsPending: Boolean,
     onRequestPermissions: () -> Unit,
-    onContinueWithCore: () -> Unit,
+    onRequestSkipDetection: () -> Unit,
 ) {
     // Location permanently denied / revoked → the request dialog would no-op, so jump straight to the
     // amber "open settings" CTA from the first frame. [DET-READY-001m]
@@ -340,7 +362,7 @@ private fun ColumnScope.PermissionsFooter(
     // met so the user is never stranded below it. [DET-READY-001e]
     if (state.canContinueWithCore) {
         TextButton(
-            onClick = onContinueWithCore,
+            onClick = onRequestSkipDetection,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(

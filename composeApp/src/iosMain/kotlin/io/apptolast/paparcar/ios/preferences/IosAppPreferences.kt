@@ -11,6 +11,9 @@ private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
 private const val KEY_GPS_ACCURACY_DISCLAIMER_SEEN = "gps_accuracy_disclaimer_seen"
 private const val KEY_LOCATION_PERMISSION_REQUESTED = "location_permission_requested"
 private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
+private const val KEY_FIRST_PARK_NUDGE_COUNT = "first_park_nudge_count"
+private const val KEY_LAST_FIRST_PARK_NUDGE_AT = "last_first_park_nudge_at"
+private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
@@ -64,6 +67,29 @@ class IosAppPreferences : AppPreferences {
     }
 
     override fun observeAutoDetectParking(): Flow<Boolean> = autoDetectFlow.asStateFlow()
+
+    // ── First-park nudge ───────────────────────────────────────────────────────
+
+    override val firstParkNudgeCount: Int
+        get() = userDefaults.integerForKey(KEY_FIRST_PARK_NUDGE_COUNT).toInt()
+
+    override fun setFirstParkNudgeCount(count: Int) {
+        userDefaults.setInteger(count.toLong(), forKey = KEY_FIRST_PARK_NUDGE_COUNT)
+    }
+
+    override val lastFirstParkNudgeAtMillis: Long
+        get() = userDefaults.integerForKey(KEY_LAST_FIRST_PARK_NUDGE_AT)
+
+    override fun setLastFirstParkNudgeAt(millis: Long) {
+        userDefaults.setInteger(millis, forKey = KEY_LAST_FIRST_PARK_NUDGE_AT)
+    }
+
+    override val hasConfirmedFirstPark: Boolean
+        get() = userDefaults.boolForKey(KEY_HAS_CONFIRMED_FIRST_PARK)
+
+    override fun setHasConfirmedFirstPark() {
+        userDefaults.setBool(true, forKey = KEY_HAS_CONFIRMED_FIRST_PARK)
+    }
 
     override val notifyParkingDetected: Boolean
         get() = if (userDefaults.objectForKey(KEY_NOTIFY_PARKING_DETECTED) == null) true

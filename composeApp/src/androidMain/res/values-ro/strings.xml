@@ -51,5 +51,9 @@
     <!-- Notificare: watchdog „încă parcat?" (probabil ieșire din geofence ratată) -->
     <string name="notif_still_parked_title">Încă parcat aici?</string>
     <string name="notif_still_parked_text">Dacă ai plecat deja, eliberează locul pentru comunitate.</string>
+    <!-- DET-TOGGLE-002: cold-start nudge -->
+    <string name="notif_first_park_nudge_title">Parchează o dată pentru a porni detectarea</string>
+    <string name="notif_first_park_nudge_text">Parchează o dată cu Paparcar; apoi eliberăm automat locul tău de fiecare dată când pleci.</string>
+    <string name="notif_first_park_nudge_action">Marchează locul</string>
     <string name="notif_action_ive_left">Am plecat</string>
 </resources>

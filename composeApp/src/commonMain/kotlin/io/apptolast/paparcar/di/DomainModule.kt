@@ -23,6 +23,7 @@ import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ShouldArmFromVehicleEnterUseCase
 import org.koin.dsl.bind
@@ -34,12 +35,14 @@ import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
+import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
 
     single { MapFocusEventBus() }
+    single { StartAddParkingEventBus() }
 
     // User UseCases
     factory { GetOrCreateUserProfileUseCase(get(), get()) }
@@ -90,6 +93,7 @@ val domainModule = module {
             config = get(),
             departureEventBus = get(),
             activityRecognitionManager = get(),
+            appPreferences = get(),
         )
     }
     single {
@@ -153,6 +157,12 @@ val domainModule = module {
             permissionManager = get(),
             detectionRuntime = get(),
             strategyResolver = get(),
+            appPreferences = get(),
+        )
+    }
+    factory {
+        EvaluateFirstParkNudgeUseCase(
+            observeDetectionReadiness = get(),
             appPreferences = get(),
         )
     }

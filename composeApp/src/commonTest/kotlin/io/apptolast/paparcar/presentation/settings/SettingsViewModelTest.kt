@@ -111,6 +111,26 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `should_emitDetectionTurnedOff_when_autoDetect_toggled_off`() = runTest {
+        // [DET-TOGGLE-002] Turning OFF confirms at the point of action with an undo snackbar.
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleAutoDetect(false))
+            assertIs<SettingsEffect.DetectionTurnedOff>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_notEmitEffect_when_autoDetect_toggled_on`() = runTest {
+        prefs.setAutoDetectParking(false)
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ToggleAutoDetect(true))
+            expectNoEvents()
+        }
+        assertTrue(vm.state.value.autoDetectParking)
+    }
+
+    @Test
     fun `should_updateNotifyParking_state_and_prefs`() = runTest {
         vm.handleIntent(SettingsIntent.ToggleParkingDetectedNotif(false))
         assertFalse(vm.state.value.notifyParkingDetected)

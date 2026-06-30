@@ -68,6 +68,11 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Włącz automatyczne wykrywanie</string>
     <string name="permissions_continue_with_core">Może później</string>
+    <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
+    <string name="permissions_skip_dialog_title">Pominąć automatyczne wykrywanie?</string>
+    <string name="permissions_skip_dialog_body">Najlepsza funkcja Paparcar automatycznie wykrywa i zwalnia Twoje miejsce, gdy odjeżdżasz. Bez niej wszystko musisz robić ręcznie.</string>
+    <string name="permissions_skip_dialog_activate">Aktywuj teraz</string>
+    <string name="permissions_skip_dialog_later">Może później</string>
     <string name="permissions_btn_settings">Otwórz ustawienia systemowe</string>
     <string name="permissions_rationale">Niektóre uprawnienia zostały odrzucone. Przyznaj je, aby kontynuować.</string>
     <string name="permissions_perm_location_services">Usługi lokalizacji</string>
@@ -510,6 +515,9 @@
     <string name="home_det_producer_sub">Zwalnia miejsce, gdy odjeżdżasz</string>
     <string name="home_det_producer_cta">Włącz</string>
     <string name="home_det_enabled_confirm">Automatyczne wykrywanie włączone</string>
+    <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
+    <string name="home_det_stopped_msg">Automatyczne wykrywanie zatrzymane</string>
+    <string name="home_det_stopped_action">Włącz</string>
     <string name="home_det_awaiting_title">Gdzie jest auto?</string>
     <string name="home_det_awaiting_sub">Zaznacz miejsce, a ja go przypilnuję</string>
     <string name="home_det_awaiting_cta_primary">Zaznacz miejsce</string>

@@ -21,6 +21,17 @@ interface AppPreferences {
      *  orchestration update live when the user flips the Settings toggle. [DET-TOGGLE-001] */
     fun observeAutoDetectParking(): Flow<Boolean>
 
+    // ── First-park nudge (cold-start reminder). [DET-TOGGLE-002] ──
+    /** How many cold-start nudges have been shown — capped so we never nag. */
+    val firstParkNudgeCount: Int
+    fun setFirstParkNudgeCount(count: Int)
+    /** Epoch millis of the last cold-start nudge (0 = never). Cooldown anchor. */
+    val lastFirstParkNudgeAtMillis: Long
+    fun setLastFirstParkNudgeAt(millis: Long)
+    /** True once the user has had a first parking confirmed — auto-disables the cold-start nudge. */
+    val hasConfirmedFirstPark: Boolean
+    fun setHasConfirmedFirstPark()
+
     val notifyParkingDetected: Boolean
     fun setNotifyParkingDetected(enabled: Boolean)
 

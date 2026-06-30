@@ -30,6 +30,10 @@ sealed class PermissionsIntent {
      * the user to enable detection afterwards. [DET-READY-001e]
      */
     data object ContinueWithCore : PermissionsIntent()
+    /** "Maybe later" tapped — show the educational "you'll miss auto-detection" dialog first. [DET-TOGGLE-002] */
+    data object RequestSkipDetection : PermissionsIntent()
+    /** Dismiss the skip-detection dialog and stay on the permissions screen (user chose to activate). */
+    data object DismissSkipDetectionDialog : PermissionsIntent()
     /** User confirmed the background-location guide and wants to open system Settings now. */
     data object ConfirmBackgroundLocationGuide : PermissionsIntent()
     /** User dismissed the background-location guide without opening Settings. */

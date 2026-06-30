@@ -348,6 +348,18 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Prompt de ajustes") {
                 PermissionsContent(state = PermissionsState(showSettingsPrompt = true), onRequestPermissions = {})
             },
+            // [DET-TOGGLE-002] Diálogo educativo "Maybe later" — core+GPS concedidos, producer pendiente.
+            Variant("Diálogo saltar detección") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true,
+                        isLocationServicesEnabled = true,
+                        hasBackgroundLocation = false,
+                        showSkipDetectionDialog = true,
+                    ),
+                    onRequestPermissions = {},
+                )
+            },
             Variant("Tarjeta autostart (OEM)") {
                 PermissionsContent(
                     state = PermissionsState(

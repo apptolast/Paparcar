@@ -186,6 +186,28 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID, notification)
     }
 
+    override fun showFirstParkNudge() {
+        // Low-priority, gentle nudge on the UPLOAD channel (DEFAULT importance). Tap AND the action
+        // both deep-link straight into manual add-parking mode (not just Home), matching the
+        // "Marcar mi plaza" promise. [DET-TOGGLE-002]
+        val addParkingIntent = buildAddParkingIntent(RC_FIRST_PARK_NUDGE)
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_first_park_nudge_title))
+            .setContentText(context.getString(R.string.notif_first_park_nudge_text))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(context.getString(R.string.notif_first_park_nudge_text)),
+            )
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_SUCCESS)
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setContentIntent(addParkingIntent)
+            .addAction(0, context.getString(R.string.notif_first_park_nudge_action), addParkingIntent)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.FIRST_PARK_NUDGE_NOTIFICATION_ID, notification)
+    }
+
     override fun showDebug(message: String) {
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_debug_title))
@@ -258,6 +280,22 @@ class AppNotificationManagerImpl(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+    /**
+     * PendingIntent that opens MainActivity and asks Home to enter manual add-parking mode.
+     * The flag is passed as an extra and consumed by [MainActivity] (onCreate for cold start,
+     * onNewIntent when already running). [DET-TOGGLE-002]
+     */
+    private fun buildAddParkingIntent(requestCode: Int): PendingIntent =
+        PendingIntent.getActivity(
+            context,
+            requestCode,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(MainActivity.EXTRA_START_ADD_PARKING, true)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
     private fun createNotificationChannels() {
         val detectionChannel = NotificationChannel(
             DETECTION_CHANNEL_ID,
@@ -316,6 +354,8 @@ class AppNotificationManagerImpl(
         // [DET-AR-REARM-001] watchdog "still parked?" prompt request codes
         private const val RC_STILL_PARKED_FOCUS = 205
         private const val RC_STILL_PARKED_LEFT = 206
+        // [DET-TOGGLE-002] cold-start nudge request code
+        private const val RC_FIRST_PARK_NUDGE = 207
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active

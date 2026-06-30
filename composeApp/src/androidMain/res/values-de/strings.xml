@@ -51,5 +51,9 @@
     <!-- Notification: Watchdog „noch geparkt?" (vermutlich verpasster Geofence-Ausgang) -->
     <string name="notif_still_parked_title">Noch hier geparkt?</string>
     <string name="notif_still_parked_text">Wenn du schon weg bist, gib den Platz für die Community frei.</string>
+    <!-- DET-TOGGLE-002: cold-start nudge -->
+    <string name="notif_first_park_nudge_title">Einmal parken, um die Erkennung zu starten</string>
+    <string name="notif_first_park_nudge_text">Parke einmal mit Paparcar; danach geben wir deinen Platz bei jeder Abfahrt automatisch frei.</string>
+    <string name="notif_first_park_nudge_action">Platz markieren</string>
     <string name="notif_action_ive_left">Ich bin weg</string>
 </resources>

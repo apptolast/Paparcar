@@ -66,6 +66,11 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Activează detectarea automată</string>
     <string name="permissions_continue_with_core">Poate mai târziu</string>
+    <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
+    <string name="permissions_skip_dialog_title">Sari peste detectarea automată?</string>
+    <string name="permissions_skip_dialog_body">Cea mai bună funcție Paparcar găsește și eliberează automat locul tău când pleci. Fără ea, va trebui să faci totul manual.</string>
+    <string name="permissions_skip_dialog_activate">Activează acum</string>
+    <string name="permissions_skip_dialog_later">Poate mai târziu</string>
     <string name="permissions_btn_settings">Deschide setările sistemului</string>
     <string name="permissions_rationale">Unele permisiuni au fost refuzate. Acordă-le pentru a continua.</string>
     <string name="permissions_perm_location_services">Servicii de locație</string>
@@ -510,6 +515,9 @@
     <string name="home_det_producer_sub">Eliberează locul când pleci</string>
     <string name="home_det_producer_cta">Activează</string>
     <string name="home_det_enabled_confirm">Detectare automată activată</string>
+    <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
+    <string name="home_det_stopped_msg">Detectarea automată oprită</string>
+    <string name="home_det_stopped_action">Activează</string>
     <string name="home_det_awaiting_title">Unde e mașina?</string>
     <string name="home_det_awaiting_sub">Marchează locul și îl supraveghez</string>
     <string name="home_det_awaiting_cta_primary">Marchează locul</string>

@@ -51,5 +51,9 @@
     <!-- Notifica: watchdog "ancora parcheggiato?" (possibile uscita geofence persa) -->
     <string name="notif_still_parked_title">Ancora parcheggiato qui?</string>
     <string name="notif_still_parked_text">Se sei già partito, libera il posto per la comunità.</string>
+    <!-- DET-TOGGLE-002: cold-start nudge -->
+    <string name="notif_first_park_nudge_title">Parcheggia una volta per attivare il rilevamento</string>
+    <string name="notif_first_park_nudge_text">Parcheggia con Paparcar una volta; poi liberiamo il tuo posto automaticamente ogni volta che esci.</string>
+    <string name="notif_first_park_nudge_action">Segna il posto</string>
     <string name="notif_action_ive_left">Sono uscito</string>
 </resources>

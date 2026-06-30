@@ -16,7 +16,14 @@ import org.koin.dsl.module
 val presentationModule = module {
     viewModelOf(::SplashViewModel)
     viewModelOf(::AppViewModel)
-    viewModelOf(::HomeViewModel)
+    // Explicit constructor (not viewModelOf): HomeViewModel now has 23 ctor params and
+    // viewModelOf's reflection helper only supports up to 22. [DET-TOGGLE-002]
+    viewModel {
+        HomeViewModel(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
     viewModelOf(::ParkingLocationViewModel)
     viewModelOf(::SettingsViewModel)
     viewModelOf(::PermissionsViewModel)

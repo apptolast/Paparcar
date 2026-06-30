@@ -93,9 +93,15 @@ class PermissionsViewModel(
                 sendEffect(PermissionsEffect.LaunchOemBatterySettings)
             }
             PermissionsIntent.RefreshPermissions -> permissionManager.refreshPermissions()
+            PermissionsIntent.RequestSkipDetection ->
+                // "Maybe later" → confirm the user really wants to skip auto-detection first. [DET-TOGGLE-002]
+                updateState { copy(showSkipDetectionDialog = true) }
+            PermissionsIntent.DismissSkipDetectionDialog ->
+                updateState { copy(showSkipDetectionDialog = false) }
             PermissionsIntent.ContinueWithCore -> {
                 // Enter with CORE only; PRODUCER stays pending and is nudged from the Home banner.
                 // Guard on CORE + GPS so we never navigate into a non-operational app. [DET-READY-001e]
+                updateState { copy(showSkipDetectionDialog = false) }
                 if (state.value.canContinueWithCore) {
                     sendEffect(PermissionsEffect.NavigateToHome)
                 }

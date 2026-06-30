@@ -23,6 +23,7 @@ import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
+import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
@@ -132,6 +133,7 @@ class HomeViewModelTest {
             saveZone = SaveZoneUseCase(zoneRepo, authRepo),
             vehicleRepository = vehicleRepo,
             mapFocusEventBus = MapFocusEventBus(),
+            startAddParkingEventBus = StartAddParkingEventBus(),
             notificationPort = FakeAppNotificationManager(),
             manualParkingDetection = object : io.apptolast.paparcar.domain.detection.ManualParkingDetection {
                 override fun start() = Unit

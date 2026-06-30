@@ -65,6 +65,8 @@ class SettingsViewModel(
             is SettingsIntent.ToggleAutoDetect -> {
                 prefs.setAutoDetectParking(intent.enabled)
                 updateState { copy(autoDetectParking = intent.enabled) }
+                // Confirm a turn-OFF at the point of action with a one-tap undo. [DET-TOGGLE-002]
+                if (!intent.enabled) sendEffect(SettingsEffect.DetectionTurnedOff)
             }
             is SettingsIntent.ToggleParkingDetectedNotif -> {
                 prefs.setNotifyParkingDetected(intent.enabled)

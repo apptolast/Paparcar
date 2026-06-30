@@ -6,6 +6,8 @@ import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.apptolast.paparcar.domain.preferences.AppPreferences
@@ -86,6 +88,23 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
     override fun observeAutoDetectParking(): Flow<Boolean> =
         store.data.map { it[Keys.AUTO_DETECT_PARKING] ?: true }.distinctUntilChanged()
 
+    // ── First-park nudge ───────────────────────────────────────────────────────
+
+    override val firstParkNudgeCount: Int
+        get() = get(Keys.FIRST_PARK_NUDGE_COUNT, 0)
+
+    override fun setFirstParkNudgeCount(count: Int) = set(Keys.FIRST_PARK_NUDGE_COUNT, count)
+
+    override val lastFirstParkNudgeAtMillis: Long
+        get() = get(Keys.LAST_FIRST_PARK_NUDGE_AT, 0L)
+
+    override fun setLastFirstParkNudgeAt(millis: Long) = set(Keys.LAST_FIRST_PARK_NUDGE_AT, millis)
+
+    override val hasConfirmedFirstPark: Boolean
+        get() = get(Keys.HAS_CONFIRMED_FIRST_PARK, false)
+
+    override fun setHasConfirmedFirstPark() = set(Keys.HAS_CONFIRMED_FIRST_PARK, true)
+
     // ── Notifications ────────────────────────────────────────────────────────
 
     override val notifyParkingDetected: Boolean
@@ -136,6 +155,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val GPS_ACCURACY_DISCLAIMER_SEEN    = booleanPreferencesKey("gps_accuracy_disclaimer_seen")
         val LOCATION_PERMISSION_REQUESTED   = booleanPreferencesKey("location_permission_requested")
         val AUTO_DETECT_PARKING     = booleanPreferencesKey("auto_detect_parking")
+        val FIRST_PARK_NUDGE_COUNT  = intPreferencesKey("first_park_nudge_count")
+        val LAST_FIRST_PARK_NUDGE_AT = longPreferencesKey("last_first_park_nudge_at")
+        val HAS_CONFIRMED_FIRST_PARK = booleanPreferencesKey("has_confirmed_first_park")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")
         val THEME_MODE              = stringPreferencesKey("theme_mode")

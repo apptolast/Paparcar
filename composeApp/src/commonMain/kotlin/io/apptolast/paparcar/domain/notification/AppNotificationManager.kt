@@ -111,6 +111,14 @@ interface AppNotificationManager {
     fun showConfirmationFailed() {}
 
     /**
+     * Shows the gentle cold-start nudge — a low-priority reminder for users who enabled detection but
+     * have never actually parked with it, prompting them to mark a spot once so the geofence cycle
+     * takes over. Heavily throttled by EvaluateFirstParkNudgeUseCase and self-disabled after the first
+     * confirmed park. Default no-op for non-Android impls and fakes. [DET-TOGGLE-002]
+     */
+    fun showFirstParkNudge() {}
+
+    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -143,5 +151,8 @@ interface AppNotificationManager {
 
         /** ID for the watchdog "still parked?" prompt (channel: ACTION). [DET-AR-REARM-001] */
         const val STILL_PARKED_NOTIFICATION_ID = 2005
+
+        /** ID for the cold-start "park once to start auto-detection" nudge (channel: UPLOAD). [DET-TOGGLE-002] */
+        const val FIRST_PARK_NUDGE_NOTIFICATION_ID = 2006
     }
 }

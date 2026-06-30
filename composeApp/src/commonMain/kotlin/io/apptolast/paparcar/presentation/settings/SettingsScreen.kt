@@ -62,6 +62,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -103,6 +107,8 @@ import kotlin.time.Instant
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
+import paparcar.composeapp.generated.resources.home_det_stopped_action
+import paparcar.composeapp.generated.resources.home_det_stopped_msg
 import paparcar.composeapp.generated.resources.settings_auto_detect
 import paparcar.composeapp.generated.resources.settings_auto_detect_desc
 import paparcar.composeapp.generated.resources.settings_contact
@@ -178,6 +184,9 @@ fun SettingsScreen(
     val viewModel: SettingsViewModel = koinViewModel()
     val state by viewModel.state.collectAsStateLifecycleAware()
     val uriHandler = LocalUriHandler.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
+    val msgTurnOn = stringResource(Res.string.home_det_stopped_action)
 
     // Refresh pref-backed fields every time the screen re-enters composition,
     // so preferences mutated elsewhere (e.g. auto-detect toggled from the
@@ -193,6 +202,17 @@ fun SettingsScreen(
                 is SettingsEffect.NavigateToAuth -> onNavigateToAuth()
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
                 is SettingsEffect.ShowError -> { /* error handled via state */ }
+                // Turn-off confirmation with one-tap undo, right where the user flipped it. [DET-TOGGLE-002]
+                is SettingsEffect.DetectionTurnedOff -> {
+                    val result = snackbarHostState.showSnackbar(
+                        message = msgDetectionStopped,
+                        actionLabel = msgTurnOn,
+                        duration = SnackbarDuration.Long,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.handleIntent(SettingsIntent.ToggleAutoDetect(true))
+                    }
+                }
             }
         }
     }
@@ -200,6 +220,7 @@ fun SettingsScreen(
     SettingsContent(
         state = state,
         onIntent = viewModel::handleIntent,
+        snackbarHostState = snackbarHostState,
         onNavigateBack = onNavigateBack,
         themeMode = themeMode,
         onSetThemeMode = onSetThemeMode,
@@ -215,6 +236,7 @@ fun SettingsScreen(
 internal fun SettingsContent(
     state: SettingsState,
     onIntent: (SettingsIntent) -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onNavigateBack: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onSetThemeMode: (ThemeMode) -> Unit = {},
@@ -257,6 +279,7 @@ internal fun SettingsContent(
                 scrollBehavior = scrollBehavior,
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         // Match Home's bottom-sheet tone so the page doesn't feel near-black.
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) { innerPadding ->

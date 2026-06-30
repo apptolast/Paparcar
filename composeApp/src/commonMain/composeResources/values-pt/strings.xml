@@ -66,6 +66,11 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Ativar deteção automática</string>
     <string name="permissions_continue_with_core">Talvez mais tarde</string>
+    <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
+    <string name="permissions_skip_dialog_title">Ignorar a deteção automática?</string>
+    <string name="permissions_skip_dialog_body">O melhor do Paparcar deteta e liberta o teu lugar automaticamente quando sais. Sem isto, terás de fazer tudo à mão.</string>
+    <string name="permissions_skip_dialog_activate">Ativar agora</string>
+    <string name="permissions_skip_dialog_later">Talvez mais tarde</string>
     <string name="permissions_btn_settings">Abrir definições do sistema</string>
     <string name="permissions_rationale">Algumas permissões foram negadas. Conceda-as para continuar.</string>
     <string name="permissions_perm_location_services">Serviços de localização</string>
@@ -506,6 +511,9 @@
     <string name="home_det_producer_sub">Liberta o seu lugar quando arranca</string>
     <string name="home_det_producer_cta">Ativar</string>
     <string name="home_det_enabled_confirm">Deteção automática ativada</string>
+    <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
+    <string name="home_det_stopped_msg">Deteção automática parada</string>
+    <string name="home_det_stopped_action">Ativar</string>
     <string name="home_det_awaiting_title">Onde está o seu carro?</string>
     <string name="home_det_awaiting_sub">Marque o local e eu vigio a saída</string>
     <string name="home_det_awaiting_cta_primary">Marcar o meu lugar</string>

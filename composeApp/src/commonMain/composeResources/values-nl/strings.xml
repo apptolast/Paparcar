@@ -66,6 +66,11 @@
     <!-- DET-READY-001e -->
     <string name="permissions_btn_activate_detection">Automatische detectie inschakelen</string>
     <string name="permissions_continue_with_core">Misschien later</string>
+    <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
+    <string name="permissions_skip_dialog_title">Automatische detectie overslaan?</string>
+    <string name="permissions_skip_dialog_body">De beste functie van Paparcar vindt en geeft je parkeerplek automatisch vrij wanneer je wegrijdt. Zonder moet je alles handmatig doen.</string>
+    <string name="permissions_skip_dialog_activate">Nu activeren</string>
+    <string name="permissions_skip_dialog_later">Misschien later</string>
     <string name="permissions_btn_settings">Systeeminstellingen openen</string>
     <string name="permissions_rationale">Sommige machtigingen zijn geweigerd. Verleen ze om door te gaan.</string>
     <string name="permissions_perm_location_services">Locatieservices</string>
@@ -506,6 +511,9 @@
     <string name="home_det_producer_sub">Geeft je plek vrij als je wegrijdt</string>
     <string name="home_det_producer_cta">Inschakelen</string>
     <string name="home_det_enabled_confirm">Automatische detectie geactiveerd</string>
+    <!-- DET-TOGGLE-002: in-app snackbar when detection drops to a stopped state -->
+    <string name="home_det_stopped_msg">Automatische detectie gestopt</string>
+    <string name="home_det_stopped_action">Inschakelen</string>
     <string name="home_det_awaiting_title">Waar staat je auto?</string>
     <string name="home_det_awaiting_sub">Markeer de plek, ik houd hem in de gaten</string>
     <string name="home_det_awaiting_cta_primary">Plek markeren</string>
