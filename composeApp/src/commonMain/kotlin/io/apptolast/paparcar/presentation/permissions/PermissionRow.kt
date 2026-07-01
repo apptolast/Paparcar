@@ -2,15 +2,14 @@ package io.apptolast.paparcar.presentation.permissions
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,10 +30,9 @@ import paparcar.composeapp.generated.resources.permissions_status_pending
 
 private val ROW_VERTICAL_PADDING = 14.dp
 private val ROW_CONTENT_SPACING  = 14.dp
-private val ICON_BOX_SIZE        = 40.dp
-private val ICON_SIZE            = 22.dp
-private val BADGE_ICON_SIZE      = 14.dp
-private const val DISC_TINT_ALPHA = 0.15f
+private val TITLE_TO_REASON_GAP  = 2.dp
+private val MAIN_ICON_SIZE       = 24.dp
+private val STATUS_ICON_SIZE     = 22.dp
 
 /**
  * Estado visual de un permiso en la UI de onboarding/grant.
@@ -83,24 +81,18 @@ internal fun PermissionRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(ROW_CONTENT_SPACING),
         ) {
-            // Disco circular del icono — gris en reposo, verde tenue al conceder. [ONB-IDENTITY-001 D]
-            Surface(
-                shape = CircleShape,
-                color = if (granted) MaterialTheme.colorScheme.primary.copy(alpha = DISC_TINT_ALPHA)
-                else MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(ICON_BOX_SIZE),
+            // Icono del permiso sin disco — glifo suelto, verde al conceder. [ONB-IDENTITY-001 D]
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (granted) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(MAIN_ICON_SIZE),
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(TITLE_TO_REASON_GAP),
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (granted) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(ICON_SIZE),
-                    )
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
@@ -113,7 +105,8 @@ internal fun PermissionRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            StatusChip(state)
+            // Estado a la derecha, centrado verticalmente — solo glifo (sin chip/label).
+            StatusIcon(state)
         }
     }
 
@@ -133,45 +126,35 @@ internal fun PermissionRow(
     }
 }
 
+/**
+ * Indicador de estado a la izquierda de la cabecera: glifo relleno verde si está concedido, círculo
+ * de contorno (neutro/ámbar según requerido u opcional) si sigue pendiente. Sustituye al chip de
+ * texto para no robar ancho a la descripción en pantallas estrechas. El label se mantiene como
+ * `contentDescription` para lectores de pantalla.
+ */
 @Composable
-private fun StatusChip(state: PermissionUiState) {
-    val (chipBg, chipFg, label) = when (state) {
+private fun StatusIcon(state: PermissionUiState) {
+    val (statusIcon, tint, label) = when (state) {
         PermissionUiState.Granted -> Triple(
-            MaterialTheme.colorScheme.primary.copy(alpha = DISC_TINT_ALPHA),
+            Icons.Rounded.CheckCircle,
             MaterialTheme.colorScheme.primary,
             stringResource(Res.string.permissions_status_granted),
         )
         PermissionUiState.Pending -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
+            Icons.Rounded.RadioButtonUnchecked,
             MaterialTheme.colorScheme.onSurfaceVariant,
             stringResource(Res.string.permissions_status_pending),
         )
         PermissionUiState.Optional -> Triple(
-            MaterialTheme.colorScheme.secondaryContainer,
+            Icons.Rounded.RadioButtonUnchecked,
             MaterialTheme.colorScheme.secondary,
             stringResource(Res.string.permissions_status_optional),
         )
     }
-    Surface(shape = MaterialTheme.shapes.small, color = chipBg) {
-        Row(
-            modifier = Modifier.padding(horizontal = PaparcarSpacing.sm, vertical = PaparcarSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
-        ) {
-            if (state == PermissionUiState.Granted) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = null,
-                    tint = chipFg,
-                    modifier = Modifier.size(BADGE_ICON_SIZE),
-                )
-            }
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = chipFg,
-                fontWeight = FontWeight.Medium,
-            )
-        }
-    }
+    Icon(
+        imageVector = statusIcon,
+        contentDescription = label,
+        tint = tint,
+        modifier = Modifier.size(STATUS_ICON_SIZE),
+    )
 }
