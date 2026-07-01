@@ -27,8 +27,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.GppGood
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -348,7 +348,7 @@ private fun InlineStatsRow(
             modifier = Modifier.weight(1f),
         )
         StatMiniCard(
-            icon = Icons.Rounded.GppGood,
+            icon = Icons.Rounded.Speed,
             value = reliabilityPct?.let { "$it%" } ?: "—",
             label = stringResource(Res.string.vehicle_stats_reliability),
             modifier = Modifier.weight(1f),

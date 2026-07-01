@@ -55,13 +55,12 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.absoluteValue
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
-import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.appBarTitle
-import io.apptolast.paparcar.ui.icons.icon
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -360,9 +359,9 @@ private fun EmptyVehicleState(
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = PaparcarIcons.VehicleMedium,
-                contentDescription = null,
+            io.apptolast.paparcar.ui.components.VehicleIcon(
+                carbody = null,
+                size = VehicleSize.MEDIUM_SUV,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(60.dp),
             )

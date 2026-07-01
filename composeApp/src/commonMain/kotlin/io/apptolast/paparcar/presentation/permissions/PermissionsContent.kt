@@ -168,7 +168,7 @@ internal fun PermissionsContent(
                 hero = OnboardingHero.AUTOMATION,
                 modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
             )
-            Spacer(Modifier.height(PaparcarSpacing.md))
+            Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
                 text = stringResource(Res.string.permissions_title),
                 style = MaterialTheme.typography.headlineMedium,

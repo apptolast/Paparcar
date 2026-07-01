@@ -41,7 +41,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
@@ -91,15 +90,6 @@ object PaparcarIcons {
     val School: ImageVector get() = Icons.Rounded.School
     val Gym: ImageVector get() = Icons.Rounded.FitnessCenter
     val PlaceGeneric: ImageVector get() = Icons.Rounded.Place
-
-    // ── Vehicle sizes ────────────────────────────────────────────────────────
-    // All five vehicle sizes are custom vectors matching the casa-rodante.svg visual
-    // language (flat filled silhouette, bezier wheel ovals, EvenOdd window cut-outs).
-    val VehicleMoto: ImageVector by lazy { vehicleMotoVector() }
-    val VehicleSmall: ImageVector by lazy { vehicleSmallVector() }
-    val VehicleMedium: ImageVector by lazy { vehicleMediumVector() }
-    val VehicleLarge: ImageVector by lazy { vehicleLargeVector() }
-    val VehicleVan: ImageVector by lazy { vehicleVanVector() }
 
     // ── Vehicle types (high-level taxonomy, independent of size) ─────────────
     // Used in registration/edit to pick the user's vehicle category. Drives
@@ -253,244 +243,23 @@ object PaparcarIcons {
             "M19.33 17.16 a6.19 5.35 0 1 0 12.37 0 a6.19 5.35 0 1 0 -12.37 0 Z"
 }
 
-// ─── Custom vehicle silhouettes ──────────────────────────────────────────────
-// Side-view silhouettes (right-facing) sharing one visual language: flat filled
-// body polygon + rectangular EvenOdd window cut-outs + oval bezier wheel bumps
-// that dip below the body floor. VAN is a direct conversion of casa-rodante.svg
-// (same icon set); SMALL/MEDIUM/LARGE/MOTO follow the same visual language.
-
-private const val VEHICLE_VIEWPORT = 24f
-private val VEHICLE_DEFAULT_SIZE = 24.dp
-
-private fun buildVehicleVector(name: String, build: PathBuilder.() -> Unit): ImageVector =
-    ImageVector.Builder(
-        name = name,
-        defaultWidth = VEHICLE_DEFAULT_SIZE,
-        defaultHeight = VEHICLE_DEFAULT_SIZE,
-        viewportWidth = VEHICLE_VIEWPORT,
-        viewportHeight = VEHICLE_VIEWPORT,
-    ).apply {
-        path(
-            fill = SolidColor(Color.Black),
-            pathFillType = PathFillType.EvenOdd,
-            strokeLineCap = StrokeCap.Round,
-            strokeLineJoin = StrokeJoin.Round,
-        ) {
-            build()
-        }
-    }.build()
-
-// Wheel helper — produces a downward oval bezier matching the casa-rodante style.
-// The oval spans [x, x+width] at y=floor and dips ~3.5 dp below the viewport.
-// Call once per wheel; EvenOdd fill is positive when it doesn't overlap the body.
-private fun PathBuilder.wheelOval(x: Float, floor: Float, width: Float) {
-    moveTo(x, floor)
-    curveTo(x - 0.5f, floor + 3.5f, x + width + 0.5f, floor + 3.5f, x + width, floor)
-    close()
-}
-
-/**
- * Small / compact hatchback. Steep C-pillar (rear left), short hood (front
- * right), single undivided cabin window. Wheels cx≈7 and cx≈18 at y=17.
- */
-private fun vehicleSmallVector(): ImageVector = buildVehicleVector("PapVehicleSmall") {
-    // Rear wheel (left, cx=7, width=5)
-    wheelOval(x = 4.5f, floor = 17f, width = 5f)
-    // Front wheel (right, cx=18, width=5)
-    wheelOval(x = 15.5f, floor = 17f, width = 5f)
-    // Cabin window — single pane (EvenOdd hole)
-    moveTo(8f, 10f)
-    lineTo(18f, 10f)
-    lineTo(18f, 13.5f)
-    lineTo(8f, 13.5f)
-    close()
-    // Body — steep rear hatch, flat roof, short hood
-    moveTo(3f, 17f)
-    lineTo(3f, 14f)
-    lineTo(5f, 11f)
-    lineTo(8f, 9f)
-    lineTo(17f, 9f)
-    lineTo(20f, 11f)
-    lineTo(22f, 14f)
-    lineTo(22f, 17f)
-    close()
-}
-
-/**
- * Medium / sedan. 3-box notchback: trunk step at rear left, longer hood at
- * front right. Two-pane window divided by a B-pillar at x≈12–14.
- * Wheels cx≈7 and cx≈18 at y=17.
- */
-private fun vehicleMediumVector(): ImageVector = buildVehicleVector("PapVehicleMedium") {
-    // Rear wheel (left, cx=7, width=5)
-    wheelOval(x = 4.5f, floor = 17f, width = 5f)
-    // Front wheel (right, cx=18, width=5)
-    wheelOval(x = 15.5f, floor = 17f, width = 5f)
-    // Rear window pane (EvenOdd hole)
-    moveTo(6f, 10f)
-    lineTo(11f, 10f)
-    lineTo(11f, 13.5f)
-    lineTo(6f, 13.5f)
-    close()
-    // Front window pane — B-pillar gap at x=11..13 (EvenOdd hole)
-    moveTo(13f, 10f)
-    lineTo(19f, 10f)
-    lineTo(19f, 13.5f)
-    lineTo(13f, 13.5f)
-    close()
-    // Body — 3-box sedan with trunk step at rear, longer hood at front
-    moveTo(2f, 17f)
-    lineTo(2f, 14f)
-    lineTo(3f, 12f)
-    lineTo(5f, 10f)
-    lineTo(6f, 9f)
-    lineTo(17f, 9f)
-    lineTo(19f, 10f)
-    lineTo(21f, 13f)
-    lineTo(22f, 15f)
-    lineTo(22f, 17f)
-    close()
-}
-
-/**
- * Large / SUV-crossover. Taller cabin (roof at y=7), near-vertical A and C
- * pillars, boxier proportions. Two-pane window. Wider wheels (width=6)
- * with cx≈7 and cx≈18 at y=18.
- */
-private fun vehicleLargeVector(): ImageVector = buildVehicleVector("PapVehicleLarge") {
-    // Rear wheel (left, cx=7, width=6 — larger than car sizes)
-    wheelOval(x = 4f, floor = 18f, width = 6f)
-    // Front wheel (right, cx=18, width=6)
-    wheelOval(x = 15f, floor = 18f, width = 6f)
-    // Rear window pane (EvenOdd hole)
-    moveTo(5f, 9f)
-    lineTo(11f, 9f)
-    lineTo(11f, 14f)
-    lineTo(5f, 14f)
-    close()
-    // Front window pane — B-pillar at x=11..13 (EvenOdd hole)
-    moveTo(13f, 9f)
-    lineTo(20f, 9f)
-    lineTo(20f, 14f)
-    lineTo(13f, 14f)
-    close()
-    // Body — tall boxy SUV, near-vertical pillars, short overhangs
-    moveTo(2f, 18f)
-    lineTo(2f, 12f)
-    lineTo(3f, 9f)
-    lineTo(5f, 7f)
-    lineTo(17f, 7f)
-    lineTo(20f, 9f)
-    lineTo(21f, 12f)
-    lineTo(22f, 15f)
-    lineTo(22f, 18f)
-    close()
-}
-
-/**
- * Motorcycle. Two large wheels (width=7, cx≈7 rear and cx≈18 front) with a
- * minimal frame + tank hump between them. Rear wheel at left, front at right
- * (same right-facing orientation as the other silhouettes).
- */
-private fun vehicleMotoVector(): ImageVector = buildVehicleVector("PapVehicleMoto") {
-    // Rear wheel (left, cx≈7, width=7 — prominent, moto-scale)
-    wheelOval(x = 3.5f, floor = 17f, width = 7f)
-    // Front wheel (right, cx≈18, width=7)
-    wheelOval(x = 14.5f, floor = 17f, width = 7f)
-    // Frame + tank — fits in the gap between wheels (x≈10.5..14.5)
-    // EvenOdd overlap at wheel edges creates subtle fork/swingarm detail
-    moveTo(10.5f, 17f)
-    lineTo(10f, 14f)
-    lineTo(9f, 11f)
-    lineTo(9f, 9f)
-    lineTo(12f, 8f)
-    lineTo(15f, 9f)
-    lineTo(16f, 11f)
-    lineTo(15.5f, 14f)
-    lineTo(14.5f, 17f)
-    close()
-}
-
-/**
- * VAN / motorhome. Direct pixel-exact conversion of casa-rodante.svg (24×24).
- * Two-section body: tall living-quarters coach (left) + shorter cab (right).
- * Coach window + cab windshield are EvenOdd cut-outs. Wheels dip below y=21.
- *
- * SVG path breakdown:
- *  – Sub-paths 1–2  : rear and front wheel ovals at y=21 (extend past viewport)
- *  – Sub-path 3     : cab windshield (angled pane, right side)
- *  – Sub-path 4     : coach window detail (small rect, fills back via EvenOdd)
- *  – Sub-path 5     : rear cab lower panel (EvenOdd hole)
- *  – Sub-path 6     : main body (coach tall left + cab step right, rounded corners)
- *  – Sub-path 7     : large coach side window (EvenOdd hole, x=2..10, y=5..11)
- */
-private fun vehicleVanVector(): ImageVector = buildVehicleVector("PapVehicleVan") {
-    // Rear wheel (left, x=3.058..7.942 at y=21, dips to y≈25 — partially clipped)
-    moveTo(3.058f, 21f)
-    curveTo(2.471f, 24.954f, 8.530f, 24.952f, 7.942f, 21f)
-    close()
-    // Front wheel (right, x=16.058..20.942 at y=21)
-    moveTo(20.942f, 21f)
-    curveTo(21.529f, 24.954f, 15.470f, 24.952f, 16.058f, 21f)
-    close()
-    // Cab windshield (EvenOdd hole) — angled pane on the right side of cab
-    moveTo(16f, 7f)
-    lineTo(20.723f, 7f)
-    lineTo(23.341f, 11.582f)
-    curveTo(23.419f, 11.717f, 23.481f, 11.859f, 23.541f, 12f)
-    lineTo(15f, 12f)
-    lineTo(15f, 8f)
-    arcTo(1f, 1f, 0f, false, true, 16f, 7f)
-    close()
-    // Coach window detail (EvenOdd fills back) — small rect at x=4..8, y=7..9
-    moveTo(4f, 7f)
-    lineTo(8f, 7f)
-    lineTo(8f, 9f)
-    lineTo(4f, 9f)
-    close()
-    // Rear cab lower panel (EvenOdd hole) — x=15..24, y=14..19
-    moveTo(24f, 14f)
-    curveTo(24f, 14.021f, 24f, 14.042f, 24f, 14.062f)
-    lineTo(24f, 19f)
-    lineTo(15f, 19f)
-    lineTo(15f, 14f)
-    close()
-    // Main body — coach (tall, left x=0..13) + cab step (shorter, right x=13..24)
-    moveTo(13f, 8f)
-    arcTo(3f, 3f, 0f, false, true, 16f, 5f)
-    lineTo(24f, 5f)
-    arcTo(4f, 4f, 0f, false, false, 20f, 1f)
-    lineTo(4f, 1f)
-    arcTo(4f, 4f, 0f, false, false, 0f, 5f)
-    lineTo(0f, 15.414f)
-    lineTo(3.586f, 19f)
-    lineTo(13f, 19f)
-    close()
-    // Coach side window (EvenOdd hole) — x=2..10, y=5..11
-    moveTo(2f, 11f)
-    lineTo(2f, 5f)
-    lineTo(10f, 5f)
-    lineTo(10f, 11f)
-    close()
-}
-
 // ─── Domain → icon mappers ────────────────────────────────────────────────────
 // Live in the UI layer (not on the enum itself) so the domain models stay
 // Compose-free. Importing PaparcarIcons gives you the .icon extension on both
 // VehicleSize and PlaceCategory for drop-in use at any Icon(...) call site.
 
 /**
- * Replaces the legacy `vehicleSizeEmoji(...)` helper. Returns the Paparcar
- * icon matching a given [VehicleSize] so call sites render
- * `Icon(size.icon, ...)` instead of a Text+emoji pair.
+ * Fallback glyph for a [VehicleSize]. Cars now render through the isometric
+ * carbody pictograms (`vehicleIconPainter`/`VehicleIcon`); this extension only
+ * feeds those pictograms' last-resort branch, reachable solely for
+ * [VehicleSize.MOTORCYCLE] (which has no carbody and no iso pictogram → the
+ * Material two-wheeler glyph). Every four-wheeled tier resolves a carbody first,
+ * so its `VehicleCar` value is never actually reached.
  */
 val VehicleSize.icon: ImageVector
     get() = when (this) {
-        VehicleSize.MOTORCYCLE   -> PaparcarIcons.VehicleMoto
-        VehicleSize.MICRO_SMALL  -> PaparcarIcons.VehicleSmall
-        VehicleSize.MEDIUM_SUV -> PaparcarIcons.VehicleMedium
-        VehicleSize.LARGE_SEDAN  -> PaparcarIcons.VehicleLarge
-        VehicleSize.VAN_HIGH    -> PaparcarIcons.VehicleVan
+        VehicleSize.MOTORCYCLE -> PaparcarIcons.VehicleMotorcycle
+        else -> PaparcarIcons.VehicleCar
     }
 
 /**

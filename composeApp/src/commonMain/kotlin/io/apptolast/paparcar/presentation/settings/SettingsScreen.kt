@@ -40,7 +40,8 @@ import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.DirectionsCar
+import androidx.compose.material.icons.rounded.Sensors
+import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
@@ -333,7 +334,7 @@ internal fun SettingsContent(
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_detection)) }
             item {
                 SettingsSwitchItem(
-                    icon = Icons.Rounded.DirectionsCar,
+                    icon = if (state.autoDetectParking) Icons.Rounded.Sensors else Icons.Rounded.SensorsOff,
                     label = stringResource(Res.string.settings_auto_detect),
                     description = stringResource(Res.string.settings_auto_detect_desc),
                     checked = state.autoDetectParking,

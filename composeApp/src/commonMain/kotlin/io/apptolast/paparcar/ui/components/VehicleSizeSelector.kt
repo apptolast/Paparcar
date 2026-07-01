@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -32,7 +31,6 @@ private val TilePadding = 8.dp
 
 private data class SizeOption(
     val size: VehicleSize,
-    val icon: ImageVector,
     val label: String,
 )
 
@@ -52,11 +50,11 @@ fun VehicleSizeSelector(
     modifier: Modifier = Modifier,
 ) {
     val options = listOf(
-        SizeOption(VehicleSize.MOTORCYCLE,   PaparcarIcons.VehicleMoto,   "Mini"),
-        SizeOption(VehicleSize.MICRO_SMALL,  PaparcarIcons.VehicleSmall,  "Pequeño"),
-        SizeOption(VehicleSize.MEDIUM_SUV, PaparcarIcons.VehicleMedium, "Mediano"),
-        SizeOption(VehicleSize.LARGE_SEDAN,  PaparcarIcons.VehicleLarge,  "Grande"),
-        SizeOption(VehicleSize.VAN_HIGH,    PaparcarIcons.VehicleVan,    "Furgo"),
+        SizeOption(VehicleSize.MOTORCYCLE,   "Mini"),
+        SizeOption(VehicleSize.MICRO_SMALL,  "Pequeño"),
+        SizeOption(VehicleSize.MEDIUM_SUV,   "Mediano"),
+        SizeOption(VehicleSize.LARGE_SEDAN,  "Grande"),
+        SizeOption(VehicleSize.VAN_HIGH,     "Furgo"),
     )
 
     Row(
@@ -105,12 +103,23 @@ private fun SizeTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = option.icon,
-            contentDescription = null,
-            modifier = Modifier.size(IconSize),
-            tint = contentColor,
-        )
+        if (option.size == VehicleSize.MOTORCYCLE) {
+            // Motorcycles have no isometric carbody pictogram → Material two-wheeler glyph.
+            Icon(
+                imageVector = PaparcarIcons.VehicleMotorcycle,
+                contentDescription = null,
+                modifier = Modifier.size(IconSize),
+                tint = contentColor,
+            )
+        } else {
+            // New isometric pictogram, flattened to the tile's status colour via tint.
+            VehicleIcon(
+                carbody = null,
+                size = option.size,
+                modifier = Modifier.size(IconSize),
+                tint = contentColor,
+            )
+        }
         Spacer(Modifier.height(4.dp))
         Text(
             text = option.label,

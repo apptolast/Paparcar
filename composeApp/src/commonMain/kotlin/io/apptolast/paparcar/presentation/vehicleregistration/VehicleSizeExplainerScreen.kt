@@ -3,8 +3,10 @@ package io.apptolast.paparcar.presentation.vehicleregistration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,18 +23,18 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
-import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.components.VehicleIcon
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -44,13 +46,12 @@ import paparcar.composeapp.generated.resources.vehicle_size_explainer_cta
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_subtitle
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_title
 
-private val StepBadgeSize           = 28.dp
-private val StepConnectorWidth      = 2.dp
 private val TOP_CONTENT_PADDING     = 56.dp
 private val BOTTOM_CONTENT_PADDING  = 140.dp
-private val TITLE_ICON_SIZE         = 64.dp
-private val STEP_ICON_SIZE          = 20.dp
-private val STEP_TEXT_SPACER        = 2.dp
+private val TITLE_ICON_SIZE         = 84.dp
+private val NODE_SIZE               = 32.dp
+private val NODE_ICON_SIZE          = 18.dp
+private val CONNECTOR_WIDTH         = 2.dp
 
 @Composable
 fun VehicleSizeExplainerScreen(
@@ -70,51 +71,42 @@ fun VehicleSizeExplainerScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = PaparcarIcons.VehicleMedium,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+            // New isometric vehicle pictogram (identity brand-green palette, no tint) — mirrors the
+            // onboarding heroes as the screen's visual anchor.
+            VehicleIcon(
+                carbody = null,
+                size = VehicleSize.MEDIUM_SUV,
                 modifier = Modifier.size(TITLE_ICON_SIZE),
             )
-            Spacer(Modifier.height(PaparcarSpacing.lg))
+            Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
                 text = stringResource(Res.string.vehicle_size_explainer_title),
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(PaparcarSpacing.sm))
+            Spacer(Modifier.height(PaparcarSpacing.lg))
             Text(
                 text = stringResource(Res.string.vehicle_size_explainer_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(PaparcarSpacing.xxl))
+            Spacer(Modifier.height(PaparcarSpacing.xxl + PaparcarSpacing.md))
 
-            val items = listOf(
-                Triple(
-                    Icons.Rounded.Straighten,
-                    stringResource(Res.string.vehicle_size_explainer_card1_title),
-                    stringResource(Res.string.vehicle_size_explainer_card1_desc),
-                ),
-                Triple(
-                    Icons.Rounded.Lock,
-                    stringResource(Res.string.vehicle_size_explainer_card2_title),
-                    stringResource(Res.string.vehicle_size_explainer_card2_desc),
-                ),
+            ExplainerTimelineStep(
+                icon = Icons.Rounded.Straighten,
+                title = stringResource(Res.string.vehicle_size_explainer_card1_title),
+                description = stringResource(Res.string.vehicle_size_explainer_card1_desc),
+                isLast = false,
             )
-
-            items.forEachIndexed { index, (icon, label, desc) ->
-                ExplainerStep(
-                    stepNumber = index + 1,
-                    icon = icon,
-                    label = label,
-                    description = desc,
-                    isLast = index == items.lastIndex,
-                )
-            }
+            ExplainerTimelineStep(
+                icon = Icons.Rounded.Lock,
+                title = stringResource(Res.string.vehicle_size_explainer_card2_title),
+                description = stringResource(Res.string.vehicle_size_explainer_card2_desc),
+                isLast = true,
+            )
         }
 
         Column(
@@ -135,82 +127,71 @@ fun VehicleSizeExplainerScreen(
     }
 }
 
+/**
+ * Timeline step mirroring the permissions screen spine ([PermissionTier]): a circular node holding
+ * the step's Material Rounded icon in the left column, a continuous vertical connector down to the
+ * next node, and the title + description to the right. Keeps normal-case title (unlike the
+ * permissions eyebrow) since these are full sentences.
+ */
 @Composable
-private fun ExplainerStep(
-    stepNumber: Int,
+private fun ExplainerTimelineStep(
     icon: ImageVector,
-    label: String,
+    title: String,
     description: String,
     isLast: Boolean,
 ) {
-    val lineColor = MaterialTheme.colorScheme.outlineVariant
-    val badgeBg = MaterialTheme.colorScheme.primaryContainer
-    val badgeFg = MaterialTheme.colorScheme.onPrimaryContainer
+    val connectorColor = MaterialTheme.colorScheme.outlineVariant
 
+    // IntrinsicSize.Min → the content column fixes the row height; the connector (weight 1f) fills the
+    // remaining space under the node so it links continuously to the next step. [ONB-SCAFFOLD-001]
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         verticalAlignment = Alignment.Top,
     ) {
         Column(
+            modifier = Modifier.fillMaxHeight().width(NODE_SIZE),
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.width(StepBadgeSize),
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(StepBadgeSize)
-                    .background(badgeBg, CircleShape),
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.size(NODE_SIZE),
             ) {
-                Text(
-                    text = stepNumber.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = badgeFg,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(NODE_ICON_SIZE),
+                    )
+                }
             }
             if (!isLast) {
                 Box(
                     modifier = Modifier
-                        .width(StepConnectorWidth)
-                        .height(PaparcarSpacing.xxl + PaparcarSpacing.xl)
-                        .drawBehind {
-                            drawLine(
-                                color = lineColor,
-                                start = Offset(size.width / 2, 0f),
-                                end = Offset(size.width / 2, size.height),
-                                strokeWidth = size.width,
-                            )
-                        },
+                        .width(CONNECTOR_WIDTH)
+                        .weight(1f)
+                        .background(connectorColor),
                 )
             }
         }
-        Spacer(Modifier.width(PaparcarSpacing.md))
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(bottom = if (isLast) 0.dp else PaparcarSpacing.lg),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(STEP_ICON_SIZE),
-                )
-                Spacer(Modifier.width(PaparcarSpacing.sm))
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            Spacer(Modifier.height(STEP_TEXT_SPACER))
+
+        Spacer(Modifier.width(PaparcarSpacing.lg))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.height(PaparcarSpacing.xs))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (!isLast) Spacer(Modifier.height(PaparcarSpacing.xl))
         }
     }
 }

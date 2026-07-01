@@ -134,7 +134,7 @@ private fun OnboardingPage1() {
             hero = OnboardingHero.WELCOME,
             modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
         )
-        Spacer(Modifier.height(PaparcarSpacing.xxxl))
+        Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.onboarding_page1_title),
             style = MaterialTheme.typography.headlineMedium,
@@ -167,7 +167,7 @@ private fun OnboardingPage2() {
             hero = OnboardingHero.HOW,
             modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
         )
-        Spacer(Modifier.height(PaparcarSpacing.xxl))
+        Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.onboarding_page2_title),
             style = MaterialTheme.typography.headlineMedium,
@@ -211,7 +211,7 @@ private fun OnboardingPage3() {
             hero = OnboardingHero.PRIVACY,
             modifier = Modifier.size(HERO_ILLUSTRATION_W, HERO_ILLUSTRATION_H),
         )
-        Spacer(Modifier.height(PaparcarSpacing.xxl))
+        Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
             style = MaterialTheme.typography.headlineSmall,
