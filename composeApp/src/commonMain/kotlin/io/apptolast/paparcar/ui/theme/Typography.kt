@@ -4,6 +4,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
@@ -31,15 +32,36 @@ fun rememberOutfitFontFamily() = FontFamily(
     Font(Res.font.outfit_extrabold, weight = FontWeight.ExtraBold),
 )
 
-/** Inter variable — body / label (neutral, highly readable). */
+/**
+ * Inter variable — body / label (neutral, highly readable).
+ *
+ * Inter ships as a SINGLE variable file, so each weight must pin the `wght`
+ * axis explicitly via [FontVariation]. Without it Compose resolves every entry
+ * to the file's default instance (≈Regular) and applies synthetic bold
+ * inconsistently — which made identical `PapSectionHeader` labels render at
+ * different weights (e.g. "TUS VEHÍCULOS" vs "5 PLAZAS LIBRES CERCA DE TI").
+ */
 @Composable
 fun rememberInterFontFamily() = FontFamily(
-    Font(Res.font.inter_variable, weight = FontWeight.Normal),
-    Font(Res.font.inter_variable, weight = FontWeight.Medium),
-    Font(Res.font.inter_variable, weight = FontWeight.SemiBold),
-    Font(Res.font.inter_variable, weight = FontWeight.Bold),
-    Font(Res.font.inter_variable, weight = FontWeight.ExtraBold),
+    interFont(FontWeight.Normal,    INTER_WGHT_NORMAL),
+    interFont(FontWeight.Medium,    INTER_WGHT_MEDIUM),
+    interFont(FontWeight.SemiBold,  INTER_WGHT_SEMIBOLD),
+    interFont(FontWeight.Bold,      INTER_WGHT_BOLD),
+    interFont(FontWeight.ExtraBold, INTER_WGHT_EXTRABOLD),
 )
+
+@Composable
+private fun interFont(weight: FontWeight, axis: Int) = Font(
+    Res.font.inter_variable,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(axis)),
+)
+
+private const val INTER_WGHT_NORMAL = 400
+private const val INTER_WGHT_MEDIUM = 500
+private const val INTER_WGHT_SEMIBOLD = 600
+private const val INTER_WGHT_BOLD = 700
+private const val INTER_WGHT_EXTRABOLD = 800
 
 /** Barlow Condensed — compact data slots (charts, badges, stats). */
 @Composable
