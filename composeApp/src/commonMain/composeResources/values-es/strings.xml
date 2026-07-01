@@ -500,7 +500,7 @@
     <string name="home_det_awaiting_sub">Marca el sitio y vigilo la salida</string>
     <string name="home_det_awaiting_cta_primary">Marcar mi sitio</string>
     <string name="home_det_awaiting_cta_secondary">Voy conduciendo</string>
-    <string name="home_det_monitoring">Siguiendo tu trayecto</string>
+    <string name="home_det_monitoring">En ruta</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Esencial</string>

@@ -517,7 +517,7 @@
     <string name="home_det_awaiting_sub">Zaznacz miejsce, a ja go przypilnuję</string>
     <string name="home_det_awaiting_cta_primary">Zaznacz miejsce</string>
     <string name="home_det_awaiting_cta_secondary">Jadę</string>
-    <string name="home_det_monitoring">Śledzę Twoją trasę</string>
+    <string name="home_det_monitoring">W drodze</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Niezbędne</string>

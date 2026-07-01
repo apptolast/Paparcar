@@ -88,13 +88,14 @@ class MutableDetectionRuntimeState : DetectionRuntimeState, DetectionPhaseSink {
     private val _phase = MutableStateFlow(DetectionPhase.Driving)
     override val phase: StateFlow<DetectionPhase> = _phase.asStateFlow()
 
-    /** Called by the detection service when a tracking job starts (true) or ends (false). Ending a
-     *  job also clears the trip context and resets the phase to [DetectionPhase.Driving]. */
+    /** Called by the detection service when a tracking job starts (true) or ends (false). Every
+     *  trip begins in-motion, so both edges reset the phase to [DetectionPhase.Driving] (a fresh trip
+     *  never inherits a leftover "Candidate" from a prior one); ending also clears the trip context. */
     fun setRunning(running: Boolean) {
         _isRunning.value = running
+        _phase.value = DetectionPhase.Driving
         if (!running) {
             _trip.value = null
-            _phase.value = DetectionPhase.Driving
         }
     }
 

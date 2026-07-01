@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.map.components.MonitoringPillContent
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
@@ -47,9 +48,13 @@ private fun Gallery() {
                 allowDrivingDetection = true, // preview shows the full two-CTA cold-start layout
             )
         }
-        Text("Monitoring pill", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Monitoring pill · driving", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             MonitoringPillContent(elapsedLabel = "4 min")
+        }
+        Text("Monitoring pill · parking", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            MonitoringPillContent(elapsedLabel = "4 min", phase = DetectionPhase.Candidate)
         }
     }
 }

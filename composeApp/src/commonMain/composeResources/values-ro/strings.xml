@@ -517,7 +517,7 @@
     <string name="home_det_awaiting_sub">Marchează locul și îl supraveghez</string>
     <string name="home_det_awaiting_cta_primary">Marchează locul</string>
     <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
-    <string name="home_det_monitoring">Urmăresc traseul tău</string>
+    <string name="home_det_monitoring">Pe drum</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Esențial</string>

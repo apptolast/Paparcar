@@ -513,7 +513,7 @@
     <string name="home_det_awaiting_sub">Marque o local e eu vigio a saída</string>
     <string name="home_det_awaiting_cta_primary">Marcar o meu lugar</string>
     <string name="home_det_awaiting_cta_secondary">Vou a conduzir</string>
-    <string name="home_det_monitoring">A seguir o seu trajeto</string>
+    <string name="home_det_monitoring">A caminho</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Essencial</string>

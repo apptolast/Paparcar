@@ -513,7 +513,7 @@
     <string name="home_det_awaiting_sub">Marquez la place, je la surveille</string>
     <string name="home_det_awaiting_cta_primary">Marquer ma place</string>
     <string name="home_det_awaiting_cta_secondary">Je conduis</string>
-    <string name="home_det_monitoring">Suivi de votre trajet</string>
+    <string name="home_det_monitoring">En route</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Essentiel</string>

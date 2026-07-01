@@ -528,7 +528,7 @@
     <string name="home_det_awaiting_sub">Mark the spot and I will watch it</string>
     <string name="home_det_awaiting_cta_primary">Mark my spot</string>
     <string name="home_det_awaiting_cta_secondary">I am driving</string>
-    <string name="home_det_monitoring">Following your trip</string>
+    <string name="home_det_monitoring">On the way</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Essential</string>

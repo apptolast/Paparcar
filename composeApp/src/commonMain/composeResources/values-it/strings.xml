@@ -513,7 +513,7 @@
     <string name="home_det_awaiting_sub">Segna il posto e lo controllo</string>
     <string name="home_det_awaiting_cta_primary">Segna il posto</string>
     <string name="home_det_awaiting_cta_secondary">Sto guidando</string>
-    <string name="home_det_monitoring">Seguo il tuo tragitto</string>
+    <string name="home_det_monitoring">In viaggio</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Essenziale</string>

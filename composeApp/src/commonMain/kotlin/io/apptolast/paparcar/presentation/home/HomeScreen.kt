@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
@@ -911,6 +912,7 @@ private fun HomeContent(
                 // engages; lifts above the sheet with the same offset as the FABs. [FOLLOW-001]
                 HomeMonitoringPill(
                     visible = state.detectionUiState == DetectionUiState.Monitoring && overlayVisible,
+                    phase = state.drivingPuck?.phase ?: DetectionPhase.Driving,
                     onClick = onMyLocation,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)

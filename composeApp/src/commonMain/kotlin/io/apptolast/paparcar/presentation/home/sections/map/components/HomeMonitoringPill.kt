@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,17 +34,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.detection.DetectionPhase
+import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_monitoring
+import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 
 /**
- * Ephemeral "detection is following your trip" pill that floats over the map while a tracking job
+ * Ephemeral "detection is tracking your trip" pill that floats over the map while a tracking job
  * runs (DetectionUiState.Monitoring). [DET-READY-001h]
  *
  * It is NOT a fixed bar and NOT part of the bottom sheet: the caller anchors it over the map,
@@ -51,12 +56,15 @@ import paparcar.composeapp.generated.resources.home_det_monitoring
  * out when the trip ends. A pulsing "live" dot signals that tracking is active.
  *
  * @param elapsedLabel optional trip-elapsed text (Barlow Condensed); omitted when null.
+ * @param phase coarse trip phase — flips the label/icon to a "Parking…" treatment once the user
+ *   stops and the detector starts confirming a spot, mirroring the vehicle chip. [DET-PHASE-001]
  */
 @Composable
 internal fun HomeMonitoringPill(
     visible: Boolean,
     modifier: Modifier = Modifier,
     elapsedLabel: String? = null,
+    phase: DetectionPhase = DetectionPhase.Driving,
     onClick: (() -> Unit)? = null,
 ) {
     AnimatedVisibility(
@@ -73,7 +81,7 @@ internal fun HomeMonitoringPill(
         ) + fadeOut(animationSpec = tween(EXIT_DURATION_MS)),
         modifier = modifier,
     ) {
-        MonitoringPillContent(elapsedLabel = elapsedLabel, onClick = onClick)
+        MonitoringPillContent(elapsedLabel = elapsedLabel, phase = phase, onClick = onClick)
     }
 }
 
@@ -83,22 +91,35 @@ internal fun HomeMonitoringPill(
  * transition's first frame — alpha 0 — and shows nothing).
  */
 @Composable
-internal fun MonitoringPillContent(elapsedLabel: String? = null, onClick: (() -> Unit)? = null) {
+internal fun MonitoringPillContent(
+    elapsedLabel: String? = null,
+    phase: DetectionPhase = DetectionPhase.Driving,
+    onClick: (() -> Unit)? = null,
+) {
     val shape = PapShapes.chip
     val color = MaterialTheme.colorScheme.surfaceContainer
-    val border = BorderStroke(BORDER_DP.dp, MaterialTheme.colorScheme.primary.copy(alpha = BORDER_ALPHA))
-    // Symmetric bookends: a live dot leads, the route icon trails — mirroring each other around the
+    // The icon and accent colour track the trip phase, matching the vehicle chip so banner and chip
+    // never disagree — following the shared map language: en-route BLUE while driving ("On the way",
+    // same accent as the driving puck's halo), brand GREEN once stopped and confirming a spot
+    // ("Parking…", hinting the upcoming parked state, which is always green). The label itself stays
+    // neutral onSurface — the accent is carried by the dot/icon/border. [DET-PHASE-001]
+    val isCandidate = phase == DetectionPhase.Candidate
+    val accent = if (isCandidate) MaterialTheme.colorScheme.primary else PapDriveBlue
+    val label = if (isCandidate) Res.string.home_vehicle_chip_status_candidate else Res.string.home_det_monitoring
+    val trailingIcon = if (isCandidate) Icons.Rounded.DirectionsCar else Icons.Rounded.Route
+    val border = BorderStroke(BORDER_DP.dp, accent.copy(alpha = BORDER_ALPHA))
+    // Symmetric bookends: a live dot leads, the phase icon trails — mirroring each other around the
     // label — and the whole pill replaces the GPS FAB during a trip, so tapping it recentres on the
-    // moving car (resumes follow). Thicker primary border gives it presence. [FOLLOW-001]
+    // moving car (resumes follow). Thicker accent border gives it presence. [FOLLOW-001]
     val pill = @Composable {
         Row(
             modifier = Modifier.padding(horizontal = PILL_PADDING_H_DP.dp, vertical = PILL_PADDING_V_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(PILL_GAP_DP.dp),
         ) {
-            LiveDot()
+            LiveDot(color = accent)
             Text(
-                text = stringResource(Res.string.home_det_monitoring),
+                text = stringResource(label),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -111,9 +132,9 @@ internal fun MonitoringPillContent(elapsedLabel: String? = null, onClick: (() ->
                 )
             }
             Icon(
-                imageVector = Icons.Rounded.Route,
+                imageVector = trailingIcon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = accent,
                 modifier = Modifier.size(ICON_DP.dp),
             )
         }
@@ -126,7 +147,7 @@ internal fun MonitoringPillContent(elapsedLabel: String? = null, onClick: (() ->
 }
 
 @Composable
-private fun LiveDot() {
+private fun LiveDot(color: Color) {
     val transition = rememberInfiniteTransition(label = "monitoring_live_dot")
     val pulseAlpha by transition.animateFloat(
         initialValue = DOT_ALPHA_MIN,
@@ -142,7 +163,7 @@ private fun LiveDot() {
             .size(DOT_DP.dp)
             .alpha(pulseAlpha)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary),
+            .background(color),
     )
 }
 

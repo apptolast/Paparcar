@@ -513,7 +513,7 @@
     <string name="home_det_awaiting_sub">Markeer de plek, ik houd hem in de gaten</string>
     <string name="home_det_awaiting_cta_primary">Plek markeren</string>
     <string name="home_det_awaiting_cta_secondary">Ik rij nu</string>
-    <string name="home_det_monitoring">Je rit volgen</string>
+    <string name="home_det_monitoring">Onderweg</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->
     <string name="permissions_section_essential">Essentieel</string>

@@ -156,9 +156,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Detección inactiva — flag off o permisos (Inactive)", Placement.Surface) { detectionSurface(DetectionUiState.Inactive) },
             Variant("Sin coche registrado (NoVehicle)", Placement.Surface) { detectionSurface(DetectionUiState.NoVehicle) },
             Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionUiState.AwaitingFirstPark) },
-            Variant("Coordinator corriendo (Monitoring)", Placement.Surface) {
+            Variant("Coordinator corriendo (Monitoring · conduciendo)", Placement.Surface) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     MonitoringPillContent(elapsedLabel = "4 min")
+                }
+            },
+            Variant("Coordinator corriendo (Monitoring · aparcando)", Placement.Surface) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    MonitoringPillContent(
+                        elapsedLabel = "4 min",
+                        phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate,
+                    )
                 }
             },
         ),

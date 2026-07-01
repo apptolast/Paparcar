@@ -5,6 +5,7 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
+import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
@@ -129,6 +130,11 @@ class HomeViewModel(
     // Last parking location seen while a session was active — reused as the faded "departure point"
     // once the car leaves and a trip starts (the session is already gone by then). [TRIP-TRAIL-001]
     private var lastParkingLocation: GpsPoint? = null
+
+    // Last GPS fix seen while the trip was in the Driving phase — the spot the car stopped at. Used to
+    // freeze the driving puck in place during the Candidate phase (user walking away from the car) and
+    // reset when the trip ends. [DET-PHASE-001]
+    private var lastDrivingLocation: UserLocationUi? = null
 
     // ── Map-matching (free OSM snap-to-roads) ───────────────────────────────────
     // The origin + raw trail fed to the matcher; debounced so we snap off the hot path. Roads are
@@ -445,11 +451,21 @@ class HomeViewModel(
                     val vehicle = monitoring.departingVehicleId
                         ?.let { vid -> state.value.vehicles.firstOrNull { it.id == vid } }
                         ?: monitoredVehicle(state.value.vehicles, monitoring.strategy)
+                    // In the Candidate phase the user has stopped and is walking away from the car, so
+                    // the puck must STAY at the spot the car stopped — not chase the pedestrian's GPS.
+                    // Freeze it at the last driving fix; if the stop turns out NOT to be a park (the
+                    // detector reverts to Driving), live tracking resumes from the current fix. [DET-PHASE-001]
+                    val isCandidate = monitoring.phase == DetectionPhase.Candidate
+                    val anchor = if (isCandidate) {
+                        lastDrivingLocation ?: loc
+                    } else {
+                        loc.also { lastDrivingLocation = it }
+                    }
                     DrivingPuck(
-                        latitude = loc.latitude,
-                        longitude = loc.longitude,
-                        bearingDegrees = loc.bearingDegrees,
-                        accuracy = loc.accuracy,
+                        latitude = anchor.latitude,
+                        longitude = anchor.longitude,
+                        bearingDegrees = anchor.bearingDegrees,
+                        accuracy = anchor.accuracy,
                         carbodyType = vehicle?.carbodyType,
                         sizeCategory = vehicle?.sizeCategory,
                         color = vehicle?.color,
@@ -459,15 +475,21 @@ class HomeViewModel(
                 }
                 if (puck == null) {
                     // Trip ended — drop the live trail, the matched trail and the departure marker.
+                    lastDrivingLocation = null
                     trailForMatching.value = emptyList()
                     cachedRoads = emptyList()
                     cachedRoadsBbox = null
                     updateState { copy(drivingPuck = null, tripTrail = emptyList(), matchedTrail = emptyList(), departurePoint = null) }
                 } else {
-                    // Extend the breadcrumb and anchor the origin dot to the departing vehicle's
-                    // spot. Prefer the service-resolved departure point (on Monitoring); fall back to
-                    // the last seen parking location for manual/BT trips with no origin. [DEPART-CONSISTENCY-001]
-                    val newTrail = TripTrail.append(state.value.tripTrail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
+                    // Extend the breadcrumb only while driving — a frozen car (Candidate) contributes no
+                    // new points, so the pedestrian walk is never drawn as the car's route. Anchor the
+                    // origin dot to the departing vehicle's spot: prefer the service-resolved departure
+                    // point (on Monitoring), fall back to the last seen parking location. [DEPART-CONSISTENCY-001]
+                    val newTrail = if (puck.phase == DetectionPhase.Candidate) {
+                        state.value.tripTrail
+                    } else {
+                        TripTrail.append(state.value.tripTrail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
+                    }
                     val depart = pair.first.departurePoint ?: lastParkingLocation
                     // Feed the matcher the origin + trail so the snapped line starts at the parking
                     // spot (also fixes the straight parking→first-fix chord). [ROUTE-SNAP-001]

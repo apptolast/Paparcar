@@ -162,7 +162,9 @@ internal fun HomeVehicleChip(
                     // en-route-blue label signal a trip in progress, not yet parked. [CHIP-DRIVING-001]
                     // In the candidate phase (stopped + walking away) the label flips to "Parking…" in
                     // the brand green, hinting the transition into the parked state. [DET-PHASE-001]
-                    DrivingLiveDot()
+                    // Live-dot accent tracks the phase like the banner: en-route blue while driving,
+                    // brand green once confirming a spot ("Parking…"). [DET-PHASE-001]
+                    DrivingLiveDot(color = if (isCandidate) cs.primary else PapDriveBlue)
                     Text(
                         text = stringResource(
                             if (isCandidate) Res.string.home_vehicle_chip_status_candidate
@@ -170,7 +172,8 @@ internal fun HomeVehicleChip(
                         ),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isCandidate) cs.primary else PapDriveBlue,
+                        // Neutral label — the phase colour is carried by the dot/halo/border, not the text.
+                        color = cs.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -230,9 +233,10 @@ private fun DrivingRadarHalo(diameter: Dp) {
     }
 }
 
-/** Small breathing dot prefixing the "Driving" label — a calm "live" indicator. [CHIP-DRIVING-001] */
+/** Small breathing dot prefixing the "Driving"/"Parking…" label — a calm "live" indicator, tinted
+ *  with the phase [color] (blue driving, green candidate). [CHIP-DRIVING-001] [DET-PHASE-001] */
 @Composable
-private fun DrivingLiveDot() {
+private fun DrivingLiveDot(color: Color) {
     val transition = rememberInfiniteTransition(label = "driving_dot")
     val alpha by transition.animateFloat(
         initialValue = LIVE_DOT_ALPHA_MIN,
@@ -247,7 +251,7 @@ private fun DrivingLiveDot() {
         Modifier
             .size(LIVE_DOT_SIZE)
             .clip(CircleShape)
-            .background(PapDriveBlue.copy(alpha = alpha)),
+            .background(color.copy(alpha = alpha)),
     )
 }
 

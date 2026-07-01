@@ -1004,9 +1004,14 @@ class CoordinatorParkingDetector(
 }
 
 /**
- * Coarse mapping for the UI: any non-[ConfirmationPhase.Idle] phase means the detector is actively
- * evaluating a stop (the user appears to be parking / walking away) → [DetectionPhase.Candidate];
- * [ConfirmationPhase.Idle] is a normal in-motion trip → [DetectionPhase.Driving]. [DET-PHASE-001]
+ * Coarse mapping for the UI: only [ConfirmationPhase.Candidate] — HIGH confidence, the detector is
+ * sure the user has stopped and is walking away — surfaces the "Parking…" treatment
+ * ([DetectionPhase.Candidate]). Every other phase is a normal in-motion trip → [DetectionPhase.Driving].
+ *
+ * Crucially [ConfirmationPhase.LowReached]/[ConfirmationPhase.Notified] map to Driving too: they fire on
+ * the first Low/Medium confidence sample, i.e. on ANY brief slowdown or stop (a traffic light), which is
+ * not yet "parking". Treating them as Candidate made the chip/banner read "Parking…" for most of a normal
+ * trip. [DET-PHASE-001]
  */
-private fun ConfirmationPhase.toDetectionPhase(): DetectionPhase =
-    if (this is ConfirmationPhase.Idle) DetectionPhase.Driving else DetectionPhase.Candidate
+internal fun ConfirmationPhase.toDetectionPhase(): DetectionPhase =
+    if (this is ConfirmationPhase.Candidate) DetectionPhase.Candidate else DetectionPhase.Driving
