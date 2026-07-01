@@ -32,7 +32,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.luminance
@@ -175,14 +174,16 @@ private const val SHADOW_RADIUS_OFFSET    = 0.5f
 // keeps it present but unobtrusive on the map. [MAP-ICONS-V2]
 private const val CENTER_DOT_SHADOW_RADIUS_DP = 2.2f
 private const val CENTER_DOT_RADIUS_DP    = 2.0f
-private const val LOADING_ARC_SWEEP_ANGLE = 260f
 private const val REPORT_MODE_SHADOW_ALPHA = 0.35f
 private const val NORMAL_MODE_SHADOW_ALPHA = 0.22f
 
-// ── Loading arc gradient stops ────────────────────────────────────────────────
-private const val LOADING_GRADIENT_TAIL_START = 0.716f
-private const val LOADING_GRADIENT_HEAD       = 0.721f
-private const val LOADING_GRADIENT_CUTOFF     = 0.726f
+// ── Radar (default center indicator) ────────────────────────────────────────
+private const val RING_AIMING_SCALE     = 0.82f   // the ring shrinks while aiming
+private const val RING_LOADING_ALPHA    = 0.50f   // ring dimmed while loading
+private const val RADAR_SWEEP_DEG       = 62f     // angular width of the wedge
+private const val RADAR_HEAD_ALPHA      = 0.55f   // opacity of the leading edge
+private const val RADAR_OUTSET_DP       = 6f      // how far the sweep extends past the ring
+private const val CENTER_DOT_AIMING_RADIUS_DP = 1.4f // precision dot while aiming
 
 // ── Zone radius circle overlay ───────────────────────────────────────────────
 private const val ZONE_CIRCLE_FILL_ALPHA    = 0.07f
@@ -1025,6 +1026,15 @@ fun PaparcarMapView(
         ),
         label = "crosshair_scale",
     )
+    // Radar ring: shrinks slightly while aiming so the ring appears to "close in" on the target
+    val ringScale by animateFloatAsState(
+        targetValue = if (cameraMoving && !isAnyItemSelected) RING_AIMING_SCALE else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
+        label = "radar_ring_scale",
+    )
     // Pulse ring: fires once when camera settles
     val pulseAlpha = remember { Animatable(0f) }
     val pulseScale = remember { Animatable(1f) }
@@ -1328,66 +1338,70 @@ fun PaparcarMapView(
                         style = Stroke(width = PULSE_STROKE_DP.dp.toPx()),
                     )
                 }
-                // Ring + center dot (+ loading arc when fetching content; only the default crosshair branch)
+                // Fine ring + center dot + a radar sweep while loading. No cardinal ticks/cross.
+                // Only the default crosshair branch. [CENTER-SIGHT-001]
                 Canvas(modifier = Modifier.size(RING_CANVAS_SIZE)) {
                     val cx = size.width / 2f
                     val cy = size.height / 2f
-                    val ringRadius = size.minDimension * RING_RADIUS_FACTOR
+                    val baseRadius = size.minDimension * RING_RADIUS_FACTOR
+                    val ringRadius = baseRadius * ringScale
                     val ringStroke = RING_STROKE_DP.dp.toPx()
+                    val center = Offset(cx, cy)
 
-                    // Shadow (subtle drop, offset down-right)
+                    // Ring shadow (subtle drop, offset down-right)
                     drawCircle(
                         color = Color.Black.copy(alpha = shadowAlpha),
                         radius = ringRadius + SHADOW_RADIUS_OFFSET,
                         center = Offset(cx + SHADOW_OFFSET_X, cy + SHADOW_OFFSET_Y),
                         style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE),
                     )
-                    // Main ring
-                    drawCircle(
-                        color = indicatorColor,
-                        radius = ringRadius,
-                        center = Offset(cx, cy),
-                        style = Stroke(width = ringStroke),
-                    )
-                    // Loading comet: gradient arc spinning while content loads.
-                    // HEAD (opaque, fraction ≈0.721) leads clockwise; TAIL fades to transparent.
-                    // Replaces CircularProgressIndicator — fades out when loading completes,
-                    // then the pulse ring fires to signal "ready".
+
+                    // Radar sweep (only while loading) — drawn under the ring. A wedge whose
+                    // leading edge sits at loadingAngle and fades toward the tail, replacing the
+                    // old loading comet. Fades out when loading completes, then the pulse fires.
                     if (loadingAlpha > 0f) {
-                        withTransform({ rotate(loadingAngle.value, pivot = Offset(cx, cy)) }) {
+                        val sweepRadius = ringRadius + RADAR_OUTSET_DP.dp.toPx()
+                        val head = loadingAngle.value            // leading edge (degrees)
+                        val sweepBrush = Brush.sweepGradient(
+                            colorStops = arrayOf(
+                                0f to Color.Transparent,
+                                (1f - RADAR_SWEEP_DEG / 360f) to indicatorColor.copy(alpha = 0f),
+                                1f to indicatorColor.copy(alpha = RADAR_HEAD_ALPHA * loadingAlpha),
+                            ),
+                            center = center,
+                        )
+                        // Rotate so the wedge head lands at `head`.
+                        withTransform({ rotate(head, center) }) {
                             drawArc(
-                                brush = Brush.sweepGradient(
-                                    colorStops = arrayOf(
-                                        0f                         to Color.Transparent,
-                                        LOADING_GRADIENT_TAIL_START to indicatorColor.copy(alpha = 0.04f),
-                                        LOADING_GRADIENT_HEAD       to indicatorColor,
-                                        LOADING_GRADIENT_CUTOFF     to Color.Transparent,
-                                        1f                         to Color.Transparent,
-                                    ),
-                                    center = Offset(cx, cy),
-                                ),
-                                startAngle = 0f,
-                                sweepAngle = LOADING_ARC_SWEEP_ANGLE,
-                                useCenter = false,
-                                topLeft = Offset(cx - ringRadius, cy - ringRadius),
-                                size = Size(ringRadius * 2, ringRadius * 2),
-                                alpha = loadingAlpha,
-                                style = Stroke(width = ringStroke + SHADOW_EXTRA_STROKE, cap = StrokeCap.Round),
+                                brush = sweepBrush,
+                                startAngle = -RADAR_SWEEP_DEG,   // relative to the applied rotation
+                                sweepAngle = RADAR_SWEEP_DEG,
+                                useCenter = true,
+                                topLeft = Offset(cx - sweepRadius, cy - sweepRadius),
+                                size = Size(sweepRadius * 2, sweepRadius * 2),
                             )
                         }
                     }
+
+                    // Main ring (dimmed while loading)
+                    val ringAlpha = if (loadingAlpha > 0f) RING_LOADING_ALPHA else 1f
+                    drawCircle(
+                        color = indicatorColor.copy(alpha = ringAlpha),
+                        radius = ringRadius,
+                        center = center,
+                        style = Stroke(width = ringStroke),
+                    )
+
                     // Center dot shadow
                     drawCircle(
                         color = Color.Black.copy(alpha = shadowAlpha),
                         radius = CENTER_DOT_SHADOW_RADIUS_DP.dp.toPx(),
                         center = Offset(cx + SHADOW_OFFSET_X / 2, cy + SHADOW_OFFSET_Y / 2),
                     )
-                    // Center dot
-                    drawCircle(
-                        color = indicatorColor,
-                        radius = CENTER_DOT_RADIUS_DP.dp.toPx(),
-                        center = Offset(cx, cy),
-                    )
+                    // Center dot (tightens to a precision dot while aiming)
+                    val dotRadius = if (cameraMoving) CENTER_DOT_AIMING_RADIUS_DP.dp.toPx()
+                        else CENTER_DOT_RADIUS_DP.dp.toPx()
+                    drawCircle(color = indicatorColor, radius = dotRadius, center = center)
                 }
             }
         }
