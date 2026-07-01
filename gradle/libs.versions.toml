@@ -77,10 +77,10 @@ napier = "2.7.1"
 # coil-compose en commonMain (AsyncImage). Fetcher de red multiplataforma vía
 # coil-network-ktor3 (commonMain) + engine Ktor por plataforma: okhttp (Android),
 # darwin (iOS). Coil auto-registra el fetcher al estar en el classpath.
-coil = "3.3.0"
+coil = "3.5.0"
 
 # ── Ktor client — engine de red para Coil (KMP) ──────────────────────────────
-ktor = "3.3.0"
+ktor = "3.5.1"
 
 # ── Login Library ────────────────────────────────────────────────────────────
 # JitPack commit-hash build of feature/improve-custom-login-integration (host-integration fix).
