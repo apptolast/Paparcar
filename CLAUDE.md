@@ -4,13 +4,19 @@
 Paparcar es una app KMP (Kotlin Multiplatform) de compartición de plazas de aparcamiento en tiempo real basada en comunidad. Android es la plataforma principal; iOS es target futuro. Cuando un usuario sale con el coche, la app detecta automáticamente el evento y publica la plaza recién liberada para que otros usuarios cercanos puedan encontrarla.
 
 ## Stack
-- UI: Compose Multiplatform 1.8.0
+> Fuente de verdad: `gradle/libs.versions.toml`. Versiones reales a 2026-07-01.
+- Lenguaje: Kotlin 2.4.0 (KSP 2.3.9)
+- Build: AGP 9.2.1 · compileSdk 37 · targetSdk 36 · minSdk 26
+- UI: Compose Multiplatform 1.11.1 · Material3 (JB) 1.9.0 · Navigation Compose 2.9.2
 - Arquitectura: Clean Architecture + MVI (State + Intent + Effect)
-- DI: Koin 4.1.1
-- DB local: Room KMP 2.8.4
-- Backend: Firebase (GitLive KMP SDK 2.4.0)
+- DI: Koin 4.2.2
+- DB local: Room KMP 2.8.4 (SQLite bundled 2.6.2)
+- Backend: Firebase (GitLive KMP SDK 2.4.0) · firebase-bom 34.15.0
 - Auth: BaseLogin (librería propia, JitPack)
-- Async: Coroutines + Flow
+- Async: Coroutines 1.11.0 + Flow · Serialization 1.11.0 · Datetime 0.8.0
+- Mapas: kmp-maps (SW Mansion) 0.9.1 — Google Maps (Android) / Apple Maps (iOS)
+- Imágenes: Coil 3.5.0 + Ktor 3.5.1 (motor de red)
+- Logging: Napier 2.7.1
 - Monitoring: Firebase Crashlytics
 
 ## Estructura
@@ -60,7 +66,7 @@ Ambas estrategias convergen en: ConfirmParkingUseCase → Room + Firestore + Geo
 
 ### ⛔ Iconos — sistema de 3 niveles
 Antes de añadir un icono, decide el nivel. Regla mental: *plumbing de UI → Material; concepto de Paparcar → vector propio.*
-- **Nivel 1 · Sistema → Material Symbols (Rounded).** Plumbing de UI: nav inferior, ajustes, buscar, cerrar/atrás, editar, chevron, calendario, filtros, capas. Familia **Rounded** (no Outlined) para casar con Fredoka. `tint = onSurfaceVariant`.
+- **Nivel 1 · Sistema → Material Symbols (Rounded).** Plumbing de UI: nav inferior, ajustes, buscar, cerrar/atrás, editar, chevron, calendario, filtros, capas. Familia **Rounded** (no Outlined) para casar con la tipografía redondeada (Outfit). `tint = onSurfaceVariant`.
 - **Nivel 2 · Iconos de UI → Material Symbols (Rounded) con `tint`.** Incluye POI/categorías (`Icons.Rounded.ShoppingCart`, etc.). NO creamos glifos custom. El mapeo `PlaceCategory → Icons.Rounded.*` vive en la capa de presentación (domain es Kotlin puro, sin `Icons`).
 - **Nivel 3 · Ilustración/marcadores → vector propio (relleno de marca, multicolor, NO tintar).** Hero, onboarding, empty states, marcadores, vehículos, fiabilidad.
   - Si el SVG es VectorDrawable-compatible (solo `path`, sin dashes/filtros/text) → VectorDrawable en `composeResources/drawable/` (variante oscura con sufijo `_dark`).
