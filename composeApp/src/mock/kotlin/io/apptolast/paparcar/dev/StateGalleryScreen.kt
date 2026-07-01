@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.domain.connectivity.ConnectivityBannerPhase
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.UserProfile
 import io.apptolast.paparcar.domain.model.VehicleColor
@@ -61,6 +62,7 @@ import io.apptolast.paparcar.presentation.vehicles.HistoryFilter
 import io.apptolast.paparcar.presentation.vehicles.HistoryState
 import io.apptolast.paparcar.presentation.vehicles.VehiclesContent
 import io.apptolast.paparcar.presentation.vehicles.VehiclesState
+import io.apptolast.paparcar.ui.components.ConnectivityBanner
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 /**
@@ -168,6 +170,17 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate,
                     )
                 }
+            },
+        ),
+    ),
+    ScreenGroup(
+        "Conectividad · banner",
+        listOf(
+            Variant("Sin conexión (Offline · persistente, rojo)") {
+                Column(Modifier.fillMaxSize()) { ConnectivityBanner(ConnectivityBannerPhase.Offline) }
+            },
+            Variant("Conexión restablecida (Restored · verde, ~2,5s)") {
+                Column(Modifier.fillMaxSize()) { ConnectivityBanner(ConnectivityBannerPhase.Restored) }
             },
         ),
     ),

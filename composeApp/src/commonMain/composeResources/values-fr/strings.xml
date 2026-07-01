@@ -329,7 +329,7 @@
 
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Hors ligne</string>
-    <string name="connectivity_restored_snackbar">De retour en ligne</string>
+    <string name="connectivity_restored_banner">De retour en ligne</string>
     <string name="connectivity_action_blocked_offline">Connecte-toi à Internet pour faire ça</string>
 
     <!-- Pills CTA des cards Home -->

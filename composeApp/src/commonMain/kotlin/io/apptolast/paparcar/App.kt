@@ -14,13 +14,13 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
@@ -38,13 +38,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.AppBottomNavItem
 import io.apptolast.paparcar.ui.components.AppBottomNavigation
-import io.apptolast.paparcar.ui.components.ConnectivityOfflineBanner
+import io.apptolast.paparcar.ui.components.ConnectivityBanner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -59,6 +57,7 @@ import com.apptolast.customlogin.presentation.navigation.AuthRoutesFlow
 import com.apptolast.customlogin.presentation.navigation.LoginRoute
 import com.apptolast.customlogin.presentation.navigation.NavTransitions
 import com.apptolast.customlogin.presentation.navigation.authRoutesFlow
+import io.apptolast.paparcar.domain.connectivity.ConnectivityBannerPhase
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.app.AppEffect
 import io.apptolast.paparcar.presentation.app.AppIntent
@@ -84,7 +83,6 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.connectivity_restored_snackbar
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_body
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_dismiss
 import paparcar.composeapp.generated.resources.error_bootstrap_fatal_title
@@ -157,13 +155,9 @@ fun App(
         ) {
         // Each screen's Scaffold draws its own background.
         Surface(modifier = Modifier.fillMaxSize()) {
-            val rootSnackbarHostState = remember { SnackbarHostState() }
-            val connectionRestored = stringResource(Res.string.connectivity_restored_snackbar)
             LaunchedEffect(Unit) {
                 appViewModel.effect.collect { effect ->
                     when (effect) {
-                        AppEffect.ShowConnectionRestored ->
-                            rootSnackbarHostState.showSnackbar(connectionRestored)
                         is AppEffect.ApplyLocale ->
                             applyAppLocale(effect.tag)
                     }
@@ -181,7 +175,25 @@ fun App(
                 }
             }
 
-            Box(modifier = Modifier.fillMaxSize()) {
+            // Root Column: the connectivity banner is the first child, so when it is visible it
+            // takes real height and PUSHES the app content down (reflow) — it never overlays the
+            // search bar or a screen header. When Hidden it collapses to zero height and the content
+            // fills the screen edge-to-edge as before. [CONN-BANNER-001]
+            val bannerVisible = appState.connectivityBanner != ConnectivityBannerPhase.Hidden
+            Column(modifier = Modifier.fillMaxSize()) {
+                ConnectivityBanner(phase = appState.connectivityBanner)
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                        // When the banner shows it already occupies (and colours) the status-bar strip,
+                        // so consume that inset here — otherwise each screen's own statusBarsPadding()
+                        // adds it a SECOND time, leaving a big gap under the banner (Home search bar,
+                        // Vehicles/Settings headers…). When Hidden nothing is consumed and screens stay
+                        // edge-to-edge exactly as before. [CONN-BANNER-001]
+                        .then(if (bannerVisible) Modifier.consumeWindowInsets(WindowInsets.statusBars) else Modifier),
+                ) {
                 // AnimatedContent switches between auth and app content.
                 // When coming from Loading (initial auth check), no animation is played because
                 // the splash screen covers the content — animating here would cause a flash of
@@ -228,20 +240,7 @@ fun App(
                         else -> AuthNavigation()
                     }
                 }
-
-                // Persistent offline banner — anchored to the root scaffold so it
-                // survives navigation between auth and app, between tabs, etc.
-                ConnectivityOfflineBanner(
-                    visible = appState.isOffline,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
-
-                SnackbarHost(
-                    hostState = rootSnackbarHostState,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 80.dp),
-                )
+                }
             }
 
             // Offline bootstrap dialog: shown when auth succeeded but Firestore was unreachable.

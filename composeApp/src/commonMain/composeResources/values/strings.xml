@@ -419,7 +419,7 @@
     <string name="home_filter_empty_clear">Clear filter</string>
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">You\'re offline</string>
-    <string name="connectivity_restored_snackbar">Back online</string>
+    <string name="connectivity_restored_banner">Back online</string>
     <string name="connectivity_action_blocked_offline">Connect to the internet to do that</string>
 
     <!-- GPS accuracy disclaimer (QA-008) -->

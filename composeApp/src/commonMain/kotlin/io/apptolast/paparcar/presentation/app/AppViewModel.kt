@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.app
 
+import io.apptolast.paparcar.domain.connectivity.ConnectivityBannerPhase
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
@@ -7,10 +8,13 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class AppViewModel(
     private val permissionManager: PermissionManager,
@@ -35,6 +39,12 @@ class AppViewModel(
                     imperialUnits = appPreferences.useImperialUnits,
                     selectedLanguage = appPreferences.selectedLanguage,
                     connectivity = connectivityObserver.status.value,
+                    // Cold-start offline shows the banner immediately; online starts hidden. [CONN-BANNER-001]
+                    connectivityBanner = if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
+                        ConnectivityBannerPhase.Offline
+                    } else {
+                        ConnectivityBannerPhase.Hidden
+                    },
                     hasSeenGpsAccuracyDisclaimer = appPreferences.hasSeenGpsAccuracyDisclaimer,
                 )
             }
@@ -51,14 +61,30 @@ class AppViewModel(
             }
         }
         viewModelScope.launch {
-            // Track the previous status locally so we only fire the "Back online"
-            // snackbar on a real Offline → Online transition, not on cold start.
+            // Track the previous status locally so the transient "Restored" banner only fires on a
+            // real Offline → Online transition, not on cold start. [CONN-BANNER-001]
             var previous = connectivityObserver.status.value
             connectivityObserver.status
                 .collect { current ->
-                    updateState { copy(connectivity = current) }
-                    if (previous == ConnectivityStatus.Offline && current == ConnectivityStatus.Online) {
-                        sendEffect(AppEffect.ShowConnectionRestored)
+                    when {
+                        current == ConnectivityStatus.Offline -> {
+                            // Cancel any pending auto-hide: we're offline again, keep the red banner up.
+                            restoredHideJob?.cancel()
+                            updateState { copy(connectivity = current, connectivityBanner = ConnectivityBannerPhase.Offline) }
+                        }
+                        previous == ConnectivityStatus.Offline -> {
+                            // Real reconnect → show the green banner briefly, then settle to Hidden.
+                            updateState { copy(connectivity = current, connectivityBanner = ConnectivityBannerPhase.Restored) }
+                            restoredHideJob?.cancel()
+                            restoredHideJob = viewModelScope.launch {
+                                delay(RESTORED_VISIBLE_MS.milliseconds)
+                                updateState { copy(connectivityBanner = ConnectivityBannerPhase.Hidden) }
+                            }
+                        }
+                        else -> {
+                            // Steady online (incl. cold start) → leave the banner as-is (Hidden).
+                            updateState { copy(connectivity = current) }
+                        }
                     }
                     previous = current
                 }
@@ -77,8 +103,14 @@ class AppViewModel(
             .launchIn(viewModelScope)
     }
 
+    /** Auto-hide timer for the transient [ConnectivityBannerPhase.Restored] banner. */
+    private var restoredHideJob: Job? = null
+
     private companion object {
         const val TAG = "AppViewModel"
+
+        /** How long the "connection restored" banner stays before settling to Hidden. [CONN-BANNER-001] */
+        const val RESTORED_VISIBLE_MS = 2_500L
     }
 
     override fun initState() = AppState()

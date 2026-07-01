@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.presentation.app
 
+import io.apptolast.paparcar.domain.connectivity.ConnectivityBannerPhase
+import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeConnectivityObserver
 import io.apptolast.paparcar.fakes.FakePermissionManager
@@ -7,7 +9,9 @@ import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
@@ -108,6 +112,59 @@ class AppViewModelTest {
         assertTrue(vm.state.value.permissionsGranted)
         assertFalse(vm.state.value.locationServicesEnabled)
         assertFalse(vm.state.value.isFullyOperational)
+    }
+
+    // ── Connectivity banner ─────────────────────────────────────────────────────
+
+    @Test
+    fun `cold start online keeps banner hidden`() {
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo)
+
+        assertEquals(ConnectivityBannerPhase.Hidden, vm.state.value.connectivityBanner)
+    }
+
+    @Test
+    fun `cold start offline shows offline banner synchronously`() {
+        val offlineConnectivity = FakeConnectivityObserver(ConnectivityStatus.Offline)
+        val vm = AppViewModel(fakePermissions, fakePrefs, offlineConnectivity, fakeVehicleRepo)
+
+        assertEquals(ConnectivityBannerPhase.Offline, vm.state.value.connectivityBanner)
+    }
+
+    @Test
+    fun `going offline shows offline banner`() = runTest(testDispatcher) {
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo)
+        assertEquals(ConnectivityBannerPhase.Hidden, vm.state.value.connectivityBanner)
+
+        fakeConnectivity.emit(ConnectivityStatus.Offline)
+
+        assertEquals(ConnectivityBannerPhase.Offline, vm.state.value.connectivityBanner)
+    }
+
+    @Test
+    fun `reconnect shows restored banner then auto-hides`() = runTest(testDispatcher) {
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo)
+        fakeConnectivity.emit(ConnectivityStatus.Offline)
+
+        fakeConnectivity.emit(ConnectivityStatus.Online)
+        assertEquals(ConnectivityBannerPhase.Restored, vm.state.value.connectivityBanner)
+
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertEquals(ConnectivityBannerPhase.Hidden, vm.state.value.connectivityBanner)
+    }
+
+    @Test
+    fun `going offline again before auto-hide keeps offline banner`() = runTest(testDispatcher) {
+        val vm = AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo)
+        fakeConnectivity.emit(ConnectivityStatus.Offline)
+        fakeConnectivity.emit(ConnectivityStatus.Online) // Restored, hide scheduled
+
+        fakeConnectivity.emit(ConnectivityStatus.Offline) // back offline before the hide fires
+
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertEquals(ConnectivityBannerPhase.Offline, vm.state.value.connectivityBanner)
     }
 
     // ── Intents ───────────────────────────────────────────────────────────────

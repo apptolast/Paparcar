@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.app
 
+import io.apptolast.paparcar.domain.connectivity.ConnectivityBannerPhase
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 
@@ -11,6 +12,8 @@ data class AppState(
     val imperialUnits: Boolean = false,
     val selectedLanguage: String = "auto",
     val connectivity: ConnectivityStatus = ConnectivityStatus.Online,
+    /** Drives the root connectivity banner (Hidden/Offline/Restored). [CONN-BANNER-001] */
+    val connectivityBanner: ConnectivityBannerPhase = ConnectivityBannerPhase.Hidden,
     val hasSeenGpsAccuracyDisclaimer: Boolean = false,
 ) {
     /** True only when runtime permissions AND GPS are both ready. */
