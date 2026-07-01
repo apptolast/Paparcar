@@ -561,7 +561,8 @@ fun StateGalleryScreen(onBack: () -> Unit) {
         }
     } else {
         val current = selected!!
-        var dark by remember { mutableStateOf(false) }
+        // Light/dark is driven by the global toggle (DevRoot) via the shadowed configuration.
+        val dark = isSystemInDarkTheme()
         // Surface variants default to the contextual (bottom-sheet) presentation; "Solo" isolates.
         var isolated by remember(current) { mutableStateOf(false) }
         BackHandler { selected = null }
@@ -607,7 +608,6 @@ fun StateGalleryScreen(onBack: () -> Unit) {
                             Text(if (isolated) "Completa" else "Solo")
                         }
                     }
-                    ElevatedButton(onClick = { dark = !dark }) { Text(if (dark) "☀" else "🌙") }
                 }
             }
         }
