@@ -166,8 +166,22 @@ class SplashViewModel(
         // Fail-fast before touching Firestore: if the device is offline the round-trips will
         // time out anyway, but detecting it here gives a faster, differentiated error path
         // (no sign-out, retry available).
+        //
+        // But a RETURNING user already has their data cached in Room (the wipe only runs on
+        // sign-out, not on every restart), so blocking them behind a retry wall on an offline
+        // cold-start is needless friction: enter the app offline-first and let the connectivity
+        // banner communicate the state, resolving the route straight from the local cache. Only
+        // when there is NO cache (first launch offline — nothing to render and the profile can't
+        // be created) do we keep the blocking retry dialog. [RETRY-GATE-001]
         if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
-            PaparcarLogger.w(TAG, "bootstrap aborted — device offline")
+            val hasCachedVehicle = runCatching { vehicleRepository.hasVehicles(session.userId) }
+                .getOrDefault(false)
+            if (hasCachedVehicle) {
+                PaparcarLogger.i(TAG, "offline with cached data — entering offline-first (remote sync skipped)")
+                resolveStartRoute(hasVehicle = true)
+                return
+            }
+            PaparcarLogger.w(TAG, "bootstrap aborted — offline and no cached data")
             _state.value = SplashState(bootstrapFailure = BootstrapFailure.Offline)
             _effect.emit(SplashEffect.ShowOfflineError)
             return

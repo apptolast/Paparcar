@@ -249,6 +249,7 @@
     <string name="error_bootstrap_offline_title">Sin conexión a internet</string>
     <string name="error_bootstrap_offline_body">Paparcar necesita conexión para cargar tus datos. Comprueba tu red e inténtalo de nuevo.</string>
     <string name="error_bootstrap_retry">Reintentar</string>
+    <string name="error_bootstrap_still_offline">Sigue sin conexión</string>
     <string name="error_bootstrap_fatal_title">No se pudo cargar tu cuenta</string>
     <string name="error_bootstrap_fatal_body">Algo salió mal al cargar tus datos. Por favor, vuelve a iniciar sesión.</string>
     <string name="error_bootstrap_fatal_dismiss">Aceptar</string>

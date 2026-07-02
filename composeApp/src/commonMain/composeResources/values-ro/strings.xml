@@ -188,6 +188,7 @@
     <string name="error_bootstrap_offline_title">Fără conexiune la internet</string>
     <string name="error_bootstrap_offline_body">Paparcar are nevoie de o conexiune pentru a-ți încărca datele. Verifică rețeaua și încearcă din nou.</string>
     <string name="error_bootstrap_retry">Reîncearcă</string>
+    <string name="error_bootstrap_still_offline">Încă fără conexiune</string>
     <string name="error_bootstrap_fatal_title">Contul nu a putut fi încărcat</string>
     <string name="error_bootstrap_fatal_body">A apărut o eroare la încărcarea datelor. Te rugăm să te conectezi din nou.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>

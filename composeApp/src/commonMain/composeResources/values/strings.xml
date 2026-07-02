@@ -218,6 +218,7 @@
     <string name="error_bootstrap_offline_title">No internet connection</string>
     <string name="error_bootstrap_offline_body">Paparcar needs a connection to load your data. Check your network and try again.</string>
     <string name="error_bootstrap_retry">Retry</string>
+    <string name="error_bootstrap_still_offline">Still no connection</string>
     <string name="error_bootstrap_fatal_title">Couldn\'t load your account</string>
     <string name="error_bootstrap_fatal_body">Something went wrong while loading your data. Please sign in again.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>

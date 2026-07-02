@@ -188,6 +188,7 @@
     <string name="error_bootstrap_offline_title">Geen internetverbinding</string>
     <string name="error_bootstrap_offline_body">Paparcar heeft een verbinding nodig om je gegevens te laden. Controleer je netwerk en probeer het opnieuw.</string>
     <string name="error_bootstrap_retry">Opnieuw proberen</string>
+    <string name="error_bootstrap_still_offline">Nog steeds geen verbinding</string>
     <string name="error_bootstrap_fatal_title">Account kon niet worden geladen</string>
     <string name="error_bootstrap_fatal_body">Er is iets misgegaan bij het laden van je gegevens. Meld je opnieuw aan.</string>
     <string name="error_bootstrap_fatal_dismiss">OK</string>

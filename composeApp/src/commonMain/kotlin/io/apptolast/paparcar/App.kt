@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.AppBottomNavItem
 import io.apptolast.paparcar.ui.components.AppBottomNavigation
 import io.apptolast.paparcar.ui.components.ConnectivityBanner
@@ -89,6 +91,7 @@ import paparcar.composeapp.generated.resources.error_bootstrap_fatal_title
 import paparcar.composeapp.generated.resources.error_bootstrap_offline_body
 import paparcar.composeapp.generated.resources.error_bootstrap_offline_title
 import paparcar.composeapp.generated.resources.error_bootstrap_retry
+import paparcar.composeapp.generated.resources.error_bootstrap_still_offline
 import paparcar.composeapp.generated.resources.gps_disclaimer_body
 import paparcar.composeapp.generated.resources.gps_disclaimer_confirm
 import paparcar.composeapp.generated.resources.gps_disclaimer_title
@@ -246,7 +249,16 @@ fun App(
             // Offline bootstrap dialog: shown when auth succeeded but Firestore was unreachable.
             // The user is still authenticated — they can retry without re-entering credentials.
             if (splashState.bootstrapFailure == BootstrapFailure.Offline) {
-                BootstrapOfflineDialog(onRetry = { splashViewModel.retry() })
+                // Auto-proceed the moment connectivity returns — the user shouldn't have to time the
+                // manual tap, and a retry while still offline just re-shows this dialog (which read as
+                // "the button does nothing"). [RETRY-GATE-001]
+                LaunchedEffect(appState.isOffline) {
+                    if (!appState.isOffline) splashViewModel.retry()
+                }
+                BootstrapOfflineDialog(
+                    isOffline = appState.isOffline,
+                    onRetry = { splashViewModel.retry() },
+                )
             }
             // Fatal bootstrap dialog: shown when profile or data sync failed unrecoverably.
             // The user was already signed out — dismissing navigates to login via auth state.
@@ -259,13 +271,33 @@ fun App(
 }
 
 @Composable
-private fun BootstrapOfflineDialog(onRetry: () -> Unit) {
+private fun BootstrapOfflineDialog(isOffline: Boolean, onRetry: () -> Unit) {
+    // Tapping "Retry" while still offline re-shows this same dialog, so give immediate feedback that
+    // the tap DID register but there is still no connection. Cleared automatically once connectivity
+    // returns (the dialog also auto-retries then, via the caller). [RETRY-GATE-001]
+    var stillOffline by remember { mutableStateOf(false) }
+    LaunchedEffect(isOffline) { if (!isOffline) stillOffline = false }
     AlertDialog(
         onDismissRequest = { /* not dismissable — user must retry or kill the app */ },
         title = { Text(stringResource(Res.string.error_bootstrap_offline_title)) },
-        text = { Text(stringResource(Res.string.error_bootstrap_offline_body)) },
+        text = {
+            Column {
+                Text(stringResource(Res.string.error_bootstrap_offline_body))
+                AnimatedVisibility(visible = stillOffline) {
+                    Text(
+                        text = stringResource(Res.string.error_bootstrap_still_offline),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
+        },
         confirmButton = {
-            TextButton(onClick = onRetry) {
+            TextButton(onClick = {
+                if (isOffline) stillOffline = true
+                onRetry()
+            }) {
                 Text(stringResource(Res.string.error_bootstrap_retry))
             }
         },

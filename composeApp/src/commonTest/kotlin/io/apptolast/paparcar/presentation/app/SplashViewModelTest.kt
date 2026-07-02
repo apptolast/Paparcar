@@ -347,6 +347,8 @@ class SplashViewModelTest {
 
     @Test
     fun `emits ShowOfflineError and does NOT sign out when device is offline at login`() = runTest {
+        // No cached vehicle (fresh fakes) → offline cold-start with nothing to render keeps the
+        // blocking retry dialog. [RETRY-GATE-001]
         val vm = buildViewModel(connectivityStatus = ConnectivityStatus.Offline)
         vm.effect.test {
             fakeAuth.emitState(AuthState.Authenticated(session))
@@ -375,6 +377,23 @@ class SplashViewModelTest {
         // startRoute should now resolve (defaults → ONBOARDING).
         assertEquals(Routes.ONBOARDING, vm.state.value.startRoute)
         assertNull(vm.state.value.bootstrapFailure)
+    }
+
+    @Test
+    fun `enters app offline-first (resolves startRoute, no retry) when offline but data is cached`() = runTest {
+        // Returning user: onboarding done, permissions granted, and a vehicle already cached in Room.
+        fakePrefs.setOnboardingCompleted()
+        setProfileWithVehicle()
+        fakePerms.emit(FakePermissionManager.allGranted())
+
+        val vm = buildViewModel(connectivityStatus = ConnectivityStatus.Offline)
+        fakeAuth.emitState(AuthState.Authenticated(session))
+
+        // Offline + cache → straight into the app; the connectivity banner surfaces the state.
+        assertEquals(Routes.HOME, vm.state.value.startRoute)
+        assertNull(vm.state.value.bootstrapFailure)
+        // The remote bootstrap (profile sync) must be skipped entirely while offline. [RETRY-GATE-001]
+        assertEquals(0, fakeProfileRepo.getOrCreateCallCount)
     }
 
     /** Configures the fake profile repo to return a profile with a vehicle pointer set,
