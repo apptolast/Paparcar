@@ -1,6 +1,9 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.data.datasource.remote
 
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlin.time.Clock
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ParkingHistoryDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
@@ -73,8 +76,10 @@ class RemoteUserProfileDataSourceImpl(
             doc.toVehicleDto()
         }
 
+    // Every vehicle write stamps updatedAt (client epoch ms) so the inbound sync's Last-Write-Wins
+    // merge can tell when the server has caught up with a local pending edit. [SYNC-RECONCILE-001]
     override suspend fun saveVehicle(userId: String, vehicle: VehicleDto) {
-        vehiclesCollection(userId).document(vehicle.id).set(vehicle)
+        vehiclesCollection(userId).document(vehicle.id).set(vehicle.copy(updatedAt = nowMs()))
     }
 
     override suspend fun deleteVehicle(userId: String, vehicleId: String) {
@@ -82,13 +87,16 @@ class RemoteUserProfileDataSourceImpl(
     }
 
     override suspend fun updateVehicleActiveFlag(userId: String, vehicleId: String, isActive: Boolean) {
-        vehiclesCollection(userId).document(vehicleId).update(mapOf(FIELD_IS_ACTIVE to isActive))
+        vehiclesCollection(userId).document(vehicleId)
+            .update(mapOf(FIELD_IS_ACTIVE to isActive, FIELD_UPDATED_AT to nowMs()))
     }
 
     override suspend fun updateVehicleBluetoothDevice(userId: String, vehicleId: String, deviceAddress: String?) {
         vehiclesCollection(userId).document(vehicleId)
-            .update(mapOf(FIELD_BLUETOOTH_DEVICE_ID to deviceAddress))
+            .update(mapOf(FIELD_BLUETOOTH_DEVICE_ID to deviceAddress, FIELD_UPDATED_AT to nowMs()))
     }
+
+    private fun nowMs(): Long = Clock.System.now().toEpochMilliseconds()
 
     override suspend fun deleteUserData(userId: String) {
         parkingHistoryCollection(userId).get().documents.forEach { it.reference.delete() }
@@ -133,6 +141,7 @@ class RemoteUserProfileDataSourceImpl(
                 showBrandModelOnSpot = get<Boolean?>(FIELD_SHOW_BRAND_MODEL_ON_SPOT) ?: false,
                 isActive = get<Boolean?>(FIELD_IS_ACTIVE) ?: false,
                 color = get<String?>(FIELD_COLOR).orEmpty(),
+                updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toVehicleDto failed — doc=$id", e)

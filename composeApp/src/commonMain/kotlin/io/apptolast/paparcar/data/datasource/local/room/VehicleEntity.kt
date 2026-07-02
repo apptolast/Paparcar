@@ -25,4 +25,17 @@ data class VehicleEntity(
     val licensePlate: String? = null,
     /** [VehicleColor] enum name (e.g. "RED"). Null = undefined → default green icon. */
     val color: String? = null,
+    /**
+     * Wall-clock (client epoch ms) of the last LOCAL mutation to this row. Drives Last-Write-Wins
+     * reconciliation against the remote copy in `syncFromRemote`, so an offline edit is not
+     * clobbered by a stale server snapshot. 0 for rows that only ever came from remote.
+     * [SYNC-RECONCILE-001]
+     */
+    val updatedAt: Long = 0,
+    /**
+     * True while this row carries a local mutation not yet confirmed by the Firestore backend. The
+     * inbound sync never overwrites a `pendingSync` row; cleared once the remote write is acked.
+     * [SYNC-RECONCILE-001]
+     */
+    val pendingSync: Boolean = false,
 )

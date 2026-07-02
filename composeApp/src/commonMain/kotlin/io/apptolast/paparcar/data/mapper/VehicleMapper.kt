@@ -27,7 +27,10 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     color = VehicleColor.fromNameOrNull(color),
 )
 
-fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
+// [updatedAt]/[pendingSync] are persistence-only reconciliation metadata (not on the domain model):
+// a local mutation stamps updatedAt=now + pendingSync=true so the inbound sync won't clobber it.
+// [SYNC-RECONCILE-001]
+fun Vehicle.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): VehicleEntity = VehicleEntity(
     id = id,
     userId = userId,
     name = name,
@@ -41,6 +44,8 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     isActive = isActive,
     licensePlate = licensePlate,
     color = color?.name,
+    updatedAt = updatedAt,
+    pendingSync = pendingSync,
 )
 
 // ── VehicleDto → Entity (sync from Firestore) ──────────────────────────────
@@ -62,6 +67,10 @@ fun VehicleDto.toEntity(): VehicleEntity = VehicleEntity(
     isActive = isActive,
     licensePlate = null,
     color = color.ifBlank { null },
+    // Remote is authoritative & confirmed by definition → clean row, carrying the server's stamp so
+    // the merge can compare it against a local pending edit. [SYNC-RECONCILE-001]
+    updatedAt = updatedAt,
+    pendingSync = false,
 )
 
 // ── Domain → VehicleDto (write to Firestore) ────────────────────────────────

@@ -73,7 +73,9 @@ class AppViewModel(
                             updateState { copy(connectivity = current, connectivityBanner = ConnectivityBannerPhase.Offline) }
                         }
                         previous == ConnectivityStatus.Offline -> {
-                            // Real reconnect → show the green banner briefly, then settle to Hidden.
+                            // Real reconnect → push any vehicle edits made while offline to the cloud,
+                            // then show the green banner briefly, then settle to Hidden. [SYNC-RECONCILE-001]
+                            drainPendingVehicles()
                             updateState { copy(connectivity = current, connectivityBanner = ConnectivityBannerPhase.Restored) }
                             restoredHideJob?.cancel()
                             restoredHideJob = viewModelScope.launch {
@@ -101,10 +103,19 @@ class AppViewModel(
                 updateState { copy(hasVehicle = vehicles.isNotEmpty()) }
             }
             .launchIn(viewModelScope)
+
+        // On a fresh (online) start, drain any vehicle edits left un-synced by a previous offline
+        // session so they reliably reach the cloud (and other devices). [SYNC-RECONCILE-001]
+        if (connectivityObserver.status.value == ConnectivityStatus.Online) drainPendingVehicles()
     }
 
     /** Auto-hide timer for the transient [ConnectivityBannerPhase.Restored] banner. */
     private var restoredHideJob: Job? = null
+
+    /** Fire-and-forget push of any un-synced vehicle edits to Firestore (the outbox drainer). */
+    private fun drainPendingVehicles() {
+        viewModelScope.launch { vehicleRepository.pushPendingVehicles() }
+    }
 
     private companion object {
         const val TAG = "AppViewModel"

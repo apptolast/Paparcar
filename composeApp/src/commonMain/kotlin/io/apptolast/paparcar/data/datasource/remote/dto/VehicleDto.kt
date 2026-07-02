@@ -20,4 +20,10 @@ data class VehicleDto(
     val isActive: Boolean = false,
     /** [VehicleColor] enum name. Empty string when undefined (default green). */
     val color: String = "",
+    /**
+     * Client epoch-ms stamp of the last write, set by the remote data source on every vehicle write.
+     * Read back by the inbound sync so the merge can tell when the server has caught up with a local
+     * pending edit (self-healing Last-Write-Wins). 0 for pre-feature docs. [SYNC-RECONCILE-001]
+     */
+    val updatedAt: Long = 0,
 )

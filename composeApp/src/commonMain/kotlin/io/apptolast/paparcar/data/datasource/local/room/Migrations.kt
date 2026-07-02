@@ -51,3 +51,20 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+/**
+ * v8 → v9: add updatedAt + pendingSync to the vehicles table for inbound sync reconciliation.
+ * Non-destructive (ADD COLUMN) so the on-device cache — including offline edits not yet synced —
+ * survives the upgrade; that preservation is the whole point of the reconcile. Pre-existing rows
+ * default to updatedAt=0 / pendingSync=0 (clean, remote-authoritative). [SYNC-RECONCILE-001]
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE vehicles ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0"
+        )
+        connection.execSQL(
+            "ALTER TABLE vehicles ADD COLUMN pendingSync INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}
+

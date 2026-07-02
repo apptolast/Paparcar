@@ -107,4 +107,6 @@ class FakeVehicleRepository(private val scenario: MockScenario? = null) : Vehicl
     override suspend fun deleteAllData(userId: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun hasVehicles(userId: String): Boolean = currentList().isNotEmpty()
+
+    override suspend fun pushPendingVehicles(): Result<Unit> = Result.success(Unit)
 }

@@ -167,6 +167,32 @@ class AppViewModelTest {
         assertEquals(ConnectivityBannerPhase.Offline, vm.state.value.connectivityBanner)
     }
 
+    @Test
+    fun `drains pending vehicles on online cold start`() {
+        AppViewModel(fakePermissions, fakePrefs, fakeConnectivity, fakeVehicleRepo)
+
+        assertEquals(1, fakeVehicleRepo.pushPendingCallCount) // online → outbox drained once at init
+    }
+
+    @Test
+    fun `does not drain pending vehicles on offline cold start`() {
+        val offline = FakeConnectivityObserver(ConnectivityStatus.Offline)
+        AppViewModel(fakePermissions, fakePrefs, offline, fakeVehicleRepo)
+
+        assertEquals(0, fakeVehicleRepo.pushPendingCallCount) // offline → nothing to push yet
+    }
+
+    @Test
+    fun `drains pending vehicles on reconnect`() = runTest(testDispatcher) {
+        val offline = FakeConnectivityObserver(ConnectivityStatus.Offline)
+        AppViewModel(fakePermissions, fakePrefs, offline, fakeVehicleRepo)
+        assertEquals(0, fakeVehicleRepo.pushPendingCallCount)
+
+        offline.emit(ConnectivityStatus.Online) // reconnect → push the offline edits to the cloud
+
+        assertEquals(1, fakeVehicleRepo.pushPendingCallCount)
+    }
+
     // ── Intents ───────────────────────────────────────────────────────────────
 
     @Test

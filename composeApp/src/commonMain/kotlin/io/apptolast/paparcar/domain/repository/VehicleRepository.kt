@@ -69,4 +69,12 @@ interface VehicleRepository : UserScopedRepository, RemoteSyncable {
 
     /** Returns true if the user has at least one vehicle cached in Room. */
     suspend fun hasVehicles(userId: String): Boolean
+
+    /**
+     * Drains the outbound outbox: pushes every locally-mutated-but-unconfirmed (pendingSync) vehicle
+     * to Firestore and clears the flag on ack. Idempotent; a no-op when nothing is pending. Called on
+     * app start and on connectivity-restored so an offline edit reliably reaches the cloud (and other
+     * devices) even if the original background write's enqueue was missed. [SYNC-RECONCILE-001]
+     */
+    suspend fun pushPendingVehicles(): Result<Unit>
 }

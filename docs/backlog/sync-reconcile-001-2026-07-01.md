@@ -1,7 +1,7 @@
 # SYNC-RECONCILE-001 — reconciliar el sync inbound (fin del remote-wins ciego)
 
 **Fecha:** 2026-07-01
-**Estado:** BACKLOG (preparada — no empezada)
+**Estado:** EN CURSO — **Vehicle ✅ hecho** (2026-07-02): entity `updatedAt`/`pendingSync` + `MIGRATION_8_9` aditiva + `reconcileVehicles` (merge, no borra pending) + `syncFromRemote` reescrito + writes local-first con mirror remoto en **background** (fix "botón registrar gira eterno") + **drenador `pushPendingVehicles`** (outbox `pendingSync`, dispara en arranque-online + reconexión → entrega garantizada cross-device) + tests. **Zone / UserParking / Profile pendientes** (mismo patrón). Geocoder-offline + read-only también pendientes.
 **Prioridad:** media-alta (corrige pérdida de escrituras locales offline; habilita mutaciones offline seguras)
 **Relacionada:** banner de conexión [CONN-BANNER-001], solo-lectura offline (interino), [[project_arch_cleanup_001]] (VehicleActiveStatePolicy)
 

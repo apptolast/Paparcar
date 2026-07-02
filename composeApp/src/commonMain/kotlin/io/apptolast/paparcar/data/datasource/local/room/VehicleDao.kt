@@ -45,6 +45,18 @@ interface VehicleDao {
     @Query("SELECT COUNT(*) FROM vehicles WHERE userId = :userId")
     suspend fun countByUser(userId: String): Int
 
+    /** Marks a row as locally-mutated-not-yet-synced so the inbound sync won't clobber it. [SYNC-RECONCILE-001] */
+    @Query("UPDATE vehicles SET pendingSync = 1, updatedAt = :updatedAt WHERE id = :id")
+    suspend fun markPending(id: String, updatedAt: Long)
+
+    /** Clears the pending flag once the remote write is confirmed (server ack). [SYNC-RECONCILE-001] */
+    @Query("UPDATE vehicles SET pendingSync = 0 WHERE id = :id")
+    suspend fun clearPending(id: String)
+
+    /** The outbound outbox: rows with a local edit not yet confirmed by Firestore. [SYNC-RECONCILE-001] */
+    @Query("SELECT * FROM vehicles WHERE pendingSync = 1")
+    suspend fun getPendingSync(): List<VehicleEntity>
+
     /**
      * REPLACE-conflict bulk insert used by [VehicleRepository.syncFromRemote]. Required so a
      * change to `isActive` on another device actually lands in this Room when re-synced —
