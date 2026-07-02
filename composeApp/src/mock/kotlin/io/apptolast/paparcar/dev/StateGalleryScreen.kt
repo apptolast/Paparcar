@@ -359,7 +359,43 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Vehicles",
         listOf(
-            Variant("Lista") { VehiclesContent(state = VehiclesState(vehicles = FakeData.vehiclesWithStats, isLoading = false)) },
+            // Full history per vehicle so the activity chart + filter bar + timeline actually render
+            // (the hero card alone doesn't exercise the History section). [VEHICLES-REDESIGN-001]
+            Variant("Lista") {
+                val history = FakeData.vehiclesWithStats.associate { vws ->
+                    vws.vehicle.id to HistoryState(
+                        sessions = FakeData.allSessions,
+                        activeFilter = HistoryFilter.All,
+                        filteredSessions = FakeData.allSessions,
+                    )
+                }
+                VehiclesContent(
+                    state = VehiclesState(
+                        vehicles = FakeData.vehiclesWithStats,
+                        isLoading = false,
+                        historyCache = history,
+                    ),
+                )
+            },
+            // Low-data: a single session in the window → the chart collapses to the compact summary
+            // instead of a near-empty full-height chart. [VEHICLES-REDESIGN-001 · Task 3]
+            Variant("Pocos datos") {
+                val oneSession = FakeData.endedSessions.take(1)
+                val history = FakeData.vehiclesWithStats.associate { vws ->
+                    vws.vehicle.id to HistoryState(
+                        sessions = oneSession,
+                        activeFilter = HistoryFilter.All,
+                        filteredSessions = oneSession,
+                    )
+                }
+                VehiclesContent(
+                    state = VehiclesState(
+                        vehicles = FakeData.vehiclesWithStats,
+                        isLoading = false,
+                        historyCache = history,
+                    ),
+                )
+            },
             Variant("Vacío") { VehiclesContent(state = VehiclesState(vehicles = emptyList(), isLoading = false)) },
             Variant("Cargando") { VehiclesContent(state = VehiclesState(isLoading = true)) },
         ),

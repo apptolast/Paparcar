@@ -123,6 +123,15 @@
         <item quantity="one">parking this week</item>
         <item quantity="other">parkings this week</item>
     </plurals>
+    <!-- Activity chart — scope-aware title/subtitle and the low-data compact summary -->
+    <string name="history_activity_title">Activity</string>
+    <plurals name="history_activity_noun">
+        <item quantity="one">parking</item>
+        <item quantity="other">parkings</item>
+    </plurals>
+    <string name="history_activity_low_hint">Not much activity in this period</string>
+    <!-- Section header above the time-filter chips, so they read as scoping the history below -->
+    <string name="history_section_label">History</string>
     <string name="history_today">Today</string>
     <string name="history_yesterday">Yesterday</string>
     <string name="history_empty_title">No parking yet</string>
@@ -397,6 +406,10 @@
     <string name="bt_config_device_dual">Dual</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <!-- Vehicle selector chip — status pin + Bluetooth glyph accessibility -->
+    <string name="vehicle_status_active_cd">Detection active</string>
+    <string name="vehicle_status_inactive_cd">Detection off</string>
+    <string name="vehicle_bt_cd">Bluetooth pairing</string>
     <!-- VehicleStatsRow inline cards under the hero card -->
     <string name="vehicle_stats_sessions">sessions</string>
     <string name="vehicle_stats_last_session">last</string>

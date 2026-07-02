@@ -5,20 +5,31 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -39,21 +50,126 @@ import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.history_weekly_subtitle
-import paparcar.composeapp.generated.resources.history_weekly_title
+import paparcar.composeapp.generated.resources.history_activity_low_hint
+import paparcar.composeapp.generated.resources.history_activity_noun
+import paparcar.composeapp.generated.resources.history_activity_title
 
 private const val CHART_ENTER_DURATION = 800
 
 /**
- * Weekly activity bar chart (v1 redesign).
+ * Activity chart (v1 redesign) — reflects the currently-selected time filter (its buckets are built
+ * per-scope: daily for a week, weekly for a month, monthly for longer windows). [VEHICLES-REDESIGN-001]
  *  - 20dp card, 1px subtle outline.
- *  - Subtitle: "<count> sessions · last 7 days" with count in primary bold.
- *  - Today's bar = primary; other bars = primary @ 50% alpha.
- *  - 3 grid lines @ 7% alpha and per-bar count callout on fade-in.
+ *  - Title "Activity" + subtitle "<count> parkings · <scope>" with count in primary bold.
+ *  - Newest bucket = primary; the rest = primary @ 50% alpha.
+ *  - When the selected window holds ≤2 sessions it collapses to a compact summary (Task 3) instead of
+ *    a near-empty full-height chart; the bar scale also has a floor so a lone bar never fills the top.
  */
 @Composable
-internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
-    val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(1)
+internal fun ActivityCard(data: List<WeekDayStats>, total: Int, scopeLabel: String) {
+    ActivityCardShell {
+        ActivityCardHeader(total = total, scopeLabel = scopeLabel)
+        if (total <= LOW_DATA_THRESHOLD) {
+            Spacer(Modifier.height(14.dp))
+            LowActivitySummary(total = total)
+        } else {
+            Spacer(Modifier.height(18.dp))
+            ActivityBarChart(data = data)
+        }
+    }
+}
+
+@Composable
+private fun ActivityCardShell(content: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = BORDER_ALPHA),
+        ),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) { content() }
+    }
+}
+
+@Composable
+private fun ActivityCardHeader(total: Int, scopeLabel: String) {
+    val primaryColor = MaterialTheme.colorScheme.primary
+    Text(
+        stringResource(Res.string.history_activity_title),
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
+    Spacer(Modifier.height(2.dp))
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
+                append("$total ")
+            }
+            append(pluralStringResource(Res.plurals.history_activity_noun, total))
+            append(" · ")
+            append(scopeLabel)
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
+    )
+}
+
+/**
+ * Compact low-data variant — a short row instead of a 120dp chart so the section never looks empty
+ * when the selected window has 0–2 sessions. [VEHICLES-REDESIGN-001]
+ */
+@Composable
+private fun LowActivitySummary(total: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(LOW_ICON_CIRCLE_DP.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(LOW_ICON_DP.dp),
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Column {
+            Text(
+                text = buildAnnotatedString {
+                    withStyle(
+                        SpanStyle(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    ) { append("$total ") }
+                    append(pluralStringResource(Res.plurals.history_activity_noun, total))
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(Res.string.history_activity_low_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActivityBarChart(data: List<WeekDayStats>) {
+    // Scale floor: a lone bar (value 1) shouldn't fill the whole chart height and leave the rest blank,
+    // so the max is clamped up to MIN_SCALE_MAX. [VEHICLES-REDESIGN-001]
+    val maxSessions = (data.maxOfOrNull { it.sessions } ?: 1).coerceAtLeast(MIN_SCALE_MAX)
     val total = data.sumOf { it.sessions }
 
     // Re-grow the bars whenever the dataset changes (e.g. a new session lands)
@@ -70,58 +186,24 @@ internal fun WeeklyActivityCard(data: List<WeekDayStats>) {
     val anim = progress.value
     val textMeasurer = rememberTextMeasurer()
     val dataType = rememberDataTypography()
-
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = BORDER_ALPHA),
-        ),
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(CHART_HEIGHT_DP.dp),
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                stringResource(Res.string.history_weekly_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
-                        append("$total ")
-                    }
-                    append(pluralStringResource(Res.plurals.history_weekly_subtitle, total))
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
-            )
-
-            Spacer(Modifier.height(18.dp))
-
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(CHART_HEIGHT_DP.dp),
-            ) {
-                drawBarChart(
-                    data = data,
-                    maxValue = maxSessions,
-                    progress = anim,
-                    textMeasurer = textMeasurer,
-                    primaryColor = primaryColor,
-                    onSurfaceColor = onSurfaceColor,
-                    labelStyle = dataType.chartDayLabel,
-                    countStyle = dataType.chartCountBadge,
-                )
-            }
-        }
+        drawBarChart(
+            data = data,
+            maxValue = maxSessions,
+            progress = anim,
+            textMeasurer = textMeasurer,
+            primaryColor = primaryColor,
+            onSurfaceColor = onSurfaceColor,
+            labelStyle = dataType.chartDayLabel,
+            countStyle = dataType.chartCountBadge,
+        )
     }
 }
 
@@ -140,7 +222,9 @@ private fun DrawScope.drawBarChart(
     val labelHeight = 22.dp.toPx()
     val chartHeight = size.height - labelHeight
     val barAreaWidth = size.width / data.size
-    val barWidth = barAreaWidth * BAR_WIDTH_FRACTION
+    // Cap the bar width so a chart with few buckets (e.g. one week into the month) renders a normal,
+    // centred bar instead of a full-width blob. [VEHICLES-REDESIGN-001]
+    val barWidth = (barAreaWidth * BAR_WIDTH_FRACTION).coerceAtMost(MAX_BAR_WIDTH_DP.dp.toPx())
     val corner = CornerRadius(barWidth / 2f, barWidth / 2f)
 
     drawGridLines(chartHeight, onSurfaceColor)
@@ -149,8 +233,10 @@ private fun DrawScope.drawBarChart(
         val centerX = barAreaWidth * index + barAreaWidth / 2f
         val barLeft = centerX - barWidth / 2f
         val fillRatio = if (maxValue > 0) item.sessions.toFloat() / maxValue else 0f
-        val barHeight = chartHeight * fillRatio * progress
-        val isToday = index == data.size - 1
+        // Reserve headroom above the tallest bar so the per-bar count label never clips off the top of
+        // the canvas (a full-height bar would push its number to a negative y). [VEHICLES-REDESIGN-001]
+        val barHeight = chartHeight * BAR_MAX_HEIGHT_FRACTION * fillRatio * progress
+        val isToday = item.isCurrent
 
         drawBar(barLeft, barWidth, barHeight, chartHeight, corner, isToday, primaryColor, onSurfaceColor)
         drawDayLabel(centerX, item.label, isToday, textMeasurer, labelStyle, onSurfaceColor)
@@ -247,9 +333,20 @@ private fun DrawScope.drawCountLabel(
 
 private const val CARD_CORNER_DP = 20
 private const val CHART_HEIGHT_DP = 120
+// ≤ this many sessions in the selected window → compact summary instead of the full chart. [Task 3]
+private const val LOW_DATA_THRESHOLD = 2
+// Bar-scale floor: the max value used for bar heights never drops below this, so a single session
+// doesn't render as a full-height bar. [Task 3]
+private const val MIN_SCALE_MAX = 3
+private const val LOW_ICON_CIRCLE_DP = 44
+private const val LOW_ICON_DP = 22
 private const val BORDER_ALPHA = 0.5f
 private const val SUBTITLE_ALPHA = 0.55f
 private const val BAR_WIDTH_FRACTION = 0.45f
+// Max bar width so few-bucket charts don't render one giant full-width bar. [VEHICLES-REDESIGN-001]
+private const val MAX_BAR_WIDTH_DP = 32
+// Tallest bar fills this fraction of the chart height, leaving room for the count label above it.
+private const val BAR_MAX_HEIGHT_FRACTION = 0.82f
 private const val GRID_LINE_COUNT = 3
 private const val GRID_LINE_ALPHA = 0.07f
 private const val PLACEHOLDER_BAR_ALPHA = 0.06f

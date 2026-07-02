@@ -116,6 +116,15 @@
         <item quantity="one">aparcamiento esta semana</item>
         <item quantity="other">aparcamientos esta semana</item>
     </plurals>
+    <!-- Activity chart — scope-aware title/subtitle and the low-data compact summary -->
+    <string name="history_activity_title">Actividad</string>
+    <plurals name="history_activity_noun">
+        <item quantity="one">aparcamiento</item>
+        <item quantity="other">aparcamientos</item>
+    </plurals>
+    <string name="history_activity_low_hint">Poca actividad en este periodo</string>
+    <!-- Section header over the time-filter chips -->
+    <string name="history_section_label">Historial</string>
     <string name="history_today">Hoy</string>
     <string name="history_yesterday">Ayer</string>
     <string name="history_empty_title">Aún no has aparcado</string>
@@ -378,6 +387,10 @@
     <string name="bt_config_device_dual">Dual</string>
     <!-- VehicleCard detection status badge labels -->
     <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <!-- Vehicle selector chip — status pin + Bluetooth glyph accessibility -->
+    <string name="vehicle_status_active_cd">Detección activa</string>
+    <string name="vehicle_status_inactive_cd">Detección desactivada</string>
+    <string name="vehicle_bt_cd">Emparejado por Bluetooth</string>
     <!-- VehicleStatsRow cards inline bajo la hero card -->
     <string name="vehicle_stats_sessions">sesiones</string>
     <string name="vehicle_stats_last_session">última</string>

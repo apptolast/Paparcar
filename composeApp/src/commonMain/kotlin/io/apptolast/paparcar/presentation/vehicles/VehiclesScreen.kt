@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,6 +48,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -54,12 +57,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.absoluteValue
 import io.apptolast.paparcar.domain.model.Vehicle
-import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.displayName
-import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import io.apptolast.paparcar.ui.theme.appBarTitle
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -72,6 +74,9 @@ import paparcar.composeapp.generated.resources.my_car_empty_why_link
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_title
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
+import paparcar.composeapp.generated.resources.vehicle_bt_cd
+import paparcar.composeapp.generated.resources.vehicle_status_active_cd
+import paparcar.composeapp.generated.resources.vehicle_status_inactive_cd
 
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
@@ -291,13 +296,10 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
     )
     val bg = if (selected) cs.primary.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
     val fg = if (selected) cs.primary else cs.onSurface
-    val monitoring = vehicle.monitoringStatus()
-    // Status dot — tertiary (BT accent) when paired, primary when AR-active, hidden when inactive.
-    val dotColor = when (monitoring) {
-        is VehicleMonitoringStatus.Bluetooth -> cs.tertiary
-        VehicleMonitoringStatus.Active       -> cs.primary
-        VehicleMonitoringStatus.Inactive     -> null
-    }
+    // Same status language as Home's vehicle chip and the map marker: a green/grey pin reads the
+    // vehicle's detection state (active/inactive), and a Bluetooth glyph — not a colour — signals BT
+    // pairing, so the two signals never get confused. [VEHICLES-REDESIGN-001]
+    val isBtPaired = vehicle.bluetoothDeviceId != null
 
     Surface(
         onClick = onClick,
@@ -325,16 +327,34 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
                 color = fg,
                 maxLines = 1,
             )
-            if (dotColor != null) {
-                Box(
-                    modifier = Modifier
-                        .size(ACTIVE_DOT_DP.dp)
-                        .clip(CircleShape)
-                        .background(dotColor),
+            if (isBtPaired) {
+                Icon(
+                    imageVector = Icons.Rounded.Bluetooth,
+                    contentDescription = stringResource(Res.string.vehicle_bt_cd),
+                    tint = cs.onSurfaceVariant,
+                    modifier = Modifier.size(BT_ICON_DP.dp),
                 )
             }
+            VehicleStatusPin(active = vehicle.isActive)
         }
     }
+}
+
+/** Small solid status pin — green when the vehicle's auto-detection is active, grey when inactive.
+ *  Mirrors the map-marker / Home-chip tone so the selector reads the same language everywhere; shown
+ *  for every vehicle (active AND inactive). [VEHICLES-REDESIGN-001] */
+@Composable
+private fun VehicleStatusPin(active: Boolean) {
+    val cd = stringResource(
+        if (active) Res.string.vehicle_status_active_cd else Res.string.vehicle_status_inactive_cd,
+    )
+    Box(
+        modifier = Modifier
+            .size(ACTIVE_DOT_DP.dp)
+            .clip(CircleShape)
+            .background(if (active) MaterialTheme.colorScheme.primary else PapOutlineVariantLight)
+            .semantics { contentDescription = cd },
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -429,6 +449,7 @@ private const val TAB_HEIGHT_DP = 36
 private const val PAGER_MIN_ALPHA = 0.5f
 private const val PAGER_MIN_SCALE = 0.92f
 private const val ACTIVE_DOT_DP = 6
+private const val BT_ICON_DP = 14
 private const val SELECTED_FILL_ALPHA = 0.14f
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private const val EMPTY_BODY_ALPHA = 0.65f

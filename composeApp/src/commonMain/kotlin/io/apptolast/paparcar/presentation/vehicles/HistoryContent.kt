@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.vehicles.components.ActiveSectionHeader
@@ -41,8 +42,8 @@ import io.apptolast.paparcar.presentation.vehicles.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.vehicles.components.EndedSessionTimelineNode
 import io.apptolast.paparcar.presentation.vehicles.components.HistoryFilterBar
 import io.apptolast.paparcar.presentation.vehicles.components.HistoryInsightsCard
+import io.apptolast.paparcar.presentation.vehicles.components.ActivityCard
 import io.apptolast.paparcar.presentation.vehicles.components.StatsRow
-import io.apptolast.paparcar.presentation.vehicles.components.WeeklyActivityCard
 import io.apptolast.paparcar.ui.theme.PapMotion
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
@@ -52,6 +53,11 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
+import paparcar.composeapp.generated.resources.history_filter_all
+import paparcar.composeapp.generated.resources.history_filter_last_3_months
+import paparcar.composeapp.generated.resources.history_filter_this_month
+import paparcar.composeapp.generated.resources.history_filter_this_week
+import paparcar.composeapp.generated.resources.history_section_label
 import paparcar.composeapp.generated.resources.history_day_full_fri
 import paparcar.composeapp.generated.resources.history_day_full_mon
 import paparcar.composeapp.generated.resources.history_day_full_sat
@@ -105,7 +111,7 @@ internal val DAY_FULL_RES: List<StringResource> = listOf(
     Res.string.history_day_full_sun,
 )
 
-data class WeekDayStats(val label: String, val sessions: Int)
+data class WeekDayStats(val label: String, val sessions: Int, val isCurrent: Boolean = false)
 
 internal sealed class TimelineItem {
     abstract val key: String
@@ -137,7 +143,19 @@ internal fun HistoryContent(
     val dayFullLabels = DAY_FULL_RES.map { stringResource(it) }
 
     val allEnded = remember(state.sessions) { state.sessions.filter { !it.isActive } }
-    val weeklyStats = remember(state.sessions, dayLabels) { buildWeeklyStats(state.sessions, dayLabels) }
+    // The activity chart now follows the selected time filter: buckets are built from the SCOPED
+    // sessions with a granularity that matches the window (daily for a week, weekly for a month,
+    // monthly for longer). Its total/scope label come from the same filter. [VEHICLES-REDESIGN-001]
+    val activityBuckets = remember(state.filteredSessions, state.activeFilter, dayLabels, monthNamesShort) {
+        buildActivityBuckets(state.filteredSessions, state.activeFilter, dayLabels, monthNamesShort)
+    }
+    val scopeTotal = state.filteredSessions.size
+    val scopeLabel = when (state.activeFilter) {
+        HistoryFilter.All -> stringResource(Res.string.history_filter_all)
+        HistoryFilter.ThisWeek -> stringResource(Res.string.history_filter_this_week)
+        HistoryFilter.ThisMonth -> stringResource(Res.string.history_filter_this_month)
+        HistoryFilter.Last3Months -> stringResource(Res.string.history_filter_last_3_months)
+    }
     val activeSession =
         remember(state.filteredSessions) { state.filteredSessions.firstOrNull { it.isActive } }
     val ended = remember(state.filteredSessions) { state.filteredSessions.filter { !it.isActive } }
@@ -176,10 +194,41 @@ internal fun HistoryContent(
                 }
             } else {
                 if (header != null) item(key = "header") { header() }
+
+                // A section title gives the time-filter chips context (otherwise they float under the
+                // hero card with no label); it's a full-weight title — same treatment as the "Activity"
+                // chart title — so it reads as a real section, not an orphaned overline. The chips below
+                // scope the WHOLE view. [VEHICLES-REDESIGN-001]
+                item(key = "history_section_label") {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(Res.string.history_section_label),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                // The time filter scopes the WHOLE view (activity chart + timeline), so it sits at the
+                // top as the page's period selector; the chart right below re-buckets to match, which
+                // removes the old "two disconnected weeks" redundancy. [VEHICLES-REDESIGN-001]
+                stickyHeader(key = "filter_bar") {
+                    HistoryFilterBar(
+                        activeFilter = state.activeFilter,
+                        onFilterSelected = onFilterSelected,
+                    )
+                }
+
                 item(key = "chart_spacer") { Spacer(Modifier.height(8.dp)) }
                 item(key = "chart") {
                     Box(Modifier.padding(horizontal = 16.dp)) {
-                        WeeklyActivityCard(data = weeklyStats)
+                        ActivityCard(
+                            data = activityBuckets,
+                            total = scopeTotal,
+                            scopeLabel = scopeLabel,
+                        )
                     }
                 }
 
@@ -199,17 +248,6 @@ internal fun HistoryContent(
                             )
                         }
                     }
-                }
-
-                if (!showInternalStats) {
-                    item(key = "chart_filter_gap") { Spacer(Modifier.height(8.dp)) }
-                }
-
-                stickyHeader(key = "filter_bar") {
-                    HistoryFilterBar(
-                        activeFilter = state.activeFilter,
-                        onFilterSelected = onFilterSelected,
-                    )
                 }
 
                 val hasTimeline = activeSession != null || timelineItems.isNotEmpty()
@@ -339,6 +377,11 @@ private const val SKELETON_CHIP_ALPHA_FACTOR = 0.85f
 private const val SKELETON_HEADER_ALPHA_FACTOR = 0.7f
 
 private const val DAY_MS = 86_400_000L
+private const val DAYS_PER_WEEK = 7
+private const val WEEKS_IN_MONTH = 5
+private const val MONTHS_PER_YEAR = 12
+// Cap on how many months the "All" activity chart shows (older sessions still count in the total). [Task 4]
+private const val ALL_MONTHS_CAP = 6
 
 private fun buildWeeklyStats(
     sessions: List<UserParking>,
@@ -356,6 +399,76 @@ private fun buildWeeklyStats(
         WeekDayStats(
             label = dayLabels[date.dayOfWeek.isoDayNumber - 1],
             sessions = grouped[date]?.size ?: 0,
+            isCurrent = daysAgo == 0,
+        )
+    }
+}
+
+// Activity-chart buckets that follow the selected time filter: the window's granularity changes so a
+// single chart reads well from a week up to all-time. [VEHICLES-REDESIGN-001]
+private fun buildActivityBuckets(
+    sessions: List<UserParking>,
+    filter: HistoryFilter,
+    dayLabels: List<String>,
+    monthNamesShort: List<String>,
+): List<WeekDayStats> = when (filter) {
+    HistoryFilter.ThisWeek -> buildWeeklyStats(sessions, dayLabels)          // 7 daily bars
+    HistoryFilter.ThisMonth -> buildMonthWeekBuckets(sessions)              // weekly bars of this month
+    HistoryFilter.Last3Months -> buildMonthlyBuckets(sessions, monthNamesShort, months = 3)
+    HistoryFilter.All -> buildMonthlyBuckets(sessions, monthNamesShort, months = ALL_MONTHS_CAP)
+}
+
+// This-month view: one bar per week of the current month, labelled by the week's starting day-of-month
+// (1, 8, 15, 22, 29). Always shows the full month (weeks not reached yet read as empty track bars) so
+// the chart never degenerates to a single full-width bar early in the month. The week containing today
+// is highlighted. [VEHICLES-REDESIGN-001]
+private fun buildMonthWeekBuckets(sessions: List<UserParking>): List<WeekDayStats> {
+    val tz = TimeZone.currentSystemDefault()
+    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
+    val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
+    val currentWeek = (nowLocal.date.day - 1) / DAYS_PER_WEEK
+    val counts = IntArray(WEEKS_IN_MONTH)
+    sessions.forEach { s ->
+        val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz).date
+        if (d.year == nowLocal.year && d.month == nowLocal.month) {
+            val wk = ((d.day - 1) / DAYS_PER_WEEK).coerceAtMost(WEEKS_IN_MONTH - 1)
+            counts[wk]++
+        }
+    }
+    return (0 until WEEKS_IN_MONTH).map { i ->
+        WeekDayStats(
+            label = "${i * DAYS_PER_WEEK + 1}",
+            sessions = counts[i],
+            isCurrent = i == currentWeek,
+        )
+    }
+}
+
+// Longer windows: one bar per calendar month for the last [months] months (oldest → newest), labelled
+// by short month name. The last bar is the current month (highlighted).
+private fun buildMonthlyBuckets(
+    sessions: List<UserParking>,
+    monthNamesShort: List<String>,
+    months: Int,
+): List<WeekDayStats> {
+    val tz = TimeZone.currentSystemDefault()
+    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
+    val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
+    val grouped = sessions.groupBy { s ->
+        val d = Instant.fromEpochMilliseconds(s.location.timestamp).toLocalDateTime(tz)
+        d.year to d.month.number
+    }
+    return (months - 1 downTo 0).map { back ->
+        var y = nowLocal.year
+        var m = nowLocal.month.number - back
+        while (m <= 0) {
+            m += MONTHS_PER_YEAR
+            y -= 1
+        }
+        WeekDayStats(
+            label = monthNamesShort[m - 1],
+            sessions = grouped[y to m]?.size ?: 0,
+            isCurrent = back == 0,
         )
     }
 }
