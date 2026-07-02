@@ -257,17 +257,19 @@ internal fun HomeVehicleCard(
                             maxLines = 1,
                         )
                         session != null -> {
+                            // The address title is the long line → condensed, so "Aparcado en {calle
+                            // larga}" fits before ellipsizing. The time·distance subline is short and
+                            // stays Inter. [HOME-VEH-REFINE-001]
                             Text(
                                 text = parkedTitle(session),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
+                                style = rememberDataTypography().compactBody.copy(fontWeight = FontWeight.SemiBold),
                                 color = cs.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = parkedMeta(session, userLocation),
-                                style = rememberDataTypography().compactBody,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = cs.onSurfaceVariant,
                                 maxLines = 1,
                             )
