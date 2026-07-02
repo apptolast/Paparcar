@@ -102,18 +102,10 @@
     <string name="walk_time_minutes">%1$d min à pied</string>
     <string name="drive_time_minutes">%1$d min en voiture</string>
 
-    <string name="history_stat_total">Total</string>
-    <string name="history_stat_this_week">Cette semaine</string>
-    <string name="history_stat_this_month">Ce mois-ci</string>
     <string name="history_filter_all">Tous</string>
     <string name="history_filter_this_week">Cette semaine</string>
     <string name="history_filter_this_month">Ce mois-ci</string>
     <string name="history_filter_last_3_months">3 derniers mois</string>
-    <string name="history_insights_title">Statistiques</string>
-    <string name="history_insights_avg_week">Moy. / semaine</string>
-    <string name="history_insights_peak_day">Jour de pointe</string>
-    <string name="history_insights_top_street">Rue favorite</string>
-    <string name="history_insights_reliability">Fiabilité</string>
     <string name="history_month_short_1">jan</string>
     <string name="history_month_short_2">fév</string>
     <string name="history_month_short_3">mar</string>

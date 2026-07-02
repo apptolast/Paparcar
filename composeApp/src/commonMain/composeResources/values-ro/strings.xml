@@ -102,18 +102,10 @@
     <string name="walk_time_minutes">%1$d min pe jos</string>
     <string name="drive_time_minutes">%1$d min cu mașina</string>
 
-    <string name="history_stat_total">Total</string>
-    <string name="history_stat_this_week">Săptămâna aceasta</string>
-    <string name="history_stat_this_month">Luna aceasta</string>
     <string name="history_filter_all">Toate</string>
     <string name="history_filter_this_week">Săptămâna aceasta</string>
     <string name="history_filter_this_month">Luna aceasta</string>
     <string name="history_filter_last_3_months">Ultimele 3 luni</string>
-    <string name="history_insights_title">Statistici</string>
-    <string name="history_insights_avg_week">Medie / săpt.</string>
-    <string name="history_insights_peak_day">Ziua de vârf</string>
-    <string name="history_insights_top_street">Strada preferată</string>
-    <string name="history_insights_reliability">Fiabilitate</string>
     <string name="history_month_short_1">ian</string>
     <string name="history_month_short_2">feb</string>
     <string name="history_month_short_3">mar</string>

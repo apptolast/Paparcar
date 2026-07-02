@@ -102,18 +102,10 @@
     <string name="walk_time_minutes">%1$d min lopen</string>
     <string name="drive_time_minutes">%1$d min rijden</string>
 
-    <string name="history_stat_total">Totaal</string>
-    <string name="history_stat_this_week">Deze week</string>
-    <string name="history_stat_this_month">Deze maand</string>
     <string name="history_filter_all">Alle</string>
     <string name="history_filter_this_week">Deze week</string>
     <string name="history_filter_this_month">Deze maand</string>
     <string name="history_filter_last_3_months">Laatste 3 maanden</string>
-    <string name="history_insights_title">Inzichten</string>
-    <string name="history_insights_avg_week">Gem. / week</string>
-    <string name="history_insights_peak_day">Piekdag</string>
-    <string name="history_insights_top_street">Topstraat</string>
-    <string name="history_insights_reliability">Betrouwbaarheid</string>
     <string name="history_month_short_1">jan</string>
     <string name="history_month_short_2">feb</string>
     <string name="history_month_short_3">mrt</string>
