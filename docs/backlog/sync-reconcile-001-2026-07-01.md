@@ -1,7 +1,7 @@
 # SYNC-RECONCILE-001 — reconciliar el sync inbound (fin del remote-wins ciego)
 
 **Fecha:** 2026-07-01
-**Estado:** EN CURSO — **Vehicle ✅ + Zone ✅ hechos** (2026-07-02). Patrón por entidad: entity `updatedAt`/`pendingSync` + migración aditiva (`MIGRATION_8_9` vehicles v9, `MIGRATION_9_10` zones v10) + reconcile (merge que conserva pending, delega en helper genérico `reconcilePending` en `SyncReconcile.kt`) + `syncFromRemote` reescrito + writes local-first con mirror remoto en **background** (fix "botón gira eterno") + **drenador** (`pushPendingVehicles`/`pushPendingZones`, outbox `pendingSync`, `AppViewModel.drainPendingSync` en arranque-online + reconexión → entrega garantizada cross-device) + tests. **UserParking / Profile pendientes** (mismo patrón). Geocoder-offline + read-only también pendientes.
+**Estado:** EN CURSO — **Vehicle ✅ + Zone ✅ hechos** (2026-07-02). Patrón por entidad: entity `updatedAt`/`pendingSync` + migración aditiva (`MIGRATION_8_9` vehicles v9, `MIGRATION_9_10` zones v10) + reconcile (merge que conserva pending, delega en helper genérico `reconcilePending` en `SyncReconcile.kt`) + `syncFromRemote` reescrito + writes local-first con mirror remoto en **background** (fix "botón gira eterno") + **drenador** (`pushPendingVehicles`/`pushPendingZones`, outbox `pendingSync`, `AppViewModel.drainPendingSync` en arranque-online + reconexión → entrega garantizada cross-device) + tests. **UserParking / Profile DIFERIDOS** (reconcile cerrado en vehículos+zonas; parking=WorkManager ya entrega + hueco transitorio + toca workers sensibles, profile=bajo impacto — ver sección abajo). Geocoder-offline + read-only siguen pendientes.
 **Prioridad:** media-alta (corrige pérdida de escrituras locales offline; habilita mutaciones offline seguras)
 **Relacionada:** banner de conexión [CONN-BANNER-001], solo-lectura offline (interino), [[project_arch_cleanup_001]] (VehicleActiveStatePolicy)
 
@@ -49,9 +49,13 @@ El arreglo está en el **inbound**, no en el outbound (Firestore ya encola bien)
 5. **(Complemento barato)** No correr el sync destructivo mientras haya escrituras pendientes: Firestore expone `metadata.hasPendingWrites`; o usar un listener (aplica pending por latency-compensation) en vez de un `get()` one-shot que lee estado de servidor viejo.
 
 ### Aplicabilidad por entidad
-- **Reconcile** (el cliente las edita): `vehicles` (activo, matrícula, BT, color, size, carbody), `zones`, `user_profile` (defaultVehicleId, prefs sincronizadas), `user_parking` sesiones creadas/editadas en device.
+- **Reconcile HECHO**: `vehicles` ✅ (`c24fa976`), `zones` ✅ (`89d4c650`) — lo que el usuario edita a mano y se revertía de forma **permanente y visible**.
 - **Puede seguir remote-wins**: datos puramente del servidor que el cliente nunca edita (p. ej. `spots` de la comunidad).
-- Aplicar por-entidad; no hay una única política global.
+
+### UserParking / Profile — DIFERIDOS (decisión 2026-07-02, cerrado el reconcile en vehículos+zonas)
+No se aplicó el patrón; motivos:
+- **`user_parking`**: arquitectura distinta — los writes ya usan **WorkManager** (`ParkingSyncScheduler`) = entrega garantizada incluso con app cerrada, y **no hay button-hang** (no `await`). Su `syncFromRemote` hace `upsertAll` **sin `deleteByUser`** → una sesión creada offline **NO se pierde**. El único hueco es que `upsertAll` puede pisar una **edición** offline de una sesión existente (release/move) con la versión stale del servidor → la sesión "reaparece activa" — pero es **transitorio y se auto-corrige** en el siguiente cold-start (WorkManager sube el clear). Arreglarlo (LWW por `updatedAt`) obliga a tocar los **workers de detección en androidMain** (subsistema field-tuned, sensible). Solo hacerlo si el field-test demuestra que el "reaparece la sesión" molesta de verdad.
+- **`user_profile`**: `defaultVehicleId` ya lo cubre de facto el reconcile de vehículos (el activo se decide por `vehicles.isActive`, no por el puntero del perfil). Impacto bajo, no urgente.
 
 ## Ficheros afectados (estimación)
 - `data/repository/VehicleRepositoryImpl.kt` — `syncFromRemote` → merge; `setActive`/`save`/`delete`/`updateBluetoothDevice` → set `updatedAt`+`pendingSync`; limpiar pending al ACK.
