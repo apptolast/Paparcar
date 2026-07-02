@@ -54,4 +54,12 @@ class FakeZoneRepository : ZoneRepository {
         _zones.value = emptyList()
         return Result.success(Unit)
     }
+
+    var pushPendingCallCount = 0
+        private set
+
+    override suspend fun pushPendingZones(): Result<Unit> {
+        pushPendingCallCount++
+        return Result.success(Unit)
+    }
 }

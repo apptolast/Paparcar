@@ -68,3 +68,19 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
+/**
+ * v9 → v10: add updatedAt + pendingSync to the zones table for inbound sync reconciliation — same
+ * non-destructive treatment as vehicles (v8→v9). Preserves the cache incl. offline zone edits.
+ * [SYNC-RECONCILE-001]
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE zones ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0"
+        )
+        connection.execSQL(
+            "ALTER TABLE zones ADD COLUMN pendingSync INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}
+

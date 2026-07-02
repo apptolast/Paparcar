@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.Job
@@ -21,6 +22,7 @@ class AppViewModel(
     private val appPreferences: AppPreferences,
     private val connectivityObserver: ConnectivityObserver,
     private val vehicleRepository: VehicleRepository,
+    private val zoneRepository: ZoneRepository,
 ) : BaseViewModel<AppState, AppIntent, AppEffect>() {
 
     init {
@@ -73,9 +75,9 @@ class AppViewModel(
                             updateState { copy(connectivity = current, connectivityBanner = ConnectivityBannerPhase.Offline) }
                         }
                         previous == ConnectivityStatus.Offline -> {
-                            // Real reconnect → push any vehicle edits made while offline to the cloud,
-                            // then show the green banner briefly, then settle to Hidden. [SYNC-RECONCILE-001]
-                            drainPendingVehicles()
+                            // Real reconnect → push any edits made while offline to the cloud, then
+                            // show the green banner briefly, then settle to Hidden. [SYNC-RECONCILE-001]
+                            drainPendingSync()
                             updateState { copy(connectivity = current, connectivityBanner = ConnectivityBannerPhase.Restored) }
                             restoredHideJob?.cancel()
                             restoredHideJob = viewModelScope.launch {
@@ -104,17 +106,18 @@ class AppViewModel(
             }
             .launchIn(viewModelScope)
 
-        // On a fresh (online) start, drain any vehicle edits left un-synced by a previous offline
-        // session so they reliably reach the cloud (and other devices). [SYNC-RECONCILE-001]
-        if (connectivityObserver.status.value == ConnectivityStatus.Online) drainPendingVehicles()
+        // On a fresh (online) start, drain any edits left un-synced by a previous offline session so
+        // they reliably reach the cloud (and other devices). [SYNC-RECONCILE-001]
+        if (connectivityObserver.status.value == ConnectivityStatus.Online) drainPendingSync()
     }
 
     /** Auto-hide timer for the transient [ConnectivityBannerPhase.Restored] banner. */
     private var restoredHideJob: Job? = null
 
-    /** Fire-and-forget push of any un-synced vehicle edits to Firestore (the outbox drainer). */
-    private fun drainPendingVehicles() {
+    /** Fire-and-forget push of any un-synced vehicle + zone edits to Firestore (the outbox drainer). */
+    private fun drainPendingSync() {
         viewModelScope.launch { vehicleRepository.pushPendingVehicles() }
+        viewModelScope.launch { zoneRepository.pushPendingZones() }
     }
 
     private companion object {

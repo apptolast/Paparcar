@@ -20,8 +20,9 @@ import androidx.room.RoomDatabaseConstructor
     // the configured fallbackToDestructiveMigration recreates the table on upgrade and
     // the active session is restored from Firestore on next bootstrap.
     // v9: vehicles gains updatedAt + pendingSync for inbound sync reconciliation. MIGRATION_8_9 is
-    // registered (ADD COLUMN) so the cache — and any un-synced offline edits — survive. [SYNC-RECONCILE-001]
-    version = 9,
+    // registered (ADD COLUMN) so the cache — and any un-synced offline edits — survive.
+    // v10: same treatment for zones (MIGRATION_9_10). [SYNC-RECONCILE-001]
+    version = 10,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

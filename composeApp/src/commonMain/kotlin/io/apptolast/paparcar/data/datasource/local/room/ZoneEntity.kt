@@ -14,4 +14,8 @@ data class ZoneEntity(
     val createdAt: Long,
     val radiusMeters: Float = 250f,
     val isPrivate: Boolean = false,
+    /** Client epoch-ms of the last LOCAL mutation — drives Last-Write-Wins reconcile. [SYNC-RECONCILE-001] */
+    val updatedAt: Long = 0,
+    /** True while a local edit is not yet confirmed by Firestore; protected from inbound sync. [SYNC-RECONCILE-001] */
+    val pendingSync: Boolean = false,
 )

@@ -1,7 +1,10 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.data.datasource.remote
 
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import kotlin.time.Clock
 import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
@@ -62,7 +65,8 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         }
 
     override suspend fun saveZone(userId: String, zone: ZoneDto) {
-        zonesCollection(userId).document(zone.id).set(zone)
+        // Stamp updatedAt so the inbound reconcile can tell when the server caught up. [SYNC-RECONCILE-001]
+        zonesCollection(userId).document(zone.id).set(zone.copy(updatedAt = Clock.System.now().toEpochMilliseconds()))
     }
 
     override suspend fun deleteZone(userId: String, zoneId: String) {
@@ -94,6 +98,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
                 createdAt = getLongCompat(FIELD_CREATED_AT),
                 radiusMeters = get<Double?>(FIELD_RADIUS_METERS)?.toFloat() ?: DEFAULT_ZONE_RADIUS_M,
                 isPrivate = get<Boolean?>(FIELD_IS_PRIVATE) ?: false,
+                updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toZoneDto failed for doc=$id", e)
@@ -172,6 +177,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_RADIUS_METERS = "radiusMeters"
         const val FIELD_IS_PRIVATE = "isPrivate"
+        const val FIELD_UPDATED_AT = "updatedAt"
 
         const val DEFAULT_SPOT_TYPE = "AUTO_DETECTED"
         const val DEFAULT_ZONE_RADIUS_M = 250f

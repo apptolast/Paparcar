@@ -4,7 +4,10 @@ import io.apptolast.paparcar.data.datasource.local.room.ZoneEntity
 import io.apptolast.paparcar.data.datasource.remote.dto.ZoneDto
 import io.apptolast.paparcar.domain.model.Zone
 
-fun Zone.toEntity(): ZoneEntity = ZoneEntity(
+// [updatedAt]/[pendingSync] are persistence-only reconcile metadata (not on the domain model): a
+// local mutation stamps updatedAt=now + pendingSync=true so the inbound sync won't clobber it.
+// [SYNC-RECONCILE-001]
+fun Zone.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): ZoneEntity = ZoneEntity(
     id = id,
     userId = userId,
     name = name,
@@ -14,6 +17,8 @@ fun Zone.toEntity(): ZoneEntity = ZoneEntity(
     createdAt = createdAt,
     radiusMeters = radiusMeters,
     isPrivate = isPrivate,
+    updatedAt = updatedAt,
+    pendingSync = pendingSync,
 )
 
 fun ZoneEntity.toDomain(): Zone = Zone(
@@ -40,6 +45,9 @@ fun ZoneDto.toEntity(): ZoneEntity = ZoneEntity(
     createdAt = createdAt,
     radiusMeters = radiusMeters,
     isPrivate = isPrivate,
+    // Remote is authoritative & confirmed → clean row carrying the server stamp. [SYNC-RECONCILE-001]
+    updatedAt = updatedAt,
+    pendingSync = false,
 )
 
 // ── Domain → ZoneDto (write to Firestore) ────────────────────────────────────

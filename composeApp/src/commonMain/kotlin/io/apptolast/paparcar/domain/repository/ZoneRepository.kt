@@ -26,4 +26,11 @@ interface ZoneRepository : UserScopedRepository, RemoteSyncable {
 
     /** Deletes all local and remote zones for [userId]. Called during account deletion. */
     override suspend fun deleteAllData(userId: String): Result<Unit>
+
+    /**
+     * Drains the outbound outbox: pushes every locally-mutated-but-unconfirmed (pendingSync) zone to
+     * Firestore and clears the flag on ack. Idempotent. Called on app start and on connectivity
+     * restored so an offline edit reliably reaches the cloud (and other devices). [SYNC-RECONCILE-001]
+     */
+    suspend fun pushPendingZones(): Result<Unit>
 }
