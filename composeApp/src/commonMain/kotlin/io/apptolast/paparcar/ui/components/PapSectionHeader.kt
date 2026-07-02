@@ -10,9 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 /**
  * Canonical section header for Paparcar — single typographic recipe used
@@ -33,9 +32,7 @@ fun PapSectionHeader(
     Text(
         text = title.uppercase(),
         modifier = modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.ExtraBold,
-        letterSpacing = SECTION_HEADER_TRACKING_SP.sp,
+        style = PaparcarType.current.sectionHeader,
         color = color,
     )
 }
@@ -61,9 +58,7 @@ fun PapSectionHeaderRow(
         leading?.invoke()
         Text(
             text = title.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = SECTION_HEADER_TRACKING_SP.sp,
+            style = PaparcarType.current.sectionHeader,
             color = color,
         )
         if (trailing != null) {
@@ -72,5 +67,3 @@ fun PapSectionHeaderRow(
         }
     }
 }
-
-private const val SECTION_HEADER_TRACKING_SP = 1.0

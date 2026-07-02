@@ -48,7 +48,7 @@ import io.apptolast.paparcar.ui.components.vehicleStatusBorderColor
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_parked_label
@@ -155,7 +155,7 @@ internal fun HomeVehicleChip(
                         )
                         Text(
                             text = parkedAddressLine(session),
-                            style = rememberDataTypography().compactBody,
+                            style = PaparcarType.current.metadata,
                             color = cs.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -165,7 +165,7 @@ internal fun HomeVehicleChip(
                         UnmarkedParkingIcon(tint = cs.onSurfaceVariant)
                         Text(
                             text = stringResource(Res.string.home_vehicle_chip_unmarked),
-                            style = rememberDataTypography().compactBody,
+                            style = PaparcarType.current.metadata,
                             color = cs.onSurfaceVariant,
                             maxLines = 1,
                         )
@@ -262,7 +262,7 @@ internal fun HomeVehicleCard(
                             // stays Inter. [HOME-VEH-REFINE-001]
                             Text(
                                 text = parkedTitle(session),
-                                style = rememberDataTypography().compactBody.copy(fontWeight = FontWeight.SemiBold),
+                                style = PaparcarType.current.metadata.copy(fontWeight = FontWeight.SemiBold),
                                 color = cs.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,

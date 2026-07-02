@@ -27,7 +27,7 @@ import io.apptolast.paparcar.ui.theme.PapGreenMuted
 import io.apptolast.paparcar.ui.theme.PapRed
 import io.apptolast.paparcar.ui.theme.PapRedMuted
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
@@ -95,7 +95,7 @@ fun TTLIndicator(
         icon = Icons.Rounded.Timer,
         modifier = modifier,
         // TTL is a data token — condensed per the typography mechanism. [HOME-VEH-REFINE-001]
-        textStyle = rememberDataTypography().statusPin,
+        textStyle = PaparcarType.current.badge,
     )
 }
 
@@ -131,7 +131,7 @@ fun EnRouteIndicator(
         Text(
             text = stringResource(Res.string.spot_indicator_en_route, count),
             // En-route count is a data token — condensed per the typography mechanism. [HOME-VEH-REFINE-001]
-            style = rememberDataTypography().statusPin,
+            style = PaparcarType.current.badge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
         )
     }

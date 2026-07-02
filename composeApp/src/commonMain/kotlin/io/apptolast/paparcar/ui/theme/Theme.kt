@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 // ── Dark scheme — near-black ink surfaces with neon-green brand accent ──────
@@ -93,6 +94,11 @@ fun PaparcarTheme(
         colorScheme = colorScheme,
         typography = rememberAppTypography(),
         shapes = AppShapes,
-        content = content,
-    )
+    ) {
+        // Paparcar's role-based type system rides alongside the MD3 baseline; feature code reads
+        // `PaparcarType.current.<role>` instead of picking families/sizes ad-hoc. [UI-TYPE-SYSTEM-001]
+        CompositionLocalProvider(LocalPaparcarType provides rememberPaparcarType()) {
+            content()
+        }
+    }
 }

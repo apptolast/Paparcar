@@ -41,7 +41,7 @@ import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.ui.components.VehicleIdentityHeader
 import io.apptolast.paparcar.ui.components.vehicleStatusBorderColor
 import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.PapShapes
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -224,7 +224,7 @@ private fun StatCell(
                 text = value,
                 // Condensed numerals straight from the token (25sp per the design spec) — no
                 // per-call size overrides. [HOME-VEH-REFINE-001]
-                style = rememberDataTypography().statNumber,
+                style = PaparcarType.current.statNumber,
                 color = valueColor,
                 maxLines = 1,
             )

@@ -36,7 +36,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.relativeTimeText
 import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -61,7 +61,7 @@ internal fun DayHeaderRow(label: String) {
         Text(
             // Uppercase day label = data token → condensed statusPin, keeping its muted tone.
             text = label.uppercase(),
-            style = rememberDataTypography().statusPin,
+            style = PaparcarType.current.badge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = DAY_HEADER_TEXT_ALPHA),
         )
     }
@@ -178,7 +178,7 @@ private fun SessionCardContent(
                     // Data-dense meta line ("city · 09:14") — condensed, same treatment as the Home
                     // spot-row meta so both timelines read identically. [UI-REGRESSION]
                     text = secondaryText,
-                    style = rememberDataTypography().compactBody,
+                    style = PaparcarType.current.metadata,
                     color = textMuted,
                 )
             }

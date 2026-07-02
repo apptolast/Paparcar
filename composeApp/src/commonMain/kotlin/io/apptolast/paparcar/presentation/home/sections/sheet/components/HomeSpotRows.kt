@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.stateColors
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
@@ -173,33 +173,33 @@ private fun SpotRowContent(
             // Data-dense meta line ("FIABLE · 80 m · 1 min") — condensed per the typography
             // mechanism: data tokens repeated in rows use Barlow, prose stays Inter. Label and
             // values share the same condensed body so the line reads as one unit. [UI-REGRESSION]
-            val dataType = rememberDataTypography()
+            val type = PaparcarType.current
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     palette.label.uppercase(),
-                    style = dataType.statusPin.copy(fontWeight = FontWeight.Bold),
+                    style = type.badge.copy(fontWeight = FontWeight.Bold),
                     color = palette.badgeBg,
                     maxLines = 1,
                 )
                 Text(
                     META_SEPARATOR,
-                    style = dataType.compactBody,
+                    style = type.metadata,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
                 )
                 if (distanceM != null) {
                     Text(
                         distanceString(distanceM),
-                        style = dataType.compactBody.copy(fontWeight = FontWeight.SemiBold),
+                        style = type.metadata.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
                     )
                     Text(
                         META_SEPARATOR,
-                        style = dataType.compactBody,
+                        style = type.metadata,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
                     )
                     Text(
                         driveTimeString(distanceM),
-                        style = dataType.compactBody,
+                        style = type.metadata,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

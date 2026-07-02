@@ -157,55 +157,5 @@ val Typography.appBarTitle: TextStyle
         letterSpacing = (-0.5).sp,
     )
 
-// ─── Data typography ─────────────────────────────────────────────────────────
-
-/** Condensed styles for data-dense slots: charts, badges, stat numbers. */
-class DataTypography(
-    val chartDayLabel: TextStyle,
-    val chartCountBadge: TextStyle,
-    val distanceBadge: TextStyle,
-    val statNumber: TextStyle,
-    val sizeBadge: TextStyle,
-    // Small-caps status pin / count badge ("ACTIVO", "3 LIBRES") — condensed so these tight metadata
-    // labels don't eat horizontal space next to names/titles. [HOME-VEH-REFINE-001]
-    val statusPin: TextStyle,
-    // Compact body for data-dense secondary lines (e.g. the parked-chip address) — condensed so a
-    // long address fits in fewer lines. [HOME-VEH-REFINE-001]
-    val compactBody: TextStyle,
-)
-
-@Composable
-fun rememberDataTypography(): DataTypography {
-    val barlow = rememberBarlowCondensedFontFamily()
-    return DataTypography(
-        chartDayLabel = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.Normal,
-            fontSize = 11.sp, letterSpacing = 0.sp,
-        ),
-        chartCountBadge = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.Bold,
-            fontSize = 10.sp, letterSpacing = 0.sp,
-        ),
-        distanceBadge = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp, letterSpacing = 0.sp,
-        ),
-        statNumber = TextStyle(
-            // 25sp per the design spec (.st-val) — consumers use the token as-is, no size overrides.
-            fontFamily = barlow, fontWeight = FontWeight.Bold,
-            fontSize = 25.sp, letterSpacing = (-0.5).sp,
-        ),
-        sizeBadge = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp, letterSpacing = 0.5.sp,
-        ),
-        statusPin = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp, letterSpacing = 0.6.sp,
-        ),
-        compactBody = TextStyle(
-            fontFamily = barlow, fontWeight = FontWeight.Medium,
-            fontSize = 13.sp, lineHeight = 15.sp, letterSpacing = 0.sp,
-        ),
-    )
-}
+// The condensed "data" styles (charts, badges, stat numbers) now live as roles in
+// [PaparcarType] (DATA group); the Barlow family factory above feeds them. [UI-TYPE-SYSTEM-001]

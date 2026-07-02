@@ -73,12 +73,16 @@ Antes de añadir un icono, decide el nivel. Regla mental: *plumbing de UI → Ma
   - Si usa `stroke-dasharray`, nested-svg, filtros o texto → **dibujar en Compose Canvas** en commonMain (dash vía `PathEffect`, dark por parámetros). VectorDrawable NO soporta trazos discontinuos.
 - **Tema:** Nivel 1/2 se tintan con el color del tema; Nivel 3 trae su color (elige carpeta/variante `light`|`dark`).
 
-### ⛔ Tipografía — sistema de 3 familias
-Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas o compite en horizontal con un nombre? → Barlow Condensed.*
-- **Outfit** = identidad: títulos de pantalla/card, nombres, headings (`appBarTitle`, display/headline/title).
-- **Inter** = prosa: body, descripciones, labels de CTA, section headers (**siempre vía `PapSectionHeader`**, nunca re-implementar el eyebrow a mano).
-- **Barlow Condensed** = datos: números, contadores, badges, pins de estado, timestamps, labels de chart, líneas de metadatos densas ("FIABLE · 80 m · 1 min"). **Siempre vía un slot de `DataTypography`** (`statNumber`, `sizeBadge`, `statusPin`, `distanceBadge`, `compactBody`, `chartDayLabel`, `chartCountBadge`).
-- **PROHIBIDO** `fontSize`/`letterSpacing` inline en `.sp` sobre un `Text()`: si necesitas un tamaño nuevo, añade/ajusta un slot en `DataTypography` o usa la escala MD3. (Excepciones: canvas/`TextMeasurer` de marcadores de mapa y one-offs de chrome ya tokenizados: bottom-nav, banner, botón CTA.)
+### ⛔ Tipografía — sistema de roles (`PaparcarType`)
+La familia y el tamaño son propiedad del **ROL** del texto, no del widget. Nunca elijas fuente: elige rol.
+Fuente de verdad = `ui/theme/PaparcarType.kt` (14 roles). Se lee `PaparcarType.current.<rol>` (provisto en `PaparcarTheme`).
+- **IDENTITY · Outfit**: `screenTitle` (=appBarTitle), `heroTitle`, `cardTitle` (nombre/calle).
+- **STRUCTURE · Inter**: `sectionHeader` (**siempre vía `PapSectionHeader`**), `cta`.
+- **PROSE · Inter**: `body`, `caption`.
+- **DATA · Barlow Condensed**: `metadata` ("30 min · 75 m"), `badge`/pin ("ACTIVO", "3 LIBRES"), `sizeToken` ("MEDIANO"), `statNumber` (25sp), `distance`, `chartLabel`, `chartValue`.
+- Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas o compite en horizontal con un nombre? → Barlow (rol DATA).*
+- **PROHIBIDO** en `presentation/` y `ui/components/`: `fontSize`/`letterSpacing` inline en un `Text` (usa un rol; si falta un tamaño, añade/ajusta un rol en `PaparcarType`). Enforced por `TypographyGuardrailTest` (Konsist). Excepciones allowlisted: canvas/`TextMeasurer` de marcadores de mapa + chrome tokenizado (bottom-nav, banner, action bar).
+- `MaterialTheme.typography.*` sigue siendo la base MD3 del framework; la app habla con `PaparcarType`. Migración incremental: al tocar un `Text`, pásalo a su rol.
 
 ### ⛔ Color de acción — verde primario, rojo solo alerta
 - **Verde de marca = primario.** Todo CTA normal usa `primary`.

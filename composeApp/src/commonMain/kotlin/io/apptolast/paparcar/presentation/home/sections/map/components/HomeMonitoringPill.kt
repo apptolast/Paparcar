@@ -41,7 +41,7 @@ import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_monitoring
@@ -127,7 +127,7 @@ internal fun MonitoringPillContent(
             if (elapsedLabel != null) {
                 Text(
                     text = elapsedLabel,
-                    style = rememberDataTypography().distanceBadge,
+                    style = PaparcarType.current.distance,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

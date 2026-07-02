@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_vehicle_status_inactive
@@ -136,7 +136,7 @@ fun VehicleStatusTextPin(
         }
         Text(
             text = label.uppercase(),
-            style = rememberDataTypography().statusPin,
+            style = PaparcarType.current.badge,
             color = accent,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

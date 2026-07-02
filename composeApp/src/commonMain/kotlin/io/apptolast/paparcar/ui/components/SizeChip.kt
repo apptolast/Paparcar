@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleSize
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_size_large
@@ -35,7 +35,7 @@ fun SizeChip(label: String, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(horizontal = SIZE_CHIP_H_PAD.dp, vertical = SIZE_CHIP_V_PAD.dp),
             // Condensed data slot — the size token stays narrow so it never crowds the status pin
             // beside it (and never breaks "Mediano" into "M/ed/ia/no"). [HOME-VEH-REFINE-001]
-            style = rememberDataTypography().sizeBadge,
+            style = PaparcarType.current.sizeToken,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             softWrap = false,

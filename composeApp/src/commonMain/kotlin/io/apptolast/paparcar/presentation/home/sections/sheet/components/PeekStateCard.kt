@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
@@ -79,7 +79,7 @@ internal fun PeekStateCard(
                     // Accent state eyebrow ("APARCADO", "EN RUTA") — a data token, so it uses the
                     // condensed statusPin per the typography mechanism. [UI-REGRESSION]
                     text = headerLabel.uppercase(),
-                    style = rememberDataTypography().statusPin,
+                    style = PaparcarType.current.badge,
                     color = accentColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -87,8 +87,7 @@ internal fun PeekStateCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = PaparcarType.current.cardTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

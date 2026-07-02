@@ -99,7 +99,7 @@ import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapMotion
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -1270,7 +1270,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
                     // or oversized. [HOME-VEH-REFINE-001]
                     text = if (hasSpots) stringResource(Res.string.home_stats_free_spots_badge, freeCount).uppercase()
                            else stringResource(Res.string.home_peek_no_spots),
-                    style = rememberDataTypography().statusPin.copy(fontWeight = FontWeight.Bold),
+                    style = PaparcarType.current.badge.copy(fontWeight = FontWeight.Bold),
                     color = if (hasSpots) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

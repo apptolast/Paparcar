@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TypographySampleScreen() {
-    val data = rememberDataTypography()
+    val data = PaparcarType.current
 
     Scaffold(
         topBar = {
@@ -190,11 +190,11 @@ private fun TypographySampleScreen() {
                                 if (isToday) {
                                     Text(
                                         text = (fill * 5).toInt().toString(),
-                                        style = data.chartCountBadge,
+                                        style = data.chartValue,
                                         color = MaterialTheme.colorScheme.primary,
                                     )
                                 } else {
-                                    Spacer(Modifier.height(data.chartCountBadge.fontSize.value.dp))
+                                    Spacer(Modifier.height(data.chartValue.fontSize.value.dp))
                                 }
                                 Box(
                                     modifier = Modifier
@@ -224,7 +224,7 @@ private fun TypographySampleScreen() {
                                 }
                                 Text(
                                     text = label,
-                                    style = data.chartDayLabel,
+                                    style = data.chartLabel,
                                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                                     color = MaterialTheme.colorScheme.onSurface.copy(
                                         alpha = if (isToday) 0.8f else 0.45f,
@@ -308,10 +308,10 @@ private fun TypographySampleScreen() {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("28", style = data.statNumber,
                             color = MaterialTheme.colorScheme.primary)
-                        Text("4,2 km", style = data.distanceBadge,
+                        Text("4,2 km", style = data.distance,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.align(Alignment.CenterVertically))
-                        Text("Compacto", style = data.sizeBadge,
+                        Text("Compacto", style = data.sizeToken,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.align(Alignment.CenterVertically))
                     }
@@ -324,7 +324,7 @@ private fun TypographySampleScreen() {
 }
 
 @Composable
-private fun StatCard(value: String, label: String, modifier: Modifier, data: DataTypography) {
+private fun StatCard(value: String, label: String, modifier: Modifier, data: PaparcarType) {
     Surface(
         modifier = modifier,
         color = MaterialTheme.colorScheme.surface,

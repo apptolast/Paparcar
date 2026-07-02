@@ -98,7 +98,7 @@ import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.appBarTitle
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -474,7 +474,7 @@ private fun ProfileCardV2(
                             // Date metadata token — condensed statusPin per the typography
                             // mechanism (was a hand-tuned Inter eyebrow). [UI-REGRESSION]
                             text = memberSinceLine.uppercase(),
-                            style = rememberDataTypography().statusPin,
+                            style = PaparcarType.current.badge,
                             color = cs.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
                         )
                     }

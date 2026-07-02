@@ -17,12 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
@@ -75,8 +75,7 @@ fun VehicleIdentityHeader(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = vehicle.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle)),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                style = PaparcarType.current.cardTitle,
                 color = cs.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

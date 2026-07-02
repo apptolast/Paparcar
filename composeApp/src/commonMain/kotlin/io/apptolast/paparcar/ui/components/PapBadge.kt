@@ -30,7 +30,7 @@ private val BadgeVerticalPad    = 4.dp
  * @param contentColor Text and icon tint color.
  * @param icon Optional leading icon.
  * @param textStyle Label style — data-token callers (TTL, counts) pass a condensed
- *   [io.apptolast.paparcar.ui.theme.DataTypography] slot; prose callers keep the default.
+ *   [io.apptolast.paparcar.ui.theme.PaparcarType] role; prose callers keep the default.
  */
 @Composable
 fun PapBadge(

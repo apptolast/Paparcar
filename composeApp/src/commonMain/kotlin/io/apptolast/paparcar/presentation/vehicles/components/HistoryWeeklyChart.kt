@@ -46,7 +46,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.vehicles.WeekDayStats
-import io.apptolast.paparcar.ui.theme.rememberDataTypography
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -163,7 +163,7 @@ private fun ActivityBarChart(data: List<WeekDayStats>) {
 
     val anim = progress.value
     val textMeasurer = rememberTextMeasurer()
-    val dataType = rememberDataTypography()
+    val type = PaparcarType.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
 
@@ -179,8 +179,8 @@ private fun ActivityBarChart(data: List<WeekDayStats>) {
             textMeasurer = textMeasurer,
             primaryColor = primaryColor,
             onSurfaceColor = onSurfaceColor,
-            labelStyle = dataType.chartDayLabel,
-            countStyle = dataType.chartCountBadge,
+            labelStyle = type.chartLabel,
+            countStyle = type.chartValue,
         )
     }
 }
