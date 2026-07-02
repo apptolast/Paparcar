@@ -594,6 +594,85 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-G-04: a GEOFENCE_EXIT-armed session is seeded already-driving
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_confirm_geofence_armed_session_even_when_it_never_reaches_driving_speed() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-G-04] Real trace (2026-07-01, El Puerto de Santa María): a GEOFENCE_EXIT armed a
+            // coordinator session for a SHORT hop between two parks. Its GPS stream warmed up after
+            // the fast driving was already over — every fix reported ≤ 2.9 m/s (< minimumTripSpeedMps
+            // = 5), so hasEverReachedDrivingSpeed stayed false and the egress steps tripped
+            // falseEnterAbortSteps → aborted_false_enter, and the REAL park was lost. Because the
+            // geofence exit is a CONFIRMED departure (the car left its own parked-car geofence — the
+            // same signal that publishes the freed spot), the session is armed already-driving and
+            // MUST confirm the park instead of aborting.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, armedByConfirmedDeparture = true) }
+
+            // The seed is applied before the first fix — the session reports movement immediately.
+            assertTrue(
+                env.coordinator.hasDetectedMovement,
+                "a geofence-armed session is seeded already-driving [DET-G-04]",
+            )
+
+            // Arrival + park: NO fix ever crosses minimumTripSpeedMps (5 m/s). bestStopLocation is
+            // captured at (40.005) — the real parked-car position.
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 2.8f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            // User gets out: 8 pedestrian steps + egress displacement (~33 m from the anchor). Pre-fix
+            // this same burst would have tripped the false-ENTER abort; now it confirms.
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "geofence-armed session must confirm the real park despite never re-reaching driving speed [DET-G-04]",
+            )
+            assertEquals(
+                40.005,
+                env.parkingRepo.getActiveSession()?.location?.latitude ?: 0.0,
+                /* absoluteTolerance = */ 0.00001,
+                "confirmed location must be the parked-car position (bestStopLocation)",
+            )
+        }
+
+    @Test
+    fun should_still_abort_false_enter_when_session_is_not_a_confirmed_departure() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-G-04] Regression guard: the seed must NOT leak to AR_PROXIMITY / MANUAL sessions.
+            // Without armedByConfirmedDeparture the false-ENTER guard still protects against a
+            // spurious AR IN_VEHICLE_ENTER while walking (bus/taxi/desk) — same input as the test
+            // above, but this session must ABORT and save nothing.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) } // default: armedByConfirmedDeparture=false
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 2.8f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertFalse(
+                env.coordinator.hasDetectedMovement,
+                "a non-departure session that never reaches driving speed must not be treated as driving",
+            )
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "false-ENTER guard must still abort spurious walking sessions [DET-G-04]",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // BUG-OPPO-LATE-CONFIRM: EXIT + 8 steps → confirm without waiting for STILL
     // ─────────────────────────────────────────────────────────────────────────
 

@@ -240,9 +240,37 @@ class CoordinatorParkingDetector(
      * Resets all session state on entry and on exit, and dismisses any stale
      * confirmation notification.
      */
-    suspend operator fun invoke(locations: Flow<GpsPoint>) = coroutineScope {
-        PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry — calling reset()")
+    suspend operator fun invoke(
+        locations: Flow<GpsPoint>,
+        /** `true` when this session was armed by a trigger that fires *after* the vehicle has
+         *  already driven, so this session's own GPS stream cannot be relied on to observe driving
+         *  speed. Today that is only [io.apptolast.paparcar.domain.detection.DetectionTrigger.GEOFENCE_EXIT]:
+         *  it arms MID-trip, when the car crosses its parked-car geofence radius (≥ ~80–120 m, already
+         *  driving), so on a short hop the fast driving can be over before this stream warms up.
+         *  Contrast MANUAL / AR_PROXIMITY, which arm *before* the trip so the stream captures the
+         *  ≥ [io.apptolast.paparcar.domain.model.ParkingDetectionConfig.minimumTripSpeedMps] fix
+         *  naturally and must keep the guard. See the seed block below. [DET-G-04] */
+        armedByConfirmedDeparture: Boolean = false,
+    ) = coroutineScope {
+        PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry (armedByConfirmedDeparture=$armedByConfirmedDeparture) — calling reset()")
         reset()
+
+        // [DET-G-04] Seed hasEverReachedDrivingSpeed when this session was armed AFTER the drive
+        // already happened, so it does not have to re-observe driving speed it structurally cannot
+        // catch. The gate — and the [falseEnterAbortSteps] guard it feeds — is legacy from when AR
+        // IN_VEHICLE_ENTER was the primary arm: an AR ENTER fires at the START of a trip, so the
+        // coordinator's own stream sees the ≥ minimumTripSpeedMps fix and the gate correctly rejects
+        // a spurious ENTER (bus/taxi/at a desk) that never accelerates. A GEOFENCE_EXIT is different —
+        // it arms MID-trip, when the car crosses its parked-car geofence radius (already driving). On
+        // a short hop between two parks the fast driving is over before this session's GPS stream
+        // warms up, so the coordinator only ever sees the low-speed arrival, never re-crosses
+        // minimumTripSpeedMps, and the accumulating egress steps trip falseEnterAbortSteps →
+        // aborted_false_enter, park lost. Seeding the flag says "the drive already happened" and lets
+        // every confirm path (steps+egress, candidate, slow) run normally, anchored at the real spot.
+        if (armedByConfirmedDeparture) {
+            _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
+            PaparcarLogger.d(DIAG, "  ✓ armedByConfirmedDeparture → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
+        }
 
         var completed = false
         val sessionStartMs = clock()

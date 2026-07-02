@@ -478,7 +478,17 @@ class CoordinatorDetectionService : LifecycleService() {
 
             try {
                 PaparcarLogger.d(DIAG, "    ▶ detection coroutine entered, invoking coordinator")
-                parkingDetectionCoordinator(observeAdaptiveLocation())
+                // [DET-G-04] GEOFENCE_EXIT arms MID-trip (the car already crossed its parked-car
+                // geofence radius), so on a short hop between two parks this session's GPS stream can
+                // warm up after the fast driving is over — the coordinator would never observe driving
+                // speed and the false-enter guard would discard a real park. Tell it the drive already
+                // happened. MANUAL / AR_PROXIMITY arm BEFORE the trip, so their stream captures the
+                // speed naturally and must keep the guard (a premature "I'm driving" tap, or an AR
+                // bus/taxi ENTER, can be spurious).
+                parkingDetectionCoordinator(
+                    observeAdaptiveLocation(),
+                    armedByConfirmedDeparture = trigger == DetectionTrigger.GEOFENCE_EXIT,
+                )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
             } catch (e: CancellationException) {
                 PaparcarLogger.d(DIAG, "    ✗ detection cancelled: ${e.message}")
