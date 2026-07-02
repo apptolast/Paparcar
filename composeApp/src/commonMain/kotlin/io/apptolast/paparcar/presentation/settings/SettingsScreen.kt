@@ -18,6 +18,7 @@ import io.apptolast.paparcar.ui.theme.PapInk
 import io.apptolast.paparcar.ui.theme.PapInkHigh
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapSurfaceLight
+import io.apptolast.paparcar.ui.theme.outlineSubtle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -90,7 +91,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.ui.components.PapAlertDialog
@@ -98,6 +98,7 @@ import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.appBarTitle
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -446,7 +447,7 @@ private fun ProfileCardV2(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = outlineSubtle,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -470,10 +471,10 @@ private fun ProfileCardV2(
                     if (memberSinceLine != null) {
                         Spacer(Modifier.size(2.dp))
                         Text(
+                            // Date metadata token — condensed statusPin per the typography
+                            // mechanism (was a hand-tuned Inter eyebrow). [UI-REGRESSION]
                             text = memberSinceLine.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = SECTION_LABEL_TRACKING_SP.sp,
+                            style = rememberDataTypography().statusPin,
                             color = cs.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
                         )
                     }
@@ -570,7 +571,7 @@ private fun ThemePickerCard(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) 
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = outlineSubtle,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -628,7 +629,7 @@ private fun ThemePreview(
     }
     // Smoothly grow/recolour the selection ring instead of a hard swap.
     val borderColor by animateColorAsState(
-        targetValue = if (selected) cs.primary else cs.outline.copy(alpha = CARD_BORDER_ALPHA),
+        targetValue = if (selected) cs.primary else cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
         animationSpec = PapMotion.fast(),
         label = "theme_preview_border_color",
     )
@@ -706,7 +707,7 @@ private fun NotificationsGroupCard(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = outlineSubtle,
     ) {
         Column {
             Row(
@@ -738,14 +739,14 @@ private fun NotificationsGroupCard(
                 exit = shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top) + fadeOut(PapMotion.medium()),
             ) {
                 Column {
-                    HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                    HorizontalDivider(color = cs.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA))
                     SubNotifRow(
                         label = stringResource(Res.string.settings_notif_parking),
                         description = stringResource(Res.string.settings_notif_parking_desc),
                         checked = parkingOn,
                         onCheckedChange = onParkingChange,
                     )
-                    HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                    HorizontalDivider(color = cs.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA))
                     SubNotifRow(
                         label = stringResource(Res.string.settings_notif_spot),
                         description = stringResource(Res.string.settings_notif_spot_desc),
@@ -767,7 +768,7 @@ private fun SubNotifRow(
 ) {
     val cs = MaterialTheme.colorScheme
     Row(
-        modifier = Modifier.padding(start = 64.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+        modifier = Modifier.padding(start = SUB_NOTIF_INDENT_DP.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -863,7 +864,7 @@ private fun SettingsSwitchItem(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = outlineSubtle,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -887,7 +888,7 @@ private fun SettingsInfoItem(icon: ImageVector, label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = outlineSubtle,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -914,7 +915,7 @@ private fun SettingsNavItem(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = outlineSubtle,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -973,7 +974,7 @@ private fun SettingsDropdownItem(
         modifier = Modifier.fillMaxWidth(),
         shape = PapShapes.card,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
+        border = outlineSubtle,
     ) {
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
             Row(
@@ -1019,7 +1020,6 @@ private fun SettingsDropdownItem(
 // Tokens
 // ─────────────────────────────────────────────────────────────────────────────
 
-private const val SECTION_LABEL_TRACKING_SP = 1.2
 private const val AVATAR_DP = 56
 
 private const val THEME_PREVIEW_RATIO = 0.85f
@@ -1027,12 +1027,14 @@ private const val THEME_PREVIEW_RATIO = 0.85f
 /** Row-icon container size — homogeneous across every Settings row. */
 private const val ICON_BOX_DP = 40
 
-private const val CARD_BORDER_ALPHA = 0.3f
+/** Sub-notification rows align their text with the parent row's text column:
+ *  16 (card padding) + 40 (icon box) + 14 (row gap). */
+private const val SUB_NOTIF_INDENT_DP = 16 + ICON_BOX_DP + 14
+
 private const val SECTION_LABEL_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA_STRONG = 0.5f
 private const val CHEVRON_DIM_ALPHA = 0.3f
-private const val DIVIDER_ALPHA = 0.15f
 private const val DANGER_BG_ALPHA = 0.15f
 private const val DANGER_BORDER_ALPHA = 0.7f
 private const val DANGER_SUBTITLE_ALPHA = 0.6f

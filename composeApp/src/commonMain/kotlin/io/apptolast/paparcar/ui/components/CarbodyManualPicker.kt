@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_picker_dismiss
@@ -114,8 +115,9 @@ private fun SizeHeader(size: VehicleSize) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = size.label().uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
+            // Condensed data slot — size tokens share the sizeBadge recipe app-wide.
+            // [HOME-VEH-REFINE-001]
+            style = rememberDataTypography().sizeBadge,
             color = cs.primary,
             modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
         )

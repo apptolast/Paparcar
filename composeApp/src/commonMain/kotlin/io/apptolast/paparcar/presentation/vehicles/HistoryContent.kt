@@ -41,22 +41,19 @@ import io.apptolast.paparcar.presentation.vehicles.components.DayHeaderRow
 import io.apptolast.paparcar.presentation.vehicles.components.EmptyHistoryState
 import io.apptolast.paparcar.presentation.vehicles.components.EndedSessionTimelineNode
 import io.apptolast.paparcar.presentation.vehicles.components.HistoryFilterBar
-import io.apptolast.paparcar.presentation.vehicles.components.HistoryInsightsCard
 import io.apptolast.paparcar.presentation.vehicles.components.ActivityCard
-import io.apptolast.paparcar.presentation.vehicles.components.StatsRow
 import io.apptolast.paparcar.ui.theme.PapMotion
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
-import paparcar.composeapp.generated.resources.history_filter_all
-import paparcar.composeapp.generated.resources.history_filter_last_3_months
-import paparcar.composeapp.generated.resources.history_filter_this_month
-import paparcar.composeapp.generated.resources.history_filter_this_week
+import paparcar.composeapp.generated.resources.history_activity_noun
+import paparcar.composeapp.generated.resources.history_activity_title
 import paparcar.composeapp.generated.resources.history_section_label
 import paparcar.composeapp.generated.resources.history_day_full_fri
 import paparcar.composeapp.generated.resources.history_day_full_mon
@@ -133,7 +130,6 @@ internal fun HistoryContent(
     onViewOnMap: (lat: Double, lon: Double, sessionId: String) -> Unit,
     onFilterSelected: (HistoryFilter) -> Unit = {},
     modifier: Modifier = Modifier,
-    showInternalStats: Boolean = true,
     header: (@Composable () -> Unit)? = null,
 ) {
     val todayLabel = stringResource(Res.string.history_today)
@@ -150,18 +146,14 @@ internal fun HistoryContent(
         buildActivityBuckets(state.filteredSessions, state.activeFilter, dayLabels, monthNamesShort)
     }
     val scopeTotal = state.filteredSessions.size
-    val scopeLabel = when (state.activeFilter) {
-        HistoryFilter.All -> stringResource(Res.string.history_filter_all)
-        HistoryFilter.ThisWeek -> stringResource(Res.string.history_filter_this_week)
-        HistoryFilter.ThisMonth -> stringResource(Res.string.history_filter_this_month)
-        HistoryFilter.Last3Months -> stringResource(Res.string.history_filter_last_3_months)
-    }
+    // The History timeline is ALWAYS the complete list — the time filter scopes only the Activity
+    // chart, never the timeline below it. So it reads from every session, not the filtered set.
+    // [HOME-VEH-REFINE-001 · Task 4]
     val activeSession =
-        remember(state.filteredSessions) { state.filteredSessions.firstOrNull { it.isActive } }
-    val ended = remember(state.filteredSessions) { state.filteredSessions.filter { !it.isActive } }
+        remember(state.sessions) { state.sessions.firstOrNull { it.isActive } }
     val timelineItems =
-        remember(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels) {
-            buildTimeline(ended, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels)
+        remember(allEnded, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels) {
+            buildTimeline(allEnded, todayLabel, yesterdayLabel, monthNamesShort, dayFullLabels)
         }
 
     Box(modifier = modifier.padding(contentPadding)) {
@@ -195,26 +187,32 @@ internal fun HistoryContent(
             } else {
                 if (header != null) item(key = "header") { header() }
 
-                // A section title gives the time-filter chips context (otherwise they float under the
-                // hero card with no label); it's a full-weight title — same treatment as the "Activity"
-                // chart title — so it reads as a real section, not an orphaned overline. The chips below
-                // scope the WHOLE view. [VEHICLES-REDESIGN-001]
-                item(key = "history_section_label") {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.history_section_label),
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(10.dp))
+                // "Activity" owns the chart + time filters. Its heading carries the scoped count as a
+                // green aside; the filters below re-bucket ONLY the chart. [HOME-VEH-REFINE-001 · Task 4]
+                item(key = "activity_section_label") {
+                    Spacer(Modifier.height(SECTION_TITLE_TOP_GAP.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.history_activity_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = "$scopeTotal ${pluralStringResource(Res.plurals.history_activity_noun, scopeTotal)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP.dp))
                 }
 
-                // The time filter scopes the WHOLE view (activity chart + timeline), so it sits at the
-                // top as the page's period selector; the chart right below re-buckets to match, which
-                // removes the old "two disconnected weeks" redundancy. [VEHICLES-REDESIGN-001]
-                stickyHeader(key = "filter_bar") {
+                item(key = "filter_bar") {
                     HistoryFilterBar(
                         activeFilter = state.activeFilter,
                         onFilterSelected = onFilterSelected,
@@ -227,32 +225,25 @@ internal fun HistoryContent(
                         ActivityCard(
                             data = activityBuckets,
                             total = scopeTotal,
-                            scopeLabel = scopeLabel,
                         )
-                    }
-                }
-
-                if (showInternalStats) {
-                    item(key = "stats") {
-                        Spacer(Modifier.height(8.dp))
-                        Box(Modifier.padding(horizontal = 16.dp)) {
-                            StatsRow(sessions = state.sessions)
-                        }
-                    }
-                    if (state.statsData != null) {
-                        item(key = "insights") {
-                            Spacer(Modifier.height(8.dp))
-                            HistoryInsightsCard(
-                                stats = state.statsData,
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                            )
-                        }
                     }
                 }
 
                 val hasTimeline = activeSession != null || timelineItems.isNotEmpty()
                 if (hasTimeline) {
-                    item(key = "timeline_spacer") { Spacer(Modifier.height(4.dp)) }
+                    // "History" heads the timeline as its own section — always the full list, never
+                    // scoped by the Activity filter. [Task 4]
+                    item(key = "history_section_label") {
+                        Spacer(Modifier.height(SECTION_TITLE_TOP_GAP.dp))
+                        Text(
+                            text = stringResource(Res.string.history_section_label),
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP.dp))
+                    }
                 }
 
                 if (activeSession != null) {
@@ -361,6 +352,12 @@ private fun HistorySkeletonSection(fillMaxSize: Boolean, modifier: Modifier = Mo
         }
     }
 }
+
+// Section titles ("Activity" / "History") sit closer to their OWN content below than to the section
+// above — a generous top gap separates from the previous block, a tight bottom gap attaches the
+// title to what it heads. [HOME-VEH-REFINE-001]
+private const val SECTION_TITLE_TOP_GAP = 24
+private const val SECTION_TITLE_BOTTOM_GAP = 8
 
 private const val SKELETON_CHART_HEIGHT_DP = 148
 private const val SKELETON_CHIP_HEIGHT_DP = 32

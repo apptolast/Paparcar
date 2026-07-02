@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
+import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
@@ -332,8 +333,10 @@ private fun DateTimeRow(timestampMs: Long, isActive: Boolean) {
     }
     val timeStr = "${dateTime.hour.toString().padStart(2, '0')}:" +
         dateTime.minute.toString().padStart(2, '0')
-    val dateStr = "${dateTime.dayOfMonth} ${dateTime.month.name.lowercase().replaceFirstChar { it.uppercase() }}" +
-        " ${dateTime.year}"
+    // Localized month via the shared history resources — month.name is the English enum name and
+    // bypassed i18n. [UI-REGRESSION]
+    val monthStr = stringResource(MONTH_SHORT_RES[dateTime.month.ordinal])
+    val dateStr = "${dateTime.day} $monthStr ${dateTime.year}"
 
     MetaRow(
         icon = Icons.Rounded.Schedule,

@@ -51,6 +51,7 @@ import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.home.model.rendersActionSurface
 import io.apptolast.paparcar.ui.components.PapSectionHeader
+import io.apptolast.paparcar.ui.theme.PapBorders
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -210,11 +211,10 @@ private fun LazyListScope.vehiclesSection(
         // Single vehicle → one full-width card (no horizontal strip), roomier layout. [HOME-CARDS-001]
         val card = sorted.first()
         item("vehicle_single") {
-            HomeVehicleChip(
+            HomeVehicleCard(
                 card = card,
                 isDriving = card.isDriving(),
                 isCandidate = card.isDriving() && isCandidatePhase,
-                fillWidth = true,
                 userLocation = userLocation,
                 onClick = cardClick(card),
                 modifier = Modifier.padding(horizontal = 16.dp),
@@ -235,7 +235,6 @@ private fun LazyListScope.vehiclesSection(
                         card = card,
                         isDriving = card.isDriving(),
                         isCandidate = card.isDriving() && isCandidatePhase,
-                        userLocation = userLocation,
                         onClick = onCardClick,
                     )
                 }
@@ -272,7 +271,9 @@ private fun LazyListScope.spotsSection(
             HomeSizeFilterBar(
                 selectedSize = state.sizeFilter,
                 onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                // 16dp — same grid as headers/rows so the bar doesn't step out of the
+                // left edge when the sheet expands. [HOME-VEH-REFINE-001]
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
     }
@@ -305,7 +306,7 @@ private fun LazyListScope.spotsSection(
                 if (index < filteredSpots.lastIndex) {
                     HorizontalDivider(
                         modifier = Modifier.padding(start = 70.dp, end = 16.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA),
                     )
                 }
             }
@@ -377,7 +378,7 @@ private fun SpotsSkeletonList(
             if (index < itemCount - 1) {
                 HorizontalDivider(
                     modifier = Modifier.padding(start = 70.dp, end = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA),
                 )
             }
         }

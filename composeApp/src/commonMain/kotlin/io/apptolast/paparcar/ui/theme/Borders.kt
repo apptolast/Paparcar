@@ -28,6 +28,10 @@ object PapBorders {
 
     /** Default opacity applied to `outline` for card borders — the "good" reference. */
     const val DEFAULT_OUTLINE_ALPHA = 0.4f
+
+    /** Opacity for hairline dividers INSIDE surfaces (list separators, card foot rules).
+     *  One value for every inner divider — replaces the 0.08/0.12/0.14/0.15/0.5 zoo. */
+    const val HAIRLINE_DIVIDER_ALPHA = 0.14f
 }
 
 /** 1dp outline at the default alpha — the reference border for ordinary cards. */

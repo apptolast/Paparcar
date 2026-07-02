@@ -67,7 +67,9 @@ fun CarbodyInfoCard(
     val rules = carbody.getParkingRules()
     val alertCopy = rules.alertKey.label()
     val alertIcon = if (rules.requiresHighCeiling) Icons.Rounded.WarningAmber else Icons.Rounded.Info
-    val alertTint = if (rules.requiresHighCeiling) cs.error else cs.primary
+    // Amber, not red: the ceiling note is an informational advisory — red is reserved for
+    // destructive / blocking states. [UI-REGRESSION]
+    val alertTint = if (rules.requiresHighCeiling) cs.secondary else cs.primary
 
     Surface(
         modifier = modifier.fillMaxWidth(),

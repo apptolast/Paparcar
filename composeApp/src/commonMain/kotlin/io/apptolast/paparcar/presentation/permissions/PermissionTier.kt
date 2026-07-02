@@ -26,15 +26,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 
 private val NODE_SIZE        = 32.dp
 private val NODE_ICON_SIZE   = 18.dp
 private val CONNECTOR_WIDTH  = 2.dp
-private const val SECTION_HEADER_TRACKING_SP = 1.0
 
 /**
  * Hito de la timeline de permisos: un nodo en la columna izquierda (disco + conector vertical) con
@@ -103,13 +101,7 @@ internal fun PermissionTier(
 
         // ── Contenido: cabecera de beneficio + filas ────────────────────────
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title.uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = SECTION_HEADER_TRACKING_SP.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            PapSectionHeader(title = title)
             Spacer(Modifier.height(PaparcarSpacing.xs))
             Text(
                 text = benefit,

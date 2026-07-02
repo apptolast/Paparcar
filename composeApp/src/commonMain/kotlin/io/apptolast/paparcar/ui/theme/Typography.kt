@@ -166,6 +166,12 @@ class DataTypography(
     val distanceBadge: TextStyle,
     val statNumber: TextStyle,
     val sizeBadge: TextStyle,
+    // Small-caps status pin / count badge ("ACTIVO", "3 LIBRES") — condensed so these tight metadata
+    // labels don't eat horizontal space next to names/titles. [HOME-VEH-REFINE-001]
+    val statusPin: TextStyle,
+    // Compact body for data-dense secondary lines (e.g. the parked-chip address) — condensed so a
+    // long address fits in fewer lines. [HOME-VEH-REFINE-001]
+    val compactBody: TextStyle,
 )
 
 @Composable
@@ -185,12 +191,21 @@ fun rememberDataTypography(): DataTypography {
             fontSize = 13.sp, letterSpacing = 0.sp,
         ),
         statNumber = TextStyle(
+            // 25sp per the design spec (.st-val) — consumers use the token as-is, no size overrides.
             fontFamily = barlow, fontWeight = FontWeight.Bold,
-            fontSize = 28.sp, letterSpacing = (-0.5).sp,
+            fontSize = 25.sp, letterSpacing = (-0.5).sp,
         ),
         sizeBadge = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.SemiBold,
-            fontSize = 11.sp, letterSpacing = 0.5.sp,
+            fontSize = 12.sp, letterSpacing = 0.5.sp,
+        ),
+        statusPin = TextStyle(
+            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp, letterSpacing = 0.6.sp,
+        ),
+        compactBody = TextStyle(
+            fontFamily = barlow, fontWeight = FontWeight.Medium,
+            fontSize = 13.sp, lineHeight = 15.sp, letterSpacing = 0.sp,
         ),
     )
 }

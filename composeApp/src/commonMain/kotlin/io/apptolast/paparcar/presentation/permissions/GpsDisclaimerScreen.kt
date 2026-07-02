@@ -59,7 +59,7 @@ fun GpsDisclaimerScreen(
         Text(
             text = stringResource(Res.string.gps_disclaimer_title),
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Black,
+            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground,
         )

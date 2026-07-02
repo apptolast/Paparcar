@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_dismiss_cd
@@ -76,11 +76,11 @@ internal fun PeekStateCard(
             leading()
             Column(modifier = Modifier.weight(1f)) {
                 Text(
+                    // Accent state eyebrow ("APARCADO", "EN RUTA") — a data token, so it uses the
+                    // condensed statusPin per the typography mechanism. [UI-REGRESSION]
                     text = headerLabel.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.ExtraBold,
+                    style = rememberDataTypography().statusPin,
                     color = accentColor,
-                    letterSpacing = LABEL_TRACKING_SP.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -217,11 +217,12 @@ private fun PeekStateDismissButton(onDismiss: () -> Unit) {
 }
 
 /** Horizontal content inset of every peek card. Exposed so a full-bleed child
- *  (e.g. a horizontally-scrolling picker) can cancel it and run edge-to-edge. */
-internal const val PEEK_CARD_HORIZONTAL_PAD_DP = 20
+ *  (e.g. a horizontally-scrolling picker) can cancel it and run edge-to-edge.
+ *  16dp — same grid as the expanded sheet content, so text doesn't step
+ *  sideways when the sheet expands. [HOME-VEH-REFINE-001] */
+internal const val PEEK_CARD_HORIZONTAL_PAD_DP = 16
 private const val CHIP_DP = 44
 private const val DISMISS_HIT_DP = 48
 private const val DISMISS_ICON_DP = 20
 private const val DISMISS_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA = 0.55f
-private const val LABEL_TRACKING_SP = 0.8

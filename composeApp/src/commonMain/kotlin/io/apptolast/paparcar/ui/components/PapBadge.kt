@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 
@@ -28,6 +29,8 @@ private val BadgeVerticalPad    = 4.dp
  * @param containerColor Background fill of the badge.
  * @param contentColor Text and icon tint color.
  * @param icon Optional leading icon.
+ * @param textStyle Label style — data-token callers (TTL, counts) pass a condensed
+ *   [io.apptolast.paparcar.ui.theme.DataTypography] slot; prose callers keep the default.
  */
 @Composable
 fun PapBadge(
@@ -36,6 +39,7 @@ fun PapBadge(
     contentColor: Color,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    textStyle: TextStyle = MaterialTheme.typography.labelSmall,
 ) {
     Row(
         modifier = modifier
@@ -55,7 +59,7 @@ fun PapBadge(
         }
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = textStyle,
             color = contentColor,
         )
     }

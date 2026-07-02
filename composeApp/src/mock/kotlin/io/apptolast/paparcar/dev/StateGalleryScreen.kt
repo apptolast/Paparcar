@@ -274,18 +274,50 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            // Vehicle chips mirror the Vehicles hero card: status eyebrow (Active / BT / Inactive) →
-            // name → size. Adaptive width so long names ("Toyota Corolla") don't truncate. [HOME-CARDS-001]
-            Variant("Sheet · vehículos (BT + activo/inactivo)") {
+            // Single vehicle → full-width HomeVehicleCard: identity + status pin + size chip, and a
+            // footer with the parked address (location icon + "Aparcado en …" + chevron). [HOME-VEH-REFINE-001]
+            Variant("Sheet · 1 coche aparcado (card + dirección)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
+            // 2+ vehicles → compact chips. Status ICON before the name (green active / blue BT / grey
+            // inactive); foot = address (parked) or the "Sin marcar" glyph. Spots stay visible. [HOME-VEH-REFINE-001]
+            Variant("Sheet · chips mixtos (aparcado + sin marcar)") {
                 sheet(
                     HomeState(
                         hasCorePermissions = true,
                         userGpsPoint = sampleGps,
                         vehicles = listOf(
-                            FakeData.vehicleSedan,   // activo, sin BT → pin verde
-                            FakeData.vehicleCorolla, // BT + inactivo → icono BT + pin gris
-                            FakeData.vehicleMoto,    // inactivo, sin BT → pin gris
-                            FakeData.vehicleVan,     // BT + inactivo → icono BT + pin gris
+                            FakeData.vehicleSedan,   // activo + aparcado → icono verde + dirección
+                            FakeData.vehicleCorolla, // BT + sin marcar → icono azul + "Sin marcar"
+                            FakeData.vehicleMoto,    // inactivo + aparcado → icono gris + dirección
+                        ),
+                        activeSessions = listOf(
+                            FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id),
+                            FakeData.activeSessionSupermarket.copy(vehicleId = FakeData.vehicleMoto.id),
+                        ),
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
+            // All unmarked → every chip shows the "Sin marcar" glyph across the three status colours.
+            Variant("Sheet · chips sin marcar (BT + activo/inactivo)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(
+                            FakeData.vehicleSedan,   // activo, sin BT → icono verde
+                            FakeData.vehicleCorolla, // BT → icono azul
+                            FakeData.vehicleMoto,    // inactivo, sin BT → icono gris
+                            FakeData.vehicleVan,     // BT → icono azul
                         ),
                         nearbySpots = FakeData.nearbySpots,
                     ),
@@ -392,6 +424,43 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     state = VehiclesState(
                         vehicles = FakeData.vehiclesWithStats,
                         isLoading = false,
+                        historyCache = history,
+                    ),
+                )
+            },
+            // Bluetooth ficha (page 1 = Corolla): blue status pin, no method label. [HOME-VEH-REFINE-001]
+            Variant("Ficha Bluetooth") {
+                val history = FakeData.vehiclesWithStats.associate { vws ->
+                    vws.vehicle.id to HistoryState(
+                        sessions = FakeData.allSessions,
+                        activeFilter = HistoryFilter.All,
+                        filteredSessions = FakeData.allSessions,
+                    )
+                }
+                VehiclesContent(
+                    state = VehiclesState(
+                        vehicles = FakeData.vehiclesWithStats,
+                        isLoading = false,
+                        selectedVehicleIndex = 1,
+                        historyCache = history,
+                    ),
+                )
+            },
+            // Inactive ficha (page 2 = Moto): grey pin, MUTED stats it still keeps, plus the separate
+            // "Establecer como activo" row (absent for active / BT vehicles). [HOME-VEH-REFINE-001]
+            Variant("Ficha inactiva (métricas atenuadas + activar)") {
+                val history = FakeData.vehiclesWithStats.associate { vws ->
+                    vws.vehicle.id to HistoryState(
+                        sessions = FakeData.allSessions,
+                        activeFilter = HistoryFilter.All,
+                        filteredSessions = FakeData.allSessions,
+                    )
+                }
+                VehiclesContent(
+                    state = VehiclesState(
+                        vehicles = FakeData.vehiclesWithStats,
+                        isLoading = false,
+                        selectedVehicleIndex = 2,
                         historyCache = history,
                     ),
                 )

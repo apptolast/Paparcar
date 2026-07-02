@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -27,8 +25,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -63,20 +59,22 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
-import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.vehicleregistration.data.VehicleCatalog
 import io.apptolast.paparcar.ui.components.CarbodyInfoCard
 import io.apptolast.paparcar.ui.components.CarbodyManualPicker
 import io.apptolast.paparcar.ui.components.NonCarSizeBadge
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
+import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.PapTextField
 import io.apptolast.paparcar.ui.components.VehicleColorSelector
 import io.apptolast.paparcar.ui.components.label
+import io.apptolast.paparcar.ui.components.vehicleSizeLabel
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.appBarTitle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -116,11 +114,6 @@ import paparcar.composeapp.generated.resources.vehicle_registration_size_require
 import paparcar.composeapp.generated.resources.vehicle_registration_title
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot
 import paparcar.composeapp.generated.resources.vehicle_show_on_spot_desc
-import paparcar.composeapp.generated.resources.vehicle_size_large
-import paparcar.composeapp.generated.resources.vehicle_size_medium
-import paparcar.composeapp.generated.resources.vehicle_size_moto
-import paparcar.composeapp.generated.resources.vehicle_size_small
-import paparcar.composeapp.generated.resources.vehicle_size_van
 
 @Composable
 fun VehicleRegistrationScreen(
@@ -251,8 +244,7 @@ internal fun VehicleRegistrationContent(
                             if (isEditing) Res.string.vehicle_registration_edit_title
                             else Res.string.vehicle_registration_title,
                         ),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.appBarTitle,
                     )
                 },
                 navigationIcon = {
@@ -650,14 +642,8 @@ private fun VehicleHeroCard(
         else -> stringResource(Res.string.vehicle_registration_preview_title)
     }
 
-    val sizeLabel = when (state.sizeCategory) {
-        VehicleSize.MOTORCYCLE   -> stringResource(Res.string.vehicle_size_moto)
-        VehicleSize.MICRO_SMALL  -> stringResource(Res.string.vehicle_size_small)
-        VehicleSize.MEDIUM_SUV -> stringResource(Res.string.vehicle_size_medium)
-        VehicleSize.LARGE_SEDAN  -> stringResource(Res.string.vehicle_size_large)
-        VehicleSize.VAN_HIGH    -> stringResource(Res.string.vehicle_size_van)
-        null               -> stringResource(Res.string.vehicle_registration_size_hint)
-    }
+    val sizeLabel = state.sizeCategory?.let { vehicleSizeLabel(it) }
+        ?: stringResource(Res.string.vehicle_registration_size_hint)
 
     val sizeSelected = state.sizeCategory != null
     // Selected → native multi-colour pictogram; not-yet-picked → dimmed flat
@@ -731,46 +717,16 @@ private fun VehicleRegistrationBottomBar(
                 .padding(horizontal = SCREEN_H_PADDING, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Button(
-                onClick = onSave,
-                enabled = canSubmit && !isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(SAVE_BUTTON_HEIGHT),
-                shape = RoundedCornerShape(SAVE_BUTTON_CORNER),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = cs.primary,
-                    contentColor = cs.onPrimary,
-                    disabledContainerColor = cs.primary.copy(alpha = BUTTON_DISABLED_BG_ALPHA),
-                    disabledContentColor = cs.onPrimary.copy(alpha = BUTTON_DISABLED_FG_ALPHA),
+            PapFooterButton(
+                label = stringResource(
+                    if (isSaving) Res.string.vehicle_registration_saving
+                    else Res.string.vehicle_registration_save,
                 ),
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(SAVING_INDICATOR_SIZE),
-                        strokeWidth = 2.dp,
-                        color = cs.onPrimary,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(Res.string.vehicle_registration_saving),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(SAVE_BUTTON_ICON_SIZE),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(Res.string.vehicle_registration_save),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
+                onClick = onSave,
+                leadingIcon = Icons.Rounded.Check,
+                enabled = canSubmit && !isSaving,
+                isLoading = isSaving,
+            )
 
             if (hint != null && !isSaving) {
                 Spacer(Modifier.height(6.dp))
@@ -807,13 +763,7 @@ private const val SUBTITLE_ALPHA         = 0.55f
 private const val AUTO_SIZE_LABEL_ALPHA  = 0.8f
 
 // Bottom bar / CTA button
-private val SAVE_BUTTON_HEIGHT           = 52.dp
-private val SAVE_BUTTON_CORNER           = 14.dp
-private val SAVE_BUTTON_ICON_SIZE        = 18.dp
-private val SAVING_INDICATOR_SIZE        = 18.dp
 private val BOTTOM_BAR_SHADOW_ELEVATION  = 8.dp
-private const val BUTTON_DISABLED_BG_ALPHA  = 0.38f
-private const val BUTTON_DISABLED_FG_ALPHA  = 0.6f
 private const val HINT_TEXT_ALPHA        = 0.5f
 
 // Delete section

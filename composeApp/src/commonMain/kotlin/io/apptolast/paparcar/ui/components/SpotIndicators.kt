@@ -19,7 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PapAmber
 import io.apptolast.paparcar.ui.theme.PapAmberMuted
@@ -28,6 +27,7 @@ import io.apptolast.paparcar.ui.theme.PapGreenMuted
 import io.apptolast.paparcar.ui.theme.PapRed
 import io.apptolast.paparcar.ui.theme.PapRedMuted
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import org.jetbrains.compose.resources.stringResource
@@ -94,6 +94,8 @@ fun TTLIndicator(
         contentColor = contentColor,
         icon = Icons.Rounded.Timer,
         modifier = modifier,
+        // TTL is a data token — condensed per the typography mechanism. [HOME-VEH-REFINE-001]
+        textStyle = rememberDataTypography().statusPin,
     )
 }
 
@@ -128,8 +130,8 @@ fun EnRouteIndicator(
         )
         Text(
             text = stringResource(Res.string.spot_indicator_en_route, count),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
+            // En-route count is a data token — condensed per the typography mechanism. [HOME-VEH-REFINE-001]
+            style = rememberDataTypography().statusPin,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
         )
     }

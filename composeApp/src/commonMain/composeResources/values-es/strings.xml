@@ -17,6 +17,9 @@
     <string name="home_vehicle_chip_badge_bt">BT</string>
     <string name="home_vehicle_status_inactive">Inactivo</string>
     <string name="home_vehicle_chip_mark_parking">Marcar aparcamiento</string>
+    <string name="home_vehicle_chip_unmarked">Sin marcar</string>
+    <string name="home_vehicle_card_parked_at">Aparcado en %1$s</string>
+    <string name="home_vehicle_card_parked_meta">%1$s · a %2$s de ti</string>
     <string name="home_vehicle_chip_status_parked">Aparcado · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Conduciendo</string>
     <string name="home_vehicle_chip_status_candidate">Aparcando…</string>
@@ -316,6 +319,8 @@
     <string name="my_car_delete_cancel">Cancelar</string>
     <string name="my_car_active_vehicle">Vehículo activo</string>
     <string name="my_car_set_active">Activar</string>
+    <string name="vehicle_status_active">Activo</string>
+    <string name="vehicle_set_active_action">Establecer como activo</string>
     <string name="my_car_unnamed_vehicle">Vehículo sin nombre</string>
     <string name="veh_bt_recommendation_title">Mejora la precisión de detección</string>
     <string name="veh_bt_recommendation_body">Vincular el Bluetooth del coche permite a Paparcar detectar cuándo aparcas con mucha más fiabilidad, incluso en trayectos cortos. Puedes configurarlo más tarde desde el menú del vehículo.</string>

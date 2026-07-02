@@ -2,13 +2,10 @@
 
 package io.apptolast.paparcar.presentation.vehicles
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,52 +14,39 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
-import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleWithStats
-import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
-import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.components.VehicleIdentityHeader
+import io.apptolast.paparcar.ui.components.vehicleStatusBorderColor
 import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.components.PillLeading
-import io.apptolast.paparcar.ui.components.VehicleGlyph
-import io.apptolast.paparcar.ui.components.VehicleStatusPill
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.my_car_active_vehicle
 import paparcar.composeapp.generated.resources.my_car_edit_vehicle
-import paparcar.composeapp.generated.resources.my_car_set_active
-import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
-import paparcar.composeapp.generated.resources.vehicle_card_detection_bt
-import paparcar.composeapp.generated.resources.vehicle_size_large
-import paparcar.composeapp.generated.resources.vehicle_size_medium
-import paparcar.composeapp.generated.resources.vehicle_size_moto
-import paparcar.composeapp.generated.resources.vehicle_size_small
-import paparcar.composeapp.generated.resources.vehicle_size_van
+import paparcar.composeapp.generated.resources.vehicle_set_active_action
 import paparcar.composeapp.generated.resources.vehicle_stats_last_session
 import paparcar.composeapp.generated.resources.vehicle_stats_reliability
 import paparcar.composeapp.generated.resources.vehicle_stats_sessions
@@ -82,7 +66,6 @@ internal fun VehiclePageContent(
         onViewOnMap = { lat, lon, sessionId -> onIntent(VehiclesIntent.ViewOnMap(lat, lon, sessionId)) },
         onFilterSelected = { filter -> onIntent(VehiclesIntent.SetHistoryFilter(filter)) },
         modifier = Modifier.fillMaxSize(),
-        showInternalStats = false,
         header = {
             VehicleHeroCard(
                 vehicleWithStats = vehicleWithStats,
@@ -96,7 +79,7 @@ internal fun VehiclePageContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hero card — icon | name+subtitle+status | overflow · inline stats inside
+// Hero card — glyph + name + status pin + size chip · stats row · set-active row
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -108,257 +91,211 @@ private fun VehicleHeroCard(
     onEdit: () -> Unit,
 ) {
     val vehicle = vehicleWithStats.vehicle
-    val displayName = vehicle.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle))
-    val sizeLabel = vehicleSizeLabel(vehicle.sizeCategory)
     val monitoring = vehicle.monitoringStatus()
+    val isInactive = monitoring == VehicleMonitoringStatus.Inactive
+    val hasStats = vehicleWithStats.sessionCount > 0
     val cs = MaterialTheme.colorScheme
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         shape = PapShapes.cardLarge,
         color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outlineVariant.copy(alpha = CARD_BORDER_ALPHA)),
+        // The frame reads the state — muted status accent (green/blue) or neutral when inactive,
+        // same border language as the Home chips. [HOME-VEH-REFINE-001]
+        border = BorderStroke(PapBorders.thin, vehicleStatusBorderColor(monitoring)),
     ) {
-        Column(modifier = Modifier.padding(CARD_PADDING.dp)) {
-            // Hero header — glyph + name on its own line, type + status pill below,
-            // edit at top-right. The name gets the full column width (never squeezed
-            // to "S…"/"Ford F…" by a wide status pill sharing the row). [IDENTITY-ICONS-001 G]
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                VehicleGlyph(
-                    carbody = vehicle.carbodyType,
-                    size = vehicle.sizeCategory,
-                    glyphSize = HERO_ICON_BOX_DP.dp,
-                    color = vehicle.color,
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    // Status pill rides as an eyebrow / overline above the name so it
-                    // gets a line of its own and never wraps the way it did when it
-                    // shared the meta row with the size label. [CHIP-DRIVING-001]
-                    VehicleStatusBadge(
-                        status = monitoring,
-                        isSettingActive = isSettingActive,
-                        onSetActive = onSetActive,
-                    )
-                    Spacer(Modifier.height(HERO_EYEBROW_GAP.dp))
-                    Text(
-                        text = displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = cs.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(HERO_NAME_META_GAP.dp))
-                    SizeChip(label = sizeLabel)
-                }
-                Spacer(Modifier.width(8.dp))
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        Icons.Rounded.Edit,
-                        contentDescription = stringResource(Res.string.my_car_edit_vehicle),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = EDIT_ICON_ALPHA),
-                    )
-                }
-            }
+        Column {
+            // Shared identity anatomy (tile glyph + name + size chip + status pin) — single source
+            // of truth with the Home single-vehicle card. Edit rides as the trailing action, in a
+            // compact box so it doesn't push the meta row with a 48dp dead zone.
+            VehicleIdentityHeader(
+                vehicle = vehicle,
+                modifier = Modifier.padding(
+                    start = CARD_PADDING.dp, end = CARD_PADDING.dp,
+                    top = IDENTITY_TOP_PAD.dp, bottom = IDENTITY_BOTTOM_PAD.dp,
+                ),
+                trailing = {
+                    IconButton(onClick = onEdit, modifier = Modifier.size(EDIT_BOX_DP.dp)) {
+                        Icon(
+                            Icons.Rounded.Edit,
+                            contentDescription = stringResource(Res.string.my_car_edit_vehicle),
+                            tint = cs.onSurface.copy(alpha = EDIT_ICON_ALPHA),
+                        )
+                    }
+                },
+            )
 
-            // Stat mini-cards — shown inside the card when sessions exist
-            if (vehicleWithStats.sessionCount > 0) {
-                Spacer(Modifier.height(STATS_DIVIDER_PAD.dp))
-                InlineStatsRow(
+            // Stats — a divided bottom row (Sessions / Last / Reliability). Muted for an inactive
+            // vehicle that still has history. Hidden entirely with no sessions. [HOME-VEH-REFINE-001]
+            if (hasStats) {
+                HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                VehicleStatsRow(
                     sessionCount = vehicleWithStats.sessionCount,
                     lastSessionMs = vehicleWithStats.lastSession?.location?.timestamp,
                     reliabilityPct = reliabilityPct,
+                    muted = isInactive,
                 )
+            }
+
+            // "Set as active" is its own row — and only for an inactive vehicle. Active / Bluetooth
+            // vehicles are already the tracked one, so the action never appears for them.
+            if (isInactive) {
+                HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                SetActiveRow(isLoading = isSettingActive, onClick = onSetActive)
             }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Vehicle status badge — three states
+// Stats row — three divided cells at the card foot
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun VehicleStatusBadge(
-    status: VehicleMonitoringStatus,
-    isSettingActive: Boolean,
-    onSetActive: () -> Unit,
-) {
-    val cs = MaterialTheme.colorScheme
-    // Crossfade between Active / Inactive / Bluetooth and the loading flip so the
-    // pill morphs instead of swapping abruptly. [MOTION-POLISH-001]
-    AnimatedContent(
-        targetState = status to isSettingActive,
-        transitionSpec = { fadeIn(PapMotion.medium()) togetherWith fadeOut(PapMotion.medium()) },
-        label = "vehicle_status_badge",
-    ) { (s, loading) ->
-        // Tonal-container fills (not the vivid primary/tertiary) so the eyebrow
-        // stays a quiet overline and the name keeps the visual hierarchy; the
-        // saturated colour survives only in the small leading marker. [CHIP-DRIVING-001]
-        when (s) {
-            is VehicleMonitoringStatus.Bluetooth -> VehicleStatusPill(
-                text = stringResource(Res.string.vehicle_card_detection_bt),
-                fill = cs.tertiaryContainer,
-                content = cs.onTertiaryContainer,
-                marker = cs.tertiary,
-                leading = PillLeading.BtIcon,
-                onClick = null,
-                isLoading = false,
-            )
-            VehicleMonitoringStatus.Active -> VehicleStatusPill(
-                text = stringResource(Res.string.my_car_active_vehicle),
-                fill = cs.primaryContainer,
-                content = cs.onPrimaryContainer,
-                marker = cs.primary,
-                leading = PillLeading.Dot,
-                onClick = null,
-                isLoading = false,
-            )
-            // Soft-filled so it still reads as a tappable CTA (not a flat-grey
-            // "disabled" chip); the primary dot hints the activation action.
-            VehicleMonitoringStatus.Inactive -> VehicleStatusPill(
-                text = stringResource(Res.string.my_car_set_active),
-                fill = cs.surfaceContainerHighest,
-                content = cs.onSurface,
-                marker = cs.primary,
-                leading = PillLeading.Dot,
-                onClick = onSetActive,
-                isLoading = loading,
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Stat mini-cards — bordered surfaces inside the hero card, no divider
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-private fun InlineStatsRow(
+private fun VehicleStatsRow(
     sessionCount: Int,
     lastSessionMs: Long?,
     reliabilityPct: Int?,
+    muted: Boolean,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(STAT_CARD_GAP.dp),
-    ) {
-        StatMiniCard(
+    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+        StatCell(
             icon = Icons.AutoMirrored.Rounded.TrendingUp,
             value = sessionCount.toString(),
             label = stringResource(Res.string.vehicle_stats_sessions),
+            muted = muted,
             modifier = Modifier.weight(1f),
         )
-        StatMiniCard(
+        StatDivider()
+        StatCell(
             icon = Icons.Rounded.Schedule,
             value = lastSessionMs?.let { compactRelativeTimeText(it) } ?: "—",
             label = stringResource(Res.string.vehicle_stats_last_session),
+            muted = muted,
             modifier = Modifier.weight(1f),
         )
-        StatMiniCard(
+        StatDivider()
+        StatCell(
             icon = Icons.Rounded.Speed,
             value = reliabilityPct?.let { "$it%" } ?: "—",
             label = stringResource(Res.string.vehicle_stats_reliability),
+            muted = muted,
             modifier = Modifier.weight(1f),
         )
     }
 }
 
 @Composable
-private fun StatMiniCard(
+private fun StatDivider() {
+    VerticalDivider(
+        modifier = Modifier.padding(vertical = STAT_DIVIDER_V_PAD.dp),
+        color = MaterialTheme.colorScheme.outline.copy(alpha = DIVIDER_ALPHA),
+    )
+}
+
+@Composable
+private fun StatCell(
     icon: ImageVector,
     value: String,
     label: String,
+    muted: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(STAT_CARD_CORNER_DP.dp),
-        color = cs.surfaceContainerHigh,
-        border = BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
+    val accent = if (muted) cs.onSurfaceVariant else cs.primary
+    val valueColor = if (muted) cs.onSurfaceVariant else cs.onSurface
+    Column(
+        modifier = modifier.padding(vertical = STAT_CELL_V_PAD.dp, horizontal = STAT_CELL_H_PAD.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = STAT_CARD_H_PAD.dp, vertical = STAT_CARD_V_PAD.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(STAT_ICON_GAP.dp),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(STAT_ICON_GAP.dp),
-            ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(STAT_ICON_DP.dp),
+            )
+            Text(
+                text = value,
+                // Condensed numerals straight from the token (25sp per the design spec) — no
+                // per-call size overrides. [HOME-VEH-REFINE-001]
+                style = rememberDataTypography().statNumber,
+                color = valueColor,
+                maxLines = 1,
+            )
+        }
+        Spacer(Modifier.size(STAT_LABEL_GAP.dp))
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = cs.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Set-active row — full-width action, inactive vehicles only
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun SetActiveRow(isLoading: Boolean, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        enabled = !isLoading,
+        modifier = Modifier.fillMaxWidth(),
+        color = cs.surfaceContainerHigh,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(SET_ACTIVE_PAD.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SET_ACTIVE_GAP.dp, Alignment.CenterHorizontally),
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(SET_ACTIVE_ICON_DP.dp),
+                    strokeWidth = SET_ACTIVE_SPINNER_STROKE.dp,
+                    color = cs.primary,
+                )
+            } else {
                 Icon(
-                    imageVector = icon,
+                    imageVector = Icons.Rounded.Check,
                     contentDescription = null,
                     tint = cs.primary,
-                    modifier = Modifier.size(STAT_ICON_DP.dp),
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = cs.onSurface,
-                    maxLines = 1,
+                    modifier = Modifier.size(SET_ACTIVE_ICON_DP.dp),
                 )
             }
             Text(
-                text = label.uppercase(),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Normal,
-                color = cs.onSurface.copy(alpha = STAT_LABEL_ALPHA),
+                text = stringResource(Res.string.vehicle_set_active_action),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = cs.primary,
             )
         }
     }
 }
 
-// Size shown as a chip (not plain grey text) so it matches the size chips used across Home. Display
-// only — it isn't selectable here, just a consistent visual token. [VEHICLES-REDESIGN-001]
-@Composable
-private fun SizeChip(label: String) {
-    Surface(
-        shape = RoundedCornerShape(SIZE_CHIP_RADIUS_DP.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = SIZE_CHIP_H_PAD.dp, vertical = SIZE_CHIP_V_PAD.dp),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun vehicleSizeLabel(size: VehicleSize): String = when (size) {
-    VehicleSize.MOTORCYCLE   -> stringResource(Res.string.vehicle_size_moto)
-    VehicleSize.MICRO_SMALL  -> stringResource(Res.string.vehicle_size_small)
-    VehicleSize.MEDIUM_SUV -> stringResource(Res.string.vehicle_size_medium)
-    VehicleSize.LARGE_SEDAN  -> stringResource(Res.string.vehicle_size_large)
-    VehicleSize.VAN_HIGH    -> stringResource(Res.string.vehicle_size_van)
-}
-
 private const val CARD_PADDING = 16
-private const val CARD_BORDER_ALPHA = 0.5f
-private const val HERO_ICON_BOX_DP = 56
-private const val STATS_DIVIDER_PAD = 12
-private const val STAT_CARD_GAP = 6
-private const val STAT_CARD_CORNER_DP = 10
-private const val STAT_CARD_H_PAD = 10
-private const val STAT_CARD_V_PAD = 8
-private const val STAT_ICON_DP = 18
-private const val STAT_ICON_GAP = 6
-private const val STAT_LABEL_ALPHA = 0.5f
+// Identity block paddings per the design spec (15 top / 13 bottom).
+private const val IDENTITY_TOP_PAD = 15
+private const val IDENTITY_BOTTOM_PAD = 13
+// Compact edit box — kills the invisible 48dp dead zone that misaligned the card's right edge.
+private const val EDIT_BOX_DP = 40
+private const val DIVIDER_ALPHA = PapBorders.HAIRLINE_DIVIDER_ALPHA
 private const val EDIT_ICON_ALPHA = 0.7f
-private const val SIZE_CHIP_RADIUS_DP = 999
-private const val SIZE_CHIP_H_PAD = 10
-private const val SIZE_CHIP_V_PAD = 4
-private const val HERO_EYEBROW_GAP = 4
-private const val HERO_NAME_META_GAP = 4
+private const val STAT_CELL_V_PAD = 13
+private const val STAT_CELL_H_PAD = 8
+private const val STAT_DIVIDER_V_PAD = 13
+private const val STAT_ICON_DP = 17
+private const val STAT_ICON_GAP = 5
+private const val STAT_LABEL_GAP = 5
+private const val SET_ACTIVE_PAD = 13
+private const val SET_ACTIVE_GAP = 9
+private const val SET_ACTIVE_ICON_DP = 18
+private const val SET_ACTIVE_SPINNER_STROKE = 2

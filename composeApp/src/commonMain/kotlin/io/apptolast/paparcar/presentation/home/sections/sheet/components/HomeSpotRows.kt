@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import io.apptolast.paparcar.ui.theme.stateColors
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.distanceMeters
@@ -169,34 +170,36 @@ private fun SpotRowContent(
                 )
             }
             Spacer(Modifier.height(2.dp))
+            // Data-dense meta line ("FIABLE · 80 m · 1 min") — condensed per the typography
+            // mechanism: data tokens repeated in rows use Barlow, prose stays Inter. Label and
+            // values share the same condensed body so the line reads as one unit. [UI-REGRESSION]
+            val dataType = rememberDataTypography()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     palette.label.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.ExtraBold,
+                    style = dataType.statusPin.copy(fontWeight = FontWeight.Bold),
                     color = palette.badgeBg,
                     maxLines = 1,
                 )
                 Text(
-                    "  ·  ",
-                    style = MaterialTheme.typography.labelSmall,
+                    META_SEPARATOR,
+                    style = dataType.compactBody,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
                 )
                 if (distanceM != null) {
                     Text(
                         distanceString(distanceM),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
+                        style = dataType.compactBody.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
                     )
                     Text(
-                        "  ·  ",
-                        style = MaterialTheme.typography.labelSmall,
+                        META_SEPARATOR,
+                        style = dataType.compactBody,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
                     )
                     Text(
                         driveTimeString(distanceM),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = dataType.compactBody,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_MUTED_ALPHA),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -246,15 +249,17 @@ internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
             modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
         )
         Spacer(Modifier.height(2.dp))
+        // Shared empty-state recipe (titleSmall Bold + bodySmall) — same hierarchy as
+        // HomeEmptyFilteredSpots so the two states read as one family. [HOME-VEH-REFINE-001]
         Text(
             stringResource(Res.string.home_empty_title),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             stringResource(Res.string.home_empty_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
         )
     }
@@ -273,9 +278,10 @@ internal fun HomeEmptyFilteredSpots(
             modifier = Modifier.size(36.dp),
         )
         Spacer(Modifier.height(2.dp))
+        // Same recipe as HomeEmptySpots (titleSmall Bold + bodySmall). [HOME-VEH-REFINE-001]
         Text(
             stringResource(Res.string.home_filter_empty_title),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -369,6 +375,8 @@ private const val BADGE_DP = 42
 private const val POI_ICON_DP = 15
 private const val POI_ICON_GAP_DP = 5
 private const val SELECTED_ROW_BG_ALPHA = 0.30f
+// Separator between data tokens on the meta line ("FIABLE · 80 m · 1 min").
+private const val META_SEPARATOR = "  ·  "
 private const val META_SEPARATOR_ALPHA = 0.3f
 private const val META_VALUE_ALPHA = 0.6f
 private const val META_MUTED_ALPHA = 0.55f

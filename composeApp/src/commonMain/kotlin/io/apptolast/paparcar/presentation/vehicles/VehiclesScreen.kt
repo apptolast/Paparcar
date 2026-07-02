@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,11 +56,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.absoluteValue
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.displayName
+import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.PapOutlineVariantLight
 import io.apptolast.paparcar.ui.theme.appBarTitle
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -74,9 +74,7 @@ import paparcar.composeapp.generated.resources.my_car_empty_why_link
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_title
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
-import paparcar.composeapp.generated.resources.vehicle_bt_cd
 import paparcar.composeapp.generated.resources.vehicle_status_active_cd
-import paparcar.composeapp.generated.resources.vehicle_status_inactive_cd
 
 /**
  * VehiclesScreen (v1 redesign) — Vehicles + History fusionado.
@@ -296,17 +294,20 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
     )
     val bg = if (selected) cs.primary.copy(alpha = SELECTED_FILL_ALPHA) else cs.surfaceContainerHigh
     val fg = if (selected) cs.primary else cs.onSurface
-    // Same status language as Home's vehicle chip and the map marker: a green/grey pin reads the
-    // vehicle's detection state (active/inactive), and a Bluetooth glyph — not a colour — signals BT
-    // pairing, so the two signals never get confused. [VEHICLES-REDESIGN-001]
-    val isBtPaired = vehicle.bluetoothDeviceId != null
+    // Status by a single coloured dot — green = actively detected, blue = detected via Bluetooth,
+    // no dot = inactive. Colour is the whole message; no separate BT glyph, no method text.
+    // [HOME-VEH-REFINE-001]
+    val monitoring = vehicle.monitoringStatus()
 
     Surface(
         onClick = onClick,
         modifier = Modifier.height(TAB_HEIGHT_DP.dp),
         shape = RoundedCornerShape(PILL_RADIUS_DP.dp),
         color = bg,
-        border = if (selected) BorderStroke(PapBorders.strong, cs.primary) else BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
+        // Selected = tonal fill + MUTED primary border (the design's green-line), honouring the
+        // "no neon-primary border on selected" contract this pill previously violated. [UI-REGRESSION]
+        border = if (selected) BorderStroke(PapBorders.strong, cs.primary.copy(alpha = SELECTED_BORDER_ALPHA))
+        else BorderStroke(PapBorders.thin, cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp),
@@ -327,32 +328,27 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
                 color = fg,
                 maxLines = 1,
             )
-            if (isBtPaired) {
-                Icon(
-                    imageVector = Icons.Rounded.Bluetooth,
-                    contentDescription = stringResource(Res.string.vehicle_bt_cd),
-                    tint = cs.onSurfaceVariant,
-                    modifier = Modifier.size(BT_ICON_DP.dp),
-                )
-            }
-            VehicleStatusPin(active = vehicle.isActive)
+            VehicleStatusDot(status = monitoring)
         }
     }
 }
 
-/** Small solid status pin — green when the vehicle's auto-detection is active, grey when inactive.
- *  Mirrors the map-marker / Home-chip tone so the selector reads the same language everywhere; shown
- *  for every vehicle (active AND inactive). [VEHICLES-REDESIGN-001] */
+/** Small status dot — green (active) / blue (Bluetooth) / absent (inactive). Mirrors the Home chip
+ *  and map-marker status language so the selector reads the same everywhere. [HOME-VEH-REFINE-001] */
 @Composable
-private fun VehicleStatusPin(active: Boolean) {
-    val cd = stringResource(
-        if (active) Res.string.vehicle_status_active_cd else Res.string.vehicle_status_inactive_cd,
-    )
+private fun VehicleStatusDot(status: VehicleMonitoringStatus) {
+    val cs = MaterialTheme.colorScheme
+    val color = when (status) {
+        is VehicleMonitoringStatus.Bluetooth -> cs.tertiary
+        VehicleMonitoringStatus.Active       -> cs.primary
+        VehicleMonitoringStatus.Inactive     -> return // no dot for inactive
+    }
+    val cd = stringResource(Res.string.vehicle_status_active_cd)
     Box(
         modifier = Modifier
             .size(ACTIVE_DOT_DP.dp)
             .clip(CircleShape)
-            .background(if (active) MaterialTheme.colorScheme.primary else PapOutlineVariantLight)
+            .background(color)
             .semantics { contentDescription = cd },
     )
 }
@@ -449,8 +445,8 @@ private const val TAB_HEIGHT_DP = 36
 private const val PAGER_MIN_ALPHA = 0.5f
 private const val PAGER_MIN_SCALE = 0.92f
 private const val ACTIVE_DOT_DP = 6
-private const val BT_ICON_DP = 14
 private const val SELECTED_FILL_ALPHA = 0.14f
+private const val SELECTED_BORDER_ALPHA = 0.45f // muted "green-line", not the neon primary
 private const val EMPTY_ICON_CIRCLE_DP = 120
 private const val EMPTY_BODY_ALPHA = 0.65f
 private const val EMPTY_CTA_HEIGHT_DP = 50

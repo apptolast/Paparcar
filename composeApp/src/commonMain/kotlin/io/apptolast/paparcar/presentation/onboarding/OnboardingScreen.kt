@@ -214,7 +214,7 @@ private fun OnboardingPage3() {
         Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -222,7 +222,7 @@ private fun OnboardingPage3() {
         Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.onboarding_page3_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )

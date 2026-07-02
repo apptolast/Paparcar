@@ -91,12 +91,15 @@ import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.PapClearIconButton
+import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.ReliabilityMeter
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.rememberDataTypography
 import io.apptolast.paparcar.ui.theme.stateColors
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -397,7 +400,7 @@ private fun SpotPeekRow(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA))
             SpotListToggleRow(
                 expanded = spotListExpanded,
                 label = stringResource(Res.string.home_spot_peek_show_list),
@@ -476,6 +479,35 @@ private fun vehicleSummary(vehicle: Vehicle?): String? {
     return vehicle.displayName(fallback = fallback).takeIf { it.isNotBlank() }
 }
 
+/**
+ * Canonical peek meta row — accent icon + one SemiBold value line. The four
+ * concrete rows (distance, spot age, en-route, parking duration) are thin
+ * wrappers over this molde so their visuals can't drift apart. [HOME-VEH-REFINE-001]
+ */
+@Composable
+private fun PeekMetaRow(icon: ImageVector, text: String, tint: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(META_ICON_DP.dp),
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 @Composable
 private fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color) {
     if (distanceM == null) return
@@ -487,26 +519,11 @@ private fun DistanceRow(distanceM: Float?, mode: TravelMode, accentColor: Color)
         TravelMode.WALKING -> walkTimeString(distanceM)
         TravelMode.DRIVING -> driveTimeString(distanceM)
     }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = accentColor,
-            modifier = Modifier.size(META_ICON_DP.dp),
-        )
-        Text(
-            text = "${distanceString(distanceM)}  ·  $timeText",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    PeekMetaRow(
+        icon = icon,
+        text = "${distanceString(distanceM)}$META_SEPARATOR$timeText",
+        tint = accentColor,
+    )
 }
 
 @Composable
@@ -519,12 +536,8 @@ private fun FiabilityIndicator(level: SpotReliabilityUiState, expiresInMin: Int?
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(Res.string.home_peek_spot_reliability_label).uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = SECTION_TRACKING_SP.sp,
-            color = cs.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
+        PapSectionHeader(
+            title = stringResource(Res.string.home_peek_spot_reliability_label),
             modifier = Modifier.weight(1f),
         )
         if (expiresInMin != null) {
@@ -554,50 +567,16 @@ private fun SpotAgeRow(ageMinutes: Int, accentColor: Color) {
         stringResource(Res.string.home_peek_spot_age_min, ageMinutes)
     else
         stringResource(Res.string.home_peek_spot_age_hour, ageMinutes / 60)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Schedule,
-            contentDescription = null,
-            tint = accentColor,
-            modifier = Modifier.size(META_ICON_DP.dp),
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    PeekMetaRow(icon = Icons.Rounded.Schedule, text = text, tint = accentColor)
 }
 
 @Composable
 private fun SpotEnRouteRow(count: Int, accentColor: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Group,
-            contentDescription = null,
-            tint = accentColor,
-            modifier = Modifier.size(META_ICON_DP.dp),
-        )
-        Text(
-            text = stringResource(Res.string.home_peek_spot_en_route, count),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    PeekMetaRow(
+        icon = Icons.Rounded.Group,
+        text = stringResource(Res.string.home_peek_spot_en_route, count),
+        tint = accentColor,
+    )
 }
 
 private fun ageMinutes(timestampMs: Long): Int? {
@@ -740,26 +719,7 @@ private fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
     } else {
         stringResource(Res.string.home_peek_parking_duration_hm, elapsedMin / 60, elapsedMin % 60)
     }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Schedule,
-            contentDescription = null,
-            tint = accentColor,
-            modifier = Modifier.size(META_ICON_DP.dp),
-        )
-        Text(
-            text = durationText,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    PeekMetaRow(icon = Icons.Rounded.Schedule, text = durationText, tint = accentColor)
 }
 
 
@@ -873,13 +833,7 @@ private fun ReportPeekRow(
                 secondary = stringResource(Res.string.home_report_helper_secondary),
             )
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = stringResource(Res.string.home_report_size_section).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = SECTION_TRACKING_SP.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
-            )
+            PapSectionHeader(title = stringResource(Res.string.home_report_size_section))
             Spacer(Modifier.height(6.dp))
             SizeChipRow(selected = state.reportingSize, onSelect = onSizeSelected)
             Spacer(Modifier.height(14.dp))
@@ -1005,13 +959,7 @@ private fun AddingZonePeekRow(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
-            Text(
-                text = stringResource(Res.string.home_zone_icon_section).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = SECTION_TRACKING_SP.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
-            )
+            PapSectionHeader(title = stringResource(Res.string.home_zone_icon_section))
             Spacer(Modifier.height(6.dp))
             ZoneIconPickerRow(
                 selectedKey = state.addingZoneIconKey,
@@ -1023,12 +971,9 @@ private fun AddingZonePeekRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = stringResource(Res.string.home_zone_radius_section).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = SECTION_TRACKING_SP.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
+                PapSectionHeader(
+                    title = stringResource(Res.string.home_zone_radius_section),
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 Text(
                     text = stringResource(Res.string.home_zone_radius_meters, state.addingZoneRadius.roundToInt()),
@@ -1258,7 +1203,9 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            // 16dp — same grid as the expanded sheet content, so the address doesn't
+            // step sideways when the sheet expands. [HOME-VEH-REFINE-001]
+            .padding(horizontal = BROWSE_ROW_HORIZONTAL_PAD_DP.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -1318,12 +1265,15 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
                     )
                 }
                 Text(
-                    text = if (hasSpots) stringResource(Res.string.home_stats_free_spots_badge, freeCount)
+                    // Condensed to save horizontal space. The short count is uppercased ("3 LIBRES");
+                    // the longer empty-state message stays sentence case so it doesn't read as shouty
+                    // or oversized. [HOME-VEH-REFINE-001]
+                    text = if (hasSpots) stringResource(Res.string.home_stats_free_spots_badge, freeCount).uppercase()
                            else stringResource(Res.string.home_peek_no_spots),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
+                    style = rememberDataTypography().statusPin.copy(fontWeight = FontWeight.Bold),
                     color = if (hasSpots) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
                 )
             }
         }
@@ -1347,7 +1297,8 @@ private fun PeekLocationSkeleton(onToggle: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            // Mirrors CameraLocationRow's inset so the skeleton doesn't jump on load.
+            .padding(horizontal = BROWSE_ROW_HORIZONTAL_PAD_DP.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -1398,16 +1349,13 @@ private const val HELPER_CORNER_DP = 10
 private const val META_ICON_DP = 18
 private const val FIABILITY_SEG_HEIGHT_DP = 4
 private const val FIABILITY_EXPIRY_WARN_MIN = 5
-private const val COMPAT_CORNER_DP = 8
-private const val COMPAT_ICON_DP = 16
-private const val COMPAT_INCOMPAT_BG_ALPHA = 0.07f
-private const val COMPAT_INCOMPAT_FG_ALPHA = 0.55f
-private const val COMPAT_UNKNOWN_FG_ALPHA = 0.40f
+// Horizontal inset of the Browse address row + its loading skeleton — the 16dp sheet grid.
+private const val BROWSE_ROW_HORIZONTAL_PAD_DP = 16
+// Separator between data tokens on a meta line ("80 m  ·  1 min").
+private const val META_SEPARATOR = "  ·  "
 
-private const val SECTION_TRACKING_SP = 0.8
 private const val SECTION_LABEL_ALPHA = 0.55f
 private const val META_VALUE_ALPHA = 0.7f
-private const val COMPAT_BG_ALPHA = 0.12f
 private const val HELPER_BG_ALPHA = 0.5f
 private const val SECONDARY_ALPHA = 0.55f
 private const val HELPER_SECONDARY_ALPHA = SECONDARY_ALPHA

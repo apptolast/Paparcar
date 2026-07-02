@@ -4,6 +4,7 @@ package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -188,30 +189,31 @@ private fun HomePeekHandleParkingSelectedLightPreview() {
     }
 }
 
-// ─── A — HomeVehicleCard ──────────────────────────────────────────────────────
+// ─── A — HomeVehicleCard (single vehicle, full-width) ─────────────────────────
 
-@Preview(name = "A — HomeVehicleCard: parked w/ POI (oscuro)", showBackground = true,
+@Preview(name = "A — HomeVehicleCard: aparcado + dirección (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HomeVehicleCardParkedPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleChip(
+            HomeVehicleCard(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSession),
+                userLocation = 40.417 to -3.708,
                 onClick = {},
             )
         }
     }
 }
 
-@Preview(name = "A — HomeVehicleCard: parked sin dirección (claro)", showBackground = true)
+@Preview(name = "A — HomeVehicleCard: aparcado sin dirección (claro)", showBackground = true)
 @Composable
 private fun HomeVehicleCardParkedNoAddressLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleChip(
+            HomeVehicleCard(
                 card = VehicleCard(
-                    vehicle = FakeData.vehicleVan,
+                    vehicle = FakeData.vehicleSedan,
                     session = FakeData.activeSession.copy(address = null, placeInfo = null),
                 ),
                 onClick = {},
@@ -220,56 +222,28 @@ private fun HomeVehicleCardParkedNoAddressLightPreview() {
     }
 }
 
-@Preview(name = "A — HomeVehicleCard: parked seleccionado (oscuro)", showBackground = true,
+@Preview(name = "A — HomeVehicleCard: sin marcar (oscuro)", showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun HomeVehicleCardSelectedDarkPreview() {
+private fun HomeVehicleCardUnmarkedDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleChip(
-                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSessionSupermarket),
+            HomeVehicleCard(
+                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 onClick = {},
             )
         }
     }
 }
 
-@Preview(name = "A — HomeVehicleCard: empty (Park CTA) oscuro", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
+// Driving state — live "Conduciendo" card with radar halo (animation only runs in interactive
+// preview / on device; static render shows the blue border + label). [CHIP-DRIVING-001]
+@Preview(name = "A — HomeVehicleCard: driving (claro)", showBackground = true)
 @Composable
-private fun HomeVehicleCardEmptyDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) {
-            HomeVehicleChip(
-                card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
-                onClick = {},
-            )
-        }
-    }
-}
-
-@Preview(name = "A — HomeVehicleCard: empty (Park CTA) claro", showBackground = true)
-@Composable
-private fun HomeVehicleCardEmptyLightPreview() {
+private fun HomeVehicleCardDrivingLightPreview() {
     PaparcarTheme(darkTheme = false) {
         Column(Modifier.padding(16.dp)) {
-            HomeVehicleChip(
-                card = VehicleCard(vehicle = FakeData.vehicleNoName, session = null),
-                onClick = {},
-            )
-        }
-    }
-}
-
-// Driving state — live "Conduciendo" chip with radar halo (animation only runs in interactive
-// preview / on device; static render shows the blue border + label). [CHIP-DRIVING-001]
-@Preview(name = "A — HomeVehicleCard: driving (oscuro)", showBackground = true,
-    uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-private fun HomeVehicleCardDrivingDarkPreview() {
-    PaparcarTheme(darkTheme = true) {
-        Column(Modifier.padding(16.dp)) {
-            HomeVehicleChip(
+            HomeVehicleCard(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
                 onClick = {},
@@ -278,13 +252,52 @@ private fun HomeVehicleCardDrivingDarkPreview() {
     }
 }
 
-@Preview(name = "A — HomeVehicleCard: driving (claro)", showBackground = true)
+// ─── A — HomeVehicleChip (2+ vehicles, compact strip) ─────────────────────────
+// Status icon before the name (green active / blue BT / grey inactive); foot = address (parked)
+// or the "not marked" glyph. [HOME-VEH-REFINE-001]
+
+@Preview(name = "A — HomeVehicleChip: estados (oscuro)", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES, widthDp = 620)
 @Composable
-private fun HomeVehicleCardDrivingLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        Column(Modifier.padding(16.dp)) {
+private fun HomeVehicleChipStatesDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        Row(
+            Modifier.padding(16.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+        ) {
+            // Active + parked → green icon + address
             HomeVehicleChip(
-                card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
+                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSession),
+                onClick = {},
+            )
+            // Bluetooth + not marked → blue icon + "Sin marcar"
+            HomeVehicleChip(
+                card = VehicleCard(vehicle = FakeData.vehicleCorolla, session = null),
+                onClick = {},
+            )
+            // Inactive + parked → grey icon + address
+            HomeVehicleChip(
+                card = VehicleCard(vehicle = FakeData.vehicleMoto, session = FakeData.activeSessionSupermarket),
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "A — HomeVehicleChip: estados (claro)", showBackground = true, widthDp = 620)
+@Composable
+private fun HomeVehicleChipStatesLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        Row(
+            Modifier.padding(16.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+        ) {
+            HomeVehicleChip(
+                card = VehicleCard(vehicle = FakeData.vehicleCorolla, session = FakeData.activeSession),
+                onClick = {},
+            )
+            HomeVehicleChip(
+                card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
                 isDriving = true,
                 onClick = {},
             )

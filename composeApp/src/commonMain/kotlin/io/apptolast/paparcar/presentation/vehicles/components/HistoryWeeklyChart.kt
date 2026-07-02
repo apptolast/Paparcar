@@ -52,7 +52,6 @@ import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_activity_low_hint
 import paparcar.composeapp.generated.resources.history_activity_noun
-import paparcar.composeapp.generated.resources.history_activity_title
 
 private const val CHART_ENTER_DURATION = 800
 
@@ -60,20 +59,21 @@ private const val CHART_ENTER_DURATION = 800
  * Activity chart (v1 redesign) — reflects the currently-selected time filter (its buckets are built
  * per-scope: daily for a week, weekly for a month, monthly for longer windows). [VEHICLES-REDESIGN-001]
  *  - 20dp card, 1px subtle outline.
- *  - Title "Activity" + subtitle "<count> parkings · <scope>" with count in primary bold.
+ *  - Title lives OUTSIDE the card: the "Activity" section header in HistoryContent owns it, so the
+ *    card renders only the chart (or its compact low-data summary). [HOME-VEH-REFINE-001]
  *  - Newest bucket = primary; the rest = primary @ 50% alpha.
  *  - When the selected window holds ≤2 sessions it collapses to a compact summary (Task 3) instead of
  *    a near-empty full-height chart; the bar scale also has a floor so a lone bar never fills the top.
  */
 @Composable
-internal fun ActivityCard(data: List<WeekDayStats>, total: Int, scopeLabel: String) {
+internal fun ActivityCard(
+    data: List<WeekDayStats>,
+    total: Int,
+) {
     ActivityCardShell {
-        ActivityCardHeader(total = total, scopeLabel = scopeLabel)
         if (total <= LOW_DATA_THRESHOLD) {
-            Spacer(Modifier.height(14.dp))
             LowActivitySummary(total = total)
         } else {
-            Spacer(Modifier.height(18.dp))
             ActivityBarChart(data = data)
         }
     }
@@ -91,32 +91,10 @@ private fun ActivityCardShell(content: @Composable () -> Unit) {
             MaterialTheme.colorScheme.outlineVariant.copy(alpha = BORDER_ALPHA),
         ),
     ) {
-        Column(modifier = Modifier.padding(20.dp)) { content() }
+        // 16dp, matching the sibling cards and the external "Activity" section header so the chart
+        // content doesn't sit 4dp deeper than the title above it. [UI-REGRESSION]
+        Column(modifier = Modifier.padding(CARD_INNER_PAD_DP.dp)) { content() }
     }
-}
-
-@Composable
-private fun ActivityCardHeader(total: Int, scopeLabel: String) {
-    val primaryColor = MaterialTheme.colorScheme.primary
-    Text(
-        stringResource(Res.string.history_activity_title),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
-    Spacer(Modifier.height(2.dp))
-    Text(
-        text = buildAnnotatedString {
-            withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Bold)) {
-                append("$total ")
-            }
-            append(pluralStringResource(Res.plurals.history_activity_noun, total))
-            append(" · ")
-            append(scopeLabel)
-        },
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
-    )
 }
 
 /**
@@ -331,7 +309,8 @@ private fun DrawScope.drawCountLabel(
     )
 }
 
-private const val CARD_CORNER_DP = 20
+private const val CARD_CORNER_DP = 16
+private const val CARD_INNER_PAD_DP = 16
 private const val CHART_HEIGHT_DP = 120
 // ≤ this many sessions in the selected window → compact summary instead of the full chart. [Task 3]
 private const val LOW_DATA_THRESHOLD = 2

@@ -19,8 +19,6 @@ import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.PapAlertDialog
+import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionScaffold
 import io.apptolast.paparcar.ui.illustrations.OnboardingHero
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
@@ -78,7 +77,6 @@ import paparcar.composeapp.generated.resources.permissions_tier_essential_benefi
 import paparcar.composeapp.generated.resources.permissions_tier_optional_benefit
 import paparcar.composeapp.generated.resources.permissions_title
 
-private val BUTTON_HEIGHT      = 52.dp
 private val HERO_ILLUSTRATION_W = 140.dp
 private val HERO_ILLUSTRATION_H = 120.dp
 
@@ -339,25 +337,12 @@ private fun ColumnScope.PermissionsFooter(
         else -> // PRODUCER pending → the deliberate "activate auto-detection" step
             stringResource(Res.string.permissions_btn_activate_detection) to false
     }
-    Button(
+    PapFooterButton(
+        label = label,
         onClick = onRequestPermissions,
-        modifier = Modifier.fillMaxWidth().height(BUTTON_HEIGHT),
-        shape = MaterialTheme.shapes.medium,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isAmber) {
-                MaterialTheme.colorScheme.secondary
-            } else {
-                MaterialTheme.colorScheme.primary
-            },
-            contentColor = if (isAmber) {
-                MaterialTheme.colorScheme.onSecondary
-            } else {
-                MaterialTheme.colorScheme.onPrimary
-            },
-        ),
-    ) {
-        Text(text = label, fontWeight = FontWeight.Bold)
-    }
+        containerColor = if (isAmber) MaterialTheme.colorScheme.secondary else null,
+        contentColor = if (isAmber) MaterialTheme.colorScheme.onSecondary else null,
+    )
     // "Maybe later" — enter with CORE only, defer PRODUCER. Shown once the minimum (CORE + GPS) is
     // met so the user is never stranded below it. [DET-READY-001e]
     if (state.canContinueWithCore) {
