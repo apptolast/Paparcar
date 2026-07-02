@@ -246,15 +246,20 @@ internal fun HomeBottomSheet(
  * value instead of loose floats.
  *
  * Offset semantics: larger value = sheet top farther from screen top = sheet
- * smaller. So `minimizedOffsetPx >= peekOffsetPx >= halfOffsetPx >= fullSnapOffsetPx`.
+ * smaller. So `minimizedOffsetPx >= peekOffsetPx >= halfOffsetPx >= expandedOffsetPx >= fullSnapOffsetPx`.
  *
  * [minimizedOffsetPx] is the extra "drag-down to header-only" snap point used
  * in non-Browse states. In Browse it equals [peekOffsetPx] so the snap logic
  * collapses to the original three-point behaviour. [SHEET-DRAG-001]
+ *
+ * [expandedOffsetPx] is the primary "desplegado" auto-snap — capped below full
+ * so a slice of map + the car marker stay visible. `full` remains a valid snap
+ * so a hard manual drag to the very top still rests at full-screen. [HOME-SNAP-001]
  */
 internal data class HomeSheetSnap(
     val peekOffsetPx: Float,
     val halfOffsetPx: Float,
+    val expandedOffsetPx: Float,
     val fullSnapOffsetPx: Float,
     val minimizedOffsetPx: Float,
     val snapSpec: androidx.compose.animation.core.AnimationSpec<Float>,
@@ -262,32 +267,31 @@ internal data class HomeSheetSnap(
     /** Returns the snap target the sheet should animate to after the user releases the drag. */
     fun snapTarget(current: Float, velocityYPxPerSec: Float): Float = when {
         velocityYPxPerSec < -FLING_SNAP_VELOCITY -> {
-            // Fling up: minimized → peek, peek → half, half → full.
+            // Fling up: minimized → peek, peek → half, half → expanded, expanded → full.
             when {
                 current > peekOffsetPx -> peekOffsetPx
                 current > halfOffsetPx -> halfOffsetPx
+                current > expandedOffsetPx -> expandedOffsetPx
                 else -> fullSnapOffsetPx
             }
         }
         velocityYPxPerSec > FLING_SNAP_VELOCITY -> {
-            // Fling down: full → half, half → peek, peek → minimized.
+            // Fling down: full → expanded, expanded → half, half → peek, peek → minimized.
             when {
+                current < expandedOffsetPx -> expandedOffsetPx
                 current < halfOffsetPx -> halfOffsetPx
                 current < peekOffsetPx -> peekOffsetPx
                 else -> minimizedOffsetPx
             }
         }
         else -> {
-            // Soft drag: snap to the nearest of minimized / peek / half / full.
-            val distMin = (current - minimizedOffsetPx).absoluteValue
-            val distPeek = (current - peekOffsetPx).absoluteValue
-            val distHalf = (current - halfOffsetPx).absoluteValue
-            val distFull = (current - fullSnapOffsetPx).absoluteValue
+            // Soft drag: snap to the nearest of minimized / peek / half / expanded / full.
             val (offset, _) = listOf(
-                fullSnapOffsetPx to distFull,
-                halfOffsetPx to distHalf,
-                peekOffsetPx to distPeek,
-                minimizedOffsetPx to distMin,
+                fullSnapOffsetPx to (current - fullSnapOffsetPx).absoluteValue,
+                expandedOffsetPx to (current - expandedOffsetPx).absoluteValue,
+                halfOffsetPx to (current - halfOffsetPx).absoluteValue,
+                peekOffsetPx to (current - peekOffsetPx).absoluteValue,
+                minimizedOffsetPx to (current - minimizedOffsetPx).absoluteValue,
             ).minBy { it.second }
             offset
         }

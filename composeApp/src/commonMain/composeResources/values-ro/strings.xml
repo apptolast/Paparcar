@@ -337,7 +337,10 @@
     <string name="home_header_add_zone_hint">Acasă, muncă, sală\u2026</string>
 
     <!-- Sheet section headers + permisiuni -->
-    <string name="home_vehicles_section_header">Vehiculele tale</string>
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Vehiculul tău</item>
+        <item quantity="other">Vehiculele tale</item>
+    </plurals>
     <string name="home_vehicle_card_status_empty">Neparcat</string>
     <string name="home_vehicle_fallback_name">Vehicul</string>
 

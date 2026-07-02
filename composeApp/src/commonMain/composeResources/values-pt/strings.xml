@@ -337,7 +337,10 @@
     <string name="home_header_add_zone_hint">Casa, trabalho, ginásio\u2026</string>
 
     <!-- Sheet section headers + permissões -->
-    <string name="home_vehicles_section_header">Os teus veículos</string>
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">O teu veículo</item>
+        <item quantity="other">Os teus veículos</item>
+    </plurals>
     <string name="home_vehicle_card_status_empty">Não estacionado</string>
     <string name="home_vehicle_fallback_name">Veículo</string>
 

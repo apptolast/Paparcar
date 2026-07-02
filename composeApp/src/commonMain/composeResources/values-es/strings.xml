@@ -4,13 +4,19 @@
     <string name="home_search_placeholder">Busca una zona, calle…</string>
     <string name="home_stats_free_spots_badge">%1$d libres</string>
     <string name="home_peek_no_spots">Sin plazas cerca</string>
-    <!-- Header de la sección "Tus vehículos" en el sheet. [MULTI-PARKING-001] -->
-    <string name="home_vehicles_section_header">Tus vehículos</string>
+    <!-- Header de la sección "Tus vehículos" en el sheet; singular/plural según nº de vehículos. [MULTI-PARKING-001] [HOME-CARDS-001] -->
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Tu vehículo</item>
+        <item quantity="other">Tus vehículos</item>
+    </plurals>
     <!-- Subtítulo en la fila por vehículo cuando no hay sesión activa. -->
     <string name="home_vehicle_card_status_empty">Sin aparcar</string>
     <!-- Fallback de nombre cuando el vehículo no tiene name/brand/model. -->
     <string name="home_vehicle_fallback_name">Vehículo</string>
     <string name="home_vehicle_chip_badge_active">Activo</string>
+    <string name="home_vehicle_chip_badge_bt">BT</string>
+    <string name="home_vehicle_status_inactive">Inactivo</string>
+    <string name="home_vehicle_chip_mark_parking">Marcar aparcamiento</string>
     <string name="home_vehicle_chip_status_parked">Aparcado · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Conduciendo</string>
     <string name="home_vehicle_chip_status_candidate">Aparcando…</string>

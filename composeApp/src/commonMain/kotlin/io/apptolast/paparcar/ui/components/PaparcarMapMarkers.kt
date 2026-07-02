@@ -559,6 +559,40 @@ fun FreeSpotMarker(
     }
 }
 
+/**
+ * Tail-less spot puck for use inside list containers (only the round "P" puck, no pointing tip). The
+ * same puck drawing as [FreeSpotMarker], so the list badge and the map marker read identically —
+ * colour + TTL ring + badge encode the reliability tier. [HOME-PUCK-001]
+ *
+ * @param reliability tier driving colour/ring/badge.
+ * @param enRouteCount when > 0 the puck turns the blue "reserved · en route" colour to mirror the
+ *   map marker (ring/badge dropped; the row shows a separate en-route indicator).
+ */
+@Composable
+fun SpotPuckIcon(
+    reliability: SpotReliabilityUiState,
+    modifier: Modifier = Modifier,
+    enRouteCount: Int = 0,
+    selected: Boolean = false,
+) {
+    val paper = SpotPalette.Paper
+    val ink = SpotPalette.Ink
+    val pPath = remember { PathParser().parsePathString(SPOT_P_PATH).toPath() }
+    val visual = if (enRouteCount > 0) {
+        SpotTierVisual(SpotPalette.EnRouteBlue, ringFraction = null, clockBadge = false, personBadge = false)
+    } else {
+        reliability.tierVisual()
+    }
+    Canvas(modifier) {
+        val s = size.minDimension / SPOT_VIEWBOX_W
+        // Centre the puck circle (viewBox centre y = 34) vertically in the square slot — the marker
+        // viewBox reserves the lower rows for the tail we're omitting here.
+        translate(top = size.height / 2f - SPOT_PUCK_CENTER_Y * s) {
+            drawSpotPuck(s, visual, selected, pPath, paper, ink)
+        }
+    }
+}
+
 // ── Puck geometry (viewBox 72×82 units) ──────────────────────────────────────
 // Spot marker = round "puck" (centre 36,34 r29) carrying the Fredoka "P", a per-tier TTL ring and an
 // optional badge, over a separated position dot (the exact ground point). Anchor = bottom-centre.
@@ -644,14 +678,23 @@ private fun DrawScope.drawPersonBadge(s: Float, tier: Color, discColor: Color) {
     )
 }
 
-private fun DrawScope.drawTierPin(s: Float, v: SpotTierVisual, selected: Boolean, pPath: Path, paper: Color, ink: Color) {
-    drawSpotShadow(s, ink)
-    drawSpotDot(s, v.color)
+/**
+ * The round puck WITHOUT the tail — body + TTL ring + "P" + optional badge. Shared by the on-map
+ * [FreeSpotMarker] (which adds the shadow + separated position dot around it) and the tail-less
+ * [SpotPuckIcon] used inside list containers. [HOME-PUCK-001]
+ */
+private fun DrawScope.drawSpotPuck(s: Float, v: SpotTierVisual, selected: Boolean, pPath: Path, paper: Color, ink: Color) {
     drawPuckBody(s, v.color, selected, paper, ink)
     v.ringFraction?.let { drawTtlRing(s, it, paper) }
     drawPFredoka(s, pPath, paper)
     if (v.clockBadge) drawClockBadge(s, v.color, paper)
     if (v.personBadge) drawPersonBadge(s, v.color, paper)
+}
+
+private fun DrawScope.drawTierPin(s: Float, v: SpotTierVisual, selected: Boolean, pPath: Path, paper: Color, ink: Color) {
+    drawSpotShadow(s, ink)
+    drawSpotDot(s, v.color)
+    drawSpotPuck(s, v, selected, pPath, paper, ink)
 }
 
 // ── En-route ("reserved") state ──────────────────────────────────────────────
@@ -714,6 +757,7 @@ private val SPOT_PIN_SEL_W  = 56.dp
 private const val SPOT_VIEWBOX_W = 72f
 private const val SPOT_VIEWBOX_H = 82f
 private const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
+private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox units) — used to centre the tail-less icon
 
 // ─── Marker 3 — Zone (ZoneMarker) ────────────────────────────────────────────
 

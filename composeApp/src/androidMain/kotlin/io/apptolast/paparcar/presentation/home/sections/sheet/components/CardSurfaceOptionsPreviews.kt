@@ -69,13 +69,11 @@ private fun HomeSheetSample() {
         // Sin sesión activa → surfaceContainerHigh (aquí A/B/C difieren visualmente)
         HomeVehicleChip(
             card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
-            userLocation = userLoc,
             onClick = {},
         )
         // Con sesión activa → primaryContainer (referencia fija, no varía entre opciones)
         HomeVehicleChip(
             card = VehicleCard(vehicle = FakeData.vehicleVan, session = FakeData.activeSession),
-            userLocation = userLoc,
             onClick = {},
         )
         // Spots de contexto

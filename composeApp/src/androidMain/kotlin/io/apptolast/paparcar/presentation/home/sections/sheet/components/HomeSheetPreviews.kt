@@ -198,7 +198,6 @@ private fun HomeVehicleCardParkedPoiDarkPreview() {
         Column(Modifier.padding(16.dp)) {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSession),
-                userLocation = Pair(40.4165, -3.7030),
                 onClick = {},
             )
         }
@@ -215,7 +214,6 @@ private fun HomeVehicleCardParkedNoAddressLightPreview() {
                     vehicle = FakeData.vehicleVan,
                     session = FakeData.activeSession.copy(address = null, placeInfo = null),
                 ),
-                userLocation = null,
                 onClick = {},
             )
         }
@@ -230,7 +228,6 @@ private fun HomeVehicleCardSelectedDarkPreview() {
         Column(Modifier.padding(16.dp)) {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = FakeData.activeSessionSupermarket),
-                userLocation = Pair(40.4165, -3.7030),
                 onClick = {},
             )
         }
@@ -245,7 +242,6 @@ private fun HomeVehicleCardEmptyDarkPreview() {
         Column(Modifier.padding(16.dp)) {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
-                userLocation = null,
                 onClick = {},
             )
         }
@@ -259,7 +255,6 @@ private fun HomeVehicleCardEmptyLightPreview() {
         Column(Modifier.padding(16.dp)) {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleNoName, session = null),
-                userLocation = null,
                 onClick = {},
             )
         }
@@ -276,7 +271,6 @@ private fun HomeVehicleCardDrivingDarkPreview() {
         Column(Modifier.padding(16.dp)) {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleSedan, session = null),
-                userLocation = null,
                 isDriving = true,
                 onClick = {},
             )
@@ -291,7 +285,6 @@ private fun HomeVehicleCardDrivingLightPreview() {
         Column(Modifier.padding(16.dp)) {
             HomeVehicleChip(
                 card = VehicleCard(vehicle = FakeData.vehicleVan, session = null),
-                userLocation = null,
                 isDriving = true,
                 onClick = {},
             )

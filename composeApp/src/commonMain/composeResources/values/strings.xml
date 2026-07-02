@@ -4,14 +4,23 @@
     <string name="home_search_placeholder">Search an area, street…</string>
     <string name="home_stats_free_spots_badge">%1$d free</string>
     <string name="home_peek_no_spots">No spots nearby</string>
-    <!-- Sheet section header above the per-vehicle rows. [MULTI-PARKING-001] -->
-    <string name="home_vehicles_section_header">Your vehicles</string>
+    <!-- Sheet section header above the per-vehicle rows; singular/plural by vehicle count. [MULTI-PARKING-001] [HOME-CARDS-001] -->
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Your vehicle</item>
+        <item quantity="other">Your vehicles</item>
+    </plurals>
     <!-- Per-vehicle row when the vehicle has no active session — subtitle. -->
     <string name="home_vehicle_card_status_empty">Not parked</string>
     <!-- Fallback label when a Vehicle has no name, brand or model set. -->
     <string name="home_vehicle_fallback_name">Vehicle</string>
-    <!-- Vehicle chip — detection badge for the coordinator (isActive) strategy. -->
+    <!-- Vehicle chip — short status eyebrow for the active Coordinator vehicle. -->
     <string name="home_vehicle_chip_badge_active">Active</string>
+    <!-- Vehicle chip — short status eyebrow for a Bluetooth-paired vehicle. -->
+    <string name="home_vehicle_chip_badge_bt">BT</string>
+    <!-- Vehicle chip — status eyebrow when the vehicle is not the active Coordinator vehicle (no BT). -->
+    <string name="home_vehicle_status_inactive">Inactive</string>
+    <!-- Vehicle chip — parking-line CTA when the vehicle has no active session (tap enters mark-parking). -->
+    <string name="home_vehicle_chip_mark_parking">Mark parking</string>
     <!-- Vehicle chip — session status when parked; %1$s is the formatted distance (e.g. "120m"). -->
     <string name="home_vehicle_chip_status_parked">Parked · %1$s</string>
     <!-- Vehicle chip — live status while a trip is being detected (driving, not yet parked). -->

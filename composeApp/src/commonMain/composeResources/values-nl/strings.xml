@@ -337,7 +337,10 @@
     <string name="home_header_add_zone_hint">Thuis, werk, sportschool\u2026</string>
 
     <!-- Sheet section headers + permissies -->
-    <string name="home_vehicles_section_header">Jouw voertuigen</string>
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Jouw voertuig</item>
+        <item quantity="other">Jouw voertuigen</item>
+    </plurals>
     <string name="home_vehicle_card_status_empty">Niet geparkeerd</string>
     <string name="home_vehicle_fallback_name">Voertuig</string>
 

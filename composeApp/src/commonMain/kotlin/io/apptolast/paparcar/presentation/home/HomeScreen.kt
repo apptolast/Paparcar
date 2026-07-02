@@ -6,8 +6,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -55,7 +53,6 @@ import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
 import io.apptolast.paparcar.presentation.home.sections.map.components.HomeMonitoringPill
-import io.apptolast.paparcar.presentation.home.sections.map.components.HomeReportFab
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
@@ -109,6 +106,12 @@ private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowIn
 
 // Sheet top position when fully expanded ("sheet top at screen top").
 private const val FULL_SNAP_OFFSET_PX = 0f
+
+// Primary "desplegado" auto-snap: sheet top sits this fraction of the container
+// down from the top, so the sheet occupies ~58% and a slice of map + the car
+// marker stay visible above it. Full-screen is reachable only by manual drag.
+// [HOME-SNAP-001]
+private const val EXPANDED_MAP_VISIBLE_FRACTION = 0.42f
 
 // Fraction of peek offset at/above which the global bottom nav starts hiding.
 // Remaps raw sheet progress so the nav disappears well before the sheet is
@@ -496,11 +499,19 @@ private fun HomeContent(
                     else -> FULL_SNAP_OFFSET_PX
                 }
 
-                // True midpoint between the two expansion extremes — more accurate than
-                // containerHeight/2 when content-aware full snap is in play.
-                val halfOffsetPx = (fullSnapOffsetPx + peekOffsetPx) / 2f
-                // Overlay hides just before the midpoint snap (15% of the peek→half range).
-                val overlayHideThresholdPx = halfOffsetPx + (peekOffsetPx - halfOffsetPx) * 0.15f
+                // Primary "desplegado" auto-snap — capped below full so map + car marker stay
+                // visible. Same coordinate base as peek/full (containerHeightPx = screen − nav) and
+                // coerced into the valid range (never above the content-aware full snap, never below
+                // peek). [HOME-SNAP-001]
+                val expandedOffsetPx = (containerHeightPx * EXPANDED_MAP_VISIBLE_FRACTION)
+                    .coerceIn(fullSnapOffsetPx, peekOffsetPx)
+                // Intermediate anchor — sits between peek and expanded (a genuine half-sheet).
+                val halfOffsetPx = (expandedOffsetPx + peekOffsetPx) / 2f
+                // Floating map chrome (FABs / search / trip pill) stays visible through peek + the
+                // first expand (half) and fades as the sheet crosses toward the deeper "expanded"
+                // anchor (the sheet then covers >½ the screen and would overlap the map). Threshold =
+                // midpoint between half and expanded. [HOME-SNAP-001]
+                val overlayHideThresholdPx = (halfOffsetPx + expandedOffsetPx) / 2f
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
@@ -536,8 +547,9 @@ private fun HomeContent(
                 // Keep sheet position in sync with spot list expand/collapse.
                 LaunchedEffect(spotListExpanded) {
                     if (spotListExpanded) {
-                        // Auto-open the sheet so the list is visible immediately.
-                        sheetOffsetPx.animateTo(fullSnapOffsetPx, SnapSpec)
+                        // Auto-open the sheet to the capped "expanded" anchor so the list is visible
+                        // immediately while a slice of map stays in view (not full-screen). [HOME-SNAP-001]
+                        sheetOffsetPx.animateTo(expandedOffsetPx, SnapSpec)
                     } else if (sheetOffsetPx.value < peekOffsetPx) {
                         // List collapsed while sheet was expanded — snap back to peek.
                         sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
@@ -578,15 +590,6 @@ private fun HomeContent(
                     }
                 }
 
-                // Boolean — equality short-circuits recomposition for downstream readers
-                // (e.g. PaparcarMapView.reportMode) on every drag frame.
-                // "Expanded" = sheet past the halfway point between peek and full snap.
-                // Key on halfOffsetPx so the lambda captures the fresh value whenever
-                // the snap geometry changes (e.g. after first peek-height measurement).
-                val sheetExpanded by remember(halfOffsetPx) {
-                    derivedStateOf { sheetOffsetPx.value < halfOffsetPx }
-                }
-
                 // Sheet-position gate: only re-runs on the two frames when the
                 // sheet crosses the threshold, not on every drag frame.
                 val sheetAtPeekLevel by remember(overlayHideThresholdPx) {
@@ -610,10 +613,11 @@ private fun HomeContent(
                 val mapBleedPx = with(density) { MAP_BOTTOM_BLEED.toPx() }
                 val fabGapPx = with(density) { FAB_ABOVE_SHEET_GAP.toPx() }
 
-                val dragSnap = remember(peekOffsetPx, halfOffsetPx, fullSnapOffsetPx, minimizedOffsetPx) {
+                val dragSnap = remember(peekOffsetPx, halfOffsetPx, expandedOffsetPx, fullSnapOffsetPx, minimizedOffsetPx) {
                     HomeSheetSnap(
                         peekOffsetPx = peekOffsetPx,
                         halfOffsetPx = halfOffsetPx,
+                        expandedOffsetPx = expandedOffsetPx,
                         fullSnapOffsetPx = fullSnapOffsetPx,
                         minimizedOffsetPx = minimizedOffsetPx,
                         snapSpec = SnapSpec,
@@ -624,6 +628,7 @@ private fun HomeContent(
                 // changes — used by lambdas that must be stable but always read the
                 // latest snap values at call-time rather than capture-time.
                 val currentHalfOffset = rememberUpdatedState(halfOffsetPx)
+                val currentExpandedOffset = rememberUpdatedState(expandedOffsetPx)
                 val currentMinimizedOffset = rememberUpdatedState(minimizedOffsetPx)
                 val currentUserParking = rememberUpdatedState(state.userParking)
                 val currentActiveSessions = rememberUpdatedState(state.activeSessions)
@@ -632,12 +637,13 @@ private fun HomeContent(
 
                 // Stable lambda — remember(coroutineScope, sheetOffsetPx) so the
                 // object identity is preserved across recompositions; snap-target
-                // floats are read from rememberUpdatedState at call-time.
-                val animateSheetToHalf: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
+                // floats are read from rememberUpdatedState at call-time. Auto-snaps to the
+                // capped "expanded" anchor (not full) so map + car marker stay visible. [HOME-SNAP-001]
+                val animateSheetToExpanded: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
                     {
                         coroutineScope.launch {
                             sheetOffsetPx.animateTo(
-                                currentHalfOffset.value.coerceIn(
+                                currentExpandedOffset.value.coerceIn(
                                     currentFullSnap.value,
                                     currentPeekOffset.value,
                                 ),
@@ -651,9 +657,9 @@ private fun HomeContent(
                 // "adjacent" snap depends on the current state:
                 //  - Browse with a list (half < peek):  peek ↔ half
                 //  - Non-Browse (half == peek, no expansion above):  peek ↔ minimized
-                // So tap-from-peek opens upward in Browse and downward in pin /
-                // selection states — matching the user's directional expectation
-                // for each modal. [SHEET-TAP-001]
+                // Tap-from-peek opens to the FIRST expand (half) — the same anchor the first drag-up
+                // step lands on, so a tap never overshoots to the deeper "expanded". The bigger
+                // anchor is reached by continuing to drag or by selecting an item. [SHEET-TAP-001] [HOME-SNAP-001]
                 val toggleSheet: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
                     {
                         coroutineScope.launch {
@@ -669,7 +675,7 @@ private fun HomeContent(
                                 current < peek - 1f -> peek
                                 // Below peek → expand to peek.
                                 current > peek + 1f -> peek
-                                // At peek with a half snap available → go to half.
+                                // At peek with a half snap available → go to half (first expand).
                                 canExpandAbovePeek -> half
                                 // At peek with no expansion but a minimized snap → collapse.
                                 canCollapseBelowPeek -> minimized
@@ -690,7 +696,7 @@ private fun HomeContent(
                         spotsById[spotId]?.let { spot ->
                             onIntent(HomeIntent.SelectItem(spotId))
                             uiController.moveCamera(spot.location.latitude, spot.location.longitude)
-                            animateSheetToHalf()
+                            animateSheetToExpanded()
                         }
                     }
                 }
@@ -701,7 +707,7 @@ private fun HomeContent(
                         currentActiveSessions.value.firstOrNull { it.id == sessionId }?.let { p ->
                             onIntent(HomeIntent.SelectItem(p.id))
                             uiController.moveCamera(p.location.latitude, p.location.longitude)
-                            animateSheetToHalf()
+                            animateSheetToExpanded()
                         }
                     }
                 }
@@ -843,17 +849,6 @@ private fun HomeContent(
                         }
                     }
                 }
-                val onReportFabClick: () -> Unit = remember(uiController) {
-                    {
-                        onIntent(
-                            HomeIntent.EnterReportMode(
-                                lat = uiController.cameraLat ?: currentUserGpsPoint.value?.latitude ?: 0.0,
-                                lon = uiController.cameraLon ?: currentUserGpsPoint.value?.longitude ?: 0.0,
-                            )
-                        )
-                    }
-                }
-
                 // ── Right FAB column (utilities) ─────────────────────────────
                 // Bottom positioning is done in the layout phase via Modifier.offset
                 // so dragging never triggers recomposition of this subtree.
@@ -880,31 +875,15 @@ private fun HomeContent(
                         .offset {
                             val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
                                 .coerceAtLeast(0f)
-                            val peekH = (rawContainerHeightPx - peekOffsetPx)
+                            val halfH = (rawContainerHeightPx - halfOffsetPx)
                                 .coerceAtLeast(0f)
-                            // Clamp to peek when expanded so FABs don't fly off-screen.
-                            val base = if (sheetOffsetPx.value >= halfOffsetPx) sheetH else peekH
+                            // FABs ride above the sheet edge from peek up to the first expand (half),
+                            // where they're still visible; past half they clamp so they don't fly
+                            // off-screen while fading out toward the deeper expanded. [HOME-SNAP-001]
+                            val base = if (sheetOffsetPx.value >= halfOffsetPx) sheetH else halfH
                             IntOffset(0, -(base + fabGapPx).roundToInt())
                         },
                 )
-
-                // ── Left FAB (report a free spot — entry to Reporting mode) ──
-                AnimatedVisibility(
-                    visible = overlayVisible,
-                    // Left-edge control slides out to the left (mirrors the right FAB column).
-                    enter = fadeIn(PapMotion.medium()) + slideInHorizontally(PapMotion.medium()) { -it / 2 },
-                    exit = fadeOut(PapMotion.medium()) + slideOutHorizontally(PapMotion.medium()) { -it / 2 },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 14.dp)
-                        .offset {
-                            val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
-                                .coerceAtLeast(0f)
-                            IntOffset(0, -(sheetH + fabGapPx).roundToInt())
-                        },
-                ) {
-                    HomeReportFab(onClick = onReportFabClick)
-                }
 
                 // ── "Following your trip" pill — REPLACES the GPS FAB during a trip: anchored bottom-end
                 // where the location FAB sits, and tappable to recentre on the moving car (resume follow).
@@ -920,7 +899,12 @@ private fun HomeContent(
                         .offset {
                             val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
                                 .coerceAtLeast(0f)
-                            IntOffset(0, -(sheetH + fabGapPx).roundToInt())
+                            val halfH = (rawContainerHeightPx - halfOffsetPx)
+                                .coerceAtLeast(0f)
+                            // Same clamp as the FAB column so the pill rides the sheet edge up to the
+                            // first expand (half) and doesn't fly off-screen past it. [HOME-SNAP-001]
+                            val base = if (sheetOffsetPx.value >= halfOffsetPx) sheetH else halfH
+                            IntOffset(0, -(base + fabGapPx).roundToInt())
                         },
                 )
 

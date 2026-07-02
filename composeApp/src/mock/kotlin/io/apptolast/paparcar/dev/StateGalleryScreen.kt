@@ -274,6 +274,23 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            // Vehicle chips mirror the Vehicles hero card: status eyebrow (Active / BT / Inactive) →
+            // name → size. Adaptive width so long names ("Toyota Corolla") don't truncate. [HOME-CARDS-001]
+            Variant("Sheet · vehículos (BT + activo/inactivo)") {
+                sheet(
+                    HomeState(
+                        hasCorePermissions = true,
+                        userGpsPoint = sampleGps,
+                        vehicles = listOf(
+                            FakeData.vehicleSedan,   // activo, sin BT → pin verde
+                            FakeData.vehicleCorolla, // BT + inactivo → icono BT + pin gris
+                            FakeData.vehicleMoto,    // inactivo, sin BT → pin gris
+                            FakeData.vehicleVan,     // BT + inactivo → icono BT + pin gris
+                        ),
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
             Variant("Sheet · sin spots (vacío)") {
                 sheet(HomeState(hasCorePermissions = true, nearbySpots = emptyList()))
             },

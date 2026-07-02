@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -26,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -48,6 +46,7 @@ import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.ui.components.EnRouteIndicator
 import io.apptolast.paparcar.ui.components.PapEmptyStateCard
+import io.apptolast.paparcar.ui.components.SpotPuckIcon
 import io.apptolast.paparcar.ui.components.TTLIndicator
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -138,20 +137,13 @@ private fun SpotRowContent(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(BADGE_DP.dp)
-                .clip(CircleShape)
-                .background(palette.badgeBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = PaparcarIcons.SpotParkingP,
-                contentDescription = null,
-                tint = palette.badgeFg,
-                modifier = Modifier.size((BADGE_DP * 0.62f).dp),
-            )
-        }
+        // Same puck as the map marker, tail-less — one shared component keeps list and map in sync,
+        // with the reliability tier encoded by colour/ring/badge. [HOME-PUCK-001]
+        SpotPuckIcon(
+            reliability = spot.toReliabilityUiState(),
+            enRouteCount = spot.enRouteCount,
+            modifier = Modifier.size(BADGE_DP.dp),
+        )
 
         Column(modifier = Modifier.weight(1f)) {
             Row(

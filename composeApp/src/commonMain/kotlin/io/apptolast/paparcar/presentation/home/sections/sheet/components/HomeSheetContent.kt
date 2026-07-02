@@ -34,6 +34,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.model.Spot
@@ -115,7 +120,11 @@ internal fun LazyListScope.homeSheetItems(
     if (showPersonalBlocks && !isSpotSelected) {
         item("vehicles_header") {
             PapSectionHeader(
-                title = stringResource(Res.string.home_vehicles_section_header),
+                // Singular/plural header by vehicle count via plurals. [HOME-CARDS-001]
+                title = pluralStringResource(
+                    Res.plurals.home_vehicles_section_header,
+                    vehicleCards.size,
+                ),
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
@@ -191,27 +200,45 @@ private fun LazyListScope.vehiclesSection(
             .thenByDescending { it.session != null }
             .thenBy { it.vehicle.monitoringStatus().sortRank() }
     )
-    item("vehicles_row") {
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            items(sorted, key = { it.vehicle.id }) { card ->
-                val onCardClick = remember(card.session?.id, card.vehicle.id, onParkingClick, onParkVehicle) {
-                    {
-                        val session = card.session
-                        if (session != null) onParkingClick(session)
-                        else onParkVehicle(card.vehicle.id)
+
+    fun cardClick(card: VehicleCard): () -> Unit = {
+        val session = card.session
+        if (session != null) onParkingClick(session) else onParkVehicle(card.vehicle.id)
+    }
+
+    if (sorted.size == 1) {
+        // Single vehicle → one full-width card (no horizontal strip), roomier layout. [HOME-CARDS-001]
+        val card = sorted.first()
+        item("vehicle_single") {
+            HomeVehicleChip(
+                card = card,
+                isDriving = card.isDriving(),
+                isCandidate = card.isDriving() && isCandidatePhase,
+                fillWidth = true,
+                userLocation = userLocation,
+                onClick = cardClick(card),
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+    } else {
+        item("vehicles_row") {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                items(sorted, key = { it.vehicle.id }) { card ->
+                    val onCardClick = remember(card.session?.id, card.vehicle.id, onParkingClick, onParkVehicle) {
+                        cardClick(card)
                     }
+                    HomeVehicleChip(
+                        card = card,
+                        isDriving = card.isDriving(),
+                        isCandidate = card.isDriving() && isCandidatePhase,
+                        userLocation = userLocation,
+                        onClick = onCardClick,
+                    )
                 }
-                HomeVehicleChip(
-                    card = card,
-                    userLocation = userLocation,
-                    isDriving = card.isDriving(),
-                    isCandidate = card.isDriving() && isCandidatePhase,
-                    onClick = onCardClick,
-                )
             }
         }
     }
@@ -365,6 +392,9 @@ private const val SKELETON_TITLE_WIDTH = 140
 private const val SKELETON_SUBTITLE_WIDTH = 100
 private const val SKELETON_SUBTITLE_ALPHA_FACTOR = 0.7f
 
+// Width of the right-edge scroll-hint fade on the size filter bar. [HOME-POLISH-001]
+private const val FILTER_FADE_WIDTH_DP = 28
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Size filter bar
 // ─────────────────────────────────────────────────────────────────────────────
@@ -382,8 +412,30 @@ private fun HomeSizeFilterBar(
     val largeLabel  = stringResource(Res.string.vehicle_size_large)
     val vanLabel    = stringResource(Res.string.vehicle_size_van)
 
+    val scrollState = rememberScrollState()
+    // Right-edge fade to the sheet background, signalling there are more filter chips off-screen.
+    // Drawn BEFORE horizontalScroll so it stays fixed at the viewport edge (not scrolled with the
+    // content) and, being a draw modifier, never intercepts chip taps. Only shown while there is
+    // more to scroll. [HOME-POLISH-001]
+    val fadeColor = MaterialTheme.colorScheme.surfaceContainer
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
+        modifier = modifier
+            .drawWithContent {
+                drawContent()
+                if (scrollState.canScrollForward) {
+                    val fadeW = FILTER_FADE_WIDTH_DP.dp.toPx()
+                    drawRect(
+                        brush = Brush.horizontalGradient(
+                            listOf(Color.Transparent, fadeColor),
+                            startX = size.width - fadeW,
+                            endX = size.width,
+                        ),
+                        topLeft = Offset(size.width - fadeW, 0f),
+                        size = Size(fadeW, size.height),
+                    )
+                }
+            }
+            .horizontalScroll(scrollState),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         PaparcarFilterChip(

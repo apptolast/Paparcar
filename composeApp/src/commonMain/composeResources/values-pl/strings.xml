@@ -341,7 +341,10 @@
     <string name="home_header_add_zone_hint">Dom, praca, siłownia\u2026</string>
 
     <!-- Sheet section headers + uprawnienia -->
-    <string name="home_vehicles_section_header">Twoje pojazdy</string>
+    <plurals name="home_vehicles_section_header">
+        <item quantity="one">Twój pojazd</item>
+        <item quantity="other">Twoje pojazdy</item>
+    </plurals>
     <string name="home_vehicle_card_status_empty">Nie zaparkowany</string>
     <string name="home_vehicle_fallback_name">Pojazd</string>
 
