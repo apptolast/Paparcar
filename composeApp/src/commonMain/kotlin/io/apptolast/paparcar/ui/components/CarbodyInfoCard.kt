@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
-import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.getParkingRules
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
@@ -199,43 +199,30 @@ fun NonCarSizeBadge(
     modifier: Modifier = Modifier,
 ) {
     val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CARD_CORNER_DP.dp),
-        color = cs.surfaceContainerHigh,
-        border = BorderStroke(1.dp, cs.outline.copy(alpha = CARD_BORDER_ALPHA)),
-    ) {
-        Row(
-            modifier = Modifier.padding(CARD_PADDING_DP.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(ICON_BOX_DP.dp)
-                    .clip(CircleShape)
-                    .background(cs.primary.copy(alpha = ICON_BG_ALPHA)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = io.apptolast.paparcar.ui.icons.PaparcarIcons.VehicleMotorcycle,
-                    contentDescription = null,
+    // Same neutral bordered container + leading disc + title anatomy as every other row —
+    // now the shared primitives. PapOutlinedCard's defaults (surfaceContainerHigh + outlineSubtle
+    // hairline + 16dp) match the hand-rolled Surface this replaced, so it stays visually identical
+    // to its sibling CarbodyInfoCard. [UI-LIST-ITEM-004]
+    PapOutlinedCard(modifier = modifier.fillMaxWidth()) {
+        PapListItem(
+            title = sizeLabel,
+            titleStyle = PaparcarType.current.rowTitle,
+            titleWeight = FontWeight.Bold,
+            contentPadding = PaddingValues(CARD_PADDING_DP.dp),
+            gap = 12.dp,
+            leading = {
+                PapIconTile(
+                    icon = io.apptolast.paparcar.ui.icons.PaparcarIcons.VehicleMotorcycle,
+                    size = ICON_BOX_DP.dp,
+                    shape = CircleShape,
+                    container = cs.primary.copy(alpha = ICON_BG_ALPHA),
                     tint = cs.primary,
-                    modifier = Modifier.size(ICON_SIZE_DP.dp),
+                    iconSize = ICON_SIZE_DP.dp,
                 )
-            }
-            Text(
-                text = sizeLabel,
-                style = PaparcarType.current.rowTitle,
-                fontWeight = FontWeight.Bold,
-                color = cs.onSurface,
-            )
-        }
+            },
+        )
     }
 }
-
-@Suppress("UnusedReceiverParameter")
-private fun VehicleSize.unused() = Unit  // anchors the import so build doesn't strip it
 
 private const val CARD_CORNER_DP = 16
 private const val CARD_PADDING_DP = 14
