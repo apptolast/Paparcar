@@ -41,16 +41,13 @@ import io.apptolast.paparcar.presentation.home.model.isDetectionStopped
 import io.apptolast.paparcar.presentation.home.model.isDetectionWorking
 import io.apptolast.paparcar.presentation.home.model.toUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -60,7 +57,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 class HomeViewModel(
@@ -93,8 +89,6 @@ class HomeViewModel(
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     // ── Private flows ─────────────────────────────────────────────────────────
-
-    private val searchQueryFlow = MutableStateFlow("")
 
     // Incremented on Offline → Online so the spot subscription rebuilds immediately
     // after connectivity is restored, even if the GPS position hasn't changed.
@@ -140,12 +134,25 @@ class HomeViewModel(
         onMatchedTrail = { matched -> updateState { copy(matchedTrail = matched) } },
     )
 
+    // ── Search controller ───────────────────────────────────────────────────────
+    // Owns the debounced address-search pipeline. The immediate per-keystroke writes stay in
+    // onSearchQueryChanged; this controller fires the geocoder once typing settles and funnels the
+    // loading flag + results back through callbacks.
+
+    private val search = HomeSearchController(
+        scope = viewModelScope,
+        searchAddress = searchAddress,
+        onSearching = { updateState { copy(isSearching = true) } },
+        onResults = { results -> updateState { copy(searchResults = results, isSearching = false) } },
+        onEmptyOrError = { updateState { copy(searchResults = emptyList(), isSearching = false) } },
+    )
+
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
         updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
         subscribeConnectivity()
-        subscribeSearchQuery()
+        search.start()
         subscribeActiveSessions()
         subscribeParkedVehicles()
         subscribeZones()
@@ -280,21 +287,6 @@ class HomeViewModel(
                 }
                 previous = current
             }
-            .launchIn(viewModelScope)
-    }
-
-    @OptIn(FlowPreview::class)
-    private fun subscribeSearchQuery() {
-        searchQueryFlow
-            .debounce(SEARCH_DEBOUNCE_MS.milliseconds)
-            .filter { it.isNotBlank() }
-            .onEach { query ->
-                updateState { copy(isSearching = true) }
-                searchAddress(query)
-                    .onSuccess { results -> updateState { copy(searchResults = results, isSearching = false) } }
-                    .onFailure { updateState { copy(searchResults = emptyList(), isSearching = false) } }
-            }
-            .catch { e -> PaparcarLogger.w(TAG, "Search query flow error", e) }
             .launchIn(viewModelScope)
     }
 
@@ -527,7 +519,7 @@ class HomeViewModel(
                 isSearching = if (blank) false else isSearching,
             )
         }
-        searchQueryFlow.value = query
+        search.onQueryChanged(query)
     }
 
     /** Wipes every search-related field. Used by SelectSearchResult + ClearSearch. */
@@ -842,7 +834,6 @@ class HomeViewModel(
         const val TAG = "HomeViewModel"
 
         // Timing
-        const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
         const val CAMERA_SETTLED_MS = 280L
 
