@@ -6,6 +6,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
 
 /**
@@ -71,7 +72,9 @@ class PaparcarType(
     val caption: TextStyle,
 
     // ── DATA · Barlow Condensed (tokens that repeat in rows or fight a name for horizontal space) ─
-    /** Dense metadata line — "30 min · 75 m", parked address, timeline "city · 09:14". (== compactBody.) */
+    /** Dense metadata line of PURE data tokens — "30 min · 75 m", "179 m · 1 min · 2 en route".
+     *  Text that leads with a place/address name reads as prose → use `caption` (Inter), NOT this.
+     *  (== compactBody.) [CARD-ONE-BADGE-001] */
     val metadata: TextStyle,
     /** Status pin / count badge — "ACTIVO", "BLUETOOTH", "3 LIBRES", "FIABLE". Uppercased by caller. (== statusPin.) */
     val badge: TextStyle,
@@ -176,10 +179,15 @@ fun rememberPaparcarType(): PaparcarType {
             fontSize = 12.sp, letterSpacing = 0.5.sp,
         ),
         statNumber = TextStyle(
-            // Tight lineHeight so the digits' box hugs the glyphs — a leading icon set to
-            // CenterVertically then lands on the numeral's optical centre, not floating high.
+            // Tight lineHeight + centred/trimmed line box so the digits' box hugs the glyphs and is
+            // symmetric — a leading icon set to CenterVertically then lands on the numeral's optical
+            // centre instead of floating high (the extra top leading was pushing it up). [CARD-ONE-BADGE-001]
             fontFamily = barlow, fontWeight = FontWeight.Bold,
             fontSize = 25.sp, lineHeight = 25.sp, letterSpacing = (-0.5).sp,
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.Both,
+            ),
         ),
         distance = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.SemiBold,

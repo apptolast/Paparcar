@@ -514,8 +514,8 @@ internal fun VehicleRegistrationContent(
                             ) {
                                 Text(
                                     text = stringResource(Res.string.vehicle_registration_bt_cta),
-                                    style = PaparcarType.current.label,
-                                    fontWeight = FontWeight.SemiBold,
+                                    // Button text → cta (Inter), the app's button convention. [TYPO-AUDIT-001]
+                                    style = PaparcarType.current.cta,
                                 )
                             }
                         }
@@ -584,8 +584,8 @@ internal fun VehicleRegistrationContent(
                         )
                         Text(
                             text = stringResource(Res.string.my_car_delete_vehicle),
-                            style = PaparcarType.current.body,
-                            fontWeight = FontWeight.SemiBold,
+                            // Action row = a button → cta (Inter), like SetActiveRow. [TYPO-AUDIT-001]
+                            style = PaparcarType.current.cta,
                             color = cs.error,
                         )
                     }

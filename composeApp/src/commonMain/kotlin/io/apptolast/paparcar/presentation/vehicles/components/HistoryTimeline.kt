@@ -168,17 +168,21 @@ private fun SessionCardContent(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = primaryText,
-                    style = PaparcarType.current.body.copy(fontWeight = FontWeight.SemiBold),
+                    // Place/address name is the session card's identity title → Outfit (rowTitle);
+                    // the "city · time" subline below stays Inter prose. [TYPO-AUDIT-001]
+                    style = PaparcarType.current.rowTitle,
+                    fontWeight = FontWeight.SemiBold,
                     color = textPrimary,
                     maxLines = 1,
                     modifier = Modifier.basicMarquee(),
                 )
                 Spacer(Modifier.height(TITLE_META_GAP_DP.dp))
                 Text(
-                    // Data-dense meta line ("city · 09:14") — condensed, same treatment as the Home
-                    // spot-row meta so both timelines read identically. [UI-REGRESSION]
+                    // Leads with a place name you read ("city · 09:14") → Inter (caption), same as the
+                    // vehicle footer. Barlow (metadata) stays for pure-data rows (distance · drive ·
+                    // en-route in Home spots), which carry no place name. [CARD-ONE-BADGE-001]
                     text = secondaryText,
-                    style = PaparcarType.current.metadata,
+                    style = PaparcarType.current.caption,
                     color = textMuted,
                 )
             }

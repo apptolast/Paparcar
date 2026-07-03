@@ -44,6 +44,7 @@ import com.apptolast.customlogin.presentation.slots.AuthScreenSlots
 import com.apptolast.customlogin.presentation.slots.LoginScreenSlots
 import com.apptolast.customlogin.presentation.slots.RegisterScreenSlots
 import com.apptolast.customlogin.presentation.slots.defaultslots.SocialLoginButtonsSection
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.auth_cd_hide_password
@@ -158,8 +159,9 @@ private fun PaparcarAuthHeader() {
             Column(horizontalAlignment = Alignment.Start) {
                 Text(
                     text = stringResource(Res.string.auth_header_app_name),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    // App/brand name = a title → Outfit (screenTitle) via PaparcarType, not the raw
+                    // Material scale. [TYPO-AUDIT-001]
+                    style = PaparcarType.current.screenTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Start,
                 )
@@ -168,7 +170,8 @@ private fun PaparcarAuthHeader() {
 
                 Text(
                     text = stringResource(Res.string.auth_header_tagline),
-                    style = MaterialTheme.typography.bodyMedium,
+                    // Tagline = prose → Inter (body) via PaparcarType. [TYPO-AUDIT-001]
+                    style = PaparcarType.current.body,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Start,
                 )
@@ -316,8 +319,8 @@ private fun CompactForgotPasswordLink(onClick: () -> Unit) {
         ) {
             Text(
                 text = stringResource(Res.string.auth_forgot_password),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
+                // Small secondary link = label (Inter, == labelMedium) via PaparcarType. [TYPO-AUDIT-001]
+                style = PaparcarType.current.label,
                 color = MaterialTheme.colorScheme.primary,
             )
         }

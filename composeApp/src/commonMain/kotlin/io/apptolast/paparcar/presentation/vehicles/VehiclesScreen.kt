@@ -323,7 +323,9 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
             )
             Text(
                 text = tabName,
-                style = PaparcarType.current.label,
+                // The vehicle NAME is identity → Outfit (rowTitle) everywhere, including this selector
+                // pill, so the name reads in one family across card/header/selector. [CARD-ONE-BADGE-001]
+                style = PaparcarType.current.rowTitle,
                 fontWeight = FontWeight.SemiBold,
                 color = fg,
                 maxLines = 1,
@@ -420,8 +422,8 @@ private fun EmptyVehicleState(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(Res.string.my_car_add_vehicle),
-                    style = PaparcarType.current.rowTitle,
-                    fontWeight = FontWeight.Bold,
+                    // Filled primary button → cta (Inter), the app's button convention. [CARD-ONE-BADGE-001]
+                    style = PaparcarType.current.cta,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
             }

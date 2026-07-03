@@ -162,7 +162,9 @@ private fun SpotRowContent(
                 }
                 Text(
                     text = displayText,
-                    style = PaparcarType.current.body,
+                    // Spot/place name is the row's identity title → Outfit (rowTitle), like the vehicle
+                    // name; the address subline below stays Inter prose. [TYPO-AUDIT-001]
+                    style = PaparcarType.current.rowTitle,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,

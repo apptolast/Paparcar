@@ -276,7 +276,9 @@ internal fun HomeVehicleCard(
                             )
                             Text(
                                 text = parkedMeta(session, userLocation),
-                                style = PaparcarType.current.label,
+                                // "2 h ago · 180 m away" = time·distance data token → Barlow (metadata),
+                                // as the comment above reserves the condensed face for. [TYPO-AUDIT-001]
+                                style = PaparcarType.current.metadata,
                                 color = cs.onSurfaceVariant,
                                 maxLines = 1,
                             )

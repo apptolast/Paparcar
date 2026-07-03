@@ -30,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.PapVerticalDivider
@@ -271,8 +270,9 @@ private fun SetActiveRow(isLoading: Boolean, onClick: () -> Unit) {
             }
             Text(
                 text = stringResource(Res.string.vehicle_set_active_action),
-                style = PaparcarType.current.rowTitle,
-                fontWeight = FontWeight.Bold,
+                // An action row is a button → cta (Inter), the app's button convention (PapButton);
+                // not rowTitle (Outfit), which is for identity titles. [CARD-ONE-BADGE-001]
+                style = PaparcarType.current.cta,
                 color = cs.primary,
             )
         }

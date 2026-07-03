@@ -1020,7 +1020,8 @@ private fun DangerZoneCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.size(6.dp))
-                            Text(label, fontWeight = FontWeight.Bold)
+                            // Button text → cta (Inter), the app's button convention. [TYPO-AUDIT-001]
+                            Text(label, style = PaparcarType.current.cta)
                         }
                     }
                 }
@@ -1057,7 +1058,8 @@ private fun InfoRow(icon: ImageVector, label: String, value: String) {
         leading = { PapIconTile(icon = icon) },
         title = label,
         trailing = {
-            Text(value, style = PaparcarType.current.caption, color = settingsSubtitleColor())
+            // The only value shown here is the app version — a data token → Barlow (metadata). [TYPO-AUDIT-001]
+            Text(value, style = PaparcarType.current.metadata, color = settingsSubtitleColor())
         },
     )
 }

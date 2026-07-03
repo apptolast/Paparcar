@@ -498,7 +498,9 @@ private fun PeekMetaRow(icon: ImageVector, text: String, tint: Color) {
         )
         Text(
             text = text,
-            style = PaparcarType.current.body,
+            // Every caller feeds a data token ("179 m · 1 min", spot age, en-route count, duration) →
+            // Barlow (metadata), the canonical dense-meta face. [TYPO-AUDIT-001]
+            style = PaparcarType.current.metadata,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
             maxLines = 1,
@@ -1269,7 +1271,10 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
                     // or oversized. [HOME-VEH-REFINE-001]
                     text = if (hasSpots) stringResource(Res.string.home_stats_free_spots_badge, freeCount).uppercase()
                            else stringResource(Res.string.home_peek_no_spots),
-                    style = PaparcarType.current.badge.copy(fontWeight = FontWeight.Bold),
+                    // The count "3 LIBRES" is a data token → Barlow (badge); the empty-state sentence
+                    // "Sin plazas cerca" reads as a phrase → Inter (caption). [TYPO-AUDIT-001]
+                    style = if (hasSpots) PaparcarType.current.badge.copy(fontWeight = FontWeight.Bold)
+                            else PaparcarType.current.caption,
                     color = if (hasSpots) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

@@ -262,7 +262,7 @@ private fun BtOffState(
             textAlign = TextAlign.Center,
         )
         OutlinedButton(onClick = onOpenBtSettings) {
-            Text(stringResource(Res.string.bt_config_open_bt_settings))
+            Text(stringResource(Res.string.bt_config_open_bt_settings), style = PaparcarType.current.cta)
         }
     }
 }
@@ -290,7 +290,7 @@ private fun BtPermissionState(
             textAlign = TextAlign.Center,
         )
         Button(onClick = onRequestPermission) {
-            Text(stringResource(Res.string.bt_config_grant_permission))
+            Text(stringResource(Res.string.bt_config_grant_permission), style = PaparcarType.current.cta)
         }
     }
 }
@@ -308,6 +308,8 @@ private fun DeviceRow(
     ) {
         PapListItem(
             title = name,
+            // Paired device name is identity → Outfit (rowTitle), like the vehicle name. [TYPO-AUDIT-001]
+            titleStyle = PaparcarType.current.rowTitle,
             titleWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             subtitle = typeLabel,
             subtitleStyle = PaparcarType.current.label,

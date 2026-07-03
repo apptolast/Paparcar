@@ -285,7 +285,7 @@
     <string name="bt_config_device_le">Bluetooth LE</string>
     <string name="bt_config_device_dual">Dual</string>
     <!-- VehicleCard detection status badge labels -->
-    <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <string name="vehicle_card_detection_bt">BT</string>
     <!-- SpotIndicators -->
     <string name="spot_indicator_en_route">%1$d unterwegs</string>
     <string name="spot_indicator_ttl_expired">Abgelaufen</string>

@@ -122,8 +122,8 @@
     <!-- Activity chart — scope-aware title/subtitle and the low-data compact summary -->
     <string name="history_activity_title">Actividad</string>
     <plurals name="history_activity_noun">
-        <item quantity="one">aparcamiento</item>
-        <item quantity="other">aparcamientos</item>
+        <item quantity="one">Aparcamiento</item>
+        <item quantity="other">Aparcamientos</item>
     </plurals>
     <string name="history_activity_low_hint">Poca actividad en este periodo</string>
     <!-- Section header over the time-filter chips -->
@@ -395,7 +395,7 @@
     <string name="bt_config_device_le">Bluetooth LE</string>
     <string name="bt_config_device_dual">Dual</string>
     <!-- VehicleCard detection status badge labels -->
-    <string name="vehicle_card_detection_bt">Bluetooth</string>
+    <string name="vehicle_card_detection_bt">BT</string>
     <!-- Vehicle selector chip — status pin + Bluetooth glyph accessibility -->
     <string name="vehicle_status_active_cd">Detección activa</string>
     <string name="vehicle_status_inactive_cd">Detección desactivada</string>
