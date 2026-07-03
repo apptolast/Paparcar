@@ -19,7 +19,7 @@ fun PapDivider(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA),
 ) {
-    HorizontalDivider(modifier = modifier, thickness = PapBorders.thin, color = color)
+    HorizontalDivider(modifier = modifier, thickness = PapBorders.dividerThickness, color = color)
 }
 
 /** Vertical counterpart of [PapDivider] — for separating cells in a row (e.g. the stat readout). */
@@ -28,5 +28,5 @@ fun PapVerticalDivider(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA),
 ) {
-    VerticalDivider(modifier = modifier, thickness = PapBorders.thin, color = color)
+    VerticalDivider(modifier = modifier, thickness = PapBorders.dividerThickness, color = color)
 }

@@ -85,24 +85,15 @@ internal fun ActivityCard(
 
 @Composable
 private fun ActivityCardTitle(total: Int) {
-    val primary = MaterialTheme.colorScheme.primary
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
-            contentDescription = null,
-            tint = primary,
-            modifier = Modifier.size(CARD_TITLE_ICON_DP.dp),
-        )
-        Spacer(Modifier.width(CARD_TITLE_ICON_GAP_DP.dp))
-        Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = primary)) { append("$total ") }
-                append(pluralStringResource(Res.plurals.history_activity_noun, total))
-            },
-            style = PaparcarType.current.cardTitle,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
+    // No icon — the count in primary already carries the visual hierarchy. [CARD-META-POLISH-001]
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("$total ") }
+            append(pluralStringResource(Res.plurals.history_activity_noun, total))
+        },
+        style = PaparcarType.current.cardTitle,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
 }
 
 @Composable
@@ -338,8 +329,6 @@ private fun DrawScope.drawCountLabel(
 private const val CARD_CORNER_DP = 16
 private const val CARD_INNER_PAD_DP = 16
 private const val CARD_TITLE_GAP_DP = 16     // gap from the card title down to the bars
-private const val CARD_TITLE_ICON_DP = 18
-private const val CARD_TITLE_ICON_GAP_DP = 8
 private const val CHART_HEIGHT_DP = 120
 // ≤ this many sessions in the selected window → compact summary instead of the full chart. [Task 3]
 private const val LOW_DATA_THRESHOLD = 2

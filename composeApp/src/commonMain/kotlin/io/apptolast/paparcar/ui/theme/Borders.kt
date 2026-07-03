@@ -33,6 +33,10 @@ object PapBorders {
      *  The single source of truth for every divider — used by `PapDivider`/`PapVerticalDivider`.
      *  Present but quiet: strong enough to structure a row, never a hard line. */
     const val HAIRLINE_DIVIDER_ALPHA = 0.22f
+
+    /** Thickness for `PapDivider`/`PapVerticalDivider` — a touch heavier than [thin] so the
+     *  separator reads without becoming a rule. */
+    val dividerThickness = 1.5.dp
 }
 
 /** 1dp outline at the default alpha — the reference border for ordinary cards. */

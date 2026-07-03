@@ -214,6 +214,8 @@ internal fun HomeVehicleCard(
             VehicleIdentityHeader(
                 vehicle = vehicle,
                 isDriving = isDriving,
+                // Home is glanceable — size lives on the Vehicles ficha, not here. [CARD-META-POLISH-001]
+                showSize = false,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 15.dp, bottom = 13.dp),
             )
 

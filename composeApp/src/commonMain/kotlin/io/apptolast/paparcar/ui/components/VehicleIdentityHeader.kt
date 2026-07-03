@@ -47,6 +47,9 @@ fun VehicleIdentityHeader(
     modifier: Modifier = Modifier,
     // While a trip is being detected, the en-route radar halo pulses behind the glyph.
     isDriving: Boolean = false,
+    // Size is a detail-screen attribute — the Vehicles ficha shows it; the glanceable Home card
+    // hides it (name → status → parked-at is what matters there). [CARD-META-POLISH-001]
+    showSize: Boolean = true,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val monitoring = vehicle.monitoringStatus()
@@ -87,7 +90,7 @@ fun VehicleIdentityHeader(
             ) {
                 // Order = brand·model → size → status. The size chip keeps its single-line width;
                 // the pin yields (weight, ellipsis) if space runs out.
-                SizeChip(label = vehicleSizeLabel(vehicle.sizeCategory))
+                if (showSize) SizeChip(label = vehicleSizeLabel(vehicle.sizeCategory))
                 VehicleStatusTextPin(
                     status = monitoring,
                     label = vehicleStatusPinLabel(monitoring),
