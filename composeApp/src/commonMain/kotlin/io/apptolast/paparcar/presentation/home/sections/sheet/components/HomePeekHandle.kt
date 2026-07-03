@@ -51,7 +51,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -73,6 +72,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
@@ -97,7 +97,6 @@ import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
-import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.stateColors
@@ -400,7 +399,7 @@ private fun SpotPeekRow(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA))
+            PapDivider()
             SpotListToggleRow(
                 expanded = spotListExpanded,
                 label = stringResource(Res.string.home_spot_peek_show_list),

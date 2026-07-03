@@ -176,8 +176,10 @@ fun rememberPaparcarType(): PaparcarType {
             fontSize = 12.sp, letterSpacing = 0.5.sp,
         ),
         statNumber = TextStyle(
+            // Tight lineHeight so the digits' box hugs the glyphs — a leading icon set to
+            // CenterVertically then lands on the numeral's optical centre, not floating high.
             fontFamily = barlow, fontWeight = FontWeight.Bold,
-            fontSize = 25.sp, letterSpacing = (-0.5).sp,
+            fontSize = 25.sp, lineHeight = 25.sp, letterSpacing = (-0.5).sp,
         ),
         distance = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.SemiBold,

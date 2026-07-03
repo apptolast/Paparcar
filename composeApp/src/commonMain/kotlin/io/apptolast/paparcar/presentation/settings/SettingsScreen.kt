@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapCardLight
 import io.apptolast.paparcar.ui.theme.PapInk
@@ -55,7 +56,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -738,14 +738,14 @@ private fun NotificationsGroupCard(
                 exit = shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top) + fadeOut(PapMotion.medium()),
             ) {
                 Column {
-                    HorizontalDivider(color = cs.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA))
+                    PapDivider()
                     SubNotifRow(
                         label = stringResource(Res.string.settings_notif_parking),
                         description = stringResource(Res.string.settings_notif_parking_desc),
                         checked = parkingOn,
                         onCheckedChange = onParkingChange,
                     )
-                    HorizontalDivider(color = cs.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA))
+                    PapDivider()
                     SubNotifRow(
                         label = stringResource(Res.string.settings_notif_spot),
                         description = stringResource(Res.string.settings_notif_spot_desc),

@@ -1,7 +1,6 @@
 package io.apptolast.paparcar.ui.components
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -41,10 +40,7 @@ fun AppBottomNavigation(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = NAV_DIVIDER_ALPHA),
-        )
+        PapDivider()
         NavigationBar(tonalElevation = 0.dp) {
             items.forEach { item ->
                 val selected = currentRoute == item.route
@@ -81,7 +77,6 @@ fun AppBottomNavigation(
     }
 }
 
-private const val NAV_DIVIDER_ALPHA = 0.12f
 private const val UNSELECTED_ICON_ALPHA = 0.55f
 private const val SELECTED_INDICATOR_ALPHA = 0.12f
 private const val LABEL_FONT_SIZE_SP = 11

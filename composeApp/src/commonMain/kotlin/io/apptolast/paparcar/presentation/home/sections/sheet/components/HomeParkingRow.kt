@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -31,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
@@ -126,7 +126,7 @@ internal fun HomeVehicleChip(
             }
 
             Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
-            HorizontalDivider(color = cs.outline.copy(alpha = FOOT_DIVIDER_ALPHA))
+            PapDivider()
             Spacer(Modifier.height(CHIP_FOOT_GAP_DP.dp))
 
             // Parking row — the actionable fact.
@@ -217,7 +217,7 @@ internal fun HomeVehicleCard(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 15.dp, bottom = 13.dp),
             )
 
-            HorizontalDivider(color = cs.outline.copy(alpha = FOOT_DIVIDER_ALPHA))
+            PapDivider()
 
             Row(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).fillMaxWidth(),
@@ -342,7 +342,6 @@ private const val ICON_BOX_DP = 32
 private const val FOOT_MIN_HEIGHT_DP = 34
 private const val FOOT_GAP_DP = 7
 private const val FOOT_ICON_DP = 15
-private const val FOOT_DIVIDER_ALPHA = PapBorders.HAIRLINE_DIVIDER_ALPHA
 // Full-width single-vehicle card. [HOME-CARDS-001]
 private const val CHEVRON_DP = 22
 private const val CARD_FOOT_ICON_BOX_DP = 34

@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +26,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.GlassDefaults
 import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
@@ -154,7 +154,7 @@ internal fun HomeSearchBar(
             ) {
                 Column {
                     results.take(5).forEachIndexed { index, result ->
-                        if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        if (index > 0) PapDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()

@@ -155,6 +155,7 @@ chore/FND-008-repo-cleanup
 ```
 
 ### Cosas que NO hacer
+- No usar `HorizontalDivider`/`VerticalDivider` crudos en feature → `PapDivider`/`PapVerticalDivider` (fuente única, alpha en `PapBorders.HAIRLINE_DIVIDER_ALPHA`). Enforced por `DividerGuardrailTest`.
 - No usar `println` para logs → usar Logger con tag
 - No usar wildcard imports (`import com.paparcar.*`)
 - No commitear archivos de build: logs, .kotlin/metadata, build/

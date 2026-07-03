@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -27,6 +26,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeMode
@@ -205,10 +205,7 @@ internal fun HomeBottomSheet(
             // rest (one continuous hairline) and rides above the nav as the sheet is dragged up — no
             // hide-trick / hysteresis-reveal needed. [BUG-PEEK-DIVIDER-ALIGN]
             if (showList) {
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = PEEK_LIST_DIVIDER_ALPHA),
-                )
+                PapDivider()
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier
@@ -305,4 +302,3 @@ private const val FLING_SNAP_VELOCITY = 1200f
 private const val SHEET_SHADOW_ELEVATION_DP = 12
 // Matches [AppBottomNavigation]'s top divider alpha so the two hairlines read
 // as a single visual boundary when the sheet's list section sits above the nav bar.
-private const val PEEK_LIST_DIVIDER_ALPHA = 0.12f

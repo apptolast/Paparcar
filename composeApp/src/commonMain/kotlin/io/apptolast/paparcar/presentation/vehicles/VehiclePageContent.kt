@@ -21,19 +21,19 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.components.PapDivider
+import io.apptolast.paparcar.ui.components.PapVerticalDivider
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.domain.model.monitoringStatus
@@ -130,7 +130,7 @@ private fun VehicleHeroCard(
             // Stats — a divided bottom row (Sessions / Last / Reliability). Muted for an inactive
             // vehicle that still has history. Hidden entirely with no sessions. [HOME-VEH-REFINE-001]
             if (hasStats) {
-                HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                PapDivider()
                 VehicleStatsRow(
                     sessionCount = vehicleWithStats.sessionCount,
                     lastSessionMs = vehicleWithStats.lastSession?.location?.timestamp,
@@ -142,7 +142,7 @@ private fun VehicleHeroCard(
             // "Set as active" is its own row — and only for an inactive vehicle. Active / Bluetooth
             // vehicles are already the tracked one, so the action never appears for them.
             if (isInactive) {
-                HorizontalDivider(color = cs.outline.copy(alpha = DIVIDER_ALPHA))
+                PapDivider()
                 SetActiveRow(isLoading = isSettingActive, onClick = onSetActive)
             }
         }
@@ -189,10 +189,7 @@ private fun VehicleStatsRow(
 
 @Composable
 private fun StatDivider() {
-    VerticalDivider(
-        modifier = Modifier.padding(vertical = STAT_DIVIDER_V_PAD.dp),
-        color = MaterialTheme.colorScheme.outline.copy(alpha = DIVIDER_ALPHA),
-    )
+    PapVerticalDivider(modifier = Modifier.padding(vertical = STAT_DIVIDER_V_PAD.dp))
 }
 
 @Composable
@@ -231,8 +228,9 @@ private fun StatCell(
         }
         Spacer(Modifier.size(STAT_LABEL_GAP.dp))
         Text(
+            // Condensed, matching its number above — icon + number + label read as one data unit.
             text = label.uppercase(),
-            style = PaparcarType.current.label,
+            style = PaparcarType.current.badge,
             color = cs.onSurfaceVariant,
             maxLines = 1,
         )
@@ -287,7 +285,6 @@ private const val IDENTITY_TOP_PAD = 15
 private const val IDENTITY_BOTTOM_PAD = 13
 // Compact edit box — kills the invisible 48dp dead zone that misaligned the card's right edge.
 private const val EDIT_BOX_DP = 40
-private const val DIVIDER_ALPHA = PapBorders.HAIRLINE_DIVIDER_ALPHA
 private const val EDIT_ICON_ALPHA = 0.7f
 private const val STAT_CELL_V_PAD = 13
 private const val STAT_CELL_H_PAD = 8

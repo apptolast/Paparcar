@@ -25,8 +25,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,7 +51,6 @@ import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.home.model.rendersActionSurface
 import io.apptolast.paparcar.ui.components.PapSectionHeader
-import io.apptolast.paparcar.ui.theme.PapBorders
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -304,10 +303,7 @@ private fun LazyListScope.spotsSection(
                     },
                 )
                 if (index < filteredSpots.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(start = 70.dp, end = 16.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA),
-                    )
+                    PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))
                 }
             }
         }
@@ -376,10 +372,7 @@ private fun SpotsSkeletonList(
                 }
             }
             if (index < itemCount - 1) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 70.dp, end = 16.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.HAIRLINE_DIVIDER_ALPHA),
-                )
+                PapDivider(modifier = Modifier.padding(start = 70.dp, end = 16.dp))
             }
         }
     }
