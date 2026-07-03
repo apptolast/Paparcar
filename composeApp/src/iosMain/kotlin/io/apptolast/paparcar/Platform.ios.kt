@@ -14,3 +14,6 @@ actual val isDebugBuild: Boolean = Platform.isDebugBinary
 actual val appVersion: String =
     platform.Foundation.NSBundle.mainBundle.infoDictionary
         ?.get("CFBundleShortVersionString") as? String ?: "?"
+
+// iOS has no user-grantable background battery exemption → hide that Settings row. [SETTINGS-REMODEL-001]
+actual val isBatteryOptimizationRelevant: Boolean = false

@@ -615,6 +615,10 @@ private fun MainAppNavigation(
                     SettingsScreen(
                         onNavigateToVehicles = { navController.navigateToTab(Routes.VEHICLES) },
                         onNavigateToAuth = { /* AuthState change triggers auth nav automatically */ },
+                        // Reuse the permission flow focused on the failing tier (as Home's banner does).
+                        onNavigateToPermissions = { focus -> navController.navigate("${Routes.PERMISSIONS}?focus=$focus") },
+                        // Deep-link into car-Bluetooth config for the active vehicle.
+                        onNavigateToBluetoothConfig = { vehicleId -> navController.navigate("${Routes.BT_CONFIG}/$vehicleId") },
                         themeMode = themeMode,
                         onSetThemeMode = onSetThemeMode,
                         imperialUnits = imperialUnits,

@@ -1,9 +1,15 @@
 package io.apptolast.paparcar.presentation.settings
 
 import app.cash.turbine.test
+import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.domain.permissions.AppPermissionState
+import io.apptolast.paparcar.domain.permissions.RequiredPermission
+import io.apptolast.paparcar.presentation.permissions.PermissionsFocus
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
+import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeUserProfileRepository
@@ -35,6 +41,7 @@ class SettingsViewModelTest {
     private lateinit var profile: FakeUserProfileRepository
     private lateinit var spots: FakeSpotRepository
     private lateinit var prefs: FakeAppPreferences
+    private lateinit var permissions: FakePermissionManager
     private lateinit var vm: SettingsViewModel
 
     @BeforeTest
@@ -46,6 +53,7 @@ class SettingsViewModelTest {
         profile = FakeUserProfileRepository()
         spots = FakeSpotRepository()
         prefs = FakeAppPreferences()
+        permissions = FakePermissionManager()
         vm = buildVm()
     }
 
@@ -54,13 +62,17 @@ class SettingsViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun buildVm(customPrefs: FakeAppPreferences = prefs): SettingsViewModel {
+    private fun buildVm(
+        customPrefs: FakeAppPreferences = prefs,
+        customVehicles: FakeVehicleRepository = vehicles,
+        customPermissions: FakePermissionManager = permissions,
+    ): SettingsViewModel {
         val useCase = DeleteAccountUseCase(
             authRepository = auth,
-            userScopedRepos = listOf(parking, vehicles, profile, FakeZoneRepository()),
+            userScopedRepos = listOf(parking, customVehicles, profile, FakeZoneRepository()),
             spotRepository = spots,
         )
-        return SettingsViewModel(customPrefs, auth, profile, useCase)
+        return SettingsViewModel(customPrefs, auth, profile, useCase, customPermissions, customVehicles)
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
@@ -233,6 +245,128 @@ class SettingsViewModelTest {
     fun `should_emitNavigateToVehicles_on_navigateToVehicles`() = runTest {
         vm.effect.test {
             vm.handleIntent(SettingsIntent.NavigateToVehicles)
+            assertIs<SettingsEffect.NavigateToVehicles>(awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Detection health (permissions) [SETTINGS-REMODEL-001] ──────────────────
+
+    @Test
+    fun `should_beHealthy_when_allPermissionsGranted_and_gpsOn`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
+        assertTrue(vm.state.value.missingDetectionPermissions.isEmpty())
+        assertTrue(vm.state.value.isLocationServicesEnabled)
+        assertTrue(vm.state.value.detectionHealthy)
+    }
+
+    @Test
+    fun `should_reflectMissingPermissions_when_denied`() = runTest {
+        permissions.emit(FakePermissionManager.allDenied())
+        assertTrue(vm.state.value.missingDetectionPermissions.isNotEmpty())
+        assertFalse(vm.state.value.detectionHealthy)
+    }
+
+    @Test
+    fun `should_beUnhealthy_when_gpsOff_even_if_permissionsGranted`() = runTest {
+        permissions.emit(FakePermissionManager.permissionsOnlyNoGps())
+        assertTrue(vm.state.value.missingDetectionPermissions.isEmpty())
+        assertFalse(vm.state.value.isLocationServicesEnabled)
+        assertFalse(vm.state.value.detectionHealthy)
+    }
+
+    @Test
+    fun `should_reflectBatteryExemption_from_permissionState`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted().copy(isBatteryOptimizationExempt = true))
+        assertTrue(vm.state.value.isBatteryOptimizationExempt)
+    }
+
+    @Test
+    fun `should_refreshPermissions_on_refreshFromPreferences`() = runTest {
+        val before = permissions.refreshCount
+        vm.refreshFromPreferences()
+        assertEquals(before + 1, permissions.refreshCount)
+    }
+
+    // ── Fix / configure navigation ─────────────────────────────────────────────
+
+    @Test
+    fun `should_focusCore_when_fix_and_foregroundLocationMissing`() = runTest {
+        permissions.emit(FakePermissionManager.allDenied()) // foreground location missing → CORE
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.FixDetectionPermissions)
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Core, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_focusProducer_when_fix_and_onlyProducerMissing`() = runTest {
+        // Foreground (CORE) granted, a PRODUCER permission missing → PRODUCER section.
+        permissions.emit(AppPermissionState(hasLocationPermission = true, isLocationServicesEnabled = true))
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.FixDetectionPermissions)
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Producer, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_focusCore_when_fix_and_gpsOff_even_if_permissionsGranted`() = runTest {
+        // GPS master off → the "Enable GPS" row lives in the essential/CORE section.
+        permissions.emit(FakePermissionManager.permissionsOnlyNoGps())
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.FixDetectionPermissions)
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Core, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_focusProducer_on_configureBattery`() = runTest {
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ConfigureBattery)
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Producer, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Bluetooth improvement row ──────────────────────────────────────────────
+
+    @Test
+    fun `should_reportBtConfigured_when_activeVehicle_hasBtDevice`() = runTest {
+        val btVehicle = Vehicle(id = "v1", userId = "u", sizeCategory = VehicleSize.MEDIUM_SUV, bluetoothDeviceId = "AA:BB:CC")
+        val vmWithBt = buildVm(customVehicles = FakeVehicleRepository(defaultVehicle = btVehicle))
+        assertTrue(vmWithBt.state.value.btDeviceConfigured)
+        assertEquals("v1", vmWithBt.state.value.activeVehicleId)
+    }
+
+    @Test
+    fun `should_emitBluetoothConfig_when_configureBt_withActiveVehicle`() = runTest {
+        val vehicle = Vehicle(id = "v1", userId = "u", sizeCategory = VehicleSize.MEDIUM_SUV)
+        val vmWithVehicle = buildVm(customVehicles = FakeVehicleRepository(defaultVehicle = vehicle))
+        vmWithVehicle.effect.test {
+            vmWithVehicle.handleIntent(SettingsIntent.ConfigureBluetooth)
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToBluetoothConfig>(effect)
+            assertEquals("v1", effect.vehicleId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should_emitNavigateToVehicles_when_configureBt_withoutVehicle`() = runTest {
+        // Default setUp has no vehicle → send the user to add one first.
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.ConfigureBluetooth)
             assertIs<SettingsEffect.NavigateToVehicles>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }

@@ -53,6 +53,7 @@ import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsContent
 import io.apptolast.paparcar.presentation.permissions.PermissionsState
 import io.apptolast.paparcar.presentation.preview.FakeData
+import io.apptolast.paparcar.domain.permissions.RequiredPermission
 import io.apptolast.paparcar.presentation.settings.SettingsContent
 import io.apptolast.paparcar.presentation.settings.SettingsState
 import io.apptolast.paparcar.presentation.vehicleregistration.VehicleRegistrationContent
@@ -377,10 +378,33 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     state = SettingsState(
                         userProfile = sampleProfile,
                         autoDetectParking = false,
+                        // Detection OFF → the "Parking detected" notif sub-row is dimmed + locked.
                         notifyParkingDetected = false,
                     ),
                     themeMode = ThemeMode.DARK,
                     imperialUnits = true,
+                )
+            },
+            Variant("Permisos incompletos") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        // Amber health row + "Fix"
+                        missingDetectionPermissions = setOf(RequiredPermission.BACKGROUND_LOCATION),
+                        isLocationServicesEnabled = true,
+                    ),
+                )
+            },
+            Variant("Detección lista + BT configurado") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        missingDetectionPermissions = emptySet(),
+                        isLocationServicesEnabled = true,
+                        isBatteryOptimizationExempt = true,
+                        activeVehicleId = "v1",
+                        btDeviceConfigured = true,
+                    ),
                 )
             },
             Variant("Diálogo borrar cuenta") {

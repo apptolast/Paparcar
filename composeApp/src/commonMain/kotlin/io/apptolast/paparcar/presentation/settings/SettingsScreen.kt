@@ -1,5 +1,3 @@
-@file:OptIn(kotlin.time.ExperimentalTime::class)
-
 package io.apptolast.paparcar.presentation.settings
 
 import androidx.compose.animation.AnimatedContent
@@ -12,15 +10,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import io.apptolast.paparcar.ui.components.PapDivider
-import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.PapCardLight
-import io.apptolast.paparcar.ui.theme.PapInk
-import io.apptolast.paparcar.ui.theme.PapInkHigh
-import io.apptolast.paparcar.ui.theme.PapMotion
-import io.apptolast.paparcar.ui.theme.PapSurfaceLight
-import io.apptolast.paparcar.ui.theme.outlineSubtle
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,17 +30,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.Sensors
-import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Sensors
+import androidx.compose.material.icons.rounded.SensorsOff
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -57,7 +52,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
@@ -73,7 +67,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,30 +79,43 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import io.apptolast.paparcar.isBatteryOptimizationRelevant
+import io.apptolast.paparcar.domain.permissions.RequiredPermission
 import io.apptolast.paparcar.domain.preferences.ThemeMode
+import io.apptolast.paparcar.presentation.permissions.PermissionsFocus
+import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.components.PapIconTile
 import io.apptolast.paparcar.ui.components.PapListItem
 import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
+import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapCardLight
+import io.apptolast.paparcar.ui.theme.PapInk
+import io.apptolast.paparcar.ui.theme.PapInkHigh
+import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.PapSurfaceLight
 import io.apptolast.paparcar.ui.theme.PaparcarType
-import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
+import io.apptolast.paparcar.ui.theme.outlineSubtle
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_stopped_action
 import paparcar.composeapp.generated.resources.home_det_stopped_msg
+import paparcar.composeapp.generated.resources.permissions_perm_activity
+import paparcar.composeapp.generated.resources.permissions_perm_background
+import paparcar.composeapp.generated.resources.permissions_perm_location
+import paparcar.composeapp.generated.resources.permissions_perm_location_services
+import paparcar.composeapp.generated.resources.permissions_perm_notifications
 import paparcar.composeapp.generated.resources.settings_auto_detect
 import paparcar.composeapp.generated.resources.settings_auto_detect_desc
 import paparcar.composeapp.generated.resources.settings_contact
@@ -119,6 +125,17 @@ import paparcar.composeapp.generated.resources.settings_delete_account_cancel
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_action
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_message
 import paparcar.composeapp.generated.resources.settings_delete_account_confirm_title
+import paparcar.composeapp.generated.resources.settings_detection_battery_desc
+import paparcar.composeapp.generated.resources.settings_detection_battery_title
+import paparcar.composeapp.generated.resources.settings_detection_bt_desc
+import paparcar.composeapp.generated.resources.settings_detection_bt_title
+import paparcar.composeapp.generated.resources.settings_detection_configured
+import paparcar.composeapp.generated.resources.settings_detection_fix
+import paparcar.composeapp.generated.resources.settings_detection_health_missing
+import paparcar.composeapp.generated.resources.settings_detection_health_ok
+import paparcar.composeapp.generated.resources.settings_detection_health_ok_desc
+import paparcar.composeapp.generated.resources.settings_detection_improve
+import paparcar.composeapp.generated.resources.settings_detection_setup
 import paparcar.composeapp.generated.resources.settings_distance_unit
 import paparcar.composeapp.generated.resources.settings_distance_unit_desc
 import paparcar.composeapp.generated.resources.settings_language
@@ -134,7 +151,6 @@ import paparcar.composeapp.generated.resources.settings_notifications_title
 import paparcar.composeapp.generated.resources.settings_privacy
 import paparcar.composeapp.generated.resources.settings_profile_delete_account
 import paparcar.composeapp.generated.resources.settings_profile_logout
-import paparcar.composeapp.generated.resources.settings_profile_member_since
 import paparcar.composeapp.generated.resources.settings_profile_name_placeholder
 import paparcar.composeapp.generated.resources.settings_section_about
 import paparcar.composeapp.generated.resources.settings_section_appearance
@@ -150,26 +166,21 @@ import paparcar.composeapp.generated.resources.settings_title
 import paparcar.composeapp.generated.resources.settings_version
 
 /**
- * Settings v2 — visual refresh (Phase A).
+ * Settings v3 — remodelled by importance (SETTINGS-REMODEL-001).
  *
- * Cambios respecto a v1:
- *  - Profile Card con avatar grande + active-vehicle row + logout outlined
- *  - Section headers muted (no primary green)
- *  - Theme picker visual con mini-previews (no segmented text)
- *  - Map type thumbnails (no segmented text)
- *  - Notifications agrupadas con master toggle + sub-switches
- *  - Danger zone aislada con borde rojo
- *
- * NO incluido en esta fase (requiere backend):
- *  - Profile stats reales (sessions/this-month/reliability)
- *  - Advanced section (export data, clear cache)
- *  - Sync status indicator
+ * Order: Account · **Detection & permissions** · Notifications · Appearance · Map · About · Danger.
+ * Rows are grouped one card per section (dividers between rows) instead of a card-island per option.
+ * New "Detection & permissions" section: master toggle + a permission-health row ("All set" / amber
+ * "Missing X" + Fix) + optional one-time setup rows (car Bluetooth, unrestricted battery).
+ * Notifications' "Parking detected" sub-row is disabled while auto-detection is OFF (real dependency).
  */
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToVehicles: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
+    onNavigateToPermissions: (PermissionsFocus) -> Unit = {},
+    onNavigateToBluetoothConfig: (String) -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onSetThemeMode: (ThemeMode) -> Unit = {},
     imperialUnits: Boolean = false,
@@ -184,11 +195,9 @@ fun SettingsScreen(
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
     val msgTurnOn = stringResource(Res.string.home_det_stopped_action)
 
-    // Refresh pref-backed fields every time the screen re-enters composition,
-    // so preferences mutated elsewhere (e.g. auto-detect toggled from the
-    // BT-config flow) show up as soon as the user comes back to Settings.
-    // AppPreferences doesn't expose Flow accessors yet — this is the
-    // cheapest workaround until we add them.
+    // Refresh pref-backed fields AND runtime permissions every time the screen re-enters
+    // composition, so a pref mutated elsewhere (BT-config flow) or a permission granted in the
+    // permissions screen / system settings shows up the moment the user returns to Settings.
     LaunchedEffect(Unit) { viewModel.refreshFromPreferences() }
 
     LaunchedEffect(viewModel.effect) {
@@ -196,6 +205,8 @@ fun SettingsScreen(
             when (effect) {
                 is SettingsEffect.NavigateToVehicles -> onNavigateToVehicles()
                 is SettingsEffect.NavigateToAuth -> onNavigateToAuth()
+                is SettingsEffect.NavigateToPermissions -> onNavigateToPermissions(effect.focus)
+                is SettingsEffect.NavigateToBluetoothConfig -> onNavigateToBluetoothConfig(effect.vehicleId)
                 is SettingsEffect.OpenUrl -> uriHandler.openUri(effect.url)
                 is SettingsEffect.ShowError -> { /* error handled via state */ }
                 // Turn-off confirmation with one-tap undo, right where the user flipped it. [DET-TOGGLE-002]
@@ -286,21 +297,43 @@ internal fun SettingsContent(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // ── Profile (no section header — the card speaks for itself) ─
+            // ── 1 · Account (no section header — the card speaks for itself) ─
             item {
                 ProfileCardV2(
                     displayName = state.userProfile?.displayName
                         ?: stringResource(Res.string.settings_profile_name_placeholder),
                     email = state.userProfile?.email,
                     photoUrl = state.userProfile?.photoUrl,
-                    createdAtMs = state.userProfile?.createdAt,
                     onLogout = { onIntent(SettingsIntent.Logout) },
                 )
             }
 
-            // ── Appearance ───────────────────────────────────────────────
+            // ── 2 · Detection & permissions (heart of the app → sits high) ───
+            item { SectionHeaderMuted(stringResource(Res.string.settings_section_detection)) }
+            item { DetectionSectionCard(state = state, onIntent = onIntent) }
+
+            // ── 3 · Notifications (master + grouped subs) ───────────────────
+            item { SectionHeaderMuted(stringResource(Res.string.settings_section_notifications)) }
+            item {
+                // Master = ON when either sub is ON. derivedStateOf so the card only recomposes
+                // when the boolean actually flips (not on every other state field change).
+                val masterOn by remember(state.notifyParkingDetected, state.notifySpotFreed) {
+                    derivedStateOf { state.notifyParkingDetected || state.notifySpotFreed }
+                }
+                NotificationsGroupCard(
+                    masterOn = masterOn,
+                    onMasterChange = { onIntent(SettingsIntent.ToggleMasterNotifications(it)) },
+                    parkingOn = state.notifyParkingDetected,
+                    onParkingChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
+                    // "Parking detected" only fires from auto-detection — dim + lock it when OFF.
+                    parkingEnabled = state.autoDetectParking,
+                    spotOn = state.notifySpotFreed,
+                    onSpotChange = { onIntent(SettingsIntent.ToggleSpotFreedNotif(it)) },
+                )
+            }
+
+            // ── 4 · Appearance (theme + language) ────────────────────────────
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_appearance)) }
-            item { ThemePickerCard(selected = themeMode, onSelect = onSetThemeMode) }
             item {
                 val autoLabel = stringResource(Res.string.settings_language_auto)
                 val languageOptions = remember(autoLabel) {
@@ -311,93 +344,68 @@ internal fun SettingsContent(
                         "nl" to "Nederlands", "pl" to "Polski", "ro" to "Română",
                     )
                 }
-                SettingsDropdownItem(
-                    icon = Icons.Rounded.Language,
-                    label = stringResource(Res.string.settings_language),
-                    description = stringResource(Res.string.settings_language_desc),
-                    options = languageOptions,
-                    selected = selectedLanguage,
-                    onSelect = onSetLanguage,
-                )
+                PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        ThemeBlock(selected = themeMode, onSelect = onSetThemeMode)
+                        PapDivider()
+                        LanguageDropdownRow(
+                            label = stringResource(Res.string.settings_language),
+                            description = stringResource(Res.string.settings_language_desc),
+                            options = languageOptions,
+                            selected = selectedLanguage,
+                            onSelect = onSetLanguage,
+                        )
+                    }
+                }
             }
 
-            // ── Map ──────────────────────────────────────────────────────
+            // ── 5 · Map ──────────────────────────────────────────────────────
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_map)) }
             item {
-                SettingsSwitchItem(
-                    icon = Icons.Rounded.Map,
-                    label = stringResource(Res.string.settings_distance_unit),
-                    description = stringResource(Res.string.settings_distance_unit_desc),
-                    checked = imperialUnits,
-                    onCheckedChange = onToggleImperialUnits,
-                )
-            }
-
-            // ── Detection ────────────────────────────────────────────────
-            item { SectionHeaderMuted(stringResource(Res.string.settings_section_detection)) }
-            item {
-                SettingsSwitchItem(
-                    icon = if (state.autoDetectParking) Icons.Rounded.Sensors else Icons.Rounded.SensorsOff,
-                    label = stringResource(Res.string.settings_auto_detect),
-                    description = stringResource(Res.string.settings_auto_detect_desc),
-                    checked = state.autoDetectParking,
-                    onCheckedChange = { onIntent(SettingsIntent.ToggleAutoDetect(it)) },
-                )
-            }
-            // ── Notifications (master + grouped subs) ───────────────────
-            item { SectionHeaderMuted(stringResource(Res.string.settings_section_notifications)) }
-            item {
-                // Master is derived: ON when at least one sub is ON. Toggling
-                // master via the single ToggleMasterNotifications intent flips
-                // both subs at once and persists via prefs.
-                // Master = ON when either sub is ON. derivedStateOf so the
-                // NotificationsGroupCard only recomposes when the boolean
-                // actually flips (not on every other state field change).
-                val masterOn by remember(state.notifyParkingDetected, state.notifySpotFreed) {
-                    derivedStateOf { state.notifyParkingDetected || state.notifySpotFreed }
+                PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    SwitchRow(
+                        icon = Icons.Rounded.Map,
+                        label = stringResource(Res.string.settings_distance_unit),
+                        description = stringResource(Res.string.settings_distance_unit_desc),
+                        checked = imperialUnits,
+                        onCheckedChange = onToggleImperialUnits,
+                    )
                 }
-                NotificationsGroupCard(
-                    masterOn = masterOn,
-                    onMasterChange = { onIntent(SettingsIntent.ToggleMasterNotifications(it)) },
-                    parkingOn = state.notifyParkingDetected,
-                    onParkingChange = { onIntent(SettingsIntent.ToggleParkingDetectedNotif(it)) },
-                    spotOn = state.notifySpotFreed,
-                    onSpotChange = { onIntent(SettingsIntent.ToggleSpotFreedNotif(it)) },
-                )
             }
 
-            // ── About ────────────────────────────────────────────────────
+            // ── 6 · About ────────────────────────────────────────────────────
             item { SectionHeaderMuted(stringResource(Res.string.settings_section_about)) }
             item {
-                SettingsInfoItem(
-                    icon = Icons.Rounded.Info,
-                    label = stringResource(Res.string.settings_version),
-                    value = state.appVersion,
-                )
-            }
-            item {
-                SettingsNavItem(
-                    icon = Icons.Rounded.Lock,
-                    label = stringResource(Res.string.settings_privacy),
-                    onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
-                )
-            }
-            item {
-                SettingsNavItem(
-                    icon = Icons.Rounded.Description,
-                    label = stringResource(Res.string.settings_licenses),
-                    onClick = { onIntent(SettingsIntent.OpenLicenses) },
-                )
-            }
-            item {
-                SettingsNavItem(
-                    icon = Icons.Rounded.Email,
-                    label = stringResource(Res.string.settings_contact),
-                    onClick = { onIntent(SettingsIntent.OpenContact) },
-                )
+                PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column {
+                        InfoRow(
+                            icon = Icons.Rounded.Info,
+                            label = stringResource(Res.string.settings_version),
+                            value = state.appVersion,
+                        )
+                        PapDivider()
+                        NavRow(
+                            icon = Icons.Rounded.Lock,
+                            label = stringResource(Res.string.settings_privacy),
+                            onClick = { onIntent(SettingsIntent.OpenPrivacyPolicy) },
+                        )
+                        PapDivider()
+                        NavRow(
+                            icon = Icons.Rounded.Description,
+                            label = stringResource(Res.string.settings_licenses),
+                            onClick = { onIntent(SettingsIntent.OpenLicenses) },
+                        )
+                        PapDivider()
+                        NavRow(
+                            icon = Icons.Rounded.Email,
+                            label = stringResource(Res.string.settings_contact),
+                            onClick = { onIntent(SettingsIntent.OpenContact) },
+                        )
+                    }
+                }
             }
 
-            // ── Danger zone ──────────────────────────────────────────────
+            // ── 7 · Danger zone ──────────────────────────────────────────────
             item { SectionHeaderDanger(stringResource(Res.string.settings_danger_zone)) }
             item {
                 DangerZoneCard(
@@ -433,7 +441,191 @@ private fun SectionHeaderDanger(title: String) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Profile Card V2 — avatar + active vehicle row + logout
+// Detection & permissions section
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun DetectionSectionCard(state: SettingsState, onIntent: (SettingsIntent) -> Unit) {
+    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            // Master toggle
+            SwitchRow(
+                icon = if (state.autoDetectParking) Icons.Rounded.Sensors else Icons.Rounded.SensorsOff,
+                label = stringResource(Res.string.settings_auto_detect),
+                description = stringResource(Res.string.settings_auto_detect_desc),
+                checked = state.autoDetectParking,
+                onCheckedChange = { onIntent(SettingsIntent.ToggleAutoDetect(it)) },
+            )
+            PapDivider()
+            // Health of the mandatory permissions
+            DetectionHealthRow(state = state, onFix = { onIntent(SettingsIntent.FixDetectionPermissions) })
+            PapDivider()
+            // Optional one-time setup rows — improvements, never blockers
+            MiniHeader(stringResource(Res.string.settings_detection_improve))
+            ImprovementRow(
+                icon = Icons.Rounded.Bluetooth,
+                title = stringResource(Res.string.settings_detection_bt_title),
+                description = stringResource(Res.string.settings_detection_bt_desc),
+                configured = state.btDeviceConfigured,
+                onClick = { onIntent(SettingsIntent.ConfigureBluetooth) },
+            )
+            // Battery exemption is Android-only (Doze/OEM killers) — hidden on iOS. [SETTINGS-REMODEL-001]
+            if (isBatteryOptimizationRelevant) {
+                PapDivider()
+                ImprovementRow(
+                    icon = Icons.Rounded.BatteryFull,
+                    title = stringResource(Res.string.settings_detection_battery_title),
+                    description = stringResource(Res.string.settings_detection_battery_desc),
+                    configured = state.isBatteryOptimizationExempt,
+                    onClick = { onIntent(SettingsIntent.ConfigureBattery) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val healthy = state.detectionHealthy
+    PapListItem(
+        leading = {
+            if (healthy) {
+                PapIconTile(icon = Icons.Rounded.CheckCircle)
+            } else {
+                // Amber (secondary) — a fixable setup gap, not a hard blocker (PRODUCER perms don't
+                // block the app; red is reserved for real blockers/destructive). [SETTINGS-REMODEL-001]
+                PapIconTile(
+                    icon = Icons.Rounded.Warning,
+                    container = cs.secondaryContainer,
+                    tint = cs.secondary,
+                )
+            }
+        },
+        title = if (healthy) {
+            stringResource(Res.string.settings_detection_health_ok)
+        } else {
+            stringResource(Res.string.settings_detection_health_missing, firstMissingLabel(state))
+        },
+        titleColor = if (healthy) cs.onSurface else cs.secondary,
+        subtitle = if (healthy) stringResource(Res.string.settings_detection_health_ok_desc) else null,
+        subtitleColor = settingsSubtitleColor(),
+        trailing = {
+            if (!healthy) {
+                OutlinedButton(
+                    onClick = onFix,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.secondary),
+                    border = BorderStroke(PapBorders.thin, cs.secondary),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        stringResource(Res.string.settings_detection_fix),
+                        style = PaparcarType.current.cta,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        },
+    )
+}
+
+/**
+ * The single most fundamental missing detection requirement, for the "Missing %s" health line.
+ * GPS master toggle first (nothing works without it), then permissions in dependency order.
+ */
+@Composable
+private fun firstMissingLabel(state: SettingsState): String {
+    if (!state.isLocationServicesEnabled) {
+        return stringResource(Res.string.permissions_perm_location_services)
+    }
+    val first = HEALTH_PRIORITY.firstOrNull { it in state.missingDetectionPermissions }
+    return when (first) {
+        RequiredPermission.FOREGROUND_LOCATION -> stringResource(Res.string.permissions_perm_location)
+        RequiredPermission.BACKGROUND_LOCATION -> stringResource(Res.string.permissions_perm_background)
+        RequiredPermission.ACTIVITY_RECOGNITION -> stringResource(Res.string.permissions_perm_activity)
+        RequiredPermission.NOTIFICATIONS -> stringResource(Res.string.permissions_perm_notifications)
+        null -> ""
+    }
+}
+
+private val HEALTH_PRIORITY = listOf(
+    RequiredPermission.FOREGROUND_LOCATION,
+    RequiredPermission.BACKGROUND_LOCATION,
+    RequiredPermission.ACTIVITY_RECOGNITION,
+    RequiredPermission.NOTIFICATIONS,
+)
+
+/** Optional "improve detection" row — setup-once with a status, NOT a toggle. */
+@Composable
+private fun ImprovementRow(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    configured: Boolean,
+    onClick: () -> Unit,
+) {
+    PapListItem(
+        modifier = Modifier.clickable(onClick = onClick),
+        leading = { PapIconTile(icon = icon) },
+        title = title,
+        subtitle = description,
+        subtitleColor = settingsSubtitleColor(),
+        trailing = { SetupStatusTrailing(configured = configured) },
+    )
+}
+
+@Composable
+private fun SetupStatusTrailing(configured: Boolean) {
+    val cs = MaterialTheme.colorScheme
+    if (configured) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                stringResource(Res.string.settings_detection_configured),
+                style = PaparcarType.current.label,
+                color = cs.primary,
+                fontWeight = FontWeight.Bold,
+            )
+            Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp))
+        }
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                stringResource(Res.string.settings_detection_setup),
+                style = PaparcarType.current.label,
+                color = cs.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = cs.onSurface.copy(alpha = CHEVRON_DIM_ALPHA),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/** Small in-card uppercase sub-label ("IMPROVE DETECTION"). Not a top-level section header. */
+@Composable
+private fun MiniHeader(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = PaparcarType.current.label,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Account — Profile card (avatar + logout)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -441,7 +633,6 @@ private fun ProfileCardV2(
     displayName: String,
     email: String?,
     photoUrl: String?,
-    createdAtMs: Long?,
     onLogout: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -467,17 +658,6 @@ private fun ProfileCardV2(
                             text = email,
                             style = PaparcarType.current.caption,
                             color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                        )
-                    }
-                    val memberSinceLine = memberSinceText(createdAtMs)
-                    if (memberSinceLine != null) {
-                        Spacer(Modifier.size(2.dp))
-                        Text(
-                            // Date metadata token — condensed statusPin per the typography
-                            // mechanism (was a hand-tuned Inter eyebrow). [UI-REGRESSION]
-                            text = memberSinceLine.uppercase(),
-                            style = PaparcarType.current.badge,
-                            color = cs.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
                         )
                     }
                 }
@@ -539,78 +719,48 @@ private fun ProfileAvatar(displayName: String, photoUrl: String?) {
     }
 }
 
-/**
- * Returns the "Member since MAR 2026" line for the profile card.
- * Returns null when [createdAtMs] is missing or pre-app-launch sentinel
- * (epoch / legacy migrated accounts without the timestamp populated).
- *
- * Month/year extraction is memoized so it doesn't repeat on every recompose
- * (e.g. when the user scrolls Settings or toggles a switch nearby).
- */
-@Composable
-private fun memberSinceText(createdAtMs: Long?): String? {
-    if (createdAtMs == null || createdAtMs < MIN_VALID_CREATED_AT_MS) return null
-    val (monthIdx, year) = remember(createdAtMs) {
-        val tz = TimeZone.currentSystemDefault()
-        val dt = Instant.fromEpochMilliseconds(createdAtMs).toLocalDateTime(tz)
-        dt.month.ordinal.coerceIn(0, MONTH_SHORT_RES.lastIndex) to dt.year
-    }
-    val monthShort = stringResource(MONTH_SHORT_RES[monthIdx])
-    return stringResource(Res.string.settings_profile_member_since, monthShort, year)
-}
-
-/** App launch is 2025; anything before this is a corrupt/legacy timestamp. */
-private const val MIN_VALID_CREATED_AT_MS = 1_700_000_000_000L  // 2023-11-14
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Theme picker — mini previews
+// Appearance — theme block (mini previews) + language
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ThemePickerCard(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+private fun ThemeBlock(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = outlineSubtle,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                stringResource(Res.string.settings_theme_mode),
-                style = PaparcarType.current.body,
-                fontWeight = FontWeight.SemiBold,
-                color = cs.onSurface,
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            stringResource(Res.string.settings_theme_mode),
+            style = PaparcarType.current.body,
+            fontWeight = FontWeight.SemiBold,
+            color = cs.onSurface,
+        )
+        Text(
+            stringResource(Res.string.settings_theme_mode_desc),
+            style = PaparcarType.current.caption,
+            color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+        )
+        Spacer(Modifier.size(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ThemePreview(
+                mode = ThemeMode.LIGHT,
+                selected = selected == ThemeMode.LIGHT,
+                label = stringResource(Res.string.settings_theme_mode_light),
+                onClick = { onSelect(ThemeMode.LIGHT) },
+                modifier = Modifier.weight(1f),
             )
-            Text(
-                stringResource(Res.string.settings_theme_mode_desc),
-                style = PaparcarType.current.caption,
-                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
+            ThemePreview(
+                mode = ThemeMode.DARK,
+                selected = selected == ThemeMode.DARK,
+                label = stringResource(Res.string.settings_theme_mode_dark),
+                onClick = { onSelect(ThemeMode.DARK) },
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.size(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ThemePreview(
-                    mode = ThemeMode.LIGHT,
-                    selected = selected == ThemeMode.LIGHT,
-                    label = stringResource(Res.string.settings_theme_mode_light),
-                    onClick = { onSelect(ThemeMode.LIGHT) },
-                    modifier = Modifier.weight(1f),
-                )
-                ThemePreview(
-                    mode = ThemeMode.DARK,
-                    selected = selected == ThemeMode.DARK,
-                    label = stringResource(Res.string.settings_theme_mode_dark),
-                    onClick = { onSelect(ThemeMode.DARK) },
-                    modifier = Modifier.weight(1f),
-                )
-                ThemePreview(
-                    mode = ThemeMode.SYSTEM,
-                    selected = selected == ThemeMode.SYSTEM,
-                    label = stringResource(Res.string.settings_theme_mode_system),
-                    onClick = { onSelect(ThemeMode.SYSTEM) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            ThemePreview(
+                mode = ThemeMode.SYSTEM,
+                selected = selected == ThemeMode.SYSTEM,
+                label = stringResource(Res.string.settings_theme_mode_system),
+                onClick = { onSelect(ThemeMode.SYSTEM) },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -691,8 +841,53 @@ private fun ThemePreview(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageDropdownRow(
+    label: String,
+    description: String,
+    options: Map<String, String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        PapListItem(
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            leading = { PapIconTile(icon = Icons.Rounded.Language) },
+            title = label,
+            subtitleSlot = {
+                Text(description, style = PaparcarType.current.caption, color = settingsSubtitleColor())
+                Spacer(Modifier.size(6.dp))
+                Text(
+                    text = options[selected] ?: selected,
+                    style = PaparcarType.current.caption,
+                    color = cs.primary,
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            trailing = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            options.forEach { (tag, displayName) ->
+                DropdownMenuItem(
+                    text = { Text(displayName) },
+                    onClick = { onSelect(tag); expanded = false },
+                    leadingIcon = if (tag == selected) {
+                        { Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp)) }
+                    } else null,
+                )
+            }
+        }
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Notifications group card — master + sub
+// Notifications group card — master + subs
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -701,38 +896,19 @@ private fun NotificationsGroupCard(
     onMasterChange: (Boolean) -> Unit,
     parkingOn: Boolean,
     onParkingChange: (Boolean) -> Unit,
+    parkingEnabled: Boolean,
     spotOn: Boolean,
     onSpotChange: (Boolean) -> Unit,
 ) {
-    val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = outlineSubtle,
-    ) {
+    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                PapIconTile(icon = Icons.Rounded.Notifications)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        stringResource(Res.string.settings_notifications_title),
-                        style = PaparcarType.current.body,
-                        fontWeight = FontWeight.SemiBold,
-                        color = cs.onSurface,
-                    )
-                    Text(
-                        stringResource(Res.string.settings_notifications_subtitle),
-                        style = PaparcarType.current.caption,
-                        color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG),
-                    )
-                }
-                Switch(checked = masterOn, onCheckedChange = onMasterChange)
-            }
+            PapListItem(
+                leading = { PapIconTile(icon = Icons.Rounded.Notifications) },
+                title = stringResource(Res.string.settings_notifications_title),
+                subtitle = stringResource(Res.string.settings_notifications_subtitle),
+                subtitleColor = settingsSubtitleColor(),
+                trailing = { Switch(checked = masterOn, onCheckedChange = onMasterChange) },
+            )
             // Accordion: sub-toggles grow/collapse from the top edge under the master
             // switch instead of snapping in. [MOTION-POLISH-001]
             AnimatedVisibility(
@@ -747,6 +923,8 @@ private fun NotificationsGroupCard(
                         description = stringResource(Res.string.settings_notif_parking_desc),
                         checked = parkingOn,
                         onCheckedChange = onParkingChange,
+                        // "Parking detected" is produced by auto-detection — dim + lock while OFF.
+                        enabled = parkingEnabled,
                     )
                     PapDivider()
                     SubNotifRow(
@@ -767,8 +945,10 @@ private fun SubNotifRow(
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
 ) {
     val cs = MaterialTheme.colorScheme
+    val contentAlpha = if (enabled) 1f else DISABLED_ROW_ALPHA
     Row(
         modifier = Modifier.padding(start = SUB_NOTIF_INDENT_DP.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -778,15 +958,15 @@ private fun SubNotifRow(
                 label,
                 style = PaparcarType.current.caption,
                 fontWeight = FontWeight.SemiBold,
-                color = cs.onSurface,
+                color = cs.onSurface.copy(alpha = contentAlpha),
             )
             Text(
                 description,
                 style = PaparcarType.current.label,
-                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG),
+                color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG * contentAlpha),
             )
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked && enabled, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
 
@@ -850,133 +1030,67 @@ private fun DangerZoneCard(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reused primitives — switch, info, nav, dropdown, icon box
+// Reused row primitives — built on PapListItem (no own container; stack in a card)
+// [UI-LIST-ITEM-001] · grouped one card per section [SETTINGS-REMODEL-001]
 // ─────────────────────────────────────────────────────────────────────────────
 
-// All Settings rows share the leading+title+subtitle+trailing anatomy → PapOutlinedCard +
-// PapListItem + PapIconTile. Only the trailing element differs. [UI-LIST-ITEM-001]
-
 @Composable
-private fun SettingsSwitchItem(
+private fun SwitchRow(
     icon: ImageVector,
     label: String,
     description: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        PapListItem(
-            title = label,
-            subtitle = description,
-            subtitleColor = settingsSubtitleColor(),
-            leading = { PapIconTile(icon = icon) },
-            trailing = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
-        )
-    }
+    PapListItem(
+        leading = { PapIconTile(icon = icon) },
+        title = label,
+        subtitle = description,
+        subtitleColor = settingsSubtitleColor(),
+        trailing = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
+    )
 }
 
 @Composable
-private fun SettingsInfoItem(icon: ImageVector, label: String, value: String) {
-    val cs = MaterialTheme.colorScheme
-    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
-        PapListItem(
-            title = label,
-            leading = { PapIconTile(icon = icon) },
-            trailing = {
-                Text(value, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
-            },
-        )
-    }
+private fun InfoRow(icon: ImageVector, label: String, value: String) {
+    PapListItem(
+        leading = { PapIconTile(icon = icon) },
+        title = label,
+        trailing = {
+            Text(value, style = PaparcarType.current.caption, color = settingsSubtitleColor())
+        },
+    )
 }
 
 @Composable
-private fun SettingsNavItem(
+private fun NavRow(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
     description: String? = null,
 ) {
     val cs = MaterialTheme.colorScheme
-    PapOutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        PapListItem(
-            title = label,
-            subtitle = description,
-            subtitleColor = settingsSubtitleColor(),
-            leading = { PapIconTile(icon = icon) },
-            trailing = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = cs.onSurface.copy(alpha = CHEVRON_DIM_ALPHA),
-                    modifier = Modifier.size(20.dp),
-                )
-            },
-        )
-    }
+    PapListItem(
+        modifier = Modifier.clickable(onClick = onClick),
+        leading = { PapIconTile(icon = icon) },
+        title = label,
+        subtitle = description,
+        subtitleColor = settingsSubtitleColor(),
+        trailing = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = cs.onSurface.copy(alpha = CHEVRON_DIM_ALPHA),
+                modifier = Modifier.size(20.dp),
+            )
+        },
+    )
 }
 
 /** The muted subtitle tone shared by the Settings rows (onSurface @ 0.5). */
 @Composable
 private fun settingsSubtitleColor(): Color =
     MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SettingsDropdownItem(
-    icon: ImageVector,
-    label: String,
-    description: String,
-    options: Map<String, String>,
-    selected: String,
-    onSelect: (String) -> Unit,
-) {
-    val cs = MaterialTheme.colorScheme
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = outlineSubtle,
-    ) {
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-            Row(
-                modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                PapIconTile(icon = icon)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
-                    Text(description, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
-                    Spacer(Modifier.size(6.dp))
-                    Text(
-                        text = options[selected] ?: selected,
-                        style = PaparcarType.current.caption,
-                        color = cs.primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-            }
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                options.forEach { (tag, displayName) ->
-                    DropdownMenuItem(
-                        text = { Text(displayName) },
-                        onClick = { onSelect(tag); expanded = false },
-                        leadingIcon = if (tag == selected) {
-                            { Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.primary, modifier = Modifier.size(18.dp)) }
-                        } else null,
-                    )
-                }
-            }
-        }
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tokens
@@ -986,17 +1100,14 @@ private const val AVATAR_DP = 56
 
 private const val THEME_PREVIEW_RATIO = 0.85f
 
-/** Row-icon container size — homogeneous across every Settings row. */
-private const val ICON_BOX_DP = 40
-
 /** Sub-notification rows align their text with the parent row's text column:
- *  16 (card padding) + 40 (icon box) + 14 (row gap). */
-private const val SUB_NOTIF_INDENT_DP = 16 + ICON_BOX_DP + 14
+ *  16 (card padding) + 40 (PapIconTile default) + 14 (row gap). */
+private const val SUB_NOTIF_INDENT_DP = 16 + 40 + 14
 
-private const val SECTION_LABEL_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA = 0.55f
 private const val SUBTITLE_ALPHA_STRONG = 0.5f
 private const val CHEVRON_DIM_ALPHA = 0.3f
+private const val DISABLED_ROW_ALPHA = 0.38f
 private const val DANGER_BG_ALPHA = 0.15f
 private const val DANGER_BORDER_ALPHA = 0.7f
 private const val DANGER_SUBTITLE_ALPHA = 0.6f
@@ -1007,4 +1118,3 @@ private val THEME_LIGHT_BG = PapSurfaceLight   // light page background (#F0F4FB
 private val THEME_LIGHT_SURFACE = PapCardLight // light card surface (#FFFFFF)
 private val THEME_DARK_BG = PapInk             // dark app base (#0D1117)
 private val THEME_DARK_SURFACE = PapInkHigh    // dark card surface (#1A2232)
-
