@@ -5,20 +5,26 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.util.haversineMeters
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 
+/** One emission of the nearby-spots subscription: fresh data, or a stream error (recovered to empty). */
+sealed interface SpotsUpdate {
+    data class Data(val spots: List<Spot>) : SpotsUpdate
+    /** The spots stream failed — the VM surfaces it as a snackbar effect. A [Data] (empty) follows. */
+    data class Error(val message: String) : SpotsUpdate
+}
+
 /**
- * Owns the nearby-spots subscription and the query centre that drives it.
+ * Self-contained owner of the nearby-spots subscription and the query centre that drives it.
  *
  * The subscription depends ONLY on (CORE permission, query centre) — deliberately NOT on the
  * connectivity reconnect tick: the Firestore listener inside [ObserveNearbySpotsUseCase] auto-reconnects
@@ -26,50 +32,39 @@ import kotlin.time.Clock
  * tears this subscription down. When the centre is null (no permission) an empty list flows down the
  * SAME pipe instead of a side state write, so the VM's single sink owns every state update. [SPOT-FLICKER-001]
  *
- * Like [HomeGeocodingController] the controller is presentation-layer-agnostic (no [HomeState], no
- * [HomeViewModel]): the freshly-fetched spots flow out through [onSpots] and the VM applies them (and
- * prunes the selection) in one place; errors flow out through [onError].
+ * Built by Koin with its own collaborators and exposed as a **cold** [updates] flow the ViewModel
+ * collects (applying `applyNewSpots`, which also prunes the selection — that logic reads
+ * `activeSessions`/`selectedItemId` so it stays in the VM). Commands ([updateQueryCenter], [recenter],
+ * [maybeRecenterOnPan]) mutate the internal query centre.
  */
 @OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
 class HomeSpotsController(
-    private val scope: CoroutineScope,
     private val permissionManager: PermissionManager,
     private val observeNearbySpots: ObserveNearbySpotsUseCase,
-    private val onSpots: (List<Spot>) -> Unit,
-    private val onError: (message: String) -> Unit,
 ) {
 
     // Centre used for spot queries. Seeded from GPS on first fix; updated when the
     // user pans the map past SPOT_CAMERA_PAN_THRESHOLD_METERS in Browse mode.
     private val spotQueryCenter = MutableStateFlow<GpsPoint?>(null)
 
-    /** Launches the nearby-spots subscription on [scope]. Call once from the VM's init. */
-    fun start() {
-        // Depends ONLY on (CORE permission, query centre). No reconnectTick: the
-        // Firestore listener inside observeNearbySpots auto-reconnects, and the
-        // centre is already fed by the GPS stream (which owns its own reconnect),
-        // so a connectivity flap never tears this subscription down. When the
-        // centre is null (no permission), we emit an empty list down the SAME
-        // pipe instead of mutating state inside the transform — one sink,
-        // applyNewSpots, owns every state write. [SPOT-FLICKER-001]
+    /** Cold flow of nearby-spot updates for the current (permission-gated, deduped) query centre. */
+    val updates: Flow<SpotsUpdate> =
         combine(permissionManager.permissionState, spotQueryCenter) { perm, center ->
             if (perm.hasCorePermissions) center else null
         }
             .distinctUntilChanged { old, new -> old.closeEnoughTo(new) }
             .flatMapLatest { center ->
                 if (center == null) {
-                    flowOf(emptyList())
+                    flowOf<SpotsUpdate>(SpotsUpdate.Data(emptyList()))
                 } else {
                     observeNearbySpots(center, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
+                        .map<List<Spot>, SpotsUpdate> { spots -> SpotsUpdate.Data(spots) }
                         .catch { e ->
-                            onError(e.message ?: "")
-                            emit(emptyList())
+                            emit(SpotsUpdate.Error(e.message ?: ""))
+                            emit(SpotsUpdate.Data(emptyList()))
                         }
                 }
             }
-            .onEach { spots -> onSpots(spots) }
-            .launchIn(scope)
-    }
 
     /** Keeps the query centre glued to GPS while the user hasn't panned away. */
     fun updateQueryCenter(gps: GpsPoint) {

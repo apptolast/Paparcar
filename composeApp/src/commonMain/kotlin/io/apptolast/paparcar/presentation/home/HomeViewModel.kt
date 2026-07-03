@@ -16,19 +16,15 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
-import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
-import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
-import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
-import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
@@ -62,7 +58,6 @@ class HomeViewModel(
     private val locationDataSource: LocationDataSource,
     private val activityRecognitionManager: ActivityRecognitionManager,
     private val connectivityObserver: ConnectivityObserver,
-    private val observeNearbySpots: ObserveNearbySpotsUseCase,
     private val observeDetectionReadiness: ObserveDetectionReadinessUseCase,
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val sendSpotSignal: SendSpotSignalUseCase,
@@ -72,8 +67,6 @@ class HomeViewModel(
     private val observeParkedVehicles: ObserveParkedVehiclesUseCase,
     private val updateParkingLocation: UpdateParkingLocationUseCase,
     private val vehicleRepository: VehicleRepository,
-    private val getAddressAndPlace: GetAddressAndPlaceUseCase,
-    private val searchAddress: SearchAddressUseCase,
     private val zoneRepository: ZoneRepository,
     private val saveZone: SaveZoneUseCase,
     private val appPreferences: AppPreferences,
@@ -81,9 +74,13 @@ class HomeViewModel(
     private val startAddParkingEventBus: StartAddParkingEventBus,
     private val notificationPort: AppNotificationManager,
     private val manualParkingDetection: ManualParkingDetection,
-    // Free OSM map-matching of the trip trail. Nullable so platforms without a road source (iOS for
-    // now) skip matching gracefully and keep the raw/smoothed trail. [ROUTE-SNAP-001]
-    private val roadNetworkDataSource: RoadNetworkDataSource? = null,
+    // Feature controllers — self-contained pipeline owners built by Koin with their own use cases
+    // (geocoding, live trip, debounced search, nearby spots). The VM only collects their update flows
+    // into state and forwards commands; see subscribeControllerUpdates(). [HOMEVM-CTRL-002]
+    private val geocoder: HomeGeocodingController,
+    private val trip: HomeTripController,
+    private val search: HomeSearchController,
+    private val spots: HomeSpotsController,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     // ── Private flows ─────────────────────────────────────────────────────────
@@ -92,84 +89,23 @@ class HomeViewModel(
     // after connectivity is restored, even if the GPS position hasn't changed.
     private val reconnectTick = MutableStateFlow(0)
 
-    // ── Geocode controller ────────────────────────────────────────────────────
-    // Encapsulates user + camera geocoding flows (debounce, Phase-2 survival
-    // semantics, in-flight flag invariants). [F3] [BUG-GEOCODE-STUCK-001]
-
-    private val geocoder = HomeGeocodingController(
-        scope = viewModelScope,
-        getAddressAndPlace = getAddressAndPlace,
-        onUserAddress = { info -> updateState { copy(userAddressAndPlace = info) } },
-        onCameraAddress = { info -> updateState { copy(cameraAddressAndPlace = info) } },
-        onCameraGeocodingChange = { active -> updateState { copy(isCameraGeocoding = active) } },
-        debounceMs = GEOCODE_DEBOUNCE_MS,
-    )
-
     private var cameraSettledJob: Job? = null
-
-    // ── Trip controller ─────────────────────────────────────────────────────────
-    // Owns the driving-puck + map-matching pipelines (own car top-down, breadcrumb trail, free OSM
-    // snap-to-roads). Reads the state slices it needs through providers and publishes results through
-    // callbacks that funnel into the single updateState sinks below — so the VM stays the one writer of
-    // state (preserving the "one sink" invariant). [MAP-ICONS-V2] [ROUTE-SNAP-001]
-
-    private val trip = HomeTripController(
-        scope = viewModelScope,
-        observeDetectionReadiness = { observeDetectionReadiness() },
-        locationDataSource = locationDataSource,
-        roadNetworkDataSource = roadNetworkDataSource,
-        vehicles = { state.value.vehicles },
-        hasCorePermissions = { state.value.hasCorePermissions },
-        currentTrail = { state.value.tripTrail },
-        currentMatchedTrail = { state.value.matchedTrail },
-        onTrip = { puck, trail, departure ->
-            updateState { copy(drivingPuck = puck, tripTrail = trail, departurePoint = departure) }
-        },
-        onMatchedTrail = { matched -> updateState { copy(matchedTrail = matched) } },
-    )
-
-    // ── Search controller ───────────────────────────────────────────────────────
-    // Owns the debounced address-search pipeline. The immediate per-keystroke writes stay in
-    // onSearchQueryChanged; this controller fires the geocoder once typing settles and funnels the
-    // loading flag + results back through callbacks.
-
-    private val search = HomeSearchController(
-        scope = viewModelScope,
-        searchAddress = searchAddress,
-        onSearching = { updateState { copy(isSearching = true) } },
-        onResults = { results -> updateState { copy(searchResults = results, isSearching = false) } },
-        onEmptyOrError = { updateState { copy(searchResults = emptyList(), isSearching = false) } },
-    )
-
-    // ── Spots controller ─────────────────────────────────────────────────────────
-    // Owns the nearby-spots subscription + query centre (GPS-fed, pan/recenter). Freshly-fetched spots
-    // funnel through onSpots into the single applyNewSpots sink (which also prunes the selection —
-    // that logic reads activeSessions/selectedItemId so it stays in the VM). [SPOT-FLICKER-001]
-
-    private val spots = HomeSpotsController(
-        scope = viewModelScope,
-        permissionManager = permissionManager,
-        observeNearbySpots = observeNearbySpots,
-        onSpots = { spots -> updateState { applyNewSpots(spots) } },
-        onError = { message -> sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(message))) },
-    )
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
         updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
+        geocoder.attach(viewModelScope)
+        subscribeControllerUpdates()
         subscribeConnectivity()
-        search.start()
         subscribeActiveSessions()
         subscribeParkedVehicles()
         subscribeZones()
         subscribeVehicles()
         subscribeGpsLocation()
-        spots.start()
         subscribeMapFocusEvents()
         subscribeStartAddParkingRequests()
         subscribeDetectionReadiness()
-        trip.start()
     }
 
     override fun initState(): HomeState = HomeState()
@@ -285,6 +221,56 @@ class HomeViewModel(
 
     // ── Subscriptions (launched in init) ─────────────────────────────────────
 
+    /**
+     * The single point where every feature controller's update flow enters [HomeState]. Controllers
+     * own their pipelines (and their use cases, via Koin); the VM stays the only writer of state —
+     * the "one sink" invariant of [SPOT-FLICKER-001] now holds for all of them by construction.
+     */
+    private fun subscribeControllerUpdates() {
+        geocoder.updates
+            .onEach { update ->
+                when (update) {
+                    is GeocodeUpdate.UserAddress -> updateState { copy(userAddressAndPlace = update.info) }
+                    is GeocodeUpdate.CameraAddress -> updateState { copy(cameraAddressAndPlace = update.info) }
+                    is GeocodeUpdate.CameraGeocoding -> updateState { copy(isCameraGeocoding = update.active) }
+                }
+            }
+            .launchIn(viewModelScope)
+
+        trip.updates
+            .onEach { update ->
+                updateState {
+                    copy(
+                        drivingPuck = update.puck,
+                        tripTrail = update.trail,
+                        matchedTrail = update.matchedTrail,
+                        departurePoint = update.departurePoint,
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+
+        search.updates
+            .onEach { update ->
+                when (update) {
+                    is SearchUpdate.Searching -> updateState { copy(isSearching = true) }
+                    is SearchUpdate.Success -> updateState { copy(searchResults = update.results, isSearching = false) }
+                    is SearchUpdate.Failure -> updateState { copy(searchResults = emptyList(), isSearching = false) }
+                }
+            }
+            .launchIn(viewModelScope)
+
+        spots.updates
+            .onEach { update ->
+                when (update) {
+                    is SpotsUpdate.Data -> updateState { applyNewSpots(update.spots) }
+                    is SpotsUpdate.Error ->
+                        sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(update.message)))
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
     private fun subscribeConnectivity() {
         var previous = connectivityObserver.status.value
         connectivityObserver.status
@@ -299,12 +285,7 @@ class HomeViewModel(
 
     private fun subscribeActiveSessions() {
         userParkingRepository.observeActiveSessions()
-            .onEach { sessions ->
-                // Remember where the car is parked so we can show it as the faded departure point once
-                // the session clears and the trip begins. [TRIP-TRAIL-001]
-                sessions.firstOrNull()?.let { trip.rememberParkingLocation(it.location) }
-                updateState { copy(activeSessions = sessions) }
-            }
+            .onEach { sessions -> updateState { copy(activeSessions = sessions) } }
             .catch { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: ""))) }
             .launchIn(viewModelScope)
     }
@@ -786,7 +767,6 @@ class HomeViewModel(
         const val TAG = "HomeViewModel"
 
         // Timing
-        const val GEOCODE_DEBOUNCE_MS = 600L
         const val CAMERA_SETTLED_MS = 280L
 
         // Map type preference strings

@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.fakes.FakeGeocoderDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -16,13 +17,13 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
- * Unit tests for [HomeSearchController] — the debounced address-search pipeline. A single
- * [StandardTestDispatcher] is shared between the controller's scope and [runTest] so the 300 ms
- * debounce can be driven deterministically with `advanceTimeBy`/`advanceUntilIdle`. The blank-filter
- * and debounce were previously untested (only the immediate per-keystroke state writes, which live in
- * the VM, had coverage).
+ * Unit tests for [HomeSearchController] — the debounced address-search pipeline, exposed as the cold
+ * [HomeSearchController.updates] flow of [SearchUpdate] lifecycle events. A [StandardTestDispatcher]
+ * shared between the collector and [runTest] drives the 300 ms debounce deterministically with
+ * `advanceTimeBy`/`advanceUntilIdle`.
  */
 class HomeSearchControllerTest {
 
@@ -32,9 +33,8 @@ class HomeSearchControllerTest {
     private val geocoder = FakeGeocoderDataSource()
     private val searchAddress = SearchAddressUseCase(geocoder)
 
-    private var searchingCallCount = 0
-    private var lastResults: List<SearchResult>? = null
-    private var emptyOrErrorCallCount = 0
+    /** Every emission of the collected updates flow, in order. */
+    private val received = mutableListOf<SearchUpdate>()
 
     @BeforeTest
     fun setUp() {
@@ -46,44 +46,40 @@ class HomeSearchControllerTest {
         scope.cancel()
     }
 
-    private fun buildController() = HomeSearchController(
-        scope = scope,
-        searchAddress = searchAddress,
-        onSearching = { searchingCallCount++ },
-        onResults = { results -> lastResults = results },
-        onEmptyOrError = { emptyOrErrorCallCount++ },
-    ).also { it.start() }
+    private fun startController(): HomeSearchController {
+        val controller = HomeSearchController(searchAddress)
+        scope.launch { controller.updates.collect { received.add(it) } }
+        return controller
+    }
 
     @Test
-    fun `should_emit_results_after_the_debounce_for_a_valid_query`() = runTest(testDispatcher) {
+    fun `should_emit_searching_then_results_after_the_debounce_for_a_valid_query`() = runTest(testDispatcher) {
         val expected = listOf(SearchResult("Madrid", 40.0, -3.0))
         geocoder.searchResults = Result.success(expected)
-        val controller = buildController()
+        val controller = startController()
 
         controller.onQueryChanged("Madrid")
         advanceUntilIdle()
 
-        assertEquals(1, searchingCallCount)
-        assertEquals(expected, lastResults)
+        assertEquals(listOf(SearchUpdate.Searching, SearchUpdate.Success(expected)), received)
         assertEquals("Madrid", geocoder.lastSearchQuery)
     }
 
     @Test
     fun `should_ignore_blank_queries`() = runTest(testDispatcher) {
-        val controller = buildController()
+        val controller = startController()
 
         controller.onQueryChanged("   ")
         advanceUntilIdle()
 
-        assertEquals(0, searchingCallCount)
-        assertNull(lastResults)
+        assertTrue(received.isEmpty())
         assertNull(geocoder.lastSearchQuery)
     }
 
     @Test
     fun `should_debounce_rapid_typing_and_only_search_the_final_query`() = runTest(testDispatcher) {
         geocoder.searchResults = Result.success(emptyList())
-        val controller = buildController()
+        val controller = startController()
 
         controller.onQueryChanged("M")
         advanceTimeBy(100)
@@ -92,21 +88,19 @@ class HomeSearchControllerTest {
         controller.onQueryChanged("Mad")
         advanceUntilIdle()
 
-        // Only the last query survives the debounce → a single search.
-        assertEquals(1, searchingCallCount)
+        // Only the last query survives the debounce → a single search lifecycle.
+        assertEquals(1, received.count { it is SearchUpdate.Searching })
         assertEquals("Mad", geocoder.lastSearchQuery)
     }
 
     @Test
-    fun `should_report_empty_on_a_search_failure`() = runTest(testDispatcher) {
+    fun `should_emit_failure_on_a_search_error`() = runTest(testDispatcher) {
         geocoder.searchResults = Result.failure(RuntimeException("network down"))
-        val controller = buildController()
+        val controller = startController()
 
         controller.onQueryChanged("Madrid")
         advanceUntilIdle()
 
-        assertEquals(1, searchingCallCount)
-        assertEquals(1, emptyOrErrorCallCount)
-        assertNull(lastResults)
+        assertEquals(listOf(SearchUpdate.Searching, SearchUpdate.Failure), received)
     }
 }
