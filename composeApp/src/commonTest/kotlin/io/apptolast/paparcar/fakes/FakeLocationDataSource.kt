@@ -23,4 +23,5 @@ class FakeLocationDataSource : LocationDataSource {
 
     suspend fun emitBalanced(point: GpsPoint) = _balanced.emit(point)
     suspend fun emitHighAccuracy(point: GpsPoint) = _highAccuracy.emit(point)
+    suspend fun emitUi(location: UserLocationUi) = _uiLocation.emit(location)
 }

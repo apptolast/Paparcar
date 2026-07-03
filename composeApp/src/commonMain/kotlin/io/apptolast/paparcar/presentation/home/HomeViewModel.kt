@@ -5,24 +5,18 @@ import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
-import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
 import io.apptolast.paparcar.domain.error.PaparcarError
-import io.apptolast.paparcar.domain.detection.ParkingStrategy
 import io.apptolast.paparcar.domain.location.LocationDataSource
-import io.apptolast.paparcar.domain.location.UserLocationUi
 import io.apptolast.paparcar.domain.model.DetectionReadiness
-import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
-import io.apptolast.paparcar.domain.matching.TrailMapMatcher
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
-import io.apptolast.paparcar.domain.places.RoadWay
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -48,10 +42,8 @@ import io.apptolast.paparcar.presentation.home.model.isDetectionWorking
 import io.apptolast.paparcar.presentation.home.model.toUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -127,21 +119,26 @@ class HomeViewModel(
 
     private var cameraSettledJob: Job? = null
 
-    // Last parking location seen while a session was active — reused as the faded "departure point"
-    // once the car leaves and a trip starts (the session is already gone by then). [TRIP-TRAIL-001]
-    private var lastParkingLocation: GpsPoint? = null
+    // ── Trip controller ─────────────────────────────────────────────────────────
+    // Owns the driving-puck + map-matching pipelines (own car top-down, breadcrumb trail, free OSM
+    // snap-to-roads). Reads the state slices it needs through providers and publishes results through
+    // callbacks that funnel into the single updateState sinks below — so the VM stays the one writer of
+    // state (preserving the "one sink" invariant). [MAP-ICONS-V2] [ROUTE-SNAP-001]
 
-    // Last GPS fix seen while the trip was in the Driving phase — the spot the car stopped at. Used to
-    // freeze the driving puck in place during the Candidate phase (user walking away from the car) and
-    // reset when the trip ends. [DET-PHASE-001]
-    private var lastDrivingLocation: UserLocationUi? = null
-
-    // ── Map-matching (free OSM snap-to-roads) ───────────────────────────────────
-    // The origin + raw trail fed to the matcher; debounced so we snap off the hot path. Roads are
-    // cached per trip bbox so a growing trip only refetches when it leaves the cached area. [ROUTE-SNAP-001]
-    private val trailForMatching = MutableStateFlow<List<GpsPoint>>(emptyList())
-    private var cachedRoads: List<RoadWay> = emptyList()
-    private var cachedRoadsBbox: Bbox? = null
+    private val trip = HomeTripController(
+        scope = viewModelScope,
+        observeDetectionReadiness = { observeDetectionReadiness() },
+        locationDataSource = locationDataSource,
+        roadNetworkDataSource = roadNetworkDataSource,
+        vehicles = { state.value.vehicles },
+        hasCorePermissions = { state.value.hasCorePermissions },
+        currentTrail = { state.value.tripTrail },
+        currentMatchedTrail = { state.value.matchedTrail },
+        onTrip = { puck, trail, departure ->
+            updateState { copy(drivingPuck = puck, tripTrail = trail, departurePoint = departure) }
+        },
+        onMatchedTrail = { matched -> updateState { copy(matchedTrail = matched) } },
+    )
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -158,8 +155,7 @@ class HomeViewModel(
         subscribeMapFocusEvents()
         subscribeStartAddParkingRequests()
         subscribeDetectionReadiness()
-        subscribeDrivingPuck()
-        subscribeMapMatching()
+        trip.start()
     }
 
     override fun initState(): HomeState = HomeState()
@@ -307,7 +303,7 @@ class HomeViewModel(
             .onEach { sessions ->
                 // Remember where the car is parked so we can show it as the faded departure point once
                 // the session clears and the trip begins. [TRIP-TRAIL-001]
-                sessions.firstOrNull()?.let { lastParkingLocation = it.location }
+                sessions.firstOrNull()?.let { trip.rememberParkingLocation(it.location) }
                 updateState { copy(activeSessions = sessions) }
             }
             .catch { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: ""))) }
@@ -424,152 +420,6 @@ class HomeViewModel(
             }
             .launchIn(viewModelScope)
     }
-
-    /**
-     * Drives the live driving puck (own car, top-down, heading-rotated) — only while detection is
-     * actively monitoring a trip. Subscribes the heading-aware high-accuracy stream just for that
-     * window (battery-bounded), tagging it with the active vehicle's body shape. Null otherwise →
-     * the map falls back to the native location dot. [MAP-ICONS-V2]
-     */
-    private fun subscribeDrivingPuck() {
-        observeDetectionReadiness()
-            .map { it as? DetectionReadiness.Monitoring }
-            .distinctUntilChanged()
-            .flatMapLatest { monitoring ->
-                if (monitoring != null && state.value.hasCorePermissions) {
-                    locationDataSource.observeUiLocation().map { monitoring to it }
-                } else {
-                    flowOf<Pair<DetectionReadiness.Monitoring, UserLocationUi>?>(null)
-                }
-            }
-            .onEach { pair ->
-                val puck = pair?.let { (monitoring, loc) ->
-                    // Prefer the vehicle that actually departed (resolved by the service from the
-                    // geofence-exit session, carried on Monitoring) over the "active vehicle" guess,
-                    // so the puck shows the right car after the user switches active vehicles.
-                    // [DEPART-CONSISTENCY-001]
-                    val vehicle = monitoring.departingVehicleId
-                        ?.let { vid -> state.value.vehicles.firstOrNull { it.id == vid } }
-                        ?: monitoredVehicle(state.value.vehicles, monitoring.strategy)
-                    // In the Candidate phase the user has stopped and is walking away from the car, so
-                    // the puck must STAY at the spot the car stopped — not chase the pedestrian's GPS.
-                    // Freeze it at the last driving fix; if the stop turns out NOT to be a park (the
-                    // detector reverts to Driving), live tracking resumes from the current fix. [DET-PHASE-001]
-                    val isCandidate = monitoring.phase == DetectionPhase.Candidate
-                    val anchor = if (isCandidate) {
-                        lastDrivingLocation ?: loc
-                    } else {
-                        loc.also { lastDrivingLocation = it }
-                    }
-                    DrivingPuck(
-                        latitude = anchor.latitude,
-                        longitude = anchor.longitude,
-                        bearingDegrees = anchor.bearingDegrees,
-                        accuracy = anchor.accuracy,
-                        carbodyType = vehicle?.carbodyType,
-                        sizeCategory = vehicle?.sizeCategory,
-                        color = vehicle?.color,
-                        vehicleId = vehicle?.id,
-                        phase = monitoring.phase,
-                    )
-                }
-                if (puck == null) {
-                    // Trip ended — drop the live trail, the matched trail and the departure marker.
-                    lastDrivingLocation = null
-                    trailForMatching.value = emptyList()
-                    cachedRoads = emptyList()
-                    cachedRoadsBbox = null
-                    updateState { copy(drivingPuck = null, tripTrail = emptyList(), matchedTrail = emptyList(), departurePoint = null) }
-                } else {
-                    // Extend the breadcrumb only while driving — a frozen car (Candidate) contributes no
-                    // new points, so the pedestrian walk is never drawn as the car's route. Anchor the
-                    // origin dot to the departing vehicle's spot: prefer the service-resolved departure
-                    // point (on Monitoring), fall back to the last seen parking location. [DEPART-CONSISTENCY-001]
-                    val newTrail = if (puck.phase == DetectionPhase.Candidate) {
-                        state.value.tripTrail
-                    } else {
-                        TripTrail.append(state.value.tripTrail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
-                    }
-                    val depart = pair.first.departurePoint ?: lastParkingLocation
-                    // Feed the matcher the origin + trail so the snapped line starts at the parking
-                    // spot (also fixes the straight parking→first-fix chord). [ROUTE-SNAP-001]
-                    trailForMatching.value = (listOfNotNull(depart) + newTrail)
-                    updateState { copy(drivingPuck = puck, tripTrail = newTrail, departurePoint = depart) }
-                }
-            }
-            .launchIn(viewModelScope)
-    }
-
-    /**
-     * Snaps the live trail onto OSM streets for free (Overpass map-matching) so the polyline follows
-     * the road instead of cutting across blocks from GPS drift. Roads are fetched once per trip bbox
-     * (refetched only when the trip leaves the cached area) and the snap runs debounced off the main
-     * thread. Any failure leaves [HomeState.matchedTrail] empty → the map keeps the raw/smoothed trail.
-     * No-op when no road source is wired (e.g. iOS). [ROUTE-SNAP-001]
-     */
-    private fun subscribeMapMatching() {
-        val roadSource = roadNetworkDataSource ?: return
-        trailForMatching
-            .debounce(MAP_MATCH_DEBOUNCE_MS)
-            .onEach { trail ->
-                if (trail.size < MIN_MATCH_POINTS) {
-                    if (state.value.matchedTrail.isNotEmpty()) updateState { copy(matchedTrail = emptyList()) }
-                    return@onEach
-                }
-                val tight = boundingBox(trail, 0.0)
-                if (cachedRoadsBbox?.contains(tight) != true) {
-                    val fetch = boundingBox(trail, ROADS_FETCH_MARGIN_DEG)
-                    roadSource.getRoads(fetch.minLat, fetch.minLon, fetch.maxLat, fetch.maxLon)
-                        .onSuccess { roads ->
-                            if (roads.isNotEmpty()) {
-                                cachedRoads = roads
-                                cachedRoadsBbox = fetch
-                            }
-                        }
-                        .onFailure { e -> PaparcarLogger.w(TAG, "road fetch failed — keeping raw trail", e) }
-                }
-                if (cachedRoads.isEmpty()) {
-                    PaparcarLogger.d(TAG, "map-match: no roads for bbox — keeping raw trail")
-                    return@onEach
-                }
-                val matched = withContext(Dispatchers.Default) { TrailMapMatcher.snap(trail, cachedRoads) }
-                PaparcarLogger.d(TAG, "map-match: ${trail.size} pts → ${matched.size} snapped, roads=${cachedRoads.size} ways")
-                updateState { copy(matchedTrail = matched) }
-            }
-            .catch { e -> PaparcarLogger.w(TAG, "map-matching error", e) }
-            .launchIn(viewModelScope)
-    }
-
-    /** Lat/lon bounding box of [points] padded by [marginDeg] degrees on every side. */
-    private fun boundingBox(points: List<GpsPoint>, marginDeg: Double): Bbox {
-        val lats = points.map { it.latitude }
-        val lons = points.map { it.longitude }
-        return Bbox(
-            minLat = lats.min() - marginDeg,
-            minLon = lons.min() - marginDeg,
-            maxLat = lats.max() + marginDeg,
-            maxLon = lons.max() + marginDeg,
-        )
-    }
-
-    private data class Bbox(val minLat: Double, val minLon: Double, val maxLat: Double, val maxLon: Double) {
-        fun contains(o: Bbox): Boolean =
-            o.minLat >= minLat && o.minLon >= minLon && o.maxLat <= maxLat && o.maxLon <= maxLon
-    }
-
-    /**
-     * The vehicle the active detection strategy is following — so the puck shows the right car.
-     * Under [ParkingStrategy.BLUETOOTH] that's the BT-paired vehicle (detected regardless of which
-     * is primary), otherwise the primary/active one. Mirrors [ParkingStrategyResolver.strategyFor].
-     * [MAP-ICONS-V2]
-     */
-    private fun monitoredVehicle(vehicles: List<Vehicle>, strategy: ParkingStrategy): Vehicle? =
-        when (strategy) {
-            ParkingStrategy.BLUETOOTH ->
-                vehicles.firstOrNull { it.bluetoothDeviceId != null } ?: vehicles.firstOrNull { it.isActive }
-            else ->
-                vehicles.firstOrNull { it.isActive } ?: vehicles.firstOrNull()
-        }
 
     private fun subscribeNearbySpots() {
         // Depends ONLY on (CORE permission, query centre). No reconnectTick: the
@@ -995,11 +845,6 @@ class HomeViewModel(
         const val SEARCH_DEBOUNCE_MS = 300L
         const val GEOCODE_DEBOUNCE_MS = 600L
         const val CAMERA_SETTLED_MS = 280L
-        // Map-matching: debounce the snap so a growing trail doesn't re-match every fix; min points to
-        // bother snapping; how much to pad the road-fetch bbox so a growing trip rarely refetches.
-        const val MAP_MATCH_DEBOUNCE_MS = 2500L
-        const val MIN_MATCH_POINTS = 3
-        const val ROADS_FETCH_MARGIN_DEG = 0.004 // ~400 m around the trip bbox [ROUTE-SNAP-001]
 
         // Distance thresholds
         // Both at 300m so GPS drift alone never triggers a Firestore reconnect —
