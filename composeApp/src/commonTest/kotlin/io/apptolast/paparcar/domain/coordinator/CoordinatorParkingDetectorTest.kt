@@ -673,6 +673,73 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-G-05: unverified exits stay guarded; a late departure verdict upgrades
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_confirm_when_late_departure_verdict_upgrades_an_unverified_session() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-G-05] A GEOFENCE_EXIT with no vehicle evidence at arm time arms WITHOUT the
+            // seed. When DepartureDetectionWorker later confirms the departure (AR ENTER delivers
+            // up to ~2 min late), notifyDepartureConfirmed() seeds the RUNNING session so the
+            // steps+egress path can still confirm the short-hop park.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) } // unverified: no seed
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 2.8f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            assertFalse(env.coordinator.hasDetectedMovement, "sanity: unverified session starts guarded")
+
+            // The sibling departure pipeline confirms mid-session.
+            env.coordinator.notifyDepartureConfirmed()
+            assertTrue(
+                env.coordinator.hasDetectedMovement,
+                "a confirmed departure verdict must seed the running session [DET-G-05]",
+            )
+
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "upgraded session must confirm the park via steps+egress [DET-G-05]",
+            )
+        }
+
+    @Test
+    fun should_ignore_departure_verdict_between_sessions() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-G-05] A verdict landing with no session running must not leak a seed into the
+            // NEXT session — the walking-exit protection would silently vanish.
+            val env = setup()
+            env.coordinator.notifyDepartureConfirmed() // no session → no-op
+
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 2.8f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            assertFalse(
+                env.coordinator.hasDetectedMovement,
+                "a between-sessions verdict must not seed the next session [DET-G-05]",
+            )
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "walking burst must still abort when the verdict predates the session [DET-G-05]",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // BUG-OPPO-LATE-CONFIRM: EXIT + 8 steps → confirm without waiting for STILL
     // ─────────────────────────────────────────────────────────────────────────
 

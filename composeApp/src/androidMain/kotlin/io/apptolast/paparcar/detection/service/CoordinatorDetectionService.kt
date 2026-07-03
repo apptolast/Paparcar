@@ -33,9 +33,11 @@ import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.detection.ShouldArmFromVehicleEnterUseCase
 import io.apptolast.paparcar.domain.usecase.detection.VehicleEnterArmDecision
 import io.apptolast.paparcar.domain.usecase.location.GetLastKnownLocationUseCase
+import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
@@ -66,6 +68,10 @@ class CoordinatorDetectionService : LifecycleService() {
     private val departureEventBus: DepartureEventBus by inject()
     private val detectionEventLogger: DetectionEventLogger by inject()
     private val geofenceService: GeofenceManager by inject() // [orphan-geofence cleanup]
+    // [DET-G-05] Pre-arm departure verification: an ACTIVE one-shot fix (speed) + the AR ENTER
+    // bus decide whether the exit has vehicle evidence before the coordinator is seeded.
+    private val verifyDepartureEvidence: VerifyDepartureEvidenceUseCase by inject()
+    private val getOneLocation: GetOneLocationUseCase by inject()
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -337,8 +343,18 @@ class CoordinatorDetectionService : LifecycleService() {
                         haversineMeters(it.latitude, it.longitude, session.location.latitude, session.location.longitude).toInt()
                     }
                     val acc = triggerLoc?.accuracy?.toInt()
-                    val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m"
-                    PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01]")
+                    // [DET-G-05] Pre-arm verification. The exit only proves the PHONE left the
+                    // radius — walking away after a real park fires it too, and an unconditionally
+                    // seeded session re-confirmed a bogus park at the pedestrian's position
+                    // (BUG-REPARK-WALK-001). Only vehicle evidence (recent AR IN_VEHICLE_ENTER or a
+                    // fix at driving speed) may arm the coordinator as a confirmed departure;
+                    // unverified exits arm with the legacy anti-walking guards active, and the
+                    // departure worker upgrades the live session if its verdict confirms later.
+                    val speedKmh = runCatching { getOneLocation() }.getOrNull()?.speed?.times(3.6f)
+                    val departureVerified = verifyDepartureEvidence(exitTimestampMs = now, currentSpeedKmh = speedKmh)
+                    val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m " +
+                        "dep=${if (departureVerified) "verified" else "unverified"}"
+                    PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01][DET-G-05]")
                     cancelDetectionJob()
                     // Anchor the trip to the departing vehicle's exact session so Home's origin dot +
                     // puck bind to the car that actually left. [DEPART-CONSISTENCY-001]
@@ -346,6 +362,7 @@ class CoordinatorDetectionService : LifecycleService() {
                         DetectionTrigger.GEOFENCE_EXIT,
                         detail,
                         trip = TripContext(session.location, session.vehicleId),
+                        departureVerified = departureVerified,
                     )
                 }
                 ParkingStrategy.BLUETOOTH, ParkingStrategy.NONE -> {
@@ -445,6 +462,9 @@ class CoordinatorDetectionService : LifecycleService() {
         trigger: DetectionTrigger,
         detail: String? = null,
         trip: TripContext? = null,
+        /** [DET-G-05] Only meaningful for GEOFENCE_EXIT: `true` when the exit carried vehicle
+         *  evidence (recent AR ENTER or driving-speed fix) and may seed the coordinator. */
+        departureVerified: Boolean = false,
     ) {
         logArmTrigger(trigger, detail)
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
@@ -485,9 +505,14 @@ class CoordinatorDetectionService : LifecycleService() {
                 // happened. MANUAL / AR_PROXIMITY arm BEFORE the trip, so their stream captures the
                 // speed naturally and must keep the guard (a premature "I'm driving" tap, or an AR
                 // bus/taxi ENTER, can be spurious).
+                // [DET-G-05] …but only when the exit was VERIFIED as a departure: the phone leaving
+                // the radius on foot fires the same exit, and an unconditional seed let walking
+                // re-confirm a bogus park (BUG-REPARK-WALK-001). Unverified exits run with the
+                // legacy guards; DepartureDetectionWorker upgrades the live session on late evidence.
                 parkingDetectionCoordinator(
                     observeAdaptiveLocation(),
-                    armedByConfirmedDeparture = trigger == DetectionTrigger.GEOFENCE_EXIT,
+                    armedByConfirmedDeparture =
+                        trigger == DetectionTrigger.GEOFENCE_EXIT && departureVerified,
                 )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
             } catch (e: CancellationException) {

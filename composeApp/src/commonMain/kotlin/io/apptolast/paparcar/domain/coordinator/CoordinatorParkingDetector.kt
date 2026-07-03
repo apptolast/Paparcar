@@ -231,6 +231,21 @@ class CoordinatorParkingDetector(
      */
     val hasDetectedMovement: Boolean get() = _detectionState.value.hasEverReachedDrivingSpeed
 
+    /**
+     * [DET-G-05] Live upgrade from the sibling departure pipeline: `DepartureDetectionWorker`
+     * confirmed the geofence exit was a real drive-away AFTER this session was armed unverified
+     * (no vehicle evidence at arm time — AR ENTER can take up to ~2 min to deliver). Seeds
+     * [ParkingDetectionState.hasEverReachedDrivingSpeed] on the RUNNING session so the confirm
+     * paths unlock — same effect as arming with `armedByConfirmedDeparture=true`, but only once
+     * the evidence actually arrived. No-ops between sessions and when already seeded.
+     */
+    fun notifyDepartureConfirmed() {
+        if (currentSessionId == null) return
+        if (_detectionState.value.hasEverReachedDrivingSpeed) return
+        _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
+        PaparcarLogger.d(DIAG, "  ✓ departure confirmed post-arm → seed hasEverReachedDrivingSpeed=true [DET-G-05]")
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
     // ─────────────────────────────────────────────────────────────────────────

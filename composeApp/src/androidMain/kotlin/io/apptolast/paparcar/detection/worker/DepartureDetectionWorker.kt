@@ -9,6 +9,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DepartureDecision
@@ -35,6 +36,7 @@ class DepartureDetectionWorker(
     private val processConfirmedDeparture: ProcessConfirmedDepartureUseCase by inject()
     private val getOneLocation: GetOneLocationUseCase by inject()
     private val departureEventBus: DepartureEventBus by inject()
+    private val coordinator: CoordinatorParkingDetector by inject() // [DET-G-05]
 
     override suspend fun doWork(): Result {
         val geofenceId = inputData.getString(KEY_GEOFENCE_ID)
@@ -63,6 +65,11 @@ class DepartureDetectionWorker(
         if (decision == DepartureDecision.Inconclusive && departureEventBus.lastVehicleEnteredAt == null) {
             return Result.success()
         }
+
+        // [DET-G-05] The departure is confirmed. If the GEOFENCE_EXIT armed the coordinator
+        // UNVERIFIED (no vehicle evidence at arm time — AR ENTER delivers up to ~2 min late),
+        // upgrade the live session so its confirm paths unlock: the drive provably happened.
+        coordinator.notifyDepartureConfirmed()
 
         return processConfirmedDeparture(geofenceId)
             .fold(

@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCa
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
+import io.apptolast.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
@@ -82,6 +83,7 @@ val domainModule = module {
             config = get(),
         )
     }
+    factory { VerifyDepartureEvidenceUseCase(departureEventBus = get(), config = get()) } // [DET-G-05]
     factory {
         ConfirmParkingUseCase(
             userParkingRepository = get(),
