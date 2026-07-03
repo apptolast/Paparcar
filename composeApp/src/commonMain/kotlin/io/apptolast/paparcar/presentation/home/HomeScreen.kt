@@ -627,7 +627,6 @@ private fun HomeContent(
                 // rememberUpdatedState wrappers for floats that change when geometry
                 // changes — used by lambdas that must be stable but always read the
                 // latest snap values at call-time rather than capture-time.
-                val currentHalfOffset = rememberUpdatedState(halfOffsetPx)
                 val currentExpandedOffset = rememberUpdatedState(expandedOffsetPx)
                 val currentMinimizedOffset = rememberUpdatedState(minimizedOffsetPx)
                 val currentUserParking = rememberUpdatedState(state.userParking)
@@ -655,28 +654,28 @@ private fun HomeContent(
 
                 // Toggles the sheet between peek and the adjacent snap. The
                 // "adjacent" snap depends on the current state:
-                //  - Browse with a list (half < peek):  peek ↔ half
-                //  - Non-Browse (half == peek, no expansion above):  peek ↔ minimized
-                // Tap-from-peek opens to the FIRST expand (half) — the same anchor the first drag-up
-                // step lands on, so a tap never overshoots to the deeper "expanded". The bigger
-                // anchor is reached by continuing to drag or by selecting an item. [SHEET-TAP-001] [HOME-SNAP-001]
+                //  - Browse with a list (expanded < peek):  peek ↔ expanded
+                //  - Non-Browse (expanded == peek, no expansion above):  peek ↔ minimized
+                // Tap-from-peek opens straight to the deeper "expanded" anchor — a tap is an
+                // explicit "show me more", so it lands on the detent that reveals the list while a
+                // slice of map stays visible. Half remains a drag-only stop. [SHEET-TAP-001] [HOME-SNAP-001]
                 val toggleSheet: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
                     {
                         coroutineScope.launch {
                             val current = sheetOffsetPx.value
                             val peek = currentPeekOffset.value
                             val minimized = currentMinimizedOffset.value
-                            val half = currentHalfOffset.value
+                            val expanded = currentExpandedOffset.value
                                 .coerceIn(currentFullSnap.value, peek)
-                            val canExpandAbovePeek = half < peek - 1f
+                            val canExpandAbovePeek = expanded < peek - 1f
                             val canCollapseBelowPeek = minimized > peek + 1f
                             val target = when {
                                 // Above peek → collapse to peek.
                                 current < peek - 1f -> peek
                                 // Below peek → expand to peek.
                                 current > peek + 1f -> peek
-                                // At peek with a half snap available → go to half (first expand).
-                                canExpandAbovePeek -> half
+                                // At peek with an expanded snap available → open it.
+                                canExpandAbovePeek -> expanded
                                 // At peek with no expansion but a minimized snap → collapse.
                                 canCollapseBelowPeek -> minimized
                                 else -> peek
