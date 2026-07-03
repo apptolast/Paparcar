@@ -258,11 +258,12 @@ internal fun HomeVehicleCard(
                         )
                         session != null -> {
                             // The address title is the long line → condensed, so "Aparcado en {calle
-                            // larga}" fits before ellipsizing. The time·distance subline is short and
-                            // stays Inter. [HOME-VEH-REFINE-001]
+                            // The wide card has room, so the address reads in Inter (body) for
+                            // legibility — condensed is reserved for the tight compact chip and the
+                            // short time·distance subline below. [UI-METRICS-POLISH-001]
                             Text(
                                 text = parkedTitle(session),
-                                style = PaparcarType.current.metadata.copy(fontWeight = FontWeight.SemiBold),
+                                style = PaparcarType.current.body.copy(fontWeight = FontWeight.SemiBold),
                                 color = cs.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
