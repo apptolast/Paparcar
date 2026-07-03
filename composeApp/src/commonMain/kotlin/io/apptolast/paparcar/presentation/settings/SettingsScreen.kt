@@ -95,6 +95,9 @@ import coil3.compose.AsyncImage
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
+import io.apptolast.paparcar.ui.components.PapIconTile
+import io.apptolast.paparcar.ui.components.PapListItem
+import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -714,7 +717,7 @@ private fun NotificationsGroupCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                SettingsIconBox(icon = Icons.Rounded.Notifications)
+                PapIconTile(icon = Icons.Rounded.Notifications)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         stringResource(Res.string.settings_notifications_title),
@@ -850,6 +853,9 @@ private fun DangerZoneCard(
 // Reused primitives — switch, info, nav, dropdown, icon box
 // ─────────────────────────────────────────────────────────────────────────────
 
+// All Settings rows share the leading+title+subtitle+trailing anatomy → PapOutlinedCard +
+// PapListItem + PapIconTile. Only the trailing element differs. [UI-LIST-ITEM-001]
+
 @Composable
 private fun SettingsSwitchItem(
     icon: ImageVector,
@@ -858,46 +864,28 @@ private fun SettingsSwitchItem(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = outlineSubtle,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            SettingsIconBox(icon = icon)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
-                Text(description, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
-            }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
-        }
+    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        PapListItem(
+            title = label,
+            subtitle = description,
+            subtitleColor = settingsSubtitleColor(),
+            leading = { PapIconTile(icon = icon) },
+            trailing = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
+        )
     }
 }
 
 @Composable
 private fun SettingsInfoItem(icon: ImageVector, label: String, value: String) {
     val cs = MaterialTheme.colorScheme
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = outlineSubtle,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            SettingsIconBox(icon = icon)
-            Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface, modifier = Modifier.weight(1f))
-            Text(value, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
-        }
+    PapOutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        PapListItem(
+            title = label,
+            leading = { PapIconTile(icon = icon) },
+            trailing = {
+                Text(value, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
+            },
+        )
     }
 }
 
@@ -909,53 +897,28 @@ private fun SettingsNavItem(
     description: String? = null,
 ) {
     val cs = MaterialTheme.colorScheme
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = PapShapes.card,
-        color = cs.surfaceContainerHigh,
-        border = outlineSubtle,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            SettingsIconBox(icon = icon)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
-                if (description != null) {
-                    Text(description, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
-                }
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-                tint = cs.onSurface.copy(alpha = CHEVRON_DIM_ALPHA),
-                modifier = Modifier.size(20.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsIconBox(icon: ImageVector) {
-    val cs = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier
-            .size(ICON_BOX_DP.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(cs.primaryContainer),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = cs.primary,
-            modifier = Modifier.size(20.dp),
+    PapOutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        PapListItem(
+            title = label,
+            subtitle = description,
+            subtitleColor = settingsSubtitleColor(),
+            leading = { PapIconTile(icon = icon) },
+            trailing = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = cs.onSurface.copy(alpha = CHEVRON_DIM_ALPHA),
+                    modifier = Modifier.size(20.dp),
+                )
+            },
         )
     }
 }
+
+/** The muted subtitle tone shared by the Settings rows (onSurface @ 0.5). */
+@Composable
+private fun settingsSubtitleColor(): Color =
+    MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -983,7 +946,7 @@ private fun SettingsDropdownItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                SettingsIconBox(icon = icon)
+                PapIconTile(icon = icon)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
                     Text(description, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
