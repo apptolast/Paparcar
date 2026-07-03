@@ -155,7 +155,11 @@ internal fun HomeVehicleChip(
                         )
                         Text(
                             text = parkedAddressLine(session),
-                            style = PaparcarType.current.metadata,
+                            // An address is a phrase you read → Inter (caption), same family as the
+                            // single-vehicle card's footer. Barlow (metadata) is for repeating data
+                            // tokens, not prose — keeps 1-vehicle and 2+-vehicle Home consistent.
+                            // [CARD-ONE-BADGE-001]
+                            style = PaparcarType.current.caption,
                             color = cs.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -165,7 +169,7 @@ internal fun HomeVehicleChip(
                         UnmarkedParkingIcon(tint = cs.onSurfaceVariant)
                         Text(
                             text = stringResource(Res.string.home_vehicle_chip_unmarked),
-                            style = PaparcarType.current.metadata,
+                            style = PaparcarType.current.caption,
                             color = cs.onSurfaceVariant,
                             maxLines = 1,
                         )
