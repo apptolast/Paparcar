@@ -46,6 +46,9 @@ class PaparcarType(
     /** Hero title on full-screen surfaces (onboarding, permissions, explainers). Resolves the old
      *  Black-vs-Bold / headlineMedium-vs-Small drift to one value. */
     val heroTitle: TextStyle,
+    /** In-content section title — "Activity", "History". Bigger than [cardTitle] so a single-word
+     *  section heading doesn't read as small. */
+    val sectionTitle: TextStyle,
     /** Card / row title — vehicle name, spot street, peek title. (titleMedium weight-bumped to Bold.) */
     val cardTitle: TextStyle,
 
@@ -111,6 +114,10 @@ fun rememberPaparcarType(): PaparcarType {
         heroTitle = TextStyle(
             fontFamily = outfit, fontWeight = FontWeight.Bold,
             fontSize = 28.sp, lineHeight = 36.sp, letterSpacing = 0.sp,
+        ),
+        sectionTitle = TextStyle(
+            fontFamily = outfit, fontWeight = FontWeight.Bold,
+            fontSize = 20.sp, lineHeight = 26.sp, letterSpacing = (-0.2).sp,
         ),
         cardTitle = TextStyle(
             fontFamily = outfit, fontWeight = FontWeight.Bold,

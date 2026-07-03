@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.vehicles.components.ActiveSectionHeader
@@ -43,6 +42,7 @@ import io.apptolast.paparcar.presentation.vehicles.components.EndedSessionTimeli
 import io.apptolast.paparcar.presentation.vehicles.components.HistoryFilterBar
 import io.apptolast.paparcar.presentation.vehicles.components.ActivityCard
 import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
@@ -195,18 +195,12 @@ internal fun HistoryContent(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
+                        // Just the section title; the scoped count moved INTO the chart card as its
+                        // own header so the card isn't a bare graph. [ACTIVITY-CARD-TITLE-001]
                         Text(
                             text = stringResource(Res.string.history_activity_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = PaparcarType.current.sectionTitle,
                             color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Text(
-                            text = "$scopeTotal ${pluralStringResource(Res.plurals.history_activity_noun, scopeTotal)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                     Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP.dp))
@@ -238,8 +232,7 @@ internal fun HistoryContent(
                         Text(
                             text = stringResource(Res.string.history_section_label),
                             modifier = Modifier.padding(horizontal = 16.dp),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = PaparcarType.current.sectionTitle,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.height(SECTION_TITLE_BOTTOM_GAP.dp))
