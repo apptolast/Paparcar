@@ -136,9 +136,12 @@ class SettingsViewModel(
             }
             is SettingsIntent.NavigateToVehicles ->
                 sendEffect(SettingsEffect.NavigateToVehicles)
-            // Health "Fix": jump to CORE if a hard-blocker is missing, else the PRODUCER section. [SETTINGS-REMODEL-001]
+            // Health "Fix": jump to CORE when a hard-blocker (foreground location) is missing OR the
+            // GPS master switch is off (the "Enable GPS" row lives in the essential/CORE section);
+            // otherwise the PRODUCER section holds the remaining detection permissions. [SETTINGS-REMODEL-001]
             is SettingsIntent.FixDetectionPermissions -> {
-                val focus = if (permissionManager.permissionState.value.missingCorePermissions().isNotEmpty()) {
+                val perms = permissionManager.permissionState.value
+                val focus = if (perms.missingCorePermissions().isNotEmpty() || !perms.isLocationServicesEnabled) {
                     PermissionsFocus.Core
                 } else {
                     PermissionsFocus.Producer

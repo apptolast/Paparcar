@@ -85,6 +85,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import io.apptolast.paparcar.isBatteryOptimizationRelevant
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.permissions.PermissionsFocus
@@ -468,14 +469,17 @@ private fun DetectionSectionCard(state: SettingsState, onIntent: (SettingsIntent
                 configured = state.btDeviceConfigured,
                 onClick = { onIntent(SettingsIntent.ConfigureBluetooth) },
             )
-            PapDivider()
-            ImprovementRow(
-                icon = Icons.Rounded.BatteryFull,
-                title = stringResource(Res.string.settings_detection_battery_title),
-                description = stringResource(Res.string.settings_detection_battery_desc),
-                configured = state.isBatteryOptimizationExempt,
-                onClick = { onIntent(SettingsIntent.ConfigureBattery) },
-            )
+            // Battery exemption is Android-only (Doze/OEM killers) — hidden on iOS. [SETTINGS-REMODEL-001]
+            if (isBatteryOptimizationRelevant) {
+                PapDivider()
+                ImprovementRow(
+                    icon = Icons.Rounded.BatteryFull,
+                    title = stringResource(Res.string.settings_detection_battery_title),
+                    description = stringResource(Res.string.settings_detection_battery_desc),
+                    configured = state.isBatteryOptimizationExempt,
+                    onClick = { onIntent(SettingsIntent.ConfigureBattery) },
+                )
+            }
         }
     }
 }

@@ -316,6 +316,19 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `should_focusCore_when_fix_and_gpsOff_even_if_permissionsGranted`() = runTest {
+        // GPS master off → the "Enable GPS" row lives in the essential/CORE section.
+        permissions.emit(FakePermissionManager.permissionsOnlyNoGps())
+        vm.effect.test {
+            vm.handleIntent(SettingsIntent.FixDetectionPermissions)
+            val effect = awaitItem()
+            assertIs<SettingsEffect.NavigateToPermissions>(effect)
+            assertEquals(PermissionsFocus.Core, effect.focus)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `should_focusProducer_on_configureBattery`() = runTest {
         vm.effect.test {
             vm.handleIntent(SettingsIntent.ConfigureBattery)
