@@ -35,7 +35,6 @@ import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import io.apptolast.paparcar.presentation.home.model.isDetectionStopped
 import io.apptolast.paparcar.presentation.home.model.isDetectionWorking
@@ -50,7 +49,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -93,10 +91,6 @@ class HomeViewModel(
     // Incremented on Offline → Online so the spot subscription rebuilds immediately
     // after connectivity is restored, even if the GPS position hasn't changed.
     private val reconnectTick = MutableStateFlow(0)
-
-    // Centre used for spot queries. Seeded from GPS on first fix; updated when the
-    // user pans the map past SPOT_CAMERA_PAN_THRESHOLD_METERS in Browse mode.
-    private val spotQueryCenter = MutableStateFlow<GpsPoint?>(null)
 
     // ── Geocode controller ────────────────────────────────────────────────────
     // Encapsulates user + camera geocoding flows (debounce, Phase-2 survival
@@ -147,6 +141,19 @@ class HomeViewModel(
         onEmptyOrError = { updateState { copy(searchResults = emptyList(), isSearching = false) } },
     )
 
+    // ── Spots controller ─────────────────────────────────────────────────────────
+    // Owns the nearby-spots subscription + query centre (GPS-fed, pan/recenter). Freshly-fetched spots
+    // funnel through onSpots into the single applyNewSpots sink (which also prunes the selection —
+    // that logic reads activeSessions/selectedItemId so it stays in the VM). [SPOT-FLICKER-001]
+
+    private val spots = HomeSpotsController(
+        scope = viewModelScope,
+        permissionManager = permissionManager,
+        observeNearbySpots = observeNearbySpots,
+        onSpots = { spots -> updateState { applyNewSpots(spots) } },
+        onError = { message -> sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(message))) },
+    )
+
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
@@ -158,7 +165,7 @@ class HomeViewModel(
         subscribeZones()
         subscribeVehicles()
         subscribeGpsLocation()
-        subscribeNearbySpots()
+        spots.start()
         subscribeMapFocusEvents()
         subscribeStartAddParkingRequests()
         subscribeDetectionReadiness()
@@ -360,7 +367,7 @@ class HomeViewModel(
                 }
                 // Keep query center in sync with GPS while user hasn't panned away.
                 if (state.value.isSpotQueryCenteredOnUser) {
-                    spotQueryCenter.value = location
+                    spots.updateQueryCenter(location)
                 }
             }
             .catch { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Location.Unknown(e.message ?: ""))) }
@@ -413,33 +420,6 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
-    private fun subscribeNearbySpots() {
-        // Depends ONLY on (CORE permission, query centre). No reconnectTick: the
-        // Firestore listener inside observeNearbySpots auto-reconnects, and the
-        // centre is already fed by the GPS stream (which owns its own reconnect),
-        // so a connectivity flap never tears this subscription down. When the
-        // centre is null (no permission), we emit an empty list down the SAME
-        // pipe instead of mutating state inside the transform — one sink,
-        // applyNewSpots, owns every state write. [SPOT-FLICKER-001]
-        combine(permissionManager.permissionState, spotQueryCenter) { perm, center ->
-            if (perm.hasCorePermissions) center else null
-        }
-            .distinctUntilChanged { old, new -> old.closeEnoughTo(new) }
-            .flatMapLatest { center ->
-                if (center == null) {
-                    flowOf(emptyList())
-                } else {
-                    observeNearbySpots(center, ObserveNearbySpotsUseCase.DEFAULT_SEARCH_RADIUS_METERS)
-                        .catch { e ->
-                            sendEffect(HomeEffect.ShowError(PaparcarError.Network.Unknown(e.message ?: "")))
-                            emit(emptyList())
-                        }
-                }
-            }
-            .onEach { spots -> updateState { applyNewSpots(spots) } }
-            .launchIn(viewModelScope)
-    }
-
     /**
      * Applies the freshly-fetched nearby spots and prunes the selection if the
      * selected item is no longer either an active session or one of the visible
@@ -462,8 +442,8 @@ class HomeViewModel(
     private fun onCameraPositionChanged(lat: Double, lon: Double) {
         if (state.value.mode !is HomeMode.Browse) {
             updatePinDuringMode(lat, lon)
-        } else {
-            maybeRecenterSpotsOnPan(lat, lon)
+        } else if (spots.maybeRecenterOnPan(lat, lon)) {
+            updateState { copy(isSpotQueryCenteredOnUser = false) }
         }
         geocodeCameraLocation(lat, lon)
     }
@@ -482,29 +462,9 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Browse-mode handler: if the user has panned more than
-     * [SPOT_CAMERA_PAN_THRESHOLD_METERS] from the current spot query centre,
-     * move the centre to the new camera position so the nearby spots query
-     * rebuilds against where the user is actually looking. Only relevant once
-     * the centre has been seeded by the first GPS fix.
-     */
-    private fun maybeRecenterSpotsOnPan(lat: Double, lon: Double) {
-        val current = spotQueryCenter.value ?: return
-        if (haversineMeters(current.latitude, current.longitude, lat, lon) <= SPOT_CAMERA_PAN_THRESHOLD_METERS) return
-        spotQueryCenter.value = GpsPoint(
-            latitude = lat,
-            longitude = lon,
-            accuracy = 0f,
-            timestamp = Clock.System.now().toEpochMilliseconds(),
-            speed = 0f,
-        )
-        updateState { copy(isSpotQueryCenteredOnUser = false) }
-    }
-
     private fun onRecenterSpots() {
         val gps = state.value.userGpsPoint ?: return
-        spotQueryCenter.value = gps
+        spots.recenter(gps)
         updateState { copy(isSpotQueryCenteredOnUser = true) }
         sendEffect(HomeEffect.MoveCameraTo(gps.latitude, gps.longitude))
     }
@@ -807,14 +767,6 @@ class HomeViewModel(
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    // Two nullable GpsPoints are "close enough" if both are null, or both non-null
-    // and within SPOT_RESUBSCRIBE_THRESHOLD_METERS of each other.
-    private fun GpsPoint?.closeEnoughTo(other: GpsPoint?): Boolean {
-        if (this == null && other == null) return true
-        if (this == null || other == null) return false
-        return haversineMeters(latitude, longitude, other.latitude, other.longitude) < SPOT_RESUBSCRIBE_THRESHOLD_METERS
-    }
-
     private fun String.toMapType(): MapType = when (this) {
         MAP_TYPE_SATELLITE -> MapType.SATELLITE
         MAP_TYPE_HYBRID -> MapType.HYBRID
@@ -836,12 +788,6 @@ class HomeViewModel(
         // Timing
         const val GEOCODE_DEBOUNCE_MS = 600L
         const val CAMERA_SETTLED_MS = 280L
-
-        // Distance thresholds
-        // Both at 300m so GPS drift alone never triggers a Firestore reconnect —
-        // only a genuine camera pan or location jump does.
-        const val SPOT_RESUBSCRIBE_THRESHOLD_METERS = 300.0
-        const val SPOT_CAMERA_PAN_THRESHOLD_METERS = 300.0
 
         // Map type preference strings
         const val MAP_TYPE_TERRAIN = "TERRAIN"
