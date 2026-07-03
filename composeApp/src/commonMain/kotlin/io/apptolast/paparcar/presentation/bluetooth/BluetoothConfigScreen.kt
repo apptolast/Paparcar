@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.bluetooth
 
+import io.apptolast.paparcar.ui.components.PapListItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -301,32 +302,20 @@ private fun DeviceRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val cs = MaterialTheme.colorScheme
     PapOutlinedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier.padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            RadioButton(selected = selected, onClick = onClick)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = name,
-                    style = PaparcarType.current.body,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                )
-                if (typeLabel != null) {
-                    Text(
-                        text = typeLabel,
-                        style = PaparcarType.current.label,
-                        color = cs.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        PapListItem(
+            title = name,
+            titleWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            subtitle = typeLabel,
+            subtitleStyle = PaparcarType.current.label,
+            // RadioButton brings its own touch padding, so this row hugs the start edge.
+            contentPadding = PaddingValues(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            gap = 4.dp,
+            leading = { RadioButton(selected = selected, onClick = onClick) },
+        )
     }
 }
 

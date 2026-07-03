@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
+import io.apptolast.paparcar.ui.components.PapIconTile
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,7 +26,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -257,22 +256,16 @@ private fun ActionRow(
 
 @Composable
 private fun IconTile(icon: ImageVector, tone: Tone) {
-    Box(
-        modifier = Modifier
-            .size(TILE_DP.dp)
-            .clip(RoundedCornerShape(TILE_RADIUS_DP.dp))
-            // Error = filled (loud); otherwise a light tint so the accent bar carries the colour and
-            // the two accent elements don't compete — calmer, more in line with the app's cards.
-            .background(if (tone.isError) tone.accent else tone.accent.copy(alpha = TILE_TINT_ALPHA)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (tone.isError) tone.onAccent else tone.accent,
-            modifier = Modifier.size(TILE_ICON_DP.dp),
-        )
-    }
+    // Error = filled (loud); otherwise a light tint so the accent bar carries the colour and the two
+    // accent elements don't compete. Uses the shared PapIconTile with tone-driven colours.
+    PapIconTile(
+        icon = icon,
+        size = TILE_DP.dp,
+        shape = RoundedCornerShape(TILE_RADIUS_DP.dp),
+        container = if (tone.isError) tone.accent else tone.accent.copy(alpha = TILE_TINT_ALPHA),
+        tint = if (tone.isError) tone.onAccent else tone.accent,
+        iconSize = TILE_ICON_DP.dp,
+    )
 }
 
 @Composable

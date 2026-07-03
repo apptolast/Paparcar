@@ -2,6 +2,10 @@
 
 package io.apptolast.paparcar.presentation.home.sections.sheet.components
 
+import androidx.compose.foundation.layout.PaddingValues
+import io.apptolast.paparcar.ui.components.PapIconTile
+import io.apptolast.paparcar.ui.components.PapListItem
+import io.apptolast.paparcar.ui.components.PapOutlinedCard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +24,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.FilterAltOff
 import io.apptolast.paparcar.ui.illustrations.EmptySpotsIllustration
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,13 +32,11 @@ import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.stateColors
@@ -312,60 +313,40 @@ internal fun HomeReportSpotCard(
     onReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
+    PapOutlinedCard(
         onClick = onReport,
         modifier = modifier.fillMaxWidth(),
         shape = PapShapes.cardSmall,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(
-            width = PapBorders.thin,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA),
-        ),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(PRIMARY_CARD_ICON_BOX_DP.dp)
-                    .clip(RoundedCornerShape(PRIMARY_CARD_ICON_CORNER_DP.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
-                contentAlignment = Alignment.Center,
-            ) {
+        PapListItem(
+            title = stringResource(Res.string.home_report_fab_cd),
+            subtitle = stringResource(Res.string.home_report_subtitle),
+            titleStyle = PaparcarType.current.rowTitle,
+            titleWeight = FontWeight.Bold,
+            titleMaxLines = 1,
+            subtitleStyle = PaparcarType.current.label,
+            subtitleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = PRIMARY_CARD_SUBTITLE_ALPHA),
+            subtitleMaxLines = 1,
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+            gap = 12.dp,
+            leading = {
+                PapIconTile(
+                    icon = Icons.Rounded.Campaign,
+                    size = PRIMARY_CARD_ICON_BOX_DP.dp,
+                    shape = RoundedCornerShape(PRIMARY_CARD_ICON_CORNER_DP.dp),
+                    container = MaterialTheme.colorScheme.surfaceContainer,
+                    iconSize = 22.dp,
+                )
+            },
+            trailing = {
                 Icon(
-                    Icons.Rounded.Campaign,
+                    Icons.Rounded.Add,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp),
                 )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(Res.string.home_report_fab_cd),
-                    style = PaparcarType.current.rowTitle,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    stringResource(Res.string.home_report_subtitle),
-                    style = PaparcarType.current.label,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = PRIMARY_CARD_SUBTITLE_ALPHA),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(
-                Icons.Rounded.Add,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp),
-            )
-        }
+            },
+        )
     }
 }
 

@@ -1,11 +1,7 @@
 package io.apptolast.paparcar.presentation.permissions
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -13,15 +9,12 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.components.PapListItem
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -29,9 +22,6 @@ import paparcar.composeapp.generated.resources.permissions_status_granted
 import paparcar.composeapp.generated.resources.permissions_status_optional
 import paparcar.composeapp.generated.resources.permissions_status_pending
 
-private val ROW_VERTICAL_PADDING = 14.dp
-private val ROW_CONTENT_SPACING  = 14.dp
-private val TITLE_TO_REASON_GAP  = 2.dp
 private val MAIN_ICON_SIZE       = 24.dp
 private val STATUS_ICON_SIZE     = 22.dp
 
@@ -76,39 +66,22 @@ internal fun PermissionRow(
     )
 
     val rowContent: @Composable () -> Unit = {
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = PaparcarSpacing.lg, vertical = ROW_VERTICAL_PADDING),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(ROW_CONTENT_SPACING),
-        ) {
-            // Icono del permiso sin disco — glifo suelto, verde al conceder. [ONB-IDENTITY-001 D]
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (granted) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(MAIN_ICON_SIZE),
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(TITLE_TO_REASON_GAP),
-            ) {
-                Text(
-                    text = title,
-                    style = PaparcarType.current.rowTitle,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+        PapListItem(
+            title = title,
+            subtitle = reason,
+            titleStyle = PaparcarType.current.rowTitle,
+            // Leading is a bare glyph (no disc) — green when granted. [ONB-IDENTITY-001 D]
+            leading = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (granted) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MAIN_ICON_SIZE),
                 )
-                Text(
-                    text = reason,
-                    style = PaparcarType.current.caption,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            // Estado a la derecha, centrado verticalmente — solo glifo (sin chip/label).
-            StatusIcon(state)
-        }
+            },
+            trailing = { StatusIcon(state) },
+        )
     }
 
     if (onGrant != null && !granted) {

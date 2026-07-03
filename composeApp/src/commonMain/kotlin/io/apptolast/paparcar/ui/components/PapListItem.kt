@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -44,8 +45,10 @@ fun PapListItem(
     titleStyle: TextStyle = PaparcarType.current.body,
     titleWeight: FontWeight = FontWeight.SemiBold,
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    titleMaxLines: Int = Int.MAX_VALUE,
     subtitleStyle: TextStyle = PaparcarType.current.caption,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    subtitleMaxLines: Int = Int.MAX_VALUE,
     overlineColor: Color = MaterialTheme.colorScheme.primary,
     contentPadding: PaddingValues = PaddingValues(horizontal = ROW_H_PAD_DP.dp, vertical = ROW_V_PAD_DP.dp),
     gap: Dp = ROW_GAP_DP.dp,
@@ -63,6 +66,7 @@ fun PapListItem(
                     style = PaparcarType.current.badge,
                     color = overlineColor,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(OVERLINE_GAP_DP.dp))
             }
@@ -71,6 +75,8 @@ fun PapListItem(
                 style = titleStyle,
                 fontWeight = titleWeight,
                 color = titleColor,
+                maxLines = titleMaxLines,
+                overflow = TextOverflow.Ellipsis,
             )
             when {
                 subtitleSlot != null -> subtitleSlot()
@@ -78,6 +84,8 @@ fun PapListItem(
                     text = subtitle,
                     style = subtitleStyle,
                     color = subtitleColor,
+                    maxLines = subtitleMaxLines,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

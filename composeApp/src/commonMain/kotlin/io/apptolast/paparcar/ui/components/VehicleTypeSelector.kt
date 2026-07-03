@@ -1,22 +1,17 @@
 package io.apptolast.paparcar.ui.components
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -24,7 +19,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
@@ -103,7 +97,7 @@ private fun TypeTile(
     else
         MaterialTheme.colorScheme.surface
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
@@ -113,36 +107,27 @@ private fun TypeTile(
             .semantics {
                 role = Role.RadioButton
                 this.selected = isSelected
-            }
-            .padding(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+            },
     ) {
-        Icon(
-            imageVector = option.icon,
-            contentDescription = null,
-            modifier = Modifier.size(IconSize),
-            tint = if (isSelected) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurface,
+        PapListItem(
+            title = option.label(),
+            subtitle = option.examples(),
+            titleColor = if (isSelected) MaterialTheme.colorScheme.primary
+                         else MaterialTheme.colorScheme.onSurface,
+            contentPadding = PaddingValues(horizontal = PaparcarSpacing.lg, vertical = PaparcarSpacing.md),
+            gap = PaparcarSpacing.lg,
+            leading = {
+                Icon(
+                    imageVector = option.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(IconSize),
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary
+                           else MaterialTheme.colorScheme.onSurface,
+                )
+            },
+            trailing = if (isSelected) {
+                { PapStatusBadge(label = "✓") }
+            } else null,
         )
-        Spacer(Modifier.width(PaparcarSpacing.lg))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = option.label(),
-                style = PaparcarType.current.body,
-                fontWeight = FontWeight.SemiBold,
-                color = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = option.examples(),
-                style = PaparcarType.current.caption,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (isSelected) {
-            Spacer(Modifier.width(PaparcarSpacing.sm))
-            PapStatusBadge(label = "✓")
-        }
     }
 }
