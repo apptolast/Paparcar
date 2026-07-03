@@ -12,8 +12,6 @@ import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.Vehicle
-import io.apptolast.paparcar.domain.model.Zone
-import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
@@ -395,23 +393,6 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
-    /**
-     * Applies the freshly-fetched nearby spots and prunes the selection if the
-     * selected item is no longer either an active session or one of the visible
-     * spots. Keeps the selection logic adjacent to the data update without
-     * inlining it inside the flow operator. [A1]
-     */
-    private fun HomeState.applyNewSpots(spots: List<io.apptolast.paparcar.domain.model.Spot>): HomeState {
-        val cur = selectedItemId
-        val selectionStillValid = cur == null ||
-            activeSessions.any { it.id == cur } ||
-            spots.any { it.id == cur }
-        return copy(
-            nearbySpots = spots,
-            selectedItemId = if (selectionStillValid) cur else null,
-        )
-    }
-
     // ── Intent handlers ───────────────────────────────────────────────────────
 
     private fun onCameraPositionChanged(lat: Double, lon: Double) {
@@ -456,10 +437,6 @@ class HomeViewModel(
         }
         search.onQueryChanged(query)
     }
-
-    /** Wipes every search-related field. Used by SelectSearchResult + ClearSearch. */
-    private fun HomeState.resetSearch(): HomeState =
-        copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false)
 
     private fun confirmReportSpot() {
         val current = state.value
@@ -657,54 +634,9 @@ class HomeViewModel(
         sendEffect(HomeEffect.MoveCameraTo(zone.lat, zone.lon))
     }
 
-    // ── Mode invariant ────────────────────────────────────────────────────────
-    //
-    // Selection (selectedItemId) and add-modes (Reporting / AddingZone /
-    // AddingParking) are mutually exclusive:
-    //   mode != Browse         ⇒  selectedItemId == null
-    //   selectedItemId != null ⇒  mode == Browse
-    //
-    // Enforcement sites:
-    //   • EnterReportMode / EnterAddParkingMode / EnterAddZoneMode / EnterEditZoneMode
-    //     all clear `selectedItemId` on entry.
-    //   • SelectItem calls [clearedModeFields] before applying the new selection,
-    //     so picking a marker silently exits any active add-mode. (selectZone only
-    //     moves the camera — a zone is not a selection.)
-    //
-    // Use this helper for any new transition from a non-Browse mode back to Browse
-    // — it wipes every field that belongs to a non-Browse mode in one place, so
-    // the invariant cannot drift as new mode-scoped fields are added.
-
-    /**
-     * Returns a copy of this state reset to [HomeMode.Browse], clearing every
-     * field that is owned by a non-Browse mode (pin coords, camera-moving flag,
-     * report/zone/parking form fields, editing IDs) AND the selection field
-     * (selectedItemId). Callers that need to set a selection or re-enter a mode
-     * apply their fields via `.copy(...)` on top of this base.
-     *
-     * In-flight booleans (isReporting / isSavingZone / isSavingParking /
-     * isReleasingParking) are intentionally left alone: they reflect a running
-     * operation, not the user-facing mode.
-     *
-     * **Invariant enforced here:** `mode != Browse ⇒ selectedItemId == null`.
-     * Every Enter*Mode / SelectItem path goes through this helper so the
-     * invariant cannot drift as new mode-scoped fields are added. [BUG-5]
-     */
-    private fun HomeState.clearedModeFields(): HomeState = copy(
-        mode = HomeMode.Browse,
-        selectedItemId = null,
-        pinCameraLat = null,
-        pinCameraLon = null,
-        isCameraMoving = false,
-        reportingSize = null,
-        addingZoneName = "",
-        addingZoneIconKey = ZoneIcon.DEFAULT,
-        addingZoneRadius = Zone.DEFAULT_RADIUS_METERS,
-        addingZoneIsPrivate = false,
-        editingZoneId = null,
-        editingParkingId = null,
-        addingParkingVehicleId = null,
-    )
+    // The pure `HomeState → HomeState` transitions of the mode machine (clearedModeFields,
+    // applyNewSpots, resetSearch) live in HomeStateTransitions.kt, next to the mode↔selection
+    // invariant they enforce. [HOMEVM-CTRL-004]
 
     private fun submitSpotSignal(spotId: String, accepted: Boolean) {
         if (spotId in state.value.inFlightSpotSignals) return
