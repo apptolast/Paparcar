@@ -2,6 +2,7 @@ package io.apptolast.paparcar.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -36,6 +37,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -894,7 +896,9 @@ fun Modifier.mapCenterPinAnchor(): Modifier = this.layout { measurable, constrai
  * Lift wrapper for the centre-positioning pins: applies the float/bounce on [cameraMoving] to the
  * REAL marker composable inside, so the pin the user is placing is pixel-identical to the marker
  * that will replace it (no separate "placement" style). The marker brings its own shape/shadow/dot;
- * this only animates the lift. Bottom-anchored so the marker's ground point stays put. [MAP-ICONS-V2]
+ * this only animates the lift. Bottom-anchored so the marker's ground point stays put.
+ * A stationary drop shadow stays glued to that ground point — it does NOT lift with the pin, so
+ * while the camera moves it marks exactly where the marker will land on release. [MAP-ICONS-V2]
  */
 @Composable
 private fun LiftedCenterPin(
@@ -919,15 +923,54 @@ private fun LiftedCenterPin(
         launch { offsetY.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
         launch { pinScale.animateTo(scaleTarget, spring(dampingRatio = Spring.DampingRatioMediumBouncy)) }
     }
-    Box(
-        modifier = modifier
-            // Entry drop (negative = from above) added to the camera-move lift.
-            .offset(y = (offsetY.value + (1f - entry.value) * PLACING_ENTRY_DROP_DP).dp)
-            // Translucent "ghost" so the placing pin never looks like a real, placed marker.
-            .alpha(entry.value * PLACING_GHOST_ALPHA)
-            .scale(pinScale.value),
-        contentAlignment = Alignment.BottomCenter,
-    ) { content() }
+    // 0 = pin resting, 1 = pin lifted. The shadow opens up (wider + stronger) while lifted so the
+    // landing point reads clearly under the floating pin, and tucks back under it on rest.
+    val shadowLift = animateFloatAsState(
+        targetValue = if (cameraMoving) 1f else 0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+    ).value
+    // Dark map tiles swallow a black shadow, so the drop marker inverts to a white glow there.
+    // Detect dark by theme luminance (not isSystemInDarkTheme) like the tag fill above. [MAP-ICONS-V2]
+    val shadowBase = if (MaterialTheme.colorScheme.surface.luminance() < TAG_DARK_LUMINANCE) {
+        Color.White
+    } else {
+        Color.Black
+    }
+    Box(modifier = modifier, contentAlignment = Alignment.BottomCenter) {
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .size(DROP_SHADOW_WIDTH, DROP_SHADOW_HEIGHT)
+                // Centre the ellipse ON the ground point (the box's bottom-centre, which is
+                // what the (0.5, 1.0) marker anchor pins to the camera target).
+                .offset(y = DROP_SHADOW_HEIGHT / 2)
+                .alpha(entry.value),
+        ) {
+            val alpha = DROP_SHADOW_REST_ALPHA +
+                (DROP_SHADOW_LIFT_ALPHA - DROP_SHADOW_REST_ALPHA) * shadowLift
+            val spread = DROP_SHADOW_REST_SCALE +
+                (DROP_SHADOW_LIFT_SCALE - DROP_SHADOW_REST_SCALE) * shadowLift
+            val radius = (size.width / 2f) * spread
+            val brush = Brush.radialGradient(
+                colors = listOf(shadowBase.copy(alpha = alpha), Color.Transparent),
+                center = center,
+                radius = radius,
+            )
+            // Squash the circular gradient into a ground ellipse.
+            drawScale(scaleX = 1f, scaleY = size.height / size.width, pivot = center) {
+                drawCircle(brush = brush, radius = radius, center = center)
+            }
+        }
+        Box(
+            modifier = Modifier
+                // Entry drop (negative = from above) added to the camera-move lift.
+                .offset(y = (offsetY.value + (1f - entry.value) * PLACING_ENTRY_DROP_DP).dp)
+                // Translucent "ghost" so the placing pin never looks like a real, placed marker.
+                .alpha(entry.value * PLACING_GHOST_ALPHA)
+                .scale(pinScale.value),
+            contentAlignment = Alignment.BottomCenter,
+        ) { content() }
+    }
 }
 
 /** Manual-spot placement pin — the real spot puck (manual blue). [MAP-ICONS-V2] */
@@ -995,6 +1038,15 @@ private const val ROUND_PIN_LIFT_SCALE   = 1.04f
 // the pin the user is positioning is clearly distinct from real, placed markers. [MOTION-POLISH-001]
 private const val PLACING_ENTRY_DROP_DP  = -34f
 private const val PLACING_GHOST_ALPHA    = 0.72f
+// Stationary drop shadow under the placement pins ([LiftedCenterPin]): a ground ellipse pinned to
+// the drop point that does NOT lift with the pin. Rest = tucked under the marker; lift = opens up
+// (wider + darker) so the landing point stays obvious while the pin floats.
+private val DROP_SHADOW_WIDTH  = 30.dp
+private val DROP_SHADOW_HEIGHT = 10.dp
+private const val DROP_SHADOW_REST_SCALE = 0.75f
+private const val DROP_SHADOW_LIFT_SCALE = 1f
+private const val DROP_SHADOW_REST_ALPHA = 0.22f
+private const val DROP_SHADOW_LIFT_ALPHA = 0.38f
 private val ZONE_AREA_ICON_SIZE = 22.dp
 private val ZONE_AREA_ICON_VNUDGE = 2.dp
 
