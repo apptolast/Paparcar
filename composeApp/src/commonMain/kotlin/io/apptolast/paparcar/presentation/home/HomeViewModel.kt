@@ -38,6 +38,7 @@ import io.apptolast.paparcar.presentation.home.model.toUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -98,10 +99,16 @@ class HomeViewModel(
         geocoder.attach(viewModelScope)
         subscribeControllerUpdates()
         subscribeConnectivity()
-        subscribeActiveSessions()
-        subscribeParkedVehicles()
-        subscribeZones()
-        subscribeVehicles()
+        // Repo streams → state slices, one line each ([collectInto] isolates stream errors so the UI
+        // keeps serving the cache). Sessions escalate to a snackbar; the rest log. [HOMEVM-CTRL-003]
+        userParkingRepository.observeActiveSessions()
+            .collectInto(
+                label = "activeSessions",
+                onError = { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: ""))) },
+            ) { copy(activeSessions = it) }
+        observeParkedVehicles().collectInto("parkedVehicles") { copy(parkedVehicles = it) }
+        zoneRepository.observeZones().collectInto("zones") { copy(zones = it) }
+        vehicleRepository.observeVehicles().collectInto("vehicles") { copy(vehicles = it) }
         subscribeGpsLocation()
         subscribeMapFocusEvents()
         subscribeStartAddParkingRequests()
@@ -283,31 +290,18 @@ class HomeViewModel(
             .launchIn(viewModelScope)
     }
 
-    private fun subscribeActiveSessions() {
-        userParkingRepository.observeActiveSessions()
-            .onEach { sessions -> updateState { copy(activeSessions = sessions) } }
-            .catch { e -> sendEffect(HomeEffect.ShowError(PaparcarError.Database.Unknown(e.message ?: ""))) }
-            .launchIn(viewModelScope)
-    }
-
-    private fun subscribeParkedVehicles() {
-        observeParkedVehicles()
-            .onEach { views -> updateState { copy(parkedVehicles = views) } }
-            .catch { e -> PaparcarLogger.e(TAG, "subscribeParkedVehicles error", e) }
-            .launchIn(viewModelScope)
-    }
-
-    private fun subscribeZones() {
-        zoneRepository.observeZones()
-            .onEach { zones -> updateState { copy(zones = zones) } }
-            .catch { e -> PaparcarLogger.e(TAG, "subscribeZones error", e) }
-            .launchIn(viewModelScope)
-    }
-
-    private fun subscribeVehicles() {
-        vehicleRepository.observeVehicles()
-            .onEach { vehicles -> updateState { copy(vehicles = vehicles) } }
-            .catch { e -> PaparcarLogger.e(TAG, "subscribeVehicles error", e) }
+    /**
+     * Collects a repo stream into a single state write. Errors are isolated with [onError]
+     * (default: log and keep serving the cache) so a failing stream never takes Home down —
+     * the standard `.catch` policy for observables, applied uniformly. [HOMEVM-CTRL-003]
+     */
+    private fun <T> Flow<T>.collectInto(
+        label: String,
+        onError: (Throwable) -> Unit = { e -> PaparcarLogger.e(TAG, "$label stream error", e) },
+        apply: HomeState.(T) -> HomeState,
+    ) {
+        onEach { value -> updateState { apply(value) } }
+            .catch { e -> onError(e) }
             .launchIn(viewModelScope)
     }
 
