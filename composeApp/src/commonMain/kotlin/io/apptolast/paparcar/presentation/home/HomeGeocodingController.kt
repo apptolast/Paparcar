@@ -5,11 +5,20 @@ import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
+/** One geocoding result/flag for the home map — user address, camera address, or the shimmer flag. */
+sealed interface GeocodeUpdate {
+    data class UserAddress(val info: AddressAndPlace) : GeocodeUpdate
+    data class CameraAddress(val info: AddressAndPlace) : GeocodeUpdate
+    /** True while the camera geocoder is in flight — drives the address skeleton/shimmer. */
+    data class CameraGeocoding(val active: Boolean) : GeocodeUpdate
+}
 
 /**
  * Encapsulates the two geocoding flows that decorate the home map:
@@ -26,39 +35,51 @@ import kotlinx.coroutines.withContext
  *       survives brief camera animations.
  *   `[BUG-GEOCODE-STUCK-001]` — the `isCameraGeocoding` flag is set inside
  *   the actual geocoder coroutine (not at pan time) and cleared in a
- *   `finally { withContext(NonCancellable) { ... } }` block so the shimmer
- *   never sticks even when the latest job is torn down mid-collect by a
- *   newer pan.
+ *   `finally` block so the shimmer never sticks even when the latest job
+ *   is torn down mid-collect by a newer pan. (`tryEmit` never suspends, so
+ *   the old `withContext(NonCancellable)` wrapper is no longer needed for
+ *   the clear to run inside a cancelled coroutine.)
  *
- * State writes are delegated through callbacks rather than touching the
- * `HomeState` directly so the controller stays presentation-layer-agnostic
- * (no [HomeState] type, no [HomeViewModel] coupling) and remains trivial
- * to unit-test in isolation.
+ * Built by Koin with its own use case and exposes the [updates] stream the
+ * ViewModel collects into state — no `HomeState` type, no `HomeViewModel`
+ * coupling, trivial to unit-test in isolation. The commands need a lifecycle
+ * to launch their jobs in: the VM hands it over once via [attach].
  */
 class HomeGeocodingController(
-    private val scope: CoroutineScope,
     private val getAddressAndPlace: GetAddressAndPlaceUseCase,
-    private val onUserAddress: (AddressAndPlace) -> Unit,
-    private val onCameraAddress: (AddressAndPlace) -> Unit,
-    private val onCameraGeocodingChange: (Boolean) -> Unit,
     private val debounceMs: Long = DEFAULT_DEBOUNCE_MS,
     private val tag: String = TAG,
 ) {
+
+    // Buffered so tryEmit from a finally block (possibly cancelled coroutine) never drops; the VM's
+    // Main.immediate collector drains it far faster than geocodes arrive.
+    private val _updates = MutableSharedFlow<GeocodeUpdate>(extraBufferCapacity = UPDATES_BUFFER)
+
+    /** Geocoding results + shimmer flag, in emission order. Collected by the VM into state. */
+    val updates: SharedFlow<GeocodeUpdate> = _updates.asSharedFlow()
+
+    private var scope: CoroutineScope? = null
 
     private var userGeocoderJob: Job? = null
     private var cameraDebounceJob: Job? = null
     private var cameraGeocoderJob: Job? = null
 
+    /** Hands over the lifecycle the geocode jobs run in (the VM's scope). Call once before use. */
+    fun attach(scope: CoroutineScope) {
+        this.scope = scope
+    }
+
     /**
      * Cancel any in-flight user-location geocode and start a fresh one.
-     * Updates flow to [onUserAddress] as Phase 1 / Phase 2 emissions arrive.
+     * Updates flow to [updates] as Phase 1 / Phase 2 emissions arrive.
      */
     fun geocodeUserLocation(lat: Double, lon: Double) {
+        val scope = scope ?: return
         userGeocoderJob?.cancel()
         userGeocoderJob = scope.launch {
             getAddressAndPlace(lat, lon)
                 .catch { e -> PaparcarLogger.w(tag, "geocodeUserLocation error", e) }
-                .collect { info -> onUserAddress(info) }
+                .collect { info -> _updates.tryEmit(GeocodeUpdate.UserAddress(info)) }
         }
     }
 
@@ -67,27 +88,26 @@ class HomeGeocodingController(
      * exact cancellation policy and shimmer-flag invariants.
      */
     fun geocodeCameraLocation(lat: Double, lon: Double) {
+        val scope = scope ?: return
         cameraDebounceJob?.cancel()
         cameraDebounceJob = scope.launch {
             delay(debounceMs)
             cameraGeocoderJob?.cancel()
             cameraGeocoderJob = scope.launch {
-                onCameraGeocodingChange(true)
+                _updates.tryEmit(GeocodeUpdate.CameraGeocoding(true))
                 try {
                     var addressReceived = false
                     getAddressAndPlace(lat, lon)
                         .catch { e -> PaparcarLogger.w(tag, "geocodeCameraLocation error", e) }
                         .collect { info ->
-                            onCameraAddress(info)
+                            _updates.tryEmit(GeocodeUpdate.CameraAddress(info))
                             if (!addressReceived) {
                                 addressReceived = true
-                                onCameraGeocodingChange(false)
+                                _updates.tryEmit(GeocodeUpdate.CameraGeocoding(false))
                             }
                         }
                 } finally {
-                    withContext(NonCancellable) {
-                        onCameraGeocodingChange(false)
-                    }
+                    _updates.tryEmit(GeocodeUpdate.CameraGeocoding(false))
                 }
             }
         }
@@ -96,5 +116,6 @@ class HomeGeocodingController(
     private companion object {
         const val TAG = "HomeGeocoding"
         const val DEFAULT_DEBOUNCE_MS = 600L
+        const val UPDATES_BUFFER = 64
     }
 }
