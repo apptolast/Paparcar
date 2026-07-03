@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 import io.apptolast.paparcar.ui.components.PapSectionHeaderRow
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -81,7 +82,7 @@ internal fun EmptyHistoryState(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(ILLUSTRATION_TEXT_GAP_DP.dp))
         Text(
             stringResource(Res.string.history_empty_title),
-            style = MaterialTheme.typography.titleMedium,
+            style = PaparcarType.current.cardTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
@@ -89,7 +90,7 @@ internal fun EmptyHistoryState(modifier: Modifier = Modifier) {
         Spacer(Modifier.height(TITLE_SUBTITLE_GAP_DP.dp))
         Text(
             stringResource(Res.string.history_empty_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
+            style = PaparcarType.current.subtitle,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
             textAlign = TextAlign.Center,
         )

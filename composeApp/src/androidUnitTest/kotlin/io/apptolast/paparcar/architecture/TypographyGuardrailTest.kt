@@ -12,9 +12,12 @@ import kotlin.test.assertTrue
  *  1. The deprecated `DataTypography` API is gone — nothing may reference it (its roles moved to
  *     `PaparcarType`).
  *  2. Feature code (`presentation.*`, `ui.components.*`) must NOT inline `fontSize` / `letterSpacing`
- *     on a `Text`/`TextStyle`. Sizes live in `PaparcarType` roles (or the MD3 scale), decided once.
- *     A short allowlist covers legit exceptions: canvas/`TextMeasurer` map-marker labels and
- *     already-tokenised chrome one-offs (bottom-nav, connectivity banner, primary action bar).
+ *     on a `Text`/`TextStyle`. Sizes live in `PaparcarType` roles, decided once.
+ *  3. Feature code must NOT read `MaterialTheme.typography.*` — it speaks `PaparcarType.current.<role>`.
+ *     MD3 typography is only the framework baseline defined in `Typography.kt`.
+ *
+ * A short allowlist covers legit exceptions: canvas/`TextMeasurer` map-marker labels and
+ * already-tokenised chrome one-offs (bottom-nav, connectivity banner, primary action bar).
  */
 class TypographyGuardrailTest {
 
@@ -49,6 +52,27 @@ class TypographyGuardrailTest {
             violations.isEmpty(),
             buildViolationMessage(
                 "inline fontSize/letterSpacing in feature code — use a PaparcarType role",
+                violations,
+            ),
+        )
+    }
+
+    @Test
+    fun `feature code uses PaparcarType roles, not MaterialTheme typography`() {
+        val violations = scope.files
+            .filter { it.path.contains("commonMain") }
+            .filter { file ->
+                val pkg = file.packagee?.name ?: ""
+                pkg.startsWith("io.apptolast.paparcar.presentation") ||
+                    pkg.startsWith("io.apptolast.paparcar.ui.components")
+            }
+            .filter { it.name !in INLINE_SP_ALLOWLIST }
+            .filter { it.text.contains("MaterialTheme.typography") }
+            .map { it.name }
+        assertTrue(
+            violations.isEmpty(),
+            buildViolationMessage(
+                "MaterialTheme.typography in feature code — use a PaparcarType role",
                 violations,
             ),
         )

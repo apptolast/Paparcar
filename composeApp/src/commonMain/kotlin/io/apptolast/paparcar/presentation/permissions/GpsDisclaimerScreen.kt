@@ -20,6 +20,7 @@ import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionScaffold
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.gps_disclaimer_body
@@ -58,7 +59,7 @@ fun GpsDisclaimerScreen(
         Spacer(Modifier.height(PaparcarSpacing.xxxl))
         Text(
             text = stringResource(Res.string.gps_disclaimer_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = PaparcarType.current.heroTitle,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground,
@@ -66,9 +67,9 @@ fun GpsDisclaimerScreen(
         Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.gps_disclaimer_body),
-            style = MaterialTheme.typography.bodyLarge,
+            // Roomier line spacing for this centred disclaimer paragraph (1.2× the subtitle's).
+            style = PaparcarType.current.subtitle.let { it.copy(lineHeight = it.lineHeight * 1.2) },
             textAlign = TextAlign.Center,
-            lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.2,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 /**
  * Variant of the universal footer button.
@@ -110,7 +111,7 @@ private fun FooterButtonContent(label: String, leadingIcon: ImageVector?, isLoad
     }
     Text(
         text = label,
-        style = MaterialTheme.typography.labelLarge,
+        style = PaparcarType.current.cta,
         fontWeight = FontWeight.Bold,
     )
 }

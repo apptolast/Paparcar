@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.permissions_status_granted
@@ -95,13 +96,13 @@ internal fun PermissionRow(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PaparcarType.current.rowTitle,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = reason,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

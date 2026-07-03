@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 private val IconSize = 24.dp
 private val TilePadding = 8.dp
@@ -123,7 +124,7 @@ private fun SizeTile(
         Spacer(Modifier.height(4.dp))
         Text(
             text = option.label,
-            style = MaterialTheme.typography.labelSmall,
+            style = PaparcarType.current.label,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             color = contentColor,
         )

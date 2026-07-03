@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 private val CHIP_SHAPE = RoundedCornerShape(18.dp)
 private const val DISABLED_BG_ALPHA = 0.5f
@@ -101,7 +102,7 @@ fun PaparcarFilterChip(
             }
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = PaparcarType.current.label,
                 fontWeight = FontWeight.SemiBold,
                 color = contentColor,
             )

@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 private val ButtonHorizontalPadding = 24.dp
 private val ButtonVerticalPadding   = 14.dp
@@ -63,7 +64,7 @@ fun PapTextButton(
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
+            style = PaparcarType.current.cta,
         )
     }
 }
@@ -80,7 +81,7 @@ private fun ButtonContent(label: String, isLoading: Boolean) {
         } else {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = PaparcarType.current.cta,
             )
         }
     }

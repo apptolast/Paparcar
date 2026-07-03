@@ -116,7 +116,7 @@ internal fun HomeVehicleChip(
                 )
                 Text(
                     vehicleName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PaparcarType.current.rowTitle,
                     fontWeight = FontWeight.Bold,
                     color = cs.onSurface,
                     maxLines = 1,
@@ -141,7 +141,7 @@ internal fun HomeVehicleChip(
                             if (isCandidate) Res.string.home_vehicle_chip_status_candidate
                             else Res.string.home_vehicle_chip_status_driving,
                         ),
-                        style = MaterialTheme.typography.labelMedium,
+                        style = PaparcarType.current.label,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isCandidate) cs.primary else PapDriveBlue,
                         maxLines = 1,
@@ -251,7 +251,7 @@ internal fun HomeVehicleCard(
                                 if (isCandidate) Res.string.home_vehicle_chip_status_candidate
                                 else Res.string.home_vehicle_chip_status_driving,
                             ),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = PaparcarType.current.body,
                             fontWeight = FontWeight.SemiBold,
                             color = if (isCandidate) cs.primary else PapDriveBlue,
                             maxLines = 1,
@@ -269,14 +269,14 @@ internal fun HomeVehicleCard(
                             )
                             Text(
                                 text = parkedMeta(session, userLocation),
-                                style = MaterialTheme.typography.labelSmall,
+                                style = PaparcarType.current.label,
                                 color = cs.onSurfaceVariant,
                                 maxLines = 1,
                             )
                         }
                         else -> Text(
                             text = stringResource(Res.string.home_vehicle_chip_mark_parking),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = PaparcarType.current.body,
                             fontWeight = FontWeight.SemiBold,
                             color = cs.primary,
                             maxLines = 1,

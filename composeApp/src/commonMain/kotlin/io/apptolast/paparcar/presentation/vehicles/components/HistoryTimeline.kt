@@ -168,7 +168,7 @@ private fun SessionCardContent(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = primaryText,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    style = PaparcarType.current.body.copy(fontWeight = FontWeight.SemiBold),
                     color = textPrimary,
                     maxLines = 1,
                     modifier = Modifier.basicMarquee(),

@@ -120,7 +120,7 @@ internal fun MonitoringPillContent(
             LiveDot(color = accent)
             Text(
                 text = stringResource(label),
-                style = MaterialTheme.typography.titleSmall,
+                style = PaparcarType.current.rowTitle,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )

@@ -161,7 +161,7 @@ private fun SpotRowContent(
                 }
                 Text(
                     text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = PaparcarType.current.body,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -253,13 +253,13 @@ internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
         // HomeEmptyFilteredSpots so the two states read as one family. [HOME-VEH-REFINE-001]
         Text(
             stringResource(Res.string.home_empty_title),
-            style = MaterialTheme.typography.titleSmall,
+            style = PaparcarType.current.rowTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             stringResource(Res.string.home_empty_subtitle),
-            style = MaterialTheme.typography.bodySmall,
+            style = PaparcarType.current.caption,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
         )
     }
@@ -281,19 +281,19 @@ internal fun HomeEmptyFilteredSpots(
         // Same recipe as HomeEmptySpots (titleSmall Bold + bodySmall). [HOME-VEH-REFINE-001]
         Text(
             stringResource(Res.string.home_filter_empty_title),
-            style = MaterialTheme.typography.titleSmall,
+            style = PaparcarType.current.rowTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             stringResource(Res.string.home_filter_empty_subtitle),
-            style = MaterialTheme.typography.bodySmall,
+            style = PaparcarType.current.caption,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             stringResource(Res.string.home_filter_empty_clear),
-            style = MaterialTheme.typography.labelMedium,
+            style = PaparcarType.current.label,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable(onClick = onClearFilter),
@@ -344,7 +344,7 @@ internal fun HomeReportSpotCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     stringResource(Res.string.home_report_fab_cd),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PaparcarType.current.rowTitle,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -353,7 +353,7 @@ internal fun HomeReportSpotCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     stringResource(Res.string.home_report_subtitle),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = PaparcarType.current.label,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = PRIMARY_CARD_SUBTITLE_ALPHA),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

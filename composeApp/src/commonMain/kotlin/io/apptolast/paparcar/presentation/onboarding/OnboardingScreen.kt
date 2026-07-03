@@ -39,6 +39,7 @@ import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.illustrations.OnboardingHero
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -137,7 +138,7 @@ private fun OnboardingPage1() {
         Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.onboarding_page1_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = PaparcarType.current.heroTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -145,7 +146,7 @@ private fun OnboardingPage1() {
         Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.onboarding_page1_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
+            style = PaparcarType.current.subtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
@@ -170,7 +171,7 @@ private fun OnboardingPage2() {
         Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.onboarding_page2_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = PaparcarType.current.heroTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -214,7 +215,7 @@ private fun OnboardingPage3() {
         Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.onboarding_page3_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = PaparcarType.current.heroTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
@@ -222,7 +223,7 @@ private fun OnboardingPage3() {
         Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.onboarding_page3_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
+            style = PaparcarType.current.subtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
@@ -246,13 +247,13 @@ private fun OnboardingStep(icon: ImageVector, title: String, desc: String) {
             Column {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PaparcarType.current.rowTitle,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = desc,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

@@ -30,6 +30,7 @@ import io.apptolast.paparcar.domain.model.SpotFit
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.computeSpotFit
 import io.apptolast.paparcar.ui.components.label
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_peek_spot_fit_does_not_fit
@@ -68,7 +69,7 @@ internal fun SpotFitRow(
             ) {
                 Text(
                     text = leftByLabel,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = PaparcarType.current.label,
                     color = cs.onSurface.copy(alpha = LEFT_BY_LABEL_ALPHA),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -145,7 +146,7 @@ private fun FitPill(
         )
         Text(
             text = visual.label,
-            style = MaterialTheme.typography.bodySmall,
+            style = PaparcarType.current.caption,
             fontWeight = FontWeight.SemiBold,
             color = visual.tint,
             maxLines = 1,

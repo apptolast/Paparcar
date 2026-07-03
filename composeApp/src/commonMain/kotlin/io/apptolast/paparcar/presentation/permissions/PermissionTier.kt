@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 private val NODE_SIZE        = 32.dp
 private val NODE_ICON_SIZE   = 18.dp
@@ -105,7 +106,7 @@ internal fun PermissionTier(
             Spacer(Modifier.height(PaparcarSpacing.xs))
             Text(
                 text = benefit,
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(PaparcarSpacing.md))

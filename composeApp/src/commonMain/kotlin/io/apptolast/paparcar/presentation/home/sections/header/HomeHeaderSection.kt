@@ -39,6 +39,7 @@ import io.apptolast.paparcar.presentation.home.sections.header.components.HomeGp
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypePicker
 import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.ZoneChip
 import io.apptolast.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
 import io.apptolast.paparcar.presentation.util.MapCircleFab
@@ -185,13 +186,13 @@ private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
             Column {
                 Text(
                     text = stringResource(Res.string.home_header_add_zone),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = PaparcarType.current.label,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
                     text = stringResource(Res.string.home_header_add_zone_hint),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = PaparcarType.current.label,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = HINT_ALPHA),
                 )
             }

@@ -62,7 +62,7 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.theme.PapBorders
-import io.apptolast.paparcar.ui.theme.appBarTitle
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -130,7 +130,7 @@ internal fun VehiclesContent(
                 title = {
                     Text(
                         text = stringResource(Res.string.my_car_title),
-                        style = MaterialTheme.typography.appBarTitle,
+                        style = PaparcarType.current.screenTitle,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -323,7 +323,7 @@ private fun VehicleTabPill(vehicle: Vehicle, selected: Boolean, onClick: () -> U
             )
             Text(
                 text = tabName,
-                style = MaterialTheme.typography.labelMedium,
+                style = PaparcarType.current.label,
                 fontWeight = FontWeight.SemiBold,
                 color = fg,
                 maxLines = 1,
@@ -385,7 +385,7 @@ private fun EmptyVehicleState(
         Spacer(Modifier.height(20.dp))
         Text(
             text = stringResource(Res.string.my_car_no_vehicle),
-            style = MaterialTheme.typography.headlineSmall,
+            style = PaparcarType.current.heroTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
@@ -393,7 +393,7 @@ private fun EmptyVehicleState(
         Spacer(Modifier.height(10.dp))
         Text(
             text = stringResource(Res.string.my_car_empty_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_BODY_ALPHA),
             textAlign = TextAlign.Center,
         )
@@ -420,7 +420,7 @@ private fun EmptyVehicleState(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(Res.string.my_car_add_vehicle),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PaparcarType.current.rowTitle,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
@@ -430,7 +430,7 @@ private fun EmptyVehicleState(
         TextButton(onClick = onShowExplainer) {
             Text(
                 text = stringResource(Res.string.my_car_empty_why_link),
-                style = MaterialTheme.typography.labelMedium,
+                style = PaparcarType.current.label,
                 fontWeight = FontWeight.SemiBold,
                 textDecoration = TextDecoration.Underline,
                 color = MaterialTheme.colorScheme.primary,

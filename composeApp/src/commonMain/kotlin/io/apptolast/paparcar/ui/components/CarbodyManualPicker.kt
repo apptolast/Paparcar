@@ -70,7 +70,7 @@ fun CarbodyManualPicker(
                 ) {
                     Text(
                         text = stringResource(Res.string.vehicle_registration_carbody_picker_title),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PaparcarType.current.cardTitle,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
@@ -165,7 +165,7 @@ private fun CarbodyRow(
             }
             Text(
                 text = body.label(),
-                style = MaterialTheme.typography.bodyMedium,
+                style = PaparcarType.current.body,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 color = cs.onSurface,
             )

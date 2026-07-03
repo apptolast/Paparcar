@@ -96,7 +96,7 @@ internal fun PeekStateCard(
                     Spacer(Modifier.height(1.dp))
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = PaparcarType.current.label,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

@@ -51,6 +51,7 @@ import io.apptolast.paparcar.domain.model.bluetooth.BluetoothDeviceType
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapOutlinedCard
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -129,7 +130,7 @@ internal fun BluetoothConfigContent(
                 title = {
                     Text(
                         text = stringResource(Res.string.bt_config_title),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PaparcarType.current.cardTitle,
                         fontWeight = FontWeight.Bold,
                     )
                 },
@@ -196,7 +197,7 @@ internal fun BluetoothConfigContent(
                 item {
                     Text(
                         text = stringResource(Res.string.bt_config_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = PaparcarType.current.body,
                         color = cs.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(4.dp))
@@ -215,7 +216,7 @@ internal fun BluetoothConfigContent(
                     item {
                         Text(
                             text = stringResource(Res.string.bt_config_no_devices),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = PaparcarType.current.body,
                             color = cs.onSurfaceVariant,
                             modifier = Modifier.padding(vertical = 8.dp),
                         )
@@ -255,7 +256,7 @@ private fun BtOffState(
         )
         Text(
             text = stringResource(Res.string.bt_config_bt_off),
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
@@ -283,7 +284,7 @@ private fun BtPermissionState(
         )
         Text(
             text = stringResource(Res.string.bt_config_permission_rationale),
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
@@ -314,13 +315,13 @@ private fun DeviceRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = PaparcarType.current.body,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                 )
                 if (typeLabel != null) {
                     Text(
                         text = typeLabel,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = PaparcarType.current.label,
                         color = cs.onSurfaceVariant,
                     )
                 }

@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.getParkingRules
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_registration_carbody_auto_label
@@ -97,7 +98,7 @@ fun CarbodyInfoCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = sizeLabel,
-                        style = MaterialTheme.typography.titleSmall,
+                        style = PaparcarType.current.rowTitle,
                         fontWeight = FontWeight.Bold,
                         color = cs.onSurface,
                         maxLines = 1,
@@ -106,7 +107,7 @@ fun CarbodyInfoCard(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = carbody.label(),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = PaparcarType.current.body,
                         color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -131,7 +132,7 @@ fun CarbodyInfoCard(
                         )
                         Text(
                             text = stringResource(Res.string.vehicle_registration_carbody_change),
-                            style = MaterialTheme.typography.labelSmall,
+                            style = PaparcarType.current.label,
                             fontWeight = FontWeight.SemiBold,
                             color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                         )
@@ -156,7 +157,7 @@ fun CarbodyInfoCard(
                         if (isManualOverride) Res.string.vehicle_registration_carbody_manual_label
                         else Res.string.vehicle_registration_carbody_auto_label
                     ),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = PaparcarType.current.label,
                     fontWeight = FontWeight.SemiBold,
                     color = cs.primary,
                 )
@@ -180,7 +181,7 @@ fun CarbodyInfoCard(
                 )
                 Text(
                     text = alertCopy,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = alertTint,
                 )
             }
@@ -225,7 +226,7 @@ fun NonCarSizeBadge(
             }
             Text(
                 text = sizeLabel,
-                style = MaterialTheme.typography.titleSmall,
+                style = PaparcarType.current.rowTitle,
                 fontWeight = FontWeight.Bold,
                 color = cs.onSurface,
             )

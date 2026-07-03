@@ -33,6 +33,7 @@ import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionScaffold
 import io.apptolast.paparcar.ui.illustrations.OnboardingHero
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.permissions_bg_guide_body
@@ -169,7 +170,7 @@ internal fun PermissionsContent(
             Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
                 text = stringResource(Res.string.permissions_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = PaparcarType.current.heroTitle,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
@@ -177,7 +178,7 @@ internal fun PermissionsContent(
             Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
                 text = stringResource(Res.string.permissions_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
+                style = PaparcarType.current.body,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
@@ -272,7 +273,7 @@ internal fun PermissionsContent(
                     Spacer(Modifier.height(PaparcarSpacing.sm))
                     Text(
                         text = stringResource(Res.string.permissions_perm_battery_oem_hint),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = PaparcarType.current.caption,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -309,7 +310,7 @@ internal fun PermissionsContent(
             Spacer(Modifier.height(PaparcarSpacing.xl))
             Text(
                 text = stringResource(Res.string.permissions_rationale),
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = MaterialTheme.colorScheme.secondary,
             )
         }

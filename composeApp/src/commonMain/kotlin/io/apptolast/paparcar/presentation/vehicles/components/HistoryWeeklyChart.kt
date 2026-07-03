@@ -156,13 +156,13 @@ private fun LowActivitySummary(total: Int) {
                     ) { append("$total ") }
                     append(pluralStringResource(Res.plurals.history_activity_noun, total))
                 },
-                style = MaterialTheme.typography.titleMedium,
+                style = PaparcarType.current.cardTitle,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = stringResource(Res.string.history_activity_low_hint),
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
             )
         }

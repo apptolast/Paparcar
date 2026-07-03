@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.GlassSurface
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_zone_action_delete
@@ -73,7 +74,7 @@ internal fun ZoneChip(
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = PaparcarType.current.label,
                 fontWeight = FontWeight.SemiBold,
                 color = cs.onSurface,
                 maxLines = 1,

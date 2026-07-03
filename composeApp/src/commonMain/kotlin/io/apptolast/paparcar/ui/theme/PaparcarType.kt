@@ -51,14 +51,20 @@ class PaparcarType(
     val sectionTitle: TextStyle,
     /** Card / row title — vehicle name, spot street, peek title. (titleMedium weight-bumped to Bold.) */
     val cardTitle: TextStyle,
+    /** Small title inside a row / list item, lighter than [cardTitle]. (== titleSmall.) */
+    val rowTitle: TextStyle,
 
     // ── STRUCTURE · Inter (neutral face — navigation of the layout) ─────────────────────────────
     /** Section header eyebrow — "TUS VEHÍCULOS", "ACTIVIDAD". Uppercased by `PapSectionHeader`. */
     val sectionHeader: TextStyle,
     /** Primary CTA / button label. (labelLarge weight-bumped to Bold — the `PapFooterButton` recipe.) */
     val cta: TextStyle,
+    /** Small standalone label / chip text (not a data token). (== labelMedium.) */
+    val label: TextStyle,
 
     // ── PROSE · Inter (things you read as sentences) ────────────────────────────────────────────
+    /** Prominent body — hero/onboarding subtitles, lead paragraphs. (== bodyLarge.) */
+    val subtitle: TextStyle,
     /** Body copy — descriptions, helper paragraphs. (bodyMedium.) */
     val body: TextStyle,
     /** Secondary / caption text — subtitles, hints. (bodySmall.) */
@@ -123,6 +129,10 @@ fun rememberPaparcarType(): PaparcarType {
             fontFamily = outfit, fontWeight = FontWeight.Bold,
             fontSize = 18.sp, lineHeight = 24.sp, letterSpacing = 0.15.sp,
         ),
+        rowTitle = TextStyle(
+            fontFamily = outfit, fontWeight = FontWeight.Medium,
+            fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
+        ),
 
         // ── STRUCTURE · Inter ───────────────────────────────────────────────────────────────────
         sectionHeader = TextStyle(
@@ -133,8 +143,16 @@ fun rememberPaparcarType(): PaparcarType {
             fontFamily = inter, fontWeight = FontWeight.Bold,
             fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
         ),
+        label = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.Medium,
+            fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp,
+        ),
 
         // ── PROSE · Inter ───────────────────────────────────────────────────────────────────────
+        subtitle = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.Normal,
+            fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.5.sp,
+        ),
         body = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.Normal,
             fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.25.sp,

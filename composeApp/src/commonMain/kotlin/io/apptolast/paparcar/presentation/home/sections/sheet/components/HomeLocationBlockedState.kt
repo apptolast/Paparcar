@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.illustrations.LocationAlertIllustration
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_core_cta
@@ -62,7 +63,7 @@ internal fun HomeLocationBlockedState(
         Spacer(Modifier.height(PaparcarSpacing.lg))
         Text(
             text = stringResource(Res.string.home_det_core_title),
-            style = MaterialTheme.typography.titleLarge,
+            style = PaparcarType.current.sectionTitle,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
@@ -70,7 +71,7 @@ internal fun HomeLocationBlockedState(
         Spacer(Modifier.height(PaparcarSpacing.sm))
         Text(
             text = stringResource(Res.string.home_det_core_sub),
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )

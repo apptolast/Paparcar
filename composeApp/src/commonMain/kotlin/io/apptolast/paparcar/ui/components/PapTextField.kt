@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 /**
  * Branded text input field.
@@ -50,8 +51,8 @@ fun PapTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
-        placeholder = placeholder?.let { { Text(it, style = MaterialTheme.typography.bodyMedium) } },
+        label = { Text(label, style = PaparcarType.current.body) },
+        placeholder = placeholder?.let { { Text(it, style = PaparcarType.current.body) } },
         leadingIcon = leadingIcon?.let {
             {
                 Icon(
@@ -68,7 +69,7 @@ fun PapTextField(
             {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.error,
                 )
             }

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 private val SWATCH_SIZE = 40.dp
 private val SWATCH_GAP = 10.dp
@@ -77,7 +78,7 @@ fun VehicleColorSelector(
         Spacer(Modifier.height(10.dp))
         Text(
             text = selected.colorLabel(),
-            style = MaterialTheme.typography.labelMedium,
+            style = PaparcarType.current.label,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -232,7 +232,7 @@ private fun StatCell(
         Spacer(Modifier.size(STAT_LABEL_GAP.dp))
         Text(
             text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
+            style = PaparcarType.current.label,
             color = cs.onSurfaceVariant,
             maxLines = 1,
         )
@@ -273,7 +273,7 @@ private fun SetActiveRow(isLoading: Boolean, onClick: () -> Unit) {
             }
             Text(
                 text = stringResource(Res.string.vehicle_set_active_action),
-                style = MaterialTheme.typography.titleSmall,
+                style = PaparcarType.current.rowTitle,
                 fontWeight = FontWeight.Bold,
                 color = cs.primary,
             )

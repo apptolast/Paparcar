@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_det_awaiting_cta_primary
@@ -200,7 +201,7 @@ private fun ActionRow(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleSmall,
+                            style = PaparcarType.current.rowTitle,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
@@ -208,7 +209,7 @@ private fun ActionRow(
                         )
                         Text(
                             text = subtitle,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = PaparcarType.current.caption,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
@@ -299,7 +300,7 @@ private fun CtaPill(
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = PaparcarType.current.cta,
                 fontWeight = FontWeight.SemiBold,
                 color = content,
                 maxLines = 1,

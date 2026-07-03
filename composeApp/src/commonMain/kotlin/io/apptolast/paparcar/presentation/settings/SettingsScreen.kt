@@ -97,7 +97,6 @@ import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.appBarTitle
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.presentation.vehicles.MONTH_SHORT_RES
 import kotlinx.datetime.TimeZone
@@ -263,7 +262,7 @@ internal fun SettingsContent(
                 title = {
                     Text(
                         text = stringResource(Res.string.settings_title),
-                        style = MaterialTheme.typography.appBarTitle,
+                        style = PaparcarType.current.screenTitle,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -456,14 +455,14 @@ private fun ProfileCardV2(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = displayName,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PaparcarType.current.cardTitle,
                         fontWeight = FontWeight.Bold,
                         color = cs.onSurface,
                     )
                     if (email != null) {
                         Text(
                             text = email,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = PaparcarType.current.caption,
                             color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                         )
                     }
@@ -494,7 +493,7 @@ private fun ProfileCardV2(
                 Spacer(Modifier.size(6.dp))
                 Text(
                     stringResource(Res.string.settings_profile_logout),
-                    style = MaterialTheme.typography.labelLarge,
+                    style = PaparcarType.current.cta,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -522,7 +521,7 @@ private fun ProfileAvatar(displayName: String, photoUrl: String?) {
         // so loading/error/no-URL all degrade gracefully to the initial.
         Text(
             text = displayName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-            style = MaterialTheme.typography.titleLarge,
+            style = PaparcarType.current.sectionTitle,
             fontWeight = FontWeight.ExtraBold,
             color = cs.onPrimary,
         )
@@ -576,13 +575,13 @@ private fun ThemePickerCard(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) 
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 stringResource(Res.string.settings_theme_mode),
-                style = MaterialTheme.typography.bodyMedium,
+                style = PaparcarType.current.body,
                 fontWeight = FontWeight.SemiBold,
                 color = cs.onSurface,
             )
             Text(
                 stringResource(Res.string.settings_theme_mode_desc),
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
             )
             Spacer(Modifier.size(12.dp))
@@ -682,7 +681,7 @@ private fun ThemePreview(
         Spacer(Modifier.size(6.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = PaparcarType.current.label,
             fontWeight = FontWeight.Bold,
             color = if (selected) cs.primary else cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
         )
@@ -719,13 +718,13 @@ private fun NotificationsGroupCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         stringResource(Res.string.settings_notifications_title),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = PaparcarType.current.body,
                         fontWeight = FontWeight.SemiBold,
                         color = cs.onSurface,
                     )
                     Text(
                         stringResource(Res.string.settings_notifications_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = PaparcarType.current.caption,
                         color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG),
                     )
                 }
@@ -774,13 +773,13 @@ private fun SubNotifRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 label,
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 fontWeight = FontWeight.SemiBold,
                 color = cs.onSurface,
             )
             Text(
                 description,
-                style = MaterialTheme.typography.labelSmall,
+                style = PaparcarType.current.label,
                 color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG),
             )
         }
@@ -809,7 +808,7 @@ private fun DangerZoneCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 subtitle,
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = cs.onSurface.copy(alpha = DANGER_SUBTITLE_ALPHA),
             )
             Spacer(Modifier.size(10.dp))
@@ -873,8 +872,8 @@ private fun SettingsSwitchItem(
         ) {
             SettingsIconBox(icon = icon)
             Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
-                Text(description, style = MaterialTheme.typography.bodySmall, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
+                Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
+                Text(description, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange)
         }
@@ -896,8 +895,8 @@ private fun SettingsInfoItem(icon: ImageVector, label: String, value: String) {
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             SettingsIconBox(icon = icon)
-            Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = cs.onSurface, modifier = Modifier.weight(1f))
-            Text(value, style = MaterialTheme.typography.bodySmall, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
+            Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface, modifier = Modifier.weight(1f))
+            Text(value, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
         }
     }
 }
@@ -924,9 +923,9 @@ private fun SettingsNavItem(
         ) {
             SettingsIconBox(icon = icon)
             Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
+                Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
                 if (description != null) {
-                    Text(description, style = MaterialTheme.typography.bodySmall, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
+                    Text(description, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
                 }
             }
             Icon(
@@ -986,12 +985,12 @@ private fun SettingsDropdownItem(
             ) {
                 SettingsIconBox(icon = icon)
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
-                    Text(description, style = MaterialTheme.typography.bodySmall, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
+                    Text(label, style = PaparcarType.current.body, fontWeight = FontWeight.SemiBold, color = cs.onSurface)
+                    Text(description, style = PaparcarType.current.caption, color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA_STRONG))
                     Spacer(Modifier.size(6.dp))
                     Text(
                         text = options[selected] ?: selected,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = PaparcarType.current.caption,
                         color = cs.primary,
                         fontWeight = FontWeight.Bold,
                     )

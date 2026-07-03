@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 
 private val BadgeIconSize       = 12.dp
 private val BadgeHorizontalPad  = 8.dp
@@ -39,7 +40,7 @@ fun PapBadge(
     contentColor: Color,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    textStyle: TextStyle = MaterialTheme.typography.labelSmall,
+    textStyle: TextStyle = PaparcarType.current.label,
 ) {
     Row(
         modifier = modifier

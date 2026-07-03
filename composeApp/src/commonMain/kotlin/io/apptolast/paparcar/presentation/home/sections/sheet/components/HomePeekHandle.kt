@@ -432,7 +432,7 @@ private fun SpotListToggleRow(
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaparcarType.current.body,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = TOGGLE_ROW_ALPHA),
         )
         Spacer(Modifier.width(4.dp))
@@ -499,7 +499,7 @@ private fun PeekMetaRow(icon: ImageVector, text: String, tint: Color) {
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaparcarType.current.body,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
             maxLines = 1,
@@ -543,7 +543,7 @@ private fun FiabilityIndicator(level: SpotReliabilityUiState, expiresInMin: Int?
         if (expiresInMin != null) {
             Text(
                 text = stringResource(Res.string.home_peek_spot_expires, expiresInMin),
-                style = MaterialTheme.typography.labelSmall,
+                style = PaparcarType.current.label,
                 fontWeight = FontWeight.Medium,
                 color = if (isExpiring) cs.secondary else cs.onSurface.copy(alpha = 0.55f),
             )
@@ -871,7 +871,7 @@ private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
+                style = PaparcarType.current.label,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 color = if (isSelected) cs.onPrimary else cs.onSurfaceVariant,
             )
@@ -977,7 +977,7 @@ private fun AddingZonePeekRow(
                 )
                 Text(
                     text = stringResource(Res.string.home_zone_radius_meters, state.addingZoneRadius.roundToInt()),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = PaparcarType.current.label,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -1006,11 +1006,11 @@ private fun AddingZonePeekRow(
                     Column {
                         Text(
                             text = stringResource(Res.string.home_zone_private_label),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = PaparcarType.current.body,
                         )
                         Text(
                             text = stringResource(Res.string.home_zone_private_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = PaparcarType.current.caption,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECTION_LABEL_ALPHA),
                         )
                     }
@@ -1102,7 +1102,7 @@ internal fun HelperRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = primary,
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
@@ -1112,7 +1112,7 @@ internal fun HelperRow(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = secondary,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = PaparcarType.current.label,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = HELPER_SECONDARY_ALPHA),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -1220,7 +1220,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
             Text(
                 text = if (info.placeInfo != null) info.placeInfo.name
                        else info.displayLine ?: stringResource(Res.string.home_address_unknown),
-                style = MaterialTheme.typography.titleMedium,
+                style = PaparcarType.current.cardTitle,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha),
                 maxLines = 1,
@@ -1235,7 +1235,7 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
             if (secondaryLine != null) {
                 Text(
                     text = secondaryLine,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECONDARY_ALPHA * textAlpha),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

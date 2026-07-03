@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleType
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_type_bike
@@ -127,7 +128,7 @@ private fun TypeTile(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = option.label(),
-                style = MaterialTheme.typography.bodyMedium,
+                style = PaparcarType.current.body,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isSelected) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface,
@@ -135,7 +136,7 @@ private fun TypeTile(
             Spacer(Modifier.height(2.dp))
             Text(
                 text = option.examples(),
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

@@ -33,6 +33,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -144,7 +145,7 @@ fun PapAlertDialog(
                 Spacer(Modifier.height(14.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = PaparcarType.current.cardTitle,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
@@ -152,7 +153,7 @@ fun PapAlertDialog(
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = body,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = BODY_ALPHA),
                     textAlign = TextAlign.Center,
                 )
@@ -188,7 +189,7 @@ fun PapAlertDialog(
                     ) {
                         Text(
                             text = cancelLabel,
-                            style = MaterialTheme.typography.labelLarge,
+                            style = PaparcarType.current.cta,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = CANCEL_ALPHA),
                         )
                     }

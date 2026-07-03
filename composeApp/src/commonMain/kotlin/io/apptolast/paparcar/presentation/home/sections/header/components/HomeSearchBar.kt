@@ -31,6 +31,7 @@ import io.apptolast.paparcar.ui.components.GlassDefaults
 import io.apptolast.paparcar.ui.components.GlassSurface
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
 import io.apptolast.paparcar.ui.components.PapClearIconButton
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -102,7 +103,7 @@ internal fun HomeSearchBar(
                 ),
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                 placeholder = {
-                    Text(stringResource(Res.string.home_search_placeholder), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(Res.string.home_search_placeholder), style = PaparcarType.current.body)
                 },
                 leadingIcon = {
                     if (isSearching) {
@@ -170,7 +171,7 @@ internal fun HomeSearchBar(
                                 Spacer(Modifier.width(12.dp))
                                 Text(
                                     text = result.displayName,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = PaparcarType.current.caption,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,

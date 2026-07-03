@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PapMotion
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_gps_accuracy_banner
@@ -82,7 +83,7 @@ fun HomeGpsAccuracyBanner(
                 Spacer(Modifier.width(4.dp))
                 Text(
                     text = stringResource(Res.string.home_gps_accuracy_banner, accuracy?.toInt() ?: 0),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = PaparcarType.current.label,
                     color = Color.White,
                 )
             }

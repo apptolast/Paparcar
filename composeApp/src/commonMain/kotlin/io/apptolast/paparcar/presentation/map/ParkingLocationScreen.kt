@@ -61,6 +61,7 @@ import io.apptolast.paparcar.ui.components.PapSectionHeader
 import io.apptolast.paparcar.ui.components.PaparcarMapConfig
 import io.apptolast.paparcar.ui.components.PaparcarMapView
 import io.apptolast.paparcar.ui.theme.PapShapes
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -304,7 +305,7 @@ private fun AddressHeroRow(session: UserParking?, isActive: Boolean) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = primaryText,
-                style = MaterialTheme.typography.titleMedium,
+                style = PaparcarType.current.cardTitle,
                 fontWeight = FontWeight.Bold,
                 color = cs.onSurface,
                 maxLines = 1,
@@ -313,7 +314,7 @@ private fun AddressHeroRow(session: UserParking?, isActive: Boolean) {
             if (secondaryText != null) {
                 Text(
                     text = secondaryText,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = cs.onSurface.copy(alpha = SECONDARY_ALPHA),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -387,7 +388,7 @@ private fun MetaRow(
         )
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium,
+            style = PaparcarType.current.body,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_TEXT_ALPHA),
             maxLines = 1,

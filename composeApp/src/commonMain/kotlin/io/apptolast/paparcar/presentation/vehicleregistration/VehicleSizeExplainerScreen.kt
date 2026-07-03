@@ -36,6 +36,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.components.PapPrimaryButton
 import io.apptolast.paparcar.ui.components.VehicleIcon
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.vehicle_size_explainer_card1_desc
@@ -81,7 +82,7 @@ fun VehicleSizeExplainerScreen(
             Spacer(Modifier.height(PaparcarSpacing.sm))
             Text(
                 text = stringResource(Res.string.vehicle_size_explainer_title),
-                style = MaterialTheme.typography.headlineMedium,
+                style = PaparcarType.current.heroTitle,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
@@ -89,7 +90,7 @@ fun VehicleSizeExplainerScreen(
             Spacer(Modifier.height(PaparcarSpacing.lg))
             Text(
                 text = stringResource(Res.string.vehicle_size_explainer_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
+                style = PaparcarType.current.subtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
@@ -181,14 +182,14 @@ private fun ExplainerTimelineStep(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
+                style = PaparcarType.current.rowTitle,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Spacer(Modifier.height(PaparcarSpacing.xs))
             Text(
                 text = description,
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (!isLast) Spacer(Modifier.height(PaparcarSpacing.xl))

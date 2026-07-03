@@ -74,7 +74,7 @@ import io.apptolast.paparcar.ui.components.label
 import io.apptolast.paparcar.ui.components.vehicleSizeLabel
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
-import io.apptolast.paparcar.ui.theme.appBarTitle
+import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
@@ -244,7 +244,7 @@ internal fun VehicleRegistrationContent(
                             if (isEditing) Res.string.vehicle_registration_edit_title
                             else Res.string.vehicle_registration_title,
                         ),
-                        style = MaterialTheme.typography.appBarTitle,
+                        style = PaparcarType.current.screenTitle,
                     )
                 },
                 navigationIcon = {
@@ -402,7 +402,7 @@ internal fun VehicleRegistrationContent(
                         // Brand or model still blank — nudge the user toward filling them.
                         Text(
                             text = stringResource(Res.string.vehicle_registration_size_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = PaparcarType.current.caption,
                             color = cs.onSurfaceVariant,
                         )
                     }
@@ -497,13 +497,13 @@ internal fun VehicleRegistrationContent(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = stringResource(Res.string.vehicle_registration_bt_title),
-                                    style = MaterialTheme.typography.bodyMedium,
+                                    style = PaparcarType.current.body,
                                     fontWeight = FontWeight.SemiBold,
                                     color = cs.onSurface,
                                 )
                                 Text(
                                     text = stringResource(Res.string.vehicle_registration_bt_desc),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = PaparcarType.current.caption,
                                     color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                                 )
                             }
@@ -514,7 +514,7 @@ internal fun VehicleRegistrationContent(
                             ) {
                                 Text(
                                     text = stringResource(Res.string.vehicle_registration_bt_cta),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = PaparcarType.current.label,
                                     fontWeight = FontWeight.SemiBold,
                                 )
                             }
@@ -542,13 +542,13 @@ internal fun VehicleRegistrationContent(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = stringResource(Res.string.vehicle_show_on_spot),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = PaparcarType.current.body,
                                 fontWeight = FontWeight.SemiBold,
                                 color = cs.onSurface,
                             )
                             Text(
                                 text = stringResource(Res.string.vehicle_show_on_spot_desc),
-                                style = MaterialTheme.typography.bodySmall,
+                                style = PaparcarType.current.caption,
                                 color = cs.onSurface.copy(alpha = SUBTITLE_ALPHA),
                             )
                         }
@@ -584,7 +584,7 @@ internal fun VehicleRegistrationContent(
                         )
                         Text(
                             text = stringResource(Res.string.my_car_delete_vehicle),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = PaparcarType.current.body,
                             fontWeight = FontWeight.SemiBold,
                             color = cs.error,
                         )
@@ -679,14 +679,14 @@ private fun VehicleHeroCard(
             Spacer(Modifier.height(12.dp))
             Text(
                 text = heroName,
-                style = MaterialTheme.typography.titleLarge,
+                style = PaparcarType.current.sectionTitle,
                 fontWeight = FontWeight.Bold,
                 color = nameColor,
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = sizeLabel,
-                style = MaterialTheme.typography.bodySmall,
+                style = PaparcarType.current.caption,
                 color = subtitleColor,
             )
         }
@@ -732,7 +732,7 @@ private fun VehicleRegistrationBottomBar(
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = hint,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = PaparcarType.current.caption,
                     color = cs.onSurface.copy(alpha = HINT_TEXT_ALPHA),
                     textAlign = TextAlign.Center,
                 )
