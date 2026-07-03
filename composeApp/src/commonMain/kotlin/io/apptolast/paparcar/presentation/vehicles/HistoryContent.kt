@@ -48,11 +48,9 @@ import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.history_active_section
-import paparcar.composeapp.generated.resources.history_activity_noun
 import paparcar.composeapp.generated.resources.history_activity_title
 import paparcar.composeapp.generated.resources.history_section_label
 import paparcar.composeapp.generated.resources.history_day_full_fri
