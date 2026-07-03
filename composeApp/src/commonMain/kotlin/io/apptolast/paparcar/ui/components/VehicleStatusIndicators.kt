@@ -2,12 +2,8 @@ package io.apptolast.paparcar.ui.components
 
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -15,16 +11,13 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.TripOrigin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.ui.theme.PapBorders
@@ -103,45 +96,33 @@ fun VehicleStatusLeadingIcon(
 }
 
 /**
- * A marker + short uppercase label reading the monitoring state, WITHOUT a filled pill background —
- * so the vehicle name stays the hero. Active = green dot, Bluetooth = blue BT glyph, Inactive = grey
- * dot. Used by the single-vehicle Home card and the Vehicles ficha header.
+ * THE single status badge for a vehicle card — a tonal pill (icon + short uppercase label) tinted by
+ * the monitoring accent (green = active, blue = Bluetooth, grey = inactive). It is deliberately the
+ * ONLY boxed element on the card row: the dynamic, decision-relevant state earns the container, while
+ * static description (carbody · size) drops to quiet subtitle text beside it. Tonal fill (accent at
+ * low alpha), never the neon accent — same muted language as the card border. [CARD-ONE-BADGE-001]
  */
 @Composable
-fun VehicleStatusTextPin(
+fun VehicleStatusBadge(
     status: VehicleMonitoringStatus,
     label: String,
     modifier: Modifier = Modifier,
 ) {
     val accent = vehicleStatusAccent(status)
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(PIN_MARKER_GAP_DP.dp),
-    ) {
-        if (status is VehicleMonitoringStatus.Bluetooth) {
-            Icon(
-                imageVector = Icons.Rounded.Bluetooth,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(PIN_BT_ICON_DP.dp),
-            )
-        } else {
-            Box(
-                Modifier
-                    .size(PIN_DOT_DP.dp)
-                    .clip(CircleShape)
-                    .background(accent),
-            )
-        }
-        Text(
-            text = label.uppercase(),
-            style = PaparcarType.current.badge,
-            color = accent,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+    val icon = when (status) {
+        is VehicleMonitoringStatus.Bluetooth -> Icons.Rounded.Bluetooth
+        VehicleMonitoringStatus.Active       -> Icons.Rounded.TripOrigin
+        VehicleMonitoringStatus.Inactive     -> Icons.Rounded.RadioButtonUnchecked
     }
+    PapBadge(
+        label = label.uppercase(),
+        containerColor = accent.copy(alpha = STATUS_BADGE_BG_ALPHA),
+        contentColor = accent,
+        modifier = modifier,
+        icon = icon,
+        // Repeating data token that competes horizontally with the name → DATA role (Barlow).
+        textStyle = PaparcarType.current.badge,
+    )
 }
 
 /**
@@ -214,6 +195,7 @@ fun DrivingRadarHalo(diameter: androidx.compose.ui.unit.Dp) {
 
 private const val STATUS_ICON_DP = 16
 private const val STATUS_BORDER_ALPHA = 0.45f // muted "green-line" frame, never the neon accent
+private const val STATUS_BADGE_BG_ALPHA = 0.14f // tonal fill for the single status badge, not neon
 
 // Driving "radar" halo animation tuning. [CHIP-DRIVING-001]
 private const val RADAR_PERIOD_MS = 1600
@@ -221,9 +203,6 @@ private const val RADAR_PHASE_OFFSET = 0.5f  // second ring half a cycle behind 
 private const val RADAR_MIN_FRACTION = 0.45f // rings start at 45% of the glyph radius, expand to full
 private const val RADAR_MAX_ALPHA = 0.45f
 private val RADAR_STROKE = 1.5.dp
-private const val PIN_MARKER_GAP_DP = 6
-private const val PIN_DOT_DP = 8
-private const val PIN_BT_ICON_DP = 14
 private const val UNMARKED_ICON_DP = 20
 private val UNMARKED_STROKE_DP = 1.5.dp
 private val UNMARKED_DASH_ON = 2.dp
