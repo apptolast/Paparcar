@@ -3,13 +3,11 @@ package io.apptolast.paparcar.presentation.home.sections.sheet.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,8 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.components.PapListItem
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -66,47 +63,30 @@ internal fun PeekStateCard(
     Column(modifier = modifier.padding(horizontal = PEEK_CARD_HORIZONTAL_PAD_DP.dp)) {
 
         // ── Header (chip + [label/title column] + close ×) ───────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            leading()
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    // Accent state eyebrow ("APARCADO", "EN RUTA") — a data token, so it uses the
-                    // condensed statusPin per the typography mechanism. [UI-REGRESSION]
-                    text = headerLabel.uppercase(),
-                    style = PaparcarType.current.badge,
-                    color = accentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = title,
-                    style = PaparcarType.current.cardTitle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (subtitle != null) {
-                    Spacer(Modifier.height(1.dp))
-                    Text(
-                        text = subtitle,
-                        style = PaparcarType.current.label,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            if (showDismiss) {
-                PeekStateDismissButton(onDismiss = onDismiss)
-            }
-        }
+        // Same leading + overline + title + subtitle + trailing anatomy as every other row —
+        // delegated to the shared PapListItem. The accent eyebrow is the overline; the dismiss ×
+        // is the trailing slot. [UI-LIST-ITEM-002]
+        PapListItem(
+            overline = headerLabel,
+            overlineColor = accentColor,
+            title = title,
+            // cardTitle is intrinsically Bold — pass it through so PapListItem's SemiBold default
+            // doesn't lighten the peek title.
+            titleStyle = PaparcarType.current.cardTitle,
+            titleWeight = FontWeight.Bold,
+            titleMaxLines = 1,
+            subtitle = subtitle,
+            subtitleStyle = PaparcarType.current.label,
+            subtitleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = SUBTITLE_ALPHA),
+            subtitleMaxLines = 1,
+            // Horizontal inset already applied by the parent Column; keep the peek's own top/bottom.
+            contentPadding = PaddingValues(top = 12.dp, bottom = 14.dp),
+            gap = 12.dp,
+            leading = leading,
+            trailing = if (showDismiss) {
+                { PeekStateDismissButton(onDismiss = onDismiss) }
+            } else null,
+        )
 
         // ── Content slot (optional) ───────────────────────────────────────
         content()
