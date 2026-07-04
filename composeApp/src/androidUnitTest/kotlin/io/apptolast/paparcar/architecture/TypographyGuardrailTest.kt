@@ -15,6 +15,8 @@ import kotlin.test.assertTrue
  *     on a `Text`/`TextStyle`. Sizes live in `PaparcarType` roles, decided once.
  *  3. Feature code must NOT read `MaterialTheme.typography.*` — it speaks `PaparcarType.current.<role>`.
  *     MD3 typography is only the framework baseline defined in `Typography.kt`.
+ *  4. Feature code must NOT build font families directly (`rememberXxxFontFamily()` / `FontFamily(...)`)
+ *     — that swaps the family while dodging rules 2/3. Only `ui.theme` constructs families.
  *
  * A short allowlist covers legit exceptions: canvas/`TextMeasurer` map-marker labels and
  * already-tokenised chrome one-offs (bottom-nav, connectivity banner, primary action bar).
@@ -78,6 +80,27 @@ class TypographyGuardrailTest {
         )
     }
 
+    @Test
+    fun `feature code does not build font families directly`() {
+        val violations = scope.files
+            .filter { it.path.contains("commonMain") }
+            .filter { file ->
+                val pkg = file.packagee?.name ?: ""
+                pkg.startsWith("io.apptolast.paparcar.presentation") ||
+                    pkg.startsWith("io.apptolast.paparcar.ui.components")
+            }
+            .filter { it.name !in FONT_FAMILY_ALLOWLIST }
+            .filter { FONT_FAMILY_REGEX.containsMatchIn(it.text) }
+            .map { it.name }
+        assertTrue(
+            violations.isEmpty(),
+            buildViolationMessage(
+                "direct font-family construction in feature code — use a PaparcarType role",
+                violations,
+            ),
+        )
+    }
+
     private fun buildViolationMessage(rule: String, violations: List<String>): String =
         "[$rule] ${violations.size} violation(s):\n${violations.joinToString("\n") { "  - $it.kt" }}"
 
@@ -92,5 +115,11 @@ class TypographyGuardrailTest {
             "ConnectivityBanner",
             "PaparcarBottomActionBar",
         )
+
+        // Rule 4 — the only feature file allowed to resolve a family itself is the canvas
+        // map-marker painter: its label sizes scale with the marker geometry, so its styles
+        // can't come from the fixed role table (same exception as rule 2).
+        val FONT_FAMILY_REGEX = Regex("""remember(Outfit|Inter|BarlowCondensed)FontFamily|FontFamily\s*\(""")
+        val FONT_FAMILY_ALLOWLIST = setOf("PaparcarMapMarkers")
     }
 }

@@ -105,8 +105,8 @@ val LocalPaparcarType = staticCompositionLocalOf<PaparcarType> {
 
 /**
  * Builds the role table for the current composition (fonts are resolved via the `@Composable`
- * family factories). Prefer exposing this through a `CompositionLocal` at the theme root so callers
- * can read `PaparcarType.current.metadata`; until then, call `rememberPaparcarType()` locally.
+ * family factories). [PaparcarTheme] provides the result through [LocalPaparcarType] — feature
+ * code reads `PaparcarType.current.<role>` and never calls this directly.
  */
 @Composable
 fun rememberPaparcarType(): PaparcarType {

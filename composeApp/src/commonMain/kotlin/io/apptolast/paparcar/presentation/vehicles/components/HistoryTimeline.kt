@@ -59,7 +59,7 @@ internal fun DayHeaderRow(label: String) {
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = DAY_HEADER_DOT_ALPHA), CircleShape)
         )
         Text(
-            // Uppercase day label = data token → condensed statusPin, keeping its muted tone.
+            // Uppercase day label = data token → condensed badge role, keeping its muted tone.
             text = label.uppercase(),
             style = PaparcarType.current.badge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = DAY_HEADER_TEXT_ALPHA),

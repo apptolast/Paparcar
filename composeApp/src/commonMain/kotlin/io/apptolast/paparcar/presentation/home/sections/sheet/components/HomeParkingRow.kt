@@ -263,10 +263,8 @@ internal fun HomeVehicleCard(
                             maxLines = 1,
                         )
                         session != null -> {
-                            // The address title is the long line → condensed, so "Aparcado en {calle
                             // The wide card has room, so the address reads in Inter (body) for
-                            // legibility — condensed is reserved for the tight compact chip and the
-                            // short time·distance subline below. [UI-METRICS-POLISH-001]
+                            // legibility — condensed is reserved for the tight compact chip. [UI-METRICS-POLISH-001]
                             Text(
                                 text = parkedTitle(session),
                                 style = PaparcarType.current.body.copy(fontWeight = FontWeight.SemiBold),
@@ -276,9 +274,9 @@ internal fun HomeVehicleCard(
                             )
                             Text(
                                 text = parkedMeta(session, userLocation),
-                                // "2 h ago · 180 m away" = time·distance data token → Barlow (metadata),
-                                // as the comment above reserves the condensed face for. [TYPO-AUDIT-001]
-                                style = PaparcarType.current.metadata,
+                                // Secondary subline under an Inter title — same family as its title
+                                // so the selected-car block doesn't mix faces. [PEEK-META-INTER-001]
+                                style = PaparcarType.current.caption,
                                 color = cs.onSurfaceVariant,
                                 maxLines = 1,
                             )

@@ -75,13 +75,13 @@ Antes de añadir un icono, decide el nivel. Regla mental: *plumbing de UI → Ma
 
 ### ⛔ Tipografía — sistema de roles (`PaparcarType`)
 La familia y el tamaño son propiedad del **ROL** del texto, no del widget. Nunca elijas fuente ni tamaño: elige rol.
-Fuente de verdad = `ui/theme/PaparcarType.kt` (19 roles). Se lee `PaparcarType.current.<rol>` (provisto en `PaparcarTheme`). Un `fontWeight`/`color` inline sobre el `Text` SÍ se permite (afinar peso/color); el rol da familia+tamaño+tracking.
+Fuente de verdad = `ui/theme/PaparcarType.kt` (18 roles). Se lee `PaparcarType.current.<rol>` (provisto en `PaparcarTheme`). Un `fontWeight`/`color` inline sobre el `Text` SÍ se permite (afinar peso/color); el rol da familia+tamaño+tracking.
 - **IDENTITY · Outfit**: `screenTitle`(=appBarTitle), `heroTitle`, `sectionTitle`(“Actividad”/“Historial”), `cardTitle`(nombre/calle), `rowTitle`(título pequeño de fila).
 - **STRUCTURE · Inter**: `sectionHeader` (**siempre vía `PapSectionHeader`**), `cta`(botones), `label`(chip/label pequeño).
 - **PROSE · Inter**: `subtitle`(16sp, subtítulos hero/onboarding), `body`, `caption`.
 - **DATA · Barlow Condensed**: `metadata` ("30 min · 75 m"), `badge`/pin ("ACTIVO", "3 LIBRES"), `sizeToken` ("MEDIANO"), `statNumber` (25sp), `distance`, `chartLabel`, `chartValue`.
-- Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas o compite en horizontal con un nombre? → Barlow (rol DATA).*
-- **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `fontSize`/`letterSpacing` inline en un `Text`; (b) `MaterialTheme.typography.*` — usa un rol; si falta un tamaño, añade/ajusta un rol en `PaparcarType`. Enforced por `TypographyGuardrailTest` (Konsist). Excepciones allowlisted: canvas/`TextMeasurer` de marcadores de mapa + chrome tokenizado (bottom-nav, banner, action bar).
+- Regla mental: *¿título? → Outfit. ¿Frase que se lee? → Inter. ¿Dato/token que se repite en filas o compite en horizontal con un nombre? → Barlow (rol DATA). ¿Dato protagonista de una card con todo el ancho para él (meta-rows del peek seleccionado)? → NO cumple la precondición DATA → Inter.* [PEEK-META-INTER-001]
+- **PROHIBIDO** en `presentation/` y `ui/components/`: (a) `fontSize`/`letterSpacing` inline en un `Text`; (b) `MaterialTheme.typography.*` — usa un rol; si falta un tamaño, añade/ajusta un rol en `PaparcarType`; (c) construir familias directamente (`rememberXxxFontFamily()`/`FontFamily(...)`) fuera de `ui/theme`. Enforced por `TypographyGuardrailTest` (Konsist). Excepciones allowlisted: canvas/`TextMeasurer` de marcadores de mapa + chrome tokenizado (bottom-nav, banner, action bar).
 - `MaterialTheme.typography.*` es solo la base MD3 del framework (definida en `Typography.kt`); la app **siempre** habla con `PaparcarType`.
 
 ### ⛔ Color de acción — verde primario, rojo solo alerta

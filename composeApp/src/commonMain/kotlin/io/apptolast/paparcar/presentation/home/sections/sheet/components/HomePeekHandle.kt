@@ -498,9 +498,10 @@ private fun PeekMetaRow(icon: ImageVector, text: String, tint: Color) {
         )
         Text(
             text = text,
-            // Every caller feeds a data token ("179 m · 1 min", spot age, en-route count, duration) →
-            // Barlow (metadata), the canonical dense-meta face. [TYPO-AUDIT-001]
-            style = PaparcarType.current.metadata,
+            // These meta rows ARE the card's primary info, standalone with the full width — the
+            // DATA-role precondition (token competing for horizontal space) doesn't hold, so they
+            // read in Inter, not condensed. [PEEK-META-INTER-001]
+            style = PaparcarType.current.body,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
             maxLines = 1,
