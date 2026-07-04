@@ -5,7 +5,6 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
-import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
@@ -95,23 +94,6 @@ class ProcessConfirmedDepartureUseCaseTest {
     }
 
     @Test
-    fun should_unregister_enter_arming_only_when_no_sessions_remain() = runTest {
-        val ar = FakeActivityRecognitionManager()
-        val repo = FakeUserParkingRepository(initialSession = activeSession())
-        buildUseCase(repo = repo, ar = ar)("session-1")
-
-        assertEquals(1, ar.enterArmingUnregisterCount, "last active session gone → tear down arming")
-
-        val ar2 = FakeActivityRecognitionManager()
-        val repo2 = FakeUserParkingRepository(
-            initialSessions = listOf(activeSession(), activeSession(id = "session-2", vehicleId = "v-2")),
-        )
-        buildUseCase(repo = repo2, ar = ar2)("session-1")
-
-        assertEquals(0, ar2.enterArmingUnregisterCount, "another car still parked → arming stays")
-    }
-
-    @Test
     fun should_log_departure_processed_event() = runTest {
         val logger = FakeDetectionEventLogger()
         val repo = FakeUserParkingRepository(initialSession = activeSession())
@@ -141,7 +123,6 @@ class ProcessConfirmedDepartureUseCaseTest {
         spotScheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
         geofence: FakeGeofenceManager = FakeGeofenceManager(),
         bus: FakeDepartureEventBus = FakeDepartureEventBus(),
-        ar: FakeActivityRecognitionManager = FakeActivityRecognitionManager(),
         logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
     ) = ProcessConfirmedDepartureUseCase(
         userParkingRepository = repo,
@@ -152,7 +133,6 @@ class ProcessConfirmedDepartureUseCaseTest {
         ),
         geofenceService = geofence,
         departureEventBus = bus,
-        activityRecognitionManager = ar,
         detectionEventLogger = logger,
     )
 }

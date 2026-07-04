@@ -2,7 +2,6 @@
 
 package io.apptolast.paparcar.domain.usecase.parking
 
-import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.AddressAndPlace
@@ -11,7 +10,6 @@ import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import kotlinx.coroutines.flow.firstOrNull
 import kotlin.time.Clock
 
 /**
@@ -35,7 +33,6 @@ class ProcessConfirmedDepartureUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val geofenceService: GeofenceManager,
     private val departureEventBus: DepartureEventBus,
-    private val activityRecognitionManager: ActivityRecognitionManager,
     // Nullable so existing test doubles / call sites need no change. [DET-SOLID-001]
     private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
@@ -77,13 +74,6 @@ class ProcessConfirmedDepartureUseCase(
 
         departureEventBus.reset()
         geofenceService.removeGeofence(geofenceId)
-
-        // [DET-AR-REARM-001] Tear down the scoped IN_VEHICLE_ENTER proximity re-arm only when NO
-        // car remains parked — with multiple parked vehicles the other sessions still need it.
-        val anyStillParked = userParkingRepository.observeActiveSessions().firstOrNull()?.isNotEmpty() == true
-        if (!anyStillParked) {
-            activityRecognitionManager.unregisterVehicleEnterArming()
-        }
 
         // [DET-SOLID-001] Observability: the publish+clear outcome, traced by geofenceId.
         detectionEventLogger?.log(

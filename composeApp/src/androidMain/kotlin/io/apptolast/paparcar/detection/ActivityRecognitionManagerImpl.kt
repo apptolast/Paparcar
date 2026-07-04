@@ -51,22 +51,8 @@ class ActivityRecognitionManagerImpl(
         )
     }
 
-    // IN_VEHICLE **ENTER** → CoordinatorDetectionService directly (privileged FGS start, the same
-    // getForegroundService mechanism the geofence exit uses). Registered only while a car is parked
-    // (see [registerVehicleEnterArming]); the service proximity-gates it so only boarding the user's
-    // OWN car (near the parked location) arms detection. [DET-AR-REARM-001]
-    private val vehicleEnterArmingPendingIntent: PendingIntent by lazy {
-        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
-            action = CoordinatorDetectionService.ACTION_AR_VEHICLE_ENTER
-        }
-        // FLAG_MUTABLE: Play Services fills the ActivityTransitionResult extras into the intent.
-        PendingIntent.getForegroundService(
-            context,
-            VEHICLE_ENTER_ARMING_REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
-        )
-    }
+    // [DET-SOLID-001 C1b] The scoped ENTER-arming PendingIntent (getForegroundService →
+    // ACTION_AR_VEHICLE_ENTER) was purged with the AR-proximity re-arm. AR is indicator-only.
 
     @SuppressLint("MissingPermission")
     override fun registerTransitions() {
@@ -111,42 +97,6 @@ class ActivityRecognitionManagerImpl(
         activityClient.removeActivityTransitionUpdates(vehicleTransitionsPendingIntent)
     }
 
-    @SuppressLint("MissingPermission")
-    override fun registerVehicleEnterArming() {
-        // [DET-AR-REARM-001] Isolation toggle. With this OFF the scoped IN_VEHICLE ENTER is never
-        // registered → AR never wakes the service → the coordinator is only ever armed by a REAL
-        // geofence exit (or manual). Used to test whether AR-rearm is what provokes the spurious
-        // GEOFENCE_EXIT (AR misfire → arm → coordinator's active GPS nudges the geofence).
-        if (!AR_REARM_ENABLED) {
-            PaparcarLogger.d(TAG, "  ⊘ registerVehicleEnterArming skipped — AR_REARM_ENABLED=false (isolation)")
-            return
-        }
-        PaparcarLogger.d(TAG, "▶ registerVehicleEnterArming (IN_VEHICLE ENTER, scoped to parked window)")
-        if (!hasActivityRecognitionPermission()) {
-            PaparcarLogger.w(TAG, "  ✗ skipped — ACTIVITY_RECOGNITION permission not granted")
-            return
-        }
-
-        val enterRequest = ActivityTransitionRequest(
-            listOf(
-                ActivityTransition.Builder()
-                    .setActivityType(DetectedActivity.IN_VEHICLE)
-                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
-                    .build(),
-            ),
-        )
-
-        activityClient.requestActivityTransitionUpdates(enterRequest, vehicleEnterArmingPendingIntent)
-            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER arming registered") }
-            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE ENTER arming", e) }
-    }
-
-    @SuppressLint("MissingPermission")
-    override fun unregisterVehicleEnterArming() {
-        PaparcarLogger.d(TAG, "■ unregisterVehicleEnterArming")
-        activityClient.removeActivityTransitionUpdates(vehicleEnterArmingPendingIntent)
-    }
-
     private fun hasActivityRecognitionPermission(): Boolean =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContextCompat.checkSelfPermission(
@@ -160,9 +110,5 @@ class ActivityRecognitionManagerImpl(
     private companion object {
         const val TAG = "ActivityRecognitionManager"
         const val VEHICLE_REQUEST_CODE = 102
-        const val VEHICLE_ENTER_ARMING_REQUEST_CODE = 103
-        // [DET-AR-REARM-001] Isolation toggle (non-const so the body stays reachable). Set true to
-        // re-enable the AR proximity re-arm once the spurious-geofence-exit cause is confirmed.
-        val AR_REARM_ENABLED = false
     }
 }

@@ -82,7 +82,6 @@ class CoordinatorParkingDetectorTest {
             authRepository = auth,
             config = config,
             departureEventBus = FakeDepartureEventBus(),
-            activityRecognitionManager = FakeActivityRecognitionManager(),
         )
         val notifyParking = NotifyParkingConfirmationUseCase(
             notificationPort = notification,
@@ -647,7 +646,7 @@ class CoordinatorParkingDetectorTest {
     @Test
     fun should_still_abort_false_enter_when_session_is_not_a_confirmed_departure() =
         runTest(UnconfinedTestDispatcher()) {
-            // [DET-G-04] Regression guard: the seed must NOT leak to AR_PROXIMITY / MANUAL sessions.
+            // [DET-G-04] Regression guard: the seed must NOT leak to MANUAL/unverified sessions.
             // Without verified arm evidence the false-ENTER guard still protects against a
             // spurious AR IN_VEHICLE_ENTER while walking (bus/taxi/desk) — same input as the test
             // above, but this session must ABORT and save nothing.

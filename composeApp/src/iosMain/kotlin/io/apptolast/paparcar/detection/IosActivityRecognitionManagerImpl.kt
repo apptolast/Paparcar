@@ -76,12 +76,6 @@ class IosActivityRecognitionManagerImpl(
         running = false
     }
 
-    // No-op on iOS: there is no foreground-service equivalent, so the scoped ENTER arming is an
-    // Android-only concern. The always-on snapshot stream above already primes the coordinator's
-    // vehicle-enter state. [DET-AR-REARM-001]
-    override fun registerVehicleEnterArming() = Unit
-    override fun unregisterVehicleEnterArming() = Unit
-
     private fun handleUpdate(activity: CMMotionActivity?) {
         if (activity == null) return
         if (activity.confidence == CMMotionActivityConfidenceLow) return

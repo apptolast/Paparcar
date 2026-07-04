@@ -18,8 +18,6 @@ import kotlinx.coroutines.flow.emptyFlow
 class FakeActivityRecognitionManager : ActivityRecognitionManager {
     override fun registerTransitions() {}
     override fun unregisterTransitions() {}
-    override fun registerVehicleEnterArming() {}
-    override fun unregisterVehicleEnterArming() {}
 }
 
 class FakeStepDetectorSource : StepDetectorSource {

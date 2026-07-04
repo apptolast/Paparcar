@@ -94,7 +94,6 @@ class HomeViewModelTest {
             authRepository = authRepo,
             config = ParkingDetectionConfig(),
             departureEventBus = FakeDepartureEventBus(),
-            activityRecognitionManager = FakeActivityRecognitionManager(),
         )
         val updateParkingLocation = UpdateParkingLocationUseCase(
             userParkingRepository = parkingRepo,

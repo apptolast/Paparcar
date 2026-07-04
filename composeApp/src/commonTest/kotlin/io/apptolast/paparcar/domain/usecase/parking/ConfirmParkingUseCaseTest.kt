@@ -531,7 +531,6 @@ class ConfirmParkingUseCaseTest {
         authRepository = auth,
         config = config,
         departureEventBus = bus,
-        activityRecognitionManager = FakeActivityRecognitionManager(),
         parkingSyncScheduler = scheduler,
     )
 }

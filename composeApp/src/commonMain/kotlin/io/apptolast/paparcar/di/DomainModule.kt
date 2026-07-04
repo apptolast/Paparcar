@@ -27,7 +27,6 @@ import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
-import io.apptolast.paparcar.domain.usecase.detection.ShouldArmFromVehicleEnterUseCase
 import org.koin.dsl.bind
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -74,7 +73,6 @@ val domainModule = module {
 
     // Parking UseCases
     single { ParkingDetectionConfig() }
-    factory { ShouldArmFromVehicleEnterUseCase(get()) } // [DET-AR-REARM-001]
     factory { CalculateParkingConfidenceUseCase(get()) }
     factory { EvaluateParkingDecisionUseCase(get()) }
     factory {
@@ -95,7 +93,6 @@ val domainModule = module {
             authRepository = get(),
             config = get(),
             departureEventBus = get(),
-            activityRecognitionManager = get(),
             appPreferences = get(),
             parkingSyncScheduler = get(),
             detectionEventLogger = get(),
@@ -136,7 +133,6 @@ val domainModule = module {
             reportSpotReleased = get(),
             geofenceService = get(),
             departureEventBus = get(),
-            activityRecognitionManager = get(),
             detectionEventLogger = get(),
         )
     }

@@ -42,7 +42,6 @@ class GeofenceJanitorWorker(
     private val db: AppDatabase by inject()
     private val geofenceManager: GeofenceManager by inject()
     private val config: ParkingDetectionConfig by inject()
-    private val activityRecognitionManager: ActivityRecognitionManager by inject()
 
     override suspend fun doWork(): Result {
         PaparcarLogger.d(TAG, "▶ GeofenceJanitorWorker.doWork attempt=$runAttemptCount")
@@ -55,13 +54,17 @@ class GeofenceJanitorWorker(
 
         PaparcarLogger.d(TAG, "  active sessions=${activeSessions.size}")
 
-        // [DET-AR-REARM-001] Restore (or tear down) the scoped IN_VEHICLE_ENTER proximity re-arm to
-        // match the parked state. Geofences are dropped by the OS on reboot/reinstall and so is this
-        // registration; this is the same restoration pass, idempotent on both sides.
-        if (activeSessions.isNotEmpty()) {
-            activityRecognitionManager.registerVehicleEnterArming()
-        } else {
-            activityRecognitionManager.unregisterVehicleEnterArming()
+        // [DET-SOLID-001] Self-repair sweep: replaceActiveSession's transaction should make
+        // duplicate actives impossible; if any exist anyway (legacy rows, sync races), keep the
+        // newest per vehicle and deactivate the rest — loud, because it is an invariant violation.
+        val duplicates = runCatching { db.parkingSessionDao().getActiveDuplicates() }.getOrDefault(emptyList())
+        if (duplicates.isNotEmpty()) {
+            PaparcarLogger.w(TAG, "  ⚠ ${duplicates.size} duplicate ACTIVE sessions detected — repairing [DET-SOLID-001]")
+            duplicates.groupBy { it.vehicleId }.forEach { (_, rows) ->
+                rows.sortedByDescending { it.timestamp }.drop(1).forEach { stale ->
+                    runCatching { db.parkingSessionDao().clearActiveById(stale.id) }
+                }
+            }
         }
 
         var failures = 0

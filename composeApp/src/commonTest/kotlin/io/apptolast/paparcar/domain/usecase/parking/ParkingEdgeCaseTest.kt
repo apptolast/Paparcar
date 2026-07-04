@@ -250,7 +250,6 @@ class ParkingEdgeCaseTest {
         authRepository = FakeAuthRepository(initialSession = session),
         config = config,
         departureEventBus = FakeDepartureEventBus(),
-        activityRecognitionManager = FakeActivityRecognitionManager(),
     )
 
     private fun buildRelease(

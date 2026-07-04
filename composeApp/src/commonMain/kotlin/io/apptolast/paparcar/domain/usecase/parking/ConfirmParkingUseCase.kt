@@ -3,7 +3,6 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
-import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -47,7 +46,6 @@ class ConfirmParkingUseCase(
     private val authRepository: AuthRepository,
     private val config: ParkingDetectionConfig,
     private val departureEventBus: DepartureEventBus,
-    private val activityRecognitionManager: ActivityRecognitionManager,
     // Optional: marks the first confirmed park so the cold-start nudge self-disables. Nullable so the
     // existing use-case test doubles need no change — they don't exercise the nudge. [DET-TOGGLE-002]
     private val appPreferences: AppPreferences? = null,
@@ -255,11 +253,6 @@ class ConfirmParkingUseCase(
             )
         }
         PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
-
-        // [DET-AR-REARM-001] A car is now parked → arm the scoped IN_VEHICLE_ENTER proximity
-        // re-arm so a short trip that never crosses the geofence radius still re-arms detection.
-        // Idempotent; no-op on iOS. Unregistered when the last active session ends.
-        activityRecognitionManager.registerVehicleEnterArming()
 
         // The user has now parked at least once → the cold-start nudge has served its purpose and
         // self-disables for good. [DET-TOGGLE-002]

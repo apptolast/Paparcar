@@ -13,7 +13,6 @@ import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmati
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
-import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
@@ -130,7 +129,6 @@ class DetectionTraceReplayTest {
                 authRepository = auth,
                 config = config,
                 departureEventBus = FakeDepartureEventBus(),
-                activityRecognitionManager = FakeActivityRecognitionManager(),
             ),
             notifyParkingConfirmation = NotifyParkingConfirmationUseCase(
                 notificationPort = notification,

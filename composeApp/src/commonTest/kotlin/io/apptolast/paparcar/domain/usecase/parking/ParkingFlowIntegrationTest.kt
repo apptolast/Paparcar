@@ -71,7 +71,6 @@ class ParkingFlowIntegrationTest {
         authRepository = auth,
         config = ParkingDetectionConfig(),
         departureEventBus = FakeDepartureEventBus(),
-        activityRecognitionManager = FakeActivityRecognitionManager(),
     )
 
     private val releaseParking = ReleaseActiveParkingSessionUseCase(

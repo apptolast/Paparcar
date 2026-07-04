@@ -8,7 +8,6 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
-import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
@@ -149,7 +148,6 @@ class RunDepartureCheckUseCaseTest {
                 ),
                 geofenceService = FakeGeofenceManager(),
                 departureEventBus = bus,
-                activityRecognitionManager = FakeActivityRecognitionManager(),
             ),
             getOneLocation = GetOneLocationUseCase(FakeLocationDataSource()),
             departureEventBus = bus,

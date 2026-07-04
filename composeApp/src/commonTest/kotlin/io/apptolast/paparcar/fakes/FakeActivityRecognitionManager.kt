@@ -10,11 +10,6 @@ class FakeActivityRecognitionManager : ActivityRecognitionManager {
         private set
     var shouldThrowOnRegister = false
 
-    var enterArmingRegisterCount = 0
-        private set
-    var enterArmingUnregisterCount = 0
-        private set
-
     override fun registerTransitions() {
         if (shouldThrowOnRegister) throw RuntimeException("AR unavailable")
         registerCount++
@@ -22,13 +17,5 @@ class FakeActivityRecognitionManager : ActivityRecognitionManager {
 
     override fun unregisterTransitions() {
         unregisterCount++
-    }
-
-    override fun registerVehicleEnterArming() {
-        enterArmingRegisterCount++
-    }
-
-    override fun unregisterVehicleEnterArming() {
-        enterArmingUnregisterCount++
     }
 }
