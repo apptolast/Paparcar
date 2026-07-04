@@ -4,68 +4,46 @@ import io.apptolast.paparcar.domain.model.ParkingConfidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.ParkingSignals
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
+/**
+ * [DET-SOLID-001][C1] Rewritten after the STILL purge: the old suite exercised branches gated on
+ * `activityStill = true` — a signal hardwired `false` in production for months — so its "High via
+ * fast path" coverage was fake. Every case below is REACHABLE in the real system.
+ */
 class CalculateParkingConfidenceUseCaseTest {
 
     private val config = ParkingDetectionConfig()
     private val useCase = CalculateParkingConfidenceUseCase(config)
 
-    // ── Fast path ─────────────────────────────────────────────────────────────
+    // ── Fast path (activityExit + min stop) — tops out at Medium, never High ──
 
     @Test
-    fun `should return High when activityExit and still and speed and accuracy bonuses all present`() {
+    fun `fast path with speed bonus returns Medium - opens the prompt, never auto-confirms`() {
         val signals = ParkingSignals(
             activityExit = true,
-            activityStill = true,                // required for accuracy bonus [BUG-DETECT-310503]
             stoppedDurationMs = config.fastPathMinStoppedMs,
-            speed = 0.1f,                        // below maxSpeedMps → bonus
-            gpsAccuracy = 10f,                   // below minGpsAccuracyMeters → bonus
+            speed = 0.1f,     // below maxSpeedMps → bonus
+            gpsAccuracy = 10f, // good GPS — irrelevant: no accuracy bonus exists in the fast path
         )
-        // 0.50 + 0.15 + 0.10 = 0.75 → High
-        assertIs<ParkingConfidence.High>(useCase(signals))
-    }
-
-    @Test
-    fun `should return Medium when activityExit present with speed bonus but no activityStill for accuracy`() {
-        val signals = ParkingSignals(
-            activityExit = true,
-            activityStill = false,               // no STILL → accuracy bonus blocked [BUG-DETECT-310503]
-            stoppedDurationMs = config.fastPathMinStoppedMs,
-            speed = 0.1f,                        // below maxSpeedMps → speed bonus
-            gpsAccuracy = 10f,                   // good GPS but bonus blocked by !activityStill
-        )
-        // 0.50 + 0.15 = 0.65 → Medium (hospital/drop-off stops require manual confirm)
+        // 0.50 + 0.15 = 0.65 → Medium: the fast path's ceiling by design [BUG-DETECT-310503]
         assertIs<ParkingConfidence.Medium>(useCase(signals))
     }
 
     @Test
-    fun `should return Medium when activityExit present but no bonuses`() {
+    fun `fast path without bonuses returns Low`() {
         val signals = ParkingSignals(
             activityExit = true,
             stoppedDurationMs = config.fastPathMinStoppedMs,
-            speed = 1.0f,                        // above maxSpeedMps → no bonus
-            gpsAccuracy = 20f,                   // above minGpsAccuracyMeters → no bonus
+            speed = 1.0f,      // above maxSpeedMps → no bonus
+            gpsAccuracy = 20f,
         )
         // 0.50 → Low (below mediumConfidenceThreshold=0.55)
         assertIs<ParkingConfidence.Low>(useCase(signals))
     }
 
     @Test
-    fun `should return Medium when activityExit present with only speed bonus`() {
-        val signals = ParkingSignals(
-            activityExit = true,
-            stoppedDurationMs = config.fastPathMinStoppedMs,
-            speed = 0.1f,                        // bonus
-            gpsAccuracy = 20f,                   // no bonus
-        )
-        // 0.50 + 0.15 = 0.65 → Medium
-        assertIs<ParkingConfidence.Medium>(useCase(signals))
-    }
-
-    @Test
-    fun `should not enter fast path when stoppedDuration is below minimum`() {
+    fun `fast path is skipped when stoppedDuration is below minimum`() {
         val signals = ParkingSignals(
             activityExit = true,
             stoppedDurationMs = config.fastPathMinStoppedMs - 1,
@@ -79,13 +57,12 @@ class CalculateParkingConfidenceUseCaseTest {
     // ── Slow path — gating ────────────────────────────────────────────────────
 
     @Test
-    fun `should return NotYet when stopped duration is below slow path gate`() {
+    fun `slow path returns NotYet below the gate`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPathGateMs - 1,
             speed = 0f,
             gpsAccuracy = 5f,
-            activityStill = true,
         )
         assertIs<ParkingConfidence.NotYet>(useCase(signals))
     }
@@ -93,101 +70,63 @@ class CalculateParkingConfidenceUseCaseTest {
     // ── Slow path — time tiers ────────────────────────────────────────────────
 
     @Test
-    fun `should return Low when stopped at gate with no bonuses`() {
+    fun `slow path at the gate with no bonuses returns Low`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPathGateMs,
             speed = 1.0f,
             gpsAccuracy = 20f,
-            activityStill = false,
         )
-        // 0.40 → Low (below 0.55)
+        // 0.40 → Low
         assertIs<ParkingConfidence.Low>(useCase(signals))
     }
 
     @Test
-    fun `should return Medium when stopped at gate with all bonuses`() {
+    fun `slow path at the gate with all bonuses returns Low`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPathGateMs,
             speed = 0.1f,
             gpsAccuracy = 10f,
-            activityStill = true,
         )
-        // 0.40 + 0.10 (still) + 0.05 (speed) + 0.05 (accuracy) = 0.60 → Medium
-        assertIs<ParkingConfidence.Medium>(useCase(signals))
-    }
-
-    @Test
-    fun `should return Low when stopped 3 minutes with no bonuses`() {
-        val signals = ParkingSignals(
-            activityExit = false,
-            stoppedDurationMs = config.slowPath3MinMs,
-            speed = 1.0f,
-            gpsAccuracy = 20f,
-            activityStill = false,
-        )
-        // slowPath3MinScore=0.45 < mediumConfidenceThreshold=0.55 → Low
+        // 0.40 + 0.05 (speed) + 0.05 (accuracy) = 0.50 → Low (still below 0.55)
         assertIs<ParkingConfidence.Low>(useCase(signals))
     }
 
     @Test
-    fun `should return Medium when stopped 3 minutes with all bonuses`() {
+    fun `slow path at 3 minutes with all bonuses returns Medium`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPath3MinMs,
             speed = 0.1f,
             gpsAccuracy = 10f,
-            activityStill = true,
         )
-        // 0.45 + 0.10 + 0.05 + 0.05 = 0.65 → Medium (below highConfidenceThreshold=0.75)
+        // 0.45 + 0.05 + 0.05 = 0.55 → Medium (never High — auto-Candidate needs ≥ 5 min)
         assertIs<ParkingConfidence.Medium>(useCase(signals))
     }
 
     @Test
-    fun `should return Medium when stopped 5 minutes with no bonuses`() {
+    fun `slow path at 5 minutes with no bonuses returns Medium`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPath5MinMs,
             speed = 1.0f,
             gpsAccuracy = 20f,
-            activityStill = false,
         )
         // 0.70 → Medium (below High threshold of 0.75)
         assertIs<ParkingConfidence.Medium>(useCase(signals))
     }
 
     @Test
-    fun `should return High when stopped 5 minutes with speed bonus`() {
+    fun `slow path at 5 minutes with speed bonus returns High - the only route to Candidate`() {
         val signals = ParkingSignals(
             activityExit = false,
             stoppedDurationMs = config.slowPath5MinMs,
             speed = 0.1f,
             gpsAccuracy = 20f,
-            activityStill = false,
         )
-        // 0.70 + 0.05 = 0.75 → High
+        // 0.70 + 0.05 = 0.75 → High: ≥5 min continuously stopped + near-zero speed is the single
+        // path to the CANDIDATE phase in the real system.
         assertIs<ParkingConfidence.High>(useCase(signals))
-    }
-
-    // ── Still bonus ───────────────────────────────────────────────────────────
-
-    @Test
-    fun `should add still bonus only in slow path`() {
-        val withStill = ParkingSignals(
-            activityExit = false,
-            stoppedDurationMs = config.slowPath5MinMs,
-            speed = 1.0f,
-            gpsAccuracy = 20f,
-            activityStill = true,
-        )
-        val withoutStill = withStill.copy(activityStill = false)
-
-        val scoreWith = (useCase(withStill) as? ParkingConfidence.Medium)?.score
-            ?: (useCase(withStill) as? ParkingConfidence.High)?.score
-        val scoreWithout = (useCase(withoutStill) as? ParkingConfidence.Medium)?.score
-            ?: (useCase(withoutStill) as? ParkingConfidence.High)?.score
-
-        assertEquals(config.stillBonus, (scoreWith ?: 0f) - (scoreWithout ?: 0f), absoluteTolerance = 0.001f)
     }
 }

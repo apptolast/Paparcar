@@ -11,15 +11,14 @@ import io.apptolast.paparcar.domain.model.ParkingSignals
  *
  * **FAST PATH** — triggered when an activity-exit event is present AND the vehicle
  * has been stopped for at least [ParkingDetectionConfig.fastPathMinStoppedMs].
- * This quickly rules out traffic lights and short stops with a strong signal.
- * The GPS-accuracy bonus is gated on `activityStill` — without a STILL confirmation,
- * the fast path tops out at Medium (0.65) and the user must confirm manually. This
- * prevents auto-confirmation during brief hospital-entrance or drop-off stops where
- * the Activity Recognition exit transition arrives before STILL. [BUG-DETECT-310503]
+ * Tops out at Medium (0.65): with STILL removed as a signal [DET-SOLID-001][C1] the
+ * fast path never auto-confirms — it opens the user prompt, which is the intended
+ * behaviour for brief hospital-entrance / drop-off stops. [BUG-DETECT-310503]
  *
  * **SLOW PATH** — used when no activity-exit event is available. It gates on a
  * minimum stopped duration ([ParkingDetectionConfig.slowPathGateMs]) and then
- * builds a score from time, speed, and GPS accuracy bonuses.
+ * builds a score from time, speed, and GPS accuracy bonuses. High (≥ 0.75) requires
+ * the 5-min tier + the speed bonus — the only route to the CANDIDATE phase.
  *
  * **Mutual exclusion.** Fast and slow paths are mutually exclusive: the fast path
  * returns inside the early `if`. Only one branch contributes to a single scoring call.
@@ -38,13 +37,11 @@ class CalculateParkingConfidenceUseCase(private val config: ParkingDetectionConf
     operator fun invoke(signals: ParkingSignals): ParkingConfidence {
 
         // FAST PATH: activityExit signal present + min stop time → traffic lights discarded.
-        // GPS-accuracy bonus requires activityStill so that a brief stop (hospital entrance,
-        // drop-off) with no STILL confirmation scores Medium at most and prompts the user
-        // instead of auto-confirming. [BUG-DETECT-310503]
+        // Tops out at Medium (base 0.50 + speed 0.15) → opens the prompt, never auto-confirms.
+        // [BUG-DETECT-310503][DET-SOLID-001 C1: the STILL-gated accuracy bonus was unreachable]
         if (signals.activityExit && signals.stoppedDurationMs >= config.fastPathMinStoppedMs) {
             var score = config.fastPathBaseScore
             if (signals.speed < config.maxSpeedMps) score += config.fastPathSpeedBonus
-            if (signals.activityStill && signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.fastPathAccuracyBonus
             return toConfidence(score)
         }
 
@@ -56,7 +53,6 @@ class CalculateParkingConfidenceUseCase(private val config: ParkingDetectionConf
             signals.stoppedDurationMs >= config.slowPath3MinMs -> config.slowPath3MinScore
             else -> config.slowPathBaseScore
         }
-        if (signals.activityStill) score += config.stillBonus
         if (signals.speed < config.maxSpeedMps) score += config.speedBonus
         if (signals.gpsAccuracy < config.minGpsAccuracyMeters) score += config.accuracyBonus
 

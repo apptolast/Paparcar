@@ -1,12 +1,14 @@
 package io.apptolast.paparcar.domain.model
 
+/**
+ * Sensor snapshot consumed by the confidence scorer. [DET-SOLID-001][C1] `activityStill` was
+ * removed: STILL was dropped as a fed signal long ago (redundant with the egress gate, fires in
+ * traffic jams), the field was hardwired `false` in production, and the scorer branches it fed
+ * were unreachable — tests against them were fake coverage. Do not re-add STILL.
+ */
 data class ParkingSignals(
     val speed: Float,
     val stoppedDurationMs: Long,
     val gpsAccuracy: Float,
     val activityExit: Boolean,
-    // [DET-D-03] STILL was dropped as a fed signal (redundant with the egress gate, fires in traffic
-    // jams). This is always false in production now; the scorer's still-bonus paths are inert pending
-    // the D-03c scorer→metadata rework. Do not re-feed STILL here.
-    val activityStill: Boolean = false,
 )

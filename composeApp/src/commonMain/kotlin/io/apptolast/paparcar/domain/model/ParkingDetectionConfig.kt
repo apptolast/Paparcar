@@ -17,16 +17,14 @@ data class ParkingDetectionConfig(
     /** Base confidence score granted by the activity-exit signal alone.
      *  0.50 lets the fast path reach High (0.75) when both the speed bonus AND the
      *  STILL + GPS-accuracy bonus are present, auto-confirming without requiring user
-     *  action. Without a STILL signal the maximum fast-path score is 0.65 (Medium) —
-     *  the user must confirm manually. [BUG-DETECT-310503] */
+     *  action. The maximum fast-path score is 0.65 (Medium) — the fast path opens the
+     *  user prompt, never an auto-confirm. [BUG-DETECT-310503] */
     val fastPathBaseScore: Float = 0.50f,
     /** Bonus added when speed is below [maxSpeedMps] in the fast path. */
     val fastPathSpeedBonus: Float = 0.15f,
-    /** Bonus added when STILL activity is also detected AND GPS accuracy is better than
-     *  [minGpsAccuracyMeters] in the fast path. Gating this bonus on [activityStill]
-     *  ensures that a brief stop (hospital entrance, drop-off) with an activity-exit
-     *  signal but no STILL confirmation cannot auto-confirm. [BUG-DETECT-310503] */
-    val fastPathAccuracyBonus: Float = 0.10f,
+    // [DET-SOLID-001 C1] fastPathAccuracyBonus removed: it was gated on the STILL signal, which
+    // was dropped long ago — the branch was unreachable and the fast path correctly tops out at
+    // Medium (prompt, never auto-confirm). [BUG-DETECT-310503]
 
     // ── SLOW PATH ─────────────────────────────────────────────────────────────
     /** Minimum stopped duration (ms) before the slow path starts scoring (filters traffic lights). */
@@ -46,8 +44,7 @@ data class ParkingDetectionConfig(
     val slowPath3MinScore: Float = 0.45f,
     /** Base score when stopped >= [slowPathGateMs] but below [slowPath3MinMs]. */
     val slowPathBaseScore: Float = 0.40f,
-    /** Bonus added when the device reports a STILL activity in the slow path. */
-    val stillBonus: Float = 0.10f,
+    // [DET-SOLID-001 C1] stillBonus removed with the STILL signal — unreachable branch.
     /** Bonus added when speed is below [maxSpeedMps] in the slow path. */
     val speedBonus: Float = 0.05f,
     /** Bonus added when GPS accuracy is better than [minGpsAccuracyMeters] in the slow path. */
@@ -281,9 +278,9 @@ data class ParkingDetectionConfig(
      *  because the MAC-address binding makes a real disconnect + walk unambiguous — the
      *  "neighbour's identical car" case is impossible. [DET-F-01, was BluetoothParkingDetector literal] */
     val reliabilityBluetooth: Float = 0.95f,
-    /** Reliability score assigned when parking is auto-confirmed via the slow path only
-     *  (no activity-exit signal, stopped for [confirmationObservationWindowMs]). */
-    val reliabilitySlowPath: Float = 0.75f,
+    // [DET-SOLID-001 C1] reliabilitySlowPath removed: the pure slow-path confirm no longer
+    // exists (egress is mandatory for every auto-confirm — DET-C-01), so every Confirmed
+    // carries reliabilityVehicleExit and this value was dead code.
 
     // ── STEP DETECTOR (BUG-GARAGE-COLA-001) ───────────────────────────────────
     /** Number of pedestrian steps observed while the car is stopped that count as
@@ -432,9 +429,6 @@ data class ParkingDetectionConfig(
         require(reliabilityBluetooth in reliabilityVehicleExit..reliabilityUserConfirmed) {
             "reliabilityBluetooth ($reliabilityBluetooth) must be in [reliabilityVehicleExit=$reliabilityVehicleExit, " +
                 "reliabilityUserConfirmed=$reliabilityUserConfirmed] — BT is deterministic, stronger than AR-exit"
-        }
-        require(reliabilitySlowPath in 0f..reliabilityVehicleExit) {
-            "reliabilitySlowPath must be in 0..reliabilityVehicleExit, was $reliabilitySlowPath"
         }
         require(minStepsToConfirm >= 1) {
             "minStepsToConfirm must be >= 1, was $minStepsToConfirm"
