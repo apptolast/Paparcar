@@ -16,6 +16,7 @@ import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
+import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
@@ -242,15 +243,15 @@ class CoordinatorParkingDetector(
      */
     override fun notifyDepartureConfirmed() {
         if (currentSessionId == null) return
-        currentArmEvidence = ConfirmParkingUseCase.ARM_EVIDENCE_VERIFIED_DEPARTURE
+        currentArmEvidence = ArmEvidence.LABEL_VERIFIED_LATE
         if (_detectionState.value.hasEverReachedDrivingSpeed) return
         _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
         PaparcarLogger.d(DIAG, "  ✓ departure confirmed post-arm → seed hasEverReachedDrivingSpeed=true [DET-G-05]")
     }
 
-    /** Arm-evidence label of the in-flight session (see [ConfirmParkingUseCase] constants).
+    /** Arm-evidence label of the in-flight session (see [ArmEvidence] label constants).
      *  Set at [invoke] entry, upgraded by [notifyDepartureConfirmed]. [DET-SOLID-001] */
-    @Volatile private var currentArmEvidence: String = ConfirmParkingUseCase.ARM_EVIDENCE_SELF_OBSERVED
+    @Volatile private var currentArmEvidence: String = ArmEvidence.LABEL_SELF_OBSERVED
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -263,43 +264,30 @@ class CoordinatorParkingDetector(
      */
     suspend operator fun invoke(
         locations: Flow<GpsPoint>,
-        /** `true` when this session was armed by a trigger that fires *after* the vehicle has
-         *  already driven, so this session's own GPS stream cannot be relied on to observe driving
-         *  speed. Today that is only [io.apptolast.paparcar.domain.detection.DetectionTrigger.GEOFENCE_EXIT]:
-         *  it arms MID-trip, when the car crosses its parked-car geofence radius (≥ ~80–120 m, already
-         *  driving), so on a short hop the fast driving can be over before this stream warms up.
-         *  Contrast MANUAL / AR_PROXIMITY, which arm *before* the trip so the stream captures the
-         *  ≥ [io.apptolast.paparcar.domain.model.ParkingDetectionConfig.minimumTripSpeedMps] fix
-         *  naturally and must keep the guard. See the seed block below. [DET-G-04] */
-        armedByConfirmedDeparture: Boolean = false,
+        /** Typed evidence behind this arm. [ArmEvidence.isVerifiedDeparture] evidence seeds
+         *  [ParkingDetectionState.hasEverReachedDrivingSpeed] — the arm fired MID-trip (the car
+         *  already crossed its parked-car geofence radius, provenly driving), so this session's
+         *  own GPS stream cannot be relied on to re-observe driving speed on a short hop.
+         *  [ArmEvidence.Manual] / [ArmEvidence.Unverified] arms keep every anti-walking guard
+         *  active: their stream is expected to witness the drive itself. [DET-G-04][DET-SOLID-001] */
+        armEvidence: ArmEvidence = ArmEvidence.Manual,
     ) = coroutineScope {
-        PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry (armedByConfirmedDeparture=$armedByConfirmedDeparture) — calling reset()")
+        PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry (armEvidence=${armEvidence.persistLabel}) — calling reset()")
         reset()
 
-        // [DET-G-04] Seed hasEverReachedDrivingSpeed when this session was armed AFTER the drive
-        // already happened, so it does not have to re-observe driving speed it structurally cannot
-        // catch. The gate — and the [falseEnterAbortSteps] guard it feeds — is legacy from when AR
-        // IN_VEHICLE_ENTER was the primary arm: an AR ENTER fires at the START of a trip, so the
-        // coordinator's own stream sees the ≥ minimumTripSpeedMps fix and the gate correctly rejects
-        // a spurious ENTER (bus/taxi/at a desk) that never accelerates. A GEOFENCE_EXIT is different —
-        // it arms MID-trip, when the car crosses its parked-car geofence radius (already driving). On
-        // a short hop between two parks the fast driving is over before this session's GPS stream
-        // warms up, so the coordinator only ever sees the low-speed arrival, never re-crosses
-        // minimumTripSpeedMps, and the accumulating egress steps trip falseEnterAbortSteps →
-        // aborted_false_enter, park lost. Seeding the flag says "the drive already happened" and lets
-        // every confirm path (steps+egress, candidate, slow) run normally, anchored at the real spot.
-        if (armedByConfirmedDeparture) {
+        // [DET-G-04] Seed hasEverReachedDrivingSpeed when the arm carries VERIFIED departure
+        // evidence — the drive already happened and this session cannot re-observe it. The gate —
+        // and the [falseEnterAbortSteps] guard it feeds — protects unverified/manual arms: an arm
+        // with no vehicle evidence (walking exit, spurious trigger) must abort on the step burst
+        // instead of confirming a phantom park (BUG-REPark-WALK-001). [DET-SOLID-001]
+        if (armEvidence.isVerifiedDeparture) {
             _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
-            PaparcarLogger.d(DIAG, "  ✓ armedByConfirmedDeparture → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
+            PaparcarLogger.d(DIAG, "  ✓ ${armEvidence.persistLabel} → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
         }
         // Session provenance stamped on the confirmed park — the repark-plausibility guard in
         // ConfirmParkingUseCase bypasses verified arms and interrogates self-observed ones.
         // Upgraded live by notifyDepartureConfirmed. [DET-SOLID-001]
-        currentArmEvidence = if (armedByConfirmedDeparture) {
-            ConfirmParkingUseCase.ARM_EVIDENCE_VERIFIED_DEPARTURE
-        } else {
-            ConfirmParkingUseCase.ARM_EVIDENCE_SELF_OBSERVED
-        }
+        currentArmEvidence = armEvidence.persistLabel
 
         var completed = false
         val sessionStartMs = clock()

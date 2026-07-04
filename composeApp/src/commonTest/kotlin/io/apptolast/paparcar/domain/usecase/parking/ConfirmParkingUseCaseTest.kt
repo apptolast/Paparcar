@@ -457,7 +457,7 @@ class ConfirmParkingUseCaseTest {
             location,
             detectionReliability = 0.9f,
             tripMaxSpeedMps = 1.2f,
-            armEvidence = ConfirmParkingUseCase.ARM_EVIDENCE_VERIFIED_DEPARTURE,
+            armEvidence = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
         )
 
         assertTrue(result.isSuccess)

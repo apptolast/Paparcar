@@ -14,6 +14,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategy
@@ -352,15 +353,20 @@ class CoordinatorDetectionService : LifecycleService() {
                     // fix at driving speed) may arm the coordinator as a confirmed departure;
                     // unverified exits arm with the legacy anti-walking guards active, and the
                     // departure worker upgrades the live session if its verdict confirms later.
-                    val speedKmh = runCatching { getOneLocation() }.getOrNull()?.speed?.times(3.6f)
-                    val departureVerified = verifyDepartureEvidence(exitTimestampMs = now, currentSpeedKmh = speedKmh)
+                    val exitFix = runCatching { getOneLocation() }.getOrNull()
+                    val speedKmh = exitFix?.speed?.times(KMH_PER_MPS)
+                    val armEvidence = verifyDepartureEvidence(
+                        exitTimestampMs = now,
+                        currentSpeedKmh = speedKmh,
+                        currentAccuracyM = exitFix?.accuracy,
+                    )
                     // [DET-SOLID-001] Observability: the pre-arm verdict, traced by geofenceId.
                     runCatching {
                         detectionEventLogger.log(
                             DetectionEvent.DepartureVerdict(
                                 sessionId = id,
                                 timestampMs = now,
-                                verdict = if (departureVerified) "VERIFIED" else "UNVERIFIED",
+                                verdict = armEvidence.persistLabel,
                                 source = "pre-arm",
                                 speedKmh = speedKmh,
                                 enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { now - it },
@@ -368,7 +374,7 @@ class CoordinatorDetectionService : LifecycleService() {
                         )
                     }
                     val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m " +
-                        "dep=${if (departureVerified) "verified" else "unverified"}"
+                        "dep=${armEvidence.persistLabel}"
                     PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01][DET-G-05]")
                     cancelDetectionJob()
                     // Anchor the trip to the departing vehicle's exact session so Home's origin dot +
@@ -377,7 +383,7 @@ class CoordinatorDetectionService : LifecycleService() {
                         DetectionTrigger.GEOFENCE_EXIT,
                         detail,
                         trip = TripContext(session.location, session.vehicleId),
-                        departureVerified = departureVerified,
+                        armEvidence = armEvidence,
                     )
                 }
                 ParkingStrategy.BLUETOOTH, ParkingStrategy.NONE -> {
@@ -477,9 +483,9 @@ class CoordinatorDetectionService : LifecycleService() {
         trigger: DetectionTrigger,
         detail: String? = null,
         trip: TripContext? = null,
-        /** [DET-G-05] Only meaningful for GEOFENCE_EXIT: `true` when the exit carried vehicle
-         *  evidence (recent AR ENTER or driving-speed fix) and may seed the coordinator. */
-        departureVerified: Boolean = false,
+        /** [DET-G-05][DET-SOLID-001] Typed evidence behind this arm. GEOFENCE_EXIT passes the
+         *  verifier's result; MANUAL passes [ArmEvidence.Manual] (the default). */
+        armEvidence: ArmEvidence = ArmEvidence.Manual,
     ) {
         logArmTrigger(trigger, detail)
         PaparcarLogger.d(DIAG, "  ▶ startParkingDetection — launching coordinator (trigger=$trigger)")
@@ -520,14 +526,14 @@ class CoordinatorDetectionService : LifecycleService() {
                 // happened. MANUAL / AR_PROXIMITY arm BEFORE the trip, so their stream captures the
                 // speed naturally and must keep the guard (a premature "I'm driving" tap, or an AR
                 // bus/taxi ENTER, can be spurious).
-                // [DET-G-05] …but only when the exit was VERIFIED as a departure: the phone leaving
-                // the radius on foot fires the same exit, and an unconditional seed let walking
-                // re-confirm a bogus park (BUG-REPARK-WALK-001). Unverified exits run with the
-                // legacy guards; DepartureDetectionWorker upgrades the live session on late evidence.
+                // [DET-G-05][DET-SOLID-001] …but only when the exit carries VERIFIED evidence: the
+                // phone leaving the radius on foot fires the same exit, and an unconditional seed
+                // let walking re-confirm a bogus park (BUG-REPARK-WALK-001). Unverified exits run
+                // with the legacy guards; DepartureDetectionWorker upgrades the live session on
+                // late evidence via DepartureConfirmationListener.
                 parkingDetectionCoordinator(
                     observeAdaptiveLocation(),
-                    armedByConfirmedDeparture =
-                        trigger == DetectionTrigger.GEOFENCE_EXIT && departureVerified,
+                    armEvidence = armEvidence,
                 )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
             } catch (e: CancellationException) {
@@ -641,6 +647,9 @@ class CoordinatorDetectionService : LifecycleService() {
     }
 
     companion object {
+        /** m/s → km/h factor for the one-shot exit-speed sample. [DET-SOLID-001] */
+        private const val KMH_PER_MPS = 3.6f
+
         const val ACTION_START_TRACKING = "io.apptolast.paparcar.ACTION_START_TRACKING"
         const val ACTION_STOP_TRACKING = "io.apptolast.paparcar.ACTION_STOP_TRACKING"
         // [DET-G-01] Geofence-exit delivered directly to the service via getForegroundService so

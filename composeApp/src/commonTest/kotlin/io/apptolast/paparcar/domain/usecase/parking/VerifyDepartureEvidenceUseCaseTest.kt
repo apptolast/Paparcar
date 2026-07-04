@@ -1,14 +1,14 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import kotlin.test.assertIs
 
 /**
- * [DET-G-05] The pre-arm verifier that keeps a walking geofence-exit from arming the
- * coordinator as a confirmed departure (BUG-REPARK-WALK-001).
+ * [DET-G-05][DET-SOLID-001] The pre-arm verifier that keeps a walking geofence-exit from
+ * arming the coordinator as a confirmed departure (BUG-REPARK-WALK-001).
  */
 class VerifyDepartureEvidenceUseCaseTest {
 
@@ -19,20 +19,39 @@ class VerifyDepartureEvidenceUseCaseTest {
         VerifyDepartureEvidenceUseCase(departureEventBus = bus, config = config)
 
     @Test
-    fun `should verify when speed is at departure threshold even without vehicleEnter`() {
+    fun `should verify by speed when at departure threshold with credible accuracy`() {
         val useCase = buildUseCase()
 
-        assertTrue(useCase(exitTimestamp, currentSpeedKmh = config.minimumDepartureSpeedKmh))
+        val evidence = useCase(exitTimestamp, currentSpeedKmh = config.minimumDepartureSpeedKmh, currentAccuracyM = 20f)
+
+        assertIs<ArmEvidence.VerifiedBySpeed>(evidence)
     }
 
     @Test
-    fun `should verify when vehicleEnter is within window even at walking speed`() {
+    fun `should not verify by speed from a degraded accuracy fix`() {
+        // [DET-SOLID-001] A GPS spike while walking can fake departure speed — accuracy must be
+        // credible for the sample to count as driving proof.
+        val useCase = buildUseCase(FakeDepartureEventBus(initialTimestamp = null))
+
+        val evidence = useCase(
+            exitTimestamp,
+            currentSpeedKmh = config.minimumDepartureSpeedKmh + 5f,
+            currentAccuracyM = config.minGpsAccuracyForDriving + 50f,
+        )
+
+        assertIs<ArmEvidence.Unverified>(evidence)
+    }
+
+    @Test
+    fun `should verify by vehicleEnter within window even at walking speed`() {
         // Short-hop repark (DET-G-04's motivating case): the user boarded the car — AR ENTER
         // recorded — but the hop was too short for the sampled fix to catch driving speed.
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
         val useCase = buildUseCase(bus)
 
-        assertTrue(useCase(exitTimestamp, currentSpeedKmh = 4f))
+        val evidence = useCase(exitTimestamp, currentSpeedKmh = 4f, currentAccuracyM = 10f)
+
+        assertIs<ArmEvidence.VerifiedByVehicleEnter>(evidence)
     }
 
     @Test
@@ -41,14 +60,14 @@ class VerifyDepartureEvidenceUseCaseTest {
         // real park — pedestrian speed, no AR ENTER. Must NOT arm as a confirmed departure.
         val useCase = buildUseCase(FakeDepartureEventBus(initialTimestamp = null))
 
-        assertFalse(useCase(exitTimestamp, currentSpeedKmh = 4f))
+        assertIs<ArmEvidence.Unverified>(useCase(exitTimestamp, currentSpeedKmh = 4f, currentAccuracyM = 10f))
     }
 
     @Test
     fun `should not verify when no signals at all`() {
         val useCase = buildUseCase(FakeDepartureEventBus(initialTimestamp = null))
 
-        assertFalse(useCase(exitTimestamp, currentSpeedKmh = null))
+        assertIs<ArmEvidence.Unverified>(useCase(exitTimestamp, currentSpeedKmh = null))
     }
 
     @Test
@@ -58,6 +77,17 @@ class VerifyDepartureEvidenceUseCaseTest {
         )
         val useCase = buildUseCase(bus)
 
-        assertFalse(useCase(exitTimestamp, currentSpeedKmh = null))
+        assertIs<ArmEvidence.Unverified>(useCase(exitTimestamp, currentSpeedKmh = null))
+    }
+
+    @Test
+    fun `KNOWN GAP - vehicleEnter AFTER the exit currently verifies via abs()`() {
+        // [DET-SOLID-001] Same abs() gap as DetectParkingDepartureUseCase: an ENTER recorded
+        // after the exit (bus boarding outside the radius) still verifies. B2 stamps TRUE
+        // transition times on the bus and hardens this to enter-precedes-exit — flip then.
+        val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp + 60_000L)
+        val useCase = buildUseCase(bus)
+
+        assertIs<ArmEvidence.VerifiedByVehicleEnter>(useCase(exitTimestamp, currentSpeedKmh = null))
     }
 }

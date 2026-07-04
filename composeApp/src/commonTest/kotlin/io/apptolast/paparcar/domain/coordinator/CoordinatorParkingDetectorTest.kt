@@ -13,6 +13,7 @@ import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCa
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.fakes.FakeAppNotificationManager
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
+import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
 import io.apptolast.paparcar.fakes.FakeDetectionEventLogger
 import io.apptolast.paparcar.fakes.FakeAuthRepository
@@ -610,7 +611,7 @@ class CoordinatorParkingDetectorTest {
             // MUST confirm the park instead of aborting.
             val env = setup()
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
-            val job = launch { env.coordinator.invoke(locations, armedByConfirmedDeparture = true) }
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedBySpeed(speedKmh = 20f, accuracyM = 10f)) }
 
             // The seed is applied before the first fix — the session reports movement immediately.
             assertTrue(
@@ -647,12 +648,12 @@ class CoordinatorParkingDetectorTest {
     fun should_still_abort_false_enter_when_session_is_not_a_confirmed_departure() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-G-04] Regression guard: the seed must NOT leak to AR_PROXIMITY / MANUAL sessions.
-            // Without armedByConfirmedDeparture the false-ENTER guard still protects against a
+            // Without verified arm evidence the false-ENTER guard still protects against a
             // spurious AR IN_VEHICLE_ENTER while walking (bus/taxi/desk) — same input as the test
             // above, but this session must ABORT and save nothing.
             val env = setup()
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
-            val job = launch { env.coordinator.invoke(locations) } // default: armedByConfirmedDeparture=false
+            val job = launch { env.coordinator.invoke(locations) } // default: ArmEvidence.Manual (no seed)
 
             locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 2.8f))
             locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))

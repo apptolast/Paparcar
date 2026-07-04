@@ -4,6 +4,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -75,8 +76,8 @@ class ConfirmParkingUseCase(
         /** Max GPS speed (m/s) the confirming detection session observed, or null when the caller
          *  has no session provenance (BT strategy, external callers). Feeds the repark guard. */
         tripMaxSpeedMps: Float? = null,
-        /** Arm-evidence label of the confirming session ("verified_departure", "self_observed",
-         *  "manual"...). Verified evidence bypasses the repark guard. [DET-SOLID-001] */
+        /** Arm-evidence label of the confirming session (see [ArmEvidence] label constants).
+         *  Verified labels bypass the repark guard. [DET-SOLID-001] */
         armEvidence: String? = null,
     ): Result<UserParking> {
         PaparcarLogger.d(
@@ -152,7 +153,7 @@ class ConfirmParkingUseCase(
         if (spotType == SpotType.AUTO_DETECTED &&
             detectionReliability < config.reliabilityUserConfirmed &&
             tripMaxSpeedMps != null && tripMaxSpeedMps < config.minimumTripSpeedMps &&
-            armEvidence != ARM_EVIDENCE_VERIFIED_DEPARTURE
+            !ArmEvidence.isVerifiedLabel(armEvidence)
         ) {
             val previous = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
             if (previous != null) {
@@ -268,16 +269,8 @@ class ConfirmParkingUseCase(
         return Result.success(session)
     }
 
-    companion object {
-        private const val DIAG = "PARKDIAG/Confirm"
-        private const val POOR_ACCURACY_WARN_METERS = 50f
-
-        /** Arm-evidence label that bypasses the repark-plausibility guard: the arm was verified
-         *  as a real departure by an external signal (driving-speed fix or recent AR ENTER).
-         *  Shared with the coordinator, which stamps it on its sessions. [DET-SOLID-001] */
-        const val ARM_EVIDENCE_VERIFIED_DEPARTURE = "verified_departure"
-        /** Arm-evidence label for sessions with no external verification — the coordinator's own
-         *  stream is the only witness (MANUAL sessions, unverified geofence exits). */
-        const val ARM_EVIDENCE_SELF_OBSERVED = "self_observed"
+    private companion object {
+        const val DIAG = "PARKDIAG/Confirm"
+        const val POOR_ACCURACY_WARN_METERS = 50f
     }
 }

@@ -1,12 +1,13 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.math.abs
 
 /**
- * [DET-G-05] Pre-arm verifier for a GEOFENCE_EXIT: is there any *vehicle* evidence behind
+ * [DET-G-05][DET-SOLID-001] Pre-arm verifier for a GEOFENCE_EXIT: what *vehicle* evidence backs
  * this exit, or did the phone simply leave the radius on foot?
  *
  * A geofence exit fires whenever the PHONE crosses the parked-car radius — and walking away
@@ -15,20 +16,19 @@ import kotlin.math.abs
  * the anti-walking guards, letting the steps+egress path re-confirm a bogus park at the
  * pedestrian's position (BUG-REPARK-WALK-001, regression introduced by DET-G-04).
  *
- * Evidence — either signal suffices:
- * 1. **Recent AR IN_VEHICLE_ENTER** within [ParkingDetectionConfig.vehicleEnterWindowMs] of
- *    the exit. Covers the short-hop repark DET-G-04 was written for: the user boarded the
- *    car, drove a hop too short for the GPS stream to catch, and parked again.
- * 2. **A fix at driving speed** (≥ [ParkingDetectionConfig.minimumDepartureSpeedKmh]) sampled
- *    when the exit is handled. Covers the common drive-away, where the exit fires mid-drive.
+ * Evidence, strongest first:
+ * 1. [ArmEvidence.VerifiedBySpeed] — a fix at ≥ [ParkingDetectionConfig.minimumDepartureSpeedKmh]
+ *    with credible accuracy (≤ [ParkingDetectionConfig.minGpsAccuracyForDriving]; a degraded fix
+ *    can fake departure speed while walking). Covers the common mid-drive exit.
+ * 2. [ArmEvidence.VerifiedByVehicleEnter] — AR `IN_VEHICLE_ENTER` within
+ *    [ParkingDetectionConfig.vehicleEnterWindowMs] of the exit. Covers the short-hop repark
+ *    DET-G-04 was written for. NOTE: the window is still |Δ| (abs) until the receiver stamps
+ *    TRUE transition times — see B2, which hardens this to enter-precedes-exit.
+ * 3. [ArmEvidence.Unverified] — walking produces neither signal. The exit must still arm the
+ *    coordinator (evidence can arrive late), but WITHOUT the seed; the departure worker
+ *    upgrades the live session via `DepartureConfirmationListener` once its verdict lands.
  *
- * Walking produces neither: pedestrian speed stays far below the departure threshold and no
- * ENTER is recorded. An unverified exit must still arm the coordinator — evidence can arrive
- * late (AR delivery takes up to ~2 min) — but WITHOUT the seed, keeping the legacy
- * `falseEnterAbortSteps` guard active; the departure worker upgrades the live session via
- * `CoordinatorParkingDetector.notifyDepartureConfirmed()` once its own verdict lands.
- *
- * Pure synchronous evaluator — the caller supplies the sampled speed.
+ * Pure synchronous evaluator — the caller supplies the sampled fix.
  */
 class VerifyDepartureEvidenceUseCase(
     private val departureEventBus: DepartureEventBus,
@@ -39,23 +39,34 @@ class VerifyDepartureEvidenceUseCase(
     }
 
     /**
-     * @param exitTimestampMs Epoch-ms of the geofence exit event.
-     * @param currentSpeedKmh Speed (km/h) sampled when handling the exit, or null if unavailable.
-     * @return `true` when the exit is backed by vehicle evidence and may arm the coordinator
-     *         as a confirmed departure.
+     * @param exitTimestampMs  Epoch-ms of the geofence exit event.
+     * @param currentSpeedKmh  Speed (km/h) sampled when handling the exit, or null if unavailable.
+     * @param currentAccuracyM Horizontal accuracy (m) of that sample, or null if unavailable.
      */
-    operator fun invoke(exitTimestampMs: Long, currentSpeedKmh: Float?): Boolean {
-        val enteredAt = departureEventBus.lastVehicleEnteredAt
-        val enteredRecently = enteredAt != null &&
-            abs(exitTimestampMs - enteredAt) <= config.vehicleEnterWindowMs
+    operator fun invoke(
+        exitTimestampMs: Long,
+        currentSpeedKmh: Float?,
+        currentAccuracyM: Float? = null,
+    ): ArmEvidence {
         val speedConfirms = currentSpeedKmh != null &&
-            currentSpeedKmh >= config.minimumDepartureSpeedKmh
-        val verified = enteredRecently || speedConfirms
+            currentSpeedKmh >= config.minimumDepartureSpeedKmh &&
+            (currentAccuracyM == null || currentAccuracyM <= config.minGpsAccuracyForDriving)
+        if (speedConfirms) {
+            PaparcarLogger.d(TAG, "departure evidence: SPEED (speedKmh=$currentSpeedKmh acc=$currentAccuracyM)")
+            return ArmEvidence.VerifiedBySpeed(speedKmh = currentSpeedKmh!!, accuracyM = currentAccuracyM)
+        }
+
+        val enteredAt = departureEventBus.lastVehicleEnteredAt
+        val enterDeltaMs = enteredAt?.let { abs(exitTimestampMs - it) }
+        if (enterDeltaMs != null && enterDeltaMs <= config.vehicleEnterWindowMs) {
+            PaparcarLogger.d(TAG, "departure evidence: VEHICLE_ENTER (deltaMs=$enterDeltaMs)")
+            return ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = enterDeltaMs)
+        }
+
         PaparcarLogger.d(
             TAG,
-            "departure evidence: enteredRecently=$enteredRecently (enteredAt=$enteredAt) " +
-                "speedConfirms=$speedConfirms (speedKmh=$currentSpeedKmh) → verified=$verified",
+            "departure evidence: UNVERIFIED (speedKmh=$currentSpeedKmh acc=$currentAccuracyM enteredAt=$enteredAt)",
         )
-        return verified
+        return ArmEvidence.Unverified
     }
 }
