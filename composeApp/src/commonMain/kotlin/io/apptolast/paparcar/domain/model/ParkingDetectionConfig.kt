@@ -191,13 +191,16 @@ data class ParkingDetectionConfig(
     val enterArmStepVetoMs: Long = 0L,
     /** [ANCHOR-LOCK-001] Post-stop pedestrian steps that LOCK the park anchor: once this many
      *  steps are counted while stopped (the user provably exited the car), `bestStopLocation`
-     *  freezes and only REAL driving (≥ [minimumTripSpeedMps] with credible accuracy — the user
-     *  came back and drove off) can clear it. Without the lock, brisk walking away from the car
-     *  (Doppler 2.5–3.6 m/s, above [clearBestStopSpeedMps]) wiped the true anchor and the park
-     *  re-anchored wherever the pedestrian next stood still (field incident 2026-07-04: car on
-     *  Avda. Alcalde Eduardo Ruiz, park saved 55 m away on Calle Gavia). Default 2 — one step
-     *  can be a door-slam artifact; two is a human on foot. */
-    val anchorLockEgressSteps: Int = 2,
+     *  freezes — later pedestrian stops can no longer re-capture it and only REAL driving
+     *  (≥ [minimumTripSpeedMps] with credible accuracy — the user came back and drove off) can
+     *  clear it. Without the lock, wandering inside a building after parking re-captured the
+     *  anchor at each indoor re-stop and the pin drifted off the car (field incident 2026-07-04,
+     *  supermarket on Avda. Alcalde Eduardo Ruiz: pin saved inside the store, car in the lot).
+     *
+     *  **Why 8 (= [minStepsToConfirm]), not lower:** phone jiggle at a traffic-light stop
+     *  produces 1–3 spurious steps (observed in the Calle Gavia field trace) — locking there
+     *  would pin the park at the light. A real exit produces ≥ 8 steps within seconds. */
+    val anchorLockEgressSteps: Int = 8,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when

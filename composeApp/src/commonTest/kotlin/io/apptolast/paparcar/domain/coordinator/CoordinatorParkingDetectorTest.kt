@@ -882,12 +882,14 @@ class CoordinatorParkingDetectorTest {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
-    fun should_confirm_when_late_departure_verdict_upgrades_an_unverified_session() =
+    fun should_prompt_when_late_departure_verdict_upgrades_a_session_that_never_saw_driving() =
         runTest(UnconfinedTestDispatcher()) {
-            // [DET-G-05] A GEOFENCE_EXIT with no vehicle evidence at arm time arms WITHOUT the
-            // seed. When DepartureDetectionWorker later confirms the departure (AR ENTER delivers
-            // up to ~2 min late), notifyDepartureConfirmed() seeds the RUNNING session so the
-            // steps+egress path can still confirm the short-hop park.
+            // [DET-G-05][ANCHOR-LOCK-001] A GEOFENCE_EXIT with no vehicle evidence at arm time
+            // arms WITHOUT the seed. When DepartureDetectionWorker later confirms the departure,
+            // notifyDepartureConfirmed() seeds the RUNNING session — but its verdict can rest on
+            // the same falsifiable ENTER fall-through, so a session that never witnessed driving
+            // itself must PROMPT, not save silently (2026-07-04 field incident: the late upgrade
+            // silently saved a park the user had been asked about). A user "Sí" completes it.
             val env = setup()
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
             val job = launch { env.coordinator.invoke(locations) } // unverified: no seed
@@ -906,13 +908,18 @@ class CoordinatorParkingDetectorTest {
             env.stepDetector.emitSteps(8)
             locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
 
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "verified_late without observed driving must not save silently [ANCHOR-LOCK-001]",
+            )
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "it must ask instead")
+
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
             job.cancelAndJoin()
 
-            assertEquals(
-                1,
-                env.parkingRepo.saveNewParkingSessionCallCount,
-                "upgraded session must confirm the park via steps+egress [DET-G-05]",
-            )
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "user tap completes the save")
         }
 
     @Test

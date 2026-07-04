@@ -97,14 +97,13 @@ class DetectionTraceReplayTest {
         }
 
     @Test
-    fun supermarket_anchor_001_park_must_anchor_on_the_street_where_the_car_stopped() =
+    fun calle_gavia_001_correct_detection_still_anchors_at_calle_gavia() =
         runTest(UnconfinedTestDispatcher()) {
-            // [ANCHOR-LOCK-001] 2026-07-04 incident: car parked on Avda. Alcalde Eduardo Ruiz
-            // (36.602747), user walked briskly to the supermarket, and the 3.0–3.6 m/s pedestrian
-            // Doppler wiped the anchor — the park saved 55 m away on Calle Gavia (36.602430).
-            // With the lock (egress steps freeze the anchor), the identical trace must confirm
-            // anchored at the REAL car position.
-            val replayer = DetectionTraceReplayer(TRACE_SUPERMARKET_ANCHOR_001)
+            // [ANCHOR-LOCK-001 regression guard] A CORRECT field detection: real drive, a traffic
+            // stop whose phone jiggle fired 2 spurious steps (must NOT lock the anchor there),
+            // real park on Calle Gavia. The session witnessed driving → silent confirm, anchored
+            // at the car.
+            val replayer = DetectionTraceReplayer(TRACE_CALLE_GAVIA_001)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch {
@@ -120,12 +119,66 @@ class DetectionTraceReplayTest {
             )
             job.cancelAndJoin()
 
-            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the real park must save")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the correct park must save")
             val saved = env.parkingRepo.getActiveSession()
             assertTrue(
-                saved != null && saved.location.latitude in 36.60270..36.60280,
-                "park must anchor on Avda. Alcalde Eduardo Ruiz (36.6027x), " +
-                    "not Calle Gavia (36.60243) — was ${saved?.location?.latitude}",
+                saved != null && saved.location.latitude in 36.60238..36.60248,
+                "park must anchor on Calle Gavia (36.60243), not the traffic stop (36.6027x/36.6029x) " +
+                    "— was ${saved?.location?.latitude}",
+            )
+        }
+
+    @Test
+    fun supermarket_001_late_arm_prompts_and_a_user_yes_anchors_at_the_car() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [ANCHOR-LOCK-001] The real complaint (2026-07-04): exit delivered so late the
+            // session armed with the car already parked (stream never saw driving). It must:
+            //  1. PROMPT at steps+egress (weak evidence) — never save silently;
+            //  2. keep prompting-not-saving even after the departure worker's late upgrade
+            //     (verified_late is weak too — pre-fix it silently saved);
+            //  3. keep the anchor LOCKED at the car while the user wanders the store
+            //     (pre-fix the indoor re-stops re-captured it and the pin drifted inside);
+            //  4. on the user's "Sí", save anchored at the CAR.
+            val fullTrace = TraceSupermarket001.park + TraceSupermarket001.wander
+            val replayer = DetectionTraceReplayer(fullTrace)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 120_000L),
+                )
+            }
+
+            var upgraded = false
+            replayer.replay(
+                emitFix = { fix ->
+                    // The departure worker's late verdict lands mid-wander (as in the field).
+                    if (!upgraded && fix.timestamp >= TraceSupermarket001.park.last().tMs + 60_000L) {
+                        upgraded = true
+                        env.coordinator.notifyDepartureConfirmed()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "weak evidence must never save silently")
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "the user must be asked exactly once")
+
+            // The user answers "Sí" — the save must anchor at the CAR in the lot, not the store.
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(36.602173, -6.256817, accuracy = 9f, timestamp = replayer.nowMs, speed = 0.2f))
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "user tap completes the save")
+            val saved = env.parkingRepo.getActiveSession()
+            assertTrue(
+                saved != null &&
+                    saved.location.latitude in 36.60205..36.60216 &&
+                    saved.location.longitude in -6.25690..-6.25675,
+                "park must anchor at the car in the lot (36.60212,-6.25682), " +
+                    "not drift into the store — was ${saved?.location?.latitude},${saved?.location?.longitude}",
             )
         }
 

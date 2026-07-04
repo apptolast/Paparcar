@@ -459,7 +459,10 @@ class CoordinatorParkingDetector(
                             hasEverReachedDrivingSpeed = s.hasEverReachedDrivingSpeed || hasJustReachedSpeed,
                             hasEverMoved = s.hasEverMoved || hasJustMoved,
                             sessionStartMs = s.sessionStartMs ?: now,
-                            maxSpeedMps = if (location.speed > s.maxSpeedMps) location.speed else s.maxSpeedMps,
+                            // maxSpeed feeds the mismatch guard AND the weak-evidence policy
+                            // ("did this session witness driving?") — an indoor Doppler spike with
+                            // degraded accuracy must not count as driving. [ANCHOR-LOCK-001]
+                            maxSpeedMps = if (location.speed > s.maxSpeedMps && credibleSpeedFix) location.speed else s.maxSpeedMps,
                         )
                     }
                     PaparcarLogger.d(

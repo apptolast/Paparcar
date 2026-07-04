@@ -88,9 +88,18 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // [DET-SOLID-001] Weak-evidence policy: the arm's only vehicle proof is an AR ENTER
         // (falsifiable by bus/taxi) AND the session's own stream never witnessed driving speed —
         // all confirm conditions hold, but the save is not trustworthy enough to be silent.
+        // `verified_late` (the departure worker's post-arm upgrade) is weak for the same reason:
+        // its verdict can rest on the same ENTER fall-through, and it must never override a
+        // prompt the policy already chose (field incident 2026-07-04: the late upgrade silently
+        // saved a park the user had been ASKED about and never answered). A session that
+        // witnessed real driving confirms silently regardless.
         val sessionSawDriving = input.maxSpeedKmh >= config.minimumTripSpeedMps * KMH_PER_MPS
+        val weakLabels = setOf(
+            io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+            io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_LATE,
+        )
         val weakEvidenceOnly = config.autoConfirmRequiresStrongEvidence &&
-            input.evidenceLabel == io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER &&
+            input.evidenceLabel in weakLabels &&
             !sessionSawDriving
 
         // [DET-SOLID-001][C2] Human-powered profiles never auto-confirm: a bike/scooter crossing
