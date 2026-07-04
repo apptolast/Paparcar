@@ -36,7 +36,7 @@ val androidDetectionModule = module {
     single<GeofenceManager> { GeofenceManagerImpl(androidContext(), get(), get()) }
 
     // --- Departure Detection ---
-    single<DepartureEventBus> { DepartureEventBusImpl() }
+    single<DepartureEventBus> { DepartureEventBusImpl(androidContext()) }
 
     // --- Manual detection start ("I'm driving" cold-start affordance) [DET-G-01b] ---
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {

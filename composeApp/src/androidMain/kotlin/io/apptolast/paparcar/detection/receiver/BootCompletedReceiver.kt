@@ -30,6 +30,10 @@ class BootCompletedReceiver : BroadcastReceiver(), KoinComponent {
         activityRecognitionManager.registerTransitions()
         RegisterActivityTransitionsWorker.enqueueKeep(workManager)
         GeofenceJanitorWorker.enqueueKeep(workManager)
+        // Reboot wipes every registered geofence. The periodic KEEP above can take up to 12 h to
+        // fire — an active park would sit blind (departure undetectable) for that whole window.
+        // Run the restore ONCE right now as well. Idempotent. [DET-SOLID-001]
+        GeofenceJanitorWorker.enqueueOnce(workManager)
         // Fixme: Seguimos necesitando DetectionHeartbeatWorker?
         DetectionHeartbeatWorker.enqueueKeep(workManager)
     }
