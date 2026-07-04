@@ -19,6 +19,9 @@ sealed interface ParkingDecision {
     data class Confirmed(val pathLabel: String, val reliability: Float) : ParkingDecision
     data object Rejected : ParkingDecision
     data object Inconclusive : ParkingDecision
+    /** All confirm conditions hold, but the arm evidence is too weak to save silently
+     *  (ENTER-only, falsifiable by bus/taxi) — ask the user instead. [DET-SOLID-001] */
+    data class Prompt(val pathLabel: String) : ParkingDecision
 }
 
 /**
@@ -39,8 +42,11 @@ data class ParkingDecisionInput(
     val vehicleType: VehicleType?,
     /** Session wall-clock duration (for the mismatch guard). */
     val sessionDurationMs: Long,
-    /** Session top speed in km/h (for the mismatch guard). */
+    /** Session top speed in km/h (for the mismatch guard and the weak-evidence policy). */
     val maxSpeedKmh: Float,
+    /** Arm-evidence persist label of the session (see [io.apptolast.paparcar.domain.detection.ArmEvidence]);
+     *  null for legacy callers. Kept a flat string so the input stays replayable. [DET-SOLID-001] */
+    val evidenceLabel: String? = null,
 )
 
 /**
@@ -79,13 +85,27 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             else -> false
         }
 
+        // [DET-SOLID-001] Weak-evidence policy: the arm's only vehicle proof is an AR ENTER
+        // (falsifiable by bus/taxi) AND the session's own stream never witnessed driving speed —
+        // all confirm conditions hold, but the save is not trustworthy enough to be silent.
+        val sessionSawDriving = input.maxSpeedKmh >= config.minimumTripSpeedMps * KMH_PER_MPS
+        val weakEvidenceOnly = config.autoConfirmRequiresStrongEvidence &&
+            input.evidenceLabel == io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER &&
+            !sessionSawDriving
+
+        val pathLabel = if (hasStepsProof) "steps+egress" else "vehicleExit+window+egress"
         return when {
+            confirmNow && weakEvidenceOnly -> ParkingDecision.Prompt(pathLabel)
             confirmNow -> ParkingDecision.Confirmed(
-                pathLabel = if (hasStepsProof) "steps+egress" else "vehicleExit+window+egress",
+                pathLabel = pathLabel,
                 reliability = config.reliabilityVehicleExit,
             )
             windowElapsed -> ParkingDecision.Rejected
             else -> ParkingDecision.Inconclusive
         }
+    }
+
+    private companion object {
+        const val KMH_PER_MPS = 3.6f
     }
 }

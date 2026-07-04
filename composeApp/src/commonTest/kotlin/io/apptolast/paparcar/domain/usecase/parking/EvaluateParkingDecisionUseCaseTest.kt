@@ -30,10 +30,71 @@ class EvaluateParkingDecisionUseCaseTest {
         vehicleType: VehicleType? = VehicleType.CAR,
         sessionDurationMs: Long = 60_000L,
         maxSpeedKmh: Float = 60f,
+        evidenceLabel: String? = null,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
-        elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh,
+        elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, evidenceLabel,
     )
+
+    // ── Weak-evidence policy [DET-SOLID-001] ────────────────────────────────────
+
+    @Test
+    fun should_prompt_when_only_evidence_is_vehicle_enter_and_session_never_drove() {
+        // ENTER-only arm (falsifiable by bus/taxi) + the session's own stream never saw driving
+        // → all confirm conditions hold but the save must ask, not assert.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 4f,
+                sessionDurationMs = 60_000L, // short session — mismatch guard (>=8 min) not in play
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+            )
+        )
+        assertIs<ParkingDecision.Prompt>(decision)
+        assertEquals("steps+egress", decision.pathLabel)
+    }
+
+    @Test
+    fun should_confirm_when_enter_evidence_is_corroborated_by_observed_driving() {
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 30f, // the session itself witnessed the drive
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    @Test
+    fun should_confirm_with_speed_evidence_even_without_observed_driving() {
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 4f,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
+    @Test
+    fun should_confirm_enter_only_when_strong_evidence_flag_is_off() {
+        val relaxed = EvaluateParkingDecisionUseCase(ParkingDetectionConfig(autoConfirmRequiresStrongEvidence = false))
+        val decision = relaxed(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                maxSpeedKmh = 4f,
+                sessionDurationMs = 60_000L,
+                evidenceLabel = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
+            )
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
 
     // ── Steps path ──────────────────────────────────────────────────────────────
 

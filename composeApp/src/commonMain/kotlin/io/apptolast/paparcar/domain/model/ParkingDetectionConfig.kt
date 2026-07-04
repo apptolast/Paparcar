@@ -178,6 +178,15 @@ data class ParkingDetectionConfig(
      *  farther or with driving observed (either disarms the guard). */
     val reparkPlausibilityRadiusMeters: Float = 300f,
 
+    // ── EVIDENCE POLICY [DET-SOLID-001] ───────────────────────────────────────
+    /** When true, an auto-confirm whose ONLY vehicle evidence is an AR IN_VEHICLE_ENTER (the
+     *  arm was `verified_enter` and the session itself never observed driving speed) degrades
+     *  to the user prompt instead of silently saving at 0.90 — AR ENTER fires on ANY vehicle
+     *  (bus, taxi), so it alone cannot distinguish "moved my car a short hop" from "boarded a
+     *  bus beside my parked car". Costs one tap on legitimate no-GPS short-hops; flip to false
+     *  if that UX cost outweighs the bus/taxi false-positive risk in the field. */
+    val autoConfirmRequiresStrongEvidence: Boolean = true,
+
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
      *  the vehicle resumes motion. Chosen above typical walking speed (~1.4 m/s) so the car's

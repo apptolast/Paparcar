@@ -601,6 +601,7 @@ class CoordinatorParkingDetector(
                                 vehicleType = activeVehicleType,
                                 sessionDurationMs = state.sessionDurationMs(now),
                                 maxSpeedKmh = state.maxSpeedKmh,
+                                evidenceLabel = currentArmEvidence,
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -616,6 +617,10 @@ class CoordinatorParkingDetector(
                                 pathLabel = "steps+egress",
                                 now = now,
                             )
+                            return@collect
+                        }
+                        if (decision is ParkingDecision.Prompt) {
+                            degradeToPrompt(decision.pathLabel, location, now)
                             return@collect
                         }
                         PaparcarLogger.d(
@@ -867,6 +872,7 @@ class CoordinatorParkingDetector(
                 vehicleType = activeVehicleType,
                 sessionDurationMs = state.sessionDurationMs(now),
                 maxSpeedKmh = state.maxSpeedKmh,
+                evidenceLabel = currentArmEvidence,
             )
         )
         PaparcarLogger.d(
@@ -901,7 +907,34 @@ class CoordinatorParkingDetector(
                 logDetection { sid -> DetectionEvent.Candidate(sid, now, action = "DISCARDED", phase = "Candidate→Notified", location = location) }
                 false
             }
+            is ParkingDecision.Prompt -> {
+                degradeToPrompt(decision.pathLabel, location, now)
+                false
+            }
             ParkingDecision.Inconclusive -> false
+        }
+    }
+
+    /**
+     * [DET-SOLID-001] All confirm conditions hold but the evidence is too weak for a silent
+     * save (ENTER-only arm, session never saw driving — falsifiable by bus/taxi). Ask the user
+     * via the existing prompt machinery: phase → [ConfirmationPhase.Notified] (promptShownAt
+     * feeds the response-timeout), a "Sí" flows through the user-confirm precedence (reliability
+     * 1.0, every guard bypassed), and silence aborts at `confirmationResponseTimeoutMs`.
+     */
+    private suspend fun degradeToPrompt(pathLabel: String, location: GpsPoint, now: Long) {
+        PaparcarLogger.d(DIAG, "  ？ weak-evidence confirm ($pathLabel) → degrading to user prompt [DET-SOLID-001]")
+        val alreadyPrompted = _detectionState.value.phase.promptShownAt != null
+        if (!alreadyPrompted) {
+            val vehicleName = runCatching {
+                vehicleRepository.observeActiveVehicle().first()
+                    ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
+            }.getOrNull()
+            notificationPort.showParkingConfirmation(WEAK_EVIDENCE_PROMPT_SCORE, vehicleName)
+            _detectionState.update { it.copy(phase = ConfirmationPhase.Notified(shownAt = now)) }
+            logDetection { sid ->
+                DetectionEvent.Decision(sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel, location = location)
+            }
         }
     }
 
@@ -1089,6 +1122,9 @@ class CoordinatorParkingDetector(
         /** Score shown on the confirmation prompt when an auto-confirm is degraded by the
          *  repark-plausibility guard — Medium-band so the copy asks rather than asserts. [DET-SOLID-001] */
         const val IMPLAUSIBLE_REPARK_PROMPT_SCORE = 0.6f
+
+        /** Score for the weak-evidence (ENTER-only) prompt — same Medium-band treatment. [DET-SOLID-001] */
+        const val WEAK_EVIDENCE_PROMPT_SCORE = 0.6f
     }
 }
 
