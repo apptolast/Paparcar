@@ -96,6 +96,39 @@ class DetectionTraceReplayTest {
             )
         }
 
+    @Test
+    fun supermarket_anchor_001_park_must_anchor_on_the_street_where_the_car_stopped() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [ANCHOR-LOCK-001] 2026-07-04 incident: car parked on Avda. Alcalde Eduardo Ruiz
+            // (36.602747), user walked briskly to the supermarket, and the 3.0–3.6 m/s pedestrian
+            // Doppler wiped the anchor — the park saved 55 m away on Calle Gavia (36.602430).
+            // With the lock (egress steps freeze the anchor), the identical trace must confirm
+            // anchored at the REAL car position.
+            val replayer = DetectionTraceReplayer(TRACE_SUPERMARKET_ANCHOR_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 60_000L),
+                )
+            }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the real park must save")
+            val saved = env.parkingRepo.getActiveSession()
+            assertTrue(
+                saved != null && saved.location.latitude in 36.60270..36.60280,
+                "park must anchor on Avda. Alcalde Eduardo Ruiz (36.6027x), " +
+                    "not Calle Gavia (36.60243) — was ${saved?.location?.latitude}",
+            )
+        }
+
     // ── Env ───────────────────────────────────────────────────────────────────
 
     private class Env(

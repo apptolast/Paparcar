@@ -189,6 +189,15 @@ data class ParkingDetectionConfig(
      *  abort guard. 0 = disabled (default) — enable only after validating against replay traces
      *  that real short-hops don't produce a first step this early. [DET-SOLID-001] */
     val enterArmStepVetoMs: Long = 0L,
+    /** [ANCHOR-LOCK-001] Post-stop pedestrian steps that LOCK the park anchor: once this many
+     *  steps are counted while stopped (the user provably exited the car), `bestStopLocation`
+     *  freezes and only REAL driving (≥ [minimumTripSpeedMps] with credible accuracy — the user
+     *  came back and drove off) can clear it. Without the lock, brisk walking away from the car
+     *  (Doppler 2.5–3.6 m/s, above [clearBestStopSpeedMps]) wiped the true anchor and the park
+     *  re-anchored wherever the pedestrian next stood still (field incident 2026-07-04: car on
+     *  Avda. Alcalde Eduardo Ruiz, park saved 55 m away on Calle Gavia). Default 2 — one step
+     *  can be a door-slam artifact; two is a human on foot. */
+    val anchorLockEgressSteps: Int = 2,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
@@ -389,6 +398,9 @@ data class ParkingDetectionConfig(
         }
         require(reparkPlausibilityRadiusMeters > 0) {
             "reparkPlausibilityRadiusMeters must be > 0, was $reparkPlausibilityRadiusMeters"
+        }
+        require(anchorLockEgressSteps >= 1) {
+            "anchorLockEgressSteps must be >= 1, was $anchorLockEgressSteps"
         }
         require(initialStopWindowMs > 0) {
             "initialStopWindowMs must be > 0, was $initialStopWindowMs"

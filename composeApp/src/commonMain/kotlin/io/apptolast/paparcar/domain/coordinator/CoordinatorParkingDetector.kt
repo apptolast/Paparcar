@@ -160,6 +160,11 @@ class CoordinatorParkingDetector(
          *  bestStopLocation gets the lowest-accuracy fix within the initial-stop window, which is
          *  exactly the parked-car position we want to measure displacement from.] */
         val bestStopLocation: GpsPoint? = null,
+        /** [ANCHOR-LOCK-001] `stoppedSince` of the stop during which [bestStopLocation] was
+         *  captured. When the anchor is LOCKED (egress steps observed), refinement is allowed
+         *  only while still in that same stop — a LATER stop is the pedestrian standing still,
+         *  never the car, and must not re-capture the anchor. */
+        val anchorCapturedAtStop: Long? = null,
         // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
         val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
@@ -483,7 +488,15 @@ class CoordinatorParkingDetector(
                     val pending = state.pendingConfirm
                     if (pending != null) {
                         val heldMs = now - pending.confirmedAt
-                        val drivingResumed = location.speed > config.clearBestStopSpeedMps &&
+                        // [ANCHOR-LOCK-001] With egress steps in hand (always true on the
+                        // steps+egress path) the user is on foot — only REAL driving speed can
+                        // mean "errand over, drove off"; brisk walking must not discard the hold.
+                        val resumeSpeedBar = if (isAnchorLocked(state)) {
+                            config.minimumTripSpeedMps
+                        } else {
+                            config.clearBestStopSpeedMps
+                        }
+                        val drivingResumed = location.speed > resumeSpeedBar &&
                             location.accuracy <= config.minGpsAccuracyForDriving
                         when {
                             state.userConfirmedParking || heldMs >= config.confirmHoldMs -> {
@@ -953,6 +966,14 @@ class CoordinatorParkingDetector(
         }
     }
 
+    /** [ANCHOR-LOCK-001] Whether the park anchor is LOCKED: pedestrian steps were counted while
+     *  stopped, so the user provably exited the car — later Doppler speed on the phone belongs
+     *  to the PEDESTRIAN, not the car. A locked anchor is neither re-captured at later stops nor
+     *  cleared by walking-range speed; only a REAL drive (≥ minimumTripSpeedMps, credible
+     *  accuracy — the errand case: user came back and drove off) unlocks. */
+    private fun isAnchorLocked(s: ParkingDetectionState): Boolean =
+        s.bestStopLocation != null && s.stepCount >= config.anchorLockEgressSteps
+
     /**
      * Updates `stoppedSince` / `stoppedFixes` when the vehicle is stopped, or resets
      * them when it starts moving again. Returns the total stopped duration in ms.
@@ -960,7 +981,8 @@ class CoordinatorParkingDetector(
      * At driving speed ([ParkingDetectionConfig.clearBestStopSpeedMps]) the following are
      * also cleared to prevent stale signals from polluting the next genuine stop:
      * [bestStopLocation], [vehicleExitConfirmed], and the
-     * [phase] (back to [ConfirmationPhase.Idle]).
+     * [phase] (back to [ConfirmationPhase.Idle]). With a LOCKED anchor [ANCHOR-LOCK-001]
+     * the clear bar rises to real driving ([ParkingDetectionConfig.minimumTripSpeedMps]).
      */
     private fun updateStopTracking(location: GpsPoint, now: Long): Long {
         return if (location.speed < config.stoppedSpeedThresholdMps) {
@@ -968,7 +990,13 @@ class CoordinatorParkingDetector(
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
                 // Freeze bestStopLocation after the initial-stop window (default 30 s). [LOC-001]
+                // A LOCKED anchor is never re-captured at a LATER stop: the user already exited
+                // the car, so a new stop is the pedestrian standing still, never the car. Same-stop
+                // refinement (better fixes arriving right after the door slam) stays allowed.
+                // [ANCHOR-LOCK-001]
+                val lockedToOtherStop = isAnchorLocked(s) && s.anchorCapturedAtStop != startedAt
                 val newBestStop = when {
+                    lockedToOtherStop -> s.bestStopLocation
                     !withinInitialWindow -> s.bestStopLocation
                     s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
                     else -> s.bestStopLocation
@@ -978,6 +1006,7 @@ class CoordinatorParkingDetector(
                     stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < config.maxStoppedFixes)
                         s.stoppedFixes + location else s.stoppedFixes,
                     bestStopLocation = newBestStop,
+                    anchorCapturedAtStop = if (newBestStop !== s.bestStopLocation) startedAt else s.anchorCapturedAtStop,
                     // Reset the reposition counter on every stopped fix. [PARKING-001]
                     consecutiveRepositionFixes = 0,
                 )
@@ -985,6 +1014,13 @@ class CoordinatorParkingDetector(
             now - (_detectionState.value.stoppedSince ?: 0L)
         } else {
             val isDriving = location.speed >= config.clearBestStopSpeedMps &&
+                    location.accuracy <= config.minGpsAccuracyForDriving
+            // [ANCHOR-LOCK-001] Real driving — unambiguous even for a phone on a pedestrian.
+            // Field incident 2026-07-04: brisk walking away from the parked car produced Doppler
+            // 2.5–3.6 m/s fixes (above clearBestStopSpeedMps) that wiped the true anchor; the park
+            // then re-anchored where the user next stood still, 55 m away. Once egress steps are
+            // observed, only THIS bar clears the anchor.
+            val isRealDrive = location.speed >= config.minimumTripSpeedMps &&
                     location.accuracy <= config.minGpsAccuracyForDriving
             val isRepositionCandidate = location.speed >= config.repositionSpeedMps &&
                     location.accuracy <= config.repositionMaxAccuracyMeters
@@ -997,10 +1033,19 @@ class CoordinatorParkingDetector(
                 )
             }
             _detectionState.update {
+                val anchorLocked = isAnchorLocked(it)
+                val effectiveDriving = if (anchorLocked) isRealDrive else isDriving
+                if (anchorLocked && isDriving && !isRealDrive) {
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  🔒 anchor LOCKED (steps=${it.stepCount}) — ignoring walking-range speed " +
+                                "${location.speed} m/s (< ${config.minimumTripSpeedMps}) [ANCHOR-LOCK-001]"
+                    )
+                }
                 val newConsecutive = if (isRepositionCandidate) it.consecutiveRepositionFixes + 1 else 0
-                val isRepositionBurst = newConsecutive >= config.repositionFixCount
-                val shouldClearBestStop = isDriving || isRepositionBurst
-                if (isRepositionBurst && !isDriving) {
+                val isRepositionBurst = newConsecutive >= config.repositionFixCount && !anchorLocked
+                val shouldClearBestStop = effectiveDriving || isRepositionBurst
+                if (isRepositionBurst && !effectiveDriving) {
                     PaparcarLogger.d(
                         DIAG,
                         "  ⟲ reposition-burst detected " +
@@ -1008,18 +1053,19 @@ class CoordinatorParkingDetector(
                                 "— clearing bestStopLocation [PARKING-001]"
                     )
                 }
-                // [REFACTOR-200] phase resets to Idle on isDriving. Walking pace preserves
+                // [REFACTOR-200] phase resets to Idle on driving. Walking pace preserves
                 // the current phase so the response-timeout from a prior prompt still ticks
                 // — that's how BUG-STUCK-SESSION's "walked home" abort fires.
-                val nextPhase = if (isDriving) ConfirmationPhase.Idle else it.phase
+                val nextPhase = if (effectiveDriving) ConfirmationPhase.Idle else it.phase
                 it.copy(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),
                     phase = nextPhase,
                     bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
-                    vehicleExitConfirmed = if (isDriving) false else it.vehicleExitConfirmed,
+                    anchorCapturedAtStop = if (shouldClearBestStop) null else it.anchorCapturedAtStop,
+                    vehicleExitConfirmed = if (effectiveDriving) false else it.vehicleExitConfirmed,
                     consecutiveRepositionFixes = newConsecutive,
-                    stepCount = if (isDriving) 0 else it.stepCount,
+                    stepCount = if (effectiveDriving) 0 else it.stepCount,
                 )
             }
             0L
