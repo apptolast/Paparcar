@@ -24,8 +24,13 @@ class FakeGeofenceManager : GeofenceManager {
         return createResult
     }
 
-    override suspend fun removeGeofence(geofenceId: String): Result<Unit> =
-        Result.success(Unit)
+    val removedIds: MutableList<String> = mutableListOf()
+    var removeResult: Result<Unit> = Result.success(Unit)
+
+    override suspend fun removeGeofence(geofenceId: String): Result<Unit> {
+        removedIds.add(geofenceId)
+        return removeResult
+    }
 
     var removeAllCallCount = 0
 

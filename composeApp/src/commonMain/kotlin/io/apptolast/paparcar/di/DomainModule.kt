@@ -15,6 +15,7 @@ import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCa
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
+import io.apptolast.paparcar.domain.usecase.parking.RunDepartureCheckUseCase
 import io.apptolast.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
@@ -136,6 +137,18 @@ val domainModule = module {
             geofenceService = get(),
             departureEventBus = get(),
             activityRecognitionManager = get(),
+            detectionEventLogger = get(),
+        )
+    }
+    // [DET-SOLID-001] The departure-check seam, extracted from DepartureDetectionWorker.
+    single<io.apptolast.paparcar.domain.detection.DepartureConfirmationListener> { get<CoordinatorParkingDetector>() }
+    factory {
+        RunDepartureCheckUseCase(
+            detectParkingDeparture = get(),
+            processConfirmedDeparture = get(),
+            getOneLocation = get(),
+            departureEventBus = get(),
+            departureConfirmationListener = get(),
             detectionEventLogger = get(),
         )
     }

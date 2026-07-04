@@ -119,6 +119,21 @@ class DetectParkingDepartureUseCaseTest {
         assertIs<DepartureDecision.Inconclusive>(result)
     }
 
+    @Test
+    fun `KNOWN GAP - vehicleEnter AFTER the exit currently confirms via abs()`() = runTest {
+        // [DET-SOLID-001] Documents the current abs(exitTs - enteredAt) behaviour: an
+        // IN_VEHICLE_ENTER recorded AFTER the geofence exit (e.g. boarding a bus once already
+        // outside the radius) still validates the window and confirms the departure. Fase B1
+        // replaces abs() with a strict enter-BEFORE-exit check — flip this assertion then.
+        val repo = FakeUserParkingRepository(activeSession)
+        val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp + 60_000L) // 1 min AFTER exit
+        val useCase = buildUseCase(repo = repo, bus = bus)
+
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = null)
+
+        assertIs<DepartureDecision.Confirmed>(result)
+    }
+
     // ── Signal 3: IN_VEHICLE_ENTER outside time window ────────────────────────
 
     @Test

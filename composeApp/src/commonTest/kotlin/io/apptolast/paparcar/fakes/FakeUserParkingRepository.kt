@@ -75,7 +75,14 @@ class FakeUserParkingRepository(
     override suspend fun getSessionsByVehiclePaged(vehicleId: String, limit: Int, offset: Int): List<UserParking> =
         sessions.filter { it.vehicleId == vehicleId }.drop(offset).take(limit)
 
+    /** Failure override for tests — when set to a failure, [clearActiveParkingSession] returns it
+     *  without mutating state. */
+    var clearActiveParkingSessionResult: Result<Unit>? = null
+
     override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> {
+        clearActiveParkingSessionResult?.let { override ->
+            if (override.isFailure) return override
+        }
         sessions.replaceAll { if (it.id == sessionId) it.copy(isActive = false) else it }
         _sessionsFlow.value = sessions.toList()
         return Result.success(Unit)

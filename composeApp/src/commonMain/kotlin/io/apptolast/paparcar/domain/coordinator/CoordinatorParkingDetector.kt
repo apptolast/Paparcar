@@ -16,6 +16,7 @@ import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
+import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ParkingDecision
@@ -107,7 +108,7 @@ class CoordinatorParkingDetector(
     /** Wall-clock source (epoch-ms). Injectable so the time-driven post-confirm hold [DET-C-02]
      *  can be unit-tested without sleeping. Defaults to the system clock. */
     private val clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
-) {
+) : DepartureConfirmationListener {
     /**
      * Atomic snapshot of all mutable detection variables for a single session.
      * Updated via [MutableStateFlow.update] to ensure thread-safe transitions.
@@ -239,7 +240,7 @@ class CoordinatorParkingDetector(
      * paths unlock — same effect as arming with `armedByConfirmedDeparture=true`, but only once
      * the evidence actually arrived. No-ops between sessions and when already seeded.
      */
-    fun notifyDepartureConfirmed() {
+    override fun notifyDepartureConfirmed() {
         if (currentSessionId == null) return
         currentArmEvidence = ConfirmParkingUseCase.ARM_EVIDENCE_VERIFIED_DEPARTURE
         if (_detectionState.value.hasEverReachedDrivingSpeed) return
