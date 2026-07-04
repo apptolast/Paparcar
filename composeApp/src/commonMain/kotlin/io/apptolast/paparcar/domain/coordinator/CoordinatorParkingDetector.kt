@@ -427,10 +427,18 @@ class CoordinatorParkingDetector(
                             origin.latitude, origin.longitude,
                             location.latitude, location.longitude,
                         )
+                        // [DET-SOLID-001] A driving-speed crossing is only trusted from a fix whose
+                        // accuracy is credible: a single degraded fix (walking, acc 80–200 m) used
+                        // to flip hasEverReachedDrivingSpeed and unlock every confirm path — the
+                        // same hole the DET-G-04 seed opened, but via GPS noise. Same 50 m gate
+                        // that already protects the driving-clears-anchor decision [LOC-002].
+                        val credibleSpeedFix = location.accuracy <= config.minGpsAccuracyForDriving
                         val hasJustReachedSpeed = !s.hasEverReachedDrivingSpeed &&
-                                location.speed >= config.minimumTripSpeedMps
+                                location.speed >= config.minimumTripSpeedMps &&
+                                credibleSpeedFix
                         val hasJustMoved = !s.hasEverMoved &&
                                 location.speed >= config.minimumTripSpeedMps &&
+                                credibleSpeedFix &&
                                 distFromOrigin >= config.minimumTripDistanceMeters
                         if (hasJustReachedSpeed) {
                             PaparcarLogger.d(DIAG, "  ✓ hasEverReachedDrivingSpeed → true (speed=${location.speed}≥${config.minimumTripSpeedMps}) dist=${distFromOrigin}m [BUG-SHORT-TRIP]")

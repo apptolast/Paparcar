@@ -673,6 +673,53 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-SOLID-001: a driving-speed crossing needs a credible-accuracy fix
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_not_trust_driving_speed_from_a_degraded_accuracy_fix() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A single walking GPS spike (speed 6 m/s but accuracy 120 m) used to flip
+            // hasEverReachedDrivingSpeed and unlock every confirm path — the GPS-noise variant
+            // of the walking false positive. The 50 m credibility gate must reject it, so the
+            // subsequent step burst still aborts the session. [DET-SOLID-001]
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 120f, timestamp = 0L, speed = 6f))
+            assertFalse(
+                env.coordinator.hasDetectedMovement,
+                "degraded fix must not count as driving [DET-SOLID-001]",
+            )
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "the walking burst must still abort — the spike opened no confirm path",
+            )
+        }
+
+    @Test
+    fun should_trust_driving_speed_from_a_credible_accuracy_fix() =
+        runTest(UnconfinedTestDispatcher()) {
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 20f, timestamp = 0L, speed = 6f))
+            assertTrue(env.coordinator.hasDetectedMovement, "credible fix keeps the normal path")
+
+            job.cancelAndJoin()
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // DET-G-05: unverified exits stay guarded; a late departure verdict upgrades
     // ─────────────────────────────────────────────────────────────────────────
 
