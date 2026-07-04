@@ -1196,3 +1196,49 @@ The mapping (`GEOFENCE_EXIT → true`) lives in the service (which owns trigger 
 **Tests.** `VerifyDepartureEvidenceUseCaseTest` (5 cases incl. the walking trace and the stale-ENTER window) + `should_confirm_when_late_departure_verdict_upgrades_an_unverified_session` + `should_ignore_departure_verdict_between_sessions`. DET-G-04's pair still passes — the coordinator-level flag semantics are unchanged; only the service's mapping got the verifier.
 
 **Pending.** Device validation: real park + walk away (must NOT re-confirm; session aborts `aborted_false_enter`), real drive-away (seed via speed), short-hop repark (seed via AR ENTER or worker upgrade); iOS.
+
+### DET-SOLID-001 — Evidence-based detection redesign (2026-07-04)
+
+The system stopped being a pile of point guards (DET-G-01..05) and became **evidence + write-side invariants + a replayable decision core**. Full plan/context: three exhaustive code sweeps (triggers/lifecycle, coordinator state machine, effects/invariants) + the BUG-REPARK-WALK-001 field incident.
+
+**Architecture after the redesign:**
+
+1. **Arming is exclusive to `GEOFENCE_EXIT` + `MANUAL`.** `DetectionTrigger.AR_PROXIMITY` and the whole AR-arming machinery (`registerVehicleEnterArming`, `handleArVehicleEnter`, `ShouldArmFromVehicleEnterUseCase`, `AR_REARM_ENABLED`) were purged — AR is an **indicator only** (user-confirmed design rule: in the field AR failed both ways, spurious AND missing, so it must never be load-bearing).
+2. **Typed `ArmEvidence`** (`Manual | VerifiedBySpeed | VerifiedByVehicleEnter | Unverified`) replaces the `armedByConfirmedDeparture` boolean. Verified evidence seeds `hasEverReachedDrivingSpeed`; unverified/manual arms keep every anti-walking guard. The label is persisted on the session (`UserParking.armEvidence` + `tripMaxSpeedMps`, Room v11, local-only) and logged in `SessionStarted.evidence`.
+3. **AR ENTER rides the passive broadcast receiver** (same request as EXIT, zero FGS, zero arming) and stamps `DepartureEventBus` with the TRUE transition time (`elapsedRealTimeNanos` → epoch). Both evidence windows are strict **enter-precedes-exit** — an ENTER after the exit is a bus/taxi boarded outside the radius, never departure proof. The bus timestamp survives process death (SharedPreferences mirror).
+4. **Evidence policy** (`EvaluateParkingDecisionUseCase`): ENTER-only evidence with no observed driving → `ParkingDecision.Prompt` (ask, don't assert) — flag `autoConfirmRequiresStrongEvidence`. BIKE/SCOOTER profiles never auto-confirm. The B4 step-cadence veto exists behind `enterArmStepVetoMs` (default OFF until replay-validated).
+5. **Write-side invariants**: atomic `replaceActiveSession` (Room `@Transaction`); repark-plausibility guard in `ConfirmParkingUseCase` (recent + near + no driving observed + unverified arm → `ImplausibleRepark`, degraded to a prompt); geofence registration failure is loud + janitor-retried (session ⟺ geofence); janitor self-repairs duplicate actives; boot runs an immediate geofence restore.
+6. **Observability**: `DepartureVerdict` (pre-arm + every worker attempt), `DepartureProcessed`, `Reverted` (user-labelled false positive — the gold datum), `OrphanCleaned`, `GeofenceRegistration`.
+7. **Replay harness** (`DetectionTraceReplayer` + `tools/trace2fixture`): every field bug becomes a permanent fixture against the REAL detector. First fixture: the BUG-REPARK-WALK-001 walking trace — asserts clean `aborted_false_enter`, no save, no prompt.
+
+**Scenario matrix (post-redesign):**
+
+| # | Scenario | Outcome |
+|---|---|---|
+| S1 | Park → walk away (the 2026-07-03 incident) | NOTHING — unverified arm, false-ENTER abort (replay-pinned) |
+| S2 | Short-hop repark | speed→silent confirm; ENTER-only→prompt; no evidence→lost (accepted FN, rare) |
+| S3 | Stroll near the car inside the radius | NOTHING |
+| S4 | Bus/taxi/train beside a parked car | ENTER stamps the bus but nothing arms; enter-after-exit never verifies |
+| S5 | Spurious ENTER while walking / GPS speed spike | enter-precedes-exit + accuracy gates (arm + in-session crossing) |
+| S6 | Bike/scooter crossing 18 km/h | never auto-confirms — always prompts |
+| S7 | GPS drift past the radius while parked | orphan-clean or unverified arm → guards abort |
+| S8 | Real departure, late evidence | worker upgrade via `DepartureConfirmationListener` (verified_late) |
+| S9 | OEM-kill | ENTER timestamp survives (prefs mirror); session+geofence durable |
+| S10 | Reboot | immediate janitor restore (no 12 h blind window) |
+| S11 | Multi-vehicle overlap | active-preferred attribution (known gap, accepted) |
+| S12 | Prompt unanswered | 15-min response timeout (clock-tested) |
+
+**Findings pinned during the work:**
+- The scorer's STILL branches, `reliabilitySlowPath`, and the tests exercising them were dead/fake — purged (C1a). The real confirm surface is exactly **steps+egress or the user's tap**.
+- The `vehicleExit+window+egress` decision branch is **structurally unreachable** end-to-end: `activityExit=true` routes the scorer to the fast path (ceiling Medium), so a Candidate only ever opens with `hadVehicleExit=false` (5-min window ⇒ steps required). The pure-function branch remains (unit-tested) but never fires in production — candidate for removal if a future sweep confirms no plans for it.
+- Bus/train after REAL driving remains indistinguishable by design (drive+alight ≡ park+alight for every available sensor). Accepted; mitigated by the arm being anchored to the user's own parked-car geofence, the ENTER ordering rule, and `Reverted` telemetry to measure it.
+
+**Deliberately deferred:** `WindowState` call-site consolidation in the decision engine (cosmetic; `elapsedSinceHighMs=0` hack documented); expanding the mismatch guard (wait for 2–4 weeks of `Reverted`+`armEvidence` field data); partial unique index / SQLite trigger (transaction + janitor sweep cover it); B4 veto ON (needs replay validation of the first-step timing window).
+
+**Device validation protocol (the gate before trusting the redesign):**
+1. Park for real, walk home past the radius → expect NOTHING (diagnostics: arm `self_observed`/pre-arm verdict `unverified`, outcome `aborted_false_enter`).
+2. Drive away normally → expect verdict `verified_speed`, freed spot published, next park confirmed silently.
+3. Short-hop repark → expect `verified_enter`/`verified_late` → silent confirm, or the "¿Has aparcado?" prompt on ENTER-only evidence.
+4. Board a bus with the car parked (outside the radius) → expect the ENTER stamped but nothing armed, nothing saved.
+5. Reboot with an active park → geofence restored immediately (janitor one-shot).
+6. Upgrade install over Room v10 with an active session → session survives (MIGRATION_10_11).
