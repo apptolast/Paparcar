@@ -35,10 +35,9 @@ class UserParkingRepositoryImpl(
      */
     override suspend fun saveNewParkingSession(session: UserParking): Result<String?> =
         runCatching {
-            val previousActive = session.vehicleId?.let { dao.getActiveByVehicle(it) }
-            session.vehicleId?.let { dao.clearActiveByVehicle(it) }
-            dao.insert(session.toEntity())
-            val previousId = previousActive?.id
+            // Atomic deactivate+insert in one Room transaction — process death can no longer
+            // leave the vehicle without an active session mid-swap. [DET-SOLID-001]
+            val previousId = dao.replaceActiveSession(session.toEntity())
             runCatching { parkingSyncScheduler.enqueueSaveNewParkingSession(session, previousId) }
                 .onFailure { e -> PaparcarLogger.e(TAG, "enqueueSaveNewParkingSession failed for session ${session.id} — may miss Firestore sync", e) }
             previousId

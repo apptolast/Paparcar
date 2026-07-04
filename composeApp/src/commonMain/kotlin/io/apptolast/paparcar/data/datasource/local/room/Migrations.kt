@@ -84,3 +84,20 @@ val MIGRATION_9_10 = object : Migration(9, 10) {
     }
 }
 
+/**
+ * v10 → v11: add tripMaxSpeedMps + armEvidence to parking_sessions — local-only detection
+ * provenance (max session speed + arm evidence label) feeding the repark-plausibility guard.
+ * Nullable ADD COLUMN, non-destructive; existing rows read as null (unknown provenance),
+ * which the guard treats as "no evidence available" (permissive). [DET-SOLID-001]
+ */
+val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN tripMaxSpeedMps REAL"
+        )
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN armEvidence TEXT"
+        )
+    }
+}
+

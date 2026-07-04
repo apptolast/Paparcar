@@ -8,6 +8,7 @@ import io.apptolast.paparcar.bluetooth.IosBluetoothScanner
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_8_9
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_9_10
+import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_10_11
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.location.LocationDataSource
@@ -36,7 +37,7 @@ val iosPlatformModule = module {
         val dbFilePath = documentDirectory() + "/paparcar.db"
         Room.databaseBuilder<AppDatabase>(name = dbFilePath)
             .setDriver(BundledSQLiteDriver())
-            .addMigrations(MIGRATION_8_9, MIGRATION_9_10)
+            .addMigrations(MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }

@@ -32,4 +32,10 @@ data class UserParkingEntity(
     val carbodyType: String? = null,
     // Non-null when parked inside a private zone — DepartureDetectionWorker skips Spot publication
     val privateZoneId: String? = null,
+    // Max GPS speed (m/s) observed during the detection session that confirmed this park.
+    // LOCAL-ONLY (not synced to Firestore) — feeds the repark-plausibility guard. [DET-SOLID-001]
+    val tripMaxSpeedMps: Float? = null,
+    // Arm evidence label of the confirming session (e.g. "speed", "vehicle_enter", "manual").
+    // LOCAL-ONLY diagnostics/guard input, same precedent as licensePlate. [DET-SOLID-001]
+    val armEvidence: String? = null,
 )

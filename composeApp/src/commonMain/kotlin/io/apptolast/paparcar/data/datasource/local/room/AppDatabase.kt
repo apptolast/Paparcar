@@ -22,7 +22,9 @@ import androidx.room.RoomDatabaseConstructor
     // v9: vehicles gains updatedAt + pendingSync for inbound sync reconciliation. MIGRATION_8_9 is
     // registered (ADD COLUMN) so the cache — and any un-synced offline edits — survive.
     // v10: same treatment for zones (MIGRATION_9_10). [SYNC-RECONCILE-001]
-    version = 10,
+    // v11: parking_sessions gains tripMaxSpeedMps + armEvidence — local-only detection
+    // provenance for the repark-plausibility guard (MIGRATION_10_11). [DET-SOLID-001]
+    version = 11,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

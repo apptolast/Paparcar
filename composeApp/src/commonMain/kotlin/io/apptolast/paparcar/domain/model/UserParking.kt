@@ -40,4 +40,11 @@ data class UserParking(
     val carbodyType: CarbodyType? = null,
     /** Non-null when the session was parked inside a private zone — spot publication is suppressed on departure. */
     val privateZoneId: String? = null,
+    /** Max GPS speed (m/s) observed during the detection session that confirmed this park.
+     *  Local-only (never synced) — feeds the repark-plausibility guard: a replacement park whose
+     *  session never reached driving speed is suspect. [DET-SOLID-001] */
+    val tripMaxSpeedMps: Float? = null,
+    /** Arm-evidence label of the confirming session ("speed", "vehicle_enter", "unverified",
+     *  "manual"). Local-only diagnostics/guard input. [DET-SOLID-001] */
+    val armEvidence: String? = null,
 )

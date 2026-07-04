@@ -35,6 +35,8 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     sizeCategory = sizeCategory.toEnumOrNull<VehicleSize>(),
     carbodyType = carbodyType.toEnumOrNull<CarbodyType>(),
     privateZoneId = privateZoneId,
+    tripMaxSpeedMps = tripMaxSpeedMps,
+    armEvidence = armEvidence,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -78,6 +80,10 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     sizeCategory = sizeCategory?.name,
     carbodyType = carbodyType?.name,
     privateZoneId = privateZoneId,
+    // tripMaxSpeedMps / armEvidence: local-only provenance — round-trips Room but is
+    // deliberately absent from ParkingHistoryDto (never synced). [DET-SOLID-001]
+    tripMaxSpeedMps = tripMaxSpeedMps,
+    armEvidence = armEvidence,
 )
 
 // ── Domain → Spot (when user departs, spot is published for others) ───────────

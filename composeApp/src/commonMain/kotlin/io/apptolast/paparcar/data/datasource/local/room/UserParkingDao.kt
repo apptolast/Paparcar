@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -45,6 +46,37 @@ interface UserParkingDao {
 
     @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1 AND vehicleId = :vehicleId")
     suspend fun clearActiveByVehicle(vehicleId: String)
+
+    /** Deactivates legacy/unidentified active sessions (no vehicleId). Without this, a new
+     *  vehicle-less session would ACCUMULATE next to previous vehicle-less actives. [DET-SOLID-001] */
+    @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1 AND vehicleId IS NULL")
+    suspend fun clearActiveOrphans()
+
+    /**
+     * Atomic replace of the vehicle's active session: deactivate-then-insert in ONE transaction,
+     * so process death can never leave the vehicle with zero (or two) active sessions — the
+     * invariant the non-transactional clear+insert pair could not guarantee. Returns the id of
+     * the session that was active before the swap (the caller removes its orphan geofence).
+     * [DET-SOLID-001][MULTI-PARKING-001]
+     */
+    @Transaction
+    suspend fun replaceActiveSession(session: UserParkingEntity): String? {
+        val previous = session.vehicleId?.let { getActiveByVehicle(it) }
+        if (session.vehicleId != null) clearActiveByVehicle(session.vehicleId) else clearActiveOrphans()
+        insert(session)
+        return previous?.id
+    }
+
+    /** Hygiene probe for the janitor's self-repair sweep: vehicles holding more than one
+     *  active session (invariant violation — should always return empty). [DET-SOLID-001] */
+    @Query("""
+        SELECT * FROM parking_sessions WHERE isActive = 1 AND vehicleId IN (
+            SELECT vehicleId FROM parking_sessions
+            WHERE isActive = 1 AND vehicleId IS NOT NULL
+            GROUP BY vehicleId HAVING COUNT(*) > 1
+        ) ORDER BY vehicleId, timestamp DESC
+    """)
+    suspend fun getActiveDuplicates(): List<UserParkingEntity>
 
     @Query("DELETE FROM parking_sessions WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
