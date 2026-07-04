@@ -674,6 +674,71 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-SOLID-001 B3/B4: weak-evidence prompt + enter-arm step veto
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_prompt_instead_of_saving_when_enter_only_arm_never_sees_driving() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [B3] ENTER-only evidence (bus/taxi-falsifiable) + no driving observed by the stream
+            // → all confirm conditions hold but the coordinator must ASK, not save.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 30_000L))
+            }
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 2.8f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "ENTER-only evidence must never save silently [DET-SOLID-001 B3]",
+            )
+            assertEquals(
+                1,
+                env.notification.parkingConfirmationCallCount,
+                "the user must be asked instead",
+            )
+
+            // A user "Sí" then saves at reliability 1.0 (guards bypassed by user confirmation).
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            job.cancelAndJoin()
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "user tap completes the save")
+        }
+
+    @Test
+    fun should_veto_enter_arm_when_first_step_arrives_immediately() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [B4] Veto ON: a VerifiedByVehicleEnter arm whose FIRST step lands right after the
+            // arm (no driving seen) is a spurious walking ENTER — evidence degrades and the
+            // false-ENTER abort re-arms, so the walking burst aborts with no save AND no prompt.
+            val env = setup(config = config.copy(enterArmStepVetoMs = 15_000L))
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 30_000L))
+            }
+
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
+            env.stepDetector.emitSteps(1)
+            assertFalse(
+                env.coordinator.hasDetectedMovement,
+                "immediate first step must degrade the ENTER evidence and un-seed [DET-SOLID-001 B4]",
+            )
+            env.stepDetector.emitSteps(7)
+            locations.emit(GpsPoint(40.0051, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
+
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "vetoed session saves nothing")
+            assertEquals(0, env.notification.parkingConfirmationCallCount, "vetoed session prompts nothing")
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // DET-SOLID-001: a driving-speed crossing needs a credible-accuracy fix
     // ─────────────────────────────────────────────────────────────────────────
 

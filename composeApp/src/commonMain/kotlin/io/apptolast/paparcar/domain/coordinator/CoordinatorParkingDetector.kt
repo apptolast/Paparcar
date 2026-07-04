@@ -359,6 +359,21 @@ class CoordinatorParkingDetector(
                     //     the user has parked, steps are proof they exited the car. This is the
                     //     existing BUG-GARAGE-COLA-001 behaviour; gated on stoppedSince so steps
                     //     during driving (phone bouncing in pocket) don't accumulate.
+                    // [DET-SOLID-001][B4] Enter-arm step veto (config-gated, default OFF): the
+                    // FIRST step arriving suspiciously soon after a VerifiedByVehicleEnter arm,
+                    // with no driving observed by the stream, marks the ENTER as spurious
+                    // (walking, BUG-FALSE-ENTER-WALKING hardware quirk) — degrade the evidence
+                    // and un-seed so the false-ENTER abort guard re-arms.
+                    if (config.enterArmStepVetoMs > 0 &&
+                        currentArmEvidence == ArmEvidence.LABEL_VERIFIED_ENTER &&
+                        _detectionState.value.stepCount == 0 &&
+                        (clock() - sessionStartMs) < config.enterArmStepVetoMs &&
+                        _detectionState.value.maxSpeedMps < config.minimumTripSpeedMps
+                    ) {
+                        PaparcarLogger.d(DIAG, "  ⊘ enter-arm step veto — first step ${clock() - sessionStartMs}ms after arm, no driving seen → evidence degraded to self_observed [DET-SOLID-001]")
+                        currentArmEvidence = ArmEvidence.LABEL_SELF_OBSERVED
+                        _detectionState.update { it.copy(hasEverReachedDrivingSpeed = false) }
+                    }
                     val updated = _detectionState.updateAndGet { s ->
                         val shouldCount = !s.hasEverReachedDrivingSpeed || s.stoppedSince != null
                         if (shouldCount) s.copy(stepCount = s.stepCount + 1) else s
