@@ -391,6 +391,125 @@ class ConfirmParkingUseCaseTest {
         assertEquals(0, bus.resetCount)
     }
 
+    // ── Repark-plausibility guard [DET-SOLID-001] ─────────────────────────────
+
+    private fun recentActiveSession(
+        lat: Double = location.latitude,
+        lon: Double = location.longitude,
+        ageMs: Long = 2 * 60_000L,
+    ) = io.apptolast.paparcar.domain.model.UserParking(
+        id = "prev-session",
+        userId = "user-42",
+        vehicleId = defaultVehicle.id,
+        location = GpsPoint(lat, lon, 5f, System.currentTimeMillis() - ageMs, 0f),
+        geofenceId = "prev-session",
+        isActive = true,
+    )
+
+    @Test
+    fun `should reject implausible repark - recent nearby active session and no driving observed`() = runTest {
+        val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f)
+
+        assertIs<PaparcarError.Parking.ImplausibleRepark>(result.exceptionOrNull())
+        assertEquals(0, repo.saveNewParkingSessionCallCount)
+    }
+
+    @Test
+    fun `should allow repark when session observed driving speed`() = runTest {
+        val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 8f)
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `should allow repark when previous session is far away`() = runTest {
+        // ~1.1 km north — outside reparkPlausibilityRadiusMeters (300 m).
+        val repo = FakeUserParkingRepository(initialSession = recentActiveSession(lat = location.latitude + 0.01))
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f)
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `should allow repark when previous session is old`() = runTest {
+        val repo = FakeUserParkingRepository(initialSession = recentActiveSession(ageMs = 30 * 60_000L))
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f)
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `should bypass guard when arm evidence is verified departure`() = runTest {
+        val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(
+            location,
+            detectionReliability = 0.9f,
+            tripMaxSpeedMps = 1.2f,
+            armEvidence = ConfirmParkingUseCase.ARM_EVIDENCE_VERIFIED_DEPARTURE,
+        )
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `should bypass guard for user-confirmed parking`() = runTest {
+        val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 1.0f, tripMaxSpeedMps = 1.2f)
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun `should bypass guard when caller has no session provenance`() = runTest {
+        // BT strategy / external callers pass no tripMaxSpeedMps — the guard needs provenance.
+        val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
+        val useCase = buildUseCase(repo = repo)
+
+        val result = useCase(location, detectionReliability = 0.95f, tripMaxSpeedMps = null)
+
+        assertTrue(result.isSuccess)
+    }
+
+    // ── Geofence-registration invariant [DET-SOLID-001] ───────────────────────
+
+    @Test
+    fun `should schedule janitor restore when geofence registration fails`() = runTest {
+        val geofence = FakeGeofenceManager().apply { createResult = Result.failure(RuntimeException("gms unavailable")) }
+        val scheduler = RecordingParkingSyncScheduler()
+        val useCase = buildUseCase(geofence = geofence, scheduler = scheduler)
+
+        val result = useCase(location, detectionReliability = 0.9f)
+
+        assertTrue(result.isSuccess, "a failed geofence registration must not fail the durable save")
+        assertEquals(1, scheduler.geofenceRestoreCount)
+    }
+
+    private class RecordingParkingSyncScheduler : io.apptolast.paparcar.domain.service.ParkingSyncScheduler {
+        var geofenceRestoreCount = 0
+        override fun enqueueGeofenceRestore() { geofenceRestoreCount++ }
+        override fun enqueueSaveNewParkingSession(session: io.apptolast.paparcar.domain.model.UserParking, previousSessionId: String?) {}
+        override fun enqueueClearActiveParkingSession(sessionId: String) {}
+        override fun enqueueUpdateParkingSessionAddressAndPlace(
+            sessionId: String,
+            address: io.apptolast.paparcar.domain.model.AddressInfo?,
+            placeInfo: io.apptolast.paparcar.domain.model.PlaceInfo?,
+        ) {}
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildUseCase(
@@ -402,6 +521,7 @@ class ConfirmParkingUseCaseTest {
         auth: FakeAuthRepository = FakeAuthRepository(initialSession = session),
         config: ParkingDetectionConfig = ParkingDetectionConfig(),
         bus: FakeDepartureEventBus = FakeDepartureEventBus(),
+        scheduler: io.apptolast.paparcar.domain.service.ParkingSyncScheduler? = null,
     ) = ConfirmParkingUseCase(
         userParkingRepository = repo,
         vehicleRepository = vehicles,
@@ -412,5 +532,6 @@ class ConfirmParkingUseCaseTest {
         config = config,
         departureEventBus = bus,
         activityRecognitionManager = FakeActivityRecognitionManager(),
+        parkingSyncScheduler = scheduler,
     )
 }

@@ -96,6 +96,7 @@ val domainModule = module {
             departureEventBus = get(),
             activityRecognitionManager = get(),
             appPreferences = get(),
+            parkingSyncScheduler = get(),
         )
     }
     single {

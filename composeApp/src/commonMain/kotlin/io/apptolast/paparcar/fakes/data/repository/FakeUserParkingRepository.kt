@@ -137,6 +137,9 @@ class FakeUserParkingRepository(
     override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
         mockSessions.find { it.isActive && it.geofenceId == geofenceId }
 
+    override suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking? =
+        mockSessions.find { it.isActive && it.vehicleId == vehicleId }
+
     override fun observeActiveSessions(): Flow<List<UserParking>> {
         val active = _sessionsFlow.map { list -> list.filter { it.isActive } }
         val rt = runtime ?: return active

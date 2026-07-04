@@ -50,6 +50,9 @@ class UserParkingRepositoryImpl(
     override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
         dao.getActiveByGeofence(geofenceId)?.toDomain()
 
+    override suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking? =
+        dao.getActiveByVehicle(vehicleId)?.toDomain()
+
     override fun observeActiveSessions(): Flow<List<UserParking>> =
         dao.observeActive().map { list -> list.map { it.toDomain() } }
 

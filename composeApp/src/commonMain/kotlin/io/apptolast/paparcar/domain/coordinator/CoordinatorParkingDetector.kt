@@ -241,10 +241,15 @@ class CoordinatorParkingDetector(
      */
     fun notifyDepartureConfirmed() {
         if (currentSessionId == null) return
+        currentArmEvidence = ConfirmParkingUseCase.ARM_EVIDENCE_VERIFIED_DEPARTURE
         if (_detectionState.value.hasEverReachedDrivingSpeed) return
         _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
         PaparcarLogger.d(DIAG, "  ✓ departure confirmed post-arm → seed hasEverReachedDrivingSpeed=true [DET-G-05]")
     }
+
+    /** Arm-evidence label of the in-flight session (see [ConfirmParkingUseCase] constants).
+     *  Set at [invoke] entry, upgraded by [notifyDepartureConfirmed]. [DET-SOLID-001] */
+    @Volatile private var currentArmEvidence: String = ConfirmParkingUseCase.ARM_EVIDENCE_SELF_OBSERVED
 
     // ─────────────────────────────────────────────────────────────────────────
     // Public API
@@ -285,6 +290,14 @@ class CoordinatorParkingDetector(
         if (armedByConfirmedDeparture) {
             _detectionState.update { it.copy(hasEverReachedDrivingSpeed = true) }
             PaparcarLogger.d(DIAG, "  ✓ armedByConfirmedDeparture → seed hasEverReachedDrivingSpeed=true (armed mid-trip; drive already happened) [DET-G-04]")
+        }
+        // Session provenance stamped on the confirmed park — the repark-plausibility guard in
+        // ConfirmParkingUseCase bypasses verified arms and interrogates self-observed ones.
+        // Upgraded live by notifyDepartureConfirmed. [DET-SOLID-001]
+        currentArmEvidence = if (armedByConfirmedDeparture) {
+            ConfirmParkingUseCase.ARM_EVIDENCE_VERIFIED_DEPARTURE
+        } else {
+            ConfirmParkingUseCase.ARM_EVIDENCE_SELF_OBSERVED
         }
 
         var completed = false
@@ -466,8 +479,7 @@ class CoordinatorParkingDetector(
                                     DIAG,
                                     "  ✓ hold settled (held=${heldMs}ms, userYes=${state.userConfirmedParking}) — finalizing tentative confirm [DET-C-02]"
                                 )
-                                completed = true
-                                runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                                completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
                                 return@collect
                             }
                             drivingResumed -> {
@@ -528,8 +540,7 @@ class CoordinatorParkingDetector(
                     if (state.userConfirmedParking) {
                         PaparcarLogger.d(DIAG, "  ▶ USER-CONFIRMED path — entering confirmParking")
                         val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
-                        completed = true
-                        runConfirm(
+                        completed = runConfirm(
                             location = locationToConfirm,
                             reliability = config.reliabilityUserConfirmed,
                             vehicleId = activeVehicleId,
@@ -716,8 +727,7 @@ class CoordinatorParkingDetector(
         now: Long,
     ): Boolean {
         if (config.confirmHoldMs <= 0L) {
-            runConfirm(location, reliability, vehicleId, pathLabel)
-            return true
+            return runConfirm(location, reliability, vehicleId, pathLabel)
         }
         _detectionState.update {
             it.copy(pendingConfirm = PendingConfirm(location, reliability, vehicleId, pathLabel, confirmedAt = now))
@@ -729,18 +739,31 @@ class CoordinatorParkingDetector(
         return false
     }
 
+    /**
+     * @return whether the session should END (confirmed or hard-failed). `false` only when the
+     *         repark-plausibility guard rejected the auto-confirm and this session degraded to a
+     *         user prompt — the loop keeps collecting so a user "Sí" (reliability 1.0, guard
+     *         bypassed) can still save, and the response-timeout cleans up if ignored. [DET-SOLID-001]
+     */
     private suspend fun runConfirm(
         location: GpsPoint,
         reliability: Float,
         vehicleId: String?,
         pathLabel: String,
-    ) {
+    ): Boolean {
+        var sessionShouldEnd = true
         withContext(NonCancellable) {
             PaparcarLogger.d(DIAG, "    → confirmParking(reliability=$reliability, path=$pathLabel) START")
             // [CONFIRM-NO-NOTIF-CLEANUP] Notification responsibility lives here: the auto-detection
             // path owns the unified state-B "Vehículo aparcado · Cancelar" card so the user has a
             // revert window if AR / steps misfired. See showParkingSavedConfirm call in onSuccess.
-            confirmParking(location, reliability, vehicleId = vehicleId)
+            confirmParking(
+                location,
+                reliability,
+                vehicleId = vehicleId,
+                tripMaxSpeedMps = _detectionState.value.maxSpeedMps,
+                armEvidence = currentArmEvidence,
+            )
                 .onSuccess { saved ->
                     // [REFACTOR-300] Replace the prompt notification at the same ID with the
                     // post-save "Vehículo aparcado" card carrying ACK and REVERT actions. This
@@ -766,6 +789,27 @@ class CoordinatorParkingDetector(
                     }
                 }
                 .onFailure { e ->
+                    if (e is PaparcarError.Parking.ImplausibleRepark) {
+                        // [DET-SOLID-001] The guard says this auto-confirm would relocate a fresh
+                        // nearby park without the session ever seeing driving — likely pedestrian.
+                        // Degrade to the confirmation prompt instead of silently saving OR silently
+                        // failing: a real (rare) ultra-short repark is one tap away, and the
+                        // response-timeout aborts the session if the prompt is ignored.
+                        PaparcarLogger.w(DIAG, "    ⊘ implausible repark → degrading to user prompt ($pathLabel) [DET-SOLID-001]")
+                        val vehicleName = runCatching {
+                            vehicleRepository.observeActiveVehicle().first()
+                                ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
+                        }.getOrNull()
+                        notificationPort.showParkingConfirmation(IMPLAUSIBLE_REPARK_PROMPT_SCORE, vehicleName)
+                        _detectionState.update {
+                            it.copy(pendingConfirm = null, phase = ConfirmationPhase.Notified(shownAt = nowMs()))
+                        }
+                        logDetection { sid ->
+                            DetectionEvent.Decision(sid, nowMs(), outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel, location = location)
+                        }
+                        sessionShouldEnd = false
+                        return@onFailure
+                    }
                     if (e is PaparcarError.Auth.NotAuthenticated) {
                         // Transient session loss — not a real crash. Will self-heal on next launch.
                         PaparcarLogger.w(TAG, "confirmParking ($pathLabel path) — session temporarily unavailable")
@@ -783,6 +827,7 @@ class CoordinatorParkingDetector(
                 }
             PaparcarLogger.d(DIAG, "    ← confirmParking(reliability=$reliability, path=$pathLabel) END")
         }
+        return sessionShouldEnd
     }
 
     /**
@@ -1043,6 +1088,10 @@ class CoordinatorParkingDetector(
     private companion object {
         const val TAG = "CoordinatorParkingDetector"
         const val DIAG = "PARKDIAG/Coord"
+
+        /** Score shown on the confirmation prompt when an auto-confirm is degraded by the
+         *  repark-plausibility guard — Medium-band so the copy asks rather than asserts. [DET-SOLID-001] */
+        const val IMPLAUSIBLE_REPARK_PROMPT_SCORE = 0.6f
     }
 }
 

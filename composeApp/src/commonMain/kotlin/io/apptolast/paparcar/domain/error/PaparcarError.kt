@@ -39,6 +39,11 @@ sealed class PaparcarError : Exception() {
         /** The user has no resolvable default vehicle. Saving a parking with vehicleId=null would
          *  produce a row unreachable in the per-vehicle history UI; better to fail loud. [AUTH-001] */
         data object NoDefaultVehicle : Parking()
+        /** Auto-confirm rejected by the repark-plausibility guard: an active session for the same
+         *  vehicle exists nearby-and-recent, and the confirming detection session never observed
+         *  driving. Relocating the parked car on that evidence is more likely a pedestrian false
+         *  positive than a real repark — the caller should degrade to a user prompt. [DET-SOLID-001] */
+        data object ImplausibleRepark : Parking()
     }
 
     sealed class Vehicle : PaparcarError() {

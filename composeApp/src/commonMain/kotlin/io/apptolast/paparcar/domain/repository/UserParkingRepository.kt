@@ -16,6 +16,9 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     suspend fun saveNewParkingSession(session: UserParking): Result<String?>
     /** Returns the currently-active session whose geofenceId matches [geofenceId], or null. */
     suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking?
+    /** Returns the currently-active session for [vehicleId], or null. Feeds the
+     *  repark-plausibility guard in ConfirmParkingUseCase. [DET-SOLID-001] */
+    suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking?
     /** Reactive stream of all currently-active sessions (0..N, one per parked vehicle). */
     fun observeActiveSessions(): Flow<List<UserParking>>
     fun observeAllSessions(): Flow<List<UserParking>>

@@ -166,6 +166,18 @@ data class ParkingDetectionConfig(
      *  when GPS is unavailable. Default 10 km/h. */
     val minimumDepartureSpeedKmh: Float = 10f,
 
+    // ── REPARK PLAUSIBILITY GUARD [DET-SOLID-001] ─────────────────────────────
+    /** Age (ms) under which an existing active session is considered "recent" by the
+     *  repark-plausibility guard in ConfirmParkingUseCase: an auto-confirm that would REPLACE a
+     *  session younger than this, at short range, without the confirming session having observed
+     *  driving, is rejected (degraded to a user prompt). 10 min comfortably covers the
+     *  park-then-walk-away window where the pedestrian false positive lives. */
+    val reparkPlausibilityWindowMs: Long = 10 * 60_000L,
+    /** Distance (meters) under which the replacement park is "nearby" for the guard above.
+     *  300 m ≈ walking range within the window; a real repark after driving normally lands
+     *  farther or with driving observed (either disarms the guard). */
+    val reparkPlausibilityRadiusMeters: Float = 300f,
+
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
      *  the vehicle resumes motion. Chosen above typical walking speed (~1.4 m/s) so the car's
@@ -359,6 +371,12 @@ data class ParkingDetectionConfig(
         }
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"
+        }
+        require(reparkPlausibilityWindowMs > 0) {
+            "reparkPlausibilityWindowMs must be > 0, was $reparkPlausibilityWindowMs"
+        }
+        require(reparkPlausibilityRadiusMeters > 0) {
+            "reparkPlausibilityRadiusMeters must be > 0, was $reparkPlausibilityRadiusMeters"
         }
         require(initialStopWindowMs > 0) {
             "initialStopWindowMs must be > 0, was $initialStopWindowMs"

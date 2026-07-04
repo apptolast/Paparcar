@@ -51,6 +51,9 @@ class FakeUserParkingRepository(
     override suspend fun getActiveSessionByGeofence(geofenceId: String): UserParking? =
         sessions.firstOrNull { it.isActive && it.geofenceId == geofenceId }
 
+    override suspend fun getActiveSessionByVehicle(vehicleId: String): UserParking? =
+        sessions.firstOrNull { it.isActive && it.vehicleId == vehicleId }
+
     /**
      * Test-only convenience — returns the first active session regardless of geofence.
      * Mirrors the legacy single-active assumption used by pre-multi-parking tests.

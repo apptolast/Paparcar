@@ -19,6 +19,7 @@ import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.service.ParkingEnrichmentScheduler
+import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -47,6 +48,9 @@ class ConfirmParkingUseCase(
     // Optional: marks the first confirmed park so the cold-start nudge self-disables. Nullable so the
     // existing use-case test doubles need no change — they don't exercise the nudge. [DET-TOGGLE-002]
     private val appPreferences: AppPreferences? = null,
+    // Optional: retry channel for a failed geofence registration (janitor one-shot). Nullable for
+    // the same test-double reason as appPreferences. [DET-SOLID-001]
+    private val parkingSyncScheduler: ParkingSyncScheduler? = null,
 ) {
 
     /**
@@ -64,6 +68,12 @@ class ConfirmParkingUseCase(
         sizeCategory: VehicleSize? = null,
         carbodyType: CarbodyType? = null,
         vehicleId: String? = null,
+        /** Max GPS speed (m/s) the confirming detection session observed, or null when the caller
+         *  has no session provenance (BT strategy, external callers). Feeds the repark guard. */
+        tripMaxSpeedMps: Float? = null,
+        /** Arm-evidence label of the confirming session ("verified_departure", "self_observed",
+         *  "manual"...). Verified evidence bypasses the repark guard. [DET-SOLID-001] */
+        armEvidence: String? = null,
     ): Result<UserParking> {
         PaparcarLogger.d(
             DIAG,
@@ -127,6 +137,37 @@ class ConfirmParkingUseCase(
             spotType
         }
 
+        // ── Repark-plausibility guard [DET-SOLID-001] ─────────────────────────
+        // Last line of defense, independent of which detection path confirmed: an AUTO_DETECTED
+        // confirm that would REPLACE a recent nearby active session, where the confirming session
+        // never observed driving AND the arm was not externally verified, is more likely a
+        // pedestrian false positive (walk-away re-park) than a real re-park. Reject so the
+        // coordinator can degrade to a user prompt. Bypassed by: user confirmation
+        // (reliability 1.0), manual/BT paths (no provenance → tripMaxSpeedMps null), verified
+        // arms, real driving in-session, distance, or age.
+        if (spotType == SpotType.AUTO_DETECTED &&
+            detectionReliability < config.reliabilityUserConfirmed &&
+            tripMaxSpeedMps != null && tripMaxSpeedMps < config.minimumTripSpeedMps &&
+            armEvidence != ARM_EVIDENCE_VERIFIED_DEPARTURE
+        ) {
+            val previous = userParkingRepository.getActiveSessionByVehicle(resolvedVehicleId)
+            if (previous != null) {
+                val ageMs = Clock.System.now().toEpochMilliseconds() - previous.location.timestamp
+                val distanceM = haversineMeters(
+                    previous.location.latitude, previous.location.longitude,
+                    location.latitude, location.longitude,
+                )
+                if (ageMs < config.reparkPlausibilityWindowMs && distanceM < config.reparkPlausibilityRadiusMeters) {
+                    PaparcarLogger.w(
+                        DIAG,
+                        "  ⊘ implausible repark — previous active ${ageMs / 1000}s old at ${distanceM.toInt()}m, " +
+                            "session maxSpeed=${tripMaxSpeedMps}m/s (<${config.minimumTripSpeedMps}), evidence=$armEvidence [DET-SOLID-001]"
+                    )
+                    return Result.failure(PaparcarError.Parking.ImplausibleRepark)
+                }
+            }
+        }
+
         val sessionId = Uuid.random().toString()
         val gpsPoint = GpsPoint(
             latitude = location.latitude,
@@ -150,6 +191,8 @@ class ConfirmParkingUseCase(
             sizeCategory = resolvedSizeCategory,
             carbodyType = resolvedCarbodyType,
             privateZoneId = matchedPrivateZoneId,
+            tripMaxSpeedMps = tripMaxSpeedMps,
+            armEvidence = armEvidence,
         )
 
         PaparcarLogger.d(DIAG, "  → saveNewParkingSession BEFORE sessionId=$sessionId")
@@ -182,12 +225,19 @@ class ConfirmParkingUseCase(
         PaparcarLogger.d(DIAG, "  ← enrichmentScheduler.schedule AFTER")
 
         PaparcarLogger.d(DIAG, "  → geofenceService.createGeofence BEFORE")
+        // Invariant: active session ⟺ registered geofence. The save is already durable; a failed
+        // registration must not be silent (the departure would never be detected) — log loud and
+        // schedule the janitor's one-shot restore, which re-registers from the active sessions.
         geofenceService.createGeofence(
             geofenceId = sessionId,
             latitude = gpsPoint.latitude,
             longitude = gpsPoint.longitude,
             radiusMeters = config.geofenceRadiusFor(resolvedSizeCategory, gpsPoint.accuracy),
-        )
+        ).onFailure { e ->
+            PaparcarLogger.e(DIAG, "  ✗ createGeofence FAILED — active session without geofence; scheduling janitor restore [DET-SOLID-001]", e)
+            runCatching { parkingSyncScheduler?.enqueueGeofenceRestore() }
+                .onFailure { se -> PaparcarLogger.e(DIAG, "    ✗ enqueueGeofenceRestore also failed", se) }
+        }
         PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
 
         // [DET-AR-REARM-001] A car is now parked → arm the scoped IN_VEHICLE_ENTER proximity
@@ -203,8 +253,16 @@ class ConfirmParkingUseCase(
         return Result.success(session)
     }
 
-    private companion object {
-        const val DIAG = "PARKDIAG/Confirm"
-        const val POOR_ACCURACY_WARN_METERS = 50f
+    companion object {
+        private const val DIAG = "PARKDIAG/Confirm"
+        private const val POOR_ACCURACY_WARN_METERS = 50f
+
+        /** Arm-evidence label that bypasses the repark-plausibility guard: the arm was verified
+         *  as a real departure by an external signal (driving-speed fix or recent AR ENTER).
+         *  Shared with the coordinator, which stamps it on its sessions. [DET-SOLID-001] */
+        const val ARM_EVIDENCE_VERIFIED_DEPARTURE = "verified_departure"
+        /** Arm-evidence label for sessions with no external verification — the coordinator's own
+         *  stream is the only witness (MANUAL sessions, unverified geofence exits). */
+        const val ARM_EVIDENCE_SELF_OBSERVED = "self_observed"
     }
 }
