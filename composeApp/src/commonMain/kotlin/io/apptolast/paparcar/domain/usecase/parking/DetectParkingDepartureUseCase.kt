@@ -5,7 +5,6 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import kotlin.math.abs
 
 /**
  * Outcome of [DetectParkingDepartureUseCase].
@@ -86,11 +85,15 @@ class DetectParkingDepartureUseCase(
                 currentSpeedKmh >= config.minimumDepartureSpeedKmh
 
         return if (vehicleEnteredAt != null) {
-            // Signal 3: IN_VEHICLE_ENTER is present — validate the time window.
-            val timeDiffMs = abs(exitTimestampMs - vehicleEnteredAt)
-            if (timeDiffMs > config.vehicleEnterWindowMs) {
-                // The transition is from a previous trip — ignore it.
-                PaparcarLogger.w(TAG, "departure rejected: IN_VEHICLE_ENTER too old — timeDiff=${timeDiffMs}ms window=${config.vehicleEnterWindowMs}ms geofenceId=$geofenceId")
+            // Signal 3: IN_VEHICLE_ENTER is present — validate the time window. STRICT ordering:
+            // the boarding must PRECEDE the exit. The bus carries TRUE transition times (the
+            // receiver converts elapsedRealTimeNanos → epoch), so an ENTER stamped after the exit
+            // is a vehicle boarded OUTSIDE the radius (bus/taxi after walking out) — not evidence
+            // that the user drove their car away. [DET-SOLID-001]
+            val enterToExitMs = exitTimestampMs - vehicleEnteredAt
+            if (enterToExitMs !in 0..config.vehicleEnterWindowMs) {
+                // From a previous trip (too old) or from AFTER the exit — ignore it.
+                PaparcarLogger.w(TAG, "departure rejected: IN_VEHICLE_ENTER outside window — enterToExit=${enterToExitMs}ms window=${config.vehicleEnterWindowMs}ms geofenceId=$geofenceId")
                 DepartureDecision.Rejected
             } else if (currentSpeedKmh != null && !speedConfirmsMovement) {
                 // IN_VEHICLE_ENTER is within the window (strong signal), but speed is low.

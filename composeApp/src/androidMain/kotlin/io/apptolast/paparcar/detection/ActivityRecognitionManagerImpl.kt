@@ -35,12 +35,13 @@ class ActivityRecognitionManagerImpl(
         },
     )
 
-    // IN_VEHICLE **EXIT** → BroadcastReceiver (always-on). [DET-G-01] A getBroadcast avoids the FGS
-    // flash on every bus ride: EXIT is a non-decisive hint forwarded to a running coordinator only.
-    // ENTER is no longer delivered here — it is the scoped getForegroundService registration below
-    // ([vehicleEnterArmingPendingIntent]) so each transition reaches exactly one PendingIntent and
-    // ENTER can do the privileged FGS start the proximity re-arm needs. [DET-AR-REARM-001]
-    private val vehicleExitPendingIntent: PendingIntent by lazy {
+    // IN_VEHICLE **ENTER + EXIT** → BroadcastReceiver (always-on). [DET-G-01][DET-SOLID-001]
+    // A getBroadcast avoids the FGS flash on every bus ride: both transitions are pure
+    // INDICATORS — EXIT is a non-decisive hint forwarded to a running coordinator; ENTER only
+    // populates DepartureEventBus (evidence for the departure verifier/worker). NOTHING is armed
+    // from this receiver — arming stays exclusive to GEOFENCE_EXIT + MANUAL, per the
+    // "AR = indicator only" rule that replaced the legacy AR-proximity arm.
+    private val vehicleTransitionsPendingIntent: PendingIntent by lazy {
         val intent = Intent(context, ActivityTransitionReceiver::class.java)
         PendingIntent.getBroadcast(
             context,
@@ -69,7 +70,7 @@ class ActivityRecognitionManagerImpl(
 
     @SuppressLint("MissingPermission")
     override fun registerTransitions() {
-        PaparcarLogger.d(TAG, "▶ registerTransitions called (IN_VEHICLE EXIT, always-on)")
+        PaparcarLogger.d(TAG, "▶ registerTransitions called (IN_VEHICLE ENTER+EXIT, always-on, indicator-only)")
         // Master gate: the user can switch auto-detection OFF from Settings — an intent flag
         // independent of permissions. Off → never arm (and clear any existing arming), so every
         // caller (MainActivity, BootCompletedReceiver, the periodic worker) respects it. [DET-TOGGLE-001]
@@ -83,8 +84,16 @@ class ActivityRecognitionManagerImpl(
             return
         }
 
-        val exitRequest = ActivityTransitionRequest(
+        // [DET-SOLID-001] ENTER rides the SAME always-on broadcast request as EXIT — NOT the
+        // legacy getForegroundService arming PendingIntent (that one flashes an FGS on every bus
+        // and is the arm path the "AR = indicator only" rule forbids). The receiver only stamps
+        // the bus with the true transition time.
+        val transitionsRequest = ActivityTransitionRequest(
             listOf(
+                ActivityTransition.Builder()
+                    .setActivityType(DetectedActivity.IN_VEHICLE)
+                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+                    .build(),
                 ActivityTransition.Builder()
                     .setActivityType(DetectedActivity.IN_VEHICLE)
                     .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
@@ -92,14 +101,14 @@ class ActivityRecognitionManagerImpl(
             ),
         )
 
-        activityClient.requestActivityTransitionUpdates(exitRequest, vehicleExitPendingIntent)
-            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE EXIT transition registered") }
-            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE EXIT", e) }
+        activityClient.requestActivityTransitionUpdates(transitionsRequest, vehicleTransitionsPendingIntent)
+            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER+EXIT transitions registered") }
+            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE transitions", e) }
     }
 
     @SuppressLint("MissingPermission")
     override fun unregisterTransitions() {
-        activityClient.removeActivityTransitionUpdates(vehicleExitPendingIntent)
+        activityClient.removeActivityTransitionUpdates(vehicleTransitionsPendingIntent)
     }
 
     @SuppressLint("MissingPermission")

@@ -4,7 +4,6 @@ import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
-import kotlin.math.abs
 
 /**
  * [DET-G-05][DET-SOLID-001] Pre-arm verifier for a GEOFENCE_EXIT: what *vehicle* evidence backs
@@ -20,10 +19,11 @@ import kotlin.math.abs
  * 1. [ArmEvidence.VerifiedBySpeed] — a fix at ≥ [ParkingDetectionConfig.minimumDepartureSpeedKmh]
  *    with credible accuracy (≤ [ParkingDetectionConfig.minGpsAccuracyForDriving]; a degraded fix
  *    can fake departure speed while walking). Covers the common mid-drive exit.
- * 2. [ArmEvidence.VerifiedByVehicleEnter] — AR `IN_VEHICLE_ENTER` within
- *    [ParkingDetectionConfig.vehicleEnterWindowMs] of the exit. Covers the short-hop repark
- *    DET-G-04 was written for. NOTE: the window is still |Δ| (abs) until the receiver stamps
- *    TRUE transition times — see B2, which hardens this to enter-precedes-exit.
+ * 2. [ArmEvidence.VerifiedByVehicleEnter] — AR `IN_VEHICLE_ENTER` that PRECEDED the exit within
+ *    [ParkingDetectionConfig.vehicleEnterWindowMs]. Covers the short-hop repark DET-G-04 was
+ *    written for. Strict ordering is safe because the receiver stamps TRUE transition times
+ *    (not delivery times) — an ENTER recorded after the exit (boarding a bus once already
+ *    outside the radius) is NOT departure evidence. [DET-SOLID-001]
  * 3. [ArmEvidence.Unverified] — walking produces neither signal. The exit must still arm the
  *    coordinator (evidence can arrive late), but WITHOUT the seed; the departure worker
  *    upgrades the live session via `DepartureConfirmationListener` once its verdict lands.
@@ -57,10 +57,10 @@ class VerifyDepartureEvidenceUseCase(
         }
 
         val enteredAt = departureEventBus.lastVehicleEnteredAt
-        val enterDeltaMs = enteredAt?.let { abs(exitTimestampMs - it) }
-        if (enterDeltaMs != null && enterDeltaMs <= config.vehicleEnterWindowMs) {
-            PaparcarLogger.d(TAG, "departure evidence: VEHICLE_ENTER (deltaMs=$enterDeltaMs)")
-            return ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = enterDeltaMs)
+        val enterToExitMs = enteredAt?.let { exitTimestampMs - it }
+        if (enterToExitMs != null && enterToExitMs in 0..config.vehicleEnterWindowMs) {
+            PaparcarLogger.d(TAG, "departure evidence: VEHICLE_ENTER (enterToExitMs=$enterToExitMs)")
+            return ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = enterToExitMs)
         }
 
         PaparcarLogger.d(

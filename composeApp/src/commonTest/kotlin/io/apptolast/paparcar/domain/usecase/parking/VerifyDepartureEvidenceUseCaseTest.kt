@@ -81,13 +81,13 @@ class VerifyDepartureEvidenceUseCaseTest {
     }
 
     @Test
-    fun `KNOWN GAP - vehicleEnter AFTER the exit currently verifies via abs()`() {
-        // [DET-SOLID-001] Same abs() gap as DetectParkingDepartureUseCase: an ENTER recorded
-        // after the exit (bus boarding outside the radius) still verifies. B2 stamps TRUE
-        // transition times on the bus and hardens this to enter-precedes-exit — flip then.
+    fun `should not verify when vehicleEnter happened AFTER the exit`() {
+        // [DET-SOLID-001] With TRUE transition times on the bus, an ENTER after the exit is a
+        // vehicle boarded OUTSIDE the radius (bus/taxi after walking out) — never departure
+        // evidence. The old abs() window accepted it (S5 hole).
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp + 60_000L)
         val useCase = buildUseCase(bus)
 
-        assertIs<ArmEvidence.VerifiedByVehicleEnter>(useCase(exitTimestamp, currentSpeedKmh = null))
+        assertIs<ArmEvidence.Unverified>(useCase(exitTimestamp, currentSpeedKmh = null))
     }
 }
