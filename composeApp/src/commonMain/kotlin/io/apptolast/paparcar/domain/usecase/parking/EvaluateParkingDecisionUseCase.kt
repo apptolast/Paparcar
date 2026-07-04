@@ -93,9 +93,15 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             input.evidenceLabel == io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER &&
             !sessionSawDriving
 
+        // [DET-SOLID-001][C2] Human-powered profiles never auto-confirm: a bike/scooter crossing
+        // 18 km/h once (downhill, sprint) makes the whole session look like a car to every
+        // speed-based signal, and the mismatch guard (CAR-only, ≥8 min) cannot help. Always ask.
+        // MOTORCYCLE is a real motor vehicle with its own geofence — keeps auto-confirm.
+        val humanPowered = input.vehicleType == VehicleType.SCOOTER || input.vehicleType == VehicleType.BIKE
+
         val pathLabel = if (hasStepsProof) "steps+egress" else "vehicleExit+window+egress"
         return when {
-            confirmNow && weakEvidenceOnly -> ParkingDecision.Prompt(pathLabel)
+            confirmNow && (weakEvidenceOnly || humanPowered) -> ParkingDecision.Prompt(pathLabel)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,
                 reliability = config.reliabilityVehicleExit,

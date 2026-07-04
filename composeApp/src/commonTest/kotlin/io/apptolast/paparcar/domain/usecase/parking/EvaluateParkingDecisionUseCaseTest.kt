@@ -81,6 +81,33 @@ class EvaluateParkingDecisionUseCaseTest {
         assertIs<ParkingDecision.Confirmed>(decision)
     }
 
+    // ── Human-powered opt-out [DET-SOLID-001 C2] ────────────────────────────────
+
+    @Test
+    fun should_prompt_never_confirm_for_bike_profile() {
+        // A bike crossing 18 km/h once looks like a car to every speed signal — always ask.
+        val decision = evaluate(
+            input(stepCount = 8, hasEgressDisplacement = true, vehicleType = VehicleType.BIKE, maxSpeedKmh = 26f)
+        )
+        assertIs<ParkingDecision.Prompt>(decision)
+    }
+
+    @Test
+    fun should_prompt_never_confirm_for_scooter_profile() {
+        val decision = evaluate(
+            input(stepCount = 8, hasEgressDisplacement = true, vehicleType = VehicleType.SCOOTER, maxSpeedKmh = 26f)
+        )
+        assertIs<ParkingDecision.Prompt>(decision)
+    }
+
+    @Test
+    fun should_keep_auto_confirm_for_motorcycle_profile() {
+        val decision = evaluate(
+            input(stepCount = 8, hasEgressDisplacement = true, vehicleType = VehicleType.MOTORCYCLE, maxSpeedKmh = 45f)
+        )
+        assertIs<ParkingDecision.Confirmed>(decision)
+    }
+
     @Test
     fun should_confirm_enter_only_when_strong_evidence_flag_is_off() {
         val relaxed = EvaluateParkingDecisionUseCase(ParkingDetectionConfig(autoConfirmRequiresStrongEvidence = false))
