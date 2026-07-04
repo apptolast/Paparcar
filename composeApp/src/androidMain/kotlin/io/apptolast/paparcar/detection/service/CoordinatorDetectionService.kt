@@ -290,6 +290,8 @@ class CoordinatorDetectionService : LifecycleService() {
                         notificationPort.showDebug("GEOFENCE_EXIT HUÉRFANA geof=${id.take(8)} → limpio, no armo")
                     }
                     runCatching { geofenceService.removeGeofence(id) }
+                    // [DET-SOLID-001] Observability: orphan geofences are invariant violations.
+                    runCatching { detectionEventLogger.log(DetectionEvent.OrphanCleaned(sessionId = id, timestampMs = now)) }
                     continue
                 }
                 realExits += id to session
@@ -352,6 +354,19 @@ class CoordinatorDetectionService : LifecycleService() {
                     // departure worker upgrades the live session if its verdict confirms later.
                     val speedKmh = runCatching { getOneLocation() }.getOrNull()?.speed?.times(3.6f)
                     val departureVerified = verifyDepartureEvidence(exitTimestampMs = now, currentSpeedKmh = speedKmh)
+                    // [DET-SOLID-001] Observability: the pre-arm verdict, traced by geofenceId.
+                    runCatching {
+                        detectionEventLogger.log(
+                            DetectionEvent.DepartureVerdict(
+                                sessionId = id,
+                                timestampMs = now,
+                                verdict = if (departureVerified) "VERIFIED" else "UNVERIFIED",
+                                source = "pre-arm",
+                                speedKmh = speedKmh,
+                                enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { now - it },
+                            )
+                        )
+                    }
                     val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m " +
                         "dep=${if (departureVerified) "verified" else "unverified"}"
                     PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01][DET-G-05]")

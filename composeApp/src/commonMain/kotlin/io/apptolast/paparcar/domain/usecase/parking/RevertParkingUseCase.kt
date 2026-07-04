@@ -1,9 +1,15 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import kotlinx.coroutines.flow.firstOrNull
+import kotlin.time.Clock
 
 /**
  * Reverts a previously auto-confirmed parking session.
@@ -41,10 +47,28 @@ class RevertParkingUseCase(
     private val userParkingRepository: UserParkingRepository,
     private val geofenceService: GeofenceManager,
     private val notificationPort: AppNotificationManager,
+    // Nullable so existing test doubles / call sites need no change. [DET-SOLID-001]
+    private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
 
     suspend operator fun invoke(parkingId: String): Result<Unit> {
         PaparcarLogger.d(DIAG, "▶ RevertParking.invoke parkingId=$parkingId")
+
+        // [DET-SOLID-001] A revert is a USER-LABELLED false positive — the single most valuable
+        // signal detection telemetry can produce. Capture the session age before clearing.
+        val now = Clock.System.now().toEpochMilliseconds()
+        val revertedSession = runCatching {
+            userParkingRepository.observeActiveSessions().firstOrNull()
+                ?.firstOrNull { it.id == parkingId }
+        }.getOrNull()
+        detectionEventLogger?.log(
+            DetectionEvent.Reverted(
+                sessionId = parkingId,
+                timestampMs = now,
+                sessionAgeMs = revertedSession?.location?.timestamp?.let { now - it },
+                location = revertedSession?.location,
+            )
+        )
 
         val clearResult = userParkingRepository.clearActiveParkingSession(parkingId)
         clearResult.onFailure { e ->

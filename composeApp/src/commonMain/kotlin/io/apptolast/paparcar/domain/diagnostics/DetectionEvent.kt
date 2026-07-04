@@ -33,12 +33,14 @@ sealed interface DetectionEvent {
     /** Best-known GPS context at the moment of the event, or null when none is available. */
     val location: GpsPoint?
 
-    /** A detection session opened: which [strategy] owns it and the [vehicleType] profile. */
+    /** A detection session opened: which [strategy] owns it, the [vehicleType] profile, and the
+     *  [evidence] label behind the arm ("verified_departure" / "self_observed" / …). [DET-SOLID-001] */
     data class SessionStarted(
         override val sessionId: String,
         override val timestampMs: Long,
         val strategy: String,
         val vehicleType: String? = null,
+        val evidence: String? = null,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
@@ -111,6 +113,59 @@ sealed interface DetectionEvent {
         val outcome: String,
         val pathLabel: String?,
         val confidence: Float? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
+    // ── Departure / correction observability [DET-SOLID-001] ─────────────────
+    // These fire OUTSIDE a coordinator session; sessionId is the traced entity's id
+    // (geofenceId / parkingId) by convention so downstream analysis can join them.
+
+    /** A departure-evidence [verdict] (VERIFIED / UNVERIFIED / CONFIRMED / INCONCLUSIVE / REJECTED)
+     *  from [source] ("pre-arm" verifier or the departure "worker" attempt [attempt]). */
+    data class DepartureVerdict(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val verdict: String,
+        val source: String,
+        val attempt: Int? = null,
+        val speedKmh: Float? = null,
+        val enterAgeMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
+    /** A confirmed departure was processed: whether the spot was [published] (private zones
+     *  suppress) and the session [sessionCleared]. */
+    data class DepartureProcessed(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val published: Boolean,
+        val sessionCleared: Boolean,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
+    /** The user reverted a saved park [sessionAgeMs] after it was confirmed — a user-labelled
+     *  FALSE POSITIVE, the highest-value signal detection telemetry can produce. */
+    data class Reverted(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val sessionAgeMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
+    /** An orphan geofence (registered but with no active session) was detected and removed. */
+    data class OrphanCleaned(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
+    /** Outcome of registering a geofence for an active session — [success] false means the
+     *  session⟺geofence invariant is broken until the janitor's restore pass repairs it. */
+    data class GeofenceRegistration(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val success: Boolean,
+        val radiusMeters: Float? = null,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 }

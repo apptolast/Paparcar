@@ -10,6 +10,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.DepartureDecision
@@ -37,6 +39,7 @@ class DepartureDetectionWorker(
     private val getOneLocation: GetOneLocationUseCase by inject()
     private val departureEventBus: DepartureEventBus by inject()
     private val coordinator: CoordinatorParkingDetector by inject() // [DET-G-05]
+    private val detectionEventLogger: DetectionEventLogger by inject() // [DET-SOLID-001]
 
     override suspend fun doWork(): Result {
         val geofenceId = inputData.getString(KEY_GEOFENCE_ID)
@@ -52,6 +55,22 @@ class DepartureDetectionWorker(
             exitTimestampMs = exitTimestampMs,
             currentSpeedKmh = speedKmh,
         )
+
+        // [DET-SOLID-001] Observability: every worker verdict, traced by geofenceId. Firestore
+        // trips over generic sealed objects — log the simple name string.
+        runCatching {
+            detectionEventLogger.log(
+                DetectionEvent.DepartureVerdict(
+                    sessionId = geofenceId,
+                    timestampMs = Clock.System.now().toEpochMilliseconds(),
+                    verdict = decision::class.simpleName ?: "UNKNOWN",
+                    source = "worker",
+                    attempt = runAttemptCount,
+                    speedKmh = speedKmh,
+                    enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { exitTimestampMs - it },
+                )
+            )
+        }
 
         if (decision == DepartureDecision.Rejected) return Result.success()
 

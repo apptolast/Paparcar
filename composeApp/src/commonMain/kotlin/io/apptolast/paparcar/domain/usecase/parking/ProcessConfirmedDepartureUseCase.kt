@@ -3,6 +3,8 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
@@ -34,6 +36,8 @@ class ProcessConfirmedDepartureUseCase(
     private val geofenceService: GeofenceManager,
     private val departureEventBus: DepartureEventBus,
     private val activityRecognitionManager: ActivityRecognitionManager,
+    // Nullable so existing test doubles / call sites need no change. [DET-SOLID-001]
+    private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
     private companion object {
         const val TAG = "ProcessConfirmedDeparture"
@@ -80,6 +84,17 @@ class ProcessConfirmedDepartureUseCase(
         if (!anyStillParked) {
             activityRecognitionManager.unregisterVehicleEnterArming()
         }
+
+        // [DET-SOLID-001] Observability: the publish+clear outcome, traced by geofenceId.
+        detectionEventLogger?.log(
+            DetectionEvent.DepartureProcessed(
+                sessionId = geofenceId,
+                timestampMs = Clock.System.now().toEpochMilliseconds(),
+                published = session != null && session.privateZoneId == null,
+                sessionCleared = session != null,
+                location = session?.location,
+            )
+        )
         return Result.success(Unit)
     }
 }

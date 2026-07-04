@@ -312,7 +312,7 @@ class CoordinatorParkingDetector(
         // and is refined by the abort paths / runConfirm before the finally emits SessionEnded.
         currentSessionId = sessionStartMs.toString()
         sessionOutcome = "ended"
-        logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR") }
+        logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = currentArmEvidence) }
 
         // Session-start notification cleanup, gated by [savedConfirmPostedAt] age.
         //

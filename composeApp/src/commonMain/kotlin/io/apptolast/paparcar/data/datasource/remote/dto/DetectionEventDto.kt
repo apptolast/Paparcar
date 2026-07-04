@@ -15,6 +15,7 @@ data class DetectionSessionDto(
     val strategy: String? = null,
     val vehicleType: String? = null,
     val outcome: String? = null,
+    val evidence: String? = null,
 )
 
 /**
@@ -46,6 +47,18 @@ data class DetectionEventDto(
     val phase: String? = null,
     val pathLabel: String? = null,
     val confidence: Float? = null,
+    // Departure/correction observability [DET-SOLID-001]
+    val verdict: String? = null,
+    val source: String? = null,
+    val attempt: Int? = null,
+    val speedKmh: Float? = null,
+    val enterAgeMs: Long? = null,
+    val published: Boolean? = null,
+    val sessionCleared: Boolean? = null,
+    val sessionAgeMs: Long? = null,
+    val success: Boolean? = null,
+    val radiusMeters: Float? = null,
+    val evidence: String? = null,
 )
 
 /** Canonical wire discriminator for each event subtype. */
@@ -59,6 +72,11 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.Step -> "STEP"
     is DetectionEvent.Candidate -> "CANDIDATE"
     is DetectionEvent.Decision -> "DECISION"
+    is DetectionEvent.DepartureVerdict -> "DEPARTURE_VERDICT"
+    is DetectionEvent.DepartureProcessed -> "DEPARTURE_PROCESSED"
+    is DetectionEvent.Reverted -> "REVERTED"
+    is DetectionEvent.OrphanCleaned -> "ORPHAN_CLEANED"
+    is DetectionEvent.GeofenceRegistration -> "GEOFENCE_REGISTRATION"
 }
 
 fun DetectionEvent.SessionStarted.toSessionDto(): DetectionSessionDto = DetectionSessionDto(
@@ -66,6 +84,7 @@ fun DetectionEvent.SessionStarted.toSessionDto(): DetectionSessionDto = Detectio
     startedAt = timestampMs,
     strategy = strategy,
     vehicleType = vehicleType,
+    evidence = evidence,
 )
 
 /**
@@ -85,7 +104,7 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         speed = loc?.speed,
     )
     return when (this) {
-        is DetectionEvent.SessionStarted -> base.copy(strategy = strategy, vehicleType = vehicleType)
+        is DetectionEvent.SessionStarted -> base.copy(strategy = strategy, vehicleType = vehicleType, evidence = evidence)
         is DetectionEvent.SessionEnded -> base.copy(outcome = outcome)
         is DetectionEvent.ActivityTransition -> base.copy(activity = activity, transition = transition)
         is DetectionEvent.Geofence -> base.copy(event = event, geofenceId = geofenceId)
@@ -94,5 +113,10 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.Step -> base.copy(stepCount = stepCount, stopped = stopped)
         is DetectionEvent.Candidate -> base.copy(action = action, phase = phase)
         is DetectionEvent.Decision -> base.copy(outcome = outcome, pathLabel = pathLabel, confidence = confidence)
+        is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs)
+        is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)
+        is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)
+        is DetectionEvent.OrphanCleaned -> base
+        is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)
     }
 }

@@ -97,6 +97,7 @@ val domainModule = module {
             activityRecognitionManager = get(),
             appPreferences = get(),
             parkingSyncScheduler = get(),
+            detectionEventLogger = get(),
         )
     }
     single {
@@ -125,6 +126,7 @@ val domainModule = module {
             userParkingRepository = get(),
             geofenceService = get(),
             notificationPort = get(),
+            detectionEventLogger = get(),
         )
     }
     factory {
@@ -134,6 +136,7 @@ val domainModule = module {
             geofenceService = get(),
             departureEventBus = get(),
             activityRecognitionManager = get(),
+            detectionEventLogger = get(),
         )
     }
     factory {

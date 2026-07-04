@@ -4,6 +4,8 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
@@ -51,6 +53,8 @@ class ConfirmParkingUseCase(
     // Optional: retry channel for a failed geofence registration (janitor one-shot). Nullable for
     // the same test-double reason as appPreferences. [DET-SOLID-001]
     private val parkingSyncScheduler: ParkingSyncScheduler? = null,
+    // Optional: diagnostics sink for the geofence-registration outcome. [DET-SOLID-001]
+    private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
 
     /**
@@ -228,15 +232,26 @@ class ConfirmParkingUseCase(
         // Invariant: active session ⟺ registered geofence. The save is already durable; a failed
         // registration must not be silent (the departure would never be detected) — log loud and
         // schedule the janitor's one-shot restore, which re-registers from the active sessions.
+        val geofenceRadius = config.geofenceRadiusFor(resolvedSizeCategory, gpsPoint.accuracy)
         geofenceService.createGeofence(
             geofenceId = sessionId,
             latitude = gpsPoint.latitude,
             longitude = gpsPoint.longitude,
-            radiusMeters = config.geofenceRadiusFor(resolvedSizeCategory, gpsPoint.accuracy),
+            radiusMeters = geofenceRadius,
         ).onFailure { e ->
             PaparcarLogger.e(DIAG, "  ✗ createGeofence FAILED — active session without geofence; scheduling janitor restore [DET-SOLID-001]", e)
             runCatching { parkingSyncScheduler?.enqueueGeofenceRestore() }
                 .onFailure { se -> PaparcarLogger.e(DIAG, "    ✗ enqueueGeofenceRestore also failed", se) }
+        }.let { result ->
+            detectionEventLogger?.log(
+                DetectionEvent.GeofenceRegistration(
+                    sessionId = sessionId,
+                    timestampMs = gpsPoint.timestamp,
+                    success = result.isSuccess,
+                    radiusMeters = geofenceRadius,
+                    location = gpsPoint,
+                )
+            )
         }
         PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
 
