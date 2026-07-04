@@ -673,6 +673,99 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-SOLID-001 C3: the time-driven paths, exercised with the injected clock
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_abort_after_maxNoMovement_without_driving() =
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = config.maxNoMovementMs + 1_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_no_movement", ended.outcome)
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+        }
+
+    @Test
+    fun should_abort_when_prompt_gets_no_response_within_timeout() =
+        runTest(UnconfinedTestDispatcher()) {
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            // Drive, then stop long enough for the slow path to reach Low → Notified (90 s gate
+            // + 90 s lowNotifTimeout), then let the 15-min response window expire untouched.
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f))
+            nowMs = 1_000L
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = 1_000L + config.slowPathGateMs + 5_000L
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs += config.lowNotifTimeoutMs + 5_000L
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_response_timeout", ended.outcome, "[BUG-STUCK-SESSION]")
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+        }
+
+    @Test
+    fun should_never_auto_confirm_a_candidate_without_steps() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-SOLID-001 C3 finding] The "vehicleExit+window+egress" decision branch is
+            // STRUCTURALLY UNREACHABLE through the real loop: with activityExit=true the scorer
+            // takes the fast path (ceiling Medium), so a Candidate can only ever open with
+            // hadVehicleExit=false — whose window (5 min) then requires steps to confirm. This
+            // test pins the REAL end-to-end behaviour: a stepless Candidate is prompted, dies
+            // Rejected at the window, and the session aborts on the response timeout. Egress
+            // without steps NEVER silently saves.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            nowMs = 10_000L
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            nowMs = 10_000L + config.slowPath5MinMs + 1_000L
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 10f, timestamp = 0L, speed = 0.1f)) // High → Candidate
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "candidate must prompt")
+            // Egress ~33 m at walking pace, but NO steps ever counted (phone left in the car).
+            nowMs += 10_000L
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
+            // The (no-exit) 5-min observation window elapses → candidate Rejected, falls to Notified.
+            nowMs += config.confirmationObservationWindowMs + 1_000L
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
+            // Nobody answers the prompt → response timeout closes the session.
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
+
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "stepless egress must never save")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_response_timeout", ended.outcome)
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // DET-SOLID-001 B3/B4: weak-evidence prompt + enter-arm step veto
     // ─────────────────────────────────────────────────────────────────────────
 
