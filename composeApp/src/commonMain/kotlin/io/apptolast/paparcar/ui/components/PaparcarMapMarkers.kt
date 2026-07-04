@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -195,7 +196,7 @@ fun VehicleBadgeMarker(
             // 2 · position dot — the exact ground point. For the departure marker ([originDot]) it's a
             // blue dot with a white halo: the clear point the trip breadcrumb line starts from. Otherwise
             // the state-coloured dot, kept opaque even when [contentAlpha] fades the rest. [TRIP-TRAIL-001]
-            val dotCenter = Offset(52f * s, 80.5f * s)
+            val dotCenter = Offset(52f * s, TAG_DOT_CY * s)
             if (originDot) {
                 drawCircle(color = Color.White, radius = TAG_DOT_R * s * ORIGIN_DOT_HALO_SCALE, center = dotCenter)
                 drawCircle(color = PapDriveBlue, radius = TAG_DOT_R * s * ORIGIN_DOT_SCALE, center = dotCenter)
@@ -237,6 +238,7 @@ private const val TAG_VB_H = 88f
 private const val TAG_BORDER_U      = 3.6f  // default state-colour border — matches the selected weight, a touch thicker (viewBox units)
 private const val TAG_SEL_BORDER_U  = 4f    // selected onSurface border
 private const val TAG_DOT_R         = 4.5f  // position-dot radius (viewBox units)
+private const val TAG_DOT_CY        = 80.5f // position-dot centre Y (viewBox units) — the visual ground point
 private const val TAG_SHADOW_ALPHA  = 0.18f
 private const val TAG_DARK_LUMINANCE = 0.5f // theme surface below this ⇒ dark ⇒ ink fill, else white
 private const val ORIGIN_DOT_SCALE      = 1.4f // blue trip-origin dot, larger than the normal dot [TRIP-TRAIL-001]
@@ -617,7 +619,7 @@ private fun DrawScope.drawSpotShadow(s: Float, ink: Color) {
 
 /** Separated position dot — the exact ground point, in the marker's own colour (no border). [MAP-ICONS-V2] */
 private fun DrawScope.drawSpotDot(s: Float, color: Color) {
-    drawCircle(color, radius = SPOT_DOT_R * s, center = Offset(36f * s, 71f * s))
+    drawCircle(color, radius = SPOT_DOT_R * s, center = Offset(36f * s, SPOT_DOT_CY * s))
 }
 
 /** The round puck body + paper stroke; selected adds an outer onSurface ring (max contrast). */
@@ -759,6 +761,7 @@ private val SPOT_PIN_SEL_W  = 56.dp
 private const val SPOT_VIEWBOX_W = 72f
 private const val SPOT_VIEWBOX_H = 82f
 private const val SPOT_DOT_R = 4.5f // position-dot radius (viewBox units)
+private const val SPOT_DOT_CY = 71f // position-dot centre Y (viewBox units) — the visual ground point
 private const val SPOT_PUCK_CENTER_Y = 34f // puck circle centre Y (viewBox units) — used to centre the tail-less icon
 
 // ─── Marker 3 — Zone (ZoneMarker) ────────────────────────────────────────────
@@ -903,6 +906,7 @@ fun Modifier.mapCenterPinAnchor(): Modifier = this.layout { measurable, constrai
 @Composable
 private fun LiftedCenterPin(
     cameraMoving: Boolean,
+    groundInset: Dp,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -941,9 +945,10 @@ private fun LiftedCenterPin(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .size(DROP_SHADOW_WIDTH, DROP_SHADOW_HEIGHT)
-                // Centre the ellipse ON the ground point (the box's bottom-centre, which is
-                // what the (0.5, 1.0) marker anchor pins to the camera target).
-                .offset(y = DROP_SHADOW_HEIGHT / 2)
+                // Centre the ellipse ON the marker's VISUAL ground point — its position dot,
+                // which sits [groundInset] above the canvas bottom — so the pin tip rests on
+                // the shadow instead of floating above it.
+                .offset(y = DROP_SHADOW_HEIGHT / 2 - groundInset)
                 .alpha(entry.value),
         ) {
             val alpha = DROP_SHADOW_REST_ALPHA +
@@ -979,7 +984,7 @@ fun ReportCenterPin(
     cameraMoving: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    LiftedCenterPin(cameraMoving, modifier) {
+    LiftedCenterPin(cameraMoving, groundInset = SPOT_PIN_GROUND_INSET, modifier = modifier) {
         FreeSpotMarker(reliability = SpotReliabilityUiState.MANUAL)
     }
 }
@@ -996,7 +1001,7 @@ fun ParkingCenterPin(
     isActive: Boolean = true,
     isBluetoothPaired: Boolean = false,
 ) {
-    LiftedCenterPin(cameraMoving, modifier) {
+    LiftedCenterPin(cameraMoving, groundInset = TAG_PIN_GROUND_INSET, modifier = modifier) {
         // Same marker the vehicle will get when placed — icon, paint colour AND state border
         // (grey inactive / blue BT / green active) — so the preview matches the result. [MOTION-POLISH-001]
         VehicleBadgeMarker(
@@ -1041,8 +1046,13 @@ private const val PLACING_GHOST_ALPHA    = 0.72f
 // Stationary drop shadow under the placement pins ([LiftedCenterPin]): a ground ellipse pinned to
 // the drop point that does NOT lift with the pin. Rest = tucked under the marker; lift = opens up
 // (wider + darker) so the landing point stays obvious while the pin floats.
-private val DROP_SHADOW_WIDTH  = 30.dp
-private val DROP_SHADOW_HEIGHT = 10.dp
+private val DROP_SHADOW_WIDTH  = 22.dp
+private val DROP_SHADOW_HEIGHT = 8.dp
+// How far each marker's visual tip — the BOTTOM edge of its position dot — sits above its canvas
+// bottom. The drop shadow rises by this inset so the tip rests ON the shadow (ellipse centred at
+// the dot's bottom tangent; centring on the dot itself reads too high, a halo around the dot).
+private val SPOT_PIN_GROUND_INSET = SPOT_PIN_W * ((SPOT_VIEWBOX_H - SPOT_DOT_CY - SPOT_DOT_R) / SPOT_VIEWBOX_W)
+private val TAG_PIN_GROUND_INSET  = TAG_MARKER_W * ((TAG_VB_H - TAG_DOT_CY - TAG_DOT_R) / TAG_VB_W)
 private const val DROP_SHADOW_REST_SCALE = 0.75f
 private const val DROP_SHADOW_LIFT_SCALE = 1f
 private const val DROP_SHADOW_REST_ALPHA = 0.22f
