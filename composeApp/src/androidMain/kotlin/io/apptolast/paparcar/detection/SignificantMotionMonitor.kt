@@ -6,7 +6,9 @@ import android.hardware.SensorManager
 import android.hardware.TriggerEvent
 import android.hardware.TriggerEventListener
 import androidx.work.WorkManager
+import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
+import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 
 /**
@@ -31,7 +33,10 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
  * here. The enqueued check re-arms via [sync] only if a parked session still exists and detection
  * is idle — otherwise every stride of a walk (or every stop-and-go during a drive) would re-fire.
  */
-class SignificantMotionMonitor(private val context: Context) {
+class SignificantMotionMonitor(
+    private val context: Context,
+    private val notificationPort: AppNotificationManager,
+) {
 
     private val sensorManager: SensorManager? =
         context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
@@ -43,9 +48,13 @@ class SignificantMotionMonitor(private val context: Context) {
         override fun onTrigger(event: TriggerEvent?) {
             synchronized(this@SignificantMotionMonitor) { armed = false }
             PaparcarLogger.d(TAG, "▶ significant motion — enqueueing safety-net check [DET-SIGMOTION-001]")
+            debugNotify("SIG-MOTION disparado → chequeo safety-net")
             // A sensor callback is NOT an FGS-start exemption on Android 12+ — expedited work is
             // the legal fast lane from here.
-            ParkingSafetyNetWorker.enqueueCheckNow(WorkManager.getInstance(context))
+            ParkingSafetyNetWorker.enqueueCheckNow(
+                WorkManager.getInstance(context),
+                source = ParkingSafetyNetWorker.SOURCE_SIG_MOTION,
+            )
         }
     }
 
@@ -58,13 +67,20 @@ class SignificantMotionMonitor(private val context: Context) {
             shouldBeArmed && !armed -> {
                 armed = sensorManager.requestTriggerSensor(listener, sensor)
                 PaparcarLogger.d(TAG, "sync → armed=$armed")
+                debugNotify(if (armed) "SIG-MOTION armado (aparcado, detección idle)" else "SIG-MOTION ✗ no se pudo armar")
             }
             !shouldBeArmed && armed -> {
                 runCatching { sensorManager.cancelTriggerSensor(listener, sensor) }
                 armed = false
                 PaparcarLogger.d(TAG, "sync → disarmed")
+                debugNotify("SIG-MOTION desarmado (sin sesión o detección en curso)")
             }
         }
+    }
+
+    /** DEBUG-build breadcrumb of the trigger lifecycle. [DET-SIGMOTION-001] */
+    private fun debugNotify(message: String) {
+        if (BuildConfig.DEBUG) notificationPort.showDebug(message)
     }
 
     private companion object {

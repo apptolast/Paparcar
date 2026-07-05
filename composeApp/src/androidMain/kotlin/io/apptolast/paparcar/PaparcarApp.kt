@@ -88,7 +88,7 @@ class PaparcarApp : Application() {
         ParkingSafetyNetWorker.enqueueKeep(workManager)
         // Immediate pass as well: app-open often happens right at the car (just parked / about to
         // leave) — a fresh fix now seeds the position anchor instead of waiting up to 15 min.
-        ParkingSafetyNetWorker.enqueueCheckNow(workManager)
+        ParkingSafetyNetWorker.enqueueCheckNow(workManager, source = ParkingSafetyNetWorker.SOURCE_APP_START)
 
         // Daily cold-start nudge for users who enabled detection but never parked with it. Fires at
         // most a few throttled reminders and self-disables after the first park. [DET-TOGGLE-002]

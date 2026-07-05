@@ -17,6 +17,8 @@ import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
+import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
@@ -30,6 +32,7 @@ import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase
 import io.apptolast.paparcar.domain.usecase.parking.SafetyNetAction
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -89,6 +92,10 @@ class ParkingSafetyNetWorker(
         )
 
     override suspend fun doWork(): Result {
+        // What woke this check up — rides into the debug notification and the DEPARTURE_VERDICT
+        // telemetry so a field trace shows WHICH layer (periodic / sensor / teardown) saw what.
+        val source = inputData.getString(KEY_SOURCE) ?: SOURCE_PERIODIC
+
         val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
             .getOrElse {
                 PaparcarLogger.e(TAG, "✗ failed to read active sessions", it)
@@ -107,16 +114,20 @@ class ParkingSafetyNetWorker(
 
         if (sessions.isEmpty()) {
             dismissPrompt()
+            // No debug notif on the eternal periodic no-op — it would live in the shade forever.
+            if (source != SOURCE_PERIODIC) debugNotify("SafetyNet[$source]: sin sesión activa — nada que vigilar")
             return Result.success()
         }
         // Mid-trip: a live coordinator session owns the situation; a repark also self-heals the
         // old session (replaceActiveSession per vehicle). Don't second-guess it.
         if (detectionRuntime.isRunning.value) {
             PaparcarLogger.d(TAG, "■ detection running — skipping check")
+            debugNotify("SafetyNet[$source]: detección en curso — skip")
             return Result.success()
         }
         if (!hasLocationPermission()) {
             PaparcarLogger.w(TAG, "■ no location permission — skipping check")
+            debugNotify("SafetyNet[$source]: sin permiso de ubicación — skip")
             return Result.success()
         }
 
@@ -125,11 +136,13 @@ class ParkingSafetyNetWorker(
         val fix = runCatching { getOneLocation() }.getOrNull()
         if (fix == null) {
             PaparcarLogger.d(TAG, "■ no fix within timeout — nothing to evaluate this tick")
+            debugNotify("SafetyNet[$source]: sin fix en 15 s — nada que evaluar")
             return Result.success()
         }
 
         val now = System.currentTimeMillis()
         var anyPromptActive = false
+        val debugLines = mutableListOf<String>()
 
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
         val liveGeofenceIds = sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId }
@@ -143,6 +156,11 @@ class ParkingSafetyNetWorker(
                 lastSeenNearCarAtMs = session.geofenceId?.let { lastSeenNearCarAtMs[it] },
                 nowMs = now,
             )
+            val distanceM = haversineMeters(
+                fix.latitude, fix.longitude,
+                session.location.latitude, session.location.longitude,
+            ).toInt()
+            val geofTag = session.geofenceId?.take(8) ?: "sin-geof"
             when (action) {
                 is SafetyNetAction.CureGeofence -> {
                     // Position anchor: the phone is provably AT the car right now — this is what
@@ -166,6 +184,7 @@ class ParkingSafetyNetWorker(
                             )
                         )
                     }
+                    debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → fence curada${if (result.isFailure) " ✗FALLO" else ""}"
                 }
 
                 is SafetyNetAction.DispatchDeparture -> {
@@ -175,13 +194,15 @@ class ParkingSafetyNetWorker(
                         ExistingWorkPolicy.REPLACE,
                         DepartureDetectionWorker.buildRequest(geofenceId = action.geofenceId, exitTimestampMs = now),
                     )
-                    logVerdict(action.geofenceId, verdict = "safety_net_dispatch", fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
+                    logVerdict(action.geofenceId, verdict = "safety_net_dispatch", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
+                    debugLines += "geof=$geofTag d=${distanceM}m LEJOS+evidencia → SALIDA despachada"
                 }
 
                 is SafetyNetAction.PromptStillParked -> {
                     anyPromptActive = true
                     val lastPromptAt = lastPromptAtMs[action.geofenceId] ?: 0L
-                    if (now - lastPromptAt >= PROMPT_THROTTLE_MS) {
+                    val throttled = now - lastPromptAt < PROMPT_THROTTLE_MS
+                    if (!throttled) {
                         PaparcarLogger.d(TAG, "▶ far without evidence — still-parked prompt geofence=${action.geofenceId}")
                         lastPromptAtMs[action.geofenceId] = now
                         notificationPort.showStillParkedPrompt(
@@ -189,18 +210,28 @@ class ParkingSafetyNetWorker(
                             latitude = session.location.latitude,
                             longitude = session.location.longitude,
                         )
-                        logVerdict(action.geofenceId, verdict = "safety_net_prompt", fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
+                        logVerdict(action.geofenceId, verdict = "safety_net_prompt", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
                     }
+                    debugLines += "geof=$geofTag d=${distanceM}m LEJOS sin evidencia → prompt${if (throttled) " (throttled)" else ""}"
                 }
 
-                SafetyNetAction.None -> Unit
+                SafetyNetAction.None -> {
+                    debugLines += "geof=$geofTag d=${distanceM}m → anillo ambiguo, solo fix"
+                }
             }
         }
 
         // Back near the car (or ambiguity resolved) → any lingering prompt is stale.
         if (!anyPromptActive) dismissPrompt()
 
+        debugNotify("SafetyNet[$source]: ${debugLines.joinToString(" · ")}")
+
         return Result.success()
+    }
+
+    /** DEBUG-build breadcrumb of what each safety-net wake-up saw and did. [DET-SAFETY-NET-001] */
+    private fun debugNotify(message: String) {
+        if (BuildConfig.DEBUG) notificationPort.showDebug(message)
     }
 
     /**
@@ -246,14 +277,14 @@ class ParkingSafetyNetWorker(
         }
     }
 
-    private suspend fun logVerdict(geofenceId: String, verdict: String, fixSpeedKmh: Float, now: Long) {
+    private suspend fun logVerdict(geofenceId: String, verdict: String, source: String, fixSpeedKmh: Float, now: Long) {
         runCatching {
             detectionEventLogger.log(
                 DetectionEvent.DepartureVerdict(
                     sessionId = geofenceId,
                     timestampMs = now,
                     verdict = verdict,
-                    source = "safety-net",
+                    source = "safety-net:$source",
                     speedKmh = fixSpeedKmh,
                     enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { now - it },
                 )
@@ -275,6 +306,13 @@ class ParkingSafetyNetWorker(
         private const val LEGACY_TAG = "DetectionHeartbeatWorker"
         private const val INTERVAL_MINUTES = 15L
         private const val KMH_PER_MPS = 3.6f
+
+        /** What woke the check up — debug + telemetry breadcrumb (`DEPARTURE_VERDICT.source`). */
+        private const val KEY_SOURCE = "source"
+        const val SOURCE_PERIODIC = "periodic"
+        const val SOURCE_SIG_MOTION = "sig-motion"
+        const val SOURCE_APP_START = "app-start"
+        const val SOURCE_DETECTION_END = "detection-end"
 
         /** Min interval between "still parked?" prompts per geofence. In-memory (process-lifetime):
          *  a process kill may allow one early re-prompt hours later — acceptable, and the throttle
@@ -322,11 +360,12 @@ class ParkingSafetyNetWorker(
          * Expedited where quota allows — a sensor callback cannot legally start an FGS on
          * Android 12+, and expedited work is the sanctioned fast lane.
          */
-        fun enqueueCheckNow(workManager: WorkManager) {
+        fun enqueueCheckNow(workManager: WorkManager, source: String) {
             workManager.enqueueUniqueWork(
                 "${TAG}_now",
                 ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequestBuilder<ParkingSafetyNetWorker>()
+                    .setInputData(workDataOf(KEY_SOURCE to source))
                     .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                     .addTag(TAG)
                     .build(),

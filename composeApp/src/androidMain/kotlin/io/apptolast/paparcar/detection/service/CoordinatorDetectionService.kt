@@ -569,7 +569,12 @@ class CoordinatorDetectionService : LifecycleService() {
         // [DET-SAFETY-NET-001] Every detection episode ends here (post-confirm, post-departure,
         // aborts). Run one safety-net pass now so the significant-motion trigger is re-armed and
         // the position anchor seeded seconds after a park — not up to 15 min later.
-        runCatching { ParkingSafetyNetWorker.enqueueCheckNow(WorkManager.getInstance(this)) }
+        runCatching {
+            ParkingSafetyNetWorker.enqueueCheckNow(
+                WorkManager.getInstance(this),
+                source = ParkingSafetyNetWorker.SOURCE_DETECTION_END,
+            )
+        }
         super.onDestroy()
         PaparcarLogger.d(DIAG, "■ Service onDestroy DONE")
     }

@@ -40,7 +40,7 @@ val androidDetectionModule = module {
     single<DepartureEventBus> { DepartureEventBusImpl(androidContext()) }
 
     // --- Parked-session safety net: hardware wake-up trigger [DET-SIGMOTION-001] ---
-    single { SignificantMotionMonitor(androidContext()) }
+    single { SignificantMotionMonitor(androidContext(), get()) }
 
     // --- Manual detection start ("I'm driving" cold-start affordance) [DET-G-01b] ---
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
