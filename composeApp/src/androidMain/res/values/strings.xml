@@ -34,6 +34,10 @@
     <string name="notif_confirmation_failed_title">Parking not saved</string>
     <string name="notif_confirmation_failed_text">Could not save your parking spot. Open Paparcar to try again.</string>
 
+    <!-- Notification: OEM background-kill warning [OEM-KILL-001] -->
+    <string name="notif_background_kill_title">Your phone is blocking Paparcar</string>
+    <string name="notif_background_kill_text">The system paused parking detection in the background for hours. Tap to open the app and fix it in Settings → Detection.</string>
+
     <!-- Notification: watchdog "still parked?" prompt (suspected missed geofence exit) -->
     <string name="notif_still_parked_title">Still parked here?</string>
     <string name="notif_still_parked_text">If you\'ve already driven off, free the spot for the community.</string>

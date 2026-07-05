@@ -48,6 +48,10 @@
 
     <string name="attribution_detection_label">Detección de aparcamiento</string>
 
+    <!-- Notificación: aviso de bloqueo en segundo plano por el fabricante [OEM-KILL-001] -->
+    <string name="notif_background_kill_title">Tu móvil está bloqueando Paparcar</string>
+    <string name="notif_background_kill_text">El sistema paró la detección de aparcamiento en segundo plano durante horas. Toca para abrir la app y arreglarlo en Ajustes → Detección.</string>
+
     <!-- Notificación: watchdog "¿sigues aparcado?" (posible salida de geocerca perdida) -->
     <string name="notif_still_parked_title">¿Sigues aparcado aquí?</string>
     <string name="notif_still_parked_text">Si ya te has ido, libera la plaza para la comunidad.</string>

@@ -119,6 +119,16 @@ interface AppNotificationManager {
     fun showFirstParkNudge() {}
 
     /**
+     * Warns that the OS/OEM blocked Paparcar's background execution for hours while a session was
+     * active (detected by the safety net's heartbeat gap) — detection almost certainly missed
+     * events during that window. Tapping opens the app so the user can fix it from Settings →
+     * Detection health (autostart / battery whitelist). This is the CONTEXTUAL battery ask: it
+     * only ever fires after a real observed failure, never upfront. Default no-op for non-Android
+     * impls and fakes. [OEM-KILL-001][BATTERY-ASK-001]
+     */
+    fun showBackgroundReliabilityWarning() {}
+
+    /**
      * Dismisses the notification with the given [notificationId].
      *
      * @param notificationId One of the [DETECTION_NOTIFICATION_ID], [UPLOAD_NOTIFICATION_ID],
@@ -154,5 +164,8 @@ interface AppNotificationManager {
 
         /** ID for the cold-start "park once to start auto-detection" nudge (channel: UPLOAD). [DET-TOGGLE-002] */
         const val FIRST_PARK_NUDGE_NOTIFICATION_ID = 2006
+
+        /** ID for the OEM background-kill warning (channel: UPLOAD). [OEM-KILL-001] */
+        const val BACKGROUND_RELIABILITY_NOTIFICATION_ID = 2007
     }
 }

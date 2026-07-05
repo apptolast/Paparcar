@@ -5,6 +5,7 @@ package io.apptolast.paparcar.detection.worker
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -20,6 +21,7 @@ import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
@@ -92,6 +94,11 @@ class ParkingSafetyNetWorker(
                 PaparcarLogger.e(TAG, "✗ failed to read active sessions", it)
                 return Result.success()
             }
+
+        // [OEM-KILL-001] Heartbeat: measure the gap since the previous safety-net run BEFORE
+        // stamping the new one. An hours-long gap with a session active means the OEM froze
+        // background execution for that whole window — surface it (telemetry + contextual fix ask).
+        detectBackgroundKill(sessions)
 
         // [DET-SIGMOTION-001] Mirror the parked-idle state onto the hardware trigger on EVERY
         // tick — this is also what re-arms it after a process kill or after it fired one-shot.
@@ -196,6 +203,49 @@ class ParkingSafetyNetWorker(
         return Result.success()
     }
 
+    /**
+     * [OEM-KILL-001] Compares "now" against the previous heartbeat. Gap > [KILL_GAP_THRESHOLD_MS]
+     * with a session active = the scheduler was frozen (ColorOS/MIUI kill, extreme Doze) — log
+     * per-OEM telemetry and, throttled to once per [KILL_NOTIFY_THROTTLE_MS], show the contextual
+     * "your phone is blocking Paparcar" warning [BATTERY-ASK-001]. A reboot/power-off in between
+     * (elapsedRealtime went backwards) explains the gap innocently — skip, don't cry wolf.
+     * Always re-stamps the heartbeat at the end.
+     */
+    private suspend fun detectBackgroundKill(sessions: List<UserParking>) {
+        runCatching {
+            val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val now = System.currentTimeMillis()
+            val elapsedNow = SystemClock.elapsedRealtime()
+            val lastAliveAt = prefs.getLong(KEY_LAST_ALIVE_AT, 0L)
+            val lastAliveElapsed = prefs.getLong(KEY_LAST_ALIVE_ELAPSED, 0L)
+            val rebootedSince = elapsedNow < lastAliveElapsed
+            val gapMs = now - lastAliveAt
+
+            if (lastAliveAt > 0L && !rebootedSince && sessions.isNotEmpty() && gapMs > KILL_GAP_THRESHOLD_MS) {
+                PaparcarLogger.w(TAG, "⚠ background blackout detected: ${gapMs / 60_000} min without a heartbeat, session active [OEM-KILL-001]")
+                runCatching {
+                    detectionEventLogger.log(
+                        DetectionEvent.BackgroundKillSuspected(
+                            sessionId = sessions.firstNotNullOfOrNull { it.geofenceId } ?: "system",
+                            timestampMs = now,
+                            gapMs = gapMs,
+                        )
+                    )
+                }
+                val lastNotifiedAt = prefs.getLong(KEY_LAST_KILL_NOTIFIED_AT, 0L)
+                if (now - lastNotifiedAt > KILL_NOTIFY_THROTTLE_MS) {
+                    prefs.edit().putLong(KEY_LAST_KILL_NOTIFIED_AT, now).apply()
+                    notificationPort.showBackgroundReliabilityWarning()
+                }
+            }
+
+            prefs.edit()
+                .putLong(KEY_LAST_ALIVE_AT, now)
+                .putLong(KEY_LAST_ALIVE_ELAPSED, elapsedNow)
+                .apply()
+        }
+    }
+
     private suspend fun logVerdict(geofenceId: String, verdict: String, fixSpeedKmh: Float, now: Long) {
         runCatching {
             detectionEventLogger.log(
@@ -236,6 +286,20 @@ class ParkingSafetyNetWorker(
          *  In-memory on purpose — losing it on process death degrades far+evidence to the human
          *  prompt, never to a phantom auto-release (fail-safe direction). */
         private val lastSeenNearCarAtMs = ConcurrentHashMap<String, Long>()
+
+        // [OEM-KILL-001] Heartbeat persistence (must survive process death — SharedPreferences).
+        private const val PREFS_NAME = "parking_safety_net"
+        private const val KEY_LAST_ALIVE_AT = "last_alive_at"
+        private const val KEY_LAST_ALIVE_ELAPSED = "last_alive_elapsed"
+        private const val KEY_LAST_KILL_NOTIFIED_AT = "last_kill_notified_at"
+
+        /** Heartbeat gap above which the scheduler was provably frozen. Deep Doze legitimately
+         *  defers 15-min periodics to maintenance windows ~1–2 h apart; 3 h clears that with
+         *  margin, while a real ColorOS/MIUI freeze runs far longer. */
+        private const val KILL_GAP_THRESHOLD_MS = 3 * 60 * 60 * 1_000L
+
+        /** Max one "your phone is blocking Paparcar" warning per day — evidence-backed, not nagging. */
+        private const val KILL_NOTIFY_THROTTLE_MS = 24 * 60 * 60 * 1_000L
 
         fun buildPeriodicRequest(): PeriodicWorkRequest =
             PeriodicWorkRequestBuilder<ParkingSafetyNetWorker>(INTERVAL_MINUTES, TimeUnit.MINUTES)

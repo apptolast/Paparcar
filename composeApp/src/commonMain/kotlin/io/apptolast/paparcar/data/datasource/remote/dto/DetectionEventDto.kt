@@ -59,6 +59,8 @@ data class DetectionEventDto(
     val success: Boolean? = null,
     val radiusMeters: Float? = null,
     val evidence: String? = null,
+    // OEM background-kill telemetry [OEM-KILL-001]
+    val gapMs: Long? = null,
 )
 
 /** Canonical wire discriminator for each event subtype. */
@@ -77,6 +79,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.Reverted -> "REVERTED"
     is DetectionEvent.OrphanCleaned -> "ORPHAN_CLEANED"
     is DetectionEvent.GeofenceRegistration -> "GEOFENCE_REGISTRATION"
+    is DetectionEvent.BackgroundKillSuspected -> "BACKGROUND_KILL_SUSPECTED"
 }
 
 fun DetectionEvent.SessionStarted.toSessionDto(): DetectionSessionDto = DetectionSessionDto(
@@ -118,5 +121,6 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)
         is DetectionEvent.OrphanCleaned -> base
         is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)
+        is DetectionEvent.BackgroundKillSuspected -> base.copy(gapMs = gapMs)
     }
 }

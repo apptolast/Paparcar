@@ -168,4 +168,14 @@ sealed interface DetectionEvent {
         val radiusMeters: Float? = null,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
+
+    /** The safety net woke up [gapMs] after its previous heartbeat — far beyond its cadence —
+     *  while a session was ACTIVE: the OEM froze/killed background execution (or extended Doze
+     *  starved the scheduler) for that whole window. Per-manufacturer kill telemetry. [OEM-KILL-001] */
+    data class BackgroundKillSuspected(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val gapMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
 }

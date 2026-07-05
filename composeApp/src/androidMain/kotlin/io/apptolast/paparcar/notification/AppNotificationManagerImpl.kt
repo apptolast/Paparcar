@@ -208,6 +208,25 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.FIRST_PARK_NUDGE_NOTIFICATION_ID, notification)
     }
 
+    override fun showBackgroundReliabilityWarning() {
+        // Contextual, evidence-backed ask [OEM-KILL-001][BATTERY-ASK-001]: fires only after the
+        // safety net measured a real hours-long background blackout with a session active.
+        val notification = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_background_kill_title))
+            .setContentText(context.getString(R.string.notif_background_kill_text))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(context.getString(R.string.notif_background_kill_text)),
+            )
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_CONFIRMATION)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setContentIntent(buildOpenAppIntent(RC_BACKGROUND_KILL))
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.BACKGROUND_RELIABILITY_NOTIFICATION_ID, notification)
+    }
+
     override fun showDebug(message: String) {
         val notification = NotificationCompat.Builder(context, DEBUG_CHANNEL_ID)
             .setContentTitle(context.getString(R.string.notif_debug_title))
@@ -356,6 +375,8 @@ class AppNotificationManagerImpl(
         private const val RC_STILL_PARKED_LEFT = 206
         // [DET-TOGGLE-002] cold-start nudge request code
         private const val RC_FIRST_PARK_NUDGE = 207
+        // [OEM-KILL-001] background-kill warning request code
+        private const val RC_BACKGROUND_KILL = 208
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active
