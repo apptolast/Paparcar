@@ -59,6 +59,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -357,8 +358,11 @@ private fun SpotPeekRow(
         lat = spot.location.latitude,
         lon = spot.location.longitude,
     )
-    val ttlMinutes = remainingMinutes(spot.expiresAt)
-    val spotAgeMin = ageMinutes(spot.location.timestamp)
+    // Live clock: re-reads on every whole-minute boundary so the TTL and age labels count down
+    // on screen instead of freezing at the value captured on first composition. [SPOT-TTL-LIVE-001]
+    val nowMs = rememberNowMinuteTick()
+    val ttlMinutes = remainingMinutes(spot.expiresAt, nowMs)
+    val spotAgeMin = ageMinutes(spot.location.timestamp, nowMs)
 
     PeekStateCard(
         headerLabel = palette.label,
@@ -581,11 +585,29 @@ private fun SpotEnRouteRow(count: Int, accentColor: Color) {
     )
 }
 
-private fun ageMinutes(timestampMs: Long): Int? {
+/**
+ * Emits the current epoch-millis and re-emits on every whole-minute boundary, so relative-time
+ * labels ("Caduca en N min", "Publicada hace N min") count down live while the peek is visible
+ * instead of freezing at the value captured on first composition. [SPOT-TTL-LIVE-001]
+ */
+@Composable
+private fun rememberNowMinuteTick(): Long {
+    val nowMs by produceState(initialValue = kotlin.time.Clock.System.now().toEpochMilliseconds()) {
+        while (true) {
+            val current = kotlin.time.Clock.System.now().toEpochMilliseconds()
+            value = current
+            // Wait until the next whole minute so the label flips exactly on the boundary.
+            kotlinx.coroutines.delay(MS_PER_MINUTE - current % MS_PER_MINUTE)
+        }
+    }
+    return nowMs
+}
+
+private fun ageMinutes(timestampMs: Long, nowMs: Long): Int? {
     if (timestampMs <= 0L) return null
-    val ageMs = kotlin.time.Clock.System.now().toEpochMilliseconds() - timestampMs
+    val ageMs = nowMs - timestampMs
     if (ageMs < 0L) return null
-    val mins = (ageMs / 60_000L).toInt()
+    val mins = (ageMs / MS_PER_MINUTE).toInt()
     return if (mins > 0) mins else null
 }
 
@@ -607,10 +629,9 @@ private fun SpotReliabilityUiState.peekPalette(): SpotPeekPalette {
     return SpotPeekPalette(sc.bg, sc.on, label)
 }
 
-private fun remainingMinutes(expiresAtMs: Long): Int? {
+private fun remainingMinutes(expiresAtMs: Long, nowMs: Long): Int? {
     if (expiresAtMs <= 0L) return null
-    val nowMs = kotlin.time.Clock.System.now().toEpochMilliseconds()
-    val remaining = ((expiresAtMs - nowMs) / 60_000L).toInt()
+    val remaining = ((expiresAtMs - nowMs) / MS_PER_MINUTE).toInt()
     return if (remaining > 0) remaining else null
 }
 
@@ -1354,6 +1375,7 @@ private const val HELPER_CORNER_DP = 10
 private const val META_ICON_DP = 18
 private const val FIABILITY_SEG_HEIGHT_DP = 4
 private const val FIABILITY_EXPIRY_WARN_MIN = 5
+private const val MS_PER_MINUTE = 60_000L
 // Horizontal inset of the Browse address row + its loading skeleton — the 16dp sheet grid.
 private const val BROWSE_ROW_HORIZONTAL_PAD_DP = 16
 // Separator between data tokens on a meta line ("80 m  ·  1 min").
