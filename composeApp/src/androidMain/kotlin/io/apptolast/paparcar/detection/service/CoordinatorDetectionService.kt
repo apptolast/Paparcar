@@ -13,6 +13,7 @@ import com.google.android.gms.location.GeofencingEvent
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.worker.DepartureDetectionWorker
+import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.detection.ArmEvidence
 import io.apptolast.paparcar.domain.detection.DetectionTrigger
@@ -565,6 +566,10 @@ class CoordinatorDetectionService : LifecycleService() {
         //  version we ship to.]
         runCatching { fgs.removeForegroundNotification() }
             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ onDestroy stopForeground failed: ${e.message}") }
+        // [DET-SAFETY-NET-001] Every detection episode ends here (post-confirm, post-departure,
+        // aborts). Run one safety-net pass now so the significant-motion trigger is re-armed and
+        // the position anchor seeded seconds after a park — not up to 15 min later.
+        runCatching { ParkingSafetyNetWorker.enqueueCheckNow(WorkManager.getInstance(this)) }
         super.onDestroy()
         PaparcarLogger.d(DIAG, "■ Service onDestroy DONE")
     }

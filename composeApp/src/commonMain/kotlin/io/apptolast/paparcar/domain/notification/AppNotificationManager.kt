@@ -87,12 +87,12 @@ interface AppNotificationManager {
     fun showDebug(message: String)
 
     /**
-     * Shows a low-confidence "still parked?" prompt when the watchdog
-     * ([io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker]) suspects a missed geofence
-     * EXIT (user is far from the parked car with a recent vehicle signal, detection idle). NEVER
+     * Shows a low-confidence "still parked?" prompt when the safety net
+     * ([io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker]) suspects a missed geofence
+     * EXIT (user is far from the parked car without departure evidence, detection idle). NEVER
      * auto-releases — the single action lets the user release the spot if they actually drove away;
      * ignoring/swiping it leaves the session untouched. Default no-op so non-Android impls and fakes
-     * need no change. [DET-AR-REARM-001 / WATCHDOG]
+     * need no change. [DET-SAFETY-NET-001]
      *
      * @param geofenceId Id of the active session's geofence; travels in the "I've left" action so
      *                   the departure can be processed for the right session.

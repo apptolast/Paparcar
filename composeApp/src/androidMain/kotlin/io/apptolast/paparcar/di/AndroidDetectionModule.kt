@@ -6,6 +6,7 @@ import io.apptolast.paparcar.detection.ActivityRecognitionManagerImpl
 import io.apptolast.paparcar.detection.DepartureEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceEventBusImpl
 import io.apptolast.paparcar.detection.GeofenceManagerImpl
+import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.WorkManagerParkingEnrichmentScheduler
 import io.apptolast.paparcar.detection.WorkManagerParkingSyncScheduler
 import io.apptolast.paparcar.detection.WorkManagerReportSpotScheduler
@@ -37,6 +38,9 @@ val androidDetectionModule = module {
 
     // --- Departure Detection ---
     single<DepartureEventBus> { DepartureEventBusImpl(androidContext()) }
+
+    // --- Parked-session safety net: hardware wake-up trigger [DET-SIGMOTION-001] ---
+    single { SignificantMotionMonitor(androidContext()) }
 
     // --- Manual detection start ("I'm driving" cold-start affordance) [DET-G-01b] ---
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {

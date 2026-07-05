@@ -103,12 +103,13 @@ data class ParkingDetectionConfig(
     // boarded outside your parked-car bubble. A flat value would leave a dead ring (too small for
     // vans) or widen the bus surface (too large for motorcycles).
     /**
-     * Distance (meters) from the parked car beyond which the periodic watchdog
-     * ([io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker]) treats the user as
-     * "clearly left without a geofence EXIT" and surfaces a low-confidence "still parked?" prompt.
-     * NEVER auto-releases — at poll time the departure speed is unobservable, so only the user can
-     * disambiguate drove/walked/got-picked-up. Set well beyond [geofenceMaxRadiusMeters] so a fix
-     * that merely sits at the edge of a large geofence does not trip it. Default 300 m.
+     * Distance (meters) from the parked car beyond which the safety net
+     * ([io.apptolast.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase]) treats the
+     * user as "clearly away from the car". Far alone never releases: with a fresh position anchor
+     * + vehicle evidence the normal departure pipeline is dispatched; anything weaker surfaces the
+     * low-confidence "still parked?" prompt — only the user can disambiguate
+     * drove/walked/got-picked-up. Set well beyond [geofenceMaxRadiusMeters] so a fix that merely
+     * sits at the edge of a large geofence does not trip it. Default 300 m. [DET-SAFETY-NET-001]
      */
     val watchdogFarThresholdMeters: Float = 300f,
 

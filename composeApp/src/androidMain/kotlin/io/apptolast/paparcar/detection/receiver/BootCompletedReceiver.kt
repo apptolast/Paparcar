@@ -4,8 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.work.WorkManager
-import io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker
 import io.apptolast.paparcar.detection.worker.GeofenceJanitorWorker
+import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import org.koin.core.component.KoinComponent
@@ -34,7 +34,8 @@ class BootCompletedReceiver : BroadcastReceiver(), KoinComponent {
         // fire — an active park would sit blind (departure undetectable) for that whole window.
         // Run the restore ONCE right now as well. Idempotent. [DET-SOLID-001]
         GeofenceJanitorWorker.enqueueOnce(workManager)
-        // Fixme: Seguimos necesitando DetectionHeartbeatWorker?
-        DetectionHeartbeatWorker.enqueueKeep(workManager)
+        // Parked-session safety net (fence cure + missed-departure recovery + sig-motion re-arm).
+        // Reboot also killed the in-process sensor listener — the periodic re-arms it. [DET-SAFETY-NET-001]
+        ParkingSafetyNetWorker.enqueueKeep(workManager)
     }
 }

@@ -13,9 +13,9 @@ import io.github.aakira.napier.Napier
 import com.apptolast.customlogin.config.GoogleSignInConfig
 import com.apptolast.customlogin.di.LoginLibraryConfig
 import com.apptolast.customlogin.di.initLoginKoin
-import io.apptolast.paparcar.detection.worker.DetectionHeartbeatWorker
 import io.apptolast.paparcar.detection.worker.FirstParkNudgeWorker
 import io.apptolast.paparcar.detection.worker.GeofenceJanitorWorker
+import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.detection.worker.RegisterActivityTransitionsWorker
 import io.apptolast.paparcar.di.androidDetectionModule
 import io.apptolast.paparcar.di.androidPlatformModule
@@ -82,9 +82,13 @@ class PaparcarApp : Application() {
         // prevent orphan accumulation after process kills; the janitor renews them in time. [GEOF-001]
         GeofenceJanitorWorker.enqueueKeep(workManager)
 
-        // Heartbeat: restart the detection foreground service every 15 min if a session is active
-        // and the service was killed by Doze / OEM battery management. [DOZE-001]
-        DetectionHeartbeatWorker.enqueueKeep(workManager)
+        // Parked-session safety net: every 15 min while parked, feed the geofencing engine an
+        // active fix, cure a poisoned fence state, recover missed departures, and keep the
+        // significant-motion trigger armed. [DET-SAFETY-NET-001][DET-SIGMOTION-001]
+        ParkingSafetyNetWorker.enqueueKeep(workManager)
+        // Immediate pass as well: app-open often happens right at the car (just parked / about to
+        // leave) — a fresh fix now seeds the position anchor instead of waiting up to 15 min.
+        ParkingSafetyNetWorker.enqueueCheckNow(workManager)
 
         // Daily cold-start nudge for users who enabled detection but never parked with it. Fires at
         // most a few throttled reminders and self-disables after the first park. [DET-TOGGLE-002]
