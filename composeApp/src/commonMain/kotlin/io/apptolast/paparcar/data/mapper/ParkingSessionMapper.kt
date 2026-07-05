@@ -58,7 +58,12 @@ private fun UserParkingEntity.placeInfoOrNull(): PlaceInfo? {
 
 // ── Domain → UserParkingEntity ────────────────────────────────────────────────
 
-fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
+/**
+ * @param updatedAt   Epoch-ms of this local edit (0 keeps the legacy "no timestamp" default).
+ * @param pendingSync Whether this edit still needs to reach Firestore; the inbound reconcile
+ *                    protects a pending+newer row. [SYNC-RECONCILE-USERPARKING-001]
+ */
+fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): UserParkingEntity = UserParkingEntity(
     id = id,
     userId = userId,
     vehicleId = vehicleId,
@@ -84,6 +89,8 @@ fun UserParking.toEntity(): UserParkingEntity = UserParkingEntity(
     // deliberately absent from ParkingHistoryDto (never synced). [DET-SOLID-001]
     tripMaxSpeedMps = tripMaxSpeedMps,
     armEvidence = armEvidence,
+    updatedAt = updatedAt,
+    pendingSync = pendingSync,
 )
 
 // ── Domain → Spot (when user departs, spot is published for others) ───────────
@@ -100,7 +107,9 @@ fun UserParking.toSpot(): Spot = Spot(
 
 // ── Domain → ParkingHistoryDto (write-through to Firestore) ──────────────────
 
-fun UserParking.toParkingHistoryDto() = ParkingHistoryDto(
+/** @param updatedAt Epoch-ms of the local edit this write mirrors — carried to Firestore so the
+ *  Last-Write-Wins merge can detect server catch-up. [SYNC-RECONCILE-USERPARKING-001] */
+fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     id = id,
     userId = userId,
     vehicleId = vehicleId,
@@ -116,6 +125,7 @@ fun UserParking.toParkingHistoryDto() = ParkingHistoryDto(
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.name,
     carbodyType = carbodyType?.name,
+    updatedAt = updatedAt,
 )
 
 // ── ParkingHistoryDto → Entity (sync from Firestore on new device) ────────────
@@ -141,6 +151,10 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory,
     carbodyType = carbodyType,
+    // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
+    // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
+    updatedAt = updatedAt,
+    pendingSync = false,
 )
 
 // ── Shared DTO helpers ────────────────────────────────────────────────────────

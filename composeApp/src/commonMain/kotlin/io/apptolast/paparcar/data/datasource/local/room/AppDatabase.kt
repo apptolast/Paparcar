@@ -22,7 +22,10 @@ import androidx.room.RoomDatabaseConstructor
     // v10: same treatment for zones (MIGRATION_9_10). [SYNC-RECONCILE-001]
     // v11: parking_sessions gains tripMaxSpeedMps + armEvidence — local-only detection
     // provenance for the repark-plausibility guard (MIGRATION_10_11). [DET-SOLID-001]
-    version = 11,
+    // v12: parking_sessions gains updatedAt + pendingSync — Last-Write-Wins inbound-sync columns
+    // so a stale remote snapshot can't resurrect an ended session (MIGRATION_11_12).
+    // [SYNC-RECONCILE-USERPARKING-001]
+    version = 12,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

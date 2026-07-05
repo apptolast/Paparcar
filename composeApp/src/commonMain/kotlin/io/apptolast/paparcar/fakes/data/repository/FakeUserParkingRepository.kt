@@ -174,6 +174,8 @@ class FakeUserParkingRepository(
 
     override suspend fun syncFromRemote(userId: String): Result<Unit> = Result.success(Unit)
 
+    override suspend fun pushPendingParkingSessions(): Result<Unit> = Result.success(Unit)
+
     override suspend fun updateParkingSessionAddressAndPlace(
         id: String,
         address: AddressInfo?,

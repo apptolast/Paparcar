@@ -1,9 +1,12 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.data.repository
 
 import io.apptolast.paparcar.data.datasource.local.room.UserParkingDao
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.mapper.toDomain
 import io.apptolast.paparcar.data.mapper.toEntity
+import io.apptolast.paparcar.data.mapper.toParkingHistoryDto
 import io.apptolast.paparcar.domain.model.AddressInfo
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
@@ -11,6 +14,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.ParkingSyncScheduler
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import kotlin.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -35,9 +39,12 @@ class UserParkingRepositoryImpl(
      */
     override suspend fun saveNewParkingSession(session: UserParking): Result<String?> =
         runCatching {
+            val now = Clock.System.now().toEpochMilliseconds()
             // Atomic deactivate+insert in one Room transaction — process death can no longer
             // leave the vehicle without an active session mid-swap. [DET-SOLID-001]
-            val previousId = dao.replaceActiveSession(session.toEntity())
+            // Stamp updatedAt=now + pendingSync so BOTH the new active row AND the previous-session
+            // clear win the inbound reconcile over any stale remote snapshot. [SYNC-RECONCILE-USERPARKING-001]
+            val previousId = dao.replaceActiveSession(session.toEntity(updatedAt = now, pendingSync = true), now)
             runCatching { parkingSyncScheduler.enqueueSaveNewParkingSession(session, previousId) }
                 .onFailure { e -> PaparcarLogger.e(TAG, "enqueueSaveNewParkingSession failed for session ${session.id} — may miss Firestore sync", e) }
             previousId
@@ -73,40 +80,62 @@ class UserParkingRepositoryImpl(
      * [ParkingSyncScheduler.enqueueClearActiveParkingSession] so this never suspends on network I/O. [PIPE-002]
      */
     override suspend fun clearActiveParkingSession(sessionId: String): Result<Unit> = runCatching {
-        dao.clearActiveById(sessionId)
+        // Stamp updatedAt=now + pendingSync so the deactivation wins the reconcile over a stale
+        // remote isActive=true and gets drained to Firestore. [SYNC-RECONCILE-USERPARKING-001]
+        dao.clearActiveById(sessionId, Clock.System.now().toEpochMilliseconds())
         parkingSyncScheduler.enqueueClearActiveParkingSession(sessionId)
     }
 
+    /**
+     * Inbound sync with Last-Write-Wins reconcile — supersedes the SYNC-UP-GUARD-001 stopgap. Local
+     * is authoritative: a pending local edit strictly newer than remote is preserved; otherwise the
+     * remote row wins (carrying local-only detection provenance). This is what stops a stale remote
+     * snapshot from resurrecting an ended session or duplicating an active one (field incident
+     * 2026-07-05). The one-active-per-vehicle invariant is enforced by [GeofenceJanitorWorker]'s
+     * dedup sweep — not duplicated here. [SYNC-RECONCILE-USERPARKING-001]
+     */
     override suspend fun syncFromRemote(userId: String): Result<Unit> =
         runCatching {
-            val remoteEntities = userProfileDataSource.getParkingHistory(userId)
-                .map { it.toEntity() }
-            // [SYNC-UP-GUARD-001] Import guard: LOCAL IS TRUTH for rows Room already knows.
-            // Sessions are written local-first and mirrored out by WorkManager, so a remote doc can
-            // lag hours behind (offline queue) — the blind upsertAll here resurrected a stale
-            // remote `isActive=true` over a session the device had already ended/moved (field
-            // incident 2026-07-05, Redmi: reopening the app revived yesterday's parking over the
-            // user's manual pin move). Only rows Room has NEVER seen are inserted — which is the
-            // reinstall/device-switch restore this sync exists for.
-            val knownIds = dao.getAllIds().toSet()
-            val newEntities = remoteEntities.filter { it.id !in knownIds }
-            // Telemetry: how many sessions (and crucially, how many ACTIVE) came back from Firestore.
-            // After a reinstall this is the single fact that tells "active session was synced and
-            // restored" apart from "it never reached Firestore" (offline window). [SESSION-RESTORE-001]
-            val activeCount = newEntities.count { it.isActive }
+            val remoteEntities = userProfileDataSource.getParkingHistory(userId).map { it.toEntity() }
+            val local = dao.getByUser(userId)
+            val merged = reconcileParkingSessions(local = local, remote = remoteEntities)
+            val keptPending = merged.count { it.pendingSync }
             PaparcarLogger.i(
                 TAG,
-                "syncFromRemote: ${remoteEntities.size} remote, ${newEntities.size} new imported " +
-                    "($activeCount active, ${remoteEntities.size - newEntities.size} known kept local-truth) for user=$userId",
+                "syncFromRemote: ${remoteEntities.size} remote, ${local.size} local → ${merged.size} merged " +
+                    "($keptPending pending kept local-truth) for user=$userId",
             )
-            if (newEntities.isEmpty()) return@runCatching
-            dao.upsertAll(newEntities)
+            if (merged.isEmpty()) return@runCatching
+            dao.upsertAll(merged)
             // [GEOF-001] Room now holds this user's active session(s); restore their GMS geofences
             // immediately. A reinstall wipes BOTH Room and the registered geofences, so without this
             // the geofence would not come back until the periodic janitor's next run (the gap that left
             // a fresh install undetected until a manual re-mark). Idempotent; no-op on platforms w/o WM.
             parkingSyncScheduler.enqueueGeofenceRestore()
         }
+
+    /**
+     * Outbox drainer: pushes every session with an un-synced local edit to Firestore as a full
+     * document (covers save / clear-active / move / enrich in one write, stamping updatedAt so the
+     * merge self-heals), clearing the pending flag on ack. Wired to the same triggers as vehicles
+     * (fresh online start + reconnect) so an offline clear/move reliably reaches the cloud and
+     * converges the remote mirror. [SYNC-RECONCILE-USERPARKING-001]
+     */
+    override suspend fun pushPendingParkingSessions(): Result<Unit> = runCatching {
+        val pending = dao.getPendingSync()
+        if (pending.isEmpty()) return@runCatching
+        PaparcarLogger.d(TAG, "▶ pushPendingParkingSessions — draining ${pending.size} pending session(s)")
+        pending.forEach { entity ->
+            runCatching {
+                userProfileDataSource.saveParkingSession(
+                    entity.userId,
+                    entity.toDomain().toParkingHistoryDto(updatedAt = entity.updatedAt),
+                )
+            }
+                .onSuccess { dao.clearPending(entity.id) }
+                .onFailure { e -> PaparcarLogger.w(TAG, "pushPendingParkingSessions: push failed for session=${entity.id}", e) }
+        }
+    }
 
     override suspend fun deleteAllData(userId: String): Result<Unit> =
         runCatching { dao.deleteByUser(userId) }
@@ -128,6 +157,7 @@ class UserParkingRepositoryImpl(
             country = address?.country,
             placeInfoName = placeInfo?.name,
             placeInfoCategory = placeInfo?.category?.name,
+            now = Clock.System.now().toEpochMilliseconds(),
         )
         parkingSyncScheduler.enqueueUpdateParkingSessionAddressAndPlace(id, address, placeInfo)
     }
@@ -152,6 +182,7 @@ class UserParkingRepositoryImpl(
             lon = location.longitude,
             accuracy = location.accuracy,
             timestamp = location.timestamp,
+            now = Clock.System.now().toEpochMilliseconds(),
         )
         val updated = dao.getById(id)?.toDomain()
             ?: error("No parking session with id=$id")

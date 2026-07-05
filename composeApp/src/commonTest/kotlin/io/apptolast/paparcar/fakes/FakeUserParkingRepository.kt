@@ -93,6 +93,14 @@ class FakeUserParkingRepository(
         return syncResult
     }
 
+    var pushPendingCallCount = 0
+        private set
+
+    override suspend fun pushPendingParkingSessions(): Result<Unit> {
+        pushPendingCallCount++
+        return Result.success(Unit)
+    }
+
     var deleteAllDataCallCount = 0
         private set
     var deleteAllDataResult: Result<Unit> = Result.success(Unit)

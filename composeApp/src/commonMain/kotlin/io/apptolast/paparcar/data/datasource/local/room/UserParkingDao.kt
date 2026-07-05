@@ -17,10 +17,19 @@ interface UserParkingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(sessions: List<UserParkingEntity>)
 
-    /** Ids of every locally-known session — the import guard of `syncFromRemote` uses this to
-     *  insert only rows Room has never seen. [SYNC-UP-GUARD-001] */
-    @Query("SELECT id FROM parking_sessions")
-    suspend fun getAllIds(): List<String>
+    /** All sessions for this user — the inbound reconcile reads these to protect pending local
+     *  edits from a stale remote snapshot. [SYNC-RECONCILE-USERPARKING-001] */
+    @Query("SELECT * FROM parking_sessions WHERE userId = :userId")
+    suspend fun getByUser(userId: String): List<UserParkingEntity>
+
+    /** Rows with a local edit not yet confirmed onto Firestore — drained by
+     *  `pushPendingParkingSessions`. [SYNC-RECONCILE-USERPARKING-001] */
+    @Query("SELECT * FROM parking_sessions WHERE pendingSync = 1")
+    suspend fun getPendingSync(): List<UserParkingEntity>
+
+    /** Clears the pending flag once the remote write for [id] has been acked. */
+    @Query("UPDATE parking_sessions SET pendingSync = 0 WHERE id = :id")
+    suspend fun clearPending(id: String)
 
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 AND geofenceId = :geofenceId LIMIT 1")
     suspend fun getActiveByGeofence(geofenceId: String): UserParkingEntity?
@@ -46,28 +55,35 @@ interface UserParkingDao {
     @Query("SELECT * FROM parking_sessions WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
     fun observeByVehicle(vehicleId: String): Flow<List<UserParkingEntity>>
 
-    @Query("UPDATE parking_sessions SET isActive = 0 WHERE id = :sessionId")
-    suspend fun clearActiveById(sessionId: String)
+    // Every deactivation stamps updatedAt=:now + pendingSync=1 so the change is a NEWER local edit
+    // that (a) wins the inbound reconcile over a stale remote isActive=true — the fix for the
+    // resurrected/duplicate-active session — and (b) gets drained to Firestore.
+    // [SYNC-RECONCILE-USERPARKING-001]
+    @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE id = :sessionId")
+    suspend fun clearActiveById(sessionId: String, now: Long)
 
-    @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1 AND vehicleId = :vehicleId")
-    suspend fun clearActiveByVehicle(vehicleId: String)
+    @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId = :vehicleId")
+    suspend fun clearActiveByVehicle(vehicleId: String, now: Long)
 
     /** Deactivates legacy/unidentified active sessions (no vehicleId). Without this, a new
      *  vehicle-less session would ACCUMULATE next to previous vehicle-less actives. [DET-SOLID-001] */
-    @Query("UPDATE parking_sessions SET isActive = 0 WHERE isActive = 1 AND vehicleId IS NULL")
-    suspend fun clearActiveOrphans()
+    @Query("UPDATE parking_sessions SET isActive = 0, updatedAt = :now, pendingSync = 1 WHERE isActive = 1 AND vehicleId IS NULL")
+    suspend fun clearActiveOrphans(now: Long)
 
     /**
      * Atomic replace of the vehicle's active session: deactivate-then-insert in ONE transaction,
      * so process death can never leave the vehicle with zero (or two) active sessions — the
      * invariant the non-transactional clear+insert pair could not guarantee. Returns the id of
      * the session that was active before the swap (the caller removes its orphan geofence).
-     * [DET-SOLID-001][MULTI-PARKING-001]
+     *
+     * [session] must already carry `updatedAt=:now` + `pendingSync=true` (stamped by the caller);
+     * the previous-session clear is stamped with the same [now] so BOTH edits win the reconcile.
+     * [DET-SOLID-001][MULTI-PARKING-001][SYNC-RECONCILE-USERPARKING-001]
      */
     @Transaction
-    suspend fun replaceActiveSession(session: UserParkingEntity): String? {
+    suspend fun replaceActiveSession(session: UserParkingEntity, now: Long): String? {
         val previous = session.vehicleId?.let { getActiveByVehicle(it) }
-        if (session.vehicleId != null) clearActiveByVehicle(session.vehicleId) else clearActiveOrphans()
+        if (session.vehicleId != null) clearActiveByVehicle(session.vehicleId, now) else clearActiveOrphans(now)
         insert(session)
         return previous?.id
     }
@@ -97,7 +113,9 @@ interface UserParkingDao {
             addressRegion      = :region,
             addressCountry     = :country,
             placeInfoName      = :placeInfoName,
-            placeInfoCategory  = :placeInfoCategory
+            placeInfoCategory  = :placeInfoCategory,
+            updatedAt          = :now,
+            pendingSync        = 1
         WHERE id = :id
     """)
     suspend fun updateAddressAndPlace(
@@ -108,6 +126,7 @@ interface UserParkingDao {
         country: String?,
         placeInfoName: String?,
         placeInfoCategory: String?,
+        now: Long,
     )
 
     /**
@@ -128,7 +147,9 @@ interface UserParkingDao {
             addressRegion       = NULL,
             addressCountry      = NULL,
             placeInfoName       = NULL,
-            placeInfoCategory   = NULL
+            placeInfoCategory   = NULL,
+            updatedAt           = :now,
+            pendingSync         = 1
         WHERE id = :id
     """)
     suspend fun updateLocation(
@@ -137,6 +158,7 @@ interface UserParkingDao {
         lon: Double,
         accuracy: Float,
         timestamp: Long,
+        now: Long,
     )
 
     @Query("SELECT * FROM parking_sessions WHERE id = :id LIMIT 1")

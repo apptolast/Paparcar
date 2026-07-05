@@ -121,3 +121,21 @@ val MIGRATION_10_11 = object : Migration(10, 11) {
     }
 }
 
+/**
+ * v11 → v12: add updatedAt + pendingSync to parking_sessions — the Last-Write-Wins sync columns
+ * (same shape already on vehicles/zones). Mirrors the inbound reconcile so a stale remote snapshot
+ * can no longer resurrect an ended session (field incident 2026-07-05). Additive, non-destructive;
+ * existing rows read updatedAt=0 / pendingSync=false (already-synced, remote can win).
+ * [SYNC-RECONCILE-USERPARKING-001]
+ */
+val MIGRATION_11_12 = object : Migration(11, 12) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0"
+        )
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN pendingSync INTEGER NOT NULL DEFAULT 0"
+        )
+    }
+}
+

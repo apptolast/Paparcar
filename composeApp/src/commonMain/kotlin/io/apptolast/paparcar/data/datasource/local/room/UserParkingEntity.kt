@@ -38,4 +38,12 @@ data class UserParkingEntity(
     // Arm evidence label of the confirming session (e.g. "speed", "vehicle_enter", "manual").
     // LOCAL-ONLY diagnostics/guard input, same precedent as licensePlate. [DET-SOLID-001]
     val armEvidence: String? = null,
+    // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
+    // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
+    // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]
+    val updatedAt: Long = 0,
+    // True while a local edit has not been confirmed onto Firestore. The reconcile never lets a
+    // remote row overwrite a pending local row that is strictly newer; cleared once the remote
+    // write acks (worker/drainer). [SYNC-RECONCILE-USERPARKING-001]
+    val pendingSync: Boolean = false,
 )

@@ -5,6 +5,7 @@ import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.preferences.AppPreferences
+import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -23,6 +24,7 @@ class AppViewModel(
     private val connectivityObserver: ConnectivityObserver,
     private val vehicleRepository: VehicleRepository,
     private val zoneRepository: ZoneRepository,
+    private val userParkingRepository: UserParkingRepository,
 ) : BaseViewModel<AppState, AppIntent, AppEffect>() {
 
     init {
@@ -114,10 +116,13 @@ class AppViewModel(
     /** Auto-hide timer for the transient [ConnectivityBannerPhase.Restored] banner. */
     private var restoredHideJob: Job? = null
 
-    /** Fire-and-forget push of any un-synced vehicle + zone edits to Firestore (the outbox drainer). */
+    /** Fire-and-forget push of any un-synced vehicle + zone + parking edits to Firestore (the outbox
+     *  drainer). Parking drains an offline clear/move so the remote mirror converges instead of
+     *  keeping a stale active session. [SYNC-RECONCILE-USERPARKING-001] */
     private fun drainPendingSync() {
         viewModelScope.launch { vehicleRepository.pushPendingVehicles() }
         viewModelScope.launch { zoneRepository.pushPendingZones() }
+        viewModelScope.launch { userParkingRepository.pushPendingParkingSessions() }
     }
 
     private companion object {

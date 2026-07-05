@@ -59,9 +59,13 @@ class GeofenceJanitorWorker(
         val duplicates = runCatching { db.parkingSessionDao().getActiveDuplicates() }.getOrDefault(emptyList())
         if (duplicates.isNotEmpty()) {
             PaparcarLogger.w(TAG, "  ⚠ ${duplicates.size} duplicate ACTIVE sessions detected — repairing [DET-SOLID-001]")
+            val now = System.currentTimeMillis()
             duplicates.groupBy { it.vehicleId }.forEach { (_, rows) ->
                 rows.sortedByDescending { it.timestamp }.drop(1).forEach { stale ->
-                    runCatching { db.parkingSessionDao().clearActiveById(stale.id) }
+                    // Stamp the dedup deactivation pending so it propagates to Firestore too — the
+                    // single enforcement point of the one-active-per-vehicle invariant.
+                    // [SYNC-RECONCILE-USERPARKING-001]
+                    runCatching { db.parkingSessionDao().clearActiveById(stale.id, now) }
                 }
             }
         }

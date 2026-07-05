@@ -170,6 +170,7 @@ class RemoteUserProfileDataSourceImpl(
                 detectionReliability = runCatching { get<Double?>(FIELD_DETECTION_RELIABILITY)?.toFloat() }.getOrNull(),
                 sizeCategory = get<String?>(FIELD_SIZE_CATEGORY),
                 carbodyType = get<String?>(FIELD_CARBODY_TYPE),
+                updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
             PaparcarLogger.e(TAG, "toParkingHistoryDto failed — doc=$id", e)

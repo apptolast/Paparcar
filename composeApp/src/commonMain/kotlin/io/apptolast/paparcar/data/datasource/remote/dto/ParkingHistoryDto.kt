@@ -21,4 +21,8 @@ data class ParkingHistoryDto(
     val sizeCategory: String? = null,
     /** [CarbodyType] enum name captured at park time. Null for non-CAR or unknown. */
     val carbodyType: String? = null,
+    /** Epoch-ms of the local edit this document mirrors. Stamped on every write so the inbound-sync
+     *  Last-Write-Wins merge can tell when the server has caught up with a pending local edit.
+     *  Legacy docs read 0 → always lose to a real local timestamp. [SYNC-RECONCILE-USERPARKING-001] */
+    val updatedAt: Long = 0L,
 )
