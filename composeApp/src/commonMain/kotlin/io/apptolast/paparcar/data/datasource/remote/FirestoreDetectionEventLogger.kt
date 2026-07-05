@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package io.apptolast.paparcar.data.datasource.remote
 
 import com.apptolast.customlogin.domain.AuthRepository
@@ -39,10 +41,14 @@ class FirestoreDetectionEventLogger(
 ) : DetectionEventLogger {
 
     private val channel = Channel<DetectionEvent>(capacity = BUFFER_CAPACITY)
+    private val cleanupScope = scope
 
     /** Cached gate value: null until first **successfully** resolved, then the flag from Firestore.
      *  @Volatile so [log] can read it from the producer thread to short-circuit. */
     @Volatile private var gate: Boolean? = null
+
+    /** One retention sweep per process — see [cleanupExpiredSessions]. [DIAG-RETENTION-001] */
+    @Volatile private var cleanupStarted = false
 
     init {
         scope.launch {
@@ -80,6 +86,7 @@ class FirestoreDetectionEventLogger(
             onSuccess = { value ->
                 gate = value
                 PaparcarLogger.d(TAG, "detection remote log enabled=$value")
+                if (value) cleanupExpiredSessions(userId)
                 value
             },
             onFailure = { e ->
@@ -87,6 +94,42 @@ class FirestoreDetectionEventLogger(
                 false
             },
         )
+    }
+
+    /**
+     * [DIAG-RETENTION-001] Best-effort sweep of this user's OWN diagnostic sessions older than
+     * [RETENTION_DAYS]: events subcollection first, then the session doc. Runs at most once per
+     * process, right after the gate resolves enabled — i.e. only opted-in field devices pay it,
+     * and analysed traces stop accumulating as garbage. Departure traces keyed by geofenceId have
+     * no header doc (missing parents) and are not reachable via this query — their event counts
+     * are tiny (4–9 docs) and they age out when swept manually.
+     */
+    private fun cleanupExpiredSessions(userId: String) {
+        if (cleanupStarted) return
+        cleanupStarted = true
+        cleanupScope.launch {
+            runCatching {
+                val cutoffMs = kotlin.time.Clock.System.now().toEpochMilliseconds() -
+                    RETENTION_DAYS * 24 * 60 * 60 * 1_000L
+                val sessions = firestore.collection(COLLECTION_DIAGNOSTICS)
+                    .document(userId)
+                    .collection(COLLECTION_SESSIONS)
+                    .where { FIELD_STARTED_AT lessThan cutoffMs }
+                    .get()
+                    .documents
+                var deleted = 0
+                for (session in sessions) {
+                    session.reference.collection(COLLECTION_EVENTS).get().documents.forEach { event ->
+                        event.reference.delete()
+                        deleted++
+                    }
+                    session.reference.delete()
+                }
+                if (sessions.isNotEmpty()) {
+                    PaparcarLogger.d(TAG, "retention sweep: ${sessions.size} sessions / $deleted events older than $RETENTION_DAYS d removed")
+                }
+            }.onFailure { e -> PaparcarLogger.w(TAG, "retention sweep failed (best-effort): ${e.message}") }
+        }
     }
 
     private suspend fun writeEvent(userId: String, event: DetectionEvent) {
@@ -111,6 +154,9 @@ class FirestoreDetectionEventLogger(
         const val COLLECTION_SESSIONS = "sessions"
         const val COLLECTION_EVENTS = "events"
         const val FIELD_OUTCOME = "outcome"
+        const val FIELD_STARTED_AT = "startedAt"
         const val BUFFER_CAPACITY = 128
+        /** [DIAG-RETENTION-001] Diagnostic sessions older than this are swept on gate resolve. */
+        const val RETENTION_DAYS = 7L
     }
 }
