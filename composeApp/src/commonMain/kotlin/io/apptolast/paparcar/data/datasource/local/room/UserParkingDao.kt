@@ -17,6 +17,11 @@ interface UserParkingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(sessions: List<UserParkingEntity>)
 
+    /** Ids of every locally-known session — the import guard of `syncFromRemote` uses this to
+     *  insert only rows Room has never seen. [SYNC-UP-GUARD-001] */
+    @Query("SELECT id FROM parking_sessions")
+    suspend fun getAllIds(): List<String>
+
     @Query("SELECT * FROM parking_sessions WHERE isActive = 1 AND geofenceId = :geofenceId LIMIT 1")
     suspend fun getActiveByGeofence(geofenceId: String): UserParkingEntity?
 

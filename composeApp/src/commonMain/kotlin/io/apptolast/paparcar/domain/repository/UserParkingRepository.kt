@@ -28,8 +28,10 @@ interface UserParkingRepository : UserScopedRepository, RemoteSyncable {
     /** Clears the active flag of the session with [sessionId] and schedules Firestore reconciliation. */
     suspend fun clearActiveParkingSession(sessionId: String): Result<Unit>
     /**
-     * Downloads parking history from Firestore and populates Room.
-     * No-op if Room already has data — covers new installs and device switches.
+     * Downloads parking history from Firestore and imports ONLY sessions Room has never seen —
+     * covers new installs and device switches. Rows already known locally are never overwritten:
+     * sessions are local-first with a lagging outbound mirror, so a remote doc can be hours stale
+     * and must not resurrect an ended session. [SYNC-UP-GUARD-001]
      */
     override suspend fun syncFromRemote(userId: String): Result<Unit>
     /**
