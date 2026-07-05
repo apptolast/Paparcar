@@ -144,16 +144,16 @@ class ParkingSafetyNetWorker(
         var anyPromptActive = false
         val debugLines = mutableListOf<String>()
 
+        val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
-        val liveGeofenceIds = sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId }
-        lastSeenNearCarAtMs.keys.retainAll(liveGeofenceIds)
+        pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
 
         for (session in sessions) {
             val action = evaluateSafetyNetCheck(
                 session = session,
                 fix = fix,
                 lastVehicleEnteredAt = departureEventBus.lastVehicleEnteredAt,
-                lastSeenNearCarAtMs = session.geofenceId?.let { lastSeenNearCarAtMs[it] },
+                lastSeenNearCarAtMs = session.geofenceId?.let { readAnchor(prefs, it) },
                 nowMs = now,
             )
             val distanceM = haversineMeters(
@@ -165,7 +165,12 @@ class ParkingSafetyNetWorker(
                 is SafetyNetAction.CureGeofence -> {
                     // Position anchor: the phone is provably AT the car right now — this is what
                     // authorises a later far+evidence auto-dispatch (movement started at the car).
-                    lastSeenNearCarAtMs[action.geofenceId] = now
+                    // Persisted to disk (NOT in-memory): an aggressive OEM kills the process between
+                    // parking and driving away, so the anchor MUST survive process death or a real
+                    // drive-away wakes in a fresh process with no anchor and only prompts — the spot
+                    // is then lost while the user drives (field incident 2026-07-05, Oppo: 69 km/h
+                    // departure degraded to prompt because the in-memory anchor was empty). [ANCHOR-PERSIST-001]
+                    writeAnchor(prefs, action.geofenceId, now)
                     PaparcarLogger.d(TAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure)")
                     val result = geofenceManager.createGeofence(
                         geofenceId = action.geofenceId,
@@ -292,6 +297,27 @@ class ParkingSafetyNetWorker(
         }
     }
 
+    // ── Position anchor persistence [ANCHOR-PERSIST-001] ──────────────────────────
+    // Disk-backed so it survives the OEM process kills that are the norm on the very devices
+    // the safety net exists for. Keyed by geofenceId under the same prefs file as the heartbeat.
+
+    private fun readAnchor(prefs: android.content.SharedPreferences, geofenceId: String): Long? =
+        prefs.getLong(ANCHOR_KEY_PREFIX + geofenceId, 0L).takeIf { it > 0L }
+
+    private fun writeAnchor(prefs: android.content.SharedPreferences, geofenceId: String, atMs: Long) {
+        prefs.edit().putLong(ANCHOR_KEY_PREFIX + geofenceId, atMs).apply()
+    }
+
+    /** Removes anchors for geofences with no active session left (departed / reverted). */
+    private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
+        val stale = prefs.all.keys.filter {
+            it.startsWith(ANCHOR_KEY_PREFIX) && it.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
+        }
+        if (stale.isNotEmpty()) {
+            prefs.edit().apply { stale.forEach { remove(it) } }.apply()
+        }
+    }
+
     private fun dismissPrompt() =
         notificationPort.dismiss(AppNotificationManager.STILL_PARKED_NOTIFICATION_ID)
 
@@ -320,16 +346,13 @@ class ParkingSafetyNetWorker(
         private const val PROMPT_THROTTLE_MS = 6 * 60 * 60 * 1_000L
         private val lastPromptAtMs = ConcurrentHashMap<String, Long>()
 
-        /** Position anchor per geofence: when a safety-net fix last landed INSIDE that fence.
-         *  In-memory on purpose — losing it on process death degrades far+evidence to the human
-         *  prompt, never to a phantom auto-release (fail-safe direction). */
-        private val lastSeenNearCarAtMs = ConcurrentHashMap<String, Long>()
-
         // [OEM-KILL-001] Heartbeat persistence (must survive process death — SharedPreferences).
         private const val PREFS_NAME = "parking_safety_net"
         private const val KEY_LAST_ALIVE_AT = "last_alive_at"
         private const val KEY_LAST_ALIVE_ELAPSED = "last_alive_elapsed"
         private const val KEY_LAST_KILL_NOTIFIED_AT = "last_kill_notified_at"
+        /** [ANCHOR-PERSIST-001] Per-geofence position anchor keys live in the SAME prefs file. */
+        private const val ANCHOR_KEY_PREFIX = "anchor_"
 
         /** Heartbeat gap above which the scheduler was provably frozen. Deep Doze legitimately
          *  defers 15-min periodics to maintenance windows ~1–2 h apart; 3 h clears that with
