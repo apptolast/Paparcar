@@ -21,6 +21,7 @@ import io.apptolast.paparcar.domain.model.Spot
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.SpotRepository
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -57,18 +58,26 @@ class ReportSpotWorker(
             ?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
         val carbodyType = inputData.getString(KEY_CARBODY_TYPE)
             ?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() }
-        val expiresAt = nowMs + if (spotType == SpotType.MANUAL_REPORT) {
-            MANUAL_SPOT_TTL_MS
-        } else {
-            AUTO_SPOT_TTL_MS
+        val ttlMs = if (spotType == SpotType.MANUAL_REPORT) MANUAL_SPOT_TTL_MS else AUTO_SPOT_TTL_MS
+
+        // [SPOT-OFFLINE-TTL-001] The TTL is anchored to the RELEASE time (enqueue), not to delivery.
+        // A push that spent hours queued offline (dead network, OEM-frozen WorkManager — field
+        // incident 2026-07-04: the Redmi delivered the whole day's queue at 22:32) must not surface
+        // a long-gone spot to the community; drop it instead of publishing stale noise. The
+        // session-side effects are untouched — only the community spot is time-sensitive.
+        val releasedAtMs = inputData.getLong(KEY_TIMESTAMP, nowMs)
+        if (nowMs - releasedAtMs >= ttlMs) {
+            PaparcarLogger.d(TAG, "spot $spotId released ${(nowMs - releasedAtMs) / 60_000} min ago (ttl=${ttlMs / 60_000} min) — expired in queue, not publishing")
+            return Result.success()
         }
+
         val spot = Spot(
             id = spotId,
             location = GpsPoint(
                 latitude = lat,
                 longitude = lon,
                 accuracy = 0f,
-                timestamp = inputData.getLong(KEY_TIMESTAMP, nowMs),
+                timestamp = releasedAtMs,
                 speed = 0f,
             ),
             reportedBy = inputData.getString(KEY_REPORTER_NAME) ?: "",
@@ -78,7 +87,7 @@ class ReportSpotWorker(
             confidence = confidence,
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
-            expiresAt = expiresAt,
+            expiresAt = releasedAtMs + ttlMs,
         )
 
         return spotRepository.reportSpotReleased(spot).fold(
