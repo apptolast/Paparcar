@@ -6,9 +6,14 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
 import io.apptolast.paparcar.presentation.permissions.PermissionsFocus
+import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.fakes.FakeAppPreferences
 import io.apptolast.paparcar.fakes.FakeAuthRepository
+import io.apptolast.paparcar.fakes.FakeBluetoothScanner
+import io.apptolast.paparcar.fakes.FakeOemBackgroundReliabilityManager
 import io.apptolast.paparcar.fakes.FakePermissionManager
 import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -72,7 +77,14 @@ class SettingsViewModelTest {
             userScopedRepos = listOf(parking, customVehicles, profile, FakeZoneRepository()),
             spotRepository = spots,
         )
-        return SettingsViewModel(customPrefs, auth, profile, useCase, customPermissions, customVehicles)
+        val observeReliability = ObserveDetectionReliabilityUseCase(
+            vehicleRepository = customVehicles,
+            permissionManager = customPermissions,
+            oemBackgroundReliabilityManager = FakeOemBackgroundReliabilityManager(),
+            strategyResolver = ParkingStrategyResolver(customVehicles, FakeBluetoothScanner()),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+        )
+        return SettingsViewModel(customPrefs, auth, profile, useCase, customPermissions, customVehicles, observeReliability)
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────

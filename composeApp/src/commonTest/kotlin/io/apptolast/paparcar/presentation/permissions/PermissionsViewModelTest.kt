@@ -1,9 +1,14 @@
 package io.apptolast.paparcar.presentation.permissions
 
 import app.cash.turbine.test
+import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
+import io.apptolast.paparcar.fakes.FakeBluetoothScanner
 import io.apptolast.paparcar.fakes.FakeOemBackgroundReliabilityManager
 import io.apptolast.paparcar.fakes.FakePermissionManager
+import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -34,7 +39,17 @@ class PermissionsViewModelTest {
 
     private fun viewModel(
         oem: FakeOemBackgroundReliabilityManager = fakeOemManager,
-    ) = PermissionsViewModel(fakePermissions, oem)
+    ) = PermissionsViewModel(
+        fakePermissions,
+        oem,
+        ObserveDetectionReliabilityUseCase(
+            vehicleRepository = FakeVehicleRepository(),
+            permissionManager = fakePermissions,
+            oemBackgroundReliabilityManager = oem,
+            strategyResolver = ParkingStrategyResolver(FakeVehicleRepository(), FakeBluetoothScanner()),
+            evaluateDetectionReliability = EvaluateDetectionReliabilityUseCase(),
+        ),
+    )
 
     @AfterTest
     fun tearDown() {

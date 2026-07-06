@@ -97,6 +97,7 @@
     <string name="permissions_perm_battery">Unrestricted battery usage</string>
     <string name="permissions_perm_battery_desc">Prevents the system from killing the parking detection in the background. Strongly recommended on Xiaomi, Oppo, and Huawei devices.</string>
     <string name="permissions_perm_battery_oem_hint">Your device manufacturer may also require enabling "Autostart" or "Background activity" in system settings. Without these, detection may stop working after a few hours in the background.</string>
+    <string name="permissions_reliability_reduced_callout">Phones like yours restrict apps in the background to save battery. This can stop Paparcar from noticing when you drive away. Allow background activity below — or pair the Bluetooth of your car, the most reliable option.</string>
     <string name="permissions_perm_autostart">Autostart / background activity</string>
     <string name="permissions_perm_autostart_desc">Optional — the app works without this, but on Xiaomi, OPPO and Huawei devices parking detection may stop working after a few hours if disabled. Enabling it allows the app to wake up reliably when you start driving. Minimal battery impact.</string>
     <string name="permissions_perm_oem_battery">Background power saving</string>
@@ -291,6 +292,8 @@
     <string name="settings_detection_health_ok">All set</string>
     <string name="settings_detection_health_ok_desc">Detection has everything it needs</string>
     <string name="settings_detection_health_missing">Missing %1$s</string>
+    <string name="settings_detection_reliability_reduced">Your phone may limit detection</string>
+    <string name="settings_detection_reliability_reduced_desc">Your phone restricts apps in the background — Paparcar could miss the moment you leave your spot</string>
     <string name="settings_detection_fix">Fix</string>
     <string name="settings_detection_improve">Improve detection</string>
     <string name="settings_detection_bt_title">Car Bluetooth</string>

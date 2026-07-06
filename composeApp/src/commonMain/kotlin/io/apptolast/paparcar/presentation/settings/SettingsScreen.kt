@@ -134,6 +134,8 @@ import paparcar.composeapp.generated.resources.settings_detection_fix
 import paparcar.composeapp.generated.resources.settings_detection_health_missing
 import paparcar.composeapp.generated.resources.settings_detection_health_ok
 import paparcar.composeapp.generated.resources.settings_detection_health_ok_desc
+import paparcar.composeapp.generated.resources.settings_detection_reliability_reduced
+import paparcar.composeapp.generated.resources.settings_detection_reliability_reduced_desc
 import paparcar.composeapp.generated.resources.settings_detection_improve
 import paparcar.composeapp.generated.resources.settings_detection_setup
 import paparcar.composeapp.generated.resources.settings_distance_unit
@@ -457,8 +459,12 @@ private fun DetectionSectionCard(state: SettingsState, onIntent: (SettingsIntent
                 onCheckedChange = { onIntent(SettingsIntent.ToggleAutoDetect(it)) },
             )
             PapDivider()
-            // Health of the mandatory permissions
-            DetectionHealthRow(state = state, onFix = { onIntent(SettingsIntent.FixDetectionPermissions) })
+            // Health of the mandatory permissions + reliability of the device environment
+            DetectionHealthRow(
+                state = state,
+                onFix = { onIntent(SettingsIntent.FixDetectionPermissions) },
+                onFixReliability = { onIntent(SettingsIntent.FixDetectionReliability) },
+            )
             PapDivider()
             // Optional one-time setup rows — improvements, never blockers
             MiniHeader(stringResource(Res.string.settings_detection_improve))
@@ -485,12 +491,16 @@ private fun DetectionSectionCard(state: SettingsState, onIntent: (SettingsIntent
 }
 
 @Composable
-private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit) {
+private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixReliability: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val healthy = state.detectionHealthy
+    // Precedence: broken permissions (detection CANNOT run) → REDUCED reliability (detection runs
+    // but the manufacturer is expected to freeze it) → green. [DET-RELIABILITY-001]
+    val reduced = state.detectionReliabilityReduced
+    val amber = !healthy || reduced
     PapListItem(
         leading = {
-            if (healthy) {
+            if (!amber) {
                 PapIconTile(icon = Icons.Rounded.CheckCircle)
             } else {
                 // Amber (secondary) — a fixable setup gap, not a hard blocker (PRODUCER perms don't
@@ -502,18 +512,22 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit) {
                 )
             }
         },
-        title = if (healthy) {
-            stringResource(Res.string.settings_detection_health_ok)
-        } else {
-            stringResource(Res.string.settings_detection_health_missing, firstMissingLabel(state))
+        title = when {
+            !healthy -> stringResource(Res.string.settings_detection_health_missing, firstMissingLabel(state))
+            reduced -> stringResource(Res.string.settings_detection_reliability_reduced)
+            else -> stringResource(Res.string.settings_detection_health_ok)
         },
-        titleColor = if (healthy) cs.onSurface else cs.secondary,
-        subtitle = if (healthy) stringResource(Res.string.settings_detection_health_ok_desc) else null,
+        titleColor = if (amber) cs.secondary else cs.onSurface,
+        subtitle = when {
+            !healthy -> null
+            reduced -> stringResource(Res.string.settings_detection_reliability_reduced_desc)
+            else -> stringResource(Res.string.settings_detection_health_ok_desc)
+        },
         subtitleColor = settingsSubtitleColor(),
         trailing = {
-            if (!healthy) {
+            if (amber) {
                 OutlinedButton(
-                    onClick = onFix,
+                    onClick = if (healthy) onFixReliability else onFix,
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = cs.secondary),
                     border = BorderStroke(PapBorders.thin, cs.secondary),

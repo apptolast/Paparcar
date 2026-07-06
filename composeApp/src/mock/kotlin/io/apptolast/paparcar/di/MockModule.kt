@@ -73,7 +73,7 @@ val mockModule = module {
     // Real Overpass road source so the mock sim exercises live OSM map-matching on-device. [ROUTE-SNAP-001]
     single<RoadNetworkDataSource> { OverpassRoadNetworkDataSourceImpl() }
     single<PermissionManager> { FakePermissionManager(get()) }
-    single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager() }
+    single<OemBackgroundReliabilityManager> { FakeOemBackgroundReliabilityManager(get()) }
     single<AppPreferences> { FakeAppPreferences(get()) }
     single<BluetoothScanner> { FakeBluetoothScanner() }
     single<ConnectivityObserver> { FakeConnectivityObserver(get()) }

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.connectivity.ConnectivityBannerPhase
 import io.apptolast.paparcar.domain.model.CarbodyType
+import io.apptolast.paparcar.domain.model.DetectionReliabilityLevel
 import io.apptolast.paparcar.domain.model.UserProfile
 import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleSize
@@ -407,6 +408,20 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
+            Variant("Fiabilidad REDUCED (OEM agresivo)") {
+                SettingsContent(
+                    state = SettingsState(
+                        userProfile = sampleProfile,
+                        // Permissions fine, but aggressive OEM + no BT + no exemption → amber
+                        // reliability row with its own Fix. [DET-RELIABILITY-001]
+                        missingDetectionPermissions = emptySet(),
+                        isLocationServicesEnabled = true,
+                        isBatteryOptimizationExempt = false,
+                        btDeviceConfigured = false,
+                        detectionReliability = DetectionReliabilityLevel.REDUCED,
+                    ),
+                )
+            },
             Variant("Diálogo borrar cuenta") {
                 SettingsContent(state = SettingsState(userProfile = sampleProfile, showDeleteAccountConfirmation = true))
             },
@@ -559,6 +574,24 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         isLocationServicesEnabled = true,
                         isBatteryOptimizationExempt = true,
                         showAutostartCard = true,
+                    ),
+                    onRequestPermissions = {},
+                )
+            },
+            Variant("Fiabilidad REDUCED (callout honesto)") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true,
+                        hasBackgroundLocation = true,
+                        hasActivityRecognition = true,
+                        hasNotifications = true,
+                        isLocationServicesEnabled = true,
+                        // Aggressive OEM + no exemption + no BT pairing → the optional tier swaps
+                        // its generic hint for the amber manufacturer-policy callout. [DET-RELIABILITY-001]
+                        isBatteryOptimizationExempt = false,
+                        showAutostartCard = true,
+                        showOemBatteryCard = true,
+                        isReliabilityReduced = true,
                     ),
                     onRequestPermissions = {},
                 )

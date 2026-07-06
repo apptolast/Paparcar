@@ -95,10 +95,16 @@ class FakePermissionManager(private val scenario: MockScenario? = null) : Permis
     }
 }
 
-class FakeOemBackgroundReliabilityManager : OemBackgroundReliabilityManager {
-    override val requiresAutostartWhitelist: Boolean = false
+/**
+ * @param scenario when non-null, both proprietary gates mirror [MockScenario.aggressiveOem] so the
+ * Dev Catalog can exercise the REDUCED-reliability surfaces on any emulator. [DET-RELIABILITY-001]
+ */
+class FakeOemBackgroundReliabilityManager(
+    private val scenario: MockScenario? = null,
+) : OemBackgroundReliabilityManager {
+    override val requiresAutostartWhitelist: Boolean get() = scenario?.aggressiveOem?.value ?: false
     override suspend fun launchAutostartSettings(): Boolean = false
-    override val requiresOemBatterySettings: Boolean = false
+    override val requiresOemBatterySettings: Boolean get() = scenario?.aggressiveOem?.value ?: false
     override suspend fun launchOemBatterySettings(): Boolean = false
 }
 

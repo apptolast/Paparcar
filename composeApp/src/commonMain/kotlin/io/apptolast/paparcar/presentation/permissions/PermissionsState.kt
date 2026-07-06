@@ -26,6 +26,10 @@ data class PermissionsState(
     val showOemBatteryCard: Boolean = false,
     /** `true` once the user has tapped the OEM battery button this session. */
     val hasAcknowledgedOemBattery: Boolean = false,
+    /** Reliability evaluator says REDUCED (aggressive OEM + no BT pairing + no exemption) — the
+     *  optional tier swaps its generic battery hint for the honest manufacturer-policy callout.
+     *  User-level copy only: cause → consequence → remedies, never internals. [DET-RELIABILITY-001] */
+    val isReliabilityReduced: Boolean = false,
     val showRationale: Boolean = false,
     val showSettingsPrompt: Boolean = false,
     /** Foreground location is denied AND the system will no longer show its dialog (permanently

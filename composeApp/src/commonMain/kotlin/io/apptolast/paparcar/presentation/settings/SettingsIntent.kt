@@ -13,6 +13,9 @@ sealed class SettingsIntent {
     data object ConfigureBluetooth : SettingsIntent()
     /** "Set up" the battery-exemption improvement (Android Doze). */
     data object ConfigureBattery : SettingsIntent()
+    /** "Fix" on the REDUCED-reliability health row — jump to the optional-reliability section of
+     *  the permissions flow (battery exemption + OEM autostart cards). [DET-RELIABILITY-001] */
+    data object FixDetectionReliability : SettingsIntent()
     data object OpenPrivacyPolicy : SettingsIntent()
     data object OpenLicenses : SettingsIntent()
     data object OpenContact : SettingsIntent()

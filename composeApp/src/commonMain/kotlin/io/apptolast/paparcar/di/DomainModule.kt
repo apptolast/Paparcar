@@ -26,8 +26,10 @@ import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import org.koin.dsl.bind
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
@@ -182,6 +184,18 @@ val domainModule = module {
         EvaluateFirstParkNudgeUseCase(
             observeDetectionReadiness = get(),
             appPreferences = get(),
+        )
+    }
+
+    // Detection reliability — single evaluator every surface reads [DET-RELIABILITY-001]
+    factory { EvaluateDetectionReliabilityUseCase() }
+    factory {
+        ObserveDetectionReliabilityUseCase(
+            vehicleRepository = get(),
+            permissionManager = get(),
+            oemBackgroundReliabilityManager = get(),
+            strategyResolver = get(),
+            evaluateDetectionReliability = get(),
         )
     }
 

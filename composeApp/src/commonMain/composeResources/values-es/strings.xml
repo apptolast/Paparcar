@@ -87,6 +87,7 @@
     <string name="permissions_perm_battery">Uso de batería sin restricciones</string>
     <string name="permissions_perm_battery_desc">Evita que el sistema mate la detección de aparcamiento en segundo plano. Muy recomendado en dispositivos Xiaomi, Oppo y Huawei.</string>
     <string name="permissions_perm_battery_oem_hint">Tu fabricante puede requerir también activar "Inicio automático" o "Actividad en segundo plano" en los ajustes del sistema. Sin ellos, la detección puede dejar de funcionar al cabo de unas horas en segundo plano.</string>
+    <string name="permissions_reliability_reduced_callout">Los móviles como el tuyo restringen las apps en segundo plano para ahorrar batería. Esto puede impedir que Paparcar detecte cuándo te vas de tu plaza. Permite la actividad en segundo plano aquí abajo — o empareja el Bluetooth de tu coche, la opción más fiable.</string>
     <string name="permissions_perm_autostart">Inicio automático / actividad en segundo plano</string>
     <string name="permissions_perm_autostart_desc">Opcional — la app funciona sin esto, pero en dispositivos Xiaomi, OPPO y Huawei la detección de aparcamiento puede dejar de funcionar al cabo de unas horas si está desactivado. Activarlo permite a la app despertar de forma fiable cuando empiezas a conducir. Impacto mínimo en la batería.</string>
     <string name="permissions_perm_oem_battery">Ahorro de batería en segundo plano</string>
@@ -220,6 +221,8 @@
     <string name="settings_detection_health_ok">Todo listo</string>
     <string name="settings_detection_health_ok_desc">La detección tiene todo lo que necesita</string>
     <string name="settings_detection_health_missing">Falta %1$s</string>
+    <string name="settings_detection_reliability_reduced">Tu móvil puede limitar la detección</string>
+    <string name="settings_detection_reliability_reduced_desc">Tu móvil restringe las apps en segundo plano — Paparcar podría no detectar cuándo dejas tu plaza</string>
     <string name="settings_detection_fix">Arreglar</string>
     <string name="settings_detection_improve">Mejora la detección</string>
     <string name="settings_detection_bt_title">Bluetooth del coche</string>

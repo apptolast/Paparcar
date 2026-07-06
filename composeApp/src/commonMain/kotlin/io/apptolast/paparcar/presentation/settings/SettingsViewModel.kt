@@ -10,6 +10,7 @@ import io.apptolast.paparcar.domain.permissions.missingPermissions
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.user.DeleteAccountUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -26,6 +27,7 @@ class SettingsViewModel(
     private val deleteAccountUseCase: DeleteAccountUseCase,
     private val permissionManager: PermissionManager,
     private val vehicleRepository: VehicleRepository,
+    private val observeDetectionReliability: ObserveDetectionReliabilityUseCase,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>() {
 
     override fun initState(): SettingsState = SettingsState()
@@ -34,6 +36,7 @@ class SettingsViewModel(
         loadFromPreferences()
         observePermissions()
         observeActiveVehicle()
+        observeReliability()
         viewModelScope.launch {
             val userId = authRepository.getCurrentSession()?.userId
             if (userId != null) {
@@ -76,6 +79,14 @@ class SettingsViewModel(
                 }
             }
             .catch { e -> PaparcarLogger.w(TAG, "Failed to observe active vehicle", e) }
+            .launchIn(viewModelScope)
+    }
+
+    /** Mirrors the single reliability evaluator into the health row. [DET-RELIABILITY-001] */
+    private fun observeReliability() {
+        observeDetectionReliability()
+            .onEach { report -> updateState { copy(detectionReliability = report.level) } }
+            .catch { e -> PaparcarLogger.w(TAG, "Failed to observe detection reliability", e) }
             .launchIn(viewModelScope)
     }
 
@@ -159,6 +170,10 @@ class SettingsViewModel(
             }
             // Battery exemption lives in the PRODUCER reliability section of the permissions flow.
             is SettingsIntent.ConfigureBattery ->
+                sendEffect(SettingsEffect.NavigateToPermissions(PermissionsFocus.Producer))
+            // REDUCED-reliability "Fix": the remedies (battery exemption + OEM autostart cards)
+            // live in the same optional section of the permissions flow. [DET-RELIABILITY-001]
+            is SettingsIntent.FixDetectionReliability ->
                 sendEffect(SettingsEffect.NavigateToPermissions(PermissionsFocus.Producer))
             is SettingsIntent.OpenPrivacyPolicy ->
                 sendEffect(SettingsEffect.OpenUrl("https://paparcar.app/privacy"))

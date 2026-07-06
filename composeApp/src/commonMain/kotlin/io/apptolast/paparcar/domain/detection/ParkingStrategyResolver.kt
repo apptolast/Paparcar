@@ -82,6 +82,15 @@ class ParkingStrategyResolver(
      */
     suspend fun shouldUseCoordinator(): Boolean = resolve() == ParkingStrategy.COORDINATOR
 
+    /**
+     * `true` when some vehicle in the fleet is paired to a car-Bluetooth device (and is a type
+     * that parks) — the one-time SETUP fact behind the BT strategy, deliberately independent of
+     * the adapter's momentary on/off state that [strategyFor] additionally gates on. This is the
+     * "deterministic trigger available" input of the reliability evaluator. [DET-RELIABILITY-001]
+     */
+    fun hasBtPairedParkingVehicle(vehicles: List<Vehicle>): Boolean =
+        vehicles.any { it.isBtPairedAndParks() }
+
     private fun Vehicle.isBtPairedAndParks(): Boolean =
         bluetoothDeviceId != null && vehicleType !in NON_PARKING_TYPES
 

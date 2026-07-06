@@ -51,6 +51,7 @@ fun DevCatalogScreen(
     val tier by scenario.permissionTier.collectAsStateWithLifecycle()
     val gps by scenario.gpsEnabled.collectAsStateWithLifecycle()
     val online by scenario.online.collectAsStateWithLifecycle()
+    val aggressiveOem by scenario.aggressiveOem.collectAsStateWithLifecycle()
     // Shared detection runtime — toggling it simulates an in-progress trip in the real Home (moving
     // driving puck + "Conduciendo" chip + camera follow), no real drive needed. [DRIVE-SIM-001]
     val runtime: MutableDetectionRuntimeState = koinInject()
@@ -97,6 +98,8 @@ fun DevCatalogScreen(
             SwitchRow("Onboarding completado", onboarding) { scenario.onboardingCompleted.value = it }
             SwitchRow("GPS activado", gps) { scenario.gpsEnabled.value = it }
             SwitchRow("Conexión online", online) { scenario.online.value = it }
+            // Fiabilidad REDUCED = OEM agresivo + sin exención (tier ≠ All) + sin BT. [DET-RELIABILITY-001]
+            SwitchRow("OEM agresivo (MIUI/ColorOS)", aggressiveOem) { scenario.aggressiveOem.value = it }
 
             SectionTitle("Simulación")
             SwitchRow("Conduciendo (puck en movimiento en Home)", driving) { on ->
@@ -153,6 +156,12 @@ fun DevCatalogScreen(
             }
             PresetButton("Registro de vehículo (sin coche)") {
                 scenario.reset(); scenario.session.value = MockScenario.Session.LoggedInNoVehicle; onEnter()
+            }
+            PresetButton("Fiabilidad REDUCED (OEM agresivo, sin exención)") {
+                scenario.reset()
+                scenario.aggressiveOem.value = true
+                scenario.permissionTier.value = MockScenario.PermissionTier.Producer
+                onEnter()
             }
             PresetButton("Home (todo OK)") {
                 scenario.reset(); onEnter()

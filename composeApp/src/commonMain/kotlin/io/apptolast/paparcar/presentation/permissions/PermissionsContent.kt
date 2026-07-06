@@ -60,6 +60,7 @@ import paparcar.composeapp.generated.resources.permissions_perm_background_desc
 import paparcar.composeapp.generated.resources.permissions_perm_battery
 import paparcar.composeapp.generated.resources.permissions_perm_battery_desc
 import paparcar.composeapp.generated.resources.permissions_perm_battery_oem_hint
+import paparcar.composeapp.generated.resources.permissions_reliability_reduced_callout
 import paparcar.composeapp.generated.resources.permissions_perm_bluetooth
 import paparcar.composeapp.generated.resources.permissions_perm_bluetooth_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location
@@ -271,10 +272,23 @@ internal fun PermissionsContent(
                 )
                 if (!state.isBatteryOptimizationExempt) {
                     Spacer(Modifier.height(PaparcarSpacing.sm))
+                    // REDUCED reliability → the honest manufacturer-policy callout (user-level
+                    // copy: cause → consequence → remedies) replaces the generic hint; amber to
+                    // match the health convention. [DET-RELIABILITY-001]
                     Text(
-                        text = stringResource(Res.string.permissions_perm_battery_oem_hint),
+                        text = stringResource(
+                            if (state.isReliabilityReduced) {
+                                Res.string.permissions_reliability_reduced_callout
+                            } else {
+                                Res.string.permissions_perm_battery_oem_hint
+                            },
+                        ),
                         style = PaparcarType.current.caption,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (state.isReliabilityReduced) {
+                            MaterialTheme.colorScheme.secondary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                 }
 

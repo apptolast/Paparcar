@@ -1,13 +1,17 @@
 package io.apptolast.paparcar.presentation.permissions
 
+import io.apptolast.paparcar.domain.model.DetectionReliabilityLevel
 import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
 import io.apptolast.paparcar.domain.permissions.PermissionManager
+import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import io.apptolast.paparcar.presentation.base.BaseViewModel
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 class PermissionsViewModel(
     private val permissionManager: PermissionManager,
     private val oemBackgroundReliabilityManager: OemBackgroundReliabilityManager,
+    observeDetectionReliability: ObserveDetectionReliabilityUseCase,
 ) : BaseViewModel<PermissionsState, PermissionsIntent, PermissionsEffect>() {
 
     // Counts how many times a system permission dialog has been launched.
@@ -52,6 +56,15 @@ class PermissionsViewModel(
                     sendEffect(PermissionsEffect.NavigateToHome)
                 }
             }
+        }
+        // Single reliability evaluator — REDUCED swaps the optional tier's generic battery hint
+        // for the honest manufacturer-policy callout. [DET-RELIABILITY-001]
+        viewModelScope.launch {
+            observeDetectionReliability()
+                .catch { /* keep the last known value — a dead stream must not kill the screen */ }
+                .collect { report ->
+                    updateState { copy(isReliabilityReduced = report.level == DetectionReliabilityLevel.REDUCED) }
+                }
         }
     }
 

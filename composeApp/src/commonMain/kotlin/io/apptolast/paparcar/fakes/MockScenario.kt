@@ -28,11 +28,17 @@ class MockScenario {
     val gpsEnabled = MutableStateFlow(true)
     val online = MutableStateFlow(true)
 
+    /** Simulates an aggressive-OEM device (MIUI/ColorOS…): the OEM manager reports both
+     *  proprietary gates, so REDUCED reliability is reachable on any emulator (combine with
+     *  tier=Producer — no battery exemption — and vehicles without BT). [DET-RELIABILITY-001] */
+    val aggressiveOem = MutableStateFlow(false)
+
     fun reset() {
         session.value = Session.LoggedInWithVehicles
         onboardingCompleted.value = true
         permissionTier.value = PermissionTier.All
         gpsEnabled.value = true
         online.value = true
+        aggressiveOem.value = false
     }
 }
