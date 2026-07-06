@@ -583,15 +583,35 @@ class CoordinatorParkingDetector(
                         return@collect
                     }
 
-                    // Response-timeout abort. [BUG-STUCK-SESSION]
+                    // Response-timeout: SAVE, don't discard. [DET-RECONCILE-001] The prompt only
+                    // shows after a real trip + stop + vehicle-exit signal — the parking almost
+                    // certainly happened; the only missing bit is a human tap. Throwing the
+                    // session away costs the user their car (field incident 2026-07-06, Redmi:
+                    // a real parking was lost to an unnoticed notification), while saving it
+                    // wrong costs one correction tap. Saved with low reliability so nothing
+                    // community-facing trusts it on its own. Session-end still runs (completed).
                     val promptShownAt = state.phase.promptShownAt
                     if (promptShownAt != null && (now - promptShownAt) > config.confirmationResponseTimeoutMs) {
                         PaparcarLogger.d(
                             DIAG,
-                            "  ⑊ no user response after ${now - promptShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — aborting session [BUG-STUCK-SESSION]"
+                            "  ⑊ no user response after ${now - promptShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — SAVING unattended (reliability=${config.reliabilityUnattendedSave}) [DET-RECONCILE-001]"
                         )
                         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                        sessionOutcome = "aborted_response_timeout"
+                        val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
+                        val saved = runConfirm(
+                            location = locationToConfirm,
+                            reliability = config.reliabilityUnattendedSave,
+                            vehicleId = activeVehicleId,
+                            pathLabel = "unattended_timeout",
+                        )
+                        if (!saved) {
+                            // Guard degraded the save to yet another prompt — but the user already
+                            // ignored one for the full window; ending here (old abort) is the only
+                            // non-looping exit. Dismiss the re-posted prompt so nothing dangles.
+                            // [BUG-STUCK-SESSION]
+                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                            sessionOutcome = "aborted_response_timeout"
+                        }
                         completed = true
                         return@collect
                     }

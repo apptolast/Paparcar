@@ -697,8 +697,12 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
-    fun should_abort_when_prompt_gets_no_response_within_timeout() =
+    fun should_save_unattended_when_prompt_gets_no_response_within_timeout() =
         runTest(UnconfinedTestDispatcher()) {
+            // [DET-RECONCILE-001] The prompt only shows after a real trip + stop; an unanswered
+            // notification must not cost the user their parking (field incident 2026-07-06,
+            // Redmi: a real parking was discarded after 15 silent minutes). The timeout SAVES
+            // with low reliability instead of aborting; the session still closes. [BUG-STUCK-SESSION]
             var nowMs = 0L
             val env = setup(clock = { nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
@@ -714,6 +718,7 @@ class CoordinatorParkingDetectorTest {
             nowMs += config.lowNotifTimeoutMs + 5_000L
             locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
             assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "nothing saved while the prompt waits")
 
             nowMs += config.confirmationResponseTimeoutMs + 1_000L
             locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
@@ -722,8 +727,8 @@ class CoordinatorParkingDetectorTest {
 
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("aborted_response_timeout", ended.outcome, "[BUG-STUCK-SESSION]")
-            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount)
+            assertEquals("confirmed_unattended_timeout", ended.outcome, "[DET-RECONCILE-001]")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "unanswered prompt saves, never discards")
         }
 
     @Test
@@ -734,8 +739,9 @@ class CoordinatorParkingDetectorTest {
             // takes the fast path (ceiling Medium), so a Candidate can only ever open with
             // hadVehicleExit=false — whose window (5 min) then requires steps to confirm. This
             // test pins the REAL end-to-end behaviour: a stepless Candidate is prompted, dies
-            // Rejected at the window, and the session aborts on the response timeout. Egress
-            // without steps NEVER silently saves.
+            // Rejected at the window, and the ignored prompt resolves via the unattended save
+            // (low reliability) — egress without steps NEVER silently AUTO-saves; the human
+            // window always runs first. [DET-RECONCILE-001]
             var nowMs = 0L
             val env = setup(clock = { nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
@@ -753,16 +759,18 @@ class CoordinatorParkingDetectorTest {
             // The (no-exit) 5-min observation window elapses → candidate Rejected, falls to Notified.
             nowMs += config.confirmationObservationWindowMs + 1_000L
             locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
-            // Nobody answers the prompt → response timeout closes the session.
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "stepless egress must never AUTO-save")
+            // Nobody answers the prompt → [DET-RECONCILE-001] the timeout saves unattended with
+            // low reliability (a real trip + 5-min stop happened; discarding it loses the car).
             nowMs += config.confirmationResponseTimeoutMs + 1_000L
             locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
 
             job.cancelAndJoin()
 
-            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "stepless egress must never save")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "ignored prompt saves unattended")
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("aborted_response_timeout", ended.outcome)
+            assertEquals("confirmed_unattended_timeout", ended.outcome)
         }
 
     // ─────────────────────────────────────────────────────────────────────────
