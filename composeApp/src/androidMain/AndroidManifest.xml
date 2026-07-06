@@ -77,12 +77,16 @@
             android:permission="com.google.android.gms.permission.ACTIVITY_RECOGNITION">
         </receiver>
 
-        <!-- BootCompletedReceiver -->
+        <!-- BootCompletedReceiver — re-arms geofences/AR/workers after the events that wipe them:
+             reboot, app update (MY_PACKAGE_REPLACED drops Play Services geofences) and, on
+             Android 15+, the synthetic BOOT_COMPLETED delivered when leaving the force-stopped
+             state. [GEOF-RESTORE-001] -->
         <receiver
             android:name=".detection.receiver.BootCompletedReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

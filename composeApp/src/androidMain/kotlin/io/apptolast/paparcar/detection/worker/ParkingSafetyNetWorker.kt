@@ -3,8 +3,10 @@
 package io.apptolast.paparcar.detection.worker
 
 import android.Manifest
+import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
@@ -105,6 +107,7 @@ class ParkingSafetyNetWorker(
         // stamping the new one. An hours-long gap with a session active means the OEM froze
         // background execution for that whole window — surface it (telemetry + contextual fix ask).
         detectBackgroundKill(sessions)
+        detectConfirmedForceStop(sessions)
 
         // [DET-SIGMOTION-001] Mirror the parked-idle state onto the hardware trigger on EVERY
         // tick — this is also what re-arms it after a process kill or after it fired one-shot.
@@ -284,6 +287,38 @@ class ParkingSafetyNetWorker(
         }
     }
 
+    /**
+     * [OEM-KILL-001] Deterministic complement of the heartbeat heuristic: on Android 16+ the
+     * platform records whether the app was force-stopped before the current process start
+     * (`ApplicationStartInfo.wasForceStopped()`), which is exactly what an OEM "deep optimization"
+     * kill amounts to (they invoke `forceStopPackage`). Unlike the gap heuristic this cannot
+     * confuse deep Doze with a kill — and a force-stop is the harmful case: it WIPES registered
+     * geofences, alarms and pending intents, so a departure in that window was undetectable.
+     * Checked once per process start, logged only while a session is active (when a kill can
+     * actually cost a spot). SILENT telemetry, same "earn the ask" rule as the heuristic.
+     */
+    private suspend fun detectConfirmedForceStop(sessions: List<UserParking>) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) return
+        if (forceStopCheckedThisProcess || sessions.isEmpty()) return
+        forceStopCheckedThisProcess = true
+        runCatching {
+            val activityManager = appContext.getSystemService(ActivityManager::class.java)
+            val wasForceStopped = activityManager
+                ?.getHistoricalProcessStartReasons(1)
+                ?.firstOrNull()
+                ?.wasForceStopped() == true
+            if (wasForceStopped) {
+                PaparcarLogger.w(TAG, "⚠ platform confirms a FORCE-STOP before this process start [OEM-KILL-001]")
+                detectionEventLogger.log(
+                    DetectionEvent.ForceStopConfirmed(
+                        sessionId = sessions.firstNotNullOfOrNull { it.geofenceId } ?: "system",
+                        timestampMs = System.currentTimeMillis(),
+                    )
+                )
+            }
+        }
+    }
+
     private suspend fun logVerdict(geofenceId: String, verdict: String, source: String, fixSpeedKmh: Float, now: Long) {
         runCatching {
             detectionEventLogger.log(
@@ -364,6 +399,11 @@ class ParkingSafetyNetWorker(
          *  legitimately defers 15-min periodics for hours, so this cannot distinguish a harmful
          *  OEM kill from ordinary idle — hence telemetry only, never a user warning. */
         private const val KILL_GAP_THRESHOLD_MS = 3 * 60 * 60 * 1_000L
+
+        /** [OEM-KILL-001] `wasForceStopped()` describes the CURRENT process start — check it once
+         *  per process, not on every 15-min tick of a long-lived process. */
+        @Volatile
+        private var forceStopCheckedThisProcess = false
 
         fun buildPeriodicRequest(): PeriodicWorkRequest =
             PeriodicWorkRequestBuilder<ParkingSafetyNetWorker>(INTERVAL_MINUTES, TimeUnit.MINUTES)

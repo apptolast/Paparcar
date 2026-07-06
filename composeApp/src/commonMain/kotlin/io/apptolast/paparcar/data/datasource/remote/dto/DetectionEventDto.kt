@@ -80,6 +80,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.OrphanCleaned -> "ORPHAN_CLEANED"
     is DetectionEvent.GeofenceRegistration -> "GEOFENCE_REGISTRATION"
     is DetectionEvent.BackgroundKillSuspected -> "BACKGROUND_KILL_SUSPECTED"
+    is DetectionEvent.ForceStopConfirmed -> "FORCE_STOP_CONFIRMED"
 }
 
 fun DetectionEvent.SessionStarted.toSessionDto(): DetectionSessionDto = DetectionSessionDto(
@@ -122,5 +123,6 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.OrphanCleaned -> base
         is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)
         is DetectionEvent.BackgroundKillSuspected -> base.copy(gapMs = gapMs)
+        is DetectionEvent.ForceStopConfirmed -> base
     }
 }

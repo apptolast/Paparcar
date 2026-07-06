@@ -178,4 +178,15 @@ sealed interface DetectionEvent {
         val gapMs: Long? = null,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
+
+    /** The platform itself reported (Android 16+ `ApplicationStartInfo.wasForceStopped()`) that the
+     *  app was force-stopped before the current process start while a session was active. Unlike
+     *  [BackgroundKillSuspected] — a heartbeat-gap heuristic that cannot tell an OEM kill from deep
+     *  Doze — this is a CONFIRMED kill: force-stop wipes registered geofences, pending intents and
+     *  alarms, so a departure during that window was undetectable. [OEM-KILL-001] */
+    data class ForceStopConfirmed(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
 }

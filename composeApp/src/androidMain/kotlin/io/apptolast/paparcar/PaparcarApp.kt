@@ -81,6 +81,13 @@ class PaparcarApp : Application() {
         // Re-register geofences for active sessions every 12h. Geofences have a 24h TTL to
         // prevent orphan accumulation after process kills; the janitor renews them in time. [GEOF-001]
         GeofenceJanitorWorker.enqueueKeep(workManager)
+        // …and ONE unconditional restore pass right now: Play Services ERASES registered geofences
+        // (it does not merely silence them) on force-stop — which is what OEM deep-kills amount
+        // to — and on app update/reinstall. Only a manual app open revives a force-stopped app, so
+        // every process start must assume the fences are gone and rebuild them from Room. Idempotent
+        // (FLAG_UPDATE_CURRENT + no initial trigger); waiting up to 12 h for the KEEP periodic would
+        // leave an active park blind to its departure for that whole window. [GEOF-RESTORE-001]
+        GeofenceJanitorWorker.enqueueOnce(workManager)
 
         // Parked-session safety net: every 15 min while parked, feed the geofencing engine an
         // active fix, cure a poisoned fence state, recover missed departures, and keep the
