@@ -735,7 +735,9 @@ private fun ParkingPeekRow(
 @Composable
 private fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
     if (timestampMs <= 0L) return
-    val elapsedMin = ((kotlin.time.Clock.System.now().toEpochMilliseconds() - timestampMs) / 60_000L)
+    // Live clock so the parked-duration counter ticks up on screen. [SPOT-TTL-LIVE-001]
+    val nowMs = rememberNowMinuteTick()
+    val elapsedMin = ((nowMs - timestampMs) / MS_PER_MINUTE)
         .toInt().coerceAtLeast(0)
     val durationText = if (elapsedMin < 60) {
         stringResource(Res.string.home_peek_parking_duration_min, elapsedMin)
