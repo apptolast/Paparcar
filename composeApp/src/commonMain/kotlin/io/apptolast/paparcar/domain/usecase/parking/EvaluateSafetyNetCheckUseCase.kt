@@ -17,11 +17,16 @@ sealed class SafetyNetAction {
      *  2026-07-04, Calle Gavia: the departure after a dismissed walking-EXIT was silent). */
     data class CureGeofence(val geofenceId: String, val radiusMeters: Float) : SafetyNetAction()
 
-    /** Far from the parked car, MOVING at credible driving speed, AND a fresh position anchor (the
-     *  phone was seen INSIDE this car's fence recently) — a missed EXIT is in progress and provably
-     *  started at the car; dispatch the normal departure pipeline (worker retries, verdict, publish,
-     *  session clear). */
-    data class DispatchDeparture(val geofenceId: String) : SafetyNetAction()
+    /** Far from the parked car with a fresh position anchor (the phone was seen INSIDE this
+     *  car's fence recently) AND proof the movement was a vehicle trip — either live (credible
+     *  driving-speed fix, [preconfirmed] = false: the departure worker re-verifies by speed) or
+     *  reconstructed after the fact by the step budget / pedestrian-physics verdict
+     *  ([preconfirmed] = true: the trip is already over, a speed re-check would wrongly veto it —
+     *  the worker must skip straight to processing). [DET-RECONCILE-001] */
+    data class DispatchDeparture(
+        val geofenceId: String,
+        val preconfirmed: Boolean = false,
+    ) : SafetyNetAction()
 
     /** Far from the parked car, MOVING at driving speed, but WITHOUT a fresh anchor — in a vehicle
      *  that was boarded away from the car (bus / taxi / lift, or a real drive-away whose anchor
@@ -45,9 +50,13 @@ sealed class SafetyNetAction {
  * evaluator maps it to the action for each active session:
  *
  *  - inside the fence        → [SafetyNetAction.CureGeofence] (reset a possibly-poisoned fence)
- *  - far + driving + anchor  → [SafetyNetAction.DispatchDeparture] (recover a missed EXIT)
+ *  - far + driving + anchor  → [SafetyNetAction.DispatchDeparture] (recover a missed EXIT, live)
  *  - far + driving, no anchor→ [SafetyNetAction.PromptStillParked] (human disambiguates; never auto)
- *  - far + STATIONARY        → [SafetyNetAction.None] (parked-and-away on foot — never nag)
+ *  - far + stationary + anchor + steps ≪ distance/stride
+ *                            → [SafetyNetAction.DispatchDeparture] preconfirmed (the trip already
+ *                              happened while we slept — step budget proves it) [DET-RECONCILE-001]
+ *  - far + STATIONARY, steps compatible with walking (or no anchor)
+ *                            → [SafetyNetAction.None] (parked-and-away on foot — never nag)
  *  - ambiguous ring          → [SafetyNetAction.None]
  *
  * The whole point of this layer is that it does NOT depend on Play Services delivering anything:
@@ -78,12 +87,17 @@ class EvaluateSafetyNetCheckUseCase(
      * @param lastSeenNearCarAtMs Epoch-ms of the last safety-net fix INSIDE this session's fence
      *                            (the position anchor), or null when never observed / lost.
      * @param nowMs               Wall-clock now (epoch-ms).
+     * @param stepsSinceAnchor    Cumulative-step-counter delta since the anchor was written, or
+     *                            null when unknown (no hardware, read timeout, no counter sample
+     *                            stored with the anchor, or a reboot reset the counter). The
+     *                            caller must map a NEGATIVE delta to null. [DET-RECONCILE-001]
      */
     operator fun invoke(
         session: UserParking,
         fix: GpsPoint,
         lastSeenNearCarAtMs: Long?,
         nowMs: Long,
+        stepsSinceAnchor: Long? = null,
     ): SafetyNetAction {
         val geofenceId = session.geofenceId ?: return SafetyNetAction.None
 
@@ -105,32 +119,50 @@ class EvaluateSafetyNetCheckUseCase(
             return SafetyNetAction.None
         }
 
-        // The safety net only acts on a departure IN PROGRESS: a credible driving-speed fix far
-        // from the car. Being far and STATIONARY (or walking) is the normal "parked and left on
-        // foot / by bus / to dinner" state — indistinguishable, after the fact, from a missed
-        // drive-away — so it stays SILENT (field incident 2026-07-05, Oppo: every speed-0 tick
-        // while at dinner nagged "still parked?"). A real drive-away that the geofence missed is
-        // caught while the car is still MOVING here, or self-heals when the vehicle re-parks
-        // (replaceActiveSession clears the old session). [SAFETYNET-STATIONARY-001]
-        val speedKmh = fix.speed * KMH_PER_MPS
-        val credibleDrivingSpeed = speedKmh >= config.minimumDepartureSpeedKmh &&
-            fix.accuracy <= config.minGpsAccuracyForDriving
-        if (!credibleDrivingSpeed) {
-            return SafetyNetAction.None
-        }
-
-        // Moving at driving speed, far from the car. Position anchor decides auto vs ask: the
-        // movement must have STARTED at the car (seen inside its fence within vehicleEnterWindowMs)
-        // to auto-release — otherwise it's a vehicle boarded away from the car (bus/taxi/lift) and
-        // only the user can disambiguate. Same bus/taxi risk envelope as the geofence EXIT itself.
         val nearAgeMs = lastSeenNearCarAtMs?.let { nowMs - it }
         val anchoredToCar = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
 
-        return if (anchoredToCar) {
-            SafetyNetAction.DispatchDeparture(geofenceId)
-        } else {
-            SafetyNetAction.PromptStillParked(geofenceId)
+        // Departure IN PROGRESS: a credible driving-speed fix far from the car. Position anchor
+        // decides auto vs ask: the movement must have STARTED at the car (seen inside its fence
+        // within vehicleEnterWindowMs) to auto-release — otherwise it's a vehicle boarded away
+        // from the car (bus/taxi/lift) and only the user can disambiguate. Same bus/taxi risk
+        // envelope as the geofence EXIT itself.
+        val speedKmh = fix.speed * KMH_PER_MPS
+        val credibleDrivingSpeed = speedKmh >= config.minimumDepartureSpeedKmh &&
+            fix.accuracy <= config.minGpsAccuracyForDriving
+        if (credibleDrivingSpeed) {
+            return if (anchoredToCar) {
+                SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = false)
+            } else {
+                SafetyNetAction.PromptStillParked(geofenceId)
+            }
         }
+
+        // Far and NOT at driving speed. [DET-RECONCILE-001] The trip may already be OVER — the
+        // field-measured failure mode (2026-07-06, Oppo): the geofence EXIT arrives minutes late,
+        // a 2-minute hop fits entirely inside the latency, and by the first wake-up the user is
+        // parked at the destination. Catching the drive live is therefore not a guarantee anyone
+        // can make. What survives the sleep is the hardware step counter: walking the observed
+        // displacement MUST have produced ~distance/stride steps. A fresh anchor (was AT the car)
+        // plus a step delta far below that proves the user was DRIVEN from their car — release
+        // without asking. A step delta compatible with walking is the normal parked-and-left-on-
+        // foot state and stays SILENT (no nag — SAFETYNET-STATIONARY-001 preserved).
+        if (anchoredToCar && fix.accuracy <= config.minGpsAccuracyForDriving) {
+            if (stepsSinceAnchor != null) {
+                val stepsToWalkHere = distanceMeters / config.strideMeters
+                if (stepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction) {
+                    return SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = true)
+                }
+            } else if (nearAgeMs != null && nearAgeMs > 0) {
+                // No step budget available (no hardware / mute counter / reboot): fall back to
+                // pedestrian physics — a sustained average speed no walker reaches proves a ride.
+                val averageSpeedMps = distanceMeters / (nearAgeMs / 1000.0)
+                if (averageSpeedMps > config.maxPedestrianSpeedMps) {
+                    return SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = true)
+                }
+            }
+        }
+        return SafetyNetAction.None
     }
 
     private companion object {

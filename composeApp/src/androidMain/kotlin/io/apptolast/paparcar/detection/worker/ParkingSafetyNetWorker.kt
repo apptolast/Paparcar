@@ -28,6 +28,7 @@ import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.sensor.StepCounterSource
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
@@ -85,6 +86,7 @@ class ParkingSafetyNetWorker(
     private val geofenceManager: GeofenceManager by inject()
     private val significantMotionMonitor: SignificantMotionMonitor by inject()
     private val detectionEventLogger: DetectionEventLogger by inject()
+    private val stepCounterSource: StepCounterSource by inject()
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
@@ -146,16 +148,29 @@ class ParkingSafetyNetWorker(
         var anyPromptActive = false
         val debugLines = mutableListOf<String>()
 
+        // [DET-RECONCILE-001] Cumulative hardware step counter: read once per tick; the delta
+        // against the value stored with the anchor is the step budget that separates "walked
+        // away" from "was driven away" even when the whole trip happened while we slept.
+        val cumulativeSteps = runCatching { stepCounterSource.currentCumulativeSteps() }.getOrNull()
+
         val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
         pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
 
         for (session in sessions) {
+            val anchorSteps = session.geofenceId?.let { readAnchorSteps(prefs, it) }
+            // Negative delta = reboot reset the counter → budget unknown, never a verdict.
+            val stepsSinceAnchor = if (cumulativeSteps != null && anchorSteps != null && cumulativeSteps >= anchorSteps) {
+                cumulativeSteps - anchorSteps
+            } else {
+                null
+            }
             val action = evaluateSafetyNetCheck(
                 session = session,
                 fix = fix,
                 lastSeenNearCarAtMs = session.geofenceId?.let { readAnchor(prefs, it) },
                 nowMs = now,
+                stepsSinceAnchor = stepsSinceAnchor,
             )
             val distanceM = haversineMeters(
                 fix.latitude, fix.longitude,
@@ -172,7 +187,9 @@ class ParkingSafetyNetWorker(
                     // is then lost while the user drives (field incident 2026-07-05, Oppo: 69 km/h
                     // departure degraded to prompt because the in-memory anchor was empty). [ANCHOR-PERSIST-001]
                     writeAnchor(prefs, action.geofenceId, now)
-                    PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure)")
+                    // The counter value AT the anchor moment — the step budget's zero point.
+                    if (cumulativeSteps != null) writeAnchorSteps(prefs, action.geofenceId, cumulativeSteps)
+                    PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure, steps@anchor=${cumulativeSteps ?: "?"})")
                     val result = geofenceManager.createGeofence(
                         geofenceId = action.geofenceId,
                         latitude = session.location.latitude,
@@ -194,14 +211,38 @@ class ParkingSafetyNetWorker(
                 }
 
                 is SafetyNetAction.DispatchDeparture -> {
-                    PaparcarLogger.d(DIAG, "▶ far with vehicle evidence — dispatching departure geofence=${action.geofenceId}")
+                    // [DET-RECONCILE-001] preconfirmed = the trip already ENDED (step budget /
+                    // pedestrian physics proved it) — date the exit back to the anchor, the last
+                    // moment the phone was provably at the car, so the freshness gate measures
+                    // the real age of the freed spot, not the age of this wake-up.
+                    val exitAtMs = if (action.preconfirmed) {
+                        session.geofenceId?.let { readAnchor(prefs, it) } ?: now
+                    } else {
+                        now
+                    }
+                    PaparcarLogger.d(
+                        DIAG,
+                        "▶ far with vehicle evidence — dispatching departure geofence=${action.geofenceId} " +
+                            "(preconfirmed=${action.preconfirmed} steps=${stepsSinceAnchor ?: "?"} d=${distanceM}m)"
+                    )
                     WorkManager.getInstance(appContext).enqueueUniqueWork(
                         "${DepartureDetectionWorker.TAG}_${action.geofenceId}",
                         ExistingWorkPolicy.REPLACE,
-                        DepartureDetectionWorker.buildRequest(geofenceId = action.geofenceId, exitTimestampMs = now),
+                        DepartureDetectionWorker.buildRequest(
+                            geofenceId = action.geofenceId,
+                            exitTimestampMs = exitAtMs,
+                            preconfirmed = action.preconfirmed,
+                        ),
                     )
-                    logVerdict(action.geofenceId, verdict = "safety_net_dispatch", source = source, fixSpeedKmh = fix.speed * KMH_PER_MPS, now = now)
-                    debugLines += "geof=$geofTag d=${distanceM}m LEJOS+evidencia → SALIDA despachada"
+                    logVerdict(
+                        action.geofenceId,
+                        verdict = if (action.preconfirmed) "safety_net_dispatch_stepbudget" else "safety_net_dispatch",
+                        source = source,
+                        fixSpeedKmh = fix.speed * KMH_PER_MPS,
+                        now = now,
+                    )
+                    debugLines += "geof=$geofTag d=${distanceM}m LEJOS+evidencia → SALIDA despachada" +
+                        if (action.preconfirmed) " (step-budget ${stepsSinceAnchor ?: "?"} pasos)" else ""
                 }
 
                 is SafetyNetAction.PromptStillParked -> {
@@ -348,11 +389,21 @@ class ParkingSafetyNetWorker(
         prefs.edit().putLong(ANCHOR_KEY_PREFIX + geofenceId, atMs).apply()
     }
 
+    /** Cumulative step-counter value at the anchor moment — the step budget's zero point.
+     *  [DET-RECONCILE-001] */
+    private fun readAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String): Long? =
+        prefs.getLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, -1L).takeIf { it >= 0L }
+
+    private fun writeAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String, steps: Long) {
+        prefs.edit().putLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, steps).apply()
+    }
+
     /** Removes per-geofence anchor + prompt-throttle keys for geofences with no active session left
      *  (departed / reverted). */
     private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
         val stale = prefs.all.keys.filter { key ->
             when {
+                key.startsWith(ANCHOR_STEPS_KEY_PREFIX) -> key.removePrefix(ANCHOR_STEPS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
                 else -> false
@@ -401,6 +452,9 @@ class ParkingSafetyNetWorker(
         private const val KEY_LAST_ALIVE_ELAPSED = "last_alive_elapsed"
         /** [ANCHOR-PERSIST-001] Per-geofence position anchor keys live in the SAME prefs file. */
         private const val ANCHOR_KEY_PREFIX = "anchor_"
+        /** [DET-RECONCILE-001] Cumulative step-counter value stored alongside each anchor.
+         *  MUST prune before ANCHOR_KEY_PREFIX checks (it shares the prefix). */
+        private const val ANCHOR_STEPS_KEY_PREFIX = "anchor_steps_"
 
         /** Heartbeat gap above which a background freeze is logged (SILENT telemetry). Deep Doze
          *  legitimately defers 15-min periodics for hours, so this cannot distinguish a harmful

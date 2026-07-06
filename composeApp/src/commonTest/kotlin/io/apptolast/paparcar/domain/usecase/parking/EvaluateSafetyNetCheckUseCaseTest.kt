@@ -52,7 +52,8 @@ class EvaluateSafetyNetCheckUseCaseTest {
         session: UserParking = session(),
         fix: GpsPoint,
         lastSeenNearCarAtMs: Long? = null,
-    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs)
+        stepsSinceAnchor: Long? = null,
+    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor)
 
     @Test
     fun should_returnNone_when_sessionHasNoGeofence() {
@@ -86,8 +87,95 @@ class EvaluateSafetyNetCheckUseCaseTest {
 
     @Test
     fun should_returnNone_when_farButStationary_walkedAwayToDinner() {
-        // Parked, walked 5 km to dinner. Far + speed 0 = parked-and-away, NOT a live departure.
-        val action = evaluate(fix = fixAtMeters(5_000.0, speedMps = 0f), lastSeenNearCarAtMs = freshAnchor)
+        // Parked, walked 2 km to dinner over 28 min: the step budget matches the displacement
+        // (2 km ≈ 2 667 steps at 0.75 m/stride) → parked-and-away on foot, silent. [DET-RECONCILE-001]
+        val anchor = nowMs - 28 * 60_000L
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = anchor,
+            stepsSinceAnchor = 2_600L,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_farStationary_withStaleAnchor() {
+        // The classic dinner: hours away on foot — the anchor expired long ago. Never nag.
+        val staleAnchor = nowMs - config.vehicleEnterWindowMs - 60_000L
+        val action = evaluate(fix = fixAtMeters(5_000.0, speedMps = 0f), lastSeenNearCarAtMs = staleAnchor)
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    // ── [DET-RECONCILE-001] Step budget: the trip already happened while we slept ─
+
+    @Test
+    fun should_dispatchPreconfirmed_when_displacementWithoutTheStepsToWalkIt() {
+        // Field trace 2026-07-06 (Oppo): EXIT delivered post-trip, user parked 986 m away with
+        // ~10 steps on the counter, anchor 13 min old. Walking 986 m needs ~1 300 steps — the
+        // user was DRIVEN from their own car. Must release without asking.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals("geof-1", dispatch.geofenceId)
+        assertEquals(true, dispatch.preconfirmed)
+    }
+
+    @Test
+    fun should_returnNone_when_stepBudgetMatchesWalking_shortRange() {
+        // 500 m with ~600 steps: walked. Silent.
+        val action = evaluate(
+            fix = fixAtMeters(500.0, speedMps = 0f),
+            lastSeenNearCarAtMs = freshAnchor,
+            stepsSinceAnchor = 600L,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_stepBudgetVerdict_butAnchorMissing() {
+        // Few steps + far, but never seen at the car — could be a bus boarded elsewhere. Silent.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = null,
+            stepsSinceAnchor = 10L,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_stepBudgetVerdict_butFixAccuracyDegraded() {
+        // The displacement itself is not trustworthy on a 120 m fix — no verdict.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f, accuracy = 120f),
+            lastSeenNearCarAtMs = freshAnchor,
+            stepsSinceAnchor = 10L,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_dispatchPreconfirmed_when_noCounterButPedestrianPhysicsImpossible() {
+        // No step counter (mute hardware — Redmi 2026-07-06): 5 km from the car 5 min after
+        // being AT it = 16.7 m/s sustained. No pedestrian does that. Release.
+        val action = evaluate(
+            fix = fixAtMeters(5_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 5 * 60_000L,
+            stepsSinceAnchor = null,
+        )
+        assertEquals(true, assertIs<SafetyNetAction.DispatchDeparture>(action).preconfirmed)
+    }
+
+    @Test
+    fun should_returnNone_when_noCounterAndDisplacementWalkable() {
+        // No counter and 500 m in 20 min (0.4 m/s) is a perfectly walkable stroll — silent.
+        val action = evaluate(
+            fix = fixAtMeters(500.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 20 * 60_000L,
+            stepsSinceAnchor = null,
+        )
         assertEquals(SafetyNetAction.None, action)
     }
 

@@ -113,6 +113,28 @@ data class ParkingDetectionConfig(
      */
     val watchdogFarThresholdMeters: Float = 300f,
 
+    // ── STEP BUDGET (parked-state reconcile) [DET-RECONCILE-001] ──────────────
+    // Field fact 2026-07-06: geofence EXIT delivery latency reaches minutes on ColorOS — a
+    // 2-minute hop fits entirely inside it, arrives post-trip and reads as a walking exit.
+    // The cumulative hardware step counter survives process/CPU sleep, so at any later
+    // wake-up "displacement without the steps to walk it" PROVES the user was driven — and a
+    // fresh position anchor proves the drive started at their car. Same bus/taxi risk
+    // envelope as the geofence EXIT itself.
+    /** Average pedestrian stride (meters/step) used to convert a displacement into the step
+     *  count that walking it would have produced. 0.75 m is a deliberately LONG stride —
+     *  it inflates the expected count, making the "did not walk here" verdict conservative. */
+    val strideMeters: Float = 0.75f,
+    /** Fraction of the expected walking-step count BELOW which the reconcile concludes the
+     *  displacement was ridden, not walked. 0.4 tolerates counter under-reporting and pockets
+     *  of walking (parking lot to door) while still cleanly separating a drive (steps ≈ 0–10%
+     *  of expected) from a walk (≈ 100%). */
+    val walkedStepFraction: Float = 0.4f,
+    /** Sustained average speed (m/s) from the anchor to the current fix above which the
+     *  displacement is physically impossible on foot — the no-step-counter fallback verdict.
+     *  2.5 m/s = 9 km/h sustained; brisk walking is ~1.7 m/s, running commuters don't carry
+     *  a parked-car session. */
+    val maxPedestrianSpeedMps: Float = 2.5f,
+
     // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
     /** Time window (ms) after the vehicle first stops during which GPS fixes are
      *  collected into [stoppedFixes]. Fixes outside this window are ignored so that
@@ -163,6 +185,11 @@ data class ParkingDetectionConfig(
     /** Minimum speed (km/h) that confirms the user is driving away. Speed check is skipped
      *  when GPS is unavailable. Default 10 km/h. */
     val minimumDepartureSpeedKmh: Float = 10f,
+    /** Maximum age (ms) of the geofence exit for the freed spot to still be PUBLISHED to the
+     *  community. A departure recovered later than this (offline device, queued worker — field
+     *  incident 2026-07-06, Redmi: processed 5 h late) still clears the session and geofence,
+     *  but publishing the spot would advertise a hole that is long gone. [DET-RECONCILE-001] */
+    val spotPublishMaxAgeMs: Long = 10 * 60_000L,
 
     // ── REPARK PLAUSIBILITY GUARD [DET-SOLID-001] ─────────────────────────────
     /** Age (ms) under which an existing active session is considered "recent" by the
@@ -291,6 +318,13 @@ data class ParkingDetectionConfig(
      *  because the MAC-address binding makes a real disconnect + walk unambiguous — the
      *  "neighbour's identical car" case is impossible. [DET-F-01, was BluetoothParkingDetector literal] */
     val reliabilityBluetooth: Float = 0.95f,
+    /** Reliability score assigned when the confirmation prompt times out UNANSWERED and the
+     *  session is saved anyway. [DET-RECONCILE-001] Asymmetry of costs: the prompt only shows
+     *  after a real trip + stop + vehicle-exit signal, so the parking almost certainly happened;
+     *  discarding it loses the user's car (field incident 2026-07-06, Redmi — a real parking was
+     *  thrown away because a notification went unnoticed for 15 min), while saving it wrong costs
+     *  one correction tap. Low enough that nothing community-facing trusts it on its own. */
+    val reliabilityUnattendedSave: Float = 0.5f,
     // [DET-SOLID-001 C1] reliabilitySlowPath removed: the pure slow-path confirm no longer
     // exists (egress is mandatory for every auto-confirm — DET-C-01), so every Confirmed
     // carries reliabilityVehicleExit and this value was dead code.
@@ -397,6 +431,18 @@ data class ParkingDetectionConfig(
         require(minimumDepartureSpeedKmh > 0) {
             "minimumDepartureSpeedKmh must be > 0, was $minimumDepartureSpeedKmh"
         }
+        require(strideMeters > 0f) {
+            "strideMeters must be > 0, was $strideMeters"
+        }
+        require(walkedStepFraction > 0f && walkedStepFraction < 1f) {
+            "walkedStepFraction must be in (0,1), was $walkedStepFraction"
+        }
+        require(maxPedestrianSpeedMps > 0f) {
+            "maxPedestrianSpeedMps must be > 0, was $maxPedestrianSpeedMps"
+        }
+        require(spotPublishMaxAgeMs > 0) {
+            "spotPublishMaxAgeMs must be > 0, was $spotPublishMaxAgeMs"
+        }
         require(reparkPlausibilityWindowMs > 0) {
             "reparkPlausibilityWindowMs must be > 0, was $reparkPlausibilityWindowMs"
         }
@@ -438,6 +484,9 @@ data class ParkingDetectionConfig(
         }
         require(reliabilityUserConfirmed in 0f..1f) {
             "reliabilityUserConfirmed must be in 0..1, was $reliabilityUserConfirmed"
+        }
+        require(reliabilityUnattendedSave in 0f..reliabilityVehicleExit) {
+            "reliabilityUnattendedSave must be in 0..reliabilityVehicleExit, was $reliabilityUnattendedSave"
         }
         require(reliabilityVehicleExit in 0f..reliabilityUserConfirmed) {
             "reliabilityVehicleExit must be in 0..reliabilityUserConfirmed, was $reliabilityVehicleExit"
