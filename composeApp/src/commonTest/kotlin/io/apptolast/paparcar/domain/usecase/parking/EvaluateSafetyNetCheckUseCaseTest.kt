@@ -9,10 +9,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 /**
- * [DET-SAFETY-NET-001] Pure decision core of the parked-session safety net:
- * inside fence → cure · far + evidence + position anchor → dispatch · anything weaker → prompt.
- * The anchor (seen inside the car's fence recently) is what keeps this at the same bus/taxi risk
- * envelope as the geofence EXIT — driving evidence far from the car NEVER releases on its own.
+ * [DET-SAFETY-NET-001] Pure decision core of the parked-session safety net. The net only acts on a
+ * departure IN PROGRESS (credible driving speed far from the car): inside fence → cure · far +
+ * driving + anchor → dispatch · far + driving + no anchor → prompt · **far + stationary → None**
+ * (parked-and-away on foot must never nag — field incident 2026-07-05). The anchor keeps auto at the
+ * same bus/taxi risk envelope as the geofence EXIT.
  */
 class EvaluateSafetyNetCheckUseCaseTest {
 
@@ -21,6 +22,7 @@ class EvaluateSafetyNetCheckUseCaseTest {
 
     private val nowMs = 1_700_000_000_000L
     private val freshAnchor = nowMs - 5 * 60_000L // seen at the car 5 min ago
+    private val drivingMps = 8f // 28.8 km/h ≥ minimumDepartureSpeedKmh (10)
 
     private fun session(
         geofenceId: String? = "geof-1",
@@ -49,14 +51,12 @@ class EvaluateSafetyNetCheckUseCaseTest {
     private fun evaluate(
         session: UserParking = session(),
         fix: GpsPoint,
-        lastVehicleEnteredAt: Long? = null,
         lastSeenNearCarAtMs: Long? = null,
-    ) = useCase(session, fix, lastVehicleEnteredAt, lastSeenNearCarAtMs, nowMs)
+    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs)
 
     @Test
     fun should_returnNone_when_sessionHasNoGeofence() {
-        val action = evaluate(session(geofenceId = null), fixAtMeters(1_000.0))
-        assertEquals(SafetyNetAction.None, action)
+        assertEquals(SafetyNetAction.None, evaluate(session(geofenceId = null), fixAtMeters(1_000.0, drivingMps)))
     }
 
     @Test
@@ -71,98 +71,62 @@ class EvaluateSafetyNetCheckUseCaseTest {
     @Test
     fun should_cureGeofence_withSizeAwareRadius_when_vehicleIsVan() {
         // VAN radius = 120 + 10*1.5 = 135 m: a 130 m fix is inside for the van…
-        val action = evaluate(session(sizeCategory = VehicleSize.VAN_HIGH), fixAtMeters(130.0))
-        assertIs<SafetyNetAction.CureGeofence>(action)
+        assertIs<SafetyNetAction.CureGeofence>(evaluate(session(sizeCategory = VehicleSize.VAN_HIGH), fixAtMeters(130.0)))
         // …but outside the default-size fence (95 m) — the ambiguous ring.
-        assertEquals(SafetyNetAction.None, evaluate(fix = fixAtMeters(130.0)))
+        assertEquals(SafetyNetAction.None, evaluate(fix = fixAtMeters(130.0, drivingMps)))
     }
 
     @Test
     fun should_returnNone_when_fixIsInTheAmbiguousRing() {
         // Between the fence radius (95 m) and watchdogFarThresholdMeters (300 m).
-        assertEquals(SafetyNetAction.None, evaluate(fix = fixAtMeters(200.0)))
+        assertEquals(SafetyNetAction.None, evaluate(fix = fixAtMeters(200.0, drivingMps)))
+    }
+
+    // ── The core fix: far + stationary must be SILENT ────────────────────────────
+
+    @Test
+    fun should_returnNone_when_farButStationary_walkedAwayToDinner() {
+        // Parked, walked 5 km to dinner. Far + speed 0 = parked-and-away, NOT a live departure.
+        val action = evaluate(fix = fixAtMeters(5_000.0, speedMps = 0f), lastSeenNearCarAtMs = freshAnchor)
+        assertEquals(SafetyNetAction.None, action)
     }
 
     @Test
-    fun should_dispatchDeparture_when_farWithRecentVehicleEnterAndAnchor() {
-        val action = evaluate(
-            fix = fixAtMeters(500.0),
-            lastVehicleEnteredAt = nowMs - 60_000L,
-            lastSeenNearCarAtMs = freshAnchor,
-        )
-        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
-        assertEquals("geof-1", dispatch.geofenceId)
+    fun should_returnNone_when_farAndWalkingPace() {
+        // ~1.2 m/s (walking) is well below the driving threshold → silent.
+        assertEquals(SafetyNetAction.None, evaluate(fix = fixAtMeters(500.0, speedMps = 1.2f)))
+    }
+
+    // ── Live departure (driving speed) ───────────────────────────────────────────
+
+    @Test
+    fun should_dispatchDeparture_when_farAtDrivingSpeedWithFreshAnchor() {
+        val action = evaluate(fix = fixAtMeters(500.0, drivingMps), lastSeenNearCarAtMs = freshAnchor)
+        assertEquals("geof-1", assertIs<SafetyNetAction.DispatchDeparture>(action).geofenceId)
     }
 
     @Test
-    fun should_dispatchDeparture_when_farAtCredibleDrivingSpeedAndAnchor() {
-        // 8 m/s = 28.8 km/h ≥ minimumDepartureSpeedKmh (10), accuracy 10 ≤ minGpsAccuracyForDriving (50).
-        val action = evaluate(
-            fix = fixAtMeters(500.0, speedMps = 8f, accuracy = 10f),
-            lastSeenNearCarAtMs = freshAnchor,
-        )
-        assertIs<SafetyNetAction.DispatchDeparture>(action)
-    }
-
-    @Test
-    fun should_promptStillParked_when_drivingFarWithoutAnchor() {
-        // The bus/friend's-car case: vehicle evidence far from the car, but the phone was never
-        // seen inside the fence recently — movement did NOT start at the car. Never auto-release.
-        val action = evaluate(
-            fix = fixAtMeters(2_000.0, speedMps = 11f, accuracy = 10f),
-            lastVehicleEnteredAt = nowMs - 60_000L,
-            lastSeenNearCarAtMs = null,
-        )
+    fun should_promptStillParked_when_drivingFarWithoutAnchor_busCase() {
+        // In a vehicle far from the car but never seen at the fence recently — bus/taxi/expired anchor.
+        val action = evaluate(fix = fixAtMeters(2_000.0, drivingMps), lastSeenNearCarAtMs = null)
         assertIs<SafetyNetAction.PromptStillParked>(action)
     }
 
     @Test
     fun should_promptStillParked_when_anchorIsStale() {
         val staleAnchor = nowMs - config.vehicleEnterWindowMs - 1
-        val action = evaluate(
-            fix = fixAtMeters(500.0, speedMps = 8f, accuracy = 10f),
-            lastSeenNearCarAtMs = staleAnchor,
+        assertIs<SafetyNetAction.PromptStillParked>(
+            evaluate(fix = fixAtMeters(500.0, drivingMps), lastSeenNearCarAtMs = staleAnchor),
         )
-        assertIs<SafetyNetAction.PromptStillParked>(action)
     }
 
     @Test
-    fun should_promptStillParked_when_farAtDrivingSpeedWithDegradedAccuracy() {
-        // A degraded fix can fake driving speed while walking — same rule as the pre-arm verifier.
-        val action = evaluate(
-            fix = fixAtMeters(500.0, speedMps = 8f, accuracy = 120f),
-            lastSeenNearCarAtMs = freshAnchor,
+    fun should_returnNone_when_farAtApparentDrivingSpeedButDegradedAccuracy() {
+        // A degraded fix can fake driving speed while stationary/walking — not a credible departure.
+        assertEquals(
+            SafetyNetAction.None,
+            evaluate(fix = fixAtMeters(500.0, speedMps = 8f, accuracy = 120f), lastSeenNearCarAtMs = freshAnchor),
         )
-        assertIs<SafetyNetAction.PromptStillParked>(action)
-    }
-
-    @Test
-    fun should_promptStillParked_when_farWithoutAnyEvidence() {
-        val action = evaluate(fix = fixAtMeters(500.0), lastSeenNearCarAtMs = freshAnchor)
-        val prompt = assertIs<SafetyNetAction.PromptStillParked>(action)
-        assertEquals("geof-1", prompt.geofenceId)
-    }
-
-    @Test
-    fun should_promptStillParked_when_vehicleEnterIsOlderThanTheWindow() {
-        val stale = nowMs - config.vehicleEnterWindowMs - 1
-        val action = evaluate(
-            fix = fixAtMeters(500.0),
-            lastVehicleEnteredAt = stale,
-            lastSeenNearCarAtMs = freshAnchor,
-        )
-        assertIs<SafetyNetAction.PromptStillParked>(action)
-    }
-
-    @Test
-    fun should_promptStillParked_when_vehicleEnterIsStampedInTheFuture() {
-        // Strict ordering, same as VerifyDepartureEvidenceUseCase: an ENTER after "now" is not evidence.
-        val action = evaluate(
-            fix = fixAtMeters(500.0),
-            lastVehicleEnteredAt = nowMs + 5_000L,
-            lastSeenNearCarAtMs = freshAnchor,
-        )
-        assertIs<SafetyNetAction.PromptStillParked>(action)
     }
 
     private companion object {

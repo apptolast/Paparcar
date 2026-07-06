@@ -17,16 +17,17 @@ sealed class SafetyNetAction {
      *  2026-07-04, Calle Gavia: the departure after a dismissed walking-EXIT was silent). */
     data class CureGeofence(val geofenceId: String, val radiusMeters: Float) : SafetyNetAction()
 
-    /** Far from the parked car WITH vehicle evidence (recent IN_VEHICLE_ENTER or a credible fix at
-     *  driving speed) AND a fresh position anchor (the phone was seen INSIDE this car's fence
-     *  recently) — a missed EXIT is in progress; dispatch the normal departure pipeline
-     *  (worker retries, verdict, publish, session clear). */
+    /** Far from the parked car, MOVING at credible driving speed, AND a fresh position anchor (the
+     *  phone was seen INSIDE this car's fence recently) — a missed EXIT is in progress and provably
+     *  started at the car; dispatch the normal departure pipeline (worker retries, verdict, publish,
+     *  session clear). */
     data class DispatchDeparture(val geofenceId: String) : SafetyNetAction()
 
-    /** Far from the parked car with NO vehicle evidence. Distance alone can NEVER release the
-     *  spot — walking / cycling / riding someone else's car all look identical from here
-     *  (BUG-WALK-DEPART-001) — so only the user can disambiguate: surface the "still parked?"
-     *  prompt. Ignoring it leaves the session untouched. */
+    /** Far from the parked car, MOVING at driving speed, but WITHOUT a fresh anchor — in a vehicle
+     *  that was boarded away from the car (bus / taxi / lift, or a real drive-away whose anchor
+     *  expired). Distance + speed alone can't tell those apart (BUG-WALK-DEPART-001), so the user
+     *  disambiguates via the "still parked?" prompt; ignoring it leaves the session untouched. NB:
+     *  far + STATIONARY is [None], not this — being parked-and-away on foot must never prompt. */
     data class PromptStillParked(val geofenceId: String) : SafetyNetAction()
 
     /** Nothing to act on: no geofence on the session, or the fix sits in the ambiguous ring
@@ -43,10 +44,11 @@ sealed class SafetyNetAction {
  * while a session is parked and detection is idle. The caller samples ONE active fix and this
  * evaluator maps it to the action for each active session:
  *
- *  - inside the fence  → [SafetyNetAction.CureGeofence] (reset a possibly-poisoned fence state)
- *  - far + evidence    → [SafetyNetAction.DispatchDeparture] (recover a missed EXIT automatically)
- *  - far, no evidence  → [SafetyNetAction.PromptStillParked] (human disambiguates; never auto)
- *  - ambiguous ring    → [SafetyNetAction.None]
+ *  - inside the fence        → [SafetyNetAction.CureGeofence] (reset a possibly-poisoned fence)
+ *  - far + driving + anchor  → [SafetyNetAction.DispatchDeparture] (recover a missed EXIT)
+ *  - far + driving, no anchor→ [SafetyNetAction.PromptStillParked] (human disambiguates; never auto)
+ *  - far + STATIONARY        → [SafetyNetAction.None] (parked-and-away on foot — never nag)
+ *  - ambiguous ring          → [SafetyNetAction.None]
  *
  * The whole point of this layer is that it does NOT depend on Play Services delivering anything:
  * the wake-ups are ours (WorkManager + sensor hub) and the decision inputs are ours (fix, step/AR
@@ -71,17 +73,15 @@ class EvaluateSafetyNetCheckUseCase(
     private val config: ParkingDetectionConfig,
 ) {
     /**
-     * @param session              An ACTIVE parked session (caller iterates 0..N of them).
-     * @param fix                  The freshly sampled fix (caller skips the check when none).
-     * @param lastVehicleEnteredAt Epoch-ms of the last AR IN_VEHICLE_ENTER, or null.
-     * @param lastSeenNearCarAtMs  Epoch-ms of the last safety-net fix INSIDE this session's fence
-     *                             (the position anchor), or null when never observed / lost.
-     * @param nowMs                Wall-clock now (epoch-ms).
+     * @param session             An ACTIVE parked session (caller iterates 0..N of them).
+     * @param fix                 The freshly sampled fix (caller skips the check when none).
+     * @param lastSeenNearCarAtMs Epoch-ms of the last safety-net fix INSIDE this session's fence
+     *                            (the position anchor), or null when never observed / lost.
+     * @param nowMs               Wall-clock now (epoch-ms).
      */
     operator fun invoke(
         session: UserParking,
         fix: GpsPoint,
-        lastVehicleEnteredAt: Long?,
         lastSeenNearCarAtMs: Long?,
         nowMs: Long,
     ): SafetyNetAction {
@@ -105,17 +105,28 @@ class EvaluateSafetyNetCheckUseCase(
             return SafetyNetAction.None
         }
 
-        val enterAgeMs = lastVehicleEnteredAt?.let { nowMs - it }
-        val recentVehicleEnter = enterAgeMs != null && enterAgeMs in 0..config.vehicleEnterWindowMs
+        // The safety net only acts on a departure IN PROGRESS: a credible driving-speed fix far
+        // from the car. Being far and STATIONARY (or walking) is the normal "parked and left on
+        // foot / by bus / to dinner" state — indistinguishable, after the fact, from a missed
+        // drive-away — so it stays SILENT (field incident 2026-07-05, Oppo: every speed-0 tick
+        // while at dinner nagged "still parked?"). A real drive-away that the geofence missed is
+        // caught while the car is still MOVING here, or self-heals when the vehicle re-parks
+        // (replaceActiveSession clears the old session). [SAFETYNET-STATIONARY-001]
         val speedKmh = fix.speed * KMH_PER_MPS
         val credibleDrivingSpeed = speedKmh >= config.minimumDepartureSpeedKmh &&
             fix.accuracy <= config.minGpsAccuracyForDriving
-        // Position anchor: the movement must have STARTED at the car. Reuses vehicleEnterWindowMs
-        // — the same "how long ago can the boarding have happened" horizon as the ENTER signal.
+        if (!credibleDrivingSpeed) {
+            return SafetyNetAction.None
+        }
+
+        // Moving at driving speed, far from the car. Position anchor decides auto vs ask: the
+        // movement must have STARTED at the car (seen inside its fence within vehicleEnterWindowMs)
+        // to auto-release — otherwise it's a vehicle boarded away from the car (bus/taxi/lift) and
+        // only the user can disambiguate. Same bus/taxi risk envelope as the geofence EXIT itself.
         val nearAgeMs = lastSeenNearCarAtMs?.let { nowMs - it }
         val anchoredToCar = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
 
-        return if (anchoredToCar && (recentVehicleEnter || credibleDrivingSpeed)) {
+        return if (anchoredToCar) {
             SafetyNetAction.DispatchDeparture(geofenceId)
         } else {
             SafetyNetAction.PromptStillParked(geofenceId)

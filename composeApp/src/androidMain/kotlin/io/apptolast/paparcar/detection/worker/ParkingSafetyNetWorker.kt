@@ -34,7 +34,6 @@ import io.apptolast.paparcar.domain.usecase.parking.SafetyNetAction
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.firstOrNull
 import org.koin.core.component.KoinComponent
@@ -152,7 +151,6 @@ class ParkingSafetyNetWorker(
             val action = evaluateSafetyNetCheck(
                 session = session,
                 fix = fix,
-                lastVehicleEnteredAt = departureEventBus.lastVehicleEnteredAt,
                 lastSeenNearCarAtMs = session.geofenceId?.let { readAnchor(prefs, it) },
                 nowMs = now,
             )
@@ -205,11 +203,14 @@ class ParkingSafetyNetWorker(
 
                 is SafetyNetAction.PromptStillParked -> {
                     anyPromptActive = true
-                    val lastPromptAt = lastPromptAtMs[action.geofenceId] ?: 0L
+                    // Throttle persisted to disk (NOT in-memory): the OEM kills the process, so an
+                    // in-memory throttle is empty on every app-start and re-nags the same prompt each
+                    // time (field incident 2026-07-05). [ANCHOR-PERSIST-001]
+                    val lastPromptAt = prefs.getLong(PROMPT_KEY_PREFIX + action.geofenceId, 0L)
                     val throttled = now - lastPromptAt < PROMPT_THROTTLE_MS
                     if (!throttled) {
-                        PaparcarLogger.d(TAG, "▶ far without evidence — still-parked prompt geofence=${action.geofenceId}")
-                        lastPromptAtMs[action.geofenceId] = now
+                        PaparcarLogger.d(TAG, "▶ moving far without anchor — still-parked prompt geofence=${action.geofenceId}")
+                        prefs.edit().putLong(PROMPT_KEY_PREFIX + action.geofenceId, now).apply()
                         notificationPort.showStillParkedPrompt(
                             geofenceId = action.geofenceId,
                             latitude = session.location.latitude,
@@ -240,12 +241,18 @@ class ParkingSafetyNetWorker(
     }
 
     /**
-     * [OEM-KILL-001] Compares "now" against the previous heartbeat. Gap > [KILL_GAP_THRESHOLD_MS]
-     * with a session active = the scheduler was frozen (ColorOS/MIUI kill, extreme Doze) — log
-     * per-OEM telemetry and, throttled to once per [KILL_NOTIFY_THROTTLE_MS], show the contextual
-     * "your phone is blocking Paparcar" warning [BATTERY-ASK-001]. A reboot/power-off in between
-     * (elapsedRealtime went backwards) explains the gap innocently — skip, don't cry wolf.
-     * Always re-stamps the heartbeat at the end.
+     * [OEM-KILL-001] Compares "now" against the previous heartbeat and logs a
+     * [DetectionEvent.BackgroundKillSuspected] when the gap exceeds [KILL_GAP_THRESHOLD_MS] with a
+     * session active — SILENT telemetry only, so we can measure per-OEM background freezing.
+     *
+     * It does NOT notify the user. A heartbeat gap cannot tell a harmful OEM hard-kill from
+     * ordinary Doze (a phone idle/charging overnight legitimately defers a 15-min periodic for
+     * hours) — and even a real freeze, while the car sits parked, causes NO harm. Warning here
+     * cried wolf (field incident 2026-07-05: "your phone is blocking Paparcar" fired at 02:00 after
+     * a night at home, no departure missed). Per the "earn the ask" rule, the battery/settings
+     * prompt must be surfaced only after a freeze DEMONSTRABLY degrades an outcome — that will be
+     * wired to a real harm signal, not to this gap. A reboot (elapsedRealtime went backwards)
+     * explains the gap innocently — skip. Always re-stamps the heartbeat. [BATTERY-ASK-001]
      */
     private suspend fun detectBackgroundKill(sessions: List<UserParking>) {
         runCatching {
@@ -258,7 +265,7 @@ class ParkingSafetyNetWorker(
             val gapMs = now - lastAliveAt
 
             if (lastAliveAt > 0L && !rebootedSince && sessions.isNotEmpty() && gapMs > KILL_GAP_THRESHOLD_MS) {
-                PaparcarLogger.w(TAG, "⚠ background blackout detected: ${gapMs / 60_000} min without a heartbeat, session active [OEM-KILL-001]")
+                PaparcarLogger.w(TAG, "⚠ background gap ${gapMs / 60_000} min with session active — logging (silent) [OEM-KILL-001]")
                 runCatching {
                     detectionEventLogger.log(
                         DetectionEvent.BackgroundKillSuspected(
@@ -267,11 +274,6 @@ class ParkingSafetyNetWorker(
                             gapMs = gapMs,
                         )
                     )
-                }
-                val lastNotifiedAt = prefs.getLong(KEY_LAST_KILL_NOTIFIED_AT, 0L)
-                if (now - lastNotifiedAt > KILL_NOTIFY_THROTTLE_MS) {
-                    prefs.edit().putLong(KEY_LAST_KILL_NOTIFIED_AT, now).apply()
-                    notificationPort.showBackgroundReliabilityWarning()
                 }
             }
 
@@ -308,10 +310,15 @@ class ParkingSafetyNetWorker(
         prefs.edit().putLong(ANCHOR_KEY_PREFIX + geofenceId, atMs).apply()
     }
 
-    /** Removes anchors for geofences with no active session left (departed / reverted). */
+    /** Removes per-geofence anchor + prompt-throttle keys for geofences with no active session left
+     *  (departed / reverted). */
     private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
-        val stale = prefs.all.keys.filter {
-            it.startsWith(ANCHOR_KEY_PREFIX) && it.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
+        val stale = prefs.all.keys.filter { key ->
+            when {
+                key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
+                key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
+                else -> false
+            }
         }
         if (stale.isNotEmpty()) {
             prefs.edit().apply { stale.forEach { remove(it) } }.apply()
@@ -340,27 +347,23 @@ class ParkingSafetyNetWorker(
         const val SOURCE_APP_START = "app-start"
         const val SOURCE_DETECTION_END = "detection-end"
 
-        /** Min interval between "still parked?" prompts per geofence. In-memory (process-lifetime):
-         *  a process kill may allow one early re-prompt hours later — acceptable, and the throttle
-         *  never suppresses the FIRST prompt after a missed departure. */
+        /** Min interval between "still parked?" prompts per geofence. Persisted to disk (see the
+         *  prompt branch) so an OEM process kill can't reset it and re-nag on every app-start. */
         private const val PROMPT_THROTTLE_MS = 6 * 60 * 60 * 1_000L
-        private val lastPromptAtMs = ConcurrentHashMap<String, Long>()
+        /** Per-geofence prompt-throttle timestamp keys, in the same prefs file as the anchor. */
+        private const val PROMPT_KEY_PREFIX = "prompt_"
 
         // [OEM-KILL-001] Heartbeat persistence (must survive process death — SharedPreferences).
         private const val PREFS_NAME = "parking_safety_net"
         private const val KEY_LAST_ALIVE_AT = "last_alive_at"
         private const val KEY_LAST_ALIVE_ELAPSED = "last_alive_elapsed"
-        private const val KEY_LAST_KILL_NOTIFIED_AT = "last_kill_notified_at"
         /** [ANCHOR-PERSIST-001] Per-geofence position anchor keys live in the SAME prefs file. */
         private const val ANCHOR_KEY_PREFIX = "anchor_"
 
-        /** Heartbeat gap above which the scheduler was provably frozen. Deep Doze legitimately
-         *  defers 15-min periodics to maintenance windows ~1–2 h apart; 3 h clears that with
-         *  margin, while a real ColorOS/MIUI freeze runs far longer. */
+        /** Heartbeat gap above which a background freeze is logged (SILENT telemetry). Deep Doze
+         *  legitimately defers 15-min periodics for hours, so this cannot distinguish a harmful
+         *  OEM kill from ordinary idle — hence telemetry only, never a user warning. */
         private const val KILL_GAP_THRESHOLD_MS = 3 * 60 * 60 * 1_000L
-
-        /** Max one "your phone is blocking Paparcar" warning per day — evidence-backed, not nagging. */
-        private const val KILL_NOTIFY_THROTTLE_MS = 24 * 60 * 60 * 1_000L
 
         fun buildPeriodicRequest(): PeriodicWorkRequest =
             PeriodicWorkRequestBuilder<ParkingSafetyNetWorker>(INTERVAL_MINUTES, TimeUnit.MINUTES)
