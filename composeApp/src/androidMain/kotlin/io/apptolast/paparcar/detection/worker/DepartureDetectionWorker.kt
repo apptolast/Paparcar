@@ -37,8 +37,9 @@ class DepartureDetectionWorker(
 
         val exitTimestampMs = inputData.getLong(KEY_EXIT_TIMESTAMP, -1L)
             .takeIf { it > 0L } ?: Clock.System.now().toEpochMilliseconds()
+        val preconfirmed = inputData.getBoolean(KEY_PRECONFIRMED, false)
 
-        return when (runDepartureCheck(geofenceId, exitTimestampMs, attempt = runAttemptCount)) {
+        return when (runDepartureCheck(geofenceId, exitTimestampMs, attempt = runAttemptCount, preconfirmed = preconfirmed)) {
             DepartureCheckOutcome.Retry,
             DepartureCheckOutcome.ProcessFailedRetry -> Result.retry()
             DepartureCheckOutcome.Dismissed,
@@ -50,17 +51,25 @@ class DepartureDetectionWorker(
         const val TAG = "DepartureDetectionWorker"
         private const val KEY_GEOFENCE_ID = "geofence_id"
         private const val KEY_EXIT_TIMESTAMP = "exit_timestamp_ms"
+        /** Departure already proven by the parked-state reconcile (step budget) — the check must
+         *  not re-decide by live speed, only process. [DET-RECONCILE-001] */
+        private const val KEY_PRECONFIRMED = "preconfirmed"
 
         /** Backoff for [DepartureCheckOutcome.Retry] — with EXPONENTIAL 15s the inconclusive
          *  retries fire at ~15s/30s/60s (see [RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS]). */
         private const val INITIAL_BACKOFF_SECONDS = 15L
 
-        fun buildRequest(geofenceId: String, exitTimestampMs: Long): OneTimeWorkRequest =
+        fun buildRequest(
+            geofenceId: String,
+            exitTimestampMs: Long,
+            preconfirmed: Boolean = false,
+        ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<DepartureDetectionWorker>()
                 .setInputData(
                     workDataOf(
                         KEY_GEOFENCE_ID to geofenceId,
                         KEY_EXIT_TIMESTAMP to exitTimestampMs,
+                        KEY_PRECONFIRMED to preconfirmed,
                     )
                 )
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, INITIAL_BACKOFF_SECONDS, TimeUnit.SECONDS)

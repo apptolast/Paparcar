@@ -149,6 +149,7 @@ val domainModule = module {
             getOneLocation = get(),
             departureEventBus = get(),
             departureConfirmationListener = get(),
+            config = get(),
             detectionEventLogger = get(),
         )
     }

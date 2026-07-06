@@ -30,7 +30,8 @@ import kotlin.test.assertNull
  */
 class RunDepartureCheckUseCaseTest {
 
-    private val exitTimestamp = 1_000_000L
+    // Large enough that "hours before it" stays positive (the staleness test subtracts 5 h).
+    private val exitTimestamp = 1_000_000_000_000L
 
     private fun activeSession(id: String = "geo-1") = UserParking(
         id = id,
@@ -152,7 +153,43 @@ class RunDepartureCheckUseCaseTest {
             getOneLocation = GetOneLocationUseCase(FakeLocationDataSource()),
             departureEventBus = bus,
             departureConfirmationListener = listener,
+            config = ParkingDetectionConfig(),
             detectionEventLogger = logger,
+            // Fixed clock 1 min after the exit → departures are FRESH by default; the staleness
+            // test overrides per-call timestamps instead. [DET-RECONCILE-001]
+            nowMs = { exitTimestamp + 60_000L },
         )
+    }
+
+    // ── [DET-RECONCILE-001] preconfirmed + freshness gate ─────────────────────
+
+    @Test
+    fun should_process_without_deciding_when_preconfirmed_by_reconcile() = runTest {
+        // Trip already over: no AR ENTER, no speed — the old decision path would be Inconclusive
+        // and eventually dismiss. Preconfirmed must skip straight to processing.
+        val env = Env()
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0, preconfirmed = true)
+
+        assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertEquals(1, env.listener.notifyCount)
+        assertNull(env.repo.getActiveSession(), "session cleared")
+        assertEquals(1, env.spotScheduler.scheduleCallCount, "fresh recovered departure publishes")
+        val verdict = env.logger.events.filterIsInstance<DetectionEvent.DepartureVerdict>().single()
+        assertEquals("Preconfirmed", verdict.verdict)
+    }
+
+    @Test
+    fun should_clear_without_publishing_when_departure_is_stale() = runTest {
+        // Departure recovered hours late (offline device — Redmi 2026-07-06): the session must
+        // converge, but the freed spot is long gone and must NOT be advertised.
+        val staleExitTimestamp = exitTimestamp - 5 * 60 * 60_000L // 5 h before the fixed clock
+        val env = Env(bus = FakeDepartureEventBus(initialTimestamp = staleExitTimestamp - 60_000L))
+
+        val outcome = env.useCase("geo-1", staleExitTimestamp, attempt = 0)
+
+        assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertNull(env.repo.getActiveSession(), "stale departure still clears the session")
+        assertEquals(0, env.spotScheduler.scheduleCallCount, "no ghost spot published")
     }
 }

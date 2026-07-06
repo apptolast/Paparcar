@@ -40,14 +40,19 @@ class ProcessConfirmedDepartureUseCase(
         const val TAG = "ProcessConfirmedDeparture"
     }
 
-    suspend operator fun invoke(geofenceId: String): Result<Unit> {
+    /**
+     * @param publishSpot false when the departure is confirmed but too STALE to advertise the
+     *        freed spot (recovered hours late — the hole is long gone); the session/geofence
+     *        cleanup still runs so the app's own state converges. [DET-RECONCILE-001]
+     */
+    suspend operator fun invoke(geofenceId: String, publishSpot: Boolean = true): Result<Unit> {
         val session = userParkingRepository.getActiveSessionByGeofence(geofenceId)
         val spotId = session?.id ?: "auto_${Clock.System.now().toEpochMilliseconds()}"
         val lat = session?.location?.latitude
         val lon = session?.location?.longitude
 
         // Public spots are published to the community; private zones are not reported.
-        if (session != null && lat != null && lon != null && session.privateZoneId == null) {
+        if (publishSpot && session != null && lat != null && lon != null && session.privateZoneId == null) {
             // Reuse the address/POI enriched on the session at park time instead of
             // re-geocoding the same coordinates. Null when not yet enriched → the use
             // case geocodes inline. [SPOT-PREFETCH-001]
@@ -80,7 +85,7 @@ class ProcessConfirmedDepartureUseCase(
             DetectionEvent.DepartureProcessed(
                 sessionId = geofenceId,
                 timestampMs = Clock.System.now().toEpochMilliseconds(),
-                published = session != null && session.privateZoneId == null,
+                published = publishSpot && session != null && session.privateZoneId == null,
                 sessionCleared = session != null,
                 location = session?.location,
             )

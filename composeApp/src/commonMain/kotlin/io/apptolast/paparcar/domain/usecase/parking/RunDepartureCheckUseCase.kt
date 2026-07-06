@@ -5,6 +5,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 import io.apptolast.paparcar.domain.detection.DepartureConfirmationListener
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -40,52 +41,76 @@ class RunDepartureCheckUseCase(
     private val getOneLocation: GetOneLocationUseCase,
     private val departureEventBus: DepartureEventBus,
     private val departureConfirmationListener: DepartureConfirmationListener,
+    private val config: ParkingDetectionConfig,
     private val detectionEventLogger: DetectionEventLogger? = null,
+    /** Injectable clock so the freshness gate is testable with fixed timestamps. */
+    private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
 ) {
     /**
-     * @param attempt 0-based attempt counter from the scheduler (WorkManager's `runAttemptCount`).
+     * @param attempt      0-based attempt counter from the scheduler (WorkManager's `runAttemptCount`).
+     * @param preconfirmed true when the parked-state reconcile already PROVED the departure
+     *        (fresh anchor + step budget: displacement without the steps to walk it). The trip is
+     *        over by then — the user is stationary at the destination — so re-sampling live speed
+     *        here would veto a real departure; skip the decision, keep the processing machinery.
+     *        [DET-RECONCILE-001]
      */
     suspend operator fun invoke(
         geofenceId: String,
         exitTimestampMs: Long,
         attempt: Int,
+        preconfirmed: Boolean = false,
     ): DepartureCheckOutcome {
-        val speedKmh = getOneLocation()?.speed?.times(KMH_PER_MPS)
+        if (!preconfirmed) {
+            val speedKmh = getOneLocation()?.speed?.times(KMH_PER_MPS)
 
-        val decision = detectParkingDeparture(
-            geofenceId = geofenceId,
-            exitTimestampMs = exitTimestampMs,
-            currentSpeedKmh = speedKmh,
-        )
-        PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h → ${decision::class.simpleName}")
-
-        // [DET-SOLID-001] Observability: every attempt's verdict, traced by geofenceId.
-        runCatching {
-            detectionEventLogger?.log(
-                DetectionEvent.DepartureVerdict(
-                    sessionId = geofenceId,
-                    timestampMs = Clock.System.now().toEpochMilliseconds(),
-                    verdict = decision::class.simpleName ?: "UNKNOWN",
-                    source = "worker",
-                    attempt = attempt,
-                    speedKmh = speedKmh,
-                    enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { exitTimestampMs - it },
-                )
+            val decision = detectParkingDeparture(
+                geofenceId = geofenceId,
+                exitTimestampMs = exitTimestampMs,
+                currentSpeedKmh = speedKmh,
             )
-        }
+            PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h → ${decision::class.simpleName}")
 
-        if (decision == DepartureDecision.Rejected) return DepartureCheckOutcome.Dismissed
+            // [DET-SOLID-001] Observability: every attempt's verdict, traced by geofenceId.
+            runCatching {
+                detectionEventLogger?.log(
+                    DetectionEvent.DepartureVerdict(
+                        sessionId = geofenceId,
+                        timestampMs = Clock.System.now().toEpochMilliseconds(),
+                        verdict = decision::class.simpleName ?: "UNKNOWN",
+                        source = "worker",
+                        attempt = attempt,
+                        speedKmh = speedKmh,
+                        enterAgeMs = departureEventBus.lastVehicleEnteredAt?.let { exitTimestampMs - it },
+                    )
+                )
+            }
 
-        if (decision == DepartureDecision.Inconclusive && attempt < MAX_INCONCLUSIVE_ATTEMPTS) {
-            return DepartureCheckOutcome.Retry
-        }
-        // Attempts exhausted. Fall through only if IN_VEHICLE_ENTER was recorded after parking
-        // was confirmed — covers slow garage exits where speed never crosses the departure
-        // threshold. Without any vehicle signal, dismiss to avoid false positives from the user
-        // walking near the car. [BUG-WALK-DEPART-001]
-        if (decision == DepartureDecision.Inconclusive && departureEventBus.lastVehicleEnteredAt == null) {
-            PaparcarLogger.d(TAG, "attempts exhausted with no vehicle signal — dismissed (geof=$geofenceId)")
-            return DepartureCheckOutcome.Dismissed
+            if (decision == DepartureDecision.Rejected) return DepartureCheckOutcome.Dismissed
+
+            if (decision == DepartureDecision.Inconclusive && attempt < MAX_INCONCLUSIVE_ATTEMPTS) {
+                return DepartureCheckOutcome.Retry
+            }
+            // Attempts exhausted. Fall through only if IN_VEHICLE_ENTER was recorded after parking
+            // was confirmed — covers slow garage exits where speed never crosses the departure
+            // threshold. Without any vehicle signal, dismiss to avoid false positives from the user
+            // walking near the car. [BUG-WALK-DEPART-001]
+            if (decision == DepartureDecision.Inconclusive && departureEventBus.lastVehicleEnteredAt == null) {
+                PaparcarLogger.d(TAG, "attempts exhausted with no vehicle signal — dismissed (geof=$geofenceId)")
+                return DepartureCheckOutcome.Dismissed
+            }
+        } else {
+            PaparcarLogger.d(TAG, "preconfirmed by parked-state reconcile — skipping live speed re-check (geof=${geofenceId.take(8)})")
+            runCatching {
+                detectionEventLogger?.log(
+                    DetectionEvent.DepartureVerdict(
+                        sessionId = geofenceId,
+                        timestampMs = Clock.System.now().toEpochMilliseconds(),
+                        verdict = "Preconfirmed",
+                        source = "worker",
+                        attempt = attempt,
+                    )
+                )
+            }
         }
 
         // [DET-G-05] The departure is confirmed. If the GEOFENCE_EXIT armed the coordinator
@@ -93,7 +118,16 @@ class RunDepartureCheckUseCase(
         // upgrade the live session so its confirm paths unlock: the drive provably happened.
         departureConfirmationListener.notifyDepartureConfirmed()
 
-        return processConfirmedDeparture(geofenceId).fold(
+        // [DET-RECONCILE-001] Freshness gate: a departure recovered long after the fact (offline
+        // device, frozen worker — Redmi 2026-07-06 processed 5 h late) still converges the local
+        // state, but the freed spot is long gone — advertising it would sell ghosts.
+        val exitAgeMs = nowMs() - exitTimestampMs
+        val publishSpot = exitAgeMs <= config.spotPublishMaxAgeMs
+        if (!publishSpot) {
+            PaparcarLogger.d(TAG, "stale departure (age=${exitAgeMs / 60_000}min) — clearing WITHOUT publishing (geof=${geofenceId.take(8)})")
+        }
+
+        return processConfirmedDeparture(geofenceId, publishSpot = publishSpot).fold(
             onSuccess = { DepartureCheckOutcome.Processed },
             onFailure = { DepartureCheckOutcome.ProcessFailedRetry },
         )
