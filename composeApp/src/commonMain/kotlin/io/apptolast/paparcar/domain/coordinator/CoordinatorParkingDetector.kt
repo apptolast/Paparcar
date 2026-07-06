@@ -425,7 +425,7 @@ class CoordinatorParkingDetector(
                     val sessionAgeMs = now - sessionStartMs
                     PaparcarLogger.d(
                         DIAG,
-                        "─ loc#$locationCount speed=${location.speed}m/s acc=${location.accuracy}m sessionAge=${sessionAgeMs}ms"
+                        "─ loc#$locationCount lat=${location.latitude} lon=${location.longitude} speed=${location.speed}m/s acc=${location.accuracy}m sessionAge=${sessionAgeMs}ms"
                     )
                     val stoppedDuration = updateStopTracking(location, now)
 

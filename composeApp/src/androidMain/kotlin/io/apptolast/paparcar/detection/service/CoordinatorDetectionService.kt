@@ -366,6 +366,7 @@ class CoordinatorDetectionService : LifecycleService() {
                         )
                     }
                     val detail = "geof=${id.take(8)} d=${dist ?: "?"}m acc=${acc ?: "?"}m " +
+                        "exitLoc=${triggerLoc?.latitude ?: "?"},${triggerLoc?.longitude ?: "?"} " +
                         "dep=${armEvidence.persistLabel}"
                     PaparcarLogger.d(DIAG, "  → GEOFENCE_EXIT — arming Coordinator ($detail) [DET-G-01][DET-G-05]")
                     cancelDetectionJob()

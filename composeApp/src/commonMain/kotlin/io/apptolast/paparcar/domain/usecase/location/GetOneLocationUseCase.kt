@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.usecase.location
 
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -18,12 +19,22 @@ import kotlinx.coroutines.withTimeoutOrNull
 class GetOneLocationUseCase(
     private val locationDataSource: LocationDataSource,
 ) {
-    suspend operator fun invoke(): GpsPoint? =
-        withTimeoutOrNull(TIMEOUT_MS) {
+    suspend operator fun invoke(): GpsPoint? {
+        val fix = withTimeoutOrNull(TIMEOUT_MS) {
             locationDataSource.observeBalancedLocation().first()
         }
+        // Every one-shot fix is a field-forensics data point: WHERE it landed decides what the
+        // safety net / departure worker concluded there. Timeouts matter just as much.
+        if (fix != null) {
+            PaparcarLogger.d(DIAG, "fix lat=${fix.latitude} lon=${fix.longitude} speed=${fix.speed}m/s acc=${fix.accuracy}m")
+        } else {
+            PaparcarLogger.d(DIAG, "fix TIMEOUT after ${TIMEOUT_MS}ms")
+        }
+        return fix
+    }
 
     companion object {
+        private const val DIAG = "PARKDIAG/OneFix"
         private const val TIMEOUT_MS = 15_000L
     }
 }

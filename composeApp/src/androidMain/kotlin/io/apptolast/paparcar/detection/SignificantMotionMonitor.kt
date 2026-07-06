@@ -62,7 +62,11 @@ class SignificantMotionMonitor(
     @Synchronized
     fun sync(shouldBeArmed: Boolean) {
         val sensorManager = sensorManager ?: return
-        val sensor = sensor ?: return // no hardware significant-motion sensor on this device
+        val sensor = sensor ?: run {
+            // Distinguish "device has no sensor" from "sync never ran" in field captures.
+            if (shouldBeArmed) PaparcarLogger.d(TAG, "sync → wanted armed but NO significant-motion hardware")
+            return
+        }
         when {
             shouldBeArmed && !armed -> {
                 armed = sensorManager.requestTriggerSensor(listener, sensor)
@@ -84,6 +88,8 @@ class SignificantMotionMonitor(
     }
 
     private companion object {
-        const val TAG = "SignificantMotionMonitor"
+        // PARKDIAG prefix: FileAntilog only persists tags with it — an unprefixed tag made this
+        // monitor invisible in field captures (2026-07-06: impossible to tell if it ever armed).
+        const val TAG = "PARKDIAG/SigMotion"
     }
 }

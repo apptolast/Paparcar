@@ -99,7 +99,7 @@ class ParkingSafetyNetWorker(
 
         val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
             .getOrElse {
-                PaparcarLogger.e(TAG, "✗ failed to read active sessions", it)
+                PaparcarLogger.e(DIAG, "✗ failed to read active sessions", it)
                 return Result.success()
             }
 
@@ -123,12 +123,12 @@ class ParkingSafetyNetWorker(
         // Mid-trip: a live coordinator session owns the situation; a repark also self-heals the
         // old session (replaceActiveSession per vehicle). Don't second-guess it.
         if (detectionRuntime.isRunning.value) {
-            PaparcarLogger.d(TAG, "■ detection running — skipping check")
+            PaparcarLogger.d(DIAG, "■ detection running — skipping check")
             debugNotify("SafetyNet[$source]: detección en curso — skip")
             return Result.success()
         }
         if (!hasLocationPermission()) {
-            PaparcarLogger.w(TAG, "■ no location permission — skipping check")
+            PaparcarLogger.w(DIAG, "■ no location permission — skipping check")
             debugNotify("SafetyNet[$source]: sin permiso de ubicación — skip")
             return Result.success()
         }
@@ -137,7 +137,7 @@ class ParkingSafetyNetWorker(
         // the geofencing engine's state machine alive while the phone sits in Doze.
         val fix = runCatching { getOneLocation() }.getOrNull()
         if (fix == null) {
-            PaparcarLogger.d(TAG, "■ no fix within timeout — nothing to evaluate this tick")
+            PaparcarLogger.d(DIAG, "■ no fix within timeout — nothing to evaluate this tick")
             debugNotify("SafetyNet[$source]: sin fix en 15 s — nada que evaluar")
             return Result.success()
         }
@@ -172,7 +172,7 @@ class ParkingSafetyNetWorker(
                     // is then lost while the user drives (field incident 2026-07-05, Oppo: 69 km/h
                     // departure degraded to prompt because the in-memory anchor was empty). [ANCHOR-PERSIST-001]
                     writeAnchor(prefs, action.geofenceId, now)
-                    PaparcarLogger.d(TAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure)")
+                    PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure)")
                     val result = geofenceManager.createGeofence(
                         geofenceId = action.geofenceId,
                         latitude = session.location.latitude,
@@ -194,7 +194,7 @@ class ParkingSafetyNetWorker(
                 }
 
                 is SafetyNetAction.DispatchDeparture -> {
-                    PaparcarLogger.d(TAG, "▶ far with vehicle evidence — dispatching departure geofence=${action.geofenceId}")
+                    PaparcarLogger.d(DIAG, "▶ far with vehicle evidence — dispatching departure geofence=${action.geofenceId}")
                     WorkManager.getInstance(appContext).enqueueUniqueWork(
                         "${DepartureDetectionWorker.TAG}_${action.geofenceId}",
                         ExistingWorkPolicy.REPLACE,
@@ -212,7 +212,7 @@ class ParkingSafetyNetWorker(
                     val lastPromptAt = prefs.getLong(PROMPT_KEY_PREFIX + action.geofenceId, 0L)
                     val throttled = now - lastPromptAt < PROMPT_THROTTLE_MS
                     if (!throttled) {
-                        PaparcarLogger.d(TAG, "▶ moving far without anchor — still-parked prompt geofence=${action.geofenceId}")
+                        PaparcarLogger.d(DIAG, "▶ moving far without anchor — still-parked prompt geofence=${action.geofenceId}")
                         prefs.edit().putLong(PROMPT_KEY_PREFIX + action.geofenceId, now).apply()
                         notificationPort.showStillParkedPrompt(
                             geofenceId = action.geofenceId,
@@ -233,6 +233,9 @@ class ParkingSafetyNetWorker(
         // Back near the car (or ambiguity resolved) → any lingering prompt is stale.
         if (!anyPromptActive) dismissPrompt()
 
+        // File-visible mirror of the debug notification: the notification shade rotates, the
+        // parkdiag capture is what field forensics actually reads.
+        PaparcarLogger.d(DIAG, "[$source] ${debugLines.joinToString(" · ")}")
         debugNotify("SafetyNet[$source]: ${debugLines.joinToString(" · ")}")
 
         return Result.success()
@@ -268,7 +271,7 @@ class ParkingSafetyNetWorker(
             val gapMs = now - lastAliveAt
 
             if (lastAliveAt > 0L && !rebootedSince && sessions.isNotEmpty() && gapMs > KILL_GAP_THRESHOLD_MS) {
-                PaparcarLogger.w(TAG, "⚠ background gap ${gapMs / 60_000} min with session active — logging (silent) [OEM-KILL-001]")
+                PaparcarLogger.w(DIAG, "⚠ background gap ${gapMs / 60_000} min with session active — logging (silent) [OEM-KILL-001]")
                 runCatching {
                     detectionEventLogger.log(
                         DetectionEvent.BackgroundKillSuspected(
@@ -308,7 +311,7 @@ class ParkingSafetyNetWorker(
                 ?.firstOrNull()
                 ?.wasForceStopped() == true
             if (wasForceStopped) {
-                PaparcarLogger.w(TAG, "⚠ platform confirms a FORCE-STOP before this process start [OEM-KILL-001]")
+                PaparcarLogger.w(DIAG, "⚠ platform confirms a FORCE-STOP before this process start [OEM-KILL-001]")
                 detectionEventLogger.log(
                     DetectionEvent.ForceStopConfirmed(
                         sessionId = sessions.firstNotNullOfOrNull { it.geofenceId } ?: "system",
@@ -368,7 +371,11 @@ class ParkingSafetyNetWorker(
             PackageManager.PERMISSION_GRANTED
 
     companion object {
+        /** WorkManager unique-work name — NEVER rename (a rename orphans the installed periodic). */
         const val TAG = "ParkingSafetyNetWorker"
+        /** File-log tag: FileAntilog only persists PARKDIAG-prefixed tags, and this worker was
+         *  invisible in field captures without it (2026-07-06). */
+        private const val DIAG = "PARKDIAG/SafetyNet"
         /** Unique-work name of the pre-[DET-SAFETY-NET-001] watchdog — cancelled on enqueue so the
          *  renamed class never leaves a stale periodic pointing at a missing worker. */
         private const val LEGACY_TAG = "DetectionHeartbeatWorker"

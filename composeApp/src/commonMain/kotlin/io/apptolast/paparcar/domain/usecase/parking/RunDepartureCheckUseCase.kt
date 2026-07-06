@@ -57,6 +57,7 @@ class RunDepartureCheckUseCase(
             exitTimestampMs = exitTimestampMs,
             currentSpeedKmh = speedKmh,
         )
+        PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h → ${decision::class.simpleName}")
 
         // [DET-SOLID-001] Observability: every attempt's verdict, traced by geofenceId.
         runCatching {
@@ -99,7 +100,7 @@ class RunDepartureCheckUseCase(
     }
 
     companion object {
-        private const val TAG = "RunDepartureCheckUseCase"
+        private const val TAG = "PARKDIAG/Depart"
         private const val KMH_PER_MPS = 3.6f
 
         /**
