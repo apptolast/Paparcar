@@ -139,11 +139,14 @@ class ParkingSafetyNetWorker(
         }
 
         // ACTIVE fix on purpose (not passive last-known): feeding the fused provider is what keeps
-        // the geofencing engine's state machine alive while the phone sits in Doze.
-        val fix = runCatching { getOneLocation() }.getOrNull()
+        // the geofencing engine's state machine alive while the phone sits in Doze. FRESH on
+        // purpose too: the cache served "inside the fence" after the car had left and a frozen
+        // mid-drive position (field 2026-07-07) — a stale fix here poisons the anchor and blinds
+        // the whole check, so no fix beats an old fix. [DET-RECONCILE-001]
+        val fix = runCatching { getOneLocation(maxAgeMs = config.freshFixMaxAgeMs) }.getOrNull()
         if (fix == null) {
-            PaparcarLogger.d(DIAG, "■ no fix within timeout — nothing to evaluate this tick")
-            debugNotify("SafetyNet[$source]: sin fix en 15 s — nada que evaluar")
+            PaparcarLogger.d(DIAG, "■ no fresh fix within timeout — nothing to evaluate this tick")
+            debugNotify("SafetyNet[$source]: sin fix fresco en 15 s — nada que evaluar")
             return Result.success()
         }
 
@@ -191,7 +194,16 @@ class ParkingSafetyNetWorker(
                     // departure degraded to prompt because the in-memory anchor was empty). [ANCHOR-PERSIST-001]
                     writeAnchor(prefs, action.geofenceId, now)
                     // The counter value AT the anchor moment — the step budget's zero point.
-                    if (cumulativeSteps != null) writeAnchorSteps(prefs, action.geofenceId, cumulativeSteps)
+                    // Time and steps are an ATOMIC PAIR: refreshing the time while keeping an old
+                    // zero-point makes the delta count steps walked BEFORE the anchor (field
+                    // 2026-07-07, Oppo 12:17 — 365 phantom steps vetoed a real short-hop verdict).
+                    // When the read fails, CLEAR the zero-point: delta=null falls back to the
+                    // pedestrian-physics check, which only needs the time anchor. [DET-RECONCILE-001]
+                    if (cumulativeSteps != null) {
+                        writeAnchorSteps(prefs, action.geofenceId, cumulativeSteps)
+                    } else {
+                        removeAnchorSteps(prefs, action.geofenceId)
+                    }
                     PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure, steps@anchor=${cumulativeSteps ?: "?"})")
                     val result = geofenceManager.createGeofence(
                         geofenceId = action.geofenceId,
@@ -429,6 +441,12 @@ class ParkingSafetyNetWorker(
         prefs.edit().putLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, steps).apply()
     }
 
+    /** Keeps the anchor pair coherent when a cure could not read the counter: a stale zero-point
+     *  under a fresh time counts pre-anchor steps into the budget. [DET-RECONCILE-001] */
+    private fun removeAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String) {
+        prefs.edit().remove(ANCHOR_STEPS_KEY_PREFIX + geofenceId).apply()
+    }
+
     /** Removes per-geofence anchor + prompt-throttle keys for geofences with no active session left
      *  (departed / reverted). */
     private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
@@ -474,6 +492,9 @@ class ParkingSafetyNetWorker(
          *  landing the check MID-DRIVE while the ColorOS geofence EXIT is still minutes away.
          *  [DET-RECONCILE-001] */
         const val SOURCE_AR_ENTER = "ar-enter"
+        /** Twin ENTER fence — the user walked back to the parked car; the check re-seals the
+         *  anchor and cures the EXIT fence state for the upcoming drive-away. [DET-RETURN-ANCHOR-001] */
+        const val SOURCE_GEOFENCE_ENTER = "geofence-enter"
 
         /** Min interval between "still parked?" prompts per geofence. Persisted to disk (see the
          *  prompt branch) so an OEM process kill can't reset it and re-nag on every app-start. */
