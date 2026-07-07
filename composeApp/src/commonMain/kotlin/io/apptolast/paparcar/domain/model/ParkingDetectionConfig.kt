@@ -134,6 +134,14 @@ data class ParkingDetectionConfig(
      *  2.5 m/s = 9 km/h sustained; brisk walking is ~1.7 m/s, running commuters don't carry
      *  a parked-car session. */
     val maxPedestrianSpeedMps: Float = 2.5f,
+    /** ABSOLUTE cap on the step delta for the "was driven from their car" verdict. The relative
+     *  [walkedStepFraction] check alone leaks on long displacements: walking 400 m to a bus stop
+     *  (~530 steps) then riding 5 km still satisfies "steps ≪ distance/stride". If the ride truly
+     *  began at YOUR car, the steps between the anchor (seen inside the fence) and boarding are
+     *  at most a fence-diameter's worth (~2×135 m van radius ≈ 360 m worst case, typically far
+     *  less). 300 steps ≈ 225 m — beyond it the user demonstrably walked somewhere first and
+     *  boarded a vehicle AWAY from the car → never auto-release. */
+    val maxBoardingSteps: Long = 300L,
 
     // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
     /** Time window (ms) after the vehicle first stops during which GPS fixes are
@@ -442,6 +450,9 @@ data class ParkingDetectionConfig(
         }
         require(spotPublishMaxAgeMs > 0) {
             "spotPublishMaxAgeMs must be > 0, was $spotPublishMaxAgeMs"
+        }
+        require(maxBoardingSteps > 0) {
+            "maxBoardingSteps must be > 0, was $maxBoardingSteps"
         }
         require(reparkPlausibilityWindowMs > 0) {
             "reparkPlausibilityWindowMs must be > 0, was $reparkPlausibilityWindowMs"

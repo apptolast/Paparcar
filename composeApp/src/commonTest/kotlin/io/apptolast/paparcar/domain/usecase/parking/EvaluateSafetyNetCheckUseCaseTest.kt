@@ -135,6 +135,19 @@ class EvaluateSafetyNetCheckUseCaseTest {
     }
 
     @Test
+    fun should_returnNone_when_walkedToABusStopThenRode_busGuard() {
+        // Walked ~400 m to a bus stop (~530 steps) then rode 5 km. The RELATIVE check alone
+        // passes (530 ≪ 6 667×0.4) — the ABSOLUTE boarding cap must veto: that many steps means
+        // the vehicle was boarded AWAY from the car. Silent. [DET-RECONCILE-001]
+        val action = evaluate(
+            fix = fixAtMeters(5_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = freshAnchor,
+            stepsSinceAnchor = 530L,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
     fun should_returnNone_when_stepBudgetVerdict_butAnchorMissing() {
         // Few steps + far, but never seen at the car — could be a bus boarded elsewhere. Silent.
         val action = evaluate(

@@ -149,8 +149,14 @@ class EvaluateSafetyNetCheckUseCase(
         // foot state and stays SILENT (no nag — SAFETYNET-STATIONARY-001 preserved).
         if (anchoredToCar && fix.accuracy <= config.minGpsAccuracyForDriving) {
             if (stepsSinceAnchor != null) {
+                // Two conditions, not one: RELATIVE (steps ≪ what walking the displacement costs)
+                // proves a ride happened; ABSOLUTE (steps ≤ a fence-diameter's worth) proves the
+                // ride was boarded AT the car — 500 steps to a bus stop then a 5 km ride passes
+                // the relative check alone. [DET-RECONCILE-001]
                 val stepsToWalkHere = distanceMeters / config.strideMeters
-                if (stepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction) {
+                if (stepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction &&
+                    stepsSinceAnchor <= config.maxBoardingSteps
+                ) {
                     return SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = true)
                 }
             } else if (nearAgeMs != null && nearAgeMs > 0) {
