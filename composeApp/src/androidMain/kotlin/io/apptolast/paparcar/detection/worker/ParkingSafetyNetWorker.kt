@@ -89,6 +89,7 @@ class ParkingSafetyNetWorker(
     private val detectionEventLogger: DetectionEventLogger by inject()
     private val stepCounterSource: StepCounterSource by inject()
     private val config: ParkingDetectionConfig by inject()
+    private val manualParkingDetection: io.apptolast.paparcar.domain.detection.ManualParkingDetection by inject()
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
@@ -251,6 +252,18 @@ class ParkingSafetyNetWorker(
                         ).enqueue()
                     } else {
                         departureChain.enqueue()
+                    }
+                    // [DET-RECONCILE-001] LIVE dispatch = the user is driving THEIR car right now
+                    // (evaluator-gated: anchor + credible speed). Escalate to the full tracking
+                    // service so the REST of the trip is followed and the new parking confirms at
+                    // full quality (steps+egress) instead of a backfill estimate. Never done from
+                    // the raw AR receiver — arming on every IN_VEHICLE ENTER is the purged
+                    // bus-false-positive path. Background FGS-start may be denied (Android 12+);
+                    // the reconcile/backfill net remains underneath, so a veto costs nothing.
+                    if (!action.preconfirmed) {
+                        runCatching { manualParkingDetection.start() }
+                            .onSuccess { PaparcarLogger.d(DIAG, "  → live departure — tracking service started") }
+                            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⊘ tracking service start denied (${e.message}) — reconcile net remains") }
                     }
                     logVerdict(
                         action.geofenceId,
