@@ -4,11 +4,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
+import androidx.work.WorkManager
 import com.google.android.gms.location.ActivityTransition
 import com.google.android.gms.location.ActivityTransitionResult
 import com.google.android.gms.location.DetectedActivity
 import io.apptolast.paparcar.detection.activityLabel
 import io.apptolast.paparcar.detection.transitionLabel
+import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -55,6 +57,16 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
                     val trueEpochMs = elapsedNanosToEpochMs(event.elapsedRealTimeNanos)
                     PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER → bus stamped (trueTime=$trueEpochMs, lag=${System.currentTimeMillis() - trueEpochMs}ms) [DET-SOLID-001]")
                     departureEventBus.onVehicleEntered(trueEpochMs)
+                    // [DET-RECONCILE-001] And an ACCELERATOR of the parked-state reconcile — not a
+                    // decision. AR rides a PendingIntent, so this fires even from a dead process
+                    // (field 2026-07-06: delivered at 23:57 with the app long killed) — exactly
+                    // when the geofence EXIT is still minutes away on ColorOS. The check itself
+                    // stays gated (no session → no-op; anchor + step budget decide), so a bus
+                    // boarding costs one fix sample, never a false release.
+                    ParkingSafetyNetWorker.enqueueCheckNow(
+                        WorkManager.getInstance(context),
+                        source = ParkingSafetyNetWorker.SOURCE_AR_ENTER,
+                    )
                 }
             }
         }

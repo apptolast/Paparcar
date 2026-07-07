@@ -457,6 +457,10 @@ class ParkingSafetyNetWorker(
         const val SOURCE_SIG_MOTION = "sig-motion"
         const val SOURCE_APP_START = "app-start"
         const val SOURCE_DETECTION_END = "detection-end"
+        /** IN_VEHICLE ENTER accelerator — AR rides a PendingIntent and wakes a dead process,
+         *  landing the check MID-DRIVE while the ColorOS geofence EXIT is still minutes away.
+         *  [DET-RECONCILE-001] */
+        const val SOURCE_AR_ENTER = "ar-enter"
 
         /** Min interval between "still parked?" prompts per geofence. Persisted to disk (see the
          *  prompt branch) so an OEM process kill can't reset it and re-nag on every app-start. */
