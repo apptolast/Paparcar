@@ -3,8 +3,10 @@ package io.apptolast.paparcar.bluetooth
 import android.content.Intent
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import androidx.work.WorkManager
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.detection.service.ForegroundServiceController
+import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.VehicleRepository
@@ -145,6 +147,14 @@ class BluetoothDetectionService : LifecycleService() {
             try {
                 detector.detectParking(deviceAddress, vehicleId)
                 PaparcarLogger.d(DIAG, "  ✓ detectParking returned normally")
+                // [DET-RETURN-ANCHOR-001] Seal the anchor for the just-confirmed session right
+                // away (the coordinator path gets this via its detection-end check): the user is
+                // still ~30 m from the car, well inside the fence, so the check writes the
+                // time+steps zero-point the step-budget will need hours later.
+                ParkingSafetyNetWorker.enqueueCheckNow(
+                    WorkManager.getInstance(this@BluetoothDetectionService),
+                    source = ParkingSafetyNetWorker.SOURCE_BT_PARK,
+                )
             } catch (e: CancellationException) {
                 PaparcarLogger.d(DIAG, "  ✗ detection cancelled (BT reconnect or destroy)")
                 throw e
@@ -172,6 +182,16 @@ class BluetoothDetectionService : LifecycleService() {
         PaparcarLogger.d(DIAG, "  → BT_CONNECTED device=$deviceAddress — cancelling detection, stopForegroundAndSelf()")
         detectionJob?.cancel()
         detectionJob = null
+        // [DET-RETURN-ANCHOR-001] BT CONNECT is the DETERMINISTIC "back at my car" signal — the
+        // receiver already gated it to the vehicle's paired MAC, and it fires the moment the
+        // engine turns on, immune to the Doze/latency that delays the twin ENTER fence. The
+        // gated check re-seals the position anchor + cures the fence state seconds before the
+        // drive-away, so the departure resolves live (or via step-budget) instead of dying to a
+        // stale anchor as on 2026-07-07. Accelerator only — the evaluator still decides.
+        ParkingSafetyNetWorker.enqueueCheckNow(
+            WorkManager.getInstance(this),
+            source = ParkingSafetyNetWorker.SOURCE_BT_CONNECT,
+        )
         fgs.stopForegroundAndSelf() // [FIX BT-BUG-100]
     }
 
@@ -192,6 +212,8 @@ class BluetoothDetectionService : LifecycleService() {
         const val ACTION_BT_CONNECTED = "io.apptolast.paparcar.ACTION_BT_CONNECTED"
         const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
         const val EXTRA_VEHICLE_ID = "extra_vehicle_id"
-        private const val DIAG = "BTDIAG/Service"
+        /** PARKDIAG prefix: FileAntilog only persists PARKDIAG-tagged lines (was BTDIAG —
+         *  invisible in field captures). */
+        private const val DIAG = "PARKDIAG/BTService"
     }
 }

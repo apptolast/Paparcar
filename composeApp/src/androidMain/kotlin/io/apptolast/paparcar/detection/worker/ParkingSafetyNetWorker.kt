@@ -495,6 +495,12 @@ class ParkingSafetyNetWorker(
         /** Twin ENTER fence — the user walked back to the parked car; the check re-seals the
          *  anchor and cures the EXIT fence state for the upcoming drive-away. [DET-RETURN-ANCHOR-001] */
         const val SOURCE_GEOFENCE_ENTER = "geofence-enter"
+        /** BT connected to the vehicle's paired MAC — deterministic "back at my car", fires with
+         *  the engine and needs no Doze luck. Same re-seal job as the ENTER fence. [DET-RETURN-ANCHOR-001] */
+        const val SOURCE_BT_CONNECT = "bt-connect"
+        /** A BT-path park just confirmed — seal the fresh session's anchor immediately (the
+         *  coordinator path gets this from its detection-end check). [DET-RETURN-ANCHOR-001] */
+        const val SOURCE_BT_PARK = "bt-park"
 
         /** Min interval between "still parked?" prompts per geofence. Persisted to disk (see the
          *  prompt branch) so an OEM process kill can't reset it and re-nag on every app-start. */

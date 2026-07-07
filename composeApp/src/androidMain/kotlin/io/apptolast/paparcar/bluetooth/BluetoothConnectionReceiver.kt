@@ -124,6 +124,8 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
     }
 
     private companion object {
-        const val TAG = "BluetoothConnectionReceiver"
+        /** PARKDIAG prefix: FileAntilog only persists PARKDIAG-tagged lines — without it the whole
+         *  BT path was invisible in field captures, like SIGMOTION before 2026-07-07. */
+        const val TAG = "PARKDIAG/BTReceiver"
     }
 }

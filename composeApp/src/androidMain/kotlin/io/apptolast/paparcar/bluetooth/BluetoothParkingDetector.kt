@@ -1,6 +1,9 @@
 package io.apptolast.paparcar.bluetooth
 
 import android.location.Location
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
@@ -48,6 +51,7 @@ class BluetoothParkingDetector(
     private val confirmParking: ConfirmParkingUseCase,
     private val notificationPort: AppNotificationManager,
     private val config: ParkingDetectionConfig,
+    private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
 
     suspend fun detectParking(deviceAddress: String, vehicleId: String) {
@@ -66,6 +70,7 @@ class BluetoothParkingDetector(
 
         if (parkingFix == null) {
             PaparcarLogger.w(TAG, "GPS fix timed out — skipping BT parking confirmation")
+            logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout")
             return
         }
 
@@ -85,14 +90,41 @@ class BluetoothParkingDetector(
         PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking for vehicle=$vehicleId")
         confirmParking(parkingFix, config.reliabilityBluetooth, vehicleId = vehicleId)
             .onSuccess { saved ->
+                logRemote(sessionId = saved.id, verdict = "bt_park_confirmed", fix = parkingFix)
                 // Legacy tap-to-open-map notification. [BT-NOTIF-LEGACY-CLEANUP]
                 notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
             }
-            .onFailure { e -> PaparcarLogger.e(TAG, "Failed to confirm parking", e) }
+            .onFailure { e ->
+                PaparcarLogger.e(TAG, "Failed to confirm parking", e)
+                logRemote(sessionId = vehicleId, verdict = "bt_park_refused")
+            }
+    }
+
+    /** Firestore-visible verdict trail — the BT path emitted ZERO remote telemetry before
+     *  2026-07-07, so a field failure here could only be diagnosed with the phone on a cable. */
+    private suspend fun logRemote(
+        sessionId: String,
+        verdict: String,
+        fix: GpsPoint? = null,
+    ) {
+        runCatching {
+            detectionEventLogger?.log(
+                DetectionEvent.DepartureVerdict(
+                    sessionId = sessionId,
+                    timestampMs = System.currentTimeMillis(),
+                    verdict = verdict,
+                    source = "bt",
+                    speedKmh = fix?.speed?.times(KMH_PER_MPS),
+                    location = fix,
+                )
+            )
+        }
     }
 
     private companion object {
-        const val TAG = "BluetoothParkingDetector"
+        /** PARKDIAG prefix: FileAntilog only persists PARKDIAG-tagged lines. */
+        const val TAG = "PARKDIAG/BTDetector"
+        const val KMH_PER_MPS = 3.6f
 
         /** BT-005: Grace window before acting on disconnect (brief stop / oscillation debounce). */
         const val BT_DISCONNECT_DEBOUNCE_MS = 30_000L
