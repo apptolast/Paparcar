@@ -41,10 +41,36 @@ class GeofenceManagerImpl(
             .build()
 
         geofencingClient.addGeofences(request, buildPendingIntent()).await()
+
+        // [DET-RETURN-ANCHOR-001] Twin ENTER fence over the same region. The typical parking
+        // session is park → walk away → return HOURS later → drive off: by then the position
+        // anchor has long expired and the EXIT fence's internal state may sit poisoned OUTSIDE
+        // (consumed by the earlier walking-EXIT, the brief re-entry unobserved in Doze) — the
+        // drive-away then produces NO signal at all (field 2026-07-07, both devices: the beach
+        // spot was never released). The user's walk BACK into the fence is the one moment that
+        // fixes both: this ENTER rides a PendingIntent (fires even process-dead) → cheap gated
+        // safety-net check → fresh fix inside → fence cured INSIDE + anchor re-sealed with fresh
+        // steps. Delivered to a broadcast receiver, NOT the detection service: an ENTER must
+        // never arm anything or flash the FGS notification — it only re-seals state.
+        val enterFence = Geofence.Builder()
+            .setRequestId(ENTER_ID_PREFIX + geofenceId)
+            .setCircularRegion(latitude, longitude, radiusMeters)
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
+            .build()
+
+        val enterRequest = GeofencingRequest.Builder()
+            // No initial trigger: the cure re-registers while standing INSIDE — an initial ENTER
+            // would fire a check that cures again, re-registering forever.
+            .setInitialTrigger(NO_INITIAL_TRIGGER)
+            .addGeofence(enterFence)
+            .build()
+
+        geofencingClient.addGeofences(enterRequest, buildEnterPendingIntent()).await()
     }
 
     override suspend fun removeGeofence(geofenceId: String): Result<Unit> = runCatching {
-        geofencingClient.removeGeofences(listOf(geofenceId)).await()
+        geofencingClient.removeGeofences(listOf(geofenceId, ENTER_ID_PREFIX + geofenceId)).await()
     }
 
     override suspend fun removeAllGeofences(): Result<Unit> = runCatching {
@@ -52,6 +78,7 @@ class GeofenceManagerImpl(
         // PendingIntent — no need to enumerate ids (GMS exposes no list API). The same builder
         // resolves to the existing PendingIntent because it matches on action + request code.
         geofencingClient.removeGeofences(buildPendingIntent()).await()
+        geofencingClient.removeGeofences(buildEnterPendingIntent()).await()
     }
 
     override fun getGeofenceEvents(): Flow<GeofenceEvent> = geofenceEventBus.events
@@ -75,11 +102,27 @@ class GeofenceManagerImpl(
         )
     }
 
-    private companion object {
-        const val REQUEST_CODE = 9100
-        const val LOITERING_DELAY_MS = 60_000
+    /** [DET-RETURN-ANCHOR-001] ENTER events go to a plain broadcast (→ WorkManager check), never
+     *  to the detection service — re-entering your own fence must not start an FGS. */
+    private fun buildEnterPendingIntent(): PendingIntent {
+        val intent = Intent(context, io.apptolast.paparcar.detection.receiver.GeofenceEnterReceiver::class.java)
+        // FLAG_MUTABLE: Play Services fills GeofencingEvent extras at delivery time.
+        return PendingIntent.getBroadcast(
+            context,
+            REQUEST_CODE_ENTER,
+            intent,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
+
+    companion object {
+        private const val REQUEST_CODE = 9100
+        private const val REQUEST_CODE_ENTER = 9101
+        private const val LOITERING_DELAY_MS = 60_000
+        /** [DET-RETURN-ANCHOR-001] Request-id prefix of the twin ENTER fence. */
+        const val ENTER_ID_PREFIX = "enter_"
         /** Suppress the initial dwell trigger when registering a geofence. */
-        const val NO_INITIAL_TRIGGER = 0
+        private const val NO_INITIAL_TRIGGER = 0
         // Geofences use NEVER_EXPIRE: a car can stay parked for days, and a TTL would silently drop
         // exit detection if WorkManager (the re-registering Janitor) is throttled by the OEM before
         // it expires. Orphan prevention no longer relies on expiry — it relies on explicit removal:

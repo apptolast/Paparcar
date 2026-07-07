@@ -93,3 +93,29 @@ pasos → no dispara.
 - Pasos mudos del Redmi con listener vivo (06-07): perseguir por separado; el step-budget usa el
   COUNTER (otro sensor), medir si también se congela.
 - Latencia EXIT del Oppo: no es arreglable por nosotros; el sistema ya no depende de ella.
+
+## Reparaciones tras el field-test 2026-07-07 [DET-RETURN-ANCHOR-001]
+
+El primer field-test del sistema completo (ambos móviles) validó la lógica de decisión — dos
+ciclos autónomos completos de libro, y el viaje corto de 576 m resuelto en el Redmi (fall-through
+publicó la plaza vieja + guardar-al-timeout marcó la nueva en el sitio exacto). Todos los fallos
+del día fueron **primitivos de entrada podridos**, no decisiones:
+
+1. **Fix cacheado** — el fused provider sirvió la misma coordenada con speed=0 durante 4 min en
+   pleno viaje (Redmi 13:56) y "dentro de la geocerca" con el coche ya ido (Oppo 12:14, que además
+   envenenó el ancla). → `GetOneLocationUseCase(maxAgeMs)`: toda decisión (safety-net, departure
+   check, pre-arm del service) exige `freshFixMaxAgeMs` (30 s); un fix viejo se descarta y se
+   espera uno vivo o se devuelve null. Ningún dato gana a dato viejo.
+2. **Par ancla desparejado** — la cura refrescaba la HORA siempre pero el punto-cero de pasos solo
+   si la lectura no hacía TIMEOUT → delta con pasos pre-ancla (Oppo 12:17: 365 pasos fantasma
+   vetaron un veredicto real que con el par coherente eran ~30). → par atómico: sin lectura, se
+   BORRA el punto-cero (delta=null → fallback de física, que solo necesita la hora).
+3. **Contador mudo / lento** — Redmi devuelve 0 SIEMPRE (un delta 0 andando = falso "conducido");
+   Oppo hacía TIMEOUT a los 5 s. → 0 se trata como desconocido; presupuesto de lectura a 12 s.
+4. **La vuelta al coche horas después** (el agujero del día: plaza de la playa nunca liberada en
+   ninguno de los dos): ancla caducada (30 min) + fence EXIT envenenada OUTSIDE por la salida
+   andando + re-entrada no observada en Doze. → **geocerca gemela ENTER** sobre la misma región
+   (`enter_<id>`, PendingIntent a `GeofenceEnterReceiver` → check gated): volver andando al coche
+   re-sella ancla+pasos y cura el estado de la fence; la salida real vuelve a tener EXIT, y si
+   llega tarde, el siguiente despertar tiene ancla fresca para el step-budget. El ENTER jamás
+   arma nada ni arranca FGS.

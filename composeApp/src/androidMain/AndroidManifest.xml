@@ -106,6 +106,13 @@
             </intent-filter>
         </receiver>
 
+        <!-- GeofenceEnterReceiver — twin ENTER fence: the user walked back to the parked car;
+             enqueues the safety-net check that re-seals the anchor + cures the EXIT fence state.
+             Explicit PendingIntent target, no intent-filter. [DET-RETURN-ANCHOR-001] -->
+        <receiver
+            android:name=".detection.receiver.GeofenceEnterReceiver"
+            android:exported="false" />
+
         <!-- ParkingConfirmationReceiver — notification action buttons.
              Pre-save prompt: CONFIRMED / DENIED.
              Post-save card  : ACK / REVERT  [REFACTOR-300] -->
