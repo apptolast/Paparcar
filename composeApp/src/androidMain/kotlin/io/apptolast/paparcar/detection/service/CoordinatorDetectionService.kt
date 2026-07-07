@@ -23,6 +23,7 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -66,6 +67,7 @@ class CoordinatorDetectionService : LifecycleService() {
     // bus decide whether the exit has vehicle evidence before the coordinator is seeded.
     private val verifyDepartureEvidence: VerifyDepartureEvidenceUseCase by inject()
     private val getOneLocation: GetOneLocationUseCase by inject()
+    private val detectionConfig: ParkingDetectionConfig by inject()
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -345,7 +347,9 @@ class CoordinatorDetectionService : LifecycleService() {
                     // fix at driving speed) may arm the coordinator as a confirmed departure;
                     // unverified exits arm with the legacy anti-walking guards active, and the
                     // departure worker upgrades the live session if its verdict confirms later.
-                    val exitFix = runCatching { getOneLocation() }.getOrNull()
+                    // Fresh fix only: this speed sample decides verified_speed arm evidence — a
+                    // cached driving-speed fix would verify a stale exit. [DET-RECONCILE-001]
+                    val exitFix = runCatching { getOneLocation(maxAgeMs = detectionConfig.freshFixMaxAgeMs) }.getOrNull()
                     val speedKmh = exitFix?.speed?.times(KMH_PER_MPS)
                     val armEvidence = verifyDepartureEvidence(
                         exitTimestampMs = now,

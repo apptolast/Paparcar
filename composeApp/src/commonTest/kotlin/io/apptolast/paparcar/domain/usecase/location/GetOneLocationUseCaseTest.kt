@@ -48,4 +48,48 @@ class GetOneLocationUseCaseTest {
         fakeDataSource.emitBalanced(second)
         assertEquals(point, deferred.await())
     }
+
+    // ── Freshness gate [DET-RECONCILE-001] — the fused provider's first emission is often a
+    // cached last-known fix; with maxAgeMs set, a detection decision must never reason over it.
+
+    @Test
+    fun `should skip stale cached fix and return the next fresh one when freshness required`() = runTest {
+        val nowMs = 1_000_000L
+        val freshnessGated = GetOneLocationUseCase(fakeDataSource) { nowMs }
+        val staleCached = point.copy(timestamp = nowMs - 4 * 60_000L) // the 4-min-old mid-drive cache (field 2026-07-07)
+        val fresh = point.copy(latitude = 41.0, timestamp = nowMs - 5_000L)
+
+        val deferred = async { freshnessGated(maxAgeMs = 30_000L) }
+        runCurrent()
+        fakeDataSource.emitBalanced(staleCached)
+        fakeDataSource.emitBalanced(fresh)
+
+        assertEquals(fresh, deferred.await())
+    }
+
+    @Test
+    fun `should return null when only stale fixes arrive within the timeout`() = runTest {
+        val nowMs = 1_000_000L
+        val freshnessGated = GetOneLocationUseCase(fakeDataSource) { nowMs }
+        val staleCached = point.copy(timestamp = nowMs - 2 * 60 * 60_000L)
+
+        val deferred = async { freshnessGated(maxAgeMs = 30_000L) }
+        runCurrent()
+        fakeDataSource.emitBalanced(staleCached)
+
+        assertNull(deferred.await())
+    }
+
+    @Test
+    fun `should accept a stale fix when no freshness is required`() = runTest {
+        val nowMs = 1_000_000L
+        val ungated = GetOneLocationUseCase(fakeDataSource) { nowMs }
+        val staleCached = point.copy(timestamp = nowMs - 2 * 60 * 60_000L)
+
+        val deferred = async { ungated() }
+        runCurrent()
+        fakeDataSource.emitBalanced(staleCached)
+
+        assertEquals(staleCached, deferred.await())
+    }
 }

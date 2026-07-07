@@ -205,6 +205,14 @@ data class ParkingDetectionConfig(
      *  incident 2026-07-06, Redmi: processed 5 h late) still clears the session and geofence,
      *  but publishing the spot would advertise a hole that is long gone. [DET-RECONCILE-001] */
     val spotPublishMaxAgeMs: Long = 10 * 60_000L,
+    /** Maximum age (ms) a one-shot fix may have for a detection DECISION to reason over it.
+     *  The fused provider's first emission is often a cached last-known location; in the field
+     *  (2026-07-07) it served the SAME coordinate with speed=0 for 4 minutes mid-drive (Redmi
+     *  13:56) and reported "inside the fence" after the car had already left (Oppo 12:14 —
+     *  which then poisoned the anchor). A decision made over hours-old data is worse than no
+     *  decision: stale candidates are skipped and the check waits for a live fix or times out.
+     *  [DET-RECONCILE-001] */
+    val freshFixMaxAgeMs: Long = 30_000L,
 
     // ── REPARK PLAUSIBILITY GUARD [DET-SOLID-001] ─────────────────────────────
     /** Age (ms) under which an existing active session is considered "recent" by the
@@ -457,6 +465,9 @@ data class ParkingDetectionConfig(
         }
         require(spotPublishMaxAgeMs > 0) {
             "spotPublishMaxAgeMs must be > 0, was $spotPublishMaxAgeMs"
+        }
+        require(freshFixMaxAgeMs > 0) {
+            "freshFixMaxAgeMs must be > 0, was $freshFixMaxAgeMs"
         }
         require(maxBoardingSteps > 0) {
             "maxBoardingSteps must be > 0, was $maxBoardingSteps"

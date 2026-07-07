@@ -61,7 +61,9 @@ class RunDepartureCheckUseCase(
         preconfirmed: Boolean = false,
     ): DepartureCheckOutcome {
         if (!preconfirmed) {
-            val speedKmh = getOneLocation()?.speed?.times(KMH_PER_MPS)
+            // Fresh fix only: this samples CURRENT speed — a cached fix answers "how fast was the
+            // phone some minutes ago", which wastes attempts and skews the verdict. [DET-RECONCILE-001]
+            val speedKmh = getOneLocation(maxAgeMs = config.freshFixMaxAgeMs)?.speed?.times(KMH_PER_MPS)
 
             val decision = detectParkingDeparture(
                 geofenceId = geofenceId,
