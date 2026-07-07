@@ -120,7 +120,23 @@ class EvaluateSafetyNetCheckUseCase(
         }
 
         val nearAgeMs = lastSeenNearCarAtMs?.let { nowMs - it }
-        val anchoredToCar = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
+        val timeFreshAnchor = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
+        // [DET-RECONCILE-001] The anchor's real freshness clock is STEPS, not minutes. What the
+        // anchor asserts is "the user was positionally AT the car" — and that assertion only
+        // decays by WALKING away from it, which the hardware counter measures across kills and
+        // Doze. A wall-clock window silently expires it while the user sits at a table 20 m from
+        // the car (field 2026-07-07 22:41, Oppo: anchor 46 min old but only 113 steps walked
+        // since — 4.3 km of displacement was blatantly a drive, vetoed purely by the clock; the
+        // spot was never released). ≤ maxBoardingSteps since the seal ⇒ still at the car for all
+        // decision purposes, hours later. The bus-stop-next-to-the-car residual this admits is
+        // the SAME envelope the time window already accepted — it just no longer expires.
+        // The time window remains for counter-less anchors (mute/absent hardware), whose only
+        // evidence — pedestrian physics over nearAge — needs a time base anyway. Steps relax the
+        // TIME requirement only — an anchor must still EXIST (the delta is only meaningful
+        // relative to a seal moment; without one, few steps + far could be a bus boarded anywhere).
+        val stepFreshAnchor = nearAgeMs != null && nearAgeMs >= 0 &&
+            stepsSinceAnchor != null && stepsSinceAnchor <= config.maxBoardingSteps
+        val anchoredToCar = timeFreshAnchor || stepFreshAnchor
 
         // Departure IN PROGRESS: a credible driving-speed fix far from the car. Position anchor
         // decides auto vs ask: the movement must have STARTED at the car (seen inside its fence

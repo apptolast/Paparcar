@@ -124,6 +124,46 @@ class EvaluateSafetyNetCheckUseCaseTest {
     }
 
     @Test
+    fun should_dispatchPreconfirmed_when_anchorOldInTimeButFreshInSteps() {
+        // Field trace 2026-07-07 22:41 (Oppo): anchor sealed 46 min earlier, only 113 steps
+        // walked since, wake-up fix 4 344 m away. The wall clock had expired the anchor while the
+        // user sat right next to the car — but 113 steps ≤ a boarding's worth means they never
+        // WALKED anywhere: the displacement was a drive that started at the car. Must release.
+        val action = evaluate(
+            fix = fixAtMeters(4_344.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 46 * 60_000L,
+            stepsSinceAnchor = 113L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.preconfirmed)
+    }
+
+    @Test
+    fun should_dispatchLive_when_drivingFarAndAnchorFreshOnlyBySteps() {
+        // Same step-fresh anchor, caught MID-drive: live dispatch (worker re-verifies by speed).
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = drivingMps),
+            lastSeenNearCarAtMs = nowMs - 3 * 60 * 60_000L,
+            stepsSinceAnchor = 40L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(false, dispatch.preconfirmed)
+    }
+
+    @Test
+    fun should_promptStillParked_when_drivingButAnchorStaleInTimeAndSteps() {
+        // Walked 800+ steps since last at the car, hours ago, now moving at driving speed — a
+        // vehicle boarded away from the car. Only the user can disambiguate.
+        assertIs<SafetyNetAction.PromptStillParked>(
+            evaluate(
+                fix = fixAtMeters(2_000.0, speedMps = drivingMps),
+                lastSeenNearCarAtMs = nowMs - 3 * 60 * 60_000L,
+                stepsSinceAnchor = 800L,
+            ),
+        )
+    }
+
+    @Test
     fun should_returnNone_when_stepBudgetMatchesWalking_shortRange() {
         // 500 m with ~600 steps: walked. Silent.
         val action = evaluate(
