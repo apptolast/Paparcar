@@ -25,6 +25,7 @@ import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -87,6 +88,7 @@ class ParkingSafetyNetWorker(
     private val significantMotionMonitor: SignificantMotionMonitor by inject()
     private val detectionEventLogger: DetectionEventLogger by inject()
     private val stepCounterSource: StepCounterSource by inject()
+    private val config: ParkingDetectionConfig by inject()
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
@@ -225,7 +227,7 @@ class ParkingSafetyNetWorker(
                         "▶ far with vehicle evidence — dispatching departure geofence=${action.geofenceId} " +
                             "(preconfirmed=${action.preconfirmed} steps=${stepsSinceAnchor ?: "?"} d=${distanceM}m)"
                     )
-                    WorkManager.getInstance(appContext).enqueueUniqueWork(
+                    val departureChain = WorkManager.getInstance(appContext).beginUniqueWork(
                         "${DepartureDetectionWorker.TAG}_${action.geofenceId}",
                         ExistingWorkPolicy.REPLACE,
                         DepartureDetectionWorker.buildRequest(
@@ -234,6 +236,22 @@ class ParkingSafetyNetWorker(
                             preconfirmed = action.preconfirmed,
                         ),
                     )
+                    // [DET-RECONCILE-001] Backfill the NEW parking when the wake-up fix bounds it
+                    // tightly: the user is at most stepsSinceAnchor × stride from the just-parked
+                    // car. Chained AFTER the departure so the old session resolves (publish+clear)
+                    // before the confirm replaces the vehicle's active session.
+                    if (action.preconfirmed && stepsSinceAnchor != null && stepsSinceAnchor <= config.backfillMaxSteps) {
+                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=$stepsSinceAnchor ≤ ${config.backfillMaxSteps})")
+                        departureChain.then(
+                            ParkingBackfillWorker.buildRequest(
+                                fix = fix,
+                                vehicleId = session.vehicleId,
+                                reliability = config.reliabilityUnattendedSave,
+                            )
+                        ).enqueue()
+                    } else {
+                        departureChain.enqueue()
+                    }
                     logVerdict(
                         action.geofenceId,
                         verdict = if (action.preconfirmed) "safety_net_dispatch_stepbudget" else "safety_net_dispatch",

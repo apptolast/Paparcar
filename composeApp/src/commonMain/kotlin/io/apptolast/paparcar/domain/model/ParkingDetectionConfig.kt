@@ -142,6 +142,13 @@ data class ParkingDetectionConfig(
      *  less). 300 steps ≈ 225 m — beyond it the user demonstrably walked somewhere first and
      *  boarded a vehicle AWAY from the car → never auto-release. */
     val maxBoardingSteps: Long = 300L,
+    /** Step-delta ceiling under which the reconcile may BACKFILL the new parking at the wake-up
+     *  fix after a step-budget departure verdict. The user's distance to the just-parked car is
+     *  bounded by stepsSinceAnchor × stride: at 150 steps that is ≤ ~110 m — comparable to a
+     *  geofence radius — so marking the car at the current fix (LOW reliability, revert card) is
+     *  more useful than marking nothing. Above it the position is too vague: better no mark than
+     *  a wrong one. [DET-RECONCILE-001] */
+    val backfillMaxSteps: Long = 150L,
 
     // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
     /** Time window (ms) after the vehicle first stops during which GPS fixes are
@@ -453,6 +460,9 @@ data class ParkingDetectionConfig(
         }
         require(maxBoardingSteps > 0) {
             "maxBoardingSteps must be > 0, was $maxBoardingSteps"
+        }
+        require(backfillMaxSteps in 1..maxBoardingSteps) {
+            "backfillMaxSteps must be in 1..maxBoardingSteps, was $backfillMaxSteps"
         }
         require(reparkPlausibilityWindowMs > 0) {
             "reparkPlausibilityWindowMs must be > 0, was $reparkPlausibilityWindowMs"
