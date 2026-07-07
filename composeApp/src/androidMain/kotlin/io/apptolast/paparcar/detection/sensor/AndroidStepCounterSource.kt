@@ -56,12 +56,25 @@ class AndroidStepCounterSource(
                 awaitClose { sensorManager.unregisterListener(listener) }
             }.firstOrNull()
         }
-        PaparcarLogger.d(TAG, "cumulative steps read → ${value ?: "TIMEOUT"}")
-        return value
+        // A cumulative value of 0 means the counter has never counted since boot — implausible on
+        // a phone that has been carried around, and observed as a PERMANENT 0 on MIUI (field
+        // 2026-07-07, Redmi: every read 0 all day). Feeding that 0 into the step budget makes any
+        // walk look like "displacement without steps" → false release. Mute counter = unknown;
+        // the evaluator falls back to pedestrian physics. [DET-RECONCILE-001]
+        val plausible = value?.takeIf { it > 0L }
+        PaparcarLogger.d(
+            TAG,
+            "cumulative steps read → ${value ?: "TIMEOUT"}${if (value == 0L) " (mute counter → treated as unknown)" else ""}",
+        )
+        return plausible
     }
 
     private companion object {
         const val TAG = "PARKDIAG/StepCounter"
-        const val READ_TIMEOUT_MS = 5_000L
+
+        /** 5 s timed out routinely on ColorOS wake-ups (field 2026-07-07, Oppo: TIMEOUT on most
+         *  ticks); the worker is already awake and the read is one-shot, so a longer wait costs
+         *  nothing and rescues the budget. */
+        const val READ_TIMEOUT_MS = 12_000L
     }
 }
