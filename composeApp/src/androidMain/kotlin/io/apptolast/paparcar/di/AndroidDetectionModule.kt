@@ -48,6 +48,11 @@ val androidDetectionModule = module {
     // --- Parked-session safety net: hardware wake-up trigger [DET-SIGMOTION-001] ---
     single { SignificantMotionMonitor(androidContext(), get()) }
 
+    // --- Trip trail: every one-shot fix becomes a persisted breadcrumb [DET-BREADCRUMBS-001] ---
+    single<io.apptolast.paparcar.domain.detection.TripTrail> {
+        io.apptolast.paparcar.detection.TripTrailImpl(androidContext())
+    }
+
     // --- Manual detection start ("I'm driving" cold-start affordance) [DET-G-01b] ---
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
         io.apptolast.paparcar.detection.ManualParkingDetectionImpl(androidContext())

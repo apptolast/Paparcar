@@ -30,6 +30,10 @@ import kotlin.time.Clock
 class GetOneLocationUseCase(
     private val locationDataSource: LocationDataSource,
     private val nowMs: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+    /** Every accepted fix is a breadcrumb — THE single hook that feeds the trip trail, so every
+     *  one-shot consumer (safety net, departure worker, pre-arm) contributes without knowing.
+     *  Null where the platform provides no trail (iOS today). [DET-BREADCRUMBS-001] */
+    private val tripTrail: io.apptolast.paparcar.domain.detection.TripTrail? = null,
 ) {
     suspend operator fun invoke(maxAgeMs: Long? = null): GpsPoint? {
         val fix = withTimeoutOrNull(TIMEOUT_MS) {
@@ -46,6 +50,7 @@ class GetOneLocationUseCase(
         // safety net / departure worker concluded there. Timeouts matter just as much.
         if (fix != null) {
             PaparcarLogger.d(DIAG, "fix lat=${fix.latitude} lon=${fix.longitude} speed=${fix.speed}m/s acc=${fix.accuracy}m age=${(nowMs() - fix.timestamp) / 1000}s")
+            runCatching { tripTrail?.append(fix) }
         } else {
             PaparcarLogger.d(DIAG, "fix TIMEOUT after ${TIMEOUT_MS}ms (maxAge=${maxAgeMs?.div(1000)?.let { "${it}s" } ?: "none"})")
         }

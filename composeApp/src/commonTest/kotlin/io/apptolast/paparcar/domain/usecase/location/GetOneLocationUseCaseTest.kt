@@ -55,7 +55,7 @@ class GetOneLocationUseCaseTest {
     @Test
     fun `should skip stale cached fix and return the next fresh one when freshness required`() = runTest {
         val nowMs = 1_000_000L
-        val freshnessGated = GetOneLocationUseCase(fakeDataSource) { nowMs }
+        val freshnessGated = GetOneLocationUseCase(fakeDataSource, nowMs = { nowMs })
         val staleCached = point.copy(timestamp = nowMs - 4 * 60_000L) // the 4-min-old mid-drive cache (field 2026-07-07)
         val fresh = point.copy(latitude = 41.0, timestamp = nowMs - 5_000L)
 
@@ -70,7 +70,7 @@ class GetOneLocationUseCaseTest {
     @Test
     fun `should return null when only stale fixes arrive within the timeout`() = runTest {
         val nowMs = 1_000_000L
-        val freshnessGated = GetOneLocationUseCase(fakeDataSource) { nowMs }
+        val freshnessGated = GetOneLocationUseCase(fakeDataSource, nowMs = { nowMs })
         val staleCached = point.copy(timestamp = nowMs - 2 * 60 * 60_000L)
 
         val deferred = async { freshnessGated(maxAgeMs = 30_000L) }
@@ -83,7 +83,7 @@ class GetOneLocationUseCaseTest {
     @Test
     fun `should accept a stale fix when no freshness is required`() = runTest {
         val nowMs = 1_000_000L
-        val ungated = GetOneLocationUseCase(fakeDataSource) { nowMs }
+        val ungated = GetOneLocationUseCase(fakeDataSource, nowMs = { nowMs })
         val staleCached = point.copy(timestamp = nowMs - 2 * 60 * 60_000L)
 
         val deferred = async { ungated() }
@@ -91,5 +91,41 @@ class GetOneLocationUseCaseTest {
         fakeDataSource.emitBalanced(staleCached)
 
         assertEquals(staleCached, deferred.await())
+    }
+
+    // ── Trip trail hook [DET-BREADCRUMBS-001] — every ACCEPTED fix becomes a breadcrumb ──
+
+    private class RecordingTrail : io.apptolast.paparcar.domain.detection.TripTrail {
+        val appended = mutableListOf<GpsPoint>()
+        override fun append(point: GpsPoint) { appended.add(point) }
+        override fun points(): List<GpsPoint> = appended
+    }
+
+    @Test
+    fun `should append the accepted fix to the trail`() = runTest {
+        val trail = RecordingTrail()
+        val withTrail = GetOneLocationUseCase(fakeDataSource, tripTrail = trail)
+
+        val deferred = async { withTrail() }
+        runCurrent()
+        fakeDataSource.emitBalanced(point)
+        deferred.await()
+
+        assertEquals(listOf(point), trail.appended)
+    }
+
+    @Test
+    fun `should not append rejected stale fixes to the trail`() = runTest {
+        val nowMs = 1_000_000L
+        val trail = RecordingTrail()
+        val withTrail = GetOneLocationUseCase(fakeDataSource, { nowMs }, trail)
+        val staleCached = point.copy(timestamp = nowMs - 2 * 60 * 60_000L)
+
+        val deferred = async { withTrail(maxAgeMs = 30_000L) }
+        runCurrent()
+        fakeDataSource.emitBalanced(staleCached)
+        deferred.await()
+
+        assertEquals(emptyList<GpsPoint>(), trail.appended, "a rejected fix is not a breadcrumb")
     }
 }

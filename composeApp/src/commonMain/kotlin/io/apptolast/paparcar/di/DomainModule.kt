@@ -69,7 +69,8 @@ val domainModule = module {
 
     // Location UseCases
     factory { GetAddressAndPlaceUseCase(repository = get()) }
-    factory { GetOneLocationUseCase(get()) }
+    // tripTrail is platform-bound (getOrNull → null where absent, e.g. iOS). [DET-BREADCRUMBS-001]
+    factory { GetOneLocationUseCase(get(), tripTrail = getOrNull()) }
     factory { GetLastKnownLocationUseCase(get()) } // [DET-AR-REARM-001] passive — no geofence provocation
     factory { ObserveAdaptiveLocationUseCase(get()) }
     factory { SearchAddressUseCase(get()) }
