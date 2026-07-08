@@ -63,12 +63,19 @@ class DetectParkingDepartureUseCase(
      * @param geofenceId        ID of the geofence that fired the exit transition.
      * @param exitTimestampMs   Epoch-ms of the geofence exit event.
      * @param currentSpeedKmh   Speed (km/h) at time of exit, or null if unavailable.
+     * @param currentAccuracyM  Horizontal accuracy (m) of that same fix, or null if unavailable.
+     *        Speed without credible accuracy is NOT movement evidence — a single acc=100 m cache
+     *        jump faked 21.6 km/h on a motionless phone and confirmed a departure (field
+     *        2026-07-08 04:18, Oppo). Same canonical rule as the pre-arm verifier and the
+     *        safety-net evaluator ([ParkingDetectionConfig.isCredibleDrivingSpeed]).
+     *        [DET-EXIT-TRUST-001]
      * @return [DepartureDecision] indicating whether to publish, skip, or retry.
      */
     suspend operator fun invoke(
         geofenceId: String,
         exitTimestampMs: Long,
         currentSpeedKmh: Float?,
+        currentAccuracyM: Float? = null,
     ): DepartureDecision {
         // Signals 1+2: an active parking session must exist *for this exact geofence*.
         // Looking up by geofenceId (instead of fetching the single active session and
@@ -81,8 +88,7 @@ class DetectParkingDepartureUseCase(
             }
 
         val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt
-        val speedConfirmsMovement = currentSpeedKmh != null &&
-                currentSpeedKmh >= config.minimumDepartureSpeedKmh
+        val speedConfirmsMovement = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
 
         return if (vehicleEnteredAt != null) {
             // Signal 3: IN_VEHICLE_ENTER is present — validate the time window. STRICT ordering:

@@ -84,6 +84,24 @@ class DetectParkingDepartureUseCaseTest {
         assertIs<DepartureDecision.Confirmed>(result)
     }
 
+    @Test
+    fun `should return Inconclusive when speed is above threshold but accuracy is degraded`() = runTest {
+        // [DET-EXIT-TRUST-001] Field 2026-07-08 04:18 (Oppo): an acc=100 m cache jump reported
+        // 21.6 km/h on a motionless phone. Speed without credible accuracy is not evidence.
+        val repo = FakeUserParkingRepository(activeSession)
+        val bus = FakeDepartureEventBus(initialTimestamp = null)
+        val useCase = buildUseCase(repo = repo, bus = bus)
+
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            currentSpeedKmh = speedAboveThreshold,
+            currentAccuracyM = 100f,
+        )
+
+        assertIs<DepartureDecision.Inconclusive>(result)
+    }
+
     // ── Signal 3: IN_VEHICLE_ENTER within time window ─────────────────────────
 
     @Test

@@ -63,14 +63,18 @@ class RunDepartureCheckUseCase(
         if (!preconfirmed) {
             // Fresh fix only: this samples CURRENT speed — a cached fix answers "how fast was the
             // phone some minutes ago", which wastes attempts and skews the verdict. [DET-RECONCILE-001]
-            val speedKmh = getOneLocation(maxAgeMs = config.freshFixMaxAgeMs)?.speed?.times(KMH_PER_MPS)
+            // The fix travels WHOLE (speed + accuracy): speed alone is not evidence, the decision
+            // applies the canonical credible-driving rule. [DET-EXIT-TRUST-001]
+            val fix = getOneLocation(maxAgeMs = config.freshFixMaxAgeMs)
+            val speedKmh = fix?.speed?.times(KMH_PER_MPS)
 
             val decision = detectParkingDeparture(
                 geofenceId = geofenceId,
                 exitTimestampMs = exitTimestampMs,
                 currentSpeedKmh = speedKmh,
+                currentAccuracyM = fix?.accuracy,
             )
-            PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h → ${decision::class.simpleName}")
+            PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h acc=${fix?.accuracy}m → ${decision::class.simpleName}")
 
             // [DET-SOLID-001] Observability: every attempt's verdict, traced by geofenceId.
             runCatching {

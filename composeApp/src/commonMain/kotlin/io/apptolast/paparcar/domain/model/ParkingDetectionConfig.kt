@@ -574,4 +574,20 @@ data class ParkingDetectionConfig(
         val padded = base + (accuracyMeters * geofenceAccuracyPadFactor)
         return padded.coerceAtMost(geofenceMaxRadiusMeters)
     }
+
+    /**
+     * THE canonical "this fix proves the user is driving" test — speed AND accuracy together,
+     * single source of truth for every departure-side decision (pre-arm evidence, departure
+     * verdict, safety-net evaluator). Speed from a degraded fix is not evidence: a single
+     * acc=100 m cache jump reported 21.6 km/h with the phone motionless on a nightstand and
+     * confirmed a departure that published a ghost spot (field 2026-07-08 04:18, Oppo) — the
+     * accuracy gate existed in the coordinator and the evaluator but NOT in the departure
+     * verdict, because each site carried its own copy of this rule. [DET-EXIT-TRUST-001]
+     *
+     * A null accuracy passes only because callers that have a speed always have its fix's
+     * accuracy too — the permissive branch keeps legacy call shapes valid, it is not a loophole.
+     */
+    fun isCredibleDrivingSpeed(speedKmh: Float?, accuracyMeters: Float?): Boolean =
+        speedKmh != null && speedKmh >= minimumDepartureSpeedKmh &&
+            (accuracyMeters == null || accuracyMeters <= minGpsAccuracyForDriving)
 }

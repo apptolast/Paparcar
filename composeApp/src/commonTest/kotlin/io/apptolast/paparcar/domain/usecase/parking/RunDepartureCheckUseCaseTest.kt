@@ -16,6 +16,7 @@ import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -133,6 +134,7 @@ class RunDepartureCheckUseCaseTest {
         val spotScheduler: FakeReportSpotScheduler = FakeReportSpotScheduler(),
         val listener: RecordingListener = RecordingListener(),
         val logger: FakeDetectionEventLogger = FakeDetectionEventLogger(),
+        val locationSource: FakeLocationDataSource = FakeLocationDataSource(),
     ) {
         val useCase = RunDepartureCheckUseCase(
             detectParkingDeparture = DetectParkingDepartureUseCase(
@@ -150,7 +152,7 @@ class RunDepartureCheckUseCaseTest {
                 geofenceService = FakeGeofenceManager(),
                 departureEventBus = bus,
             ),
-            getOneLocation = GetOneLocationUseCase(FakeLocationDataSource()),
+            getOneLocation = GetOneLocationUseCase(locationSource, nowMs = { exitTimestamp + 60_000L }),
             departureEventBus = bus,
             departureConfirmationListener = listener,
             config = ParkingDetectionConfig(),
@@ -159,6 +161,40 @@ class RunDepartureCheckUseCaseTest {
             // test overrides per-call timestamps instead. [DET-RECONCILE-001]
             nowMs = { exitTimestamp + 60_000L },
         )
+    }
+
+    /** A fix whose timestamp matches the fixture's fixed clock (always fresh). */
+    private fun currentFix(speedMps: Float, accuracy: Float) =
+        GpsPoint(40.4, -3.7, accuracy, exitTimestamp + 60_000L, speedMps)
+
+    // ── [DET-EXIT-TRUST-001] Speed is only evidence with credible accuracy ─────
+
+    @Test
+    fun should_not_confirm_on_driving_speed_from_degraded_fix() = runTest {
+        // Field trace 2026-07-08 04:18 (Oppo): a single acc=100 m cache jump reported 6 m/s
+        // (21.6 km/h) with the phone motionless on a nightstand — and confirmed the departure of
+        // a car that had not moved, publishing a ghost spot. Degraded speed is NOT evidence:
+        // the attempt must stay Inconclusive.
+        val env = Env()
+        launch { env.locationSource.emitBalanced(currentFix(speedMps = 6f, accuracy = 100f)) }
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+
+        assertIs<DepartureCheckOutcome.Retry>(outcome)
+        assertEquals(0, env.listener.notifyCount)
+        assertNotNull(env.repo.getActiveSession(), "nothing released on a garbage fix")
+        assertEquals(0, env.spotScheduler.scheduleCallCount, "no ghost spot published")
+    }
+
+    @Test
+    fun should_confirm_when_driving_speed_comes_with_credible_accuracy() = runTest {
+        val env = Env()
+        launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
+
+        val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
+
+        assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertEquals(1, env.spotScheduler.scheduleCallCount, "freed spot published")
     }
 
     // ── [DET-RECONCILE-001] preconfirmed + freshness gate ─────────────────────

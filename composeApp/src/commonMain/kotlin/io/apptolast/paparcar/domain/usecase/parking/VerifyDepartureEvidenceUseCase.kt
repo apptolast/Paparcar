@@ -48,9 +48,7 @@ class VerifyDepartureEvidenceUseCase(
         currentSpeedKmh: Float?,
         currentAccuracyM: Float? = null,
     ): ArmEvidence {
-        val speedConfirms = currentSpeedKmh != null &&
-            currentSpeedKmh >= config.minimumDepartureSpeedKmh &&
-            (currentAccuracyM == null || currentAccuracyM <= config.minGpsAccuracyForDriving)
+        val speedConfirms = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
         if (speedConfirms) {
             PaparcarLogger.d(TAG, "departure evidence: SPEED (speedKmh=$currentSpeedKmh acc=$currentAccuracyM)")
             return ArmEvidence.VerifiedBySpeed(speedKmh = currentSpeedKmh!!, accuracyM = currentAccuracyM)
