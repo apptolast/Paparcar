@@ -20,12 +20,19 @@ sealed class SafetyNetAction {
     /** Far from the parked car with a fresh position anchor (the phone was seen INSIDE this
      *  car's fence recently) AND proof the movement was a vehicle trip — either live (credible
      *  driving-speed fix, [preconfirmed] = false: the departure worker re-verifies by speed) or
-     *  reconstructed after the fact by the step budget / pedestrian-physics verdict
+     *  reconstructed after the fact by the step budget / AR boarding / pedestrian-physics verdict
      *  ([preconfirmed] = true: the trip is already over, a speed re-check would wrongly veto it —
-     *  the worker must skip straight to processing). [DET-RECONCILE-001] */
+     *  the worker must skip straight to processing). [DET-RECONCILE-001]
+     *
+     *  [tripStartedAtMs] is the evaluator's best estimate of when the vehicle actually left —
+     *  the AR boarding stamp when that is the evidence, else the anchor seal (the last moment
+     *  the phone was provably at the car). The dispatcher dates the exit with it so the
+     *  spot-publish freshness gate measures the real age of the freed spot, not the age of
+     *  this wake-up. Null for live dispatches (the departure is happening NOW). */
     data class DispatchDeparture(
         val geofenceId: String,
         val preconfirmed: Boolean = false,
+        val tripStartedAtMs: Long? = null,
     ) : SafetyNetAction()
 
     /** Far from the parked car, MOVING at driving speed, but WITHOUT a fresh anchor — in a vehicle
@@ -52,9 +59,10 @@ sealed class SafetyNetAction {
  *  - inside the fence        → [SafetyNetAction.CureGeofence] (reset a possibly-poisoned fence)
  *  - far + driving + anchor  → [SafetyNetAction.DispatchDeparture] (recover a missed EXIT, live)
  *  - far + driving, no anchor→ [SafetyNetAction.PromptStillParked] (human disambiguates; never auto)
- *  - far + stationary + anchor + steps ≪ distance/stride
+ *  - far + stationary + anchor + ride proof (steps ≪ distance/stride, or AR boarding after the
+ *    seal, or pedestrian-physics)
  *                            → [SafetyNetAction.DispatchDeparture] preconfirmed (the trip already
- *                              happened while we slept — step budget proves it) [DET-RECONCILE-001]
+ *                              happened while we slept) [DET-RECONCILE-001][DET-EXIT-TRUST-001]
  *  - far + STATIONARY, steps compatible with walking (or no anchor)
  *                            → [SafetyNetAction.None] (parked-and-away on foot — never nag)
  *  - ambiguous ring          → [SafetyNetAction.None]
@@ -91,6 +99,11 @@ class EvaluateSafetyNetCheckUseCase(
      *                            null when unknown (no hardware, read timeout, no counter sample
      *                            stored with the anchor, or a reboot reset the counter). The
      *                            caller must map a NEGATIVE delta to null. [DET-RECONCILE-001]
+     * @param lastVehicleEnteredAtMs Epoch-ms of the last AR IN_VEHICLE ENTER (true transition
+     *                            time from the bus), or null when none / unknown. Third proof
+     *                            of a ride when the step counter is mute: a boarding stamped
+     *                            AFTER the anchor seal and recently means the vehicle movement
+     *                            started AT the car. [DET-EXIT-TRUST-001]
      */
     operator fun invoke(
         session: UserParking,
@@ -98,6 +111,7 @@ class EvaluateSafetyNetCheckUseCase(
         lastSeenNearCarAtMs: Long?,
         nowMs: Long,
         stepsSinceAnchor: Long? = null,
+        lastVehicleEnteredAtMs: Long? = null,
     ): SafetyNetAction {
         val geofenceId = session.geofenceId ?: return SafetyNetAction.None
 
@@ -143,9 +157,8 @@ class EvaluateSafetyNetCheckUseCase(
         // within vehicleEnterWindowMs) to auto-release — otherwise it's a vehicle boarded away
         // from the car (bus/taxi/lift) and only the user can disambiguate. Same bus/taxi risk
         // envelope as the geofence EXIT itself.
-        val speedKmh = fix.speed * KMH_PER_MPS
-        val credibleDrivingSpeed = speedKmh >= config.minimumDepartureSpeedKmh &&
-            fix.accuracy <= config.minGpsAccuracyForDriving
+        val credibleDrivingSpeed =
+            config.isCredibleDrivingSpeed(fix.speed * KMH_PER_MPS, fix.accuracy)
         if (credibleDrivingSpeed) {
             return if (anchoredToCar) {
                 SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = false)
@@ -173,14 +186,44 @@ class EvaluateSafetyNetCheckUseCase(
                 if (stepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction &&
                     stepsSinceAnchor <= config.maxBoardingSteps
                 ) {
-                    return SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = true)
+                    return SafetyNetAction.DispatchDeparture(
+                        geofenceId,
+                        preconfirmed = true,
+                        tripStartedAtMs = lastSeenNearCarAtMs,
+                    )
                 }
-            } else if (nearAgeMs != null && nearAgeMs > 0) {
-                // No step budget available (no hardware / mute counter / reboot): fall back to
-                // pedestrian physics — a sustained average speed no walker reaches proves a ride.
-                val averageSpeedMps = distanceMeters / (nearAgeMs / 1000.0)
-                if (averageSpeedMps > config.maxPedestrianSpeedMps) {
-                    return SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = true)
+            } else {
+                // No step budget available (no hardware / mute counter / read timeout / reboot).
+                // Two independent ride proofs remain, either suffices:
+                //  - AR BOARDING: an IN_VEHICLE ENTER stamped AFTER the anchor seal and recently.
+                //    Seal says "was AT the car", the ENTER says "then boarded a vehicle" — together
+                //    they prove the displacement was a ride that started at the car. This absorbs
+                //    the departure worker's old AR fall-through INTO the brain, WITH the anchor
+                //    requirement the fall-through lacked (an unanchored ENTER is any bus in town).
+                //    Dating the trip to the boarding keeps a short hop publishable (field
+                //    2026-07-07 12:14, Redmi: 2-min 576 m hop, mute counter — physics over the
+                //    14-min-old seal can't see it; the 12:12 boarding can). [DET-EXIT-TRUST-001]
+                //  - PEDESTRIAN PHYSICS: a sustained average speed no walker reaches.
+                val arBoardingAtCar = lastVehicleEnteredAtMs != null &&
+                    lastSeenNearCarAtMs != null &&
+                    lastVehicleEnteredAtMs >= lastSeenNearCarAtMs &&
+                    (nowMs - lastVehicleEnteredAtMs) in 0..config.vehicleEnterWindowMs
+                if (arBoardingAtCar) {
+                    return SafetyNetAction.DispatchDeparture(
+                        geofenceId,
+                        preconfirmed = true,
+                        tripStartedAtMs = lastVehicleEnteredAtMs,
+                    )
+                }
+                if (nearAgeMs != null && nearAgeMs > 0) {
+                    val averageSpeedMps = distanceMeters / (nearAgeMs / 1000.0)
+                    if (averageSpeedMps > config.maxPedestrianSpeedMps) {
+                        return SafetyNetAction.DispatchDeparture(
+                            geofenceId,
+                            preconfirmed = true,
+                            tripStartedAtMs = lastSeenNearCarAtMs,
+                        )
+                    }
                 }
             }
         }

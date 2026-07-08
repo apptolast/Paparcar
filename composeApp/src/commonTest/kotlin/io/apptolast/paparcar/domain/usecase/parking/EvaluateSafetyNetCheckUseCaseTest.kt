@@ -53,7 +53,8 @@ class EvaluateSafetyNetCheckUseCaseTest {
         fix: GpsPoint,
         lastSeenNearCarAtMs: Long? = null,
         stepsSinceAnchor: Long? = null,
-    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor)
+        lastVehicleEnteredAtMs: Long? = null,
+    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs)
 
     @Test
     fun should_returnNone_when_sessionHasNoGeofence() {
@@ -228,6 +229,80 @@ class EvaluateSafetyNetCheckUseCaseTest {
             fix = fixAtMeters(500.0, speedMps = 0f),
             lastSeenNearCarAtMs = nowMs - 20 * 60_000L,
             stepsSinceAnchor = null,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_dateTripToAnchorSeal_when_stepBudgetProvesTheRide() {
+        // The dispatcher needs the trip's start to gate spot publishing — for the step budget
+        // the seal is the last provable at-the-car moment. [DET-EXIT-TRUST-001]
+        val seal = nowMs - 13 * 60_000L
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = seal,
+            stepsSinceAnchor = 10L,
+        )
+        assertEquals(seal, assertIs<SafetyNetAction.DispatchDeparture>(action).tripStartedAtMs)
+    }
+
+    // ── [DET-EXIT-TRUST-001] AR boarding: the ride proof for mute-counter devices ─
+
+    @Test
+    fun should_dispatchPreconfirmed_when_muteCounterButArBoardingAfterSeal() {
+        // Field trace 2026-07-07 12:14 (Redmi, mute counter): sealed at the car 12:00, AR
+        // IN_VEHICLE ENTER 12:12, wake-up 576 m away 2 min later. Physics over the 14-min-old
+        // seal reads 0.68 m/s (walkable) and misses the 2-min hop — the boarding stamped AFTER
+        // the seal is what proves the ride started at the car. Release, dated to the boarding.
+        val seal = nowMs - 14 * 60_000L
+        val boarding = nowMs - 2 * 60_000L
+        val action = evaluate(
+            fix = fixAtMeters(576.0, speedMps = 0f),
+            lastSeenNearCarAtMs = seal,
+            stepsSinceAnchor = null,
+            lastVehicleEnteredAtMs = boarding,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.preconfirmed)
+        assertEquals(boarding, dispatch.tripStartedAtMs)
+    }
+
+    @Test
+    fun should_returnNone_when_arEnterPredatesTheAnchorSeal() {
+        // ENTER from a PREVIOUS ride, then the user was seen back at the car (seal), then walked
+        // 400 m: boarding must come AFTER the seal to tie the ride to the car. Silent.
+        val boarding = nowMs - 20 * 60_000L
+        val seal = nowMs - 5 * 60_000L
+        val action = evaluate(
+            fix = fixAtMeters(400.0, speedMps = 0f),
+            lastSeenNearCarAtMs = seal,
+            stepsSinceAnchor = null,
+            lastVehicleEnteredAtMs = boarding,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_arBoardingButAnchorMissing() {
+        // A boarding with no anchor is any bus in town — never an auto release.
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = null,
+            stepsSinceAnchor = null,
+            lastVehicleEnteredAtMs = nowMs - 3 * 60_000L,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_stepsSayWalked_evenWithRecentArEnter() {
+        // A LIVE counter that matches walking is the ground truth: the user walked to a stop and
+        // boarded a bus. The recent ENTER must not override the step verdict. [bus-after-walk]
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 28 * 60_000L,
+            stepsSinceAnchor = 2_600L,
+            lastVehicleEnteredAtMs = nowMs - 3 * 60_000L,
         )
         assertEquals(SafetyNetAction.None, action)
     }

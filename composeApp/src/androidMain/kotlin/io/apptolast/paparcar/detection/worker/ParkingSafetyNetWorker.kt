@@ -177,6 +177,9 @@ class ParkingSafetyNetWorker(
                 lastSeenNearCarAtMs = session.geofenceId?.let { readAnchor(prefs, it) },
                 nowMs = now,
                 stepsSinceAnchor = stepsSinceAnchor,
+                // AR boarding stamp: the brain's third ride proof for mute-counter devices.
+                // [DET-EXIT-TRUST-001]
+                lastVehicleEnteredAtMs = departureEventBus.lastVehicleEnteredAt,
             )
             val distanceM = haversineMeters(
                 fix.latitude, fix.longitude,
@@ -226,15 +229,11 @@ class ParkingSafetyNetWorker(
                 }
 
                 is SafetyNetAction.DispatchDeparture -> {
-                    // [DET-RECONCILE-001] preconfirmed = the trip already ENDED (step budget /
-                    // pedestrian physics proved it) — date the exit back to the anchor, the last
-                    // moment the phone was provably at the car, so the freshness gate measures
-                    // the real age of the freed spot, not the age of this wake-up.
-                    val exitAtMs = if (action.preconfirmed) {
-                        session.geofenceId?.let { readAnchor(prefs, it) } ?: now
-                    } else {
-                        now
-                    }
+                    // [DET-RECONCILE-001] preconfirmed = the trip already ENDED — the evaluator
+                    // dates it (anchor seal, or the AR boarding when that was the proof) so the
+                    // freshness gate measures the real age of the freed spot, not the age of
+                    // this wake-up. [DET-EXIT-TRUST-001]
+                    val exitAtMs = action.tripStartedAtMs ?: now
                     PaparcarLogger.d(
                         DIAG,
                         "▶ far with vehicle evidence — dispatching departure geofence=${action.geofenceId} " +
@@ -495,6 +494,11 @@ class ParkingSafetyNetWorker(
         /** Twin ENTER fence — the user walked back to the parked car; the check re-seals the
          *  anchor and cures the EXIT fence state for the upcoming drive-away. [DET-RETURN-ANCHOR-001] */
         const val SOURCE_GEOFENCE_ENTER = "geofence-enter"
+        /** A geofence EXIT delivered FAR from its own fence (OEM batching held it past the whole
+         *  trip). Its trust premise — "fired at the boundary of YOUR fence" — is void, so it gets
+         *  no direct departure authority: it is just a wake-up for the evaluator, which demands
+         *  the anchor + a ride proof like every other reconcile source. [DET-EXIT-TRUST-001] */
+        const val SOURCE_GEOFENCE_EXIT_STALE = "exit-stale"
         /** BT connected to the vehicle's paired MAC — deterministic "back at my car", fires with
          *  the engine and needs no Doze luck. Same re-seal job as the ENTER fence. [DET-RETURN-ANCHOR-001] */
         const val SOURCE_BT_CONNECT = "bt-connect"
