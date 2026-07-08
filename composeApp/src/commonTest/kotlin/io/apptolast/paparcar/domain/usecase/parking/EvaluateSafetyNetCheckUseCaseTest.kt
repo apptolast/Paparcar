@@ -40,11 +40,12 @@ class EvaluateSafetyNetCheckUseCaseTest {
         meters: Double,
         speedMps: Float = 0f,
         accuracy: Float = 10f,
+        atMs: Long = nowMs,
     ) = GpsPoint(
         latitude = BASE_LAT + meters / METERS_PER_DEGREE_LAT,
         longitude = BASE_LON,
         accuracy = accuracy,
-        timestamp = nowMs,
+        timestamp = atMs,
         speed = speedMps,
     )
 
@@ -54,7 +55,8 @@ class EvaluateSafetyNetCheckUseCaseTest {
         lastSeenNearCarAtMs: Long? = null,
         stepsSinceAnchor: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
-    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs)
+        trail: List<GpsPoint> = emptyList(),
+    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs, trail)
 
     @Test
     fun should_returnNone_when_sessionHasNoGeofence() {
@@ -292,6 +294,76 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastVehicleEnteredAtMs = nowMs - 3 * 60_000L,
         )
         assertEquals(SafetyNetAction.None, action)
+    }
+
+    // ── [DET-BREADCRUMBS-001] The trail: ride proof + stop-point placement ────────
+
+    @Test
+    fun should_dispatchPreconfirmed_when_muteCounterButTrailWitnessedTheRide() {
+        // No prefs anchor at all (lost to a process kill) and a mute counter — but the
+        // breadcrumbs saw everything: at the car 50 min ago, driving 5 min later, then the first
+        // post-trip crumb at the destination. Self-anchored proof: release, dated to the first
+        // driving crumb, new parking placed at the stop-point crumb.
+        val atCar = fixAtMeters(10.0, atMs = nowMs - 50 * 60_000L)
+        val driving = fixAtMeters(1_500.0, speedMps = drivingMps, atMs = nowMs - 45 * 60_000L)
+        val stopped = fixAtMeters(4_000.0, speedMps = 0f, atMs = nowMs - 40 * 60_000L)
+        val action = evaluate(
+            fix = fixAtMeters(4_200.0, speedMps = 0f),
+            lastSeenNearCarAtMs = null,
+            stepsSinceAnchor = null,
+            trail = listOf(atCar, driving, stopped),
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.preconfirmed)
+        assertEquals(driving.timestamp, dispatch.tripStartedAtMs)
+        assertEquals(stopped, dispatch.backfillAt)
+    }
+
+    @Test
+    fun should_returnNone_when_trailDrivingButNeverSeenAtCar() {
+        // Driving crumbs without any at-the-car crumb (and no anchor) = a ride boarded anywhere
+        // in town — bus. Never an auto release.
+        val driving = fixAtMeters(1_500.0, speedMps = drivingMps, atMs = nowMs - 20 * 60_000L)
+        val action = evaluate(
+            fix = fixAtMeters(4_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = null,
+            stepsSinceAnchor = null,
+            trail = listOf(driving),
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_trailRideStartsBeyondBoardingWindow() {
+        // Seal at the car, then the first driving crumb 40 min later: enough time to have walked
+        // far and boarded a bus — outside the boarding window the at-the-car tie is gone.
+        val atCar = fixAtMeters(10.0, atMs = nowMs - 70 * 60_000L)
+        val driving = fixAtMeters(2_000.0, speedMps = drivingMps, atMs = nowMs - 30 * 60_000L)
+        val action = evaluate(
+            fix = fixAtMeters(4_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = null,
+            stepsSinceAnchor = null,
+            trail = listOf(atCar, driving),
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_placeBackfillAtTrailStopPoint_when_stepBudgetDispatches() {
+        // The step budget proves the ride; the trail refines WHERE the new parking lands —
+        // the first crumb after the last driving crumb, not the wake-up fix.
+        val seal = nowMs - 20 * 60_000L
+        val driving = fixAtMeters(2_000.0, speedMps = drivingMps, atMs = nowMs - 15 * 60_000L)
+        val stopped = fixAtMeters(3_900.0, speedMps = 0f, atMs = nowMs - 12 * 60_000L)
+        val action = evaluate(
+            fix = fixAtMeters(4_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = seal,
+            stepsSinceAnchor = 50L,
+            trail = listOf(driving, stopped),
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(stopped, dispatch.backfillAt)
+        assertEquals(seal, dispatch.tripStartedAtMs, "step budget keeps its own dating")
     }
 
     @Test

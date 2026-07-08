@@ -90,6 +90,7 @@ class ParkingSafetyNetWorker(
     private val stepCounterSource: StepCounterSource by inject()
     private val config: ParkingDetectionConfig by inject()
     private val manualParkingDetection: io.apptolast.paparcar.domain.detection.ManualParkingDetection by inject()
+    private val tripTrail: io.apptolast.paparcar.domain.detection.TripTrail by inject()
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
@@ -163,6 +164,10 @@ class ParkingSafetyNetWorker(
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
         pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
 
+        // [DET-BREADCRUMBS-001] Breadcrumbs the stack sampled since we last looked — the trip's
+        // witnesses. Read once per tick; the evaluator digests per session.
+        val trail = runCatching { tripTrail.points() }.getOrElse { emptyList() }
+
         for (session in sessions) {
             val anchorSteps = session.geofenceId?.let { readAnchorSteps(prefs, it) }
             // Negative delta = reboot reset the counter → budget unknown, never a verdict.
@@ -180,6 +185,7 @@ class ParkingSafetyNetWorker(
                 // AR boarding stamp: the brain's third ride proof for mute-counter devices.
                 // [DET-EXIT-TRUST-001]
                 lastVehicleEnteredAtMs = departureEventBus.lastVehicleEnteredAt,
+                trail = trail,
             )
             val distanceM = haversineMeters(
                 fix.latitude, fix.longitude,
@@ -248,15 +254,24 @@ class ParkingSafetyNetWorker(
                             preconfirmed = action.preconfirmed,
                         ),
                     )
-                    // [DET-RECONCILE-001] Backfill the NEW parking when the wake-up fix bounds it
-                    // tightly: the user is at most stepsSinceAnchor × stride from the just-parked
-                    // car. Chained AFTER the departure so the old session resolves (publish+clear)
-                    // before the confirm replaces the vehicle's active session.
-                    if (action.preconfirmed && stepsSinceAnchor != null && stepsSinceAnchor <= config.backfillMaxSteps) {
-                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=$stepsSinceAnchor ≤ ${config.backfillMaxSteps})")
+                    // [DET-RECONCILE-001] Backfill the NEW parking when its position is bounded:
+                    // by the trail's stop point (the earliest post-trip breadcrumb — where the
+                    // CAR stopped [DET-BREADCRUMBS-001]) or, without trail coverage, by the
+                    // wake-up fix when the step budget bounds the drift (user at most
+                    // stepsSinceAnchor × stride from the just-parked car). Chained AFTER the
+                    // departure so the old session resolves (publish+clear) before the confirm
+                    // replaces the vehicle's active session.
+                    val backfillFix = action.backfillAt
+                        ?: fix.takeIf { stepsSinceAnchor != null && stepsSinceAnchor <= config.backfillMaxSteps }
+                    if (action.preconfirmed && backfillFix != null) {
+                        PaparcarLogger.d(
+                            DIAG,
+                            "  → chaining parking backfill at ${if (action.backfillAt != null) "trail stop point" else "wake-up fix"} " +
+                                "(steps=${stepsSinceAnchor ?: "?"})"
+                        )
                         departureChain.then(
                             ParkingBackfillWorker.buildRequest(
-                                fix = fix,
+                                fix = backfillFix,
                                 vehicleId = session.vehicleId,
                                 reliability = config.reliabilityUnattendedSave,
                             )
