@@ -119,3 +119,29 @@ del día fueron **primitivos de entrada podridos**, no decisiones:
    re-sella ancla+pasos y cura el estado de la fence; la salida real vuelve a tener EXIT, y si
    llega tarde, el siguiente despertar tiene ancla fresca para el step-budget. El ENTER jamás
    arma nada ni arranca FGS.
+
+## DET-EXIT-TRUST-001 — el EXIT rancio pierde autoridad (incidente 2026-07-08 04:16)
+
+Con la sesión zombi de la tarde anterior aún activa, ColorOS entregó su GEOFENCE_EXIT pendiente a
+las 04:16 **a 4 km de la valla**, con el usuario durmiendo en casa. Un único fix degradado
+(acc=100 m) reportó 21,6 km/h con el móvil inmóvil → el departure worker lo confirmó: plaza
+fantasma publicada 7 h tarde, semilla `hasEverReachedDrivingSpeed` en el coordinator, prompt a las
+04:22 (despertó al usuario) y guardar-al-timeout de un parking falso a las 04:41 en su casa (el
+coche real está a ~200 m). Tres cierres de sistema (commits 07166519/df3ea475/f33f5226):
+
+1. **Una sola definición de evidencia de velocidad** — `ParkingDetectionConfig.isCredibleDrivingSpeed`
+   (velocidad Y precisión). El veredicto de salida tenía su copia SIN precisión; ahora los 3 sitios
+   (pre-arm, veredicto, evaluador) llaman a la misma regla.
+2. **El EXIT entregado lejos es arqueología, no evento** — en el borde de la valla conserva el
+   camino rápido (probado en campo); más allá del umbral far (300 m) pierde la premisa de confianza
+   ("cruzaste el borde de TU valla") y se convierte en un despertar más del evaluador, que exige
+   ancla + prueba de viaje. Sin armado del coordinator: si hay salida real en curso, el dispatch
+   vivo del evaluador escala el tracking él mismo.
+3. **El embarque AR entra al cerebro** — tercer testigo de viaje para contadores mudos: un
+   IN_VEHICLE ENTER sellado DESPUÉS del ancla y reciente prueba que el desplazamiento fue un viaje
+   que empezó en el coche. Absorbe el fall-through AR del worker CON la exigencia de ancla que el
+   fall-through no tenía (auditoría 04-07: "fall-through publica plaza fantasma"). El fall-through
+   del worker se conserva SOLO para el camino rápido (EXIT en el borde = ancla por definición).
+   `DispatchDeparture.tripStartedAtMs` fecha la salida con su evidencia (embarque AR o sello del
+   ancla) → el gate de frescura de publicación mide la edad real de la plaza: el salto corto de
+   2 min publica, el zombi recuperado no.
