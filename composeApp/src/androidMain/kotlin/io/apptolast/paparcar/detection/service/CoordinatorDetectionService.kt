@@ -312,15 +312,17 @@ class CoordinatorDetectionService : LifecycleService() {
             val departing = realExits.filter { it.second.vehicleId == activeVehicleId }
                 .ifEmpty { realExits }
 
-            // 3. Trust triage. An EXIT's authority to release a spot comes from WHERE it fires:
-            //    crossing the boundary of YOUR OWN fence. OEM batching voids that premise — ColorOS
-            //    held one overnight and delivered it 4 km away, where a single degraded fix then
-            //    "confirmed" the departure of a car that had not moved (field 2026-07-08 04:16).
-            //    Delivered at the boundary → fast path (worker machinery, field-proven). Delivered
-            //    far beyond the ambiguity ring → the exit is ARCHAEOLOGY, not an event: it becomes
-            //    a plain wake-up for the reconcile evaluator, the single brain that demands the
-            //    position anchor + a ride proof before releasing. No triggering location → can't
-            //    judge → fast path (today's behavior). [DET-EXIT-TRUST-001]
+            // 3. Delivery-distance split — but BOTH sides run the same machinery. A real
+            //    drive-away is delivered far BY CONSTRUCTION (the car is moving + OEM lag: field
+            //    2026-07-09, Redmi ride home d=657 m) while a walking exit is delivered at the
+            //    boundary — so distance must never decide WHETHER to look, only what the delivery
+            //    is worth on its own: a boundary delivery additionally emits the in-process
+            //    Exited event; a far one is also recorded for the reconcile's conjunction (the
+            //    backstop when the trip ended inside the delivery lag, e.g. ColorOS holding an
+            //    EXIT overnight and delivering it 4 km away — field 2026-07-08 04:16; releasing
+            //    on that alone confirmed the departure of a car that had not moved, which is why
+            //    every release now demands measured movement, not a trusted delivery).
+            //    [DET-EXIT-TRUST-001][DET-RIDE-PROOF-001]
             val (boundaryExits, staleExits) = departing.partition { (_, session) ->
                 val deliveredAtMeters = triggerLoc?.let {
                     haversineMeters(it.latitude, it.longitude, session.location.latitude, session.location.longitude)
@@ -340,10 +342,16 @@ class CoordinatorDetectionService : LifecycleService() {
                 )
             }
 
-            // 3b. Stale path: one gated evaluator check covers every stale exit (it iterates all
-            //     active sessions). No Exited emission, no coordinator arming — whatever trip this
-            //     exit belonged to ended long ago; if a NEW departure is genuinely in progress the
-            //     evaluator's live dispatch escalates the tracking service itself.
+            // 3b. Far-delivered path: the EXIT still fires the SAME speed-gated departure worker —
+            //     the delivery position only removes the right to an INSTANT release, never the
+            //     duty to look. Physics says a real drive-away is delivered far by construction
+            //     (the car is moving + OEM lag), while a walking exit is delivered at the
+            //     boundary; treating "far" as dead archaeology inverted the selection and went
+            //     silent on every real departure of the field-test devices (2026-07-09: Redmi
+            //     13:48 ride home d=657 m demoted; Oppo mute since 07-08). The worker samples
+            //     LIVE speed: driving → confirmed release; stationary/walking → dismissed. The
+            //     delivery is ALSO recorded for the reconcile's conjunction — the backstop for
+            //     trips that ended entirely inside the delivery lag. [DET-RIDE-PROOF-001]
             if (staleExits.isNotEmpty()) {
                 val detail = staleExits.joinToString(" · ") { (id, session) ->
                     val d = triggerLoc?.let {
@@ -351,26 +359,25 @@ class CoordinatorDetectionService : LifecycleService() {
                     }
                     "geof=${id.take(8)} d=${d ?: "?"}m"
                 }
-                PaparcarLogger.w(DIAG, "  ⚑ GEOFENCE_EXIT delivered FAR from fence ($detail) — no departure authority, routing to reconcile [DET-EXIT-TRUST-001]")
+                PaparcarLogger.w(DIAG, "  ⚑ GEOFENCE_EXIT delivered FAR from fence ($detail) — no instant authority; live re-check + reconcile record [DET-RIDE-PROOF-001]")
                 if (BuildConfig.DEBUG) {
-                    notificationPort.showDebug("EXIT rancio ($detail) → evaluador, sin autoridad directa")
+                    notificationPort.showDebug("EXIT lejano ($detail) → re-check en vivo + conjunción")
                 }
-                // The delivery is still a FACT worth keeping: "the OS says this fence broke".
-                // Persisted so the evaluator can pair it with an independent AR boarding — the
-                // conjunction that catches the drive-away on devices where wake-up fixes never
-                // show speed and the step counter is mute (field 2026-07-08, cinema trips on
-                // BOTH devices). [DET-CONJUNCTION-001]
                 for ((id, _) in staleExits) {
                     ParkingSafetyNetWorker.recordStaleExitDelivery(this@CoordinatorDetectionService, id, now)
+                    // Same machinery as the boundary path (speed-gated, retries, corroborated
+                    // fall-through) — only the in-process Exited emission is withheld so UI
+                    // observers don't clear a session the live check may yet dismiss.
+                    WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
+                        "${DepartureDetectionWorker.TAG}_$id",
+                        ExistingWorkPolicy.REPLACE,
+                        DepartureDetectionWorker.buildRequest(geofenceId = id, exitTimestampMs = now),
+                    )
                 }
                 ParkingSafetyNetWorker.enqueueCheckNow(
                     WorkManager.getInstance(this@CoordinatorDetectionService),
                     source = ParkingSafetyNetWorker.SOURCE_GEOFENCE_EXIT_STALE,
                 )
-            }
-            if (boundaryExits.isEmpty()) {
-                stopIfIdle("geofence-exit-stale")
-                return@launch
             }
 
             // 4. Arm the next-park detection ONCE, anchored to the departing (active-preferred) session.
@@ -385,7 +392,13 @@ class CoordinatorDetectionService : LifecycleService() {
                         PaparcarLogger.d(DIAG, "  ↻ GEOFENCE_EXIT — coordinator already running; not re-arming")
                         return@launch
                     }
-                    val (id, session) = boundaryExits.first()
+                    // The coordinator arms for far-delivered exits too — the service is ALREADY
+                    // alive inside the event's FGS-start exemption window, and this is the only
+                    // moment the OS grants it: a mid-drive exit gets its trip followed live to
+                    // the next park (the arrival the reconcile could never escalate to — its
+                    // worker start is denied outside event windows). A zombie delivery costs one
+                    // no-movement abort (~4 min of GPS). [DET-RIDE-PROOF-001]
+                    val (id, session) = (boundaryExits + staleExits).first()
                     // Distance of the exit fix from the parked car + its accuracy — the on-device
                     // diagnostic for "real drive-away" (large d) vs "GPS jitter" (small d / huge acc).
                     val dist = triggerLoc?.let {
@@ -412,6 +425,16 @@ class CoordinatorDetectionService : LifecycleService() {
                         // re-delivered ENTER seeded the coordinator and a phantom spot).
                         // [DET-SESSION-BIRTH-001]
                         sessionStartMs = session.location.timestamp,
+                        // Corroboration inputs: an AR boarding only verifies when the position
+                        // has outrun pedestrian reach since it (a phantom ENTER while walking
+                        // released a spot — field 2026-07-09 11:53). [DET-RIDE-PROOF-001]
+                        distanceFromCarMeters = exitFix?.let {
+                            haversineMeters(it.latitude, it.longitude, session.location.latitude, session.location.longitude)
+                        },
+                        fenceRadiusMeters = detectionConfig.geofenceRadiusFor(
+                            session.sizeCategory,
+                            session.location.accuracy,
+                        ),
                     )
                     // [DET-SOLID-001] Observability: the pre-arm verdict, traced by geofenceId.
                     runCatching {

@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.firstOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import androidx.core.content.edit
 
 /**
  * The parked-session safety net: the one departure guarantee that does not depend on Play
@@ -260,12 +261,16 @@ class ParkingSafetyNetWorker(
                     // guess a position: arrival placement is the live coordinator's job. Chained
                     // AFTER the departure so the old session resolves (publish+clear) before the
                     // confirm replaces the vehicle's active session.
+                    // [DET-RIDE-PROOF-001] Bounding uses the delta the EVALUATOR trusted, never
+                    // the raw reading: a frozen counter's raw 0 "bounds" a user who is walking
+                    // away (field 2026-07-09 12:39, Redmi: phantom pin at the wake-up fix).
+                    val trustedSteps = action.trustedStepsSinceAnchor
                     val backfillFix = fix.takeIf {
-                        stepsSinceAnchor != null && stepsSinceAnchor <= config.backfillMaxSteps &&
+                        trustedSteps != null && trustedSteps <= config.backfillMaxSteps &&
                             it.accuracy <= config.minGpsAccuracyForDriving
                     }
                     if (action.preconfirmed && backfillFix != null) {
-                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=$stepsSinceAnchor acc=${fix.accuracy})")
+                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=$trustedSteps acc=${fix.accuracy})")
                         departureChain.then(
                             ParkingBackfillWorker.buildRequest(
                                 fix = backfillFix,
@@ -290,6 +295,12 @@ class ParkingSafetyNetWorker(
                             .onSuccess { PaparcarLogger.d(DIAG, "  → departure dispatched without backfill — tracking service started for the arrival") }
                             .onFailure { e ->
                                 PaparcarLogger.w(DIAG, "  ⊘ tracking service start denied (${e.message}) — asking the user via still-parked prompt")
+                                // This prompt must survive the end-of-run cleanup: without the
+                                // flag, `if (!anyPromptActive) dismissPrompt()` below erased it
+                                // milliseconds after showing (field 2026-07-09 13:55, Redmi:
+                                // the user saw NO notification for the whole ride home).
+                                // [DET-RIDE-PROOF-001]
+                                anyPromptActive = true
                                 runCatching {
                                     notificationPort.showStillParkedPrompt(
                                         geofenceId = action.geofenceId,
@@ -319,7 +330,7 @@ class ParkingSafetyNetWorker(
                     val throttled = now - lastPromptAt < PROMPT_THROTTLE_MS
                     if (!throttled) {
                         PaparcarLogger.d(DIAG, "▶ moving far without anchor — still-parked prompt geofence=${action.geofenceId}")
-                        prefs.edit().putLong(PROMPT_KEY_PREFIX + action.geofenceId, now).apply()
+                        prefs.edit { putLong(PROMPT_KEY_PREFIX + action.geofenceId, now) }
                         notificationPort.showStillParkedPrompt(
                             geofenceId = action.geofenceId,
                             latitude = session.location.latitude,
@@ -389,10 +400,10 @@ class ParkingSafetyNetWorker(
                 }
             }
 
-            prefs.edit()
-                .putLong(KEY_LAST_ALIVE_AT, now)
-                .putLong(KEY_LAST_ALIVE_ELAPSED, elapsedNow)
-                .apply()
+            prefs.edit {
+                putLong(KEY_LAST_ALIVE_AT, now)
+                    .putLong(KEY_LAST_ALIVE_ELAPSED, elapsedNow)
+            }
         }
     }
 
@@ -451,7 +462,7 @@ class ParkingSafetyNetWorker(
         prefs.getLong(ANCHOR_KEY_PREFIX + geofenceId, 0L).takeIf { it > 0L }
 
     private fun writeAnchor(prefs: android.content.SharedPreferences, geofenceId: String, atMs: Long) {
-        prefs.edit().putLong(ANCHOR_KEY_PREFIX + geofenceId, atMs).apply()
+        prefs.edit { putLong(ANCHOR_KEY_PREFIX + geofenceId, atMs) }
     }
 
     /** Cumulative step-counter value at the anchor moment — the step budget's zero point.
@@ -460,13 +471,13 @@ class ParkingSafetyNetWorker(
         prefs.getLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, -1L).takeIf { it >= 0L }
 
     private fun writeAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String, steps: Long) {
-        prefs.edit().putLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, steps).apply()
+        prefs.edit { putLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, steps) }
     }
 
     /** Keeps the anchor pair coherent when a cure could not read the counter: a stale zero-point
      *  under a fresh time counts pre-anchor steps into the budget. [DET-RECONCILE-001] */
     private fun removeAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String) {
-        prefs.edit().remove(ANCHOR_STEPS_KEY_PREFIX + geofenceId).apply()
+        prefs.edit { remove(ANCHOR_STEPS_KEY_PREFIX + geofenceId) }
     }
 
     /** When the OS delivered an EXIT for this fence too far away to act on directly
@@ -488,7 +499,7 @@ class ParkingSafetyNetWorker(
             }
         }
         if (stale.isNotEmpty()) {
-            prefs.edit().apply { stale.forEach { remove(it) } }.apply()
+            prefs.edit { stale.forEach { remove(it) } }
         }
     }
 
@@ -575,6 +586,19 @@ class ParkingSafetyNetWorker(
                 .putLong(EXIT_KEY_PREFIX + geofenceId, deliveredAtMs)
                 .apply()
         }
+
+        /**
+         * Whether ANY session's fence reported a far-delivered EXIT within [maxAgeMs] of [nowMs].
+         * Cheap synchronous read for the AR receiver: a fresh IN_VEHICLE event paired with a
+         * recently-broken fence is the live half of the conjunction, and the AR broadcast is the
+         * only moment the OS exempts a background foreground-service start — the escalation must
+         * happen THERE or not at all (a worker's start is denied — field 2026-07-09 13:55).
+         * [DET-RIDE-PROOF-001]
+         */
+        fun hasRecentStaleExit(context: Context, nowMs: Long, maxAgeMs: Long): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).all.any { (key, value) ->
+                key.startsWith(EXIT_KEY_PREFIX) && value is Long && (nowMs - value) in 0..maxAgeMs
+            }
 
         /** Heartbeat gap above which a background freeze is logged (SILENT telemetry). Deep Doze
          *  legitimately defers 15-min periodics for hours, so this cannot distinguish a harmful

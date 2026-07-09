@@ -12,6 +12,9 @@ import io.apptolast.paparcar.detection.activityLabel
 import io.apptolast.paparcar.detection.transitionLabel
 import io.apptolast.paparcar.detection.worker.ParkingSafetyNetWorker
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
+import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
+import io.apptolast.paparcar.domain.detection.ManualParkingDetection
+import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import org.koin.core.component.KoinComponent
@@ -39,6 +42,9 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val coordinator: CoordinatorParkingDetector by inject()
     private val departureEventBus: DepartureEventBus by inject()
+    private val detectionRuntime: DetectionRuntimeState by inject()
+    private val manualParkingDetection: ManualParkingDetection by inject()
+    private val detectionConfig: ParkingDetectionConfig by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         if (!ActivityTransitionResult.hasResult(intent)) return
@@ -66,8 +72,31 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
                 ActivityTransition.ACTIVITY_TRANSITION_ENTER -> {
                     // ENTER: evidence only — never arms. True transition time, not delivery time.
                     val trueEpochMs = elapsedNanosToEpochMs(event.elapsedRealTimeNanos)
-                    PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER → bus stamped (trueTime=$trueEpochMs, lag=${System.currentTimeMillis() - trueEpochMs}ms) [DET-SOLID-001]")
+                    val lagMs = System.currentTimeMillis() - trueEpochMs
+                    PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER → bus stamped (trueTime=$trueEpochMs, lag=${lagMs}ms) [DET-SOLID-001]")
                     departureEventBus.onVehicleEntered(trueEpochMs)
+                    // [DET-RIDE-PROOF-001] Live half of the conjunction, escalated HERE because
+                    // this broadcast is the only moment the OS exempts a background FGS start
+                    // (a worker's start is denied — field 2026-07-09 13:55: the ride home's
+                    // arrival was never tracked). A FRESH boarding (not an OEM re-delivery,
+                    // which arrives with minutes-to-hours of lag) right after a fence reported
+                    // a far-delivered EXIT = a drive in progress: start the tracking service so
+                    // the coordinator follows the trip and captures the arrival at full quality.
+                    // The coordinator's own guards still rule the session (Manual arm = no seed,
+                    // anti-walking active), so a spurious ENTER costs one no-movement abort.
+                    val freshBoarding = lagMs in 0..detectionConfig.exitEnterPairWindowMs
+                    if (freshBoarding &&
+                        !detectionRuntime.isRunning.value &&
+                        ParkingSafetyNetWorker.hasRecentStaleExit(
+                            context,
+                            nowMs = System.currentTimeMillis(),
+                            maxAgeMs = detectionConfig.exitEnterPairWindowMs,
+                        )
+                    ) {
+                        runCatching { manualParkingDetection.start() }
+                            .onSuccess { PaparcarLogger.d(TAG, "  ▶ fresh boarding + recent far EXIT → tracking service started (AR exemption window) [DET-RIDE-PROOF-001]") }
+                            .onFailure { e -> PaparcarLogger.w(TAG, "  ⊘ tracking start denied from AR window (${e.message})") }
+                    }
                     // [DET-RECONCILE-001] And an ACCELERATOR of the parked-state reconcile — not a
                     // decision. AR rides a PendingIntent, so this fires even from a dead process
                     // (field 2026-07-06: delivered at 23:57 with the app long killed) — exactly
