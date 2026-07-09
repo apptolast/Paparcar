@@ -34,6 +34,12 @@ sealed class SafetyNetAction {
         val geofenceId: String,
         val preconfirmed: Boolean = false,
         val tripStartedAtMs: Long? = null,
+        /** The step delta the evaluator actually TRUSTED for this verdict — null when the
+         *  counter was mute or frozen-suspect ([DET-RIDE-PROOF-001]). Position-bounding
+         *  decisions downstream (parking backfill) must use THIS, never the raw reading: a
+         *  frozen counter's raw delta of 0 "bounds" the user to the car while they walk away
+         *  (field 2026-07-09 12:39, Redmi: phantom backfill at the wake-up fix). */
+        val trustedStepsSinceAnchor: Long? = null,
     ) : SafetyNetAction()
 
     /** Far from the parked car, MOVING at driving speed, but WITHOUT a fresh anchor — in a vehicle
@@ -156,6 +162,21 @@ class EvaluateSafetyNetCheckUseCase(
         }
 
         val nearAgeMs = lastSeenNearCarAtMs?.let { nowMs - it }
+
+        // ── Frozen-counter guard [DET-RIDE-PROOF-001] ────────────────────────────────────────
+        // A delta of ~0 has two readings: "sat in the car the whole trip" (real drive) or "the
+        // hardware counter is dead" (field 2026-07-09, Redmi: stuck at 307 all day while its own
+        // session step DETECTOR counted 157 steps — the step budget then read a 354 m WALK as a
+        // ride and backfilled a phantom parking). Physics disambiguates: a real drive's
+        // displacement outruns pedestrian reach; a walkable displacement with a silent counter
+        // is exactly what a dead counter produces. In that ambiguous case the counter loses its
+        // voice ENTIRELY (delta AND anchor-freshness) and the mute-counter proofs decide.
+        val counterFrozenSuspect = stepsSinceAnchor != null &&
+            stepsSinceAnchor <= config.frozenCounterSuspectSteps &&
+            nearAgeMs != null && nearAgeMs >= 0 &&
+            !config.isBeyondPedestrianReach(distanceMeters, nearAgeMs, radiusMeters, fix.accuracy)
+        val trustedStepsSinceAnchor = stepsSinceAnchor.takeUnless { counterFrozenSuspect }
+
         val timeFreshAnchor = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
         // [DET-RECONCILE-001] The anchor's real freshness clock is STEPS, not minutes. What the
         // anchor asserts is "the user was positionally AT the car" — and that assertion only
@@ -171,7 +192,7 @@ class EvaluateSafetyNetCheckUseCase(
         // TIME requirement only — an anchor must still EXIST (the delta is only meaningful
         // relative to a seal moment; without one, few steps + far could be a bus boarded anywhere).
         val stepFreshAnchor = nearAgeMs != null && nearAgeMs >= 0 &&
-            stepsSinceAnchor != null && stepsSinceAnchor <= config.maxBoardingSteps
+            trustedStepsSinceAnchor != null && trustedStepsSinceAnchor <= config.maxBoardingSteps
         val anchoredToCar = timeFreshAnchor || stepFreshAnchor
 
         // Departure IN PROGRESS: a credible driving-speed fix far from the car. Position anchor
@@ -183,7 +204,11 @@ class EvaluateSafetyNetCheckUseCase(
             config.isCredibleDrivingSpeed(fix.speed * KMH_PER_MPS, fix.accuracy)
         if (credibleDrivingSpeed) {
             return if (anchoredToCar) {
-                SafetyNetAction.DispatchDeparture(geofenceId, preconfirmed = false)
+                SafetyNetAction.DispatchDeparture(
+                    geofenceId,
+                    preconfirmed = false,
+                    trustedStepsSinceAnchor = trustedStepsSinceAnchor,
+                )
             } else {
                 SafetyNetAction.PromptStillParked(geofenceId)
             }
@@ -199,9 +224,20 @@ class EvaluateSafetyNetCheckUseCase(
         // counter frozen, anchor expired by clock — while EXIT 21:42 + ENTER 21:43 + d=1470 m
         // told the whole story). Walking out breaks the fence minutes before any later bus
         // boarding, so the pairing window rejects bus-after-walk; the live step counter, when
-        // it speaks, still outranks this entirely (doctrine: steps are ground truth).
-        if (stepsSinceAnchor == null && exitAtMs != null && boardingAtMs != null &&
-            kotlin.math.abs(exitAtMs - boardingAtMs) <= config.exitEnterPairWindowMs
+        // it speaks (and is trusted), still outranks this entirely (doctrine: steps are ground
+        // truth). [DET-RIDE-PROOF-001] The pair alone is still two NOMINATIONS — AR misfires
+        // ENTER while walking (field 2026-07-09 11:53, Redmi) and a walking exit can be
+        // delivered late enough to be recorded here; the displacement must additionally have
+        // outrun pedestrian reach since the boarding. The cinema trips this proof was built for
+        // pass by a wide margin (1470 m in under 5 min); a walk to the hairdresser's never does.
+        if (trustedStepsSinceAnchor == null && exitAtMs != null && boardingAtMs != null &&
+            kotlin.math.abs(exitAtMs - boardingAtMs) <= config.exitEnterPairWindowMs &&
+            config.isBeyondPedestrianReach(
+                distanceMeters = distanceMeters,
+                elapsedMs = nowMs - boardingAtMs,
+                fenceRadiusMeters = radiusMeters,
+                accuracyMeters = fix.accuracy,
+            )
         ) {
             return SafetyNetAction.DispatchDeparture(
                 geofenceId,
@@ -220,24 +256,26 @@ class EvaluateSafetyNetCheckUseCase(
         // without asking. A step delta compatible with walking is the normal parked-and-left-on-
         // foot state and stays SILENT (no nag — SAFETYNET-STATIONARY-001 preserved).
         //
-        // Doctrine when the counter is ALIVE: steps are the ground truth and nothing overrides a
-        // walking verdict (bus-after-walk). When the counter is MUTE (null): AR boarding, then
-        // pedestrian physics — each a self-consistent proof with its own dating.
+        // Doctrine when the counter is ALIVE and trusted: steps are the ground truth and nothing
+        // overrides a walking verdict (bus-after-walk). When the counter is MUTE (null) or
+        // frozen-suspect ([DET-RIDE-PROOF-001]): AR boarding, then pedestrian physics — each a
+        // self-consistent proof with its own dating.
         if (fix.accuracy <= config.minGpsAccuracyForDriving) {
-            if (stepsSinceAnchor != null) {
+            if (trustedStepsSinceAnchor != null) {
                 if (anchoredToCar) {
                     // Two conditions, not one: RELATIVE (steps ≪ what walking the displacement
                     // costs) proves a ride happened; ABSOLUTE (steps ≤ a fence-diameter's worth)
                     // proves the ride was boarded AT the car — 500 steps to a bus stop then a
                     // 5 km ride passes the relative check alone. [DET-RECONCILE-001]
                     val stepsToWalkHere = distanceMeters / config.strideMeters
-                    if (stepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction &&
-                        stepsSinceAnchor <= config.maxBoardingSteps
+                    if (trustedStepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction &&
+                        trustedStepsSinceAnchor <= config.maxBoardingSteps
                     ) {
                         return SafetyNetAction.DispatchDeparture(
                             geofenceId,
                             preconfirmed = true,
                             tripStartedAtMs = lastSeenNearCarAtMs,
+                            trustedStepsSinceAnchor = trustedStepsSinceAnchor,
                         )
                     }
                 }

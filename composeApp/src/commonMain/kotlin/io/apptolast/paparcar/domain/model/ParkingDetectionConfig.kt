@@ -149,6 +149,16 @@ data class ParkingDetectionConfig(
      *  more useful than marking nothing. Above it the position is too vague: better no mark than
      *  a wrong one. [DET-RECONCILE-001] */
     val backfillMaxSteps: Long = 150L,
+    /** Step delta AT or BELOW which a cumulative-counter reading loses authority whenever the
+     *  observed displacement was reachable on foot in the elapsed time. A frozen counter (field
+     *  2026-07-09, Redmi: stuck at 307 all day while its own session step DETECTOR counted 157
+     *  steps) reads as delta=0 — indistinguishable from "sat in the car the whole trip" by the
+     *  delta alone. Physics disambiguates: a real never-left-the-car delta of 0 comes with a
+     *  displacement no walker could cover ([isBeyondPedestrianReach]); delta≈0 over a walkable
+     *  displacement is exactly what a dead counter produces → treat the counter as MUTE and fall
+     *  back to the mute-counter proofs. An ALIVE counter ticks getting out of the car alone, so
+     *  real short hops (Oppo 2026-07-07: 113 steps / 4.3 km) sit far above this. [DET-RIDE-PROOF-001] */
+    val frozenCounterSuspectSteps: Long = 5L,
 
     // ── LOCATION CAPTURE WINDOW ───────────────────────────────────────────────
     /** Time window (ms) after the vehicle first stops during which GPS fixes are
@@ -469,6 +479,9 @@ data class ParkingDetectionConfig(
         require(walkedStepFraction > 0f && walkedStepFraction < 1f) {
             "walkedStepFraction must be in (0,1), was $walkedStepFraction"
         }
+        require(frozenCounterSuspectSteps in 0 until maxBoardingSteps) {
+            "frozenCounterSuspectSteps must be in 0..<maxBoardingSteps, was $frozenCounterSuspectSteps"
+        }
         require(maxPedestrianSpeedMps > 0f) {
             "maxPedestrianSpeedMps must be > 0, was $maxPedestrianSpeedMps"
         }
@@ -599,4 +612,31 @@ data class ParkingDetectionConfig(
     fun isCredibleDrivingSpeed(speedKmh: Float?, accuracyMeters: Float?): Boolean =
         speedKmh != null && speedKmh >= minimumDepartureSpeedKmh &&
             (accuracyMeters == null || accuracyMeters <= minGpsAccuracyForDriving)
+
+    /**
+     * Pedestrian-reach corroboration: could the user have gotten [distanceMeters] away from the
+     * parked car ON FOOT within [elapsedMs]? Returns true only when they could NOT — i.e. only a
+     * vehicle explains the displacement.
+     *
+     * This is the single physics check behind [DET-RIDE-PROOF-001]: an OS event (AR
+     * `IN_VEHICLE_ENTER`, geofence EXIT) can only NOMINATE a departure; what CONFIRMS it is the
+     * position running away from the car faster than legs allow. A spurious ENTER while walking
+     * (field 2026-07-09 11:53, Redmi: phantom ENTER 14 s before a walking EXIT at 127 m released
+     * the spot and seeded a phantom park at the hairdresser's) fails this check by construction.
+     *
+     * Conservative by design: the user may already have been anywhere inside the fence when the
+     * clock started ([fenceRadiusMeters]) and the fix may err by its own [accuracyMeters] — both
+     * count in favor of "walkable", so a `true` verdict is unambiguous.
+     */
+    fun isBeyondPedestrianReach(
+        distanceMeters: Double,
+        elapsedMs: Long,
+        fenceRadiusMeters: Float,
+        accuracyMeters: Float,
+    ): Boolean {
+        if (elapsedMs < 0) return false
+        val walkableMeters =
+            maxPedestrianSpeedMps * (elapsedMs / 1000.0) + fenceRadiusMeters + accuracyMeters
+        return distanceMeters > walkableMeters
+    }
 }

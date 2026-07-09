@@ -71,8 +71,7 @@ class RunDepartureCheckUseCase(
             val decision = detectParkingDeparture(
                 geofenceId = geofenceId,
                 exitTimestampMs = exitTimestampMs,
-                currentSpeedKmh = speedKmh,
-                currentAccuracyM = fix?.accuracy,
+                currentFix = fix,
             )
             PaparcarLogger.d(TAG, "attempt=$attempt geof=${geofenceId.take(8)} speed=${speedKmh}km/h acc=${fix?.accuracy}m → ${decision::class.simpleName}")
 

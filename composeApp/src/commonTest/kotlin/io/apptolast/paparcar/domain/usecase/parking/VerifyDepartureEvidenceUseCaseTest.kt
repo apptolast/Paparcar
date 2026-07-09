@@ -43,15 +43,53 @@ class VerifyDepartureEvidenceUseCaseTest {
     }
 
     @Test
-    fun `should verify by vehicleEnter within window even at walking speed`() {
+    fun `should verify by vehicleEnter when displacement outruns pedestrian reach`() {
         // Short-hop repark (DET-G-04's motivating case): the user boarded the car — AR ENTER
-        // recorded — but the hop was too short for the sampled fix to catch driving speed.
+        // recorded — the sampled fix misses driving speed, but the position is already further
+        // from the car than legs could carry in the enter→exit minute. [DET-RIDE-PROOF-001]
+        val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
+        val useCase = buildUseCase(bus)
+
+        val evidence = useCase(
+            exitTimestamp,
+            currentSpeedKmh = 4f,
+            currentAccuracyM = 10f,
+            distanceFromCarMeters = 700.0, // reach at 60 s ≈ 2.5×60 + fence 100 + acc 10 = 260 m
+            fenceRadiusMeters = 100f,
+        )
+
+        assertIs<ArmEvidence.VerifiedByVehicleEnter>(evidence)
+    }
+
+    @Test
+    fun `should not verify a vehicleEnter whose displacement is pedestrian reachable`() {
+        // Field 2026-07-09 11:53 (Redmi): phantom IN_VEHICLE ENTER 14 s before a WALKING exit
+        // at 127 m from the car — the old branch verified it, released the spot and seeded a
+        // phantom park at the hairdresser's. Walkable displacement = nomination without proof.
+        val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 14_000L)
+        val useCase = buildUseCase(bus)
+
+        val evidence = useCase(
+            exitTimestamp,
+            currentSpeedKmh = 0f,
+            currentAccuracyM = 12f,
+            distanceFromCarMeters = 127.0,
+            fenceRadiusMeters = 108f,
+        )
+
+        assertIs<ArmEvidence.Unverified>(evidence)
+    }
+
+    @Test
+    fun `should fail closed to unverified when vehicleEnter has no fix to corroborate`() {
+        // No fix → no displacement → the ENTER cannot be verified. The arm still happens
+        // (Unverified keeps the anti-walking guards on) and the worker upgrades it later.
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
         val useCase = buildUseCase(bus)
 
         val evidence = useCase(exitTimestamp, currentSpeedKmh = 4f, currentAccuracyM = 10f)
 
-        assertIs<ArmEvidence.VerifiedByVehicleEnter>(evidence)
+        assertIs<ArmEvidence.Unverified>(evidence)
     }
 
     @Test

@@ -1,10 +1,12 @@
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.util.PaparcarLogger
+import io.apptolast.paparcar.domain.util.haversineMeters
 
 /**
  * Outcome of [DetectParkingDepartureUseCase].
@@ -27,9 +29,13 @@ sealed class DepartureDecision {
      * [admissibleBoarding] tells the RETRY OWNER whether a valid IN_VEHICLE_ENTER backs this
      * exit: stamped AFTER this session began (a boarding older than the parking belongs to the
      * trip that CREATED it — field 2026-07-08 18:52, Redmi: a re-delivered ENTER from the
-     * inbound drive "verified" a walking exit and erased a correct parking) and within
-     * [ParkingDetectionConfig.vehicleEnterWindowMs] of the exit. Only such a boarding may
-     * authorise the attempts-exhausted fall-through (slow garage exits). [DET-SESSION-BIRTH-001]
+     * inbound drive "verified" a walking exit and erased a correct parking), within
+     * [ParkingDetectionConfig.vehicleEnterWindowMs] of the exit, AND corroborated by physics —
+     * the position must already have outrun pedestrian reach since the boarding
+     * ([ParkingDetectionConfig.isBeyondPedestrianReach]); a phantom ENTER while walking made
+     * the fall-through release a real spot (field 2026-07-09 11:55, Redmi). Only such a
+     * boarding may authorise the attempts-exhausted fall-through (slow garage exits).
+     * [DET-SESSION-BIRTH-001][DET-RIDE-PROOF-001]
      */
     data class Inconclusive(val admissibleBoarding: Boolean = false) : DepartureDecision()
 }
@@ -68,26 +74,27 @@ class DetectParkingDepartureUseCase(
 ) {
     private companion object {
         const val TAG = "DetectParkingDepartureUseCase"
+        const val KMH_PER_MPS = 3.6f
     }
 
     /**
      * @param geofenceId        ID of the geofence that fired the exit transition.
      * @param exitTimestampMs   Epoch-ms of the geofence exit event.
-     * @param currentSpeedKmh   Speed (km/h) at time of exit, or null if unavailable.
-     * @param currentAccuracyM  Horizontal accuracy (m) of that same fix, or null if unavailable.
-     *        Speed without credible accuracy is NOT movement evidence — a single acc=100 m cache
+     * @param currentFix        The freshly sampled fix, or null if unavailable. Travels WHOLE:
+     *        speed without credible accuracy is NOT movement evidence — a single acc=100 m cache
      *        jump faked 21.6 km/h on a motionless phone and confirmed a departure (field
-     *        2026-07-08 04:18, Oppo). Same canonical rule as the pre-arm verifier and the
-     *        safety-net evaluator ([ParkingDetectionConfig.isCredibleDrivingSpeed]).
-     *        [DET-EXIT-TRUST-001]
+     *        2026-07-08 04:18, Oppo) — and the position is the ENTER corroboration input
+     *        ([ParkingDetectionConfig.isBeyondPedestrianReach]). Same canonical rules as the
+     *        pre-arm verifier and the safety-net evaluator. [DET-EXIT-TRUST-001][DET-RIDE-PROOF-001]
      * @return [DepartureDecision] indicating whether to publish, skip, or retry.
      */
     suspend operator fun invoke(
         geofenceId: String,
         exitTimestampMs: Long,
-        currentSpeedKmh: Float?,
-        currentAccuracyM: Float? = null,
+        currentFix: GpsPoint?,
     ): DepartureDecision {
+        val currentSpeedKmh = currentFix?.speed?.times(KMH_PER_MPS)
+        val currentAccuracyM = currentFix?.accuracy
         // Signals 1+2: an active parking session must exist *for this exact geofence*.
         // Looking up by geofenceId (instead of fetching the single active session and
         // comparing) is correct under multi-parking — different vehicles can each have
@@ -125,14 +132,32 @@ class DetectParkingDepartureUseCase(
                 // From a previous trip (too old) or from AFTER the exit — ignore it.
                 PaparcarLogger.w(TAG, "departure rejected: IN_VEHICLE_ENTER outside window — enterToExit=${enterToExitMs}ms window=${config.vehicleEnterWindowMs}ms geofenceId=$geofenceId")
                 DepartureDecision.Rejected
-            } else if (currentSpeedKmh != null && !speedConfirmsMovement) {
-                // IN_VEHICLE_ENTER is within the window (strong signal), but speed is low.
-                // This is common when leaving a tight parking space or a garage ramp.
-                // Returning Inconclusive (not Rejected) lets DepartureDetectionWorker retry
-                // once the vehicle has accelerated past the departure threshold.
-                DepartureDecision.Inconclusive(admissibleBoarding = true)
-            } else {
+            } else if (speedConfirmsMovement) {
                 DepartureDecision.Confirmed
+            } else {
+                // IN_VEHICLE_ENTER within the window but no credible driving speed on this
+                // sample (tight space, garage ramp — or a phantom ENTER while walking).
+                // [DET-RIDE-PROOF-001] The ENTER alone never confirms: it is a NOMINATION and
+                // only measured movement is proof. It stays *admissible* for the
+                // attempts-exhausted fall-through only while physics corroborate it — the
+                // position must already have outrun pedestrian reach since the boarding. A
+                // phantom ENTER while the user walked to the hairdresser's passed the old
+                // null-speed branch and the fall-through released a real spot (field
+                // 2026-07-09 11:55, Redmi). Retrying (not rejecting) keeps sampling: a real
+                // slow exit accelerates past the threshold or outruns the bound within the
+                // retry window; a walking exit never does either.
+                val admissible = currentFix != null && config.isBeyondPedestrianReach(
+                    distanceMeters = haversineMeters(
+                        currentFix.latitude,
+                        currentFix.longitude,
+                        session.location.latitude,
+                        session.location.longitude,
+                    ),
+                    elapsedMs = (currentFix.timestamp.takeIf { it > vehicleEnteredAt } ?: exitTimestampMs) - vehicleEnteredAt,
+                    fenceRadiusMeters = config.geofenceRadiusFor(session.sizeCategory, session.location.accuracy),
+                    accuracyMeters = currentFix.accuracy,
+                )
+                DepartureDecision.Inconclusive(admissibleBoarding = admissible)
             }
         } else {
             // Signal 3 not available (or inadmissible). Fall back to speed as sole discriminator.

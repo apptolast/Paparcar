@@ -91,16 +91,18 @@ class RunDepartureCheckUseCaseTest {
     }
 
     @Test
-    fun should_process_and_upgrade_session_when_vehicle_enter_confirms() = runTest {
-        // AR ENTER within the window + no speed sample → Confirmed.
+    fun should_retry_not_confirm_on_vehicle_enter_without_a_fix() = runTest {
+        // [DET-RIDE-PROOF-001] AR ENTER within the window + no fix at all. The old branch
+        // CONFIRMED here — the exact shape of a phantom ENTER on a fixless wake-up. An event
+        // only nominates; without measured movement the attempt retries and releases nothing.
         val env = Env(bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L))
 
         val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
 
-        assertIs<DepartureCheckOutcome.Processed>(outcome)
-        assertEquals(1, env.listener.notifyCount, "confirmed departure must upgrade the live session")
-        assertNull(env.repo.getActiveSession(), "session cleared")
-        assertEquals(1, env.spotScheduler.scheduleCallCount, "freed spot published")
+        assertIs<DepartureCheckOutcome.Retry>(outcome)
+        assertEquals(0, env.listener.notifyCount)
+        assertNotNull(env.repo.getActiveSession(), "nothing released without movement proof")
+        assertEquals(0, env.spotScheduler.scheduleCallCount)
     }
 
     @Test
@@ -109,6 +111,7 @@ class RunDepartureCheckUseCaseTest {
             clearActiveParkingSessionResult = Result.failure(RuntimeException("db error"))
         }
         val env = Env(repo = repo, bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L))
+        launch { env.locationSource.emitBalanced(currentFix(speedMps = 8f, accuracy = 10f)) }
 
         val outcome = env.useCase("geo-1", exitTimestamp, attempt = 0)
 
@@ -165,9 +168,17 @@ class RunDepartureCheckUseCaseTest {
         )
     }
 
-    /** A fix whose timestamp matches the fixture's fixed clock (always fresh). */
+    /** A fix whose timestamp matches the fixture's fixed clock (always fresh), AT the car. */
     private fun currentFix(speedMps: Float, accuracy: Float) =
         GpsPoint(40.4, -3.7, accuracy, exitTimestamp + 60_000L, speedMps)
+
+    /** Fresh fix ~1.1 km north of the car — beyond pedestrian reach for any short window. */
+    private fun farFix(speedMps: Float, accuracy: Float) =
+        GpsPoint(40.41, -3.7, accuracy, exitTimestamp + 60_000L, speedMps)
+
+    /** Fresh fix ~100 m from the car — comfortably walkable. */
+    private fun nearFix(speedMps: Float, accuracy: Float) =
+        GpsPoint(40.4009, -3.7, accuracy, exitTimestamp + 60_000L, speedMps)
 
     // ── [DET-EXIT-TRUST-001] Speed is only evidence with credible accuracy ─────
 
@@ -248,9 +259,11 @@ class RunDepartureCheckUseCaseTest {
     @Test
     fun should_fall_through_after_exhausted_attempts_when_boarding_is_admissible() = runTest {
         // The slow-garage-exit case the fall-through exists for: a POST-session boarding within
-        // the window, speed never crossing the threshold. Attempts exhausted → process.
+        // the window, speed never crossing the threshold — but the position already ~1.1 km
+        // from the car, far beyond pedestrian reach since the boarding (the corroboration the
+        // fall-through now demands — [DET-RIDE-PROOF-001]). Attempts exhausted → process.
         val env = Env(bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 30_000L))
-        launch { env.locationSource.emitBalanced(currentFix(speedMps = 1f, accuracy = 10f)) }
+        launch { env.locationSource.emitBalanced(farFix(speedMps = 1f, accuracy = 10f)) }
 
         val outcome = env.useCase(
             "geo-1",
@@ -263,17 +276,36 @@ class RunDepartureCheckUseCaseTest {
     }
 
     @Test
+    fun should_dismiss_after_exhausted_attempts_when_boarding_is_pedestrian_reachable() = runTest {
+        // Field 2026-07-09 11:53-11:55 (Redmi): phantom IN_VEHICLE ENTER while WALKING, exit at
+        // ~100 m, every sample stationary. The old fall-through released the real spot here.
+        // A walkable displacement keeps the boarding a nomination — dismissed, nothing touched.
+        val env = Env(bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 14_000L))
+        launch { env.locationSource.emitBalanced(nearFix(speedMps = 0f, accuracy = 12f)) }
+
+        val outcome = env.useCase(
+            "geo-1",
+            exitTimestamp,
+            attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
+        )
+
+        assertIs<DepartureCheckOutcome.Dismissed>(outcome)
+        assertNotNull(env.repo.getActiveSession(), "the real parking must survive a walking exit")
+        assertEquals(0, env.spotScheduler.scheduleCallCount, "no spot released while walking")
+    }
+
+    @Test
     fun should_clear_without_publishing_when_departure_is_stale() = runTest {
-        // Departure recovered hours late (offline device — Redmi 2026-07-06): the session must
-        // converge, but the freed spot is long gone and must NOT be advertised. The session
-        // predates its own exit, as in reality.
+        // Departure recovered hours late (offline device — Redmi 2026-07-06) via the reconcile
+        // (preconfirmed — a live re-check would wrongly veto a trip that is already over): the
+        // session must converge, but the freed spot is long gone and must NOT be advertised.
         val staleExitTimestamp = exitTimestamp - 5 * 60 * 60_000L // 5 h before the fixed clock
         val env = Env(
             repo = FakeUserParkingRepository(initialSession = activeSession(parkedAtMs = staleExitTimestamp - 10 * 60_000L)),
             bus = FakeDepartureEventBus(initialTimestamp = staleExitTimestamp - 60_000L),
         )
 
-        val outcome = env.useCase("geo-1", staleExitTimestamp, attempt = 0)
+        val outcome = env.useCase("geo-1", staleExitTimestamp, attempt = 0, preconfirmed = true)
 
         assertIs<DepartureCheckOutcome.Processed>(outcome)
         assertNull(env.repo.getActiveSession(), "stale departure still clears the session")

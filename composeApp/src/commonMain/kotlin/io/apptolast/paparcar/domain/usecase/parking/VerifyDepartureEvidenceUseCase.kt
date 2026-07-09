@@ -20,10 +20,13 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
  *    with credible accuracy (≤ [ParkingDetectionConfig.minGpsAccuracyForDriving]; a degraded fix
  *    can fake departure speed while walking). Covers the common mid-drive exit.
  * 2. [ArmEvidence.VerifiedByVehicleEnter] — AR `IN_VEHICLE_ENTER` that PRECEDED the exit within
- *    [ParkingDetectionConfig.vehicleEnterWindowMs]. Covers the short-hop repark DET-G-04 was
- *    written for. Strict ordering is safe because the receiver stamps TRUE transition times
+ *    [ParkingDetectionConfig.vehicleEnterWindowMs] AND whose displacement the physics corroborate
+ *    ([ParkingDetectionConfig.isBeyondPedestrianReach]): the position must already have run away
+ *    from the car faster than legs allow. AR misfires while walking (field 2026-07-09 11:53,
+ *    Redmi) — an event NOMINATES a departure, only measured movement CONFIRMS one.
+ *    Strict ordering is safe because the receiver stamps TRUE transition times
  *    (not delivery times) — an ENTER recorded after the exit (boarding a bus once already
- *    outside the radius) is NOT departure evidence. [DET-SOLID-001]
+ *    outside the radius) is NOT departure evidence. [DET-SOLID-001][DET-RIDE-PROOF-001]
  * 3. [ArmEvidence.Unverified] — walking produces neither signal. The exit must still arm the
  *    coordinator (evidence can arrive late), but WITHOUT the seed; the departure worker
  *    upgrades the live session via `DepartureConfirmationListener` once its verdict lands.
@@ -46,12 +49,19 @@ class VerifyDepartureEvidenceUseCase(
      *        that PREDATES the session is the inbound trip's boarding (or an OEM re-delivery of
      *        it) — never evidence of leaving it (field 2026-07-08 18:52, Redmi: a 17-min-old
      *        re-delivered ENTER "verified" a walking exit). [DET-SESSION-BIRTH-001]
+     * @param distanceFromCarMeters Distance (m) of the sampled fix from the parked car, or null
+     *        when no fix (or no session position) is available. The ENTER corroboration input —
+     *        without it the ENTER cannot be verified (fail closed). [DET-RIDE-PROOF-001]
+     * @param fenceRadiusMeters The session's real geofence radius (size + accuracy aware) — the
+     *        positional slack of the pedestrian-reach bound.
      */
     operator fun invoke(
         exitTimestampMs: Long,
         currentSpeedKmh: Float?,
         currentAccuracyM: Float? = null,
         sessionStartMs: Long? = null,
+        distanceFromCarMeters: Double? = null,
+        fenceRadiusMeters: Float? = null,
     ): ArmEvidence {
         val speedConfirms = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
         if (speedConfirms) {
@@ -63,8 +73,30 @@ class VerifyDepartureEvidenceUseCase(
             ?.takeIf { sessionStartMs == null || it >= sessionStartMs }
         val enterToExitMs = enteredAt?.let { exitTimestampMs - it }
         if (enterToExitMs != null && enterToExitMs in 0..config.vehicleEnterWindowMs) {
-            PaparcarLogger.d(TAG, "departure evidence: VEHICLE_ENTER (enterToExitMs=$enterToExitMs)")
-            return ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = enterToExitMs)
+            // [DET-RIDE-PROOF-001] The ENTER is a nomination; the corroboration is displacement
+            // beyond pedestrian reach since the boarding. A phantom ENTER while walking (field
+            // 2026-07-09 11:53, Redmi: 14 s before a walking exit at 127 m — released the spot
+            // and seeded a phantom park at the hairdresser's) fails this bound; a real
+            // drive-away exceeds it within the first blocks. No fix / no distance → fail closed
+            // to Unverified: the arm still happens, the anti-walking guards stay on, and the
+            // departure worker upgrades the live session when real evidence lands.
+            val corroborated = distanceFromCarMeters != null && fenceRadiusMeters != null &&
+                config.isBeyondPedestrianReach(
+                    distanceMeters = distanceFromCarMeters,
+                    elapsedMs = enterToExitMs,
+                    fenceRadiusMeters = fenceRadiusMeters,
+                    accuracyMeters = currentAccuracyM ?: 0f,
+                )
+            if (corroborated) {
+                PaparcarLogger.d(TAG, "departure evidence: VEHICLE_ENTER corroborated (enterToExitMs=$enterToExitMs d=${distanceFromCarMeters}m)")
+                return ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = enterToExitMs)
+            }
+            PaparcarLogger.d(
+                TAG,
+                "IN_VEHICLE_ENTER within window but pedestrian-reachable " +
+                    "(enterToExitMs=$enterToExitMs d=${distanceFromCarMeters}m acc=$currentAccuracyM) " +
+                    "— nomination without movement proof, NOT verified [DET-RIDE-PROOF-001]",
+            )
         }
 
         PaparcarLogger.d(

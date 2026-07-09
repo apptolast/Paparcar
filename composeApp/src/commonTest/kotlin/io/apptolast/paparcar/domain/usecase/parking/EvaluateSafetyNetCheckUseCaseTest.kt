@@ -252,6 +252,57 @@ class EvaluateSafetyNetCheckUseCaseTest {
         assertEquals(seal, assertIs<SafetyNetAction.DispatchDeparture>(action).tripStartedAtMs)
     }
 
+    // ── [DET-RIDE-PROOF-001] Frozen counter: delta≈0 over a walkable displacement ─
+
+    @Test
+    fun should_returnNone_when_zeroStepsOverWalkableDisplacement_frozenCounter() {
+        // Field 2026-07-09 12:39 (Redmi): cumulative counter FROZEN (307 all day while the
+        // session detector counted 157 steps). Raw delta=0 over 354 m in 17 min read as "was
+        // driven" and backfilled a phantom parking mid-walk. 354 m in 17 min is a stroll — a
+        // silent counter over a walkable displacement is what a dead counter produces: the
+        // counter loses its voice and no other proof exists here. Silent.
+        val action = evaluate(
+            fix = fixAtMeters(354.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 17 * 60_000L,
+            stepsSinceAnchor = 0L,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_dispatchPreconfirmed_when_zeroStepsButDisplacementBeyondPedestrianReach() {
+        // The OTHER reading of delta=0 — sat in the car the whole trip: 5 km in 10 min is
+        // physically impossible on foot, so the zero is believable and the budget verdict
+        // stands, position bounded (trusted steps travel with the dispatch for the backfill).
+        val action = evaluate(
+            fix = fixAtMeters(5_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 10 * 60_000L,
+            stepsSinceAnchor = 0L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.preconfirmed)
+        assertEquals(0L, dispatch.trustedStepsSinceAnchor)
+    }
+
+    @Test
+    fun should_dispatchViaArBoarding_when_frozenCounterButBoardingAfterSeal() {
+        // Dead-counter device on a REAL short hop: the muted counter falls back to the
+        // mute-counter proofs, and the post-seal AR boarding still catches the ride — with NO
+        // trusted steps, so downstream must not backfill a guessed position.
+        val seal = nowMs - 14 * 60_000L
+        val boarding = nowMs - 2 * 60_000L
+        val action = evaluate(
+            fix = fixAtMeters(576.0, speedMps = 0f),
+            lastSeenNearCarAtMs = seal,
+            stepsSinceAnchor = 0L,
+            lastVehicleEnteredAtMs = boarding,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.preconfirmed)
+        assertEquals(boarding, dispatch.tripStartedAtMs)
+        assertEquals(null, dispatch.trustedStepsSinceAnchor)
+    }
+
     // ── [DET-EXIT-TRUST-001] AR boarding: the ride proof for mute-counter devices ─
 
     @Test
@@ -320,6 +371,22 @@ class EvaluateSafetyNetCheckUseCaseTest {
         val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
         assertEquals(true, dispatch.preconfirmed)
         assertEquals(boarding, dispatch.tripStartedAtMs)
+    }
+
+    @Test
+    fun should_returnNone_when_conjunctionPairsButDisplacementIsWalkable() {
+        // [DET-RIDE-PROOF-001] Both OS events fired and paired — but the position is only 350 m
+        // out with the boarding 10 min old: perfectly walkable, i.e. a phantom ENTER next to a
+        // late-delivered walking EXIT (the Redmi hairdresser cascade). Two nominations still
+        // need the physics; silent.
+        val action = evaluate(
+            fix = fixAtMeters(350.0, speedMps = 0f),
+            lastSeenNearCarAtMs = null,
+            stepsSinceAnchor = null,
+            lastVehicleEnteredAtMs = nowMs - 10 * 60_000L,
+            exitDeliveredAtMs = nowMs - 8 * 60_000L,
+        )
+        assertEquals(SafetyNetAction.None, action)
     }
 
     @Test

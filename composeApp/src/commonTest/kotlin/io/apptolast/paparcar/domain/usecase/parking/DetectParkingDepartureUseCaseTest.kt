@@ -26,6 +26,19 @@ class DetectParkingDepartureUseCaseTest {
     private val speedAboveThreshold = config.minimumDepartureSpeedKmh + 1f
     private val speedBelowThreshold = config.minimumDepartureSpeedKmh - 1f
 
+    /** A sampled fix. Defaults sit AT the parked car with good accuracy at exit time. */
+    private fun fix(
+        speedKmh: Float,
+        accuracyM: Float = 10f,
+        latitude: Double = 40.4,
+        longitude: Double = -3.7,
+        timestamp: Long = exitTimestamp,
+    ) = GpsPoint(latitude, longitude, accuracyM, timestamp, speedKmh / 3.6f)
+
+    /** ~1.1 km north of the parked car — beyond pedestrian reach for any short window. */
+    private fun farFix(speedKmh: Float, accuracyM: Float = 10f, timestamp: Long = exitTimestamp) =
+        fix(speedKmh, accuracyM, latitude = 40.41, timestamp = timestamp)
+
     // ── Signal 1: no active session ───────────────────────────────────────────
 
     @Test
@@ -33,7 +46,7 @@ class DetectParkingDepartureUseCaseTest {
         val repo = FakeUserParkingRepository()  // empty → getActiveSession() = null
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(geofenceId = "session-1", exitTimestampMs = exitTimestamp, currentSpeedKmh = null)
+        val result = useCase(geofenceId = "session-1", exitTimestampMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -45,7 +58,7 @@ class DetectParkingDepartureUseCaseTest {
         val repo = FakeUserParkingRepository(activeSession)
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(geofenceId = "other-geofence", exitTimestampMs = exitTimestamp, currentSpeedKmh = null)
+        val result = useCase(geofenceId = "other-geofence", exitTimestampMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -53,12 +66,12 @@ class DetectParkingDepartureUseCaseTest {
     // ── Signal 3: IN_VEHICLE_ENTER not yet arrived ────────────────────────────
 
     @Test
-    fun `should return Inconclusive when no vehicleEnter and speed is null`() = runTest {
+    fun `should return Inconclusive when no vehicleEnter and no fix`() = runTest {
         val repo = FakeUserParkingRepository(activeSession)
         val bus = FakeDepartureEventBus(initialTimestamp = null)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Inconclusive>(result)
     }
@@ -69,7 +82,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = null)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = speedBelowThreshold)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedBelowThreshold))
 
         assertIs<DepartureDecision.Inconclusive>(result)
     }
@@ -80,7 +93,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = null)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = speedAboveThreshold)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedAboveThreshold))
 
         assertIs<DepartureDecision.Confirmed>(result)
     }
@@ -96,8 +109,7 @@ class DetectParkingDepartureUseCaseTest {
         val result = useCase(
             geofenceId = activeSession.geofenceId!!,
             exitTimestampMs = exitTimestamp,
-            currentSpeedKmh = speedAboveThreshold,
-            currentAccuracyM = 100f,
+            currentFix = fix(speedAboveThreshold, accuracyM = 100f),
         )
 
         assertIs<DepartureDecision.Inconclusive>(result)
@@ -111,31 +123,61 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)  // 1 min before exit
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = speedAboveThreshold)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedAboveThreshold))
 
         assertIs<DepartureDecision.Confirmed>(result)
     }
 
     @Test
-    fun `should return Confirmed when vehicleEnter is within window and speed is null`() = runTest {
+    fun `should return Inconclusive not Confirmed when vehicleEnter is within window but there is no fix`() = runTest {
+        // [DET-RIDE-PROOF-001] AR alone never confirms: the ENTER is a nomination and only
+        // measured movement is proof. The old branch confirmed on ENTER + null speed — that is
+        // exactly the shape of a phantom ENTER on a fixless wake-up. Retry instead; without a
+        // fix the boarding is not even admissible for the fall-through (fail closed).
         val repo = FakeUserParkingRepository(activeSession)
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
 
-        assertIs<DepartureDecision.Confirmed>(result)
+        val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
+        assertEquals(false, inconclusive.admissibleBoarding)
     }
 
     @Test
-    fun `should return Inconclusive when vehicleEnter is within window but speed is below threshold`() = runTest {
+    fun `should keep boarding admissible when slow but the position outran pedestrian reach`() = runTest {
+        // Slow garage exit / stop at the first light: enter 1 min before exit, current sample
+        // slow — but the phone is already 1.1 km from the car. Only a vehicle explains that:
+        // the fall-through may confirm after retries. [DET-RIDE-PROOF-001]
         val repo = FakeUserParkingRepository(activeSession)
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 60_000L)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = speedBelowThreshold)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = farFix(speedBelowThreshold))
 
-        assertIs<DepartureDecision.Inconclusive>(result)
+        val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
+        assertEquals(true, inconclusive.admissibleBoarding)
+    }
+
+    @Test
+    fun `should not admit a boarding whose displacement is pedestrian reachable`() = runTest {
+        // Field 2026-07-09 11:53-11:55 (Redmi): phantom IN_VEHICLE ENTER while WALKING, exit at
+        // 127 m, every sample at speed=0 — the old fall-through released the real spot. A
+        // walkable displacement keeps the boarding inadmissible, so exhausted retries dismiss.
+        val repo = FakeUserParkingRepository(activeSession)
+        val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 14_000L)
+        val useCase = buildUseCase(repo = repo, bus = bus)
+
+        val result = useCase(
+            geofenceId = activeSession.geofenceId!!,
+            exitTimestampMs = exitTimestamp,
+            // ~100 m from the car (0.0009° lat), stationary, good accuracy — comfortably
+            // inside any fence-radius + pedestrian-reach envelope.
+            currentFix = fix(0f, accuracyM = 12f, latitude = 40.4009),
+        )
+
+        val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
+        assertEquals(false, inconclusive.admissibleBoarding)
     }
 
     @Test
@@ -147,7 +189,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp + 60_000L) // 1 min AFTER exit
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -163,7 +205,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = staleTimestamp)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = lateExitTimestamp, currentSpeedKmh = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = lateExitTimestamp, currentFix = null)
 
         assertIs<DepartureDecision.Rejected>(result)
     }
@@ -180,7 +222,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = parkedAt - 60_000L) // inbound trip's boarding
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = null)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = null)
 
         val inconclusive = assertIs<DepartureDecision.Inconclusive>(result)
         assertEquals(false, inconclusive.admissibleBoarding)
@@ -195,7 +237,7 @@ class DetectParkingDepartureUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = parkedAt - 60_000L)
         val useCase = buildUseCase(repo = repo, bus = bus)
 
-        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentSpeedKmh = speedAboveThreshold)
+        val result = useCase(geofenceId = activeSession.geofenceId!!, exitTimestampMs = exitTimestamp, currentFix = fix(speedAboveThreshold))
 
         assertIs<DepartureDecision.Confirmed>(result)
     }
