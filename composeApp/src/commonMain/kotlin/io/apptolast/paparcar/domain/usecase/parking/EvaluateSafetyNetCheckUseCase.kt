@@ -20,27 +20,20 @@ sealed class SafetyNetAction {
     /** Far from the parked car with a fresh position anchor (the phone was seen INSIDE this
      *  car's fence recently) AND proof the movement was a vehicle trip — either live (credible
      *  driving-speed fix, [preconfirmed] = false: the departure worker re-verifies by speed) or
-     *  reconstructed after the fact by the step budget / AR boarding / pedestrian-physics verdict
-     *  ([preconfirmed] = true: the trip is already over, a speed re-check would wrongly veto it —
-     *  the worker must skip straight to processing). [DET-RECONCILE-001]
+     *  reconstructed after the fact by the step budget / AR boarding / exit∧enter conjunction /
+     *  pedestrian-physics verdict ([preconfirmed] = true: the trip is already over, a speed
+     *  re-check would wrongly veto it — the worker must skip straight to processing).
+     *  [DET-RECONCILE-001]
      *
      *  [tripStartedAtMs] is the evaluator's best estimate of when the vehicle actually left —
-     *  the AR boarding stamp / first driving breadcrumb when that is the evidence, else the
-     *  anchor seal (the last moment the phone was provably at the car). The dispatcher dates the
-     *  exit with it so the spot-publish freshness gate measures the real age of the freed spot,
-     *  not the age of this wake-up. Null for live dispatches (the departure is happening NOW).
-     *
-     *  [backfillAt] is where the NEW parking should be placed when the dispatcher backfills it:
-     *  the trail's stop point — the first breadcrumb after the last driving breadcrumb, i.e. the
-     *  earliest witness of the post-trip position. Null when the trail did not cover the trip;
-     *  the dispatcher falls back to the wake-up fix (where the PHONE is, which drifts from where
-     *  the CAR stopped — field 2026-07-08 04:41: pin at home, car 200 m away).
-     *  [DET-BREADCRUMBS-001] */
+     *  the AR boarding stamp when that is the evidence, else the anchor seal (the last moment
+     *  the phone was provably at the car). The dispatcher dates the exit with it so the
+     *  spot-publish freshness gate measures the real age of the freed spot, not the age of this
+     *  wake-up. Null for live dispatches (the departure is happening NOW). */
     data class DispatchDeparture(
         val geofenceId: String,
         val preconfirmed: Boolean = false,
         val tripStartedAtMs: Long? = null,
-        val backfillAt: GpsPoint? = null,
     ) : SafetyNetAction()
 
     /** Far from the parked car, MOVING at driving speed, but WITHOUT a fresh anchor — in a vehicle
@@ -112,11 +105,11 @@ class EvaluateSafetyNetCheckUseCase(
      *                            of a ride when the step counter is mute: a boarding stamped
      *                            AFTER the anchor seal and recently means the vehicle movement
      *                            started AT the car. [DET-EXIT-TRUST-001]
-     * @param trail               Persisted breadcrumbs (every one-shot fix the stack sampled),
-     *                            oldest first. Supplies the ride proof for mute-counter devices
-     *                            (at-the-car breadcrumb → boarding window → driving breadcrumb)
-     *                            and the stop point for backfill placement. Empty when absent.
-     *                            [DET-BREADCRUMBS-001]
+     * @param exitDeliveredAtMs   Epoch-ms when a geofence EXIT for THIS session was DELIVERED far
+     *                            from its fence (recorded by the trust triage instead of granting
+     *                            it departure authority), or null when none. Not positional trust —
+     *                            just the fact "the OS says this fence broke", usable in
+     *                            conjunction with an independent boarding. [DET-CONJUNCTION-001]
      */
     operator fun invoke(
         session: UserParking,
@@ -125,9 +118,19 @@ class EvaluateSafetyNetCheckUseCase(
         nowMs: Long,
         stepsSinceAnchor: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
-        trail: List<GpsPoint> = emptyList(),
+        exitDeliveredAtMs: Long? = null,
     ): SafetyNetAction {
         val geofenceId = session.geofenceId ?: return SafetyNetAction.None
+
+        // ── Session-birth admissibility [DET-SESSION-BIRTH-001] ─────────────────────────────
+        // Evidence older than the session itself describes the trip that CREATED this parking
+        // (or an earlier life entirely) — it cannot prove departure FROM it. Field 2026-07-08:
+        // a re-delivered IN_VEHICLE ENTER from the inbound drive (trueTime 17 min old) "verified"
+        // a walking exit 23 s after the park and erased a correct parking. ONE filter, applied
+        // to every evidence source, kills the whole class.
+        val sessionStartMs = session.location.timestamp
+        val boardingAtMs = lastVehicleEnteredAtMs?.takeIf { it >= sessionStartMs }
+        val exitAtMs = exitDeliveredAtMs?.takeIf { it >= sessionStartMs }
 
         val distanceMeters = haversineMeters(
             fix.latitude,
@@ -143,7 +146,12 @@ class EvaluateSafetyNetCheckUseCase(
             return SafetyNetAction.CureGeofence(geofenceId, radiusMeters)
         }
 
-        if (distanceMeters <= config.watchdogFarThresholdMeters) {
+        // Accuracy-margin far gate: "far" must hold even if the fix erred by its own accuracy —
+        // a single acc=100 m cache jump must not clear it (the 04:18 incident fix would need
+        // d > 400 m). This also lets a mediocre-but-honest fix (acc 50-70 m at 1+ km) keep
+        // feeding the evidence proofs below instead of being discarded by a flat cutoff
+        // (field 2026-07-08 21:45, Redmi: acc=64 m at d=1222 m — unambiguously far).
+        if (distanceMeters - fix.accuracy <= config.watchdogFarThresholdMeters) {
             return SafetyNetAction.None
         }
 
@@ -181,33 +189,25 @@ class EvaluateSafetyNetCheckUseCase(
             }
         }
 
-        // [DET-BREADCRUMBS-001] Trail digest. The breadcrumbs witnessed the trip we slept
-        // through: the latest crumb inside THIS fence is a positional seal (same assertion as
-        // the prefs anchor, possibly fresher), the first credible-driving crumb after that seal
-        // is when the car left, and the first crumb after the LAST driving one is the earliest
-        // witness of the post-trip position — where the CAR stopped, which the wake-up fix
-        // (where the PHONE drifted to) cannot give.
-        val trailSealAtMs = trail
-            .filter {
-                haversineMeters(
-                    it.latitude, it.longitude,
-                    session.location.latitude, session.location.longitude,
-                ) <= radiusMeters
-            }
-            .maxOfOrNull { it.timestamp }
-        val effectiveSealAtMs = listOfNotNull(lastSeenNearCarAtMs, trailSealAtMs).maxOrNull()
-        val drivingCrumbs = if (effectiveSealAtMs != null) {
-            trail.filter {
-                it.timestamp > effectiveSealAtMs &&
-                    config.isCredibleDrivingSpeed(it.speed * KMH_PER_MPS, it.accuracy)
-            }
-        } else {
-            emptyList()
-        }
-        val rideStartAtMs = drivingCrumbs.minOfOrNull { it.timestamp }
-        val lastDrivingAtMs = drivingCrumbs.maxOfOrNull { it.timestamp }
-        val stopPoint = lastDrivingAtMs?.let { last ->
-            trail.filter { it.timestamp > last }.minByOrNull { it.timestamp }
+        // ── Conjunction proof [DET-CONJUNCTION-001] ─────────────────────────────────────────
+        // Two independent OS events, both post-session, agreeing within a tight window: the
+        // geofencing engine says THIS fence broke, and Activity Recognition says a vehicle was
+        // boarded at essentially the same moment. Neither needs the position anchor — the fence
+        // break IS the positional half (its boundary is the car), the boarding is the vehicular
+        // half. This is the proof that survives the devices where every sense the other proofs
+        // need is degraded (field 2026-07-08 cinema, Redmi: wake-up fixes always speed=0, step
+        // counter frozen, anchor expired by clock — while EXIT 21:42 + ENTER 21:43 + d=1470 m
+        // told the whole story). Walking out breaks the fence minutes before any later bus
+        // boarding, so the pairing window rejects bus-after-walk; the live step counter, when
+        // it speaks, still outranks this entirely (doctrine: steps are ground truth).
+        if (stepsSinceAnchor == null && exitAtMs != null && boardingAtMs != null &&
+            kotlin.math.abs(exitAtMs - boardingAtMs) <= config.exitEnterPairWindowMs
+        ) {
+            return SafetyNetAction.DispatchDeparture(
+                geofenceId,
+                preconfirmed = true,
+                tripStartedAtMs = boardingAtMs,
+            )
         }
 
         // Far and NOT at driving speed. [DET-RECONCILE-001] The trip may already be OVER — the
@@ -222,7 +222,7 @@ class EvaluateSafetyNetCheckUseCase(
         //
         // Doctrine when the counter is ALIVE: steps are the ground truth and nothing overrides a
         // walking verdict (bus-after-walk). When the counter is MUTE (null): AR boarding, then
-        // the trail, then pedestrian physics — each a self-consistent proof with its own dating.
+        // pedestrian physics — each a self-consistent proof with its own dating.
         if (fix.accuracy <= config.minGpsAccuracyForDriving) {
             if (stepsSinceAnchor != null) {
                 if (anchoredToCar) {
@@ -238,13 +238,12 @@ class EvaluateSafetyNetCheckUseCase(
                             geofenceId,
                             preconfirmed = true,
                             tripStartedAtMs = lastSeenNearCarAtMs,
-                            backfillAt = stopPoint,
                         )
                     }
                 }
             } else {
-                // No step budget (no hardware / mute counter / read timeout / reboot). Three
-                // independent ride proofs remain, any suffices:
+                // No step budget (no hardware / mute counter / read timeout / reboot). Two
+                // independent ride proofs remain (besides the anchor-free conjunction above):
                 //  - AR BOARDING: an IN_VEHICLE ENTER stamped AFTER the anchor seal and recently.
                 //    Seal says "was AT the car", the ENTER says "then boarded a vehicle" — together
                 //    they prove the displacement was a ride that started at the car. This absorbs
@@ -253,35 +252,17 @@ class EvaluateSafetyNetCheckUseCase(
                 //    Dating the trip to the boarding keeps a short hop publishable (field
                 //    2026-07-07 12:14, Redmi: 2-min 576 m hop, mute counter — physics over the
                 //    14-min-old seal can't see it; the 12:12 boarding can). [DET-EXIT-TRUST-001]
-                //  - TRAIL: the breadcrumbs saw at-the-car, then driving within the boarding
-                //    window. Self-anchored (its seal doesn't decay by wall clock — the sequence
-                //    proves the car left no matter how long ago; the publish gate handles spot
-                //    staleness via the dating). The boarding window between seal and first
-                //    driving crumb keeps this inside the SAME bus envelope the live branch
-                //    already accepts — walking to a bus stop first breaks the window's
-                //    at-the-car tie. [DET-BREADCRUMBS-001]
                 //  - PEDESTRIAN PHYSICS: a sustained average speed no walker reaches.
                 val arBoardingAtCar = anchoredToCar &&
-                    lastVehicleEnteredAtMs != null &&
+                    boardingAtMs != null &&
                     lastSeenNearCarAtMs != null &&
-                    lastVehicleEnteredAtMs >= lastSeenNearCarAtMs &&
-                    (nowMs - lastVehicleEnteredAtMs) in 0..config.vehicleEnterWindowMs
+                    boardingAtMs >= lastSeenNearCarAtMs &&
+                    (nowMs - boardingAtMs) in 0..config.vehicleEnterWindowMs
                 if (arBoardingAtCar) {
                     return SafetyNetAction.DispatchDeparture(
                         geofenceId,
                         preconfirmed = true,
-                        tripStartedAtMs = lastVehicleEnteredAtMs,
-                        backfillAt = stopPoint,
-                    )
-                }
-                val trailBoardingAtCar = rideStartAtMs != null && effectiveSealAtMs != null &&
-                    (rideStartAtMs - effectiveSealAtMs) in 0..config.vehicleEnterWindowMs
-                if (trailBoardingAtCar) {
-                    return SafetyNetAction.DispatchDeparture(
-                        geofenceId,
-                        preconfirmed = true,
-                        tripStartedAtMs = rideStartAtMs,
-                        backfillAt = stopPoint,
+                        tripStartedAtMs = boardingAtMs,
                     )
                 }
                 if (anchoredToCar && nearAgeMs != null && nearAgeMs > 0) {
@@ -291,7 +272,6 @@ class EvaluateSafetyNetCheckUseCase(
                             geofenceId,
                             preconfirmed = true,
                             tripStartedAtMs = lastSeenNearCarAtMs,
-                            backfillAt = stopPoint,
                         )
                     }
                 }

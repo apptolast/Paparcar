@@ -20,7 +20,18 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 sealed class DepartureDecision {
     data object Confirmed : DepartureDecision()
     data object Rejected : DepartureDecision()
-    data object Inconclusive : DepartureDecision()
+
+    /**
+     * Session and geofence match but the evidence is not conclusive yet — retry.
+     *
+     * [admissibleBoarding] tells the RETRY OWNER whether a valid IN_VEHICLE_ENTER backs this
+     * exit: stamped AFTER this session began (a boarding older than the parking belongs to the
+     * trip that CREATED it — field 2026-07-08 18:52, Redmi: a re-delivered ENTER from the
+     * inbound drive "verified" a walking exit and erased a correct parking) and within
+     * [ParkingDetectionConfig.vehicleEnterWindowMs] of the exit. Only such a boarding may
+     * authorise the attempts-exhausted fall-through (slow garage exits). [DET-SESSION-BIRTH-001]
+     */
+    data class Inconclusive(val admissibleBoarding: Boolean = false) : DepartureDecision()
 }
 
 /**
@@ -81,13 +92,26 @@ class DetectParkingDepartureUseCase(
         // Looking up by geofenceId (instead of fetching the single active session and
         // comparing) is correct under multi-parking — different vehicles can each have
         // their own active session, each tied to its own geofence. [MULTI-PARKING-001]
-        userParkingRepository.getActiveSessionByGeofence(geofenceId)
+        val session = userParkingRepository.getActiveSessionByGeofence(geofenceId)
             ?: run {
                 PaparcarLogger.w(TAG, "departure rejected: no active session for geofenceId=$geofenceId")
                 return DepartureDecision.Rejected
             }
 
-        val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt
+        // [DET-SESSION-BIRTH-001] A boarding that PREDATES this parking session is the boarding
+        // of the trip that created it (or an OEM re-delivery of one), not evidence of leaving it.
+        // Treat it as ABSENT — the decision falls back to speed, exactly as if AR had said
+        // nothing. Field 2026-07-08 18:52 (Redmi): MIUI re-delivered the inbound drive's ENTER
+        // (trueTime 17 min old) seconds after the park; 23 s later the fresh fence's walking
+        // EXIT was "verified" by it and the correct parking was erased.
+        val sessionStartMs = session.location.timestamp
+        val vehicleEnteredAt = departureEventBus.lastVehicleEnteredAt?.takeIf { enteredAt ->
+            val admissible = enteredAt >= sessionStartMs
+            if (!admissible) {
+                PaparcarLogger.w(TAG, "IN_VEHICLE_ENTER predates the session (enter=$enteredAt < sessionStart=$sessionStartMs) — not departure evidence, ignoring [DET-SESSION-BIRTH-001]")
+            }
+            admissible
+        }
         val speedConfirmsMovement = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
 
         return if (vehicleEnteredAt != null) {
@@ -106,18 +130,18 @@ class DetectParkingDepartureUseCase(
                 // This is common when leaving a tight parking space or a garage ramp.
                 // Returning Inconclusive (not Rejected) lets DepartureDetectionWorker retry
                 // once the vehicle has accelerated past the departure threshold.
-                DepartureDecision.Inconclusive
+                DepartureDecision.Inconclusive(admissibleBoarding = true)
             } else {
                 DepartureDecision.Confirmed
             }
         } else {
-            // Signal 3 not yet available. Fall back to speed as sole discriminator.
+            // Signal 3 not available (or inadmissible). Fall back to speed as sole discriminator.
             // If speed is also inconclusive, ask the caller to retry — IN_VEHICLE_ENTER
             // can arrive up to ~2 minutes after the geofence exit on some devices.
             if (speedConfirmsMovement) {
                 DepartureDecision.Confirmed
             } else {
-                DepartureDecision.Inconclusive
+                DepartureDecision.Inconclusive(admissibleBoarding = false)
             }
         }
     }

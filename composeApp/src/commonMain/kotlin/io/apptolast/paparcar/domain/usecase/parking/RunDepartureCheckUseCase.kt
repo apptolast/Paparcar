@@ -93,15 +93,18 @@ class RunDepartureCheckUseCase(
 
             if (decision == DepartureDecision.Rejected) return DepartureCheckOutcome.Dismissed
 
-            if (decision == DepartureDecision.Inconclusive && attempt < MAX_INCONCLUSIVE_ATTEMPTS) {
+            if (decision is DepartureDecision.Inconclusive && attempt < MAX_INCONCLUSIVE_ATTEMPTS) {
                 return DepartureCheckOutcome.Retry
             }
-            // Attempts exhausted. Fall through only if IN_VEHICLE_ENTER was recorded after parking
-            // was confirmed — covers slow garage exits where speed never crosses the departure
-            // threshold. Without any vehicle signal, dismiss to avoid false positives from the user
-            // walking near the car. [BUG-WALK-DEPART-001]
-            if (decision == DepartureDecision.Inconclusive && departureEventBus.lastVehicleEnteredAt == null) {
-                PaparcarLogger.d(TAG, "attempts exhausted with no vehicle signal — dismissed (geof=$geofenceId)")
+            // Attempts exhausted. Fall through only on an ADMISSIBLE boarding — an IN_VEHICLE_ENTER
+            // stamped after THIS session began and within the window of the exit (the decision
+            // computes that, it holds the session) — covers slow garage exits where speed never
+            // crosses the departure threshold. A raw bus null-check here accepted a re-delivered
+            // ENTER from the trip that CREATED the parking and erased a correct session while the
+            // user walked away (field 2026-07-08 18:54). Without admissible vehicle evidence,
+            // dismiss. [BUG-WALK-DEPART-001][DET-SESSION-BIRTH-001]
+            if (decision is DepartureDecision.Inconclusive && !decision.admissibleBoarding) {
+                PaparcarLogger.d(TAG, "attempts exhausted with no admissible vehicle signal — dismissed (geof=$geofenceId)")
                 return DepartureCheckOutcome.Dismissed
             }
         } else {

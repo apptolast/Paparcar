@@ -24,13 +24,17 @@ class EvaluateSafetyNetCheckUseCaseTest {
     private val freshAnchor = nowMs - 5 * 60_000L // seen at the car 5 min ago
     private val drivingMps = 8f // 28.8 km/h ≥ minimumDepartureSpeedKmh (10)
 
+    /** Parked 2 h ago: evidence from the last hour is admissible; anything older than the
+     *  session itself is not ([DET-SESSION-BIRTH-001]). */
+    private val sessionStartMs = nowMs - 2 * 60 * 60_000L
+
     private fun session(
         geofenceId: String? = "geof-1",
         accuracy: Float = 10f,
         sizeCategory: VehicleSize? = null,
     ) = UserParking(
         id = "session-1",
-        location = GpsPoint(BASE_LAT, BASE_LON, accuracy = accuracy, timestamp = nowMs - 60_000L, speed = 0f),
+        location = GpsPoint(BASE_LAT, BASE_LON, accuracy = accuracy, timestamp = sessionStartMs, speed = 0f),
         geofenceId = geofenceId,
         sizeCategory = sizeCategory,
     )
@@ -55,8 +59,8 @@ class EvaluateSafetyNetCheckUseCaseTest {
         lastSeenNearCarAtMs: Long? = null,
         stepsSinceAnchor: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
-        trail: List<GpsPoint> = emptyList(),
-    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs, trail)
+        exitDeliveredAtMs: Long? = null,
+    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs, exitDeliveredAtMs)
 
     @Test
     fun should_returnNone_when_sessionHasNoGeofence() {
@@ -296,74 +300,83 @@ class EvaluateSafetyNetCheckUseCaseTest {
         assertEquals(SafetyNetAction.None, action)
     }
 
-    // ── [DET-BREADCRUMBS-001] The trail: ride proof + stop-point placement ────────
+    // ── [DET-CONJUNCTION-001] EXIT delivery ∧ AR boarding: two OS events agreeing ─
 
     @Test
-    fun should_dispatchPreconfirmed_when_muteCounterButTrailWitnessedTheRide() {
-        // No prefs anchor at all (lost to a process kill) and a mute counter — but the
-        // breadcrumbs saw everything: at the car 50 min ago, driving 5 min later, then the first
-        // post-trip crumb at the destination. Self-anchored proof: release, dated to the first
-        // driving crumb, new parking placed at the stop-point crumb.
-        val atCar = fixAtMeters(10.0, atMs = nowMs - 50 * 60_000L)
-        val driving = fixAtMeters(1_500.0, speedMps = drivingMps, atMs = nowMs - 45 * 60_000L)
-        val stopped = fixAtMeters(4_000.0, speedMps = 0f, atMs = nowMs - 40 * 60_000L)
+    fun should_dispatchConjunction_when_staleExitAndBoardingPairWithinWindow() {
+        // Field replay 2026-07-08 21:42-21:45 (Redmi, cinema): EXIT delivered mid-drive at
+        // d=1222 m (stale → recorded as evidence), AR IN_VEHICLE ENTER 72 s later, wake-up fix
+        // acc=64 m, step counter mute, anchor expired by clock. No single sense could prove the
+        // drive — the two OS events pairing within minutes can. Release, dated to the boarding.
+        val exitDelivered = nowMs - 3 * 60_000L
+        val boarding = nowMs - 2 * 60_000L
         val action = evaluate(
-            fix = fixAtMeters(4_200.0, speedMps = 0f),
+            fix = fixAtMeters(1_222.0, speedMps = 0f, accuracy = 64f),
             lastSeenNearCarAtMs = null,
             stepsSinceAnchor = null,
-            trail = listOf(atCar, driving, stopped),
+            lastVehicleEnteredAtMs = boarding,
+            exitDeliveredAtMs = exitDelivered,
         )
         val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
         assertEquals(true, dispatch.preconfirmed)
-        assertEquals(driving.timestamp, dispatch.tripStartedAtMs)
-        assertEquals(stopped, dispatch.backfillAt)
+        assertEquals(boarding, dispatch.tripStartedAtMs)
     }
 
     @Test
-    fun should_returnNone_when_trailDrivingButNeverSeenAtCar() {
-        // Driving crumbs without any at-the-car crumb (and no anchor) = a ride boarded anywhere
-        // in town — bus. Never an auto release.
-        val driving = fixAtMeters(1_500.0, speedMps = drivingMps, atMs = nowMs - 20 * 60_000L)
+    fun should_returnNone_when_exitAndBoardingTooFarApart_busAfterWalk() {
+        // The fence broke while walking out; a bus was boarded 18 min later. Two real events,
+        // but they don't describe the same movement — outside the pairing window. Silent.
         val action = evaluate(
-            fix = fixAtMeters(4_000.0, speedMps = 0f),
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
             lastSeenNearCarAtMs = null,
             stepsSinceAnchor = null,
-            trail = listOf(driving),
+            lastVehicleEnteredAtMs = nowMs - 2 * 60_000L,
+            exitDeliveredAtMs = nowMs - 20 * 60_000L,
         )
         assertEquals(SafetyNetAction.None, action)
     }
 
     @Test
-    fun should_returnNone_when_trailRideStartsBeyondBoardingWindow() {
-        // Seal at the car, then the first driving crumb 40 min later: enough time to have walked
-        // far and boarded a bus — outside the boarding window the at-the-car tie is gone.
-        val atCar = fixAtMeters(10.0, atMs = nowMs - 70 * 60_000L)
-        val driving = fixAtMeters(2_000.0, speedMps = drivingMps, atMs = nowMs - 30 * 60_000L)
+    fun should_returnNone_when_conjunctionBoardingPredatesTheSession() {
+        // [DET-SESSION-BIRTH-001] The boarding belongs to the trip that CREATED this parking
+        // (an OEM re-delivery — field 2026-07-08 18:52). Even paired tightly with a post-session
+        // exit delivery it is not evidence of leaving it.
         val action = evaluate(
-            fix = fixAtMeters(4_000.0, speedMps = 0f),
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
             lastSeenNearCarAtMs = null,
             stepsSinceAnchor = null,
-            trail = listOf(atCar, driving),
+            lastVehicleEnteredAtMs = sessionStartMs - 60_000L,
+            exitDeliveredAtMs = sessionStartMs + 2 * 60_000L,
         )
         assertEquals(SafetyNetAction.None, action)
     }
 
     @Test
-    fun should_placeBackfillAtTrailStopPoint_when_stepBudgetDispatches() {
-        // The step budget proves the ride; the trail refines WHERE the new parking lands —
-        // the first crumb after the last driving crumb, not the wake-up fix.
-        val seal = nowMs - 20 * 60_000L
-        val driving = fixAtMeters(2_000.0, speedMps = drivingMps, atMs = nowMs - 15 * 60_000L)
-        val stopped = fixAtMeters(3_900.0, speedMps = 0f, atMs = nowMs - 12 * 60_000L)
+    fun should_returnNone_when_conjunctionExitPredatesTheSession() {
+        // [DET-SESSION-BIRTH-001] An EXIT recorded for a previous life of this fence (poisoned
+        // state, re-registrations) cannot pair against the current session.
         val action = evaluate(
-            fix = fixAtMeters(4_000.0, speedMps = 0f),
-            lastSeenNearCarAtMs = seal,
-            stepsSinceAnchor = 50L,
-            trail = listOf(driving, stopped),
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = null,
+            stepsSinceAnchor = null,
+            lastVehicleEnteredAtMs = sessionStartMs + 2 * 60_000L,
+            exitDeliveredAtMs = sessionStartMs - 60_000L,
         )
-        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
-        assertEquals(stopped, dispatch.backfillAt)
-        assertEquals(seal, dispatch.tripStartedAtMs, "step budget keeps its own dating")
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_stepsSayWalked_evenWithPairedExitAndBoarding() {
+        // A LIVE counter that matches walking is the ground truth — the conjunction never
+        // overrides it (doctrine: steps outrank everything).
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 28 * 60_000L,
+            stepsSinceAnchor = 2_600L,
+            lastVehicleEnteredAtMs = nowMs - 2 * 60_000L,
+            exitDeliveredAtMs = nowMs - 3 * 60_000L,
+        )
+        assertEquals(SafetyNetAction.None, action)
     }
 
     @Test

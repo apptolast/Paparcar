@@ -42,11 +42,16 @@ class VerifyDepartureEvidenceUseCase(
      * @param exitTimestampMs  Epoch-ms of the geofence exit event.
      * @param currentSpeedKmh  Speed (km/h) sampled when handling the exit, or null if unavailable.
      * @param currentAccuracyM Horizontal accuracy (m) of that sample, or null if unavailable.
+     * @param sessionStartMs   Epoch-ms the exiting session began, or null when unknown. A boarding
+     *        that PREDATES the session is the inbound trip's boarding (or an OEM re-delivery of
+     *        it) — never evidence of leaving it (field 2026-07-08 18:52, Redmi: a 17-min-old
+     *        re-delivered ENTER "verified" a walking exit). [DET-SESSION-BIRTH-001]
      */
     operator fun invoke(
         exitTimestampMs: Long,
         currentSpeedKmh: Float?,
         currentAccuracyM: Float? = null,
+        sessionStartMs: Long? = null,
     ): ArmEvidence {
         val speedConfirms = config.isCredibleDrivingSpeed(currentSpeedKmh, currentAccuracyM)
         if (speedConfirms) {
@@ -55,6 +60,7 @@ class VerifyDepartureEvidenceUseCase(
         }
 
         val enteredAt = departureEventBus.lastVehicleEnteredAt
+            ?.takeIf { sessionStartMs == null || it >= sessionStartMs }
         val enterToExitMs = enteredAt?.let { exitTimestampMs - it }
         if (enterToExitMs != null && enterToExitMs in 0..config.vehicleEnterWindowMs) {
             PaparcarLogger.d(TAG, "departure evidence: VEHICLE_ENTER (enterToExitMs=$enterToExitMs)")

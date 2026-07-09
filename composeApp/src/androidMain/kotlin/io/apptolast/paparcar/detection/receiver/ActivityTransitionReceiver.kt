@@ -51,6 +51,17 @@ class ActivityTransitionReceiver : BroadcastReceiver(), KoinComponent {
                 ActivityTransition.ACTIVITY_TRANSITION_EXIT -> {
                     // EXIT: a hint for a running coordinator; non-decisive (needs egress to confirm).
                     coordinator.onVehicleExit()
+                    // And an ACCELERATOR of the reconcile, like ENTER below: "the user just left a
+                    // vehicle" is THE moment a missed departure becomes decidable (the trip is
+                    // over, evidence is at its freshest). Receivers keep running through the OEM
+                    // background freezes that starve WorkManager for 90+ min (field 2026-07-08:
+                    // both devices parked at the cinema announced it via AR EXIT within 2 min and
+                    // no check ran for over an hour). Level-triggered and gated, so a bus stop
+                    // costs one fix sample, never a false release. [DET-CONJUNCTION-001]
+                    ParkingSafetyNetWorker.enqueueCheckNow(
+                        WorkManager.getInstance(context),
+                        source = ParkingSafetyNetWorker.SOURCE_AR_EXIT,
+                    )
                 }
                 ActivityTransition.ACTIVITY_TRANSITION_ENTER -> {
                     // ENTER: evidence only — never arms. True transition time, not delivery time.

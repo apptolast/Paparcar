@@ -197,6 +197,15 @@ data class ParkingDetectionConfig(
      *  legitimate departures. A 30-minute window still correctly rejects the previous
      *  day's IN_VEHICLE signal (24+ hours >> 30 min). */
     val vehicleEnterWindowMs: Long = 30 * 60 * 1_000L,
+    /** Maximum separation (ms) between a geofence-EXIT DELIVERY and an IN_VEHICLE_ENTER true
+     *  transition for the pair to prove a drive-away by CONJUNCTION: two independent OS events
+     *  agreeing that a vehicle trip broke this fence at this moment. In a real drive both fire
+     *  within a couple of minutes of driving off (field 2026-07-08: Redmi 73 s, Oppo 3 m 55 s
+     *  apart); walking out breaks the fence minutes BEFORE any later bus boarding, so a tight
+     *  pairing window is what separates the two. Deliberately much tighter than
+     *  [vehicleEnterWindowMs] — that one bounds enter→exit for a fence crossing observed AT the
+     *  boundary; this one pairs two deliveries with no positional trust at all. [DET-CONJUNCTION-001] */
+    val exitEnterPairWindowMs: Long = 5 * 60_000L,
     /** Minimum speed (km/h) that confirms the user is driving away. Speed check is skipped
      *  when GPS is unavailable. Default 10 km/h. */
     val minimumDepartureSpeedKmh: Float = 10f,

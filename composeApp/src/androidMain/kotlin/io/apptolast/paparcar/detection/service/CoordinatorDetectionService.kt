@@ -355,6 +355,14 @@ class CoordinatorDetectionService : LifecycleService() {
                 if (BuildConfig.DEBUG) {
                     notificationPort.showDebug("EXIT rancio ($detail) → evaluador, sin autoridad directa")
                 }
+                // The delivery is still a FACT worth keeping: "the OS says this fence broke".
+                // Persisted so the evaluator can pair it with an independent AR boarding — the
+                // conjunction that catches the drive-away on devices where wake-up fixes never
+                // show speed and the step counter is mute (field 2026-07-08, cinema trips on
+                // BOTH devices). [DET-CONJUNCTION-001]
+                for ((id, _) in staleExits) {
+                    ParkingSafetyNetWorker.recordStaleExitDelivery(this@CoordinatorDetectionService, id, now)
+                }
                 ParkingSafetyNetWorker.enqueueCheckNow(
                     WorkManager.getInstance(this@CoordinatorDetectionService),
                     source = ParkingSafetyNetWorker.SOURCE_GEOFENCE_EXIT_STALE,
@@ -399,6 +407,11 @@ class CoordinatorDetectionService : LifecycleService() {
                         exitTimestampMs = now,
                         currentSpeedKmh = speedKmh,
                         currentAccuracyM = exitFix?.accuracy,
+                        // A boarding that predates this parking is the inbound trip's — it must
+                        // not label a walking exit "verified" (field 2026-07-08 18:52: a
+                        // re-delivered ENTER seeded the coordinator and a phantom spot).
+                        // [DET-SESSION-BIRTH-001]
+                        sessionStartMs = session.location.timestamp,
                     )
                     // [DET-SOLID-001] Observability: the pre-arm verdict, traced by geofenceId.
                     runCatching {

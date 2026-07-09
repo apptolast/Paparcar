@@ -81,6 +81,20 @@ class VerifyDepartureEvidenceUseCaseTest {
     }
 
     @Test
+    fun `should not verify when vehicleEnter predates the session`() {
+        // [DET-SESSION-BIRTH-001] Field replay 2026-07-08 18:52 (Redmi): MIUI re-delivered the
+        // INBOUND drive's ENTER (trueTime 17 min old) seconds after the park; the walking exit
+        // 23 s later must arm UNVERIFIED, not seed hasEverReachedDrivingSpeed.
+        val sessionStart = exitTimestamp - 23_000L
+        val bus = FakeDepartureEventBus(initialTimestamp = sessionStart - 17 * 60_000L)
+        val useCase = buildUseCase(bus)
+
+        val evidence = useCase(exitTimestamp, currentSpeedKmh = 4f, currentAccuracyM = 10f, sessionStartMs = sessionStart)
+
+        assertIs<ArmEvidence.Unverified>(evidence)
+    }
+
+    @Test
     fun `should not verify when vehicleEnter happened AFTER the exit`() {
         // [DET-SOLID-001] With TRUE transition times on the bus, an ENTER after the exit is a
         // vehicle boarded OUTSIDE the radius (bus/taxi after walking out) — never departure

@@ -34,11 +34,13 @@ class RunDepartureCheckUseCaseTest {
     // Large enough that "hours before it" stays positive (the staleness test subtracts 5 h).
     private val exitTimestamp = 1_000_000_000_000L
 
-    private fun activeSession(id: String = "geo-1") = UserParking(
+    /** [parkedAtMs] is the session's birth — evidence admissibility is anchored to it
+     *  ([DET-SESSION-BIRTH-001]), so tests set it explicitly relative to their evidence. */
+    private fun activeSession(id: String = "geo-1", parkedAtMs: Long = exitTimestamp - 60_000L) = UserParking(
         id = id,
         userId = "user-42",
         vehicleId = "v-1",
-        location = GpsPoint(40.4, -3.7, 8f, exitTimestamp - 60_000L, 0f),
+        location = GpsPoint(40.4, -3.7, 8f, parkedAtMs, 0f),
         geofenceId = id,
         isActive = true,
     )
@@ -215,12 +217,61 @@ class RunDepartureCheckUseCaseTest {
         assertEquals("Preconfirmed", verdict.verdict)
     }
 
+    // ── [DET-SESSION-BIRTH-001] The fall-through only trusts a POST-session boarding ─
+
+    @Test
+    fun should_dismiss_after_exhausted_attempts_when_boarding_predates_the_session() = runTest {
+        // Field replay 2026-07-08 18:52-18:54 (Redmi): parking correctly confirmed, MIUI
+        // re-delivers the INBOUND drive's IN_VEHICLE ENTER (trueTime 17 min old), the fresh
+        // fence fires a walking EXIT 23 s later. All speed attempts are Inconclusive (the user
+        // is on foot) — and the old raw bus null-check then let that pre-session boarding
+        // "verify" the departure: correct parking erased + phantom spot published. The
+        // fall-through must dismiss instead.
+        val sessionStart = exitTimestamp - 23_000L // parked 23 s before the walking EXIT
+        val env = Env(
+            repo = FakeUserParkingRepository(initialSession = activeSession(parkedAtMs = sessionStart)),
+            bus = FakeDepartureEventBus(initialTimestamp = sessionStart - 17 * 60_000L),
+        )
+
+        val outcome = env.useCase(
+            "geo-1",
+            exitTimestamp,
+            attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
+        )
+
+        assertIs<DepartureCheckOutcome.Dismissed>(outcome)
+        assertNotNull(env.repo.getActiveSession(), "the correct parking must survive")
+        assertEquals(0, env.spotScheduler.scheduleCallCount, "no phantom spot published")
+        assertEquals(0, env.listener.notifyCount)
+    }
+
+    @Test
+    fun should_fall_through_after_exhausted_attempts_when_boarding_is_admissible() = runTest {
+        // The slow-garage-exit case the fall-through exists for: a POST-session boarding within
+        // the window, speed never crossing the threshold. Attempts exhausted → process.
+        val env = Env(bus = FakeDepartureEventBus(initialTimestamp = exitTimestamp - 30_000L))
+        launch { env.locationSource.emitBalanced(currentFix(speedMps = 1f, accuracy = 10f)) }
+
+        val outcome = env.useCase(
+            "geo-1",
+            exitTimestamp,
+            attempt = RunDepartureCheckUseCase.MAX_INCONCLUSIVE_ATTEMPTS,
+        )
+
+        assertIs<DepartureCheckOutcome.Processed>(outcome)
+        assertNull(env.repo.getActiveSession(), "session cleared")
+    }
+
     @Test
     fun should_clear_without_publishing_when_departure_is_stale() = runTest {
         // Departure recovered hours late (offline device — Redmi 2026-07-06): the session must
-        // converge, but the freed spot is long gone and must NOT be advertised.
+        // converge, but the freed spot is long gone and must NOT be advertised. The session
+        // predates its own exit, as in reality.
         val staleExitTimestamp = exitTimestamp - 5 * 60 * 60_000L // 5 h before the fixed clock
-        val env = Env(bus = FakeDepartureEventBus(initialTimestamp = staleExitTimestamp - 60_000L))
+        val env = Env(
+            repo = FakeUserParkingRepository(initialSession = activeSession(parkedAtMs = staleExitTimestamp - 10 * 60_000L)),
+            bus = FakeDepartureEventBus(initialTimestamp = staleExitTimestamp - 60_000L),
+        )
 
         val outcome = env.useCase("geo-1", staleExitTimestamp, attempt = 0)
 

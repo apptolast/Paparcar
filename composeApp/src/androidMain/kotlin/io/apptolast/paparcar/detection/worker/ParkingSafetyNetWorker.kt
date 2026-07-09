@@ -90,7 +90,6 @@ class ParkingSafetyNetWorker(
     private val stepCounterSource: StepCounterSource by inject()
     private val config: ParkingDetectionConfig by inject()
     private val manualParkingDetection: io.apptolast.paparcar.domain.detection.ManualParkingDetection by inject()
-    private val tripTrail: io.apptolast.paparcar.domain.detection.TripTrail by inject()
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
@@ -164,10 +163,6 @@ class ParkingSafetyNetWorker(
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
         pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
 
-        // [DET-BREADCRUMBS-001] Breadcrumbs the stack sampled since we last looked — the trip's
-        // witnesses. Read once per tick; the evaluator digests per session.
-        val trail = runCatching { tripTrail.points() }.getOrElse { emptyList() }
-
         for (session in sessions) {
             val anchorSteps = session.geofenceId?.let { readAnchorSteps(prefs, it) }
             // Negative delta = reboot reset the counter → budget unknown, never a verdict.
@@ -182,10 +177,13 @@ class ParkingSafetyNetWorker(
                 lastSeenNearCarAtMs = session.geofenceId?.let { readAnchor(prefs, it) },
                 nowMs = now,
                 stepsSinceAnchor = stepsSinceAnchor,
-                // AR boarding stamp: the brain's third ride proof for mute-counter devices.
+                // AR boarding stamp: the brain's ride proof for mute-counter devices.
                 // [DET-EXIT-TRUST-001]
                 lastVehicleEnteredAtMs = departureEventBus.lastVehicleEnteredAt,
-                trail = trail,
+                // The fact "the OS delivered an EXIT for this fence" (recorded by the trust
+                // triage when delivery came too far away to act on directly) — half of the
+                // exit∧enter conjunction proof. [DET-CONJUNCTION-001]
+                exitDeliveredAtMs = session.geofenceId?.let { readExitDeliveredAt(prefs, it) },
             )
             val distanceM = haversineMeters(
                 fix.latitude, fix.longitude,
@@ -254,21 +252,20 @@ class ParkingSafetyNetWorker(
                             preconfirmed = action.preconfirmed,
                         ),
                     )
-                    // [DET-RECONCILE-001] Backfill the NEW parking when its position is bounded:
-                    // by the trail's stop point (the earliest post-trip breadcrumb — where the
-                    // CAR stopped [DET-BREADCRUMBS-001]) or, without trail coverage, by the
-                    // wake-up fix when the step budget bounds the drift (user at most
-                    // stepsSinceAnchor × stride from the just-parked car). Chained AFTER the
-                    // departure so the old session resolves (publish+clear) before the confirm
-                    // replaces the vehicle's active session.
-                    val backfillFix = action.backfillAt
-                        ?: fix.takeIf { stepsSinceAnchor != null && stepsSinceAnchor <= config.backfillMaxSteps }
+                    // [DET-RECONCILE-001] Backfill the NEW parking only when its position is
+                    // BOUNDED: the step budget says the user has barely walked since the seal
+                    // (at most stepsSinceAnchor × stride from the just-parked car) AND the wake-up
+                    // fix is precise enough to pin a car with (a 300 m-accuracy fix mid-drive
+                    // planted a phantom pin — field 2026-07-08 21:43). Anything weaker must NOT
+                    // guess a position: arrival placement is the live coordinator's job. Chained
+                    // AFTER the departure so the old session resolves (publish+clear) before the
+                    // confirm replaces the vehicle's active session.
+                    val backfillFix = fix.takeIf {
+                        stepsSinceAnchor != null && stepsSinceAnchor <= config.backfillMaxSteps &&
+                            it.accuracy <= config.minGpsAccuracyForDriving
+                    }
                     if (action.preconfirmed && backfillFix != null) {
-                        PaparcarLogger.d(
-                            DIAG,
-                            "  → chaining parking backfill at ${if (action.backfillAt != null) "trail stop point" else "wake-up fix"} " +
-                                "(steps=${stepsSinceAnchor ?: "?"})"
-                        )
+                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=$stepsSinceAnchor acc=${fix.accuracy})")
                         departureChain.then(
                             ParkingBackfillWorker.buildRequest(
                                 fix = backfillFix,
@@ -279,17 +276,28 @@ class ParkingSafetyNetWorker(
                     } else {
                         departureChain.enqueue()
                     }
-                    // [DET-RECONCILE-001] LIVE dispatch = the user is driving THEIR car right now
-                    // (evaluator-gated: anchor + credible speed). Escalate to the full tracking
-                    // service so the REST of the trip is followed and the new parking confirms at
-                    // full quality (steps+egress) instead of a backfill estimate. Never done from
-                    // the raw AR receiver — arming on every IN_VEHICLE ENTER is the purged
-                    // bus-false-positive path. Background FGS-start may be denied (Android 12+);
-                    // the reconcile/backfill net remains underneath, so a veto costs nothing.
-                    if (!action.preconfirmed) {
+                    // [DET-ARRIVAL-HANDOFF-001] A dispatched departure must end in exactly one of:
+                    // a backfilled session (position bounded, trip provably over) or LIVE
+                    // detection following the rest of the trip so the NEW parking is captured at
+                    // full quality. NEVER neither — that orphans the arrival: the evaluator
+                    // detected the Oppo's return trip mid-drive (2026-07-08 20:41), cleared the
+                    // session, and nobody was listening when the user parked 5 min later.
+                    // Background FGS-start may be denied (Android 12+/OEM); then the still-parked
+                    // prompt asks the user to place it — a notification beats silence.
+                    val backfillChained = action.preconfirmed && backfillFix != null
+                    if (!backfillChained) {
                         runCatching { manualParkingDetection.start() }
-                            .onSuccess { PaparcarLogger.d(DIAG, "  → live departure — tracking service started") }
-                            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⊘ tracking service start denied (${e.message}) — reconcile net remains") }
+                            .onSuccess { PaparcarLogger.d(DIAG, "  → departure dispatched without backfill — tracking service started for the arrival") }
+                            .onFailure { e ->
+                                PaparcarLogger.w(DIAG, "  ⊘ tracking service start denied (${e.message}) — asking the user via still-parked prompt")
+                                runCatching {
+                                    notificationPort.showStillParkedPrompt(
+                                        geofenceId = action.geofenceId,
+                                        latitude = session.location.latitude,
+                                        longitude = session.location.longitude,
+                                    )
+                                }
+                            }
                     }
                     logVerdict(
                         action.geofenceId,
@@ -461,14 +469,21 @@ class ParkingSafetyNetWorker(
         prefs.edit().remove(ANCHOR_STEPS_KEY_PREFIX + geofenceId).apply()
     }
 
-    /** Removes per-geofence anchor + prompt-throttle keys for geofences with no active session left
-     *  (departed / reverted). */
+    /** When the OS delivered an EXIT for this fence too far away to act on directly
+     *  (trust triage recorded the FACT instead) — half of the conjunction proof.
+     *  [DET-CONJUNCTION-001] */
+    private fun readExitDeliveredAt(prefs: android.content.SharedPreferences, geofenceId: String): Long? =
+        prefs.getLong(EXIT_KEY_PREFIX + geofenceId, 0L).takeIf { it > 0L }
+
+    /** Removes per-geofence anchor + prompt-throttle + exit-evidence keys for geofences with no
+     *  active session left (departed / reverted). */
     private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
         val stale = prefs.all.keys.filter { key ->
             when {
                 key.startsWith(ANCHOR_STEPS_KEY_PREFIX) -> key.removePrefix(ANCHOR_STEPS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
+                key.startsWith(EXIT_KEY_PREFIX) -> key.removePrefix(EXIT_KEY_PREFIX) !in liveGeofenceIds
                 else -> false
             }
         }
@@ -506,6 +521,11 @@ class ParkingSafetyNetWorker(
          *  landing the check MID-DRIVE while the ColorOS geofence EXIT is still minutes away.
          *  [DET-RECONCILE-001] */
         const val SOURCE_AR_ENTER = "ar-enter"
+        /** IN_VEHICLE EXIT accelerator — "the user just left a vehicle": the trip is over and a
+         *  missed departure is at its most decidable. Receivers keep firing through the OEM
+         *  freezes that starve WorkManager (field 2026-07-08, cinema arrivals on both devices).
+         *  [DET-CONJUNCTION-001] */
+        const val SOURCE_AR_EXIT = "ar-exit"
         /** Twin ENTER fence — the user walked back to the parked car; the check re-seals the
          *  anchor and cures the EXIT fence state for the upcoming drive-away. [DET-RETURN-ANCHOR-001] */
         const val SOURCE_GEOFENCE_ENTER = "geofence-enter"
@@ -536,6 +556,25 @@ class ParkingSafetyNetWorker(
         /** [DET-RECONCILE-001] Cumulative step-counter value stored alongside each anchor.
          *  MUST prune before ANCHOR_KEY_PREFIX checks (it shares the prefix). */
         private const val ANCHOR_STEPS_KEY_PREFIX = "anchor_steps_"
+        /** [DET-CONJUNCTION-001] Delivery timestamp of a far-delivered geofence EXIT, keyed by
+         *  geofenceId. Disk-backed like the anchor: the conjunction may only be decidable ticks
+         *  (or a process death) later. */
+        private const val EXIT_KEY_PREFIX = "exit_delivered_"
+
+        /**
+         * Records the FACT that the OS delivered a geofence EXIT for [geofenceId] — called by the
+         * trust triage when delivery lands too far from the fence to grant departure authority
+         * ([DET-EXIT-TRUST-001]). The evaluator pairs it with an independent AR boarding: the two
+         * agreeing within [ParkingDetectionConfig.exitEnterPairWindowMs] prove the drive-away that
+         * neither could prove alone (field 2026-07-08, cinema trips on BOTH devices).
+         * [DET-CONJUNCTION-001]
+         */
+        fun recordStaleExitDelivery(context: Context, geofenceId: String, deliveredAtMs: Long) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putLong(EXIT_KEY_PREFIX + geofenceId, deliveredAtMs)
+                .apply()
+        }
 
         /** Heartbeat gap above which a background freeze is logged (SILENT telemetry). Deep Doze
          *  legitimately defers 15-min periodics for hours, so this cannot distinguish a harmful
