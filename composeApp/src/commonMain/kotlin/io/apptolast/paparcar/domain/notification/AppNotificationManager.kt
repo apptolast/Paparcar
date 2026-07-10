@@ -119,6 +119,15 @@ interface AppNotificationManager {
     fun showFirstParkNudge() {}
 
     /**
+     * Asks the user WHERE the car ended up after a detection session that could not place it:
+     * the session detected movement but never MEASURED driving, so placing a pin would only
+     * mark wherever the pedestrian stopped (the living-room pin, field 2026-07-10). Tap and
+     * action both deep-link straight into manual add-parking mode. Default no-op for
+     * non-Android impls and fakes. [DET-AR-FIRST-001]
+     */
+    fun showMarkParkingNudge() {}
+
+    /**
      * Warns that the OS/OEM blocked Paparcar's background execution for hours while a session was
      * active (detected by the safety net's heartbeat gap) — detection almost certainly missed
      * events during that window. Tapping opens the app so the user can fix it from Settings →
@@ -167,5 +176,8 @@ interface AppNotificationManager {
 
         /** ID for the OEM background-kill warning (channel: UPLOAD). [OEM-KILL-001] */
         const val BACKGROUND_RELIABILITY_NOTIFICATION_ID = 2007
+
+        /** ID for the "where did you leave your car?" nudge (channel: ACTION). [DET-AR-FIRST-001] */
+        const val MARK_PARKING_NUDGE_NOTIFICATION_ID = 2008
     }
 }

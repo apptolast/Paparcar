@@ -271,6 +271,17 @@ data class ParkingDetectionConfig(
      *  produces 1–3 spurious steps (observed in the Calle Gavia field trace) — locking there
      *  would pin the park at the light. A real exit produces ≥ 8 steps within seconds. */
     val anchorLockEgressSteps: Int = 8,
+    /** [DET-AR-FIRST-001 F3] Meters one counted step may account for when deciding whether an
+     *  ambiguous-speed movement away from the park anchor is a PERSON (steps cover the
+     *  displacement → the anchor must survive) or the CAR (displacement outruns what the counted
+     *  steps could walk → clear + re-anchor at the next stop, flushing any phantom steps).
+     *  Deliberately LONG (a brisk adult stride is ~0.8 m): the asymmetry of errors demands a
+     *  pro-person bias — wrongly keeping the anchor costs meters at the previous stop; wrongly
+     *  clearing it sends the pin wherever the pedestrian ends up (field 2026-07-10, Camelias:
+     *  the walk into the house cleared the kerb anchor captured 3 steps earlier and the pin
+     *  re-anchored INDOORS). The reconcile's [strideMeters] keeps its own value: its bias runs
+     *  the other way (inflate the expected count so "did not walk here" stays conservative). */
+    val anchorStrideMeters: Float = 1.0f,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
@@ -505,6 +516,9 @@ data class ParkingDetectionConfig(
         }
         require(anchorLockEgressSteps >= 1) {
             "anchorLockEgressSteps must be >= 1, was $anchorLockEgressSteps"
+        }
+        require(anchorStrideMeters > 0f) {
+            "anchorStrideMeters must be > 0, was $anchorStrideMeters"
         }
         require(initialStopWindowMs > 0) {
             "initialStopWindowMs must be > 0, was $initialStopWindowMs"

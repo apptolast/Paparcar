@@ -240,6 +240,29 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.DEBUG_NOTIFICATION_ID, notification)
     }
 
+    override fun showMarkParkingNudge() {
+        // [DET-AR-FIRST-001] A detection session detected movement but could not place the car
+        // (no measured driving) — HIGH-importance ACTION channel: the user is about to lose
+        // their parking record if they ignore it. Tap and action both deep-link into manual
+        // add-parking mode, same promise as the cold-start nudge.
+        val addParkingIntent = buildAddParkingIntent(RC_MARK_PARKING_NUDGE)
+        val notification = NotificationCompat.Builder(context, ACTION_CHANNEL_ID)
+            .setContentTitle(context.getString(R.string.notif_mark_parking_title))
+            .setContentText(context.getString(R.string.notif_mark_parking_text))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(context.getString(R.string.notif_mark_parking_text)),
+            )
+            .setSmallIcon(R.drawable.ic_notification_logo)
+            .setColor(COLOR_CONFIRMATION)
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setContentIntent(addParkingIntent)
+            .addAction(0, context.getString(R.string.notif_mark_parking_action), addParkingIntent)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(AppNotificationManager.MARK_PARKING_NUDGE_NOTIFICATION_ID, notification)
+    }
+
     override fun dismiss(notificationId: Int) {
         notificationManager.cancel(notificationId)
     }
@@ -377,6 +400,8 @@ class AppNotificationManagerImpl(
         private const val RC_FIRST_PARK_NUDGE = 207
         // [OEM-KILL-001] background-kill warning request code
         private const val RC_BACKGROUND_KILL = 208
+        // [DET-AR-FIRST-001] "where did you leave your car?" nudge request code
+        private const val RC_MARK_PARKING_NUDGE = 209
 
         // Accent colors per notification type
         private val COLOR_DETECTION = Color.rgb(25, 118, 210)    // Blue   — GPS active

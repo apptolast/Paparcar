@@ -33,6 +33,8 @@ import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
+import io.apptolast.paparcar.domain.usecase.detection.ArEnterDecision
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateArEnterArmUseCase
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
@@ -68,6 +70,8 @@ class CoordinatorDetectionService : LifecycleService() {
     private val verifyDepartureEvidence: VerifyDepartureEvidenceUseCase by inject()
     private val getOneLocation: GetOneLocationUseCase by inject()
     private val detectionConfig: ParkingDetectionConfig by inject()
+    // [DET-AR-FIRST-001] Arm ladder for the AR ENTER decision lane.
+    private val evaluateArEnterArm: EvaluateArEnterArmUseCase by inject()
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -128,6 +132,7 @@ class CoordinatorDetectionService : LifecycleService() {
         when (val action = intent.action) {
             ACTION_START_TRACKING -> handleStartTracking()
             ACTION_GEOFENCE_EXIT -> handleGeofenceExit(intent)
+            ACTION_AR_TRANSITION -> handleArTransition(intent) // [DET-AR-FIRST-001]
             ACTION_PARKING_CONFIRMED -> handleUserConfirmed()
             ACTION_PARKING_DENIED -> handleUserDenied()
             ACTION_PARKING_ACK -> handlePostSaveAck() // [REFACTOR-300]
@@ -471,10 +476,116 @@ class CoordinatorDetectionService : LifecycleService() {
         }
     }
 
-    // [DET-SOLID-001 C1b] handleArVehicleEnter + the AR-proximity re-arm were purged: AR is an
-    // INDICATOR only (the ENTER now rides the passive broadcast receiver and only stamps
-    // DepartureEventBus). Arming is exclusive to GEOFENCE_EXIT + MANUAL. If AR-proximity ever
-    // returns, redesign it on top of ArmEvidence — do not resurrect the FGS-start path.
+    /**
+     * [DET-AR-FIRST-001] AR IN_VEHICLE ENTER delivered on the DECISION lane (privileged
+     * `getForegroundService` start — the mechanism the geofence lane proves in the field; NOT the
+     * BUG-FGS-001 app-side start that crashed from the receiver). AR is the LOW-latency nominator:
+     * the field EXITs arrive minutes late on OEMs (951–2 192 m on 2026-07-10), so waiting for them
+     * arms detection AFTER the trip is over. The ladder ([EvaluateArEnterArmUseCase]) only arms
+     * when the boarding is tied to the user's OWN car — bus/taxi ENTERs never arm (the reason the
+     * legacy AR-proximity arm was purged stays honored):
+     *  - boarding INSIDE the own fence → arm "waiting for ride proof" (no seed, aborts armed);
+     *  - boarding far + this fence's broken-EXIT recorded → arm mid-trip + speed-gated departure;
+     *  - anything else → the safety-net evaluator (already ticked by the evidence lane) decides.
+     */
+    private fun handleArTransition(intent: Intent) {
+        if (!com.google.android.gms.location.ActivityTransitionResult.hasResult(intent)) {
+            stopIfIdle("ar-no-result")
+            return
+        }
+        val result = com.google.android.gms.location.ActivityTransitionResult.extractResult(intent)
+        val enter = result?.transitionEvents?.lastOrNull {
+            it.activityType == com.google.android.gms.location.DetectedActivity.IN_VEHICLE &&
+                it.transitionType == com.google.android.gms.location.ActivityTransition.ACTIVITY_TRANSITION_ENTER
+        }
+        if (enter == null) {
+            stopIfIdle("ar-no-enter")
+            return
+        }
+        val trueEpochMs = System.currentTimeMillis() -
+            (android.os.SystemClock.elapsedRealtimeNanos() - enter.elapsedRealTimeNanos) / NANOS_PER_MS
+        // Stamp the bus here too: the decision lane can outrun the evidence receiver, and the
+        // pre-arm verifier reads the bus. Idempotent — both lanes stamp the same true time.
+        departureEventBus.onVehicleEntered(trueEpochMs)
+        if (!guardPermissions("AR_TRANSITION")) return
+        lifecycleScope.launch {
+            if (detectionJob?.isActive == true) {
+                PaparcarLogger.d(DIAG, "  ↻ AR_TRANSITION — coordinator already running; not re-arming")
+                return@launch
+            }
+            val now = System.currentTimeMillis()
+            val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
+                .getOrElse { emptyList() }
+            val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
+            val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
+            val fix = runCatching { getOneLocation(maxAgeMs = detectionConfig.freshFixMaxAgeMs) }.getOrNull()
+            val decision = evaluateArEnterArm(
+                session = session,
+                fix = fix,
+                enterTrueTimeMs = trueEpochMs,
+                nowMs = now,
+                recentStaleExitRecorded = ParkingSafetyNetWorker.hasRecentStaleExit(
+                    this@CoordinatorDetectionService,
+                    nowMs = now,
+                    maxAgeMs = detectionConfig.exitEnterPairWindowMs,
+                ),
+            )
+            val lagMs = now - trueEpochMs
+            when (decision) {
+                is ArEnterDecision.ArmAtCar -> {
+                    val detail = "geof=${decision.geofenceId.take(8)} lag=${lagMs}ms dep=${ArmEvidence.BoardingAtCar.persistLabel}"
+                    PaparcarLogger.d(DIAG, "  → AR ENTER at own fence — arming Coordinator, waiting for ride proof ($detail) [DET-AR-FIRST-001]")
+                    cancelDetectionJob()
+                    startParkingDetection(
+                        DetectionTrigger.AR_VEHICLE_ENTER,
+                        detail,
+                        trip = TripContext(session!!.location, session.vehicleId),
+                        armEvidence = ArmEvidence.BoardingAtCar,
+                    )
+                }
+                is ArEnterDecision.ArmMidTrip -> {
+                    // Same machinery as a far-delivered EXIT: speed-gated departure re-check +
+                    // a coordinator armed with whatever evidence the verifier grants NOW.
+                    val speedKmh = fix?.speed?.times(KMH_PER_MPS)
+                    val armEvidence = verifyDepartureEvidence(
+                        exitTimestampMs = now,
+                        currentSpeedKmh = speedKmh,
+                        currentAccuracyM = fix?.accuracy,
+                        sessionStartMs = session!!.location.timestamp,
+                        distanceFromCarMeters = fix?.let {
+                            haversineMeters(it.latitude, it.longitude, session.location.latitude, session.location.longitude)
+                        },
+                        fenceRadiusMeters = detectionConfig.geofenceRadiusFor(
+                            session.sizeCategory,
+                            session.location.accuracy,
+                        ),
+                    )
+                    val detail = "geof=${decision.geofenceId.take(8)} lag=${lagMs}ms dep=${armEvidence.persistLabel} (exit∧enter)"
+                    PaparcarLogger.d(DIAG, "  → AR ENTER + broken-fence record — arming mid-trip ($detail) [DET-AR-FIRST-001]")
+                    WorkManager.getInstance(this@CoordinatorDetectionService).enqueueUniqueWork(
+                        "${DepartureDetectionWorker.TAG}_${decision.geofenceId}",
+                        ExistingWorkPolicy.REPLACE,
+                        DepartureDetectionWorker.buildRequest(geofenceId = decision.geofenceId, exitTimestampMs = now),
+                    )
+                    cancelDetectionJob()
+                    startParkingDetection(
+                        DetectionTrigger.AR_VEHICLE_ENTER,
+                        detail,
+                        trip = TripContext(session.location, session.vehicleId),
+                        armEvidence = armEvidence,
+                    )
+                }
+                ArEnterDecision.NoSession,
+                ArEnterDecision.StaleEnter,
+                ArEnterDecision.NoFix,
+                ArEnterDecision.TickOnly -> {
+                    // The evidence lane already enqueued the evaluator tick for this same ENTER.
+                    PaparcarLogger.d(DIAG, "  ⊘ AR ENTER not armable ($decision, lag=${lagMs}ms) — evaluator's call [DET-AR-FIRST-001]")
+                    stopIfIdle("ar-${decision::class.simpleName}")
+                }
+            }
+        }
+    }
 
     /** Cancels the in-flight detection job (if any) and nulls the slot. Main-thread only. */
     private fun cancelDetectionJob() {
@@ -674,6 +785,12 @@ class CoordinatorDetectionService : LifecycleService() {
         // Play Services grants the privileged FGS start (the same getForegroundService mechanism the
         // AR IN_VEHICLE path used before AR was moved to a plain broadcast — BUG-FGS-001).
         const val ACTION_GEOFENCE_EXIT = "io.apptolast.paparcar.ACTION_GEOFENCE_EXIT"
+        // [DET-AR-FIRST-001] AR IN_VEHICLE ENTER delivered directly to the service via
+        // getForegroundService (the DECISION lane) — GMS grants the privileged FGS start, same
+        // as the geofence EXIT lane. The evidence receiver lane keeps its own getBroadcast.
+        const val ACTION_AR_TRANSITION = "io.apptolast.paparcar.ACTION_AR_TRANSITION"
+        /** ns→ms for the AR event's elapsedRealTimeNanos → epoch conversion. */
+        private const val NANOS_PER_MS = 1_000_000L
         // Pre-save prompt (state A): user is being asked whether they parked.
         const val ACTION_PARKING_CONFIRMED = "io.apptolast.paparcar.ACTION_PARKING_CONFIRMED"
         const val ACTION_PARKING_DENIED = "io.apptolast.paparcar.ACTION_PARKING_DENIED"

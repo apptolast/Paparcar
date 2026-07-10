@@ -59,5 +59,9 @@
     <string name="notif_first_park_nudge_title">Aparca una vez para activar la detección</string>
     <string name="notif_first_park_nudge_text">Aparca con Paparcar una vez; después liberamos tu plaza automáticamente cada vez que salgas.</string>
     <string name="notif_first_park_nudge_action">Marcar mi plaza</string>
+    <!-- DET-AR-FIRST-001: sesión desatendida sin conducción medida — preguntar dónde está el coche -->
+    <string name="notif_mark_parking_title">¿Dónde has dejado el coche?</string>
+    <string name="notif_mark_parking_text">Hemos detectado que te has movido, pero no hemos podido fijar dónde quedó tu coche. Marca la plaza para no perderla.</string>
+    <string name="notif_mark_parking_action">Marcar mi plaza</string>
     <string name="notif_action_ive_left">Ya he salido</string>
 </resources>

@@ -379,8 +379,17 @@ class CoordinatorParkingDetector(
                         currentArmEvidence = ArmEvidence.LABEL_SELF_OBSERVED
                         _detectionState.update { it.copy(hasEverReachedDrivingSpeed = false) }
                     }
+                    // [DET-AR-FIRST-001 F3] Post-drive steps also count while the park ANCHOR is
+                    // set even though GPS reads walking movement: those steps ARE the user's
+                    // egress walk. Gating them on `stoppedSince` starved the count the moment the
+                    // walk began (field 2026-07-10, Camelias: 3 steps at the kerb, then ZERO for
+                    // the whole walk into the house — the person/car discriminator and the
+                    // steps+egress confirm both ran blind). Driving still flushes the anchor AND
+                    // the count, so jam jiggle cannot accumulate across stops.
                     val updated = _detectionState.updateAndGet { s ->
-                        val shouldCount = !s.hasEverReachedDrivingSpeed || s.stoppedSince != null
+                        val shouldCount = !s.hasEverReachedDrivingSpeed ||
+                            s.stoppedSince != null ||
+                            s.bestStopLocation != null
                         if (shouldCount) s.copy(stepCount = s.stepCount + 1) else s
                     }
                     if (!updated.hasEverReachedDrivingSpeed) {
@@ -389,6 +398,9 @@ class CoordinatorParkingDetector(
                     } else if (updated.stoppedSince != null) {
                         PaparcarLogger.d(DIAG, "  ✦ step #${updated.stepCount} (stopped)")
                         logDetection { sid -> DetectionEvent.Step(sid, nowMs(), updated.stepCount, stopped = true) }
+                    } else if (updated.bestStopLocation != null) {
+                        PaparcarLogger.d(DIAG, "  ✦ step #${updated.stepCount} (egress walk, anchor set) [DET-AR-FIRST-001]")
+                        logDetection { sid -> DetectionEvent.Step(sid, nowMs(), updated.stepCount, stopped = false) }
                     }
                 }
             } catch (e: CancellationException) {
@@ -592,6 +604,29 @@ class CoordinatorParkingDetector(
                     // community-facing trusts it on its own. Session-end still runs (completed).
                     val promptShownAt = state.phase.promptShownAt
                     if (promptShownAt != null && (now - promptShownAt) > config.confirmationResponseTimeoutMs) {
+                        // [DET-AR-FIRST-001 F3] A pin needs MEASURED in-session driving or an
+                        // explicit user answer — seeded evidence is authority to RELEASE the old
+                        // spot (the departure pipeline's job), never to PLACE a new one. A session
+                        // armed after the trip ended follows the PEDESTRIAN: its anchor is
+                        // wherever the user's body stopped, and the unattended save planted that
+                        // as a parking (field 2026-07-10 19:34, Redmi: pin in the user's living
+                        // room, 15 min after an EXIT delivered 2.2 km late). Ask instead: the
+                        // nudge deep-links straight into marking the real spot.
+                        val measuredDriving = state.maxSpeedMps >= config.minimumTripSpeedMps
+                        if (!measuredDriving) {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⑊ unattended timeout WITHOUT measured driving (maxSpeed=${state.maxSpeedMps}m/s < ${config.minimumTripSpeedMps}) — no pin; nudging user to mark the spot [DET-AR-FIRST-001]"
+                            )
+                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                            notificationPort.showMarkParkingNudge()
+                            sessionOutcome = "aborted_unattended_no_drive"
+                            logDetection { sid ->
+                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_NO_DRIVE_NUDGE", pathLabel = "unattended_timeout", location = location)
+                            }
+                            completed = true
+                            return@collect
+                        }
                         PaparcarLogger.d(
                             DIAG,
                             "  ⑊ no user response after ${now - promptShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — SAVING unattended (reliability=${config.reliabilityUnattendedSave}) [DET-RECONCILE-001]"
@@ -982,6 +1017,10 @@ class CoordinatorParkingDetector(
                     ?.let { it.displayName(fallback = "").takeIf { n -> n.isNotBlank() } }
             }.getOrNull()
             notificationPort.showParkingConfirmation(WEAK_EVIDENCE_PROMPT_SCORE, vehicleName)
+            // [DET-AR-FIRST-001 F4] The posting itself must be visible in parkdiag: this path
+            // bypasses NotifyParkingConfirmation, and the 2026-07-10 19:19 session read as
+            // "prompt never shown" in forensics when it HAD been posted right here.
+            PaparcarLogger.d(DIAG, "  ▶ weak-evidence prompt notification POSTED (score=$WEAK_EVIDENCE_PROMPT_SCORE, vehicle=$vehicleName) [DET-AR-FIRST-001]")
             _detectionState.update { it.copy(phase = ConfirmationPhase.Notified(shownAt = now)) }
             logDetection { sid ->
                 DetectionEvent.Decision(sid, now, outcome = "CONFIRM_DEGRADED_PROMPT", pathLabel = pathLabel, location = location)
@@ -996,6 +1035,25 @@ class CoordinatorParkingDetector(
      *  accuracy — the errand case: user came back and drove off) unlocks. */
     private fun isAnchorLocked(s: ParkingDetectionState): Boolean =
         s.bestStopLocation != null && s.stepCount >= config.anchorLockEgressSteps
+
+    /** [DET-AR-FIRST-001 F3] Person/car discriminator for movement away from the park anchor:
+     *  TRUE when the displacement from the anchor has OUTRUN what the steps counted since that
+     *  stop could walk (`steps × anchorStrideMeters` + both accuracy envelopes + the egress noise
+     *  floor) — physics says a vehicle moved, whatever the Doppler band says. FALSE while the
+     *  steps cover the displacement (a person on foot — or not decidable yet: with a generous
+     *  stride the pro-person bias is deliberate, see [ParkingDetectionConfig.anchorStrideMeters]).
+     *  A phantom-step jam creep outruns its 1–3 jiggle steps within a couple of fixes; a real
+     *  walk-away keeps pace with its own count (the counting gate feeds steps during the walk). */
+    private fun movementOutrunsSteps(s: ParkingDetectionState, current: GpsPoint): Boolean {
+        val anchor = s.bestStopLocation ?: return false
+        val d = io.apptolast.paparcar.domain.util.haversineMeters(
+            anchor.latitude, anchor.longitude,
+            current.latitude, current.longitude,
+        )
+        val walkReach = s.stepCount * config.anchorStrideMeters +
+            anchor.accuracy + current.accuracy + config.minEgressDisplacementMeters
+        return d > walkReach
+    }
 
     /**
      * Updates `stoppedSince` / `stoppedFixes` when the vehicle is stopped, or resets
@@ -1057,16 +1115,41 @@ class CoordinatorParkingDetector(
             }
             _detectionState.update {
                 val anchorLocked = isAnchorLocked(it)
-                val effectiveDriving = if (anchorLocked) isRealDrive else isDriving
+                // [DET-AR-FIRST-001 F3] Person/car discriminator in the ambiguous band (above
+                // clearBestStopSpeedMps, below real driving). The old rule cleared the anchor on
+                // ANY credible ambiguous fix unless 8 steps had already locked it — a race the
+                // anchor lost whenever the user exited the car immediately (field 2026-07-10,
+                // Camelias: 3 steps at the kerb, the walk cleared the true anchor, the pin
+                // re-anchored inside the house). Now the physics decide:
+                //  - real driving speed → CAR, always wins (clears anchor + flushes steps);
+                //  - displacement outruns the counted steps → CAR (jam creep with jiggle steps);
+                //  - steps cover the displacement → PERSON: the anchor holds.
+                val outruns = movementOutrunsSteps(it, location)
+                val effectiveDriving = when {
+                    isRealDrive -> true
+                    anchorLocked -> false
+                    it.bestStopLocation != null && isDriving && !outruns -> false
+                    else -> isDriving
+                }
                 if (anchorLocked && isDriving && !isRealDrive) {
                     PaparcarLogger.d(
                         DIAG,
                         "  🔒 anchor LOCKED (steps=${it.stepCount}) — ignoring walking-range speed " +
                                 "${location.speed} m/s (< ${config.minimumTripSpeedMps}) [ANCHOR-LOCK-001]"
                     )
+                } else if (!anchorLocked && it.bestStopLocation != null && isDriving && !isRealDrive && !outruns) {
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ♟ anchor HELD — steps=${it.stepCount} cover the displacement " +
+                                "(speed=${location.speed} m/s ambiguous band) [DET-AR-FIRST-001]"
+                    )
                 }
                 val newConsecutive = if (isRepositionCandidate) it.consecutiveRepositionFixes + 1 else 0
-                val isRepositionBurst = newConsecutive >= config.repositionFixCount && !anchorLocked
+                // Reposition burst = slow CAR maneuver. Steps veto it: a sustained brisk walk
+                // matches its speed/accuracy signature, but a walker's displacement never outruns
+                // their own steps — a real maneuver (user back IN the car) counts none. [DET-AR-FIRST-001]
+                val isRepositionBurst = newConsecutive >= config.repositionFixCount && !anchorLocked &&
+                    (it.bestStopLocation == null || outruns)
                 val shouldClearBestStop = effectiveDriving || isRepositionBurst
                 if (isRepositionBurst && !effectiveDriving) {
                     PaparcarLogger.d(

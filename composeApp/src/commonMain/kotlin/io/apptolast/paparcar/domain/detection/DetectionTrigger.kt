@@ -18,4 +18,10 @@ enum class DetectionTrigger {
 
     /** The user tapped "I'm driving" — the manual cold-start affordance. */
     MANUAL,
+
+    /** [DET-AR-FIRST-001] A FRESH AR `IN_VEHICLE_ENTER` tied to the user's own car (boarding
+     *  inside the fence, or conjunction with the fence's broken-EXIT record) delivered on the
+     *  privileged service lane. The LOW-latency nominator — the geofence EXIT arrives minutes
+     *  late on OEMs; measured movement still confirms everything. */
+    AR_VEHICLE_ENTER,
 }

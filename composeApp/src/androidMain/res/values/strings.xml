@@ -45,6 +45,10 @@
     <string name="notif_first_park_nudge_title">Park once to start auto-detection</string>
     <string name="notif_first_park_nudge_text">Park with Paparcar once — after that we free your spot automatically every time you leave.</string>
     <string name="notif_first_park_nudge_action">Mark my spot</string>
+    <!-- DET-AR-FIRST-001: unattended session ended without measured driving — ask where the car is -->
+    <string name="notif_mark_parking_title">Where did you leave your car?</string>
+    <string name="notif_mark_parking_text">We noticed you moved, but we couldn\'t pin where your car ended up. Mark the spot so you don\'t lose it.</string>
+    <string name="notif_mark_parking_action">Mark my spot</string>
     <string name="notif_action_ive_left">I\'ve left</string>
 
     <!-- Notification: debug (dev builds only) -->

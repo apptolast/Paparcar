@@ -315,6 +315,21 @@ class EvaluateSafetyNetCheckUseCase(
                 }
             }
         }
+
+        // [DET-AR-FIRST-001 F4] Far from the fence, every proof above failed, BUT the OS's own
+        // record says this fence BROKE (a far-delivered EXIT the trust triage archived): the
+        // contract forbids silence when we lack the means to verify — ask the user. Doctrine
+        // exception: a TRUSTED step count that explains the displacement on foot is ground
+        // truth and outranks the record (the user demonstrably walked here — the normal
+        // parked-and-away state must never nag). A boundary walking exit is never recorded as
+        // stale, and the worker's 6 h per-fence throttle bounds repeats. Field 2026-07-10,
+        // Oppo: 4 h at 1.4–1.9 km from an "active" parking, 9 silent ticks, EXIT recorded at
+        // 15:31 — the user saw nothing and lost the spot AND the new park. [DET-CONJUNCTION-001]
+        val stepsExplainWalk = trustedStepsSinceAnchor != null &&
+            trustedStepsSinceAnchor >= (distanceMeters / config.strideMeters) * config.walkedStepFraction
+        if (exitAtMs != null && !stepsExplainWalk) {
+            return SafetyNetAction.PromptStillParked(geofenceId)
+        }
         return SafetyNetAction.None
     }
 

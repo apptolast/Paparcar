@@ -374,11 +374,12 @@ class EvaluateSafetyNetCheckUseCaseTest {
     }
 
     @Test
-    fun should_returnNone_when_conjunctionPairsButDisplacementIsWalkable() {
+    fun should_prompt_when_conjunctionPairsButDisplacementIsWalkable() {
         // [DET-RIDE-PROOF-001] Both OS events fired and paired — but the position is only 350 m
         // out with the boarding 10 min old: perfectly walkable, i.e. a phantom ENTER next to a
         // late-delivered walking EXIT (the Redmi hairdresser cascade). Two nominations still
-        // need the physics; silent.
+        // never RELEASE — but the fence's own broken record with a mute counter is exactly the
+        // "far without means" case the contract says must ASK, not stay silent. [DET-AR-FIRST-001 F4]
         val action = evaluate(
             fix = fixAtMeters(350.0, speedMps = 0f),
             lastSeenNearCarAtMs = null,
@@ -386,13 +387,15 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastVehicleEnteredAtMs = nowMs - 10 * 60_000L,
             exitDeliveredAtMs = nowMs - 8 * 60_000L,
         )
-        assertEquals(SafetyNetAction.None, action)
+        assertEquals(SafetyNetAction.PromptStillParked("geof-1"), action)
     }
 
     @Test
-    fun should_returnNone_when_exitAndBoardingTooFarApart_busAfterWalk() {
-        // The fence broke while walking out; a bus was boarded 18 min later. Two real events,
-        // but they don't describe the same movement — outside the pairing window. Silent.
+    fun should_prompt_when_exitAndBoardingTooFarApart_busAfterWalk() {
+        // The fence broke while walking out; a bus was boarded 18 min later. The pair does not
+        // RELEASE (outside the pairing window) — but a broken-fence record + far + mute counter
+        // is undecidable: ask the user instead of 4 silent hours (field 2026-07-10, Oppo).
+        // Ignoring the prompt leaves the session untouched. [DET-AR-FIRST-001 F4]
         val action = evaluate(
             fix = fixAtMeters(2_000.0, speedMps = 0f),
             lastSeenNearCarAtMs = null,
@@ -400,14 +403,15 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastVehicleEnteredAtMs = nowMs - 2 * 60_000L,
             exitDeliveredAtMs = nowMs - 20 * 60_000L,
         )
-        assertEquals(SafetyNetAction.None, action)
+        assertEquals(SafetyNetAction.PromptStillParked("geof-1"), action)
     }
 
     @Test
-    fun should_returnNone_when_conjunctionBoardingPredatesTheSession() {
+    fun should_prompt_when_conjunctionBoardingPredatesTheSession() {
         // [DET-SESSION-BIRTH-001] The boarding belongs to the trip that CREATED this parking
-        // (an OEM re-delivery — field 2026-07-08 18:52). Even paired tightly with a post-session
-        // exit delivery it is not evidence of leaving it.
+        // (an OEM re-delivery — field 2026-07-08 18:52) — it can never RELEASE. The post-session
+        // exit record still stands as contrary evidence with no means to verify → ask.
+        // [DET-AR-FIRST-001 F4]
         val action = evaluate(
             fix = fixAtMeters(2_000.0, speedMps = 0f),
             lastSeenNearCarAtMs = null,
@@ -415,7 +419,7 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastVehicleEnteredAtMs = sessionStartMs - 60_000L,
             exitDeliveredAtMs = sessionStartMs + 2 * 60_000L,
         )
-        assertEquals(SafetyNetAction.None, action)
+        assertEquals(SafetyNetAction.PromptStillParked("geof-1"), action)
     }
 
     @Test

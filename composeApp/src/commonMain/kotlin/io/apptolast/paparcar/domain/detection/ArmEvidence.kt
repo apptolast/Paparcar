@@ -27,6 +27,13 @@ sealed interface ArmEvidence {
      *  active; the departure worker may upgrade the live session when late evidence lands. */
     data object Unverified : ArmEvidence
 
+    /** [DET-AR-FIRST-001] A FRESH AR `IN_VEHICLE_ENTER` whose fix sits INSIDE the parked car's
+     *  own fence — the boarding moment, caught BEFORE any driving exists to measure. Arms the
+     *  coordinator "waiting for ride proof": deliberately NOT a verified departure (no seed),
+     *  so the session must measure the drive itself and the anti-walking aborts stay armed —
+     *  a spurious ENTER beside the car costs one false-ENTER/no-movement abort. */
+    data object BoardingAtCar : ArmEvidence
+
     /** Whether this evidence proves the departure — seeds `hasEverReachedDrivingSpeed` so the
      *  coordinator does not re-litigate a drive its stream structurally cannot observe. */
     val isVerifiedDeparture: Boolean
@@ -39,12 +46,15 @@ sealed interface ArmEvidence {
             is VerifiedBySpeed -> LABEL_VERIFIED_SPEED
             is VerifiedByVehicleEnter -> LABEL_VERIFIED_ENTER
             is Unverified -> LABEL_SELF_OBSERVED
+            is BoardingAtCar -> LABEL_ENTER_AT_CAR
         }
 
     companion object {
         const val LABEL_MANUAL = "manual"
         const val LABEL_VERIFIED_SPEED = "verified_speed"
         const val LABEL_VERIFIED_ENTER = "verified_enter"
+        /** [DET-AR-FIRST-001] Boarding caught at the car (fresh ENTER inside the own fence). */
+        const val LABEL_ENTER_AT_CAR = "enter_at_car"
         /** A departure verdict confirmed AFTER the arm (worker upgrade). [DET-G-05] */
         const val LABEL_VERIFIED_LATE = "verified_late"
         /** No external verification — the coordinator's own stream is the only witness. */

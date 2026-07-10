@@ -36,11 +36,9 @@ class ActivityRecognitionManagerImpl(
     )
 
     // IN_VEHICLE **ENTER + EXIT** → BroadcastReceiver (always-on). [DET-G-01][DET-SOLID-001]
-    // A getBroadcast avoids the FGS flash on every bus ride: both transitions are pure
-    // INDICATORS — EXIT is a non-decisive hint forwarded to a running coordinator; ENTER only
-    // populates DepartureEventBus (evidence for the departure verifier/worker). NOTHING is armed
-    // from this receiver — arming stays exclusive to GEOFENCE_EXIT + MANUAL, per the
-    // "AR = indicator only" rule that replaced the legacy AR-proximity arm.
+    // The EVIDENCE lane: a getBroadcast that stamps DepartureEventBus with true transition times
+    // and accelerates the safety-net evaluator. It never arms anything and survives even if the
+    // decision lane below is ever denied by an OEM — twin-lane, like the geofence witness.
     private val vehicleTransitionsPendingIntent: PendingIntent by lazy {
         val intent = Intent(context, ActivityTransitionReceiver::class.java)
         PendingIntent.getBroadcast(
@@ -51,8 +49,25 @@ class ActivityRecognitionManagerImpl(
         )
     }
 
-    // [DET-SOLID-001 C1b] The scoped ENTER-arming PendingIntent (getForegroundService →
-    // ACTION_AR_VEHICLE_ENTER) was purged with the AR-proximity re-arm. AR is indicator-only.
+    // [DET-AR-FIRST-001] IN_VEHICLE **ENTER only** → CoordinatorDetectionService via
+    // `getForegroundService`: the DECISION lane. Play Services starts the service WITH privileges
+    // — the same mechanism the geofence EXIT lane proves in the field daily (6/6 starts on the
+    // Oppo 2026-07-10, even with late deliveries). This is NOT the BUG-FGS-001 crash class: that
+    // was OUR `startForegroundService()` from a background receiver; here GMS owns the start.
+    // The service runs the arm ladder (EvaluateArEnterArmUseCase) and stops within seconds when
+    // the ENTER is not tied to the user's own car — a bus ride costs one notification flash.
+    private val vehicleEnterDecisionPendingIntent: PendingIntent by lazy {
+        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
+            action = CoordinatorDetectionService.ACTION_AR_TRANSITION
+        }
+        // FLAG_MUTABLE: Play Services fills ActivityTransitionResult extras at delivery time.
+        PendingIntent.getForegroundService(
+            context,
+            VEHICLE_ENTER_DECISION_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+        )
+    }
 
     @SuppressLint("MissingPermission")
     override fun registerTransitions() {
@@ -88,13 +103,30 @@ class ActivityRecognitionManagerImpl(
         )
 
         activityClient.requestActivityTransitionUpdates(transitionsRequest, vehicleTransitionsPendingIntent)
-            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER+EXIT transitions registered") }
+            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER+EXIT transitions registered (evidence lane)") }
             .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE transitions", e) }
+
+        // [DET-AR-FIRST-001] Decision lane: ENTER only (EXIT decisions stay with the evaluator),
+        // its own registration + PendingIntent — same multi-registration pattern as the three
+        // geofences per parking. Registered second so a failure here degrades to today's
+        // receiver-only behaviour instead of losing the evidence lane.
+        val enterDecisionRequest = ActivityTransitionRequest(
+            listOf(
+                ActivityTransition.Builder()
+                    .setActivityType(DetectedActivity.IN_VEHICLE)
+                    .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+                    .build(),
+            ),
+        )
+        activityClient.requestActivityTransitionUpdates(enterDecisionRequest, vehicleEnterDecisionPendingIntent)
+            .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER decision lane registered (getForegroundService) [DET-AR-FIRST-001]") }
+            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register ENTER decision lane", e) }
     }
 
     @SuppressLint("MissingPermission")
     override fun unregisterTransitions() {
         activityClient.removeActivityTransitionUpdates(vehicleTransitionsPendingIntent)
+        activityClient.removeActivityTransitionUpdates(vehicleEnterDecisionPendingIntent)
     }
 
     private fun hasActivityRecognitionPermission(): Boolean =
@@ -110,5 +142,7 @@ class ActivityRecognitionManagerImpl(
     private companion object {
         const val TAG = "ActivityRecognitionManager"
         const val VEHICLE_REQUEST_CODE = 102
+        /** [DET-AR-FIRST-001] Decision-lane PendingIntent request code (must differ from 102). */
+        const val VEHICLE_ENTER_DECISION_REQUEST_CODE = 103
     }
 }

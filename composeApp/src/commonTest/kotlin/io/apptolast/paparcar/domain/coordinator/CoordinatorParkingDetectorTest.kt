@@ -732,6 +732,105 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_nudge_instead_of_saving_when_unattended_timeout_has_no_measured_driving() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-AR-FIRST-001 F3] Seeded evidence (verified_enter arm) authorises RELEASING the
+            // old spot, never PLACING a new pin: a session armed after the trip ended follows the
+            // pedestrian, and its unattended save planted the pin in the user's living room
+            // (field 2026-07-10 19:34, Redmi). Without measured in-session driving the timeout
+            // must ask WHERE the car is, not guess.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch {
+                env.coordinator.invoke(locations, armEvidence = ArmEvidence.VerifiedByVehicleEnter(30_000L))
+            }
+
+            // Seeded session: hasEverReachedDrivingSpeed=true but every fix is pedestrian —
+            // maxSpeedMps never crosses minimumTripSpeedMps. Slow path reaches High → prompt.
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs = config.slowPath5MinMs + 1_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 10f, timestamp = 0L, speed = 0.1f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 10f, timestamp = 0L, speed = 0.1f))
+
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no pin without measured driving")
+            assertEquals(1, env.notification.markParkingNudgeCallCount, "the user must be asked where the car is")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_unattended_no_drive", ended.outcome, "[DET-AR-FIRST-001]")
+        }
+
+    @Test
+    fun should_keep_kerb_anchor_when_user_walks_away_immediately_after_parking() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-AR-FIRST-001 F3] The Camelias regression (field 2026-07-10 15:54): park, exit
+            // the car after only 3 steps, walk off at 2.6 m/s — the old rule cleared the
+            // unlocked anchor on that first ambiguous fix and the pin re-anchored wherever the
+            // pedestrian ended up (inside the house). Steps discriminate person vs car: the
+            // displacement never outruns the counted steps, so the kerb anchor must survive and
+            // the steps+egress confirm must save AT THE KERB.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            val kerbLat = 40.001
+            locations.emit(GpsPoint(kerbLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park → anchor
+            env.stepDetector.emitSteps(3) // door slam + first steps, stop still alive
+            // Brisk walk-away: ambiguous band (≥ clearBestStopSpeedMps, < real driving), good
+            // accuracy — the fix that used to WIPE the anchor. 3 steps cover ~5 m: HOLD.
+            locations.emit(GpsPoint(40.00105, -3.7, accuracy = 15f, timestamp = 0L, speed = 2.6f))
+            // The walk continues; steps keep counting even though GPS reads movement (the
+            // counting gate feeds the discriminator during the walk).
+            env.stepDetector.emitSteps(6) // total 9 ≥ minStepsToConfirm
+            // ~28 m from the kerb at walking pace → steps+egress confirm fires.
+            locations.emit(GpsPoint(40.00125, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f))
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "steps+egress must confirm")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(kerbLat, saved.location.latitude, 0.00005, "pin must stay at the kerb anchor, not follow the walker")
+        }
+
+    @Test
+    fun should_flush_phantom_jam_steps_when_displacement_outruns_them() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-AR-FIRST-001 F3] The jam guard the discriminator must NOT break: phone jiggle
+            // at a jam stop counts 2 phantom steps; the car then creeps on at 3 m/s (below real
+            // driving). Displacement outruns what 2 steps could walk → CAR: anchor cleared AND
+            // steps flushed, so the next genuine stop re-anchors clean and confirms THERE.
+            val env = setup()
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // jam stop → anchor
+            env.stepDetector.emitSteps(2) // phone jiggle
+            // Jam creeps on: ambiguous band, displacement 30 m then 60 m — outruns 2 steps.
+            locations.emit(GpsPoint(40.00127, -3.7, accuracy = 10f, timestamp = 0L, speed = 3f))
+            locations.emit(GpsPoint(40.00164, -3.7, accuracy = 10f, timestamp = 0L, speed = 3f))
+            // Real park 100 m later.
+            val plazaLat = 40.0025
+            locations.emit(GpsPoint(plazaLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8) // real exit
+            locations.emit(GpsPoint(40.00275, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.2f)) // egress ~28 m
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount)
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(plazaLat, saved.location.latitude, 0.00005, "pin must anchor at the real plaza, not the jam stop")
+        }
+
+    @Test
     fun should_never_auto_confirm_a_candidate_without_steps() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-SOLID-001 C3 finding] The "vehicleExit+window+egress" decision branch is

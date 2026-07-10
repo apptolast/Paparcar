@@ -37,6 +37,13 @@ open class FakeAppNotificationManager : AppNotificationManager {
         confirmationNotifOps.add("savedConfirm")
     }
 
+    /** [DET-AR-FIRST-001] "Where did you leave your car?" nudge invocations. */
+    var markParkingNudgeCallCount = 0
+
+    override fun showMarkParkingNudge() {
+        markParkingNudgeCallCount++
+    }
+
     override fun updateDetectionVehicle(vehicleName: String, notifId: Int) = Unit
 
     override fun showPermissionRevoked() = Unit
