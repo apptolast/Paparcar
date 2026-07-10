@@ -113,6 +113,13 @@
             android:name=".detection.receiver.GeofenceEnterReceiver"
             android:exported="false" />
 
+        <!-- GeofenceExitWitnessReceiver — pure-logging witness of every EXIT emission, to tell
+             "Play Services never emitted" apart from "emitted but the privileged service start
+             was swallowed". Decision-free. [DET-EXIT-WITNESS-001] -->
+        <receiver
+            android:name=".detection.receiver.GeofenceExitWitnessReceiver"
+            android:exported="false" />
+
         <!-- ParkingConfirmationReceiver — notification action buttons.
              Pre-save prompt: CONFIRMED / DENIED.
              Post-save card  : ACK / REVERT  [REFACTOR-300] -->

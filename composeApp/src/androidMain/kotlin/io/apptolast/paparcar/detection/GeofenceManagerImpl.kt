@@ -67,10 +67,36 @@ class GeofenceManagerImpl(
             .build()
 
         geofencingClient.addGeofences(enterRequest, buildEnterPendingIntent()).await()
+
+        // [DET-EXIT-WITNESS-001] Witness EXIT fence: identical region + transition, delivered to
+        // a pure-logging broadcast receiver. The main EXIT rides getForegroundService — if the OS
+        // ever swallows that privileged start, the event vanishes with NO trace, and we cannot
+        // distinguish "Play Services never emitted" (field 2026-07-09, Oppo 12:55 trip) from
+        // "emitted but the service start was rejected" (BUG-FGS-001's 24 field crashes were this
+        // lane, unwrapped). The witness is the discriminator: witness line without a Service
+        // onStartCommand within seconds = delivery swallowed → the receiver-first refactor earns
+        // its cost; no witness line = GMS never fired and no app-side plumbing would have helped.
+        // Decision-free by contract: it must never arm, cure, or publish anything.
+        val witnessFence = Geofence.Builder()
+            .setRequestId(WITNESS_ID_PREFIX + geofenceId)
+            .setCircularRegion(latitude, longitude, radiusMeters)
+            .setExpirationDuration(Geofence.NEVER_EXPIRE)
+            .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_EXIT)
+            .setLoiteringDelay(LOITERING_DELAY_MS)
+            .build()
+
+        val witnessRequest = GeofencingRequest.Builder()
+            .setInitialTrigger(NO_INITIAL_TRIGGER)
+            .addGeofence(witnessFence)
+            .build()
+
+        geofencingClient.addGeofences(witnessRequest, buildWitnessPendingIntent()).await()
     }
 
     override suspend fun removeGeofence(geofenceId: String): Result<Unit> = runCatching {
-        geofencingClient.removeGeofences(listOf(geofenceId, ENTER_ID_PREFIX + geofenceId)).await()
+        geofencingClient.removeGeofences(
+            listOf(geofenceId, ENTER_ID_PREFIX + geofenceId, WITNESS_ID_PREFIX + geofenceId),
+        ).await()
     }
 
     override suspend fun removeAllGeofences(): Result<Unit> = runCatching {
@@ -79,6 +105,7 @@ class GeofenceManagerImpl(
         // resolves to the existing PendingIntent because it matches on action + request code.
         geofencingClient.removeGeofences(buildPendingIntent()).await()
         geofencingClient.removeGeofences(buildEnterPendingIntent()).await()
+        geofencingClient.removeGeofences(buildWitnessPendingIntent()).await()
     }
 
     override fun getGeofenceEvents(): Flow<GeofenceEvent> = geofenceEventBus.events
@@ -115,12 +142,28 @@ class GeofenceManagerImpl(
         )
     }
 
+    /** [DET-EXIT-WITNESS-001] The witness EXIT goes to a pure-logging broadcast — it must not
+     *  (and legally could not, BUG-FGS-001) start anything; its only job is existing in the log. */
+    private fun buildWitnessPendingIntent(): PendingIntent {
+        val intent = Intent(context, io.apptolast.paparcar.detection.receiver.GeofenceExitWitnessReceiver::class.java)
+        // FLAG_MUTABLE: Play Services fills GeofencingEvent extras at delivery time.
+        return PendingIntent.getBroadcast(
+            context,
+            REQUEST_CODE_WITNESS,
+            intent,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
+
     companion object {
         private const val REQUEST_CODE = 9100
         private const val REQUEST_CODE_ENTER = 9101
+        private const val REQUEST_CODE_WITNESS = 9102
         private const val LOITERING_DELAY_MS = 60_000
         /** [DET-RETURN-ANCHOR-001] Request-id prefix of the twin ENTER fence. */
         const val ENTER_ID_PREFIX = "enter_"
+        /** [DET-EXIT-WITNESS-001] Request-id prefix of the witness EXIT fence. */
+        const val WITNESS_ID_PREFIX = "witness_"
         /** Suppress the initial dwell trigger when registering a geofence. */
         private const val NO_INITIAL_TRIGGER = 0
         // Geofences use NEVER_EXPIRE: a car can stay parked for days, and a TTL would silently drop
