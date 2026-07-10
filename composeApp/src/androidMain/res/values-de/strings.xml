@@ -55,5 +55,9 @@
     <string name="notif_first_park_nudge_title">Einmal parken, um die Erkennung zu starten</string>
     <string name="notif_first_park_nudge_text">Parke einmal mit Paparcar; danach geben wir deinen Platz bei jeder Abfahrt automatisch frei.</string>
     <string name="notif_first_park_nudge_action">Platz markieren</string>
+    <!-- DET-AR-FIRST-001 -->
+    <string name="notif_mark_parking_title">Wo hast du dein Auto abgestellt?</string>
+    <string name="notif_mark_parking_text">Wir haben erkannt, dass du dich bewegt hast, konnten aber nicht bestimmen, wo dein Auto geblieben ist. Markiere den Platz, damit er nicht verloren geht.</string>
+    <string name="notif_mark_parking_action">Platz markieren</string>
     <string name="notif_action_ive_left">Ich bin weg</string>
 </resources>

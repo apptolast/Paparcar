@@ -55,5 +55,9 @@
     <string name="notif_first_park_nudge_title">Zaparkuj raz, aby uruchomić wykrywanie</string>
     <string name="notif_first_park_nudge_text">Zaparkuj raz z Paparcar; potem automatycznie zwalniamy Twoje miejsce przy każdym wyjeździe.</string>
     <string name="notif_first_park_nudge_action">Oznacz miejsce</string>
+    <!-- DET-AR-FIRST-001 -->
+    <string name="notif_mark_parking_title">Gdzie zostawiłeś samochód?</string>
+    <string name="notif_mark_parking_text">Wykryliśmy, że się przemieściłeś, ale nie udało się ustalić, gdzie został Twój samochód. Oznacz miejsce, aby go nie zgubić.</string>
+    <string name="notif_mark_parking_action">Oznacz miejsce</string>
     <string name="notif_action_ive_left">Już wyjechałem</string>
 </resources>

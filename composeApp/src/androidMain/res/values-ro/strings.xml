@@ -55,5 +55,9 @@
     <string name="notif_first_park_nudge_title">Parchează o dată pentru a porni detectarea</string>
     <string name="notif_first_park_nudge_text">Parchează o dată cu Paparcar; apoi eliberăm automat locul tău de fiecare dată când pleci.</string>
     <string name="notif_first_park_nudge_action">Marchează locul</string>
+    <!-- DET-AR-FIRST-001 -->
+    <string name="notif_mark_parking_title">Unde ți-ai lăsat mașina?</string>
+    <string name="notif_mark_parking_text">Am detectat că te-ai deplasat, dar nu am putut stabili unde a rămas mașina ta. Marchează locul ca să nu îl pierzi.</string>
+    <string name="notif_mark_parking_action">Marchează locul</string>
     <string name="notif_action_ive_left">Am plecat</string>
 </resources>

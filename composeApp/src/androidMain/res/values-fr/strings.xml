@@ -55,5 +55,9 @@
     <string name="notif_first_park_nudge_title">Garez-vous une fois pour activer la détection</string>
     <string name="notif_first_park_nudge_text">Garez-vous une fois avec Paparcar ; ensuite nous libérons votre place automatiquement à chaque départ.</string>
     <string name="notif_first_park_nudge_action">Marquer ma place</string>
+    <!-- DET-AR-FIRST-001 -->
+    <string name="notif_mark_parking_title">Où avez-vous laissé votre voiture ?</string>
+    <string name="notif_mark_parking_text">Nous avons détecté un déplacement, mais nous n\'avons pas pu déterminer où est restée votre voiture. Marquez la place pour ne pas la perdre.</string>
+    <string name="notif_mark_parking_action">Marquer ma place</string>
     <string name="notif_action_ive_left">Je suis parti</string>
 </resources>

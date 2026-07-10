@@ -55,5 +55,9 @@
     <string name="notif_first_park_nudge_title">Parcheggia una volta per attivare il rilevamento</string>
     <string name="notif_first_park_nudge_text">Parcheggia con Paparcar una volta; poi liberiamo il tuo posto automaticamente ogni volta che esci.</string>
     <string name="notif_first_park_nudge_action">Segna il posto</string>
+    <!-- DET-AR-FIRST-001 -->
+    <string name="notif_mark_parking_title">Dove hai lasciato l\'auto?</string>
+    <string name="notif_mark_parking_text">Abbiamo rilevato che ti sei spostato, ma non siamo riusciti a fissare dove è rimasta la tua auto. Segna il parcheggio per non perderlo.</string>
+    <string name="notif_mark_parking_action">Segna il posto</string>
     <string name="notif_action_ive_left">Sono uscito</string>
 </resources>

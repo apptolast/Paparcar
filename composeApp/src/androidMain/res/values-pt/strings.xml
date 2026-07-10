@@ -55,5 +55,9 @@
     <string name="notif_first_park_nudge_title">Estacione uma vez para ativar a deteção</string>
     <string name="notif_first_park_nudge_text">Estacione com o Paparcar uma vez; depois libertamos a sua vaga automaticamente sempre que sair.</string>
     <string name="notif_first_park_nudge_action">Marcar a vaga</string>
+    <!-- DET-AR-FIRST-001 -->
+    <string name="notif_mark_parking_title">Onde deixou o carro?</string>
+    <string name="notif_mark_parking_text">Detetámos que se deslocou, mas não conseguimos fixar onde ficou o seu carro. Marque a vaga para não a perder.</string>
+    <string name="notif_mark_parking_action">Marcar a vaga</string>
     <string name="notif_action_ive_left">Já saí</string>
 </resources>
