@@ -69,6 +69,16 @@ class ActivityRecognitionManagerImpl(
         )
     }
 
+    /**
+     * [DET-AR-FIRST-001b] GMS re-delivers the LAST known IN_VEHICLE transition every time the
+     * same PendingIntent is re-registered — and registerTransitions() runs on every app open
+     * (MainActivity + HomeViewModel). Field 2026-07-11: stale ENTERs with up to 32 min of lag
+     * flash-started the decision-lane FGS all evening while the user sat at home. In-process
+     * throttle: at most one real registration per [RE_REGISTER_MIN_INTERVAL_MS]; process death
+     * (force-stop, app update, OEM kill) resets it, so the register-on-restart cure is untouched.
+     */
+    @Volatile private var lastRegisteredAtMs = 0L
+
     @SuppressLint("MissingPermission")
     override fun registerTransitions() {
         PaparcarLogger.d(TAG, "▶ registerTransitions called (IN_VEHICLE ENTER+EXIT, always-on, indicator-only)")
@@ -84,6 +94,12 @@ class ActivityRecognitionManagerImpl(
             PaparcarLogger.w(TAG, "  ✗ skipped — ACTIVITY_RECOGNITION permission not granted")
             return
         }
+        val now = System.currentTimeMillis()
+        if (now - lastRegisteredAtMs < RE_REGISTER_MIN_INTERVAL_MS) {
+            PaparcarLogger.d(TAG, "  ↻ skipped — registered ${(now - lastRegisteredAtMs) / 1000}s ago; GMS would re-deliver the last stale transition [DET-AR-FIRST-001b]")
+            return
+        }
+        lastRegisteredAtMs = now
 
         // [DET-SOLID-001] ENTER rides the SAME always-on broadcast request as EXIT — NOT the
         // legacy getForegroundService arming PendingIntent (that one flashes an FGS on every bus
@@ -104,7 +120,10 @@ class ActivityRecognitionManagerImpl(
 
         activityClient.requestActivityTransitionUpdates(transitionsRequest, vehicleTransitionsPendingIntent)
             .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER+EXIT transitions registered (evidence lane)") }
-            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE transitions", e) }
+            .addOnFailureListener { e ->
+                PaparcarLogger.e(TAG, "  ✗ Failed to register IN_VEHICLE transitions", e)
+                lastRegisteredAtMs = 0L // failed registration must not block the next attempt
+            }
 
         // [DET-AR-FIRST-001] Decision lane: ENTER only (EXIT decisions stay with the evaluator),
         // its own registration + PendingIntent — same multi-registration pattern as the three
@@ -120,11 +139,15 @@ class ActivityRecognitionManagerImpl(
         )
         activityClient.requestActivityTransitionUpdates(enterDecisionRequest, vehicleEnterDecisionPendingIntent)
             .addOnSuccessListener { PaparcarLogger.d(TAG, "  ✓ IN_VEHICLE ENTER decision lane registered (getForegroundService) [DET-AR-FIRST-001]") }
-            .addOnFailureListener { e -> PaparcarLogger.e(TAG, "  ✗ Failed to register ENTER decision lane", e) }
+            .addOnFailureListener { e ->
+                PaparcarLogger.e(TAG, "  ✗ Failed to register ENTER decision lane", e)
+                lastRegisteredAtMs = 0L // failed registration must not block the next attempt
+            }
     }
 
     @SuppressLint("MissingPermission")
     override fun unregisterTransitions() {
+        lastRegisteredAtMs = 0L // an OFF→ON toggle flip must register immediately
         activityClient.removeActivityTransitionUpdates(vehicleTransitionsPendingIntent)
         activityClient.removeActivityTransitionUpdates(vehicleEnterDecisionPendingIntent)
     }
@@ -144,5 +167,9 @@ class ActivityRecognitionManagerImpl(
         const val VEHICLE_REQUEST_CODE = 102
         /** [DET-AR-FIRST-001] Decision-lane PendingIntent request code (must differ from 102). */
         const val VEHICLE_ENTER_DECISION_REQUEST_CODE = 103
+        /** [DET-AR-FIRST-001b] Min gap between real GMS registrations — each one re-delivers the
+         *  last stale IN_VEHICLE transition to BOTH lanes. A GMS-side wipe is cured within this
+         *  window by the next caller (app open, periodic worker, boot receiver). */
+        const val RE_REGISTER_MIN_INTERVAL_MS = 30L * 60L * 1000L
     }
 }

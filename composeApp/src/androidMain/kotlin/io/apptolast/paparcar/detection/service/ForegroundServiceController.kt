@@ -51,10 +51,31 @@ class ForegroundServiceController(private val service: Service) {
      *  1. Removes the FGS notification synchronously (so a re-entering [startForegroundService]
      *     from [ParkingConfirmationReceiver] cannot pick up the stale one).
      *  2. Schedules service destruction.
+     *
+     * UNCONDITIONAL — for services whose start commands cannot race each other (BT). A service
+     * with multiple independent trigger intents must use the yielding overload below.
      */
     fun stopForegroundAndSelf() {
         removeForegroundNotification()
         service.stopSelf()
+    }
+
+    /**
+     * [DET-INTAKE-001] Yielding teardown: honoured by the framework only when [startId] is the
+     * MOST RECENT start command delivered to the service — a newer intent already in flight
+     * vetoes the stop automatically. The argless overload killed the on-time GEOFENCE_EXIT of
+     * field 2026-07-11 00:38: an AR TickOnly verdict called stopSelf() 10 ms after the real EXIT
+     * intent was delivered, and onDestroy cancelled its handling mid-classification.
+     *
+     * The notification is removed only when the stop is accepted; a vetoed stop means a newer
+     * command owns the (already re-promoted) foreground state.
+     *
+     * @return whether the framework accepted the stop.
+     */
+    fun stopForegroundAndSelf(startId: Int): Boolean {
+        val stopping = service.stopSelfResult(startId)
+        if (stopping) removeForegroundNotification()
+        return stopping
     }
 
     /**
