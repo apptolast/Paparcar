@@ -23,6 +23,7 @@ import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.detection.TripContext
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.displayName
@@ -555,18 +556,34 @@ class CoordinatorDetectionService : LifecycleService() {
             .getOrElse { emptyList() }
         val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
         val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
-        val fix = runCatching { getOneLocation(maxAgeMs = detectionConfig.freshFixMaxAgeMs) }.getOrNull()
-        val decision = evaluateArEnterArm(
+        val recentStaleExitRecorded = ParkingSafetyNetWorker.hasRecentStaleExit(
+            this@CoordinatorDetectionService,
+            nowMs = now,
+            maxAgeMs = detectionConfig.exitEnterPairWindowMs,
+        )
+        // [DET-INTAKE-001] The fresh-fix sample is the expensive step of this handler (up to 15 s
+        // of GPS wait). Run the pure ladder WITHOUT it first: only when everything else passes
+        // (NoFix) is the sample worth taking. A stale redelivery — GMS re-sends the last ENTER to
+        // both lanes on every re-registration — thus costs milliseconds in the serialized intake
+        // instead of parking a 15 s GPS wait in front of a real trigger queued behind it.
+        var fix: GpsPoint? = null
+        var decision = evaluateArEnterArm(
             session = session,
-            fix = fix,
+            fix = null,
             enterTrueTimeMs = trueEpochMs,
             nowMs = now,
-            recentStaleExitRecorded = ParkingSafetyNetWorker.hasRecentStaleExit(
-                this@CoordinatorDetectionService,
-                nowMs = now,
-                maxAgeMs = detectionConfig.exitEnterPairWindowMs,
-            ),
+            recentStaleExitRecorded = recentStaleExitRecorded,
         )
+        if (decision is ArEnterDecision.NoFix) {
+            fix = runCatching { getOneLocation(maxAgeMs = detectionConfig.freshFixMaxAgeMs) }.getOrNull()
+            decision = evaluateArEnterArm(
+                session = session,
+                fix = fix,
+                enterTrueTimeMs = trueEpochMs,
+                nowMs = now,
+                recentStaleExitRecorded = recentStaleExitRecorded,
+            )
+        }
         val lagMs = now - trueEpochMs
         when (decision) {
             is ArEnterDecision.ArmAtCar -> {
