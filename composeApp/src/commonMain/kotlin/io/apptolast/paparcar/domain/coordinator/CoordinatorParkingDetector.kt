@@ -165,6 +165,19 @@ class CoordinatorParkingDetector(
          *  only while still in that same stop — a LATER stop is the pedestrian standing still,
          *  never the car, and must not re-capture the anchor. */
         val anchorCapturedAtStop: Long? = null,
+        /** [DET-ANCHOR-FREEZE-001] `true` once a stop matured past
+         *  [ParkingDetectionConfig.anchorFreezeStopMs] after measured in-session driving: the car
+         *  provably came to rest at [bestStopLocation]. A frozen anchor behaves like a LOCKED one
+         *  (no re-capture at later stops, no clear below real driving speed, reposition-burst
+         *  vetoed) WITHOUT needing the step stream — the guard for hardware whose step counter
+         *  delivers late or never (field 2026-07-11, Redmi: zero steps for the whole walk home;
+         *  the unlocked anchor followed the pedestrian and the pin landed at the front door). */
+        val anchorFrozen: Boolean = false,
+        /** [DET-ANCHOR-FREEZE-001] Moving fixes below a resolved CAR verdict since the last one
+         *  WITH it — the "entered this stop on foot" odometer. A stop may only freeze while this
+         *  is ≤ [ParkingDetectionConfig.anchorFreezeMaxWalkFixes]: the real park is reached
+         *  driving (count 0); the front-door stand is reached after a stretch of walking fixes. */
+        val walkFixesSinceDriving: Int = 0,
         // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
         val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
@@ -503,10 +516,11 @@ class CoordinatorParkingDetector(
                     val pending = state.pendingConfirm
                     if (pending != null) {
                         val heldMs = now - pending.confirmedAt
-                        // [ANCHOR-LOCK-001] With egress steps in hand (always true on the
-                        // steps+egress path) the user is on foot — only REAL driving speed can
-                        // mean "errand over, drove off"; brisk walking must not discard the hold.
-                        val resumeSpeedBar = if (isAnchorLocked(state)) {
+                        // [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001] With the anchor pinned (egress
+                        // steps in hand, or the end-of-drive stop matured) the user is on foot —
+                        // only REAL driving speed can mean "errand over, drove off"; brisk
+                        // walking must not discard the hold.
+                        val resumeSpeedBar = if (isAnchorPinned(state)) {
                             config.minimumTripSpeedMps
                         } else {
                             config.clearBestStopSpeedMps
@@ -627,9 +641,30 @@ class CoordinatorParkingDetector(
                             completed = true
                             return@collect
                         }
+                        // [DET-ANCHOR-FREEZE-001] An unattended save may only trust a PINNED
+                        // anchor — a position the car provably rested at (end-of-drive freeze) or
+                        // that egress steps sealed. An unpinned anchor is wherever the user's
+                        // body last stood (field 2026-07-11, Redmi: the walk home dragged it to
+                        // the front door and the timeout planted a pin there). With 15 minutes of
+                        // doubt the honest move is to ASK: the nudge deep-links into marking the
+                        // real spot.
+                        if (!isAnchorPinned(state)) {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⑊ unattended timeout with UNPINNED anchor (frozen=${state.anchorFrozen} steps=${state.stepCount}) — no pin; nudging user to mark the spot [DET-ANCHOR-FREEZE-001]"
+                            )
+                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                            notificationPort.showMarkParkingNudge()
+                            sessionOutcome = "aborted_unattended_unpinned_anchor"
+                            logDetection { sid ->
+                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_UNPINNED_NUDGE", pathLabel = "unattended_timeout", location = location)
+                            }
+                            completed = true
+                            return@collect
+                        }
                         PaparcarLogger.d(
                             DIAG,
-                            "  ⑊ no user response after ${now - promptShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — SAVING unattended (reliability=${config.reliabilityUnattendedSave}) [DET-RECONCILE-001]"
+                            "  ⑊ no user response after ${now - promptShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — SAVING unattended at pinned anchor (reliability=${config.reliabilityUnattendedSave}) [DET-RECONCILE-001]"
                         )
                         notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
                         val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
@@ -1036,6 +1071,13 @@ class CoordinatorParkingDetector(
     private fun isAnchorLocked(s: ParkingDetectionState): Boolean =
         s.bestStopLocation != null && s.stepCount >= config.anchorLockEgressSteps
 
+    /** [DET-ANCHOR-FREEZE-001] LOCKED (step proof) or FROZEN (matured end-of-drive stop) — either
+     *  way the anchor is pinned to the car: later stops never re-capture it and only re-measured
+     *  real driving clears it. Locked and frozen are independent proofs of the same fact ("the
+     *  car rests HERE"), so every consumer treats them identically. */
+    private fun isAnchorPinned(s: ParkingDetectionState): Boolean =
+        isAnchorLocked(s) || (s.bestStopLocation != null && s.anchorFrozen)
+
     /** [DET-AR-FIRST-001 F3] Person/car discriminator for movement away from the park anchor:
      *  TRUE when the displacement from the anchor has OUTRUN what the steps counted since that
      *  stop could walk (`steps × anchorStrideMeters` + both accuracy envelopes + the egress noise
@@ -1071,23 +1113,54 @@ class CoordinatorParkingDetector(
                 val startedAt = s.stoppedSince ?: now
                 val withinInitialWindow = (now - startedAt) < config.initialStopWindowMs
                 // Freeze bestStopLocation after the initial-stop window (default 30 s). [LOC-001]
-                // A LOCKED anchor is never re-captured at a LATER stop: the user already exited
-                // the car, so a new stop is the pedestrian standing still, never the car. Same-stop
-                // refinement (better fixes arriving right after the door slam) stays allowed.
-                // [ANCHOR-LOCK-001]
-                val lockedToOtherStop = isAnchorLocked(s) && s.anchorCapturedAtStop != startedAt
+                // A PINNED anchor (locked by steps OR frozen by a matured end-of-drive stop) is
+                // never re-captured at a LATER stop: the car provably rests at the anchor, so a
+                // new stop is the pedestrian standing still, never the car. Same-stop refinement
+                // (better fixes arriving right after the door slam) stays allowed.
+                // [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001]
+                val pinnedToOtherStop = isAnchorPinned(s) && s.anchorCapturedAtStop != startedAt
+                // [DET-ANCHOR-FREEZE-001] While no step has been counted, every fix of the SAME
+                // continuous stop is still the parked car — accuracy refinement stays open for
+                // the whole stop, not just the initial window. The 30-s cutoff kept a 260-m
+                // approach-drift fix as the anchor while the real-spot 9.8-m fix arrived at
+                // second 71 of the same stop (field 2026-07-11, Avenida Sanlúcar). The first
+                // counted step ends the privilege: from there the better fix may be the walking
+                // user, and the lock machinery takes over.
+                val sameStopPreEgress = s.anchorCapturedAtStop == startedAt && s.stepCount == 0
+                val mayCapture = !pinnedToOtherStop && (withinInitialWindow || sameStopPreEgress)
                 val newBestStop = when {
-                    lockedToOtherStop -> s.bestStopLocation
-                    !withinInitialWindow -> s.bestStopLocation
+                    !mayCapture -> s.bestStopLocation
                     s.bestStopLocation == null || location.accuracy < s.bestStopLocation.accuracy -> location
                     else -> s.bestStopLocation
+                }
+                // [DET-ANCHOR-FREEZE-001] End-of-drive maturation. Three conditions, each load-
+                // bearing: measured driving happened; the ANCHOR belongs to THIS stop (freezing
+                // an anchor from an earlier stop would assert the car rests somewhere it left);
+                // and the stop was DRIVE-ENTERED (walking-range fixes since the last resolved CAR
+                // movement stayed within budget — the front-door stand arrives after a stretch of
+                // them, the real park after none). Once frozen, only re-measured real driving
+                // moves the anchor; a traffic light that matures unfreezes harmlessly when
+                // driving resumes.
+                val anchorStopOfRecord = if (newBestStop !== s.bestStopLocation) startedAt else s.anchorCapturedAtStop
+                val matured = !s.anchorFrozen && s.hasEverReachedDrivingSpeed &&
+                    newBestStop != null && anchorStopOfRecord == startedAt &&
+                    s.walkFixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
+                    (now - startedAt) >= config.anchorFreezeStopMs
+                if (matured) {
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⚓ anchor FROZEN — drive-entered stop matured ${now - startedAt}ms " +
+                            "(walkFixes=${s.walkFixesSinceDriving}); only real driving " +
+                            "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001]"
+                    )
                 }
                 s.copy(
                     stoppedSince = startedAt,
                     stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < config.maxStoppedFixes)
                         s.stoppedFixes + location else s.stoppedFixes,
                     bestStopLocation = newBestStop,
-                    anchorCapturedAtStop = if (newBestStop !== s.bestStopLocation) startedAt else s.anchorCapturedAtStop,
+                    anchorCapturedAtStop = anchorStopOfRecord,
+                    anchorFrozen = s.anchorFrozen || matured,
                     // Reset the reposition counter on every stopped fix. [PARKING-001]
                     consecutiveRepositionFixes = 0,
                 )
@@ -1114,7 +1187,7 @@ class CoordinatorParkingDetector(
                 )
             }
             _detectionState.update {
-                val anchorLocked = isAnchorLocked(it)
+                val anchorPinned = isAnchorPinned(it)
                 // [DET-AR-FIRST-001 F3] Person/car discriminator in the ambiguous band (above
                 // clearBestStopSpeedMps, below real driving). The old rule cleared the anchor on
                 // ANY credible ambiguous fix unless 8 steps had already locked it — a race the
@@ -1122,22 +1195,24 @@ class CoordinatorParkingDetector(
                 // Camelias: 3 steps at the kerb, the walk cleared the true anchor, the pin
                 // re-anchored inside the house). Now the physics decide:
                 //  - real driving speed → CAR, always wins (clears anchor + flushes steps);
+                //  - pinned anchor (step lock OR end-of-drive freeze) → PERSON below real driving;
                 //  - displacement outruns the counted steps → CAR (jam creep with jiggle steps);
                 //  - steps cover the displacement → PERSON: the anchor holds.
                 val outruns = movementOutrunsSteps(it, location)
                 val effectiveDriving = when {
                     isRealDrive -> true
-                    anchorLocked -> false
+                    anchorPinned -> false
                     it.bestStopLocation != null && isDriving && !outruns -> false
                     else -> isDriving
                 }
-                if (anchorLocked && isDriving && !isRealDrive) {
+                if (anchorPinned && isDriving && !isRealDrive) {
+                    val proof = if (isAnchorLocked(it)) "LOCKED (steps=${it.stepCount})" else "FROZEN (end-of-drive stop)"
                     PaparcarLogger.d(
                         DIAG,
-                        "  🔒 anchor LOCKED (steps=${it.stepCount}) — ignoring walking-range speed " +
-                                "${location.speed} m/s (< ${config.minimumTripSpeedMps}) [ANCHOR-LOCK-001]"
+                        "  🔒 anchor $proof — ignoring walking-range speed " +
+                                "${location.speed} m/s (< ${config.minimumTripSpeedMps}) [ANCHOR-LOCK-001][DET-ANCHOR-FREEZE-001]"
                     )
-                } else if (!anchorLocked && it.bestStopLocation != null && isDriving && !isRealDrive && !outruns) {
+                } else if (!anchorPinned && it.bestStopLocation != null && isDriving && !isRealDrive && !outruns) {
                     PaparcarLogger.d(
                         DIAG,
                         "  ♟ anchor HELD — steps=${it.stepCount} cover the displacement " +
@@ -1145,10 +1220,12 @@ class CoordinatorParkingDetector(
                     )
                 }
                 val newConsecutive = if (isRepositionCandidate) it.consecutiveRepositionFixes + 1 else 0
-                // Reposition burst = slow CAR maneuver. Steps veto it: a sustained brisk walk
-                // matches its speed/accuracy signature, but a walker's displacement never outruns
-                // their own steps — a real maneuver (user back IN the car) counts none. [DET-AR-FIRST-001]
-                val isRepositionBurst = newConsecutive >= config.repositionFixCount && !anchorLocked &&
+                // Reposition burst = slow CAR maneuver. Steps veto it — and so does a FROZEN
+                // anchor: a brisk mute-counter walk (≥1.7 m/s, good accuracy) matches the burst's
+                // signature exactly and outruns its zero steps, which is how the walk home would
+                // clear the end-of-drive anchor. The frozen bar is real driving, nothing less.
+                // [DET-AR-FIRST-001][DET-ANCHOR-FREEZE-001]
+                val isRepositionBurst = newConsecutive >= config.repositionFixCount && !anchorPinned &&
                     (it.bestStopLocation == null || outruns)
                 val shouldClearBestStop = effectiveDriving || isRepositionBurst
                 if (isRepositionBurst && !effectiveDriving) {
@@ -1169,9 +1246,14 @@ class CoordinatorParkingDetector(
                     phase = nextPhase,
                     bestStopLocation = if (shouldClearBestStop) null else it.bestStopLocation,
                     anchorCapturedAtStop = if (shouldClearBestStop) null else it.anchorCapturedAtStop,
+                    anchorFrozen = if (shouldClearBestStop) false else it.anchorFrozen,
                     vehicleExitConfirmed = if (effectiveDriving) false else it.vehicleExitConfirmed,
                     consecutiveRepositionFixes = newConsecutive,
                     stepCount = if (effectiveDriving) 0 else it.stepCount,
+                    // [DET-ANCHOR-FREEZE-001] The "entered on foot" odometer: a resolved CAR
+                    // movement (driving verdict or reposition maneuver) zeroes it; anything else
+                    // moving is pedestrian-band and counts.
+                    walkFixesSinceDriving = if (effectiveDriving || isRepositionBurst) 0 else it.walkFixesSinceDriving + 1,
                 )
             }
             0L

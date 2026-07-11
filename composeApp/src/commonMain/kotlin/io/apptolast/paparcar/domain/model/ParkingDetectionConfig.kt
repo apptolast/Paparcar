@@ -282,6 +282,27 @@ data class ParkingDetectionConfig(
      *  re-anchored INDOORS). The reconcile's [strideMeters] keeps its own value: its bias runs
      *  the other way (inflate the expected count so "did not walk here" stays conservative). */
     val anchorStrideMeters: Float = 1.0f,
+    /** [DET-ANCHOR-FREEZE-001] Stop duration (ms) after measured in-session driving beyond which
+     *  the park anchor FREEZES at that stop: the car provably came to rest there, so later
+     *  pedestrian-range movement (with or without counted steps) can neither clear it nor
+     *  re-capture it at a later stop — only re-measured REAL driving
+     *  (≥ [minimumTripSpeedMps], credible accuracy) unfreezes. This is the mute-step-counter
+     *  complement of [anchorLockEgressSteps]: on hardware whose step stream delivers late or
+     *  never (field 2026-07-11, Redmi: ZERO steps for the whole walk home), the unlocked anchor
+     *  followed the pedestrian and the pin landed at the user's front door, 95 m from the car.
+     *  Under the asymmetric-error principle a rare slow-creep repark pinned one stop early beats
+     *  a systematic pin at wherever the user walks to. Must sit BELOW the shortest observed
+     *  park→walk-away gap (78 s in the field trace) and clears harmlessly at traffic lights
+     *  because resumed driving unfreezes. */
+    val anchorFreezeStopMs: Long = 60_000L,
+    /** [DET-ANCHOR-FREEZE-001] Maximum pedestrian-band fixes (moving, below a resolved CAR
+     *  verdict) tolerated between the last driving movement and a stop for that stop to count as
+     *  DRIVE-ENTERED and be allowed to freeze. The freeze asserts "the CAR rests here"; a stop
+     *  reached after a stretch of walking-range fixes is the pedestrian standing still (the
+     *  2026-07-11 front-door stop arrived after ~20 walking fixes; the real park had 0). Kept
+     *  small on purpose: a slow final maneuver that exceeds it merely skips the freeze and
+     *  degrades to the ask-the-user paths — a false negative, per the asymmetric-error rule. */
+    val anchorFreezeMaxWalkFixes: Int = 3,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
@@ -516,6 +537,12 @@ data class ParkingDetectionConfig(
         }
         require(anchorLockEgressSteps >= 1) {
             "anchorLockEgressSteps must be >= 1, was $anchorLockEgressSteps"
+        }
+        require(anchorFreezeStopMs > 0) {
+            "anchorFreezeStopMs must be > 0, was $anchorFreezeStopMs"
+        }
+        require(anchorFreezeMaxWalkFixes >= 0) {
+            "anchorFreezeMaxWalkFixes must be >= 0, was $anchorFreezeMaxWalkFixes"
         }
         require(anchorStrideMeters > 0f) {
             "anchorStrideMeters must be > 0, was $anchorStrideMeters"

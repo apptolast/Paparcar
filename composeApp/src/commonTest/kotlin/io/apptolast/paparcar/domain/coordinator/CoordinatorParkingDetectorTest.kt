@@ -830,6 +830,121 @@ class CoordinatorParkingDetectorTest {
             assertEquals(plazaLat, saved.location.latitude, 0.00005, "pin must anchor at the real plaza, not the jam stop")
         }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // DET-ANCHOR-FREEZE-001: the end-of-drive anchor on mute-step-counter devices
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_pin_the_frozen_anchor_when_a_stepless_walk_drags_to_a_later_stop() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-07-11 20:46 (Redmi): drive → 78-s stop AT the car → walk home with a
+            // MUTE step counter (zero steps the whole way) → stand at the front door → prompt
+            // ignored → unattended save. The unlocked anchor followed the walker and the pin
+            // landed at the door, 95 m from the car. The matured end-of-drive stop must FREEZE
+            // the anchor: the walk (including reposition-signature bursts) cannot move it, the
+            // later stop cannot re-capture it, and the timeout save pins the CAR.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            val carLat = 40.001
+            nowMs = 1_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            nowMs = 1_000L + config.anchorFreezeStopMs + 1_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // stop matures → FROZEN
+            // Stepless walk home, including three consecutive reposition-signature fixes
+            // (≥ repositionSpeedMps, tight accuracy) that used to clear an unlocked anchor.
+            locations.emit(GpsPoint(40.0013, -3.7, accuracy = 10f, timestamp = 0L, speed = 2.0f))
+            locations.emit(GpsPoint(40.0016, -3.7, accuracy = 10f, timestamp = 0L, speed = 2.0f))
+            locations.emit(GpsPoint(40.0019, -3.7, accuracy = 10f, timestamp = 0L, speed = 2.0f))
+            val doorLat = 40.0021
+            nowMs += 60_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // front door
+            nowMs += config.slowPathGateMs + 5_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs += config.lowNotifTimeoutMs + 5_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "a pinned anchor authorises the unattended save")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(carLat, saved.location.latitude, 0.00005, "pin must stay at the frozen end-of-drive anchor, not the front door")
+        }
+
+    @Test
+    fun should_refine_the_anchor_past_the_initial_window_while_no_step_is_counted() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-07-11 (Redmi, Avenida Sanlúcar): the stop began during the final
+            // approach drift — the 30-s window froze the anchor on a 20-m fix 260 m short of the
+            // spot, while the real-spot 9-m fix arrived at second 71 of the SAME stop. Until a
+            // step is counted every fix of the stop is still the parked car: refinement must
+            // stay open for the whole stop.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            val approachLat = 40.001
+            val carLat = 40.0028
+            nowMs = 1_000L
+            locations.emit(GpsPoint(approachLat, -3.7, accuracy = 20f, timestamp = 0L, speed = 0f)) // drift fix
+            nowMs = 1_000L + config.initialStopWindowMs + 15_000L // past the 30-s window, same stop
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 8f, timestamp = 0L, speed = 0f)) // real spot, better fix
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 8f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount)
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(carLat, saved.location.latitude, 0.00005, "the better same-stop fix must refine the anchor past the initial window")
+        }
+
+    @Test
+    fun should_nudge_instead_of_saving_when_unattended_timeout_finds_an_unpinned_anchor() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Measured driving happened, but no stop matured and no egress steps sealed anything:
+            // by timeout the anchor is wherever the body last stood — a guess. With 15 minutes of
+            // doubt the honest move is asking WHERE the car is, not planting the guess.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            nowMs = 1_000L
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // brief stop
+            nowMs = 11_000L // 10 s — far below anchorFreezeStopMs
+            locations.emit(GpsPoint(40.0013, -3.7, accuracy = 10f, timestamp = 0L, speed = 1.2f)) // stepless walk
+            val homeLat = 40.0018
+            nowMs += 60_000L
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // home
+            nowMs += config.slowPathGateMs + 5_000L
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs += config.lowNotifTimeoutMs + 5_000L
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "prompt must be shown")
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "an unpinned anchor must never be planted as a pin")
+            assertEquals(1, env.notification.markParkingNudgeCallCount, "the user must be asked where the car is")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_unattended_unpinned_anchor", ended.outcome, "[DET-ANCHOR-FREEZE-001]")
+        }
+
     @Test
     fun should_never_auto_confirm_a_candidate_without_steps() =
         runTest(UnconfinedTestDispatcher()) {
