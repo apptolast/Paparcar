@@ -116,6 +116,10 @@ class EvaluateSafetyNetCheckUseCase(
      *                            it departure authority), or null when none. Not positional trust —
      *                            just the fact "the OS says this fence broke", usable in
      *                            conjunction with an independent boarding. [DET-CONJUNCTION-001]
+     * @param userPresent         `true` when this check was triggered by the user OPENING the app
+     *                            (app-start wake-up) — the one moment a disambiguation question
+     *                            costs nothing, because they are already looking at the screen.
+     *                            Unlocks the ask-when-blind branch below. [DET-ANCHOR-FREEZE-001]
      */
     operator fun invoke(
         session: UserParking,
@@ -125,6 +129,7 @@ class EvaluateSafetyNetCheckUseCase(
         stepsSinceAnchor: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
+        userPresent: Boolean = false,
     ): SafetyNetAction {
         val geofenceId = session.geofenceId ?: return SafetyNetAction.None
 
@@ -328,6 +333,18 @@ class EvaluateSafetyNetCheckUseCase(
         val stepsExplainWalk = trustedStepsSinceAnchor != null &&
             trustedStepsSinceAnchor >= (distanceMeters / config.strideMeters) * config.walkedStepFraction
         if (exitAtMs != null && !stepsExplainWalk) {
+            return SafetyNetAction.PromptStillParked(geofenceId)
+        }
+        // [DET-ANCHOR-FREEZE-001] Ask-when-blind: the user just OPENED the app, the fix is
+        // unambiguously far (past the accuracy-margin gate above) and NOT ONE proof explains how
+        // they got here — anchor expired, counter mute, no boarding, no recorded exit. On a
+        // healthy device the trusted step count separates "walked here" (silent — the normal
+        // parked-and-away state, SAFETYNET-STATIONARY-001) from "was driven"; on a device whose
+        // senses are all degraded, staying silent while the user looks at a stale pin is how the
+        // 2026-07-11 Redmi lost its morning departure with the app OPEN at 1 912 m, three times.
+        // An in-hand question costs nothing (no shade notification fatigue: they are already
+        // looking) and the worker's 6 h per-fence throttle bounds repeats.
+        if (userPresent && !stepsExplainWalk) {
             return SafetyNetAction.PromptStillParked(geofenceId)
         }
         return SafetyNetAction.None

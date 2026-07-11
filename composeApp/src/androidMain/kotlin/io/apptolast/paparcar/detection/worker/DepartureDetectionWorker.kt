@@ -42,7 +42,14 @@ class DepartureDetectionWorker(
         return when (runDepartureCheck(geofenceId, exitTimestampMs, attempt = runAttemptCount, preconfirmed = preconfirmed)) {
             DepartureCheckOutcome.Retry,
             DepartureCheckOutcome.ProcessFailedRetry -> Result.retry()
-            DepartureCheckOutcome.Dismissed,
+            DepartureCheckOutcome.Dismissed -> {
+                // A delivered EXIT judged false (walking/GPS drift) leaves Play Services' fence
+                // state OUTSIDE — the next real drive-away would be silent. Void the safety-net
+                // cure throttle so its next tick inside re-registers immediately, rebuilding the
+                // state from a fresh fix. [DET-ANCHOR-FREEZE-001 F4]
+                ParkingSafetyNetWorker.clearCureThrottle(applicationContext, geofenceId)
+                Result.success()
+            }
             DepartureCheckOutcome.Processed -> Result.success()
         }
     }

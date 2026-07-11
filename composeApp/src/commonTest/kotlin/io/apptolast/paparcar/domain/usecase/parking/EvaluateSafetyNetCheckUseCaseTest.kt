@@ -60,7 +60,8 @@ class EvaluateSafetyNetCheckUseCaseTest {
         stepsSinceAnchor: Long? = null,
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
-    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs, exitDeliveredAtMs)
+        userPresent: Boolean = false,
+    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs, exitDeliveredAtMs, userPresent)
 
     @Test
     fun should_returnNone_when_sessionHasNoGeofence() {
@@ -499,6 +500,52 @@ class EvaluateSafetyNetCheckUseCaseTest {
             SafetyNetAction.None,
             evaluate(fix = fixAtMeters(500.0, speedMps = 8f, accuracy = 120f), lastSeenNearCarAtMs = freshAnchor),
         )
+    }
+
+    // ── [DET-ANCHOR-FREEZE-001] Ask-when-blind: the app is OPEN and no proof explains "far" ─
+
+    @Test
+    fun should_promptStillParked_when_userPresentFarAndEveryProofIsBlind() {
+        // Field 2026-07-11 (Redmi): app opened at the destination, 1 912 m from an "active"
+        // parking; anchor expired by clock, counter mute, no boarding, no recorded EXIT — three
+        // silent ticks while the user stared at a stale pin. With the user IN the app the
+        // question costs nothing: ask.
+        val staleAnchor = nowMs - config.vehicleEnterWindowMs - 60_000L
+        val action = evaluate(
+            fix = fixAtMeters(1_912.0, speedMps = 0f, accuracy = 100f),
+            lastSeenNearCarAtMs = staleAnchor,
+            stepsSinceAnchor = null,
+            userPresent = true,
+        )
+        assertIs<SafetyNetAction.PromptStillParked>(action)
+    }
+
+    @Test
+    fun should_returnNone_when_userPresentButTrustedStepsExplainTheWalk() {
+        // Same app-open moment on a HEALTHY device after walking 2 km to dinner: the trusted
+        // step count explains the displacement on foot — the normal parked-and-away state must
+        // stay silent even in-app (SAFETYNET-STATIONARY-001).
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 28 * 60_000L,
+            stepsSinceAnchor = 2_600L,
+            userPresent = true,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    @Test
+    fun should_returnNone_when_blindButUserNotPresent() {
+        // The SAME blind situation on a background tick must stay silent — a shade notification
+        // every 15 min at the dinner table is the nag SAFETYNET-STATIONARY-001 forbids.
+        val staleAnchor = nowMs - config.vehicleEnterWindowMs - 60_000L
+        val action = evaluate(
+            fix = fixAtMeters(1_912.0, speedMps = 0f, accuracy = 100f),
+            lastSeenNearCarAtMs = staleAnchor,
+            stepsSinceAnchor = null,
+            userPresent = false,
+        )
+        assertEquals(SafetyNetAction.None, action)
     }
 
     private companion object {

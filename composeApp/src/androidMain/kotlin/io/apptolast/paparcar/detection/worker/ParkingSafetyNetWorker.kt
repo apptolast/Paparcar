@@ -185,6 +185,9 @@ class ParkingSafetyNetWorker(
                 // triage when delivery came too far away to act on directly) — half of the
                 // exit∧enter conjunction proof. [DET-CONJUNCTION-001]
                 exitDeliveredAtMs = session.geofenceId?.let { readExitDeliveredAt(prefs, it) },
+                // App-start tick = the user is LOOKING at the app right now — the zero-cost
+                // moment for the ask-when-blind prompt. [DET-ANCHOR-FREEZE-001]
+                userPresent = source == SOURCE_APP_START,
             )
             val distanceM = haversineMeters(
                 fix.latitude, fix.longitude,
@@ -212,25 +215,44 @@ class ParkingSafetyNetWorker(
                     } else {
                         removeAnchorSteps(prefs, action.geofenceId)
                     }
-                    PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure, steps@anchor=${cumulativeSteps ?: "?"})")
-                    val result = geofenceManager.createGeofence(
-                        geofenceId = action.geofenceId,
-                        latitude = session.location.latitude,
-                        longitude = session.location.longitude,
-                        radiusMeters = action.radiusMeters,
-                    )
-                    runCatching {
-                        detectionEventLogger.log(
-                            DetectionEvent.GeofenceRegistration(
-                                sessionId = action.geofenceId,
-                                timestampMs = now,
-                                success = result.isSuccess,
-                                radiusMeters = action.radiusMeters,
-                                location = fix,
-                            )
+                    // [DET-ANCHOR-FREEZE-001 F4] Re-registering RESETS Play Services' internal
+                    // INSIDE/OUTSIDE state to "unknown" until its next initial evaluation — a
+                    // blind window in which a drive-away produces NO EXIT transition. Curing on
+                    // EVERY tick inside meant every parked-at-home day re-opened that window
+                    // dozens of times; on 2026-07-11 a cure landed ~40 s before drive-off and the
+                    // departure was silent. The GMS registration is therefore throttled: once per
+                    // process start (fences are wiped by force-stop/app-update — the case the
+                    // cure exists for), then at most every [CURE_REREGISTER_MIN_INTERVAL_MS],
+                    // plus immediately after a dismissed false EXIT poisons the state OUTSIDE
+                    // ([clearCureThrottle]). The ANCHOR write above is NOT throttled — its
+                    // freshness is what authorises far+evidence departures.
+                    val lastCureAt = prefs.getLong(CURE_KEY_PREFIX + action.geofenceId, 0L)
+                    val mustReregister = curedFencesThisProcess.add(action.geofenceId) ||
+                        now - lastCureAt >= CURE_REREGISTER_MIN_INTERVAL_MS
+                    if (!mustReregister) {
+                        debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → ancla resellada (cura throttled, hace ${(now - lastCureAt) / 60_000}min)"
+                    } else {
+                        prefs.edit { putLong(CURE_KEY_PREFIX + action.geofenceId, now) }
+                        PaparcarLogger.d(DIAG, "▶ inside fence — re-registering geofence=${action.geofenceId} (cure, steps@anchor=${cumulativeSteps ?: "?"})")
+                        val result = geofenceManager.createGeofence(
+                            geofenceId = action.geofenceId,
+                            latitude = session.location.latitude,
+                            longitude = session.location.longitude,
+                            radiusMeters = action.radiusMeters,
                         )
+                        runCatching {
+                            detectionEventLogger.log(
+                                DetectionEvent.GeofenceRegistration(
+                                    sessionId = action.geofenceId,
+                                    timestampMs = now,
+                                    success = result.isSuccess,
+                                    radiusMeters = action.radiusMeters,
+                                    location = fix,
+                                )
+                            )
+                        }
+                        debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → fence curada${if (result.isFailure) " ✗FALLO" else ""}"
                     }
-                    debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → fence curada${if (result.isFailure) " ✗FALLO" else ""}"
                 }
 
                 is SafetyNetAction.DispatchDeparture -> {
@@ -495,6 +517,7 @@ class ParkingSafetyNetWorker(
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(EXIT_KEY_PREFIX) -> key.removePrefix(EXIT_KEY_PREFIX) !in liveGeofenceIds
+                key.startsWith(CURE_KEY_PREFIX) -> key.removePrefix(CURE_KEY_PREFIX) !in liveGeofenceIds
                 else -> false
             }
         }
@@ -571,6 +594,33 @@ class ParkingSafetyNetWorker(
          *  geofenceId. Disk-backed like the anchor: the conjunction may only be decidable ticks
          *  (or a process death) later. */
         private const val EXIT_KEY_PREFIX = "exit_delivered_"
+        /** [DET-ANCHOR-FREEZE-001 F4] Last GMS re-registration per fence — the cure throttle's
+         *  disk half (the in-process half is [curedFencesThisProcess]). */
+        private const val CURE_KEY_PREFIX = "cure_registered_"
+        /** Min interval between GMS re-registrations of a live fence. Every re-registration
+         *  opens a blind window (initial-state evaluation) in which a drive-away loses its EXIT
+         *  — field 2026-07-11, 15:05:45 cure ~40 s before drive-off, departure silent. 6 h still
+         *  cures a silent GMS wipe within the day while a parked-at-home evening no longer
+         *  re-opens the window every 15-min tick. */
+        private const val CURE_REREGISTER_MIN_INTERVAL_MS = 6 * 60 * 60 * 1_000L
+        /** Fences already re-registered by THIS process — a process start means force-stop/app
+         *  update may have wiped GMS registrations, so the first cure after it always runs. */
+        private val curedFencesThisProcess: MutableSet<String> =
+            java.util.concurrent.ConcurrentHashMap.newKeySet()
+
+        /**
+         * Voids the cure throttle for [geofenceId] so the NEXT tick inside re-registers
+         * immediately. Called when a delivered EXIT is dismissed as false (walking/GPS drift):
+         * that delivery left Play Services' state OUTSIDE — poisoned — and rebuilding it is the
+         * cure's founding purpose (field 2026-07-04, Calle Gavia). [DET-ANCHOR-FREEZE-001 F4]
+         */
+        fun clearCureThrottle(context: Context, geofenceId: String) {
+            curedFencesThisProcess.remove(geofenceId)
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .remove(CURE_KEY_PREFIX + geofenceId)
+                .apply()
+        }
 
         /**
          * Records the FACT that the OS delivered a geofence EXIT for [geofenceId] — called by the
