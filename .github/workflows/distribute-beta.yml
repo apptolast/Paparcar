@@ -6,8 +6,44 @@ on:
       - beta # Solo cuando se mergea master -> beta
 
 jobs:
+  # [AUDIT-INFRA-001 M14] Beta shipped with no CI gate: a red suite could reach external
+  # testers. The distribute job now depends on the same prod suite the CI workflow runs.
+  validate:
+    name: Unit Tests (gate)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle.kts', '**/libs.versions.toml', '**/gradle-wrapper.properties') }}
+
+      - name: Inject Config (tests)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+        run: |
+          echo "$GOOGLE_SERVICES_JSON" > composeApp/google-services.json
+          echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" > local.properties
+          echo "MAPS_API_KEY=mock_key" >> local.properties
+
+      - name: Run unit tests
+        run: ./gradlew :composeApp:testProdDebugUnitTest --no-daemon --stacktrace
+
   distribute-release:
     name: Build Release & Distribute
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,10 +73,14 @@ jobs:
           echo "$GOOGLE_SERVICES_JSON" > composeApp/google-services.json
           echo "$RELEASE_KEYSTORE_BASE64" | base64 --decode > release.keystore
 
+      # [AUDIT-INFRA-001 C2+C3+A7] Flavor-aware task; keystore path relative to the ROOT PROJECT
+      # (rootProject.file() resolves it — "../" pointed OUTSIDE the workspace and signing never
+      # found the decoded keystore); Crashlytics mapping upload enabled here, the one place with
+      # clean network (locally it is gated off because SSL inspection breaks it).
       - name: Build & Sign Release APK
-        run: ./gradlew :composeApp:assembleRelease --no-daemon
+        run: ./gradlew :composeApp:assembleProdRelease -PuploadCrashlyticsMapping=true --no-daemon
         env:
-          RELEASE_KEYSTORE_FILE: ../release.keystore
+          RELEASE_KEYSTORE_FILE: release.keystore
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
@@ -58,5 +98,5 @@ jobs:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           token: ${{ secrets.FIREBASE_TOKEN }}
           groups: "beta-paparcar" # Grupo para testers externos (beta)
-          file: composeApp/build/outputs/apk/release/composeApp-release.apk
+          file: composeApp/build/outputs/apk/prod/release/composeApp-prod-release.apk
           releaseNotesFile: changelog.txt

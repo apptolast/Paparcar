@@ -21,7 +21,9 @@ Por tanto:
 ## §1 · Maps API key — restricciones GCP [SEC-001]
 
 **Project:** `pap-26` (number `431876996213`)
-**Key actual:** `AIzaSyBpOJ6G-AVGiEJLFl1acyjo82C2r0MIIP8` (referenciada en memoria; verificar en GCP Console que es la activa)
+**Key actual:** REDACTADA de este doc [AUDIT-INFRA-001 A8] — el valor sigue siendo recuperable
+del histórico git (este doc y el AndroidManifest antiguo), razón de más por la que la ROTACIÓN
+de §1.1 es la única mitigación real. La key activa se consulta en GCP Console → Credentials.
 
 ### Acciones obligatorias en [GCP Console → Credentials](https://console.cloud.google.com/apis/credentials?project=pap-26)
 

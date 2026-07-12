@@ -44,8 +44,10 @@ jobs:
           echo "GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" > local.properties
           echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> local.properties
 
+      # [AUDIT-INFRA-001 C2] Flavor-aware task + output path (apk/prod/debug/...): the pre-flavor
+      # path made the upload step fail on a missing file.
       - name: Build Debug APK
-        run: ./gradlew :composeApp:assembleDebug --no-daemon
+        run: ./gradlew :composeApp:assembleProdDebug --no-daemon
 
       - name: Generate release notes
         run: git log --oneline -5 > release_notes.txt
@@ -56,5 +58,5 @@ jobs:
           appId: ${{ secrets.FIREBASE_APP_ID }}
           token: ${{ secrets.FIREBASE_TOKEN }}
           groups: "alpha-paparcar" # Grupo para desarrollo/alpha
-          file: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          file: composeApp/build/outputs/apk/prod/debug/composeApp-prod-debug.apk
           releaseNotesFile: release_notes.txt
