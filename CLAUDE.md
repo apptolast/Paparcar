@@ -192,7 +192,14 @@ que actualizarlo en la MISMA tarea, o queda fuera del set probable:
 - Compatibilidad `SpotFit` (OPTIMAL / FITS / DOES_NOT_FIT / UNKNOWN) calculada con ambos ejes — ver `docs/architecture/VEHICLE-CATEGORIZATION.md`
 
 ## Navegación
-BottomNav con 4 destinos: Mapa | Historial | Mi Coche | Ajustes
+BottomNav con 3 destinos (`bottomNavItems` en `App.kt`):
+- **Home** — el AHORA: mapa, plazas libres en tiempo real, sesión activa, detección en curso
+- **Vehículos** — lo MÍO: garaje (pager por vehículo) + Historial de aparcamientos fusionado
+- **Ajustes** — configuración + salud de detección/permisos
+
+Regla editorial: si pasa AHORA → Home; si pasó o es mío-permanente → Vehículos; si configura → Ajustes.
+Futuro (post-lanzamiento, NO ahora): posible 4º tab Comunidad/Perfil (fiabilidad, contribuciones).
+
 Splash → Auth → VehicleRegistration → Onboarding → Permissions → Home
 
 ## i18n
