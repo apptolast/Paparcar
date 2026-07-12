@@ -1,6 +1,15 @@
 # DET-AUDIT-REMEDIATION-001 — Plan de endurecimiento de detección (post-auditoría)
 
-- **Rama:** `fix/DET-AUDIT-001-detection-hardening` (creada desde `refactor/DET-SOLID-001-evidence-system` @ `32ce4265`).
+> **RE-VERIFICADO 2026-07-12 contra master post-merge de la cadena de detección.**
+> Rama viva: `fix/DET-AUDIT-002-detection-hardening` (desde master `45a24675`; la 001 se
+> absorbió en la cadena y su puntero se borró). Estado actual de cada tarea en §5.
+> Cerradas por la cadena sin tocar esta rama: **T1** (fall-through → embarque admisible
+> post-nacimiento + desplazamiento, DET-SESSION-BIRTH/RIDE-PROOF), **T6** (Sí-en-hold → 1.0,
+> `4886a347`), T10 casi (KDocs AR/config limpiados 12-07). **Siguen vivas: T2, T3, T4, T5,
+> T7, T8 (parcial), T9 (opcional)** — el foco de la rama 002 es el trío BT (T2/T3/T4) + el
+> hold que pierde el park (T7) + la geocerca huérfana del release (T5).
+
+- **Rama:** `fix/DET-AUDIT-002-detection-hardening` (histórica: `fix/DET-AUDIT-001…`, absorbida).
 - **Origen:** auditoría 2026-07-04 (`docs/audits/AUDIT-2026-07-04-full.md`).
 - **Alcance de ESTA rama:** solo **detección**. El resto de la auditoría (CI/distribución, Firestore rules, arquitectura, data/sync, i18n) se aborda **después** de cerrar detección, en ramas propias (ver §Fases posteriores). Decisión del usuario 2026-07-05: "por ahora centrarnos en la detección".
 - **Estado del HEAD base:** DET-SOLID-001 + ANCHOR-LOCK-001 + SAFETY-NET-001 + SIGMOTION-001 + OEM-KILL-001 + SPOT-OFFLINE-TTL-001 + SYNC-UP-GUARD-001. **Pendiente de gate de device** (no mergeado).
@@ -123,13 +132,13 @@ Cada una en su propia rama + doc de backlog cuando toque. Referencia: `docs/audi
 
 _(actualizar al cerrar cada tarea: commit + estado + validación)_
 
-- [ ] T1 · A1 departure fall-through
-- [ ] T2 · A2 gate de parada BT
-- [ ] T3 · A3 tests ruta BT (+ extracción a función pura)
-- [ ] T4 · A4 timeout walk-away BT
-- [ ] T5 · M4 release quita geocerca
-- [ ] T6 · M3 "Sí" del usuario a 1.0
-- [ ] T7 · M2 hold no pierde park
-- [ ] T8 · M1 race de relevo (cancelAndJoin / guard de sesión)
-- [ ] T9 · A12 extraer fases del invoke() (opcional)
-- [ ] T10 · KDocs STILL/AR-rearm (opcional)
+- [x] T1 · A1 departure fall-through — ✅ CERRADO por la cadena (embarque admisible: post-nacimiento de sesión + desplazamiento más allá de alcance peatonal; sin señal admisible → `Dismissed`). [DET-SESSION-BIRTH-001][DET-RIDE-PROOF-001]
+- [ ] T2 · A2 gate de parada BT — 🔴 VIVO (verificado 12-07: `BluetoothParkingDetector` sin check de velocidad en `parkingFix`)
+- [ ] T3 · A3 tests ruta BT (+ extracción a función pura) — 🔴 VIVO (solo existe test del ViewModel de config)
+- [ ] T4 · A4 timeout walk-away BT — 🔴 VIVO (el `first { ≥30 m }` sigue sin `withTimeoutOrNull`; solo el muestreo del fix inicial lo tiene)
+- [ ] T5 · M4 release quita geocerca — 🔴 VIVO (`ReleaseActiveParkingSessionUseCase` sin `removeGeofence`)
+- [x] T6 · M3 "Sí" del usuario a 1.0 — ✅ CERRADO 12-07 (`4886a347`, con test)
+- [ ] T7 · M2 hold no pierde park — 🔴 VIVO (el `finally` solo loguea+resetea; un `pendingConfirm` vivo muere en silencio si muere GPS/proceso) — **prioridad 1 de la 002**
+- [ ] T8 · M1 race de relevo — 🟡 PARCIAL (DET-INTAKE-001 serializó el service; queda `cancelDetectionJob()` con `.cancel()` sin join — ventana teórica pequeña)
+- [ ] T9 · A12 extraer fases del invoke() (opcional; sigue ~400 líneas)
+- [x] T10 · KDocs — ✅ casi cerrado (STILL/config en la cadena; AR/geofenceRadiusFor 12-07 `439430ea`)
