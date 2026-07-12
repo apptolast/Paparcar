@@ -13,6 +13,8 @@ import kotlin.test.assertTrue
  *  3. domain → data or presentation imports are forbidden.
  *  4. runBlocking is banned in commonMain non-test sources (use suspend instead).
  *  5. UseCase classes must live in the domain layer.
+ *  6. [AUDIT-ARCH-001 M12] domain must be PLATFORM-PURE: no android/androidx/java/javax imports,
+ *     so it compiles unchanged on iOS. (Napier — io.github.aakira.napier — is KMP and allowed.)
  */
 class ArchitectureTest {
 
@@ -87,6 +89,22 @@ class ArchitectureTest {
                 violations,
             ),
         )
+    }
+
+    @Test
+    fun `domain layer should be platform-pure (no android or jvm imports)`() {
+        val forbiddenPrefixes = listOf("android.", "androidx.", "java.", "javax.")
+        val violations = scope
+            .files
+            .filter { file ->
+                file.packagee?.name?.startsWith("io.apptolast.paparcar.domain") == true
+            }
+            .flatMap { file ->
+                file.imports
+                    .filter { imp -> forbiddenPrefixes.any { imp.name.startsWith(it) } }
+                    .map { "${file.name}.kt → ${it.name}" }
+            }
+        assertTrue(violations.isEmpty(), buildViolationMessage("domain platform-purity (android/jvm import in domain)", violations))
     }
 
     @Test

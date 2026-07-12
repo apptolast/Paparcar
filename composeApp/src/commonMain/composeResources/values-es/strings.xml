@@ -560,4 +560,18 @@
     <string name="permissions_section_essential">Esencial</string>
     <string name="permissions_section_detection">Detección automática</string>
     <string name="permissions_section_optional">Opcional · fiabilidad</string>
+    <string name="vehicle_registration_section_color">Color</string>
+    <string name="vehicle_color_default">Predeterminado</string>
+    <string name="vehicle_color_white">Blanco</string>
+    <string name="vehicle_color_silver">Plata</string>
+    <string name="vehicle_color_gray">Gris</string>
+    <string name="vehicle_color_graphite">Grafito</string>
+    <string name="vehicle_color_black">Negro</string>
+    <string name="vehicle_color_blue">Azul</string>
+    <string name="vehicle_color_navy">Azul marino</string>
+    <string name="vehicle_color_red">Rojo</string>
+    <string name="vehicle_color_orange">Naranja</string>
+    <string name="vehicle_color_yellow">Amarillo</string>
+    <string name="vehicle_color_gold">Oro</string>
+    <string name="vehicle_color_brown">Marrón</string>
 </resources>
