@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import androidx.compose.material3.BasicAlertDialog
@@ -193,13 +191,9 @@ fun PapAlertDialog(
                         enabled = !isLoading,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = CANCEL_ALPHA),
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
+                        // No leading icon: cancel is generic flow-control, its meaning is
+                        // already fixed by the dialog context — a ✕ glyph would just be
+                        // redundant noise on the label. [UI-SHEET-002]
                         Text(
                             text = cancelLabel,
                             style = PaparcarType.current.cta,

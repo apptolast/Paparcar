@@ -388,7 +388,10 @@ private fun SpotPeekRow(
     val spotAgeMin = ageMinutes(spot.location.timestamp, nowMs)
 
     PapSheet(
-        lead = PapSheetLead.CommunitySpot,
+        lead = PapSheetLead.CommunitySpot(
+            reliability = reliabilityLevel,
+            enRouteCount = spot.enRouteCount,
+        ),
         eyebrow = palette.label,
         // Reliability tint rides the eyebrow, not the lead — the "P" tile stays
         // the one recognisable community-blue subject. [UI-SHEET-001]

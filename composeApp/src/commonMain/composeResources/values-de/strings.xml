@@ -553,4 +553,33 @@
     <string name="permissions_reliability_reduced_callout">Handys wie deins schränken Apps im Hintergrund ein, um Akku zu sparen. Dadurch kann Paparcar deine Abfahrt verpassen. Erlaube unten die Hintergrundaktivität — oder kopple das Bluetooth deines Autos, die zuverlässigste Option.</string>
     <string name="settings_detection_reliability_reduced">Dein Handy kann die Erkennung einschränken</string>
     <string name="settings_detection_reliability_reduced_desc">Dein Handy schränkt Apps im Hintergrund ein — Paparcar könnte den Moment verpassen, in dem du deinen Platz freigibst</string>
+    <plurals name="history_activity_noun">
+        <item quantity="one">Parkplatz</item>
+        <item quantity="other">Parkplätze</item>
+    </plurals>
+    <string name="history_activity_low_hint">Wenig Aktivität in diesem Zeitraum</string>
+    <string name="history_activity_title">Aktivität</string>
+    <string name="history_section_label">Verlauf</string>
+    <string name="home_vehicle_card_parked_at">Geparkt bei %1$s</string>
+    <string name="home_vehicle_card_parked_meta">%1$s · %2$s entfernt</string>
+    <string name="home_vehicle_chip_badge_bt">BT</string>
+    <string name="home_vehicle_chip_mark_parking">Parken markieren</string>
+    <string name="home_vehicle_chip_unmarked">Nicht markiert</string>
+    <string name="home_vehicle_status_inactive">Inaktiv</string>
+    <string name="settings_detection_battery_desc">Verhindert Hintergrundverzögerungen von Android</string>
+    <string name="settings_detection_battery_title">Uneingeschränkter Akku</string>
+    <string name="settings_detection_bt_desc">Schnellere, präzisere Erkennung</string>
+    <string name="settings_detection_bt_title">Auto-Bluetooth</string>
+    <string name="settings_detection_configured">Konfiguriert</string>
+    <string name="settings_detection_fix">Beheben</string>
+    <string name="settings_detection_health_missing">%1$s fehlt</string>
+    <string name="settings_detection_health_ok">Alles bereit</string>
+    <string name="settings_detection_health_ok_desc">Die Erkennung hat alles, was sie braucht</string>
+    <string name="settings_detection_improve">Erkennung verbessern</string>
+    <string name="settings_detection_setup">Einrichten</string>
+    <string name="vehicle_bt_cd">Bluetooth-Kopplung</string>
+    <string name="vehicle_set_active_action">Als aktiv festlegen</string>
+    <string name="vehicle_status_active">Aktiv</string>
+    <string name="vehicle_status_active_cd">Erkennung aktiv</string>
+    <string name="vehicle_status_inactive_cd">Erkennung aus</string>
 </resources>

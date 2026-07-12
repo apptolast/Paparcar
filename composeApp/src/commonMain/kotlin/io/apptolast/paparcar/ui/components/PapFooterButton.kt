@@ -54,8 +54,10 @@ enum class PapFooterButtonStyle { Filled, Outlined, Tonal }
 fun PapFooterButton(
     label: String,
     onClick: () -> Unit,
-    // REQUIRED: every Paparcar button carries a leading icon. [UI-SHEET-002]
-    leadingIcon: ImageVector,
+    // DEFAULT: every Paparcar button that names a concrete action carries a leading icon.
+    // Pass `null` only for generic flow-control (cancel/dismiss/withdraw) whose meaning the
+    // surrounding sheet already fixes — a glyph there is redundant noise. [UI-SHEET-002]
+    leadingIcon: ImageVector? = null,
     modifier: Modifier = Modifier,
     style: PapFooterButtonStyle = PapFooterButtonStyle.Filled,
     enabled: Boolean = true,
@@ -113,7 +115,7 @@ fun PapFooterButton(
 }
 
 @Composable
-private fun FooterButtonContent(label: String, leadingIcon: ImageVector, isLoading: Boolean) {
+private fun FooterButtonContent(label: String, leadingIcon: ImageVector?, isLoading: Boolean) {
     if (isLoading) {
         CircularProgressIndicator(
             modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE),
@@ -121,7 +123,7 @@ private fun FooterButtonContent(label: String, leadingIcon: ImageVector, isLoadi
             color = LocalContentColor.current,
         )
         Spacer(Modifier.width(10.dp))
-    } else {
+    } else if (leadingIcon != null) {
         Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE))
         Spacer(Modifier.width(10.dp))
     }

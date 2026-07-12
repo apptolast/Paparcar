@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Email
@@ -299,9 +298,11 @@ private fun CompactSubmitButton(
     enabled: Boolean,
     text: String,
 ) {
+    // No leading icon: this is the sole submit of a single-purpose screen — the
+    // screen context ("Log in" / "Register") already names the action, so a Login
+    // arrow would just be redundant noise. [UI-SHEET-002]
     PapPrimaryButton(
         label = text,
-        icon = Icons.AutoMirrored.Rounded.Login,
         onClick = onClick,
         isLoading = isLoading,
         enabled = enabled,

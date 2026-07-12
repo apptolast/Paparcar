@@ -46,8 +46,9 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapListItem
+import io.apptolast.paparcar.ui.components.SpotPuckIcon
 import io.apptolast.paparcar.ui.components.VehicleGlyph
-import io.apptolast.paparcar.ui.icons.PaparcarIcons
+import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -200,8 +201,13 @@ internal sealed interface PapSheetLead {
     /** Free-spot counter — digit + unit. Green with n>0, amber with 0. */
     data class SpotCounter(val count: Int) : PapSheetLead
 
-    /** A community spot — the brand "P" on the manual/info blue tile. */
-    data object CommunitySpot : PapSheetLead
+    /** A community spot — the SAME reliability puck drawn on the map marker and the
+     *  spot list row (colour + TTL ring + badge encode the tier), never a flat "P".
+     *  [HOME-PUCK-001] */
+    data class CommunitySpot(
+        val reliability: SpotReliabilityUiState,
+        val enRouteCount: Int = 0,
+    ) : PapSheetLead
 
     /** Reporting a free spot — megaphone on the action-green tile. */
     data object Announce : PapSheetLead
@@ -262,14 +268,15 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
             }
         }
 
-        PapSheetLead.CommunitySpot -> LeadTileBox(container = cs.tertiaryContainer) {
-            Icon(
-                imageVector = PaparcarIcons.SpotParkingP,
-                contentDescription = null,
-                tint = cs.tertiary,
-                modifier = Modifier.size(LEAD_P_ICON_DP.dp),
+        is PapSheetLead.CommunitySpot ->
+            // Bare (no tile box): the puck is a self-coloured level-3 marker, exactly as it
+            // renders on the map and in the spot list — one shared subject across all three
+            // surfaces. [HOME-PUCK-001]
+            SpotPuckIcon(
+                reliability = lead.reliability,
+                enRouteCount = lead.enRouteCount,
+                modifier = Modifier.size(LEAD_TILE_DP.dp),
             )
-        }
 
         PapSheetLead.Announce -> LeadTileBox(container = cs.primaryContainer) {
             Icon(
@@ -479,7 +486,6 @@ private const val BAND_BOTTOM_CLEARANCE_DP = 8
 private const val LEAD_TILE_DP = 46
 private const val LEAD_GLYPH_DP = 38
 private const val LEAD_ICON_DP = 24
-private const val LEAD_P_ICON_DP = 28
 private const val DISMISS_BUTTON_DP = 34
 private const val DISMISS_ICON_DP = 18
 private const val EDIT_BUTTON_DP = 38

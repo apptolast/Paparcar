@@ -553,4 +553,33 @@
     <string name="permissions_reliability_reduced_callout">Os telemóveis como o teu restringem as apps em segundo plano para poupar bateria. Isto pode impedir o Paparcar de perceber quando arrancas com o carro. Permite abaixo a atividade em segundo plano — ou emparelha o Bluetooth do teu carro, a opção mais fiável.</string>
     <string name="settings_detection_reliability_reduced">O teu telemóvel pode limitar a deteção</string>
     <string name="settings_detection_reliability_reduced_desc">O teu telemóvel restringe as apps em segundo plano — o Paparcar pode não perceber quando deixas o teu lugar</string>
+    <plurals name="history_activity_noun">
+        <item quantity="one">Estacionamento</item>
+        <item quantity="other">Estacionamentos</item>
+    </plurals>
+    <string name="history_activity_low_hint">Pouca atividade neste período</string>
+    <string name="history_activity_title">Atividade</string>
+    <string name="history_section_label">Histórico</string>
+    <string name="home_vehicle_card_parked_at">Estacionado em %1$s</string>
+    <string name="home_vehicle_card_parked_meta">%1$s · a %2$s</string>
+    <string name="home_vehicle_chip_badge_bt">BT</string>
+    <string name="home_vehicle_chip_mark_parking">Marcar estacionamento</string>
+    <string name="home_vehicle_chip_unmarked">Não marcado</string>
+    <string name="home_vehicle_status_inactive">Inativo</string>
+    <string name="settings_detection_battery_desc">Evita atrasos em segundo plano do Android</string>
+    <string name="settings_detection_battery_title">Bateria sem restrições</string>
+    <string name="settings_detection_bt_desc">Deteção mais rápida e precisa</string>
+    <string name="settings_detection_bt_title">Bluetooth do carro</string>
+    <string name="settings_detection_configured">Configurado</string>
+    <string name="settings_detection_fix">Resolver</string>
+    <string name="settings_detection_health_missing">Falta %1$s</string>
+    <string name="settings_detection_health_ok">Tudo pronto</string>
+    <string name="settings_detection_health_ok_desc">A deteção tem tudo o que precisa</string>
+    <string name="settings_detection_improve">Melhorar a deteção</string>
+    <string name="settings_detection_setup">Configurar</string>
+    <string name="vehicle_bt_cd">Emparelhamento Bluetooth</string>
+    <string name="vehicle_set_active_action">Definir como ativo</string>
+    <string name="vehicle_status_active">Ativo</string>
+    <string name="vehicle_status_active_cd">Deteção ativa</string>
+    <string name="vehicle_status_inactive_cd">Deteção desativada</string>
 </resources>

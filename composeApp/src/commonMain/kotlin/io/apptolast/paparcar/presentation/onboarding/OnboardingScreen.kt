@@ -20,7 +20,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Security
@@ -109,8 +108,11 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 } else {
                     stringResource(Res.string.onboarding_cta_setup)
                 },
+                // "Next" is wayfinding, not a named action — the screen context carries it,
+                // so no arrow glyph. The final page's "Set up" keeps its Security icon because
+                // it names a concrete action (grant permissions). [UI-SHEET-002]
                 icon = if (pagerState.currentPage < PAGE_COUNT - 1) {
-                    Icons.AutoMirrored.Rounded.ArrowForward
+                    null
                 } else {
                     Icons.Rounded.Security
                 },

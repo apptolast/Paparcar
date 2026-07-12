@@ -33,8 +33,11 @@ private val DefaultContentPadding = PaddingValues(
 /**
  * Primary filled button. Use for the main CTA in a screen.
  *
- * [icon] is REQUIRED — every Paparcar button carries a leading icon so the
- * action reads at a glance. [UI-SHEET-002]
+ * [icon] is the DEFAULT — every Paparcar button that names a concrete action
+ * carries a leading icon so it reads at a glance. [UI-SHEET-002] Pass `null`
+ * only for generic flow-control whose meaning the screen already fixes: the
+ * sole submit of a single-purpose screen (login/register) or a wayfinding
+ * "Next" — a glyph there is redundant noise.
  *
  * Supports an [isLoading] state — while loading the content is replaced by a
  * [CircularProgressIndicator] and the button is disabled.
@@ -42,9 +45,9 @@ private val DefaultContentPadding = PaddingValues(
 @Composable
 fun PapPrimaryButton(
     label: String,
-    icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
     isLoading: Boolean = false,
     enabled: Boolean = true,
 ) {
@@ -63,8 +66,10 @@ fun PapPrimaryButton(
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(icon, contentDescription = null, modifier = Modifier.size(LeadingIconSize))
-                    Spacer(Modifier.width(IconLabelGap))
+                    if (icon != null) {
+                        Icon(icon, contentDescription = null, modifier = Modifier.size(LeadingIconSize))
+                        Spacer(Modifier.width(IconLabelGap))
+                    }
                     Text(text = label, style = PaparcarType.current.cta)
                 }
             }

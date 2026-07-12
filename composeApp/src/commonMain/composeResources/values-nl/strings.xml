@@ -553,4 +553,33 @@
     <string name="permissions_reliability_reduced_callout">Telefoons zoals de jouwe beperken apps op de achtergrond om batterij te sparen. Hierdoor kan Paparcar missen wanneer je wegrijdt. Sta hieronder achtergrondactiviteit toe — of koppel de Bluetooth van je auto, de betrouwbaarste optie.</string>
     <string name="settings_detection_reliability_reduced">Je telefoon kan de detectie beperken</string>
     <string name="settings_detection_reliability_reduced_desc">Je telefoon beperkt apps op de achtergrond — Paparcar kan het moment missen waarop je je plek vrijgeeft</string>
+    <plurals name="history_activity_noun">
+        <item quantity="one">Parkeerplaats</item>
+        <item quantity="other">Parkeerplaatsen</item>
+    </plurals>
+    <string name="history_activity_low_hint">Weinig activiteit in deze periode</string>
+    <string name="history_activity_title">Activiteit</string>
+    <string name="history_section_label">Geschiedenis</string>
+    <string name="home_vehicle_card_parked_at">Geparkeerd bij %1$s</string>
+    <string name="home_vehicle_card_parked_meta">%1$s · %2$s verderop</string>
+    <string name="home_vehicle_chip_badge_bt">BT</string>
+    <string name="home_vehicle_chip_mark_parking">Parkeren markeren</string>
+    <string name="home_vehicle_chip_unmarked">Niet gemarkeerd</string>
+    <string name="home_vehicle_status_inactive">Inactief</string>
+    <string name="settings_detection_battery_desc">Voorkomt achtergrondvertragingen van Android</string>
+    <string name="settings_detection_battery_title">Onbeperkte batterij</string>
+    <string name="settings_detection_bt_desc">Snellere, nauwkeurigere detectie</string>
+    <string name="settings_detection_bt_title">Auto-bluetooth</string>
+    <string name="settings_detection_configured">Geconfigureerd</string>
+    <string name="settings_detection_fix">Oplossen</string>
+    <string name="settings_detection_health_missing">%1$s ontbreekt</string>
+    <string name="settings_detection_health_ok">Alles klaar</string>
+    <string name="settings_detection_health_ok_desc">Detectie heeft alles wat nodig is</string>
+    <string name="settings_detection_improve">Detectie verbeteren</string>
+    <string name="settings_detection_setup">Instellen</string>
+    <string name="vehicle_bt_cd">Bluetooth-koppeling</string>
+    <string name="vehicle_set_active_action">Als actief instellen</string>
+    <string name="vehicle_status_active">Actief</string>
+    <string name="vehicle_status_active_cd">Detectie actief</string>
+    <string name="vehicle_status_inactive_cd">Detectie uit</string>
 </resources>

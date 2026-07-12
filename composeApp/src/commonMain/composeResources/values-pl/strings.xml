@@ -559,4 +559,35 @@
     <string name="permissions_reliability_reduced_callout">Telefony takie jak twój ograniczają aplikacje w tle, aby oszczędzać baterię. Przez to Paparcar może nie zauważyć, kiedy odjeżdżasz. Zezwól poniżej na działanie w tle — albo sparuj Bluetooth swojego auta, najbardziej niezawodną opcję.</string>
     <string name="settings_detection_reliability_reduced">Twój telefon może ograniczać wykrywanie</string>
     <string name="settings_detection_reliability_reduced_desc">Twój telefon ogranicza aplikacje w tle — Paparcar może przegapić moment, w którym zwalniasz miejsce</string>
+    <plurals name="history_activity_noun">
+        <item quantity="one">Parking</item>
+        <item quantity="few">Parkingi</item>
+        <item quantity="many">Parkingów</item>
+        <item quantity="other">Parkingu</item>
+    </plurals>
+    <string name="history_activity_low_hint">Mała aktywność w tym okresie</string>
+    <string name="history_activity_title">Aktywność</string>
+    <string name="history_section_label">Historia</string>
+    <string name="home_vehicle_card_parked_at">Zaparkowano przy %1$s</string>
+    <string name="home_vehicle_card_parked_meta">%1$s · %2$s dalej</string>
+    <string name="home_vehicle_chip_badge_bt">BT</string>
+    <string name="home_vehicle_chip_mark_parking">Oznacz parkowanie</string>
+    <string name="home_vehicle_chip_unmarked">Nieoznaczone</string>
+    <string name="home_vehicle_status_inactive">Nieaktywny</string>
+    <string name="settings_detection_battery_desc">Zapobiega opóźnieniom w tle Androida</string>
+    <string name="settings_detection_battery_title">Bateria bez ograniczeń</string>
+    <string name="settings_detection_bt_desc">Szybsze, dokładniejsze wykrywanie</string>
+    <string name="settings_detection_bt_title">Bluetooth samochodu</string>
+    <string name="settings_detection_configured">Skonfigurowane</string>
+    <string name="settings_detection_fix">Napraw</string>
+    <string name="settings_detection_health_missing">Brakuje %1$s</string>
+    <string name="settings_detection_health_ok">Wszystko gotowe</string>
+    <string name="settings_detection_health_ok_desc">Wykrywanie ma wszystko, czego potrzebuje</string>
+    <string name="settings_detection_improve">Popraw wykrywanie</string>
+    <string name="settings_detection_setup">Skonfiguruj</string>
+    <string name="vehicle_bt_cd">Parowanie Bluetooth</string>
+    <string name="vehicle_set_active_action">Ustaw jako aktywny</string>
+    <string name="vehicle_status_active">Aktywny</string>
+    <string name="vehicle_status_active_cd">Wykrywanie aktywne</string>
+    <string name="vehicle_status_inactive_cd">Wykrywanie wyłączone</string>
 </resources>

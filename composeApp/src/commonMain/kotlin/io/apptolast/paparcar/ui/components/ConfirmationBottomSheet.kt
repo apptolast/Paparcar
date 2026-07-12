@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -121,9 +120,10 @@ fun ConfirmationBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(8.dp))
+                // No leading icon: "Retirar" is a cancel-twin (generic dismiss) — the sheet
+                // context already fixes its meaning, so a ✕ glyph is redundant. [UI-SHEET-002]
                 PapFooterButton(
                     label = stringResource(Res.string.confirmation_sheet_withdraw),
-                    leadingIcon = Icons.Rounded.Close,
                     onClick = onDismiss,
                     style = PapFooterButtonStyle.Outlined,
                     modifier = Modifier.fillMaxWidth(),

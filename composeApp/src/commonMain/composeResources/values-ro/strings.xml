@@ -558,4 +558,34 @@
     <string name="permissions_reliability_reduced_callout">Telefoanele ca al tău restricționează aplicațiile în fundal pentru a economisi bateria. Astfel, Paparcar poate rata momentul în care pleci cu mașina. Permite mai jos activitatea în fundal — sau împerechează Bluetooth-ul mașinii tale, opțiunea cea mai fiabilă.</string>
     <string name="settings_detection_reliability_reduced">Telefonul tău poate limita detectarea</string>
     <string name="settings_detection_reliability_reduced_desc">Telefonul tău restricționează aplicațiile în fundal — Paparcar ar putea rata momentul în care îți eliberezi locul</string>
+    <plurals name="history_activity_noun">
+        <item quantity="one">Parcare</item>
+        <item quantity="few">Parcări</item>
+        <item quantity="other">de parcări</item>
+    </plurals>
+    <string name="history_activity_low_hint">Activitate redusă în această perioadă</string>
+    <string name="history_activity_title">Activitate</string>
+    <string name="history_section_label">Istoric</string>
+    <string name="home_vehicle_card_parked_at">Parcat la %1$s</string>
+    <string name="home_vehicle_card_parked_meta">%1$s · la %2$s</string>
+    <string name="home_vehicle_chip_badge_bt">BT</string>
+    <string name="home_vehicle_chip_mark_parking">Marchează parcarea</string>
+    <string name="home_vehicle_chip_unmarked">Nemarcat</string>
+    <string name="home_vehicle_status_inactive">Inactiv</string>
+    <string name="settings_detection_battery_desc">Previne întârzierile din fundal ale Android</string>
+    <string name="settings_detection_battery_title">Baterie fără restricții</string>
+    <string name="settings_detection_bt_desc">Detectare mai rapidă și mai precisă</string>
+    <string name="settings_detection_bt_title">Bluetooth-ul mașinii</string>
+    <string name="settings_detection_configured">Configurat</string>
+    <string name="settings_detection_fix">Repară</string>
+    <string name="settings_detection_health_missing">Lipsește %1$s</string>
+    <string name="settings_detection_health_ok">Totul e pregătit</string>
+    <string name="settings_detection_health_ok_desc">Detectarea are tot ce îi trebuie</string>
+    <string name="settings_detection_improve">Îmbunătățește detectarea</string>
+    <string name="settings_detection_setup">Configurează</string>
+    <string name="vehicle_bt_cd">Împerechere Bluetooth</string>
+    <string name="vehicle_set_active_action">Setează ca activ</string>
+    <string name="vehicle_status_active">Activ</string>
+    <string name="vehicle_status_active_cd">Detectare activă</string>
+    <string name="vehicle_status_inactive_cd">Detectare oprită</string>
 </resources>
