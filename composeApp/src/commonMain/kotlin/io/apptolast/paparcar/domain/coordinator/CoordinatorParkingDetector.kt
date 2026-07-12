@@ -178,6 +178,12 @@ class CoordinatorParkingDetector(
          *  is ≤ [ParkingDetectionConfig.anchorFreezeMaxWalkFixes]: the real park is reached
          *  driving (count 0); the front-door stand is reached after a stretch of walking fixes. */
         val walkFixesSinceDriving: Int = 0,
+        /** [DET-KINEMATIC-EGRESS-001] QUALITY pedestrian-band fixes observed while the anchor is
+         *  FROZEN — the GPS-measured egress walk. Reaching
+         *  [ParkingDetectionConfig.kinematicEgressMinWalkFixes] (with egress displacement) is the
+         *  mute-step-counter peer of the step proof. Survives walk pauses (a crossing); only a
+         *  resolved CAR movement (which also clears the anchor) resets it. */
+        val kinematicEgressFixes: Int = 0,
         // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
         val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
@@ -722,9 +728,12 @@ class CoordinatorParkingDetector(
                     // satisfied, and it made detection fragile on hardware where EXIT is late or never
                     // fires. AR EXIT is now a non-decisive hint only. Anchor at bestStopLocation (the
                     // parked-car position). [supersedes BUG-OPPO-LATE-CONFIRM]
-                    if (state.stepCount >= config.minStepsToConfirm) {
-                        // elapsedSinceHighMs=0 → no observation window; hasStepsProof (steps + egress)
-                        // is what confirms. The scooter mismatch guard still applies via the use case.
+                    // [DET-KINEMATIC-EGRESS-001] The kinematic egress signal is the mute-counter
+                    // peer: the FROZEN anchor has watched a sustained quality walk away from it —
+                    // the same evidence, measured by GPS instead of the step sensor.
+                    if (state.stepCount >= config.minStepsToConfirm || hasKinematicEgressSignal(state)) {
+                        // elapsedSinceHighMs=0 → no observation window; the egress proofs are what
+                        // confirm. The scooter mismatch guard still applies via the use case.
                         val decision = evaluateParkingDecision(
                             ParkingDecisionInput(
                                 stepCount = state.stepCount,
@@ -735,19 +744,20 @@ class CoordinatorParkingDetector(
                                 sessionDurationMs = state.sessionDurationMs(now),
                                 maxSpeedKmh = state.maxSpeedKmh,
                                 evidenceLabel = currentArmEvidence,
+                                hasKinematicEgress = hasKinematicEgressSignal(state),
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
                             PaparcarLogger.d(
                                 DIAG,
-                                "  ▶ ${state.stepCount} steps + egress → fast confirm, skipping slow path [DET-D-03]"
+                                "  ▶ ${decision.pathLabel} (steps=${state.stepCount} kinematicFixes=${state.kinematicEgressFixes}) → fast confirm, skipping slow path [DET-D-03][DET-KINEMATIC-EGRESS-001]"
                             )
                             val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
                             completed = beginConfirm(
                                 location = locationToConfirm,
                                 reliability = decision.reliability,
                                 vehicleId = activeVehicleId,
-                                pathLabel = "steps+egress",
+                                pathLabel = decision.pathLabel,
                                 now = now,
                             )
                             return@collect
@@ -1006,6 +1016,7 @@ class CoordinatorParkingDetector(
                 sessionDurationMs = state.sessionDurationMs(now),
                 maxSpeedKmh = state.maxSpeedKmh,
                 evidenceLabel = currentArmEvidence,
+                hasKinematicEgress = hasKinematicEgressSignal(state),
             )
         )
         PaparcarLogger.d(
@@ -1089,6 +1100,14 @@ class CoordinatorParkingDetector(
      *  car rests HERE"), so every consumer treats them identically. */
     private fun isAnchorPinned(s: ParkingDetectionState): Boolean =
         isAnchorLocked(s) || (s.bestStopLocation != null && s.anchorFrozen)
+
+    /** [DET-KINEMATIC-EGRESS-001] The GPS-measured egress walk: the anchor froze at the end of
+     *  the drive and enough quality pedestrian-band fixes followed. Fed into the pure decision as
+     *  [ParkingDecisionInput.hasKinematicEgress]; the decision itself still demands egress
+     *  displacement and measured in-session driving. */
+    private fun hasKinematicEgressSignal(s: ParkingDetectionState): Boolean =
+        s.anchorFrozen && s.bestStopLocation != null &&
+            s.kinematicEgressFixes >= config.kinematicEgressMinWalkFixes
 
     /** [DET-AR-FIRST-001 F3] Person/car discriminator for movement away from the park anchor:
      *  TRUE when the displacement from the anchor has OUTRUN what the steps counted since that
@@ -1266,6 +1285,15 @@ class CoordinatorParkingDetector(
                     // movement (driving verdict or reposition maneuver) zeroes it; anything else
                     // moving is pedestrian-band and counts.
                     walkFixesSinceDriving = if (effectiveDriving || isRepositionBurst) 0 else it.walkFixesSinceDriving + 1,
+                    // [DET-KINEMATIC-EGRESS-001] The egress walk, measured by GPS: quality
+                    // pedestrian-band fixes while the anchor is frozen. Cleared with the anchor.
+                    kinematicEgressFixes = when {
+                        shouldClearBestStop -> 0
+                        it.anchorFrozen &&
+                            location.speed < config.minimumTripSpeedMps &&
+                            location.accuracy <= config.minGpsAccuracyForDriving -> it.kinematicEgressFixes + 1
+                        else -> it.kinematicEgressFixes
+                    },
                 )
             }
             0L

@@ -31,10 +31,90 @@ class EvaluateParkingDecisionUseCaseTest {
         sessionDurationMs: Long = 60_000L,
         maxSpeedKmh: Float = 60f,
         evidenceLabel: String? = null,
+        hasKinematicEgress: Boolean = false,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
         elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, evidenceLabel,
+        hasKinematicEgress,
     )
+
+    // ── Kinematic egress: GPS-measured walk from the frozen anchor [DET-KINEMATIC-EGRESS-001] ─
+
+    @Test
+    fun should_confirm_via_kinematicEgress_when_sessionMeasuredDriving() {
+        // Mute step counter (field 2026-07-11, Redmi): zero steps, but the frozen anchor watched
+        // a sustained quality walk away. Confirms at its own reliability tier + path label.
+        val decision = evaluate(
+            input(
+                stepCount = 0,
+                hasEgressDisplacement = true,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 25f,
+            )
+        )
+        val confirmed = assertIs<ParkingDecision.Confirmed>(decision)
+        assertEquals("kinematic+egress", confirmed.pathLabel)
+        assertEquals(config.reliabilityKinematicEgress, confirmed.reliability, 0.0001f)
+    }
+
+    @Test
+    fun should_notConfirmViaKinematics_when_sessionNeverMeasuredDriving() {
+        // A seeded arm whose stream never saw the trip: the freeze can mature on a pedestrian
+        // stand, so kinematics alone must not confirm — stay inconclusive, keep asking.
+        val decision = evaluate(
+            input(
+                stepCount = 0,
+                hasEgressDisplacement = true,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 4f,
+            )
+        )
+        assertIs<ParkingDecision.Inconclusive>(decision)
+    }
+
+    @Test
+    fun should_prompt_notConfirm_when_kinematicEgressOnHumanPoweredProfile() {
+        val decision = evaluate(
+            input(
+                stepCount = 0,
+                hasEgressDisplacement = true,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 25f,
+                vehicleType = VehicleType.BIKE,
+            )
+        )
+        assertIs<ParkingDecision.Prompt>(decision)
+    }
+
+    @Test
+    fun should_preferStepsPath_when_bothProofsPresent() {
+        // Steps are ground truth — when they speak, the label and reliability are theirs.
+        val decision = evaluate(
+            input(
+                stepCount = 8,
+                hasEgressDisplacement = true,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 25f,
+            )
+        )
+        val confirmed = assertIs<ParkingDecision.Confirmed>(decision)
+        assertEquals("steps+egress", confirmed.pathLabel)
+        assertEquals(config.reliabilityVehicleExit, confirmed.reliability, 0.0001f)
+    }
+
+    @Test
+    fun should_notConfirmViaKinematics_without_egressDisplacement() {
+        // DET-C-01: egress displacement is mandatory for every confirm path, this one included.
+        val decision = evaluate(
+            input(
+                stepCount = 0,
+                hasEgressDisplacement = false,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 25f,
+            )
+        )
+        assertIs<ParkingDecision.Inconclusive>(decision)
+    }
 
     // ── Weak-evidence policy [DET-SOLID-001] ────────────────────────────────────
 

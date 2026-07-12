@@ -879,6 +879,50 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_confirm_kinematically_when_stepless_walk_leaves_the_frozen_anchor() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-KINEMATIC-EGRESS-001] Field 2026-07-11 (Redmi), the outcome it should have
+            // had: drive → stop matures at the car (anchor FROZEN) → the user walks home with a
+            // MUTE step counter. The frozen anchor watches a sustained quality walk away — that
+            // GPS-measured egress must confirm the park AT THE ANCHOR within seconds, at the
+            // kinematic reliability tier, instead of waiting 15 minutes for the 0.5 timeout save.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            val carLat = 40.001
+            nowMs = 1_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            nowMs = 1_000L + config.anchorFreezeStopMs + 1_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // FROZEN
+            // Stepless walk home: quality pedestrian-band fixes, ~11 m apart.
+            var lat = carLat
+            repeat(config.kinematicEgressMinWalkFixes) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = 0L, speed = 1.3f))
+            }
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "kinematic egress must confirm")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(carLat, saved.location.latitude, 0.00005, "pin at the frozen anchor, not along the walk")
+            assertEquals(
+                config.reliabilityKinematicEgress,
+                saved.detectionReliability ?: 0f,
+                /* absoluteTolerance = */ 0.0001f,
+                "kinematic tier, distinguishable in forensics [DET-KINEMATIC-EGRESS-001]",
+            )
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_kinematic+egress", ended.outcome)
+        }
+
+    @Test
     fun should_refine_the_anchor_past_the_initial_window_while_no_step_is_counted() =
         runTest(UnconfinedTestDispatcher()) {
             // Field 2026-07-11 (Redmi, Avenida Sanlúcar): the stop began during the final

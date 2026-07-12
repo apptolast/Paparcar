@@ -47,6 +47,13 @@ data class ParkingDecisionInput(
     /** Arm-evidence persist label of the session (see [io.apptolast.paparcar.domain.detection.ArmEvidence]);
      *  null for legacy callers. Kept a flat string so the input stays replayable. [DET-SOLID-001] */
     val evidenceLabel: String? = null,
+    /** [DET-KINEMATIC-EGRESS-001] The frozen end-of-drive anchor has watched the phone WALK away:
+     *  ≥ `kinematicEgressMinWalkFixes` quality pedestrian-band fixes since the freeze. GPS-measured
+     *  egress for mute-step-counter hardware — the same inference the freeze already trusts to
+     *  protect the anchor ("this movement is the person, not the car"), now allowed to confirm.
+     *  Only counts when the session itself measured driving (a seeded arm whose stream never saw
+     *  the trip must keep asking). */
+    val hasKinematicEgress: Boolean = false,
 )
 
 /**
@@ -70,6 +77,17 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             config.confirmationObservationWindowMs
         val windowElapsed = input.elapsedSinceHighMs >= window
 
+        // [DET-SOLID-001] The session's own stream witnessed real driving speed. Gates both the
+        // weak-evidence policy below and the kinematic egress proof: a seeded arm whose stream
+        // never measured the trip has no business confirming silently by ANY path.
+        val sessionSawDriving = input.maxSpeedKmh >= config.minimumTripSpeedMps * KMH_PER_MPS
+
+        // [DET-KINEMATIC-EGRESS-001] GPS-measured walk away from the frozen end-of-drive anchor.
+        // Steps outrank it (they fire earlier); this is the mute-counter peer. Requires measured
+        // in-session driving — the freeze alone can mature on a seeded post-trip session whose
+        // anchor is wherever the user's body stood.
+        val hasKinematicProof = input.hasKinematicEgress && input.hasEgressDisplacement && sessionSawDriving
+
         // Scooter mismatch guard: a CAR profile on a sustained slow trip looks like a moped —
         // suppress auto-confirm and leave it to the user prompt. [BUG-SCOOTER-001]
         val isMismatch = input.vehicleType == VehicleType.CAR &&
@@ -81,6 +99,7 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             // [DET-C-01] Egress is mandatory for every path.
             !input.hasEgressDisplacement -> false
             hasStepsProof -> true
+            hasKinematicProof -> true
             windowElapsed && input.hadVehicleExit -> true
             else -> false
         }
@@ -93,7 +112,6 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // prompt the policy already chose (field incident 2026-07-04: the late upgrade silently
         // saved a park the user had been ASKED about and never answered). A session that
         // witnessed real driving confirms silently regardless.
-        val sessionSawDriving = input.maxSpeedKmh >= config.minimumTripSpeedMps * KMH_PER_MPS
         val weakLabels = setOf(
             io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_ENTER,
             io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_LATE,
@@ -108,12 +126,20 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
         // MOTORCYCLE is a real motor vehicle with its own geofence — keeps auto-confirm.
         val humanPowered = input.vehicleType == VehicleType.SCOOTER || input.vehicleType == VehicleType.BIKE
 
-        val pathLabel = if (hasStepsProof) "steps+egress" else "vehicleExit+window+egress"
+        val pathLabel = when {
+            hasStepsProof -> "steps+egress"
+            hasKinematicProof -> "kinematic+egress"
+            else -> "vehicleExit+window+egress"
+        }
         return when {
             confirmNow && (weakEvidenceOnly || humanPowered) -> ParkingDecision.Prompt(pathLabel)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,
-                reliability = config.reliabilityVehicleExit,
+                reliability = if (pathLabel == "kinematic+egress") {
+                    config.reliabilityKinematicEgress
+                } else {
+                    config.reliabilityVehicleExit
+                },
             )
             windowElapsed -> ParkingDecision.Rejected
             else -> ParkingDecision.Inconclusive

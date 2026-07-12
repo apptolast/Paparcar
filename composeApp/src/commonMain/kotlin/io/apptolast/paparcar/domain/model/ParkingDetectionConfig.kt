@@ -303,6 +303,21 @@ data class ParkingDetectionConfig(
      *  small on purpose: a slow final maneuver that exceeds it merely skips the freeze and
      *  degrades to the ask-the-user paths — a false negative, per the asymmetric-error rule. */
     val anchorFreezeMaxWalkFixes: Int = 3,
+    /** [DET-KINEMATIC-EGRESS-001] Consecutive-quality pedestrian-band fixes (moving between
+     *  [stoppedSpeedThresholdMps] and [minimumTripSpeedMps], accuracy ≤ [minGpsAccuracyForDriving])
+     *  observed AFTER the anchor froze, required to read the movement as the user WALKING away
+     *  from the parked car. GPS-measured walking is the egress proof for hardware whose step
+     *  stream delivers late or never (field 2026-07-11, Redmi: zero step events for the whole
+     *  walk home, batched 8 min late — the park confirmed at 0.5 reliability 18 min after the
+     *  fact instead of 0.9 within 3 like the healthy device). 6 fixes ≈ 30 s of sustained walk
+     *  at the stream cadence — enough to debounce a jam creep, short enough to beat the prompt. */
+    val kinematicEgressMinWalkFixes: Int = 6,
+    /** [DET-KINEMATIC-EGRESS-001] Reliability stamped on a kinematic-egress confirm. Slightly
+     *  below the step-proof 0.9: the signal is the same inference the frozen anchor already
+     *  trusts (pedestrian-band displacement away from where the car provably rests), but a
+     *  sub-driving-speed car creep can imitate it where steps cannot. Distinct value on purpose
+     *  — Firestore forensics can tell the paths apart in the field. */
+    val reliabilityKinematicEgress: Float = 0.85f,
     /** [DET-ANCHOR-FREEZE-001 F4] Minimum interval between OS re-registrations of a live parked
      *  fence by the safety-net cure. Re-registering resets the geofencing engine's inside/outside
      *  state — a blind window where a drive-away loses its EXIT — so it must be rare: the first
@@ -556,6 +571,12 @@ data class ParkingDetectionConfig(
         }
         require(cureReregisterMinIntervalMs > 0) {
             "cureReregisterMinIntervalMs must be > 0, was $cureReregisterMinIntervalMs"
+        }
+        require(kinematicEgressMinWalkFixes >= 1) {
+            "kinematicEgressMinWalkFixes must be >= 1, was $kinematicEgressMinWalkFixes"
+        }
+        require(reliabilityKinematicEgress > 0f && reliabilityKinematicEgress <= 1f) {
+            "reliabilityKinematicEgress must be in (0, 1], was $reliabilityKinematicEgress"
         }
         require(enterArmStepVetoMs >= 0) {
             "enterArmStepVetoMs must be >= 0 (0 = disabled), was $enterArmStepVetoMs"
