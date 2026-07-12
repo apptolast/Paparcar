@@ -123,7 +123,15 @@ class CoordinatorDetectionService : LifecycleService() {
                         PaparcarLogger.e(DIAG, "  ✗ intake command failed (action=${command.intent.action})", e)
                         stopIfIdle("command-error", command.startId)
                     }
-                    is Command.DetectionEnded -> stopIfIdle("detection-ended", command.startId)
+                    // Same guard as Deliver: a throw here would kill the consumer loop and leave
+                    // a zombie FGS — the teardown must never be the thing that breaks teardown.
+                    is Command.DetectionEnded -> try {
+                        stopIfIdle("detection-ended", command.startId)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        PaparcarLogger.e(DIAG, "  ✗ detection-ended teardown failed (startId=${command.startId})", e)
+                    }
                 }
             }
         }

@@ -544,6 +544,12 @@ data class ParkingDetectionConfig(
         require(anchorFreezeMaxWalkFixes >= 0) {
             "anchorFreezeMaxWalkFixes must be >= 0, was $anchorFreezeMaxWalkFixes"
         }
+        require(exitEnterPairWindowMs > 0) {
+            "exitEnterPairWindowMs must be > 0, was $exitEnterPairWindowMs"
+        }
+        require(enterArmStepVetoMs >= 0) {
+            "enterArmStepVetoMs must be >= 0 (0 = disabled), was $enterArmStepVetoMs"
+        }
         require(anchorStrideMeters > 0f) {
             "anchorStrideMeters must be > 0, was $anchorStrideMeters"
         }
@@ -622,10 +628,10 @@ data class ParkingDetectionConfig(
      * accuracy at park time and capped at [geofenceMaxRadiusMeters]. Single source of truth shared
      * by [io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase] /
      * [io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase] (which register
-     * the geofence) and the AR proximity re-arm gate
-     * ([io.apptolast.paparcar.domain.usecase.detection.ShouldArmFromVehicleEnterUseCase], which must
+     * the geofence) and the AR ENTER arm ladder
+     * ([io.apptolast.paparcar.domain.usecase.detection.EvaluateArEnterArmUseCase], which must
      * use the SAME radius so AR and the geofence EXIT meet at the same boundary — no dead ring, no
-     * extra bus surface). [DET-AR-REARM-001]
+     * extra bus surface). [DET-AR-FIRST-001]
      */
     fun geofenceRadiusFor(sizeCategory: VehicleSize?, accuracyMeters: Float): Float {
         val base = when (sizeCategory) {

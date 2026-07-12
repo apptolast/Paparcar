@@ -542,8 +542,11 @@ class CoordinatorParkingDetector(
                                     "  ↩ tentative confirm DISCARDED — drove off ${heldMs}ms into the hold (errand), re-anchoring [DET-C-02]"
                                 )
                                 _detectionState.update { it.copy(pendingConfirm = null) }
-                                // Fall through: updateStopTracking already cleared bestStopLocation /
-                                // steps on the driving fix, so the loop keeps detecting toward the real park.
+                                // Fall through and keep detecting toward the real park. On a real
+                                // driving fix updateStopTracking already cleared anchor + steps; on
+                                // an ambiguous walking-band fix (unpinned anchor) it may have KEPT
+                                // them — harmless: the next fix re-confirms from the same anchor
+                                // and re-enters the hold (delayed finalize, never a lost park).
                             }
                             else -> {
                                 // Still holding (stopped, window not elapsed) — keep the session alive.
