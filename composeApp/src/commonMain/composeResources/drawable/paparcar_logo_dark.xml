@@ -7,6 +7,12 @@
   blend into the surface — here the green disc stays a visible badge. Brand fill is
   baked in — Nivel 3: do NOT tint. Pairs with paparcar_logo.xml (light) via the
   theme switch in PaparcarLogo.
+
+  Wheel stroke is 7 here vs 6 in the light variant — deliberate polarity compensation,
+  NOT a mismatch: dark ink strokes on the bright green disc optically shrink
+  (irradiation), so identical 6px wheels read thinner than the light variant's bright
+  strokes on the dark disc. The +1 restores equal PERCEIVED weight. Keep them in sync
+  by look, not by number.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -43,7 +49,7 @@
             <path
                 android:fillColor="#00000000"
                 android:strokeColor="#08090E"
-                android:strokeWidth="6"
+                android:strokeWidth="7"
                 android:pathData="M66.01,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
         </group>
 
@@ -56,7 +62,7 @@
             <path
                 android:fillColor="#00000000"
                 android:strokeColor="#08090E"
-                android:strokeWidth="6"
+                android:strokeWidth="7"
                 android:pathData="M30.45,82.86a8.73,6.15 0 1 0 17.46,0a8.73,6.15 0 1 0 -17.46,0Z" />
         </group>
     </group>

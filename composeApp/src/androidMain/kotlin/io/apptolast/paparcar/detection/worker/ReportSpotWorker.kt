@@ -18,6 +18,7 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceCategory
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotTtlPolicy
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.SpotRepository
@@ -58,7 +59,7 @@ class ReportSpotWorker(
             ?.let { runCatching { VehicleSize.valueOf(it) }.getOrNull() }
         val carbodyType = inputData.getString(KEY_CARBODY_TYPE)
             ?.let { runCatching { CarbodyType.valueOf(it) }.getOrNull() }
-        val ttlMs = if (spotType == SpotType.MANUAL_REPORT) MANUAL_SPOT_TTL_MS else AUTO_SPOT_TTL_MS
+        val ttlMs = SpotTtlPolicy.ttlMsForType(spotType) // [AUDIT-ARCH-001 M13] shared with iOS
 
         // [SPOT-OFFLINE-TTL-001] The TTL is anchored to the RELEASE time (enqueue), not to delivery.
         // A push that spent hours queued offline (dead network, OEM-frozen WorkManager — field
@@ -103,10 +104,8 @@ class ReportSpotWorker(
         private const val MAX_RETRY_ATTEMPTS = 5
         private const val INITIAL_BACKOFF_SECONDS = 30L
 
-        /** TTL for auto-detected spots: 2 hours. */
-        private const val AUTO_SPOT_TTL_MS = 2 * 60 * 60 * 1_000L
-        /** TTL for manually reported spots: 15 minutes. */
-        private const val MANUAL_SPOT_TTL_MS = 15 * 60 * 1_000L
+        // [AUDIT-ARCH-001 M13] Spot TTLs moved to the shared domain SpotTtlPolicy (single source
+        // of truth for Android + iOS).
 
         private const val KEY_SPOT_ID = "spot_id"
         private const val KEY_LAT = "lat"

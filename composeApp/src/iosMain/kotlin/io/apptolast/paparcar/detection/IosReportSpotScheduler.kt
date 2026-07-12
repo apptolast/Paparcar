@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.PlaceInfo
 import io.apptolast.paparcar.domain.model.Spot
+import io.apptolast.paparcar.domain.model.SpotTtlPolicy
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.repository.SpotRepository
@@ -55,7 +56,7 @@ class IosReportSpotScheduler(
         reporterName: String?,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
-        val expiresAt = nowMs + ttlForType(spotType)
+        val expiresAt = nowMs + SpotTtlPolicy.ttlMsForType(spotType) // [AUDIT-ARCH-001 M13]
         val spot = Spot(
             id = spotId,
             location = GpsPoint(
@@ -91,20 +92,11 @@ class IosReportSpotScheduler(
         PaparcarLogger.e(TAG, "ReportSpot exhausted retries for ${spot.id}")
     }
 
-    // Mirrors Android's ReportSpotWorker: manual reports get a short TTL; everything
-    // else (auto-detected and home-geofence spots) uses the longer auto TTL.
-    private fun ttlForType(type: SpotType): Long =
-        if (type == SpotType.MANUAL_REPORT) MANUAL_SPOT_TTL_MS else AUTO_SPOT_TTL_MS
-
     private companion object {
         const val TAG = "IosReportSpotScheduler"
         const val MAX_RETRIES = 5
         const val INITIAL_BACKOFF_MS = 30_000L
         const val REPORTED_BY_ANONYMOUS = "anonymous"
-
-        /** TTL for auto-detected spots: 2 hours. */
-        const val AUTO_SPOT_TTL_MS = 2 * 60 * 60 * 1_000L
-        /** TTL for manually reported spots: 15 minutes. */
-        const val MANUAL_SPOT_TTL_MS = 15 * 60 * 1_000L
+        // [AUDIT-ARCH-001 M13] Spot TTLs now live in the shared domain SpotTtlPolicy.
     }
 }
