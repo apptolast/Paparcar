@@ -33,6 +33,9 @@ interface ReportSpotScheduler {
         confidence: Float = 1f,
         sizeCategory: VehicleSize? = null,
         carbodyType: CarbodyType? = null,
-        reporterName: String? = null,
+        /** [AUDIT-RULES-001 C4] The reporter's UID — stored as the spot's `reportedBy` identity so
+         *  the Firestore rules can authorise owner-only edits/deletes. Previously the display name
+         *  was written here, which made `reportedBy == uid` false and blocked ALL deletes. */
+        reportedBy: String? = null,
     )
 }

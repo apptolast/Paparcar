@@ -2,16 +2,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Spots — recurso comunitario; cualquier usuario autenticado puede leer y escribir.
-    // Los campos enRouteCount / acceptCount / rejectCount los actualiza la comunidad.
-    // Delete: sólo el reportador o spots anónimos (auto-detectados sin UID).
+    // Spots — recurso comunitario. [AUDIT-RULES-001 C4 + A4-rules]
+    //   - read:   cualquier autenticado (todos ven plazas cercanas).
+    //   - create: sólo si el spot se firma con el UID del creador (reportedBy == uid).
+    //   - update: el dueño puede editar cualquier campo; CUALQUIER otro autenticado sólo puede
+    //             tocar los contadores comunitarios (enRouteCount / acceptCount / rejectCount) y
+    //             nunca reasignar reportedBy — cierra el "cualquiera reescribe el spot ajeno".
+    //   - delete: el dueño, O cualquiera si el spot YA CADUCÓ (expiresAt < ahora) — un TTL
+    //             server-side barato sin Cloud Functions que evita que la colección crezca sin fin.
     match /spots/{spotId} {
       allow read:   if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null;
+
+      allow create: if request.auth != null
+                    && request.resource.data.reportedBy == request.auth.uid;
+
+      allow update: if request.auth != null
+                    && (
+                         // El dueño edita libremente, pero no puede cambiar de dueño.
+                         (resource.data.reportedBy == request.auth.uid
+                          && request.resource.data.reportedBy == resource.data.reportedBy)
+                         // Un tercero sólo puede tocar los contadores comunitarios.
+                         || request.resource.data.diff(resource.data).affectedKeys()
+                              .hasOnly(['enRouteCount', 'acceptCount', 'rejectCount'])
+                       );
+
       allow delete: if request.auth != null
                     && (resource.data.reportedBy == request.auth.uid
-                        || resource.data.reportedBy == "anonymous");
+                        // .get(..,0): un spot sin expiresAt (legacy) cuenta como caducado.
+                        || resource.data.get('expiresAt', 0) < request.time.toMillis());
     }
 
     // Perfil de usuario y todas sus subcollections — sólo el propio usuario.

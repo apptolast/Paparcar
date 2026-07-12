@@ -81,7 +81,7 @@ class ReportSpotWorker(
                 timestamp = releasedAtMs,
                 speed = 0f,
             ),
-            reportedBy = inputData.getString(KEY_REPORTER_NAME) ?: "",
+            reportedBy = inputData.getString(KEY_REPORTED_BY) ?: "", // [AUDIT-RULES-001 C4] uid, not display name
             address = inputData.toAddressInfo(),
             placeInfo = inputData.toPlaceInfo(),
             type = spotType,
@@ -122,7 +122,7 @@ class ReportSpotWorker(
         private const val KEY_CONFIDENCE = "confidence"
         private const val KEY_SIZE_CATEGORY = "size_category"
         private const val KEY_CARBODY_TYPE = "carbody_type"
-        private const val KEY_REPORTER_NAME = "reporter_name"
+        private const val KEY_REPORTED_BY = "reported_by"
 
         fun buildRequest(
             spotId: String,
@@ -134,7 +134,7 @@ class ReportSpotWorker(
             confidence: Float = 1f,
             sizeCategory: VehicleSize? = null,
             carbodyType: CarbodyType? = null,
-            reporterName: String? = null,
+            reportedBy: String? = null,
         ): OneTimeWorkRequest =
             OneTimeWorkRequestBuilder<ReportSpotWorker>()
                 .setInputData(
@@ -154,7 +154,7 @@ class ReportSpotWorker(
                         KEY_CONFIDENCE to confidence,
                         KEY_SIZE_CATEGORY to sizeCategory?.name,
                         KEY_CARBODY_TYPE to carbodyType?.name,
-                        KEY_REPORTER_NAME to reporterName,
+                        KEY_REPORTED_BY to reportedBy,
                     )
                 )
                 .setConstraints(

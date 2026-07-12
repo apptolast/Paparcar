@@ -33,3 +33,20 @@
 ## Estado
 
 Sin empezar. Depende de decidir el shape de `reportedBy` (uid) — cambio de contrato de datos.
+
+---
+
+## Estado: ✅ IMPLEMENTADO (2026-07-12)
+
+- **Cliente**: `reportedBy` = UID en toda la cadena (`ReportSpotReleasedUseCase` → scheduler → worker/iOS).
+  Renombrado `reporterName`→`reportedBy`; el displayName-en-spot NO se usaba en ninguna UI (solo
+  previews), así que se elimina en vez de moverse a un campo nuevo (evita migración Room v12,
+  ya tomada por SYNC-RECONCILE).
+- **Rules** (`firestore.rules`, validadas OK con firebase_validate_security_rules):
+  - `create`: `request.resource.data.reportedBy == request.auth.uid`.
+  - `update`: dueño (sin reasignar dueño) O tercero solo sobre `enRouteCount/acceptCount/rejectCount`.
+  - `delete`: dueño O spot caducado (`expiresAt < now`, `.get(..,0)` trata legacy como caducado).
+- **Sin migración de datos**: los spots viejos con `reportedBy=displayName` caducan solos por su
+  TTL (2h/15min) y la regla delete-caducado los limpia. La colección deja de crecer sin fin.
+- **Pendiente**: desplegar las rules a Firebase (`firebase deploy --only firestore:rules`) +
+  E2E con las dos cuentas de campo (crear/editar/borrar propio y ajeno).

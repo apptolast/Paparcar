@@ -45,7 +45,9 @@ class ReportSpotReleasedUseCase(
         carbodyType: CarbodyType? = null,
         prefetched: AddressAndPlace? = null,
     ) {
-        val reporterName = authRepository.getCurrentSession()?.displayName
+        // [AUDIT-RULES-001 C4] The spot's identity is the reporter's UID, not their display name —
+        // the Firestore rules key owner-only edit/delete off `reportedBy == request.auth.uid`.
+        val reportedByUid = authRepository.getCurrentSession()?.userId
         var address: AddressInfo? = prefetched?.address
         var placeInfo: PlaceInfo? = prefetched?.placeInfo
         // Only hit the network when the caller didn't already geocode these coords.
@@ -71,7 +73,7 @@ class ReportSpotReleasedUseCase(
             confidence = confidence,
             sizeCategory = sizeCategory,
             carbodyType = carbodyType,
-            reporterName = reporterName,
+            reportedBy = reportedByUid,
         )
     }
 

@@ -114,17 +114,19 @@ class ReportSpotReleasedUseCaseTest {
         assertEquals(SpotType.AUTO_DETECTED, scheduler.lastSpotType)
     }
 
-    // ── Reporter name ─────────────────────────────────────────────────────────
+    // ── reportedBy = UID [AUDIT-RULES-001 C4] ─────────────────────────────────
 
     @Test
-    fun `should_passDisplayName_as_reporterName_when_session_exists`() = runTest {
+    fun `should_passUid_as_reportedBy_when_session_exists`() = runTest {
+        // The spot's identity must be the reporter's UID (not their display name) so the
+        // Firestore rules can authorise owner-only edit/delete.
         useCase(40.416775, -3.703790, "spot-1")
 
-        assertEquals("Carlos M.", scheduler.lastReporterName)
+        assertEquals("uid-1", scheduler.lastReportedBy)
     }
 
     @Test
-    fun `should_passNull_as_reporterName_when_no_session`() = runTest {
+    fun `should_passNull_as_reportedBy_when_no_session`() = runTest {
         auth.emitState(com.apptolast.customlogin.domain.model.AuthState.Unauthenticated)
         val ucNoAuth = ReportSpotReleasedUseCase(
             reportSpotScheduler = scheduler,
@@ -134,6 +136,6 @@ class ReportSpotReleasedUseCaseTest {
 
         ucNoAuth(40.416775, -3.703790, "spot-2")
 
-        assertNull(scheduler.lastReporterName)
+        assertNull(scheduler.lastReportedBy)
     }
 }

@@ -53,7 +53,7 @@ class IosReportSpotScheduler(
         confidence: Float,
         sizeCategory: VehicleSize?,
         carbodyType: CarbodyType?,
-        reporterName: String?,
+        reportedBy: String?,
     ) {
         val nowMs = Clock.System.now().toEpochMilliseconds()
         val expiresAt = nowMs + SpotTtlPolicy.ttlMsForType(spotType) // [AUDIT-ARCH-001 M13]
@@ -66,7 +66,7 @@ class IosReportSpotScheduler(
                 timestamp = nowMs,
                 speed = 0f,
             ),
-            reportedBy = reporterName ?: "",
+            reportedBy = reportedBy ?: "", // [AUDIT-RULES-001 C4] uid identity
             address = address,
             placeInfo = placeInfo,
             type = spotType,
@@ -96,7 +96,7 @@ class IosReportSpotScheduler(
         const val TAG = "IosReportSpotScheduler"
         const val MAX_RETRIES = 5
         const val INITIAL_BACKOFF_MS = 30_000L
-        const val REPORTED_BY_ANONYMOUS = "anonymous"
         // [AUDIT-ARCH-001 M13] Spot TTLs now live in the shared domain SpotTtlPolicy.
+        // [AUDIT-RULES-001] REPORTED_BY_ANONYMOUS removed — reportedBy is now the uid.
     }
 }

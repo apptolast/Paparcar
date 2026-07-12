@@ -20,7 +20,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
     var lastCarbodyType: CarbodyType? = null
     var lastAddress: AddressInfo? = null
     var lastPlaceInfo: PlaceInfo? = null
-    var lastReporterName: String? = null
+    var lastReportedBy: String? = null
 
     /** When true, [enqueueReportSpot] throws to simulate a downstream failure. */
     var shouldThrow: Boolean = false
@@ -35,7 +35,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         confidence: Float,
         sizeCategory: VehicleSize?,
         carbodyType: CarbodyType?,
-        reporterName: String?,
+        reportedBy: String?,
     ) {
         scheduleCallCount++
         lastSpotId = spotId
@@ -47,7 +47,7 @@ class FakeReportSpotScheduler : ReportSpotScheduler {
         lastConfidence = confidence
         lastSizeCategory = sizeCategory
         lastCarbodyType = carbodyType
-        lastReporterName = reporterName
+        lastReportedBy = reportedBy
         if (shouldThrow) throw RuntimeException("simulated enqueue failure")
     }
 }
