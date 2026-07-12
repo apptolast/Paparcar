@@ -56,8 +56,8 @@ class ZoneRepositoryImpl(
         // server snapshot. [SYNC-RECONCILE-001]
         val local = dao.getByUser(userId)
         val merged = reconcileZones(local = local, remote = remoteEntities)
-        dao.deleteByUser(userId)
-        dao.upsertAll(merged)
+        // [AUDIT-DATA-001 M5] Atomic swap (see VehicleDao.replaceAllForUser).
+        dao.replaceAllForUser(userId, merged)
     }
 
     override suspend fun saveZone(zone: Zone): Result<Unit> = runCatching {

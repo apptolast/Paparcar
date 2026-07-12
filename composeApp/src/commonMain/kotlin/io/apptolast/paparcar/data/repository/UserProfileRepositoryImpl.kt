@@ -12,6 +12,7 @@ import io.apptolast.paparcar.domain.model.UserProfile
 import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Clock
 
 class UserProfileRepositoryImpl(
@@ -24,9 +25,12 @@ class UserProfileRepositoryImpl(
             // 1. Remote-first: pull the latest snapshot so any change made from
             //    another device (display name, photo, defaultVehicleId) lands in
             //    Room before the splash decides where to navigate. Wrapped in
-            //    runCatching so a network failure does NOT abort the bootstrap —
-            //    we fall through to cached state in step 2.
-            val remoteDto = runCatching { remoteDataSource.getProfile(session.userId) }.getOrNull()
+            //    withTimeoutOrNull so a network that HANGS (not just fails) can't block
+            //    the splash forever — a failure OR a timeout falls through to cached state
+            //    in step 2. [AUDIT-DATA-001 M9]
+            val remoteDto = withTimeoutOrNull(REMOTE_PROFILE_TIMEOUT_MS) {
+                runCatching { remoteDataSource.getProfile(session.userId) }.getOrNull()
+            }
             if (remoteDto != null) {
                 profileDao.insertOrUpdate(remoteDto.toEntity())
                 return@runCatching remoteDto.toDomain()
@@ -58,5 +62,11 @@ class UserProfileRepositoryImpl(
     override suspend fun deleteAllData(userId: String): Result<Unit> = runCatching {
         remoteDataSource.deleteUserData(userId)
         profileDao.deleteByUser(userId)
+    }
+
+    private companion object {
+        /** [AUDIT-DATA-001 M9] Splash-blocking ceiling on the remote profile fetch: past this the
+         *  bootstrap serves cached state rather than waiting on a stalled network. */
+        const val REMOTE_PROFILE_TIMEOUT_MS = 8_000L
     }
 }

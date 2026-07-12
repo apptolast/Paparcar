@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -69,6 +70,18 @@ interface VehicleDao {
 
     @Query("DELETE FROM vehicles WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
+
+    /**
+     * [AUDIT-DATA-001 M5] Atomic replace of a user's vehicle rows: the sync merge did
+     * `deleteByUser` then `upsertAll` as TWO separate suspend calls — a process death between
+     * them left the table empty (the UI briefly showed "no vehicles" and any read in that window
+     * saw nothing). Wrapping both in one `@Transaction` makes the swap all-or-nothing.
+     */
+    @Transaction
+    suspend fun replaceAllForUser(userId: String, vehicles: List<VehicleEntity>) {
+        deleteByUser(userId)
+        upsertAll(vehicles)
+    }
 
     /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
     @Query("DELETE FROM vehicles")

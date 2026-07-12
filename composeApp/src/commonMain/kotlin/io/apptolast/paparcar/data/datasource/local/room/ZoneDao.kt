@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -43,6 +44,14 @@ interface ZoneDao {
 
     @Query("DELETE FROM zones WHERE userId = :userId")
     suspend fun deleteByUser(userId: String)
+
+    /** [AUDIT-DATA-001 M5] Atomic replace — see [VehicleDao.replaceAllForUser]: the sync merge's
+     *  delete-then-insert pair left the zones table momentarily empty on a process death. */
+    @Transaction
+    suspend fun replaceAllForUser(userId: String, zones: List<ZoneEntity>) {
+        deleteByUser(userId)
+        upsertAll(zones)
+    }
 
     /** Unconditional wipe of every row. Used by [LocalSessionCache.wipe] on sign-out. */
     @Query("DELETE FROM zones")

@@ -122,8 +122,9 @@ class VehicleRepositoryImpl(
         if (normalized.count { it.isActive } != merged.count { it.isActive }) {
             PaparcarLogger.w(DIAG, "  ⚠ multiple isActive=true after merge — normalized to single active")
         }
-        dao.deleteByUser(userId)
-        dao.upsertAll(normalized)
+        // [AUDIT-DATA-001 M5] Atomic swap — a process death between the old delete+insert pair
+        // left the vehicles table momentarily empty.
+        dao.replaceAllForUser(userId, normalized)
         PaparcarLogger.d(DIAG, "■ syncFromRemote merged ${normalized.size} vehicle(s) into Room (kept $keptPending pending)")
     }
 

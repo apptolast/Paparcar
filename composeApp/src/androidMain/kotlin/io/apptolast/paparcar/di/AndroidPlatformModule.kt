@@ -7,7 +7,9 @@ import com.google.android.gms.location.LocationServices
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_2_3
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_3_4
+import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_5_6
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_6_7
+import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_7_8
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_8_9
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_9_10
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_10_11
@@ -36,13 +38,22 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val androidPlatformModule = module {
-    // Database — destructive migration on any version mismatch (internal pre-beta, no real users).
+    // [AUDIT-DATA-001 M7] Database migrations. The chain is now CONTIGUOUS from the first exported
+    // schema (v5) to the current version — every v5+ upgrade migrates cleanly and preserves local
+    // data (incl. un-synced offline edits). The destructive fallback below is now a last-resort
+    // safety net that can ONLY fire for a pre-v5 database — a schema that was never exported and
+    // never shipped in any release (the public beta baseline is the current version). No real
+    // user can reach it; removing it entirely would trade a harmless wipe of a non-existent DB for
+    // a hard crash, so it stays as the belt to the migration braces.
     single<AppDatabase> {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java,
             "paparcar.db"
-        ).addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_6_7, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+        ).addMigrations(
+            MIGRATION_2_3, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+            MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
+        )
             .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }

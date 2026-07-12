@@ -39,6 +39,17 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
 }
 
 /**
+ * [AUDIT-DATA-001 M7] v5 → v6: IDENTITY migration (no schema change — verified against the
+ * exported schemas: identical tables, columns and indices). The version was bumped without a
+ * structural change; Room still demands a Migration object for the version delta. Registering it
+ * completes the migration chain from the first exported schema (v5) upward, so a v5+ database no
+ * longer falls into the destructive fallback on upgrade.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) { /* no-op: identical schema */ }
+}
+
+/**
  * v6 → v7: add color to the vehicles table.
  * - color: [VehicleColor] enum name, nullable — null = undefined → default green icon.
  *   Non-destructive so on-device-only fields (bluetoothDeviceId, licensePlate) survive. [VEH-COLOR-001]
@@ -49,6 +60,15 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
             "ALTER TABLE vehicles ADD COLUMN color TEXT"
         )
     }
+}
+
+/**
+ * [AUDIT-DATA-001 M7] v7 → v8: IDENTITY migration (no schema change — verified against the
+ * exported schemas). The stale @Database comment claimed v8 added `addressCountryCode`, but that
+ * column was actually introduced at v7 (MIGRATION_6_7's era). Empty by design; see MIGRATION_5_6.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(connection: SQLiteConnection) { /* no-op: identical schema */ }
 }
 
 /**

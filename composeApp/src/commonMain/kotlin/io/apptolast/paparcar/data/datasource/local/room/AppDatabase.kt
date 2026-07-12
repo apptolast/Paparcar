@@ -14,11 +14,9 @@ import androidx.room.RoomDatabaseConstructor
         ZoneEntity::class,
         GeocoderCacheEntity::class,
     ],
-    // v8: parking_sessions gains addressCountryCode so the published Spot keeps its
-    // country code on the Room round-trip (ProcessConfirmedDepartureUseCase reloads the
-    // session from Room before publishing). No explicit MIGRATION_7_8 is registered;
-    // the configured fallbackToDestructiveMigration recreates the table on upgrade and
-    // the active session is restored from Firestore on next bootstrap.
+    // v6/v8: identity bumps (no schema change) — MIGRATION_5_6 / MIGRATION_7_8 are empty, needed
+    // only for a contiguous chain. addressCountryCode was actually added at v7 (MIGRATION_6_7),
+    // not v8; the old comment here was wrong. [AUDIT-DATA-001 M7]
     // v9: vehicles gains updatedAt + pendingSync for inbound sync reconciliation. MIGRATION_8_9 is
     // registered (ADD COLUMN) so the cache — and any un-synced offline edits — survive.
     // v10: same treatment for zones (MIGRATION_9_10). [SYNC-RECONCILE-001]
