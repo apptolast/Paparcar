@@ -84,7 +84,7 @@ class HomeViewModelTest {
         val observeNearbySpots = ObserveNearbySpotsUseCase(spotRepo)
         val sendSpotSignal = SendSpotSignalUseCase(spotRepo)
         val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getAddressAndPlace, FakeAuthRepository(initialSession = null))
-        val releaseSession = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)
+        val releaseSession = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo, FakeGeofenceManager())
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
             vehicleRepository = vehicleRepo,

@@ -1441,6 +1441,35 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_finalize_starved_hold_by_clock_when_gps_dies_after_parking() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-AUDIT-002 T7/M2] The COMMON egress: park, walk into the building, GPS dies.
+            // Every hold decision used to wait for the NEXT fix — which never came — and the
+            // tentatively-confirmed park died in silence (no pin, no notification). The watchdog
+            // clock must finalize it at the pinned location and end the session.
+            val holdConfig = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = holdConfig)
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            locations.emit(GpsPoint(40.001, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0013, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress ~33 m → held
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "held, nothing saved yet")
+
+            // GPS dies — no more fixes, ever. Only virtual time advances.
+            testScheduler.advanceUntilIdle()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the clock, not a fix, must finalize the starved hold [DET-AUDIT-002 T7]")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(40.001, saved.location.latitude, 0.00005, "pin at the parked-car anchor")
+
+            job.cancelAndJoin()
+        }
+
+    @Test
     fun should_save_with_user_reliability_when_user_confirms_during_the_hold() =
         runTest(UnconfinedTestDispatcher()) {
             // A "Sí" tapped while the tentative confirm is HELD is the USER-CONFIRMED path: the

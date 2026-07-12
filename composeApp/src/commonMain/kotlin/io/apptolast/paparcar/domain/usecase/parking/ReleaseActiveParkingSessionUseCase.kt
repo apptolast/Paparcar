@@ -6,6 +6,8 @@ import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.service.GeofenceManager
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import kotlin.time.Clock
 
@@ -25,6 +27,7 @@ import kotlin.time.Clock
 class ReleaseActiveParkingSessionUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val userParkingRepository: UserParkingRepository,
+    private val geofenceService: GeofenceManager,
 ) {
     suspend operator fun invoke(
         lat: Double,
@@ -62,6 +65,23 @@ class ReleaseActiveParkingSessionUseCase(
         // by id leaves other vehicles' active sessions intact. If the caller did
         // not supply a session (legacy / manual delete), nothing to clear locally.
         val sessionId = currentSession?.id ?: return Result.success(Unit)
-        return userParkingRepository.clearActiveParkingSession(sessionId)
+        val cleared = userParkingRepository.clearActiveParkingSession(sessionId)
+
+        // [DET-AUDIT-002 T5/M4] A manual release must also unregister the session's fences:
+        // revert and departure already do, but this path left a NEVER_EXPIRE orphan behind on
+        // every release — the next crossing cost an FGS start + notification flash before the
+        // orphan-cleanup dismissed it. Best-effort: a failed removal is caught later by that
+        // same orphan cleanup, so it must never fail the release.
+        if (cleared.isSuccess) {
+            currentSession.geofenceId?.let { geofenceId ->
+                geofenceService.removeGeofence(geofenceId)
+                    .onFailure { PaparcarLogger.w(TAG, "release: removeGeofence($geofenceId) failed (${it.message}) — orphan cleanup will catch it") }
+            }
+        }
+        return cleared
+    }
+
+    private companion object {
+        const val TAG = "ReleaseActiveParkingSession"
     }
 }

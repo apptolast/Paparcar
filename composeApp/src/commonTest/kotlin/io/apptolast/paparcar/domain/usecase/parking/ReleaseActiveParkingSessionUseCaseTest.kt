@@ -27,7 +27,8 @@ class ReleaseActiveParkingSessionUseCaseTest {
         getAddressAndPlace = GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()),
         authRepository = FakeAuthRepository(initialSession = null),
     )
-    private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)
+    private val geofence = io.apptolast.paparcar.fakes.FakeGeofenceManager()
+    private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo, geofence)
 
     private val location = GpsPoint(40.416775, -3.703790, 10f, 0L, 0f)
 
@@ -36,6 +37,7 @@ class ReleaseActiveParkingSessionUseCaseTest {
         spotType: SpotType = SpotType.AUTO_DETECTED,
         reliability: Float? = null,
         size: VehicleSize? = null,
+        geofenceId: String? = null,
     ) = UserParking(
         id = id,
         location = location,
@@ -43,7 +45,24 @@ class ReleaseActiveParkingSessionUseCaseTest {
         spotType = spotType,
         detectionReliability = reliability,
         sizeCategory = size,
+        geofenceId = geofenceId,
     )
+
+    // ── [DET-AUDIT-002 T5/M4] The release must unregister the session's fence ─
+
+    @Test
+    fun `should_removeGeofence_when_sessionHasOne`() = runTest {
+        useCase(40.416775, -3.703790, session(geofenceId = "geof-1"))
+
+        assertEquals(listOf("geof-1"), geofence.removedIds, "manual release must not leave a NEVER_EXPIRE orphan fence")
+    }
+
+    @Test
+    fun `should_removeGeofence_alsoOnTheJustDeletePath`() = runTest {
+        useCase(40.416775, -3.703790, session(geofenceId = "geof-2"), publishSpot = false)
+
+        assertEquals(listOf("geof-2"), geofence.removedIds)
+    }
 
     // ── Spot report is always enqueued ────────────────────────────────────────
 

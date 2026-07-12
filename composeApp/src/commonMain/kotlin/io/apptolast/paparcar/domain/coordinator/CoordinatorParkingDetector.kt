@@ -26,9 +26,11 @@ import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -296,6 +298,15 @@ class CoordinatorParkingDetector(
          *  active: their stream is expected to witness the drive itself. [DET-G-04][DET-SOLID-001] */
         armEvidence: ArmEvidence = ArmEvidence.Manual,
     ) = coroutineScope {
+        val sessionJob = coroutineContext[kotlinx.coroutines.Job]
+        val sessionStartMs = clock()
+        val thisSessionId = sessionStartMs.toString()
+        // [DET-AUDIT-002 T8/M1] Ownership claim FIRST — before reset() touches the shared
+        // singleton state. cancel() on the previous session's job is asynchronous: its finally
+        // could run AFTER this entry and wipe the NEW session's id and seeds. With the claim in
+        // place, a superseded finally sees a foreign id and keeps its hands off (see the guard
+        // in this function's finally).
+        currentSessionId = thisSessionId
         PaparcarLogger.d(DIAG, "▶ coordinator.invoke() entry (armEvidence=${armEvidence.persistLabel}) — calling reset()")
         reset()
 
@@ -314,16 +325,14 @@ class CoordinatorParkingDetector(
         currentArmEvidence = armEvidence.persistLabel
 
         var completed = false
-        val sessionStartMs = clock()
         var locationCount = 0
 
         // [DET-LOG-04] Edge-detect the AR signals so each transition is logged once (not on every
         // subsequent fix). Reset to false when the signal clears (driving away), so a re-entry logs again.
         var loggedVehicleExit = false
 
-        // [DET-LOG-03] Open a diagnostics session. Id = start epoch-ms; outcome defaults to "ended"
+        // [DET-LOG-03] Diagnostics session id claimed at entry (T8). Outcome defaults to "ended"
         // and is refined by the abort paths / runConfirm before the finally emits SessionEnded.
-        currentSessionId = sessionStartMs.toString()
         sessionOutcome = "ended"
         logDetection { sid -> DetectionEvent.SessionStarted(sid, sessionStartMs, strategy = "COORDINATOR", evidence = currentArmEvidence) }
 
@@ -440,6 +449,40 @@ class CoordinatorParkingDetector(
                     .distinctUntilChanged()
                     .collect { sink.setPhase(it) }
             }
+        }
+
+        // [DET-AUDIT-002 T7/M2] Hold watchdog: every hold decision above is driven by the NEXT
+        // GPS fix — and the common egress (walking into a building/garage right after parking)
+        // is exactly when the stream starves. Without this, a tentatively-confirmed park died in
+        // silence: no fix ever arrived to finalize it. A clock, not a fix, now closes the hold:
+        // if the window (plus margin for the settling fix) elapses with the SAME confirm still
+        // pending, finalize it at the pinned location and end the session. collectLatest cancels
+        // the timer whenever the pending slot changes (fix-driven finalize or errand discard).
+        val holdWatchdogJob = if (config.confirmHoldMs > 0) {
+            launch {
+                _detectionState
+                    .map { it.pendingConfirm }
+                    .distinctUntilChanged()
+                    .collectLatest { pending ->
+                        if (pending == null) return@collectLatest
+                        delay(config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS)
+                        if (!completed && _detectionState.value.pendingConfirm === pending) {
+                            PaparcarLogger.w(
+                                DIAG,
+                                "  ⚑ hold starved of fixes for ${config.confirmHoldMs + HOLD_WATCHDOG_MARGIN_MS}ms — finalizing the held confirm at the pinned location [DET-AUDIT-002 T7]"
+                            )
+                            completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                            if (completed) {
+                                // The collect loop is suspended on a starved stream — cancelling
+                                // the session scope is what actually ends the session. The save
+                                // already ran under NonCancellable; the finally logs SessionEnded.
+                                sessionJob?.cancel(CancellationException("hold-watchdog-finalized [DET-AUDIT-002 T7]"))
+                            }
+                        }
+                    }
+            }
+        } else {
+            null
         }
 
         try {
@@ -777,15 +820,31 @@ class CoordinatorParkingDetector(
         } finally {
             stepJob.cancel()
             phaseJob?.cancel()
+            holdWatchdogJob?.cancel()
             // [FIX BUG-SERVICE-109: reset state on session exit so cross-session reads of
             //  hasDetectedMovement and any other state fields return defaults. Without this,
             //  the next session start would briefly observe stale `hasEverReachedDrivingSpeed`.
             //  withContext(NonCancellable) so the reset survives an upstream cancellation.]
             withContext(NonCancellable) {
-                // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
-                logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome) }
-                currentSessionId = null
-                reset()
+                // [DET-AUDIT-002 T8/M1] Only the session that still OWNS the singleton state may
+                // tear it down. A superseded session (a newer invoke claimed the id at its entry)
+                // must not reset() the successor's seeds nor log a SessionEnded under its id.
+                if (currentSessionId == thisSessionId) {
+                    // [DET-AUDIT-002 T7/M2] Belt to the watchdog's braces: if the stream ENDED
+                    // (upstream completion / cancellation) with a confirm still held, finalize it
+                    // rather than silently dropping a park the egress proof already earned.
+                    val pending = _detectionState.value.pendingConfirm
+                    if (pending != null && !completed) {
+                        PaparcarLogger.w(DIAG, "  ⚑ session ended with a HELD confirm — finalizing at the pinned location [DET-AUDIT-002 T7]")
+                        completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                    }
+                    // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
+                    logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome) }
+                    currentSessionId = null
+                    reset()
+                } else {
+                    PaparcarLogger.d(DIAG, "  ⊘ session $thisSessionId superseded — leaving the successor's state untouched [DET-AUDIT-002 T8]")
+                }
             }
         }
         PaparcarLogger.d(DIAG, "■ coordinator.invoke() EXITED — locationCount=$locationCount completed=$completed")
@@ -1414,6 +1473,10 @@ class CoordinatorParkingDetector(
 
         /** Score for the weak-evidence (ENTER-only) prompt — same Medium-band treatment. [DET-SOLID-001] */
         const val WEAK_EVIDENCE_PROMPT_SCORE = 0.6f
+
+        /** [DET-AUDIT-002 T7] Extra wait past confirmHoldMs before the clock (not a fix) closes a
+         *  starved hold — room for the settling fix of a healthy stream to win the race. */
+        const val HOLD_WATCHDOG_MARGIN_MS = 30_000L
     }
 }
 

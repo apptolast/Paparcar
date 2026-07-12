@@ -263,5 +263,6 @@ class ParkingEdgeCaseTest {
             authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = repo,
+        geofenceService = io.apptolast.paparcar.fakes.FakeGeofenceManager(),
     )
 }

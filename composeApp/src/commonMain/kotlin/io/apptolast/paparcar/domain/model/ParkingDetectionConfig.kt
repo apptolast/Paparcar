@@ -318,6 +318,17 @@ data class ParkingDetectionConfig(
      *  sub-driving-speed car creep can imitate it where steps cannot. Distinct value on purpose
      *  — Firestore forensics can tell the paths apart in the field. */
     val reliabilityKinematicEgress: Float = 0.85f,
+    // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
+    /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
+     *  Paired with the pedestrian-rate check in `EvaluateBtParkUseCase` so the car's own
+     *  displacement can no longer satisfy it (audit A2, phantom-spot class). */
+    val btWalkAwayDistanceMeters: Float = 30f,
+    /** Hard ceiling on the BT walk-away watch. Without it, parking in a garage (no usable GPS,
+     *  never 30 m of measured walk) left the FGS + GPS pinned INDEFINITELY (audit A4,
+     *  BUG-FGS-1xx class). On expiry the detector aborts cleanly with telemetry — a missed BT
+     *  park degrades to the coordinator/safety-net lanes, never to a stuck service. */
+    val btWalkAwayTimeoutMs: Long = 15 * 60_000L,
+
     /** [DET-ANCHOR-FREEZE-001 F4] Minimum interval between OS re-registrations of a live parked
      *  fence by the safety-net cure. Re-registering resets the geofencing engine's inside/outside
      *  state — a blind window where a drive-away loses its EXIT — so it must be rare: the first
@@ -574,6 +585,12 @@ data class ParkingDetectionConfig(
         }
         require(kinematicEgressMinWalkFixes >= 1) {
             "kinematicEgressMinWalkFixes must be >= 1, was $kinematicEgressMinWalkFixes"
+        }
+        require(btWalkAwayDistanceMeters > 0f) {
+            "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"
+        }
+        require(btWalkAwayTimeoutMs > 0) {
+            "btWalkAwayTimeoutMs must be > 0, was $btWalkAwayTimeoutMs"
         }
         require(reliabilityKinematicEgress > 0f && reliabilityKinematicEgress <= 1f) {
             "reliabilityKinematicEgress must be in (0, 1], was $reliabilityKinematicEgress"

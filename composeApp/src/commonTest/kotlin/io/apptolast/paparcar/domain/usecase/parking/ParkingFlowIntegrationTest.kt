@@ -80,6 +80,7 @@ class ParkingFlowIntegrationTest {
             authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = parkingRepo,
+        geofenceService = io.apptolast.paparcar.fakes.FakeGeofenceManager(),
     )
 
     // ── Happy path ────────────────────────────────────────────────────────────

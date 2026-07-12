@@ -1,11 +1,12 @@
 package io.apptolast.paparcar.bluetooth
 
-import android.location.Location
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.usecase.detection.BtParkVerdict
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
@@ -26,11 +27,13 @@ import kotlin.time.Duration.Companion.milliseconds
  * 1. Car BT disconnects.
  * 2. [BT_DISCONNECT_DEBOUNCE_MS] grace window — if BT reconnects the caller cancels
  *    this coroutine before [delay] returns (BT-005: oscillation / traffic-light guard).
- * 3. Sample GPS until a fix with accuracy ≤ [GPS_ACCURACY_THRESHOLD_M] is obtained,
- *    or [GPS_SAMPLE_TIMEOUT_MS] elapses (BT-005: GPS drift guard).
+ * 3. Sample GPS until [EvaluateBtParkUseCase] accepts a pin-grade STATIONARY candidate, or
+ *    [GPS_SAMPLE_TIMEOUT_MS] elapses; a credible driving fix aborts outright — the BT drop
+ *    happened mid-drive. [DET-AUDIT-002 T2]
  * 4. Record the fix as the candidate parking location.
- * 5. Watch subsequent GPS updates — when the user has moved ≥ [DISTANCE_THRESHOLD_M]
- *    from the fix, the spot is confirmed with [ConfirmParkingUseCase].
+ * 5. Walk-away watch (hard-bounded by [ParkingDetectionConfig.btWalkAwayTimeoutMs]): confirm
+ *    with [ConfirmParkingUseCase] only when the displacement is WALKED (pedestrian rate);
+ *    vehicle-rate displacement aborts. [DET-AUDIT-002 T2+T4]
  * 6. Post the legacy [AppNotificationManager.showParkingSaved] notification.
  *
  * **Why not the REVERT card?** BT detection is bound to the user's configured
@@ -51,6 +54,7 @@ class BluetoothParkingDetector(
     private val confirmParking: ConfirmParkingUseCase,
     private val notificationPort: AppNotificationManager,
     private val config: ParkingDetectionConfig,
+    private val evaluateBtPark: EvaluateBtParkUseCase,
     private val detectionEventLogger: DetectionEventLogger? = null,
 ) {
 
@@ -63,12 +67,34 @@ class BluetoothParkingDetector(
 
         PaparcarLogger.d(TAG, "Debounce passed — sampling GPS for parking fix")
 
-        // BT-005: sample GPS until accuracy is good enough or timeout fires
-        val parkingFix = withTimeoutOrNull(GPS_SAMPLE_TIMEOUT_MS.milliseconds) {
-            observeLocation().first { it.accuracy <= GPS_ACCURACY_THRESHOLD_M }
+        // [DET-AUDIT-002 T2] Candidate fix must be pin-grade AND STATIONARY — the pure evaluator
+        // decides. A credible driving fix means the BT drop happened mid-drive (head-unit battery
+        // cut, interference): there is no parking, abort before any side effect. The old
+        // accuracy-only gate pinned a "park" on the road and the car's own displacement then
+        // satisfied the walk-away check → phantom park + phantom community spot (audit A2).
+        var candidateAborted = false
+        var candidate: GpsPoint? = null
+        withTimeoutOrNull(GPS_SAMPLE_TIMEOUT_MS.milliseconds) {
+            observeLocation().first { fix ->
+                when (evaluateBtPark.evaluateCandidateFix(fix)) {
+                    BtParkVerdict.DrivingAbort -> {
+                        candidateAborted = true
+                        true
+                    }
+                    BtParkVerdict.CandidateAccepted -> {
+                        candidate = fix
+                        true
+                    }
+                    else -> false
+                }
+            }
         }
-
-        if (parkingFix == null) {
+        if (candidateAborted) {
+            PaparcarLogger.w(TAG, "Credible driving during fix sampling — BT drop was mid-drive, aborting [DET-AUDIT-002 T2]")
+            logRemote(sessionId = vehicleId, verdict = "bt_driving_abort")
+            return
+        }
+        val parkingFix = candidate ?: run {
             PaparcarLogger.w(TAG, "GPS fix timed out — skipping BT parking confirmation")
             logRemote(sessionId = vehicleId, verdict = "bt_gps_timeout")
             return
@@ -76,18 +102,36 @@ class BluetoothParkingDetector(
 
         PaparcarLogger.d(TAG, "Got parking fix at (${parkingFix.latitude}, ${parkingFix.longitude}), accuracy=${parkingFix.accuracy}m")
 
-        // Watch subsequent GPS updates for the distance departure check
-        observeLocation().first { current ->
-            val dist = FloatArray(DISTANCE_RESULT_SIZE)
-            Location.distanceBetween(
-                parkingFix.latitude, parkingFix.longitude,
-                current.latitude, current.longitude,
-                dist,
-            )
-            dist[0] >= DISTANCE_THRESHOLD_M
+        // [DET-AUDIT-002 T2+T4] Walk-away watch, pure-evaluated (WALKED distance at pedestrian
+        // rate — wheels covering it abort) and hard-bounded in time: without the ceiling, a
+        // garage park (no usable GPS, never 30 m of measured walk) left this FGS + GPS pinned
+        // indefinitely (audit A4, BUG-FGS-1xx class).
+        var walkAborted = false
+        val walkStartedAtMs = System.currentTimeMillis()
+        val walkSettled = withTimeoutOrNull(config.btWalkAwayTimeoutMs.milliseconds) {
+            observeLocation().first { current ->
+                when (evaluateBtPark.evaluateWalkAway(parkingFix, current, System.currentTimeMillis() - walkStartedAtMs)) {
+                    BtParkVerdict.DrivingAbort -> {
+                        walkAborted = true
+                        true
+                    }
+                    BtParkVerdict.WalkAwayConfirmed -> true
+                    else -> false
+                }
+            }
+        }
+        if (walkSettled == null) {
+            PaparcarLogger.w(TAG, "Walk-away watch expired after ${config.btWalkAwayTimeoutMs / 60_000} min — aborting cleanly (garage / no usable GPS) [DET-AUDIT-002 T4]")
+            logRemote(sessionId = vehicleId, verdict = "bt_walkaway_timeout", fix = parkingFix)
+            return
+        }
+        if (walkAborted) {
+            PaparcarLogger.w(TAG, "Displacement at vehicle rate during walk-away — car still moving, aborting [DET-AUDIT-002 T2]")
+            logRemote(sessionId = vehicleId, verdict = "bt_walkaway_driving_abort", fix = parkingFix)
+            return
         }
 
-        PaparcarLogger.i(TAG, "User moved ≥${DISTANCE_THRESHOLD_M}m — confirming BT parking for vehicle=$vehicleId")
+        PaparcarLogger.i(TAG, "User walked ≥${config.btWalkAwayDistanceMeters}m — confirming BT parking for vehicle=$vehicleId")
         confirmParking(parkingFix, config.reliabilityBluetooth, vehicleId = vehicleId)
             .onSuccess { saved ->
                 logRemote(sessionId = saved.id, verdict = "bt_park_confirmed", fix = parkingFix)
@@ -129,16 +173,10 @@ class BluetoothParkingDetector(
         /** BT-005: Grace window before acting on disconnect (brief stop / oscillation debounce). */
         const val BT_DISCONNECT_DEBOUNCE_MS = 30_000L
 
-        /** BT-005: Reject GPS fixes with accuracy worse than this (GPS drift guard). */
-        const val GPS_ACCURACY_THRESHOLD_M = 50f
 
         /** BT-005: Give up waiting for a good GPS fix after this duration. */
         const val GPS_SAMPLE_TIMEOUT_MS = 60_000L
 
-        /** Distance the user must walk from the fix before parking is auto-confirmed. */
-        const val DISTANCE_THRESHOLD_M = 30f
 
-        /** Required size of the FloatArray passed to [Location.distanceBetween]. */
-        const val DISTANCE_RESULT_SIZE = 1
     }
 }

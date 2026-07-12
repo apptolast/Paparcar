@@ -79,6 +79,7 @@ val androidDetectionModule = module {
             confirmParking = get(),
             notificationPort = get(),
             config = get(),
+            evaluateBtPark = get(),
             detectionEventLogger = get(),
         )
     }

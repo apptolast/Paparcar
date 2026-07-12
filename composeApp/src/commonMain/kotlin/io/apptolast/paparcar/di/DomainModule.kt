@@ -27,6 +27,7 @@ import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateArEnterArmUseCase
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseCase
@@ -91,6 +92,7 @@ val domainModule = module {
     factory { VerifyDepartureEvidenceUseCase(departureEventBus = get(), config = get()) } // [DET-G-05]
     factory { EvaluateSafetyNetCheckUseCase(config = get()) } // [DET-SAFETY-NET-001]
     factory { EvaluateGeofenceExitUseCase(config = get()) } // [AUDIT-A9-KMP-001]
+    factory { EvaluateBtParkUseCase(config = get()) } // [DET-AUDIT-002 T2/T3]
     factory { EvaluateArEnterArmUseCase(config = get()) } // [DET-AR-FIRST-001]
     factory {
         ConfirmParkingUseCase(
@@ -126,7 +128,7 @@ val domainModule = module {
     factory { NotifyParkingConfirmationUseCase(get(), get()) }
 
     // Parking session lifecycle use cases
-    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get()) }
+    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get()) }
     // [REFACTOR-300] Revert flow for the post-save "No, cancelar" notification action.
     factory {
         RevertParkingUseCase(

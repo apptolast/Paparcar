@@ -133,12 +133,12 @@ Cada una en su propia rama + doc de backlog cuando toque. Referencia: `docs/audi
 _(actualizar al cerrar cada tarea: commit + estado + validación)_
 
 - [x] T1 · A1 departure fall-through — ✅ CERRADO por la cadena (embarque admisible: post-nacimiento de sesión + desplazamiento más allá de alcance peatonal; sin señal admisible → `Dismissed`). [DET-SESSION-BIRTH-001][DET-RIDE-PROOF-001]
-- [ ] T2 · A2 gate de parada BT — 🔴 VIVO (verificado 12-07: `BluetoothParkingDetector` sin check de velocidad en `parkingFix`)
-- [ ] T3 · A3 tests ruta BT (+ extracción a función pura) — 🔴 VIVO (solo existe test del ViewModel de config)
-- [ ] T4 · A4 timeout walk-away BT — 🔴 VIVO (el `first { ≥30 m }` sigue sin `withTimeoutOrNull`; solo el muestreo del fix inicial lo tiene)
-- [ ] T5 · M4 release quita geocerca — 🔴 VIVO (`ReleaseActiveParkingSessionUseCase` sin `removeGeofence`)
+- [x] T2 · A2 gate de parada BT — ✅ 12-07: candidato exige pin-grade+PARADO; conducción creíble aborta (muestreo Y walk-away, con check de ritmo peatonal) [EvaluateBtParkUseCase]
+- [x] T3 · A3 — ✅ 12-07: decisión extraída a `EvaluateBtParkUseCase` (commonMain puro, haversine, reusable iOS) + suite de 11 casos en commonTest
+- [x] T4 · A4 — ✅ 12-07: walk-away acotado por `btWalkAwayTimeoutMs` (15 min) con aborto limpio + verdict `bt_walkaway_timeout` en telemetría
+- [x] T5 · M4 — ✅ 12-07: release llama `removeGeofence` best-effort tras clear exitoso (+2 tests)
 - [x] T6 · M3 "Sí" del usuario a 1.0 — ✅ CERRADO 12-07 (`4886a347`, con test)
-- [ ] T7 · M2 hold no pierde park — 🔴 VIVO (el `finally` solo loguea+resetea; un `pendingConfirm` vivo muere en silencio si muere GPS/proceso) — **prioridad 1 de la 002**
-- [ ] T8 · M1 race de relevo — 🟡 PARCIAL (DET-INTAKE-001 serializó el service; queda `cancelDetectionJob()` con `.cancel()` sin join — ventana teórica pequeña)
+- [x] T7 · M2 — ✅ 12-07: watchdog de reloj (confirmHoldMs+30s) finaliza el hold hambriento de fixes en el ancla pinneada + cinturón en el finally (+test clock-driven). Límite conocido: kill duro de proceso sigue perdiendo el hold
+- [x] T8 · M1 — ✅ 12-07: claim de ownership del sessionId ANTES del reset en la entrada + finally solo desmonta si sigue siendo dueño (una sesión superseded ya no pisa a su sucesora)
 - [ ] T9 · A12 extraer fases del invoke() (opcional; sigue ~400 líneas)
 - [x] T10 · KDocs — ✅ casi cerrado (STILL/config en la cadena; AR/geofenceRadiusFor 12-07 `439430ea`)
