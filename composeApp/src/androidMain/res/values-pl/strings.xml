@@ -60,4 +60,6 @@
     <string name="notif_mark_parking_text">Wykryliśmy, że się przemieściłeś, ale nie udało się ustalić, gdzie został Twój samochód. Oznacz miejsce, aby go nie zgubić.</string>
     <string name="notif_mark_parking_action">Oznacz miejsce</string>
     <string name="notif_action_ive_left">Już wyjechałem</string>
+    <string name="notif_background_kill_title">Twój telefon blokuje Paparcar</string>
+    <string name="notif_background_kill_text">System na wiele godzin wstrzymał wykrywanie parkowania w tle. Dotknij, aby otworzyć aplikację i naprawić to w Ustawienia → Wykrywanie.</string>
 </resources>

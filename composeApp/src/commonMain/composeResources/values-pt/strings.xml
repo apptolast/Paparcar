@@ -531,4 +531,7 @@
     <string name="vehicle_color_yellow">Amarelo</string>
     <string name="vehicle_color_gold">Dourado</string>
     <string name="vehicle_color_brown">Castanho</string>
+    <string name="permissions_reliability_reduced_callout">Os telemóveis como o teu restringem as apps em segundo plano para poupar bateria. Isto pode impedir o Paparcar de perceber quando arrancas com o carro. Permite abaixo a atividade em segundo plano — ou emparelha o Bluetooth do teu carro, a opção mais fiável.</string>
+    <string name="settings_detection_reliability_reduced">O teu telemóvel pode limitar a deteção</string>
+    <string name="settings_detection_reliability_reduced_desc">O teu telemóvel restringe as apps em segundo plano — o Paparcar pode não perceber quando deixas o teu lugar</string>
 </resources>

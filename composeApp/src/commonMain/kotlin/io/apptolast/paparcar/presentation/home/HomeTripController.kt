@@ -225,7 +225,7 @@ class HomeTripController(
                     val newTrail = if (puck.phase == DetectionPhase.Candidate) {
                         current.trail
                     } else {
-                        TripTrail.append(current.trail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
+                        MapTrail.append(current.trail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
                     }
                     val depart = pair.first.departurePoint ?: lastParkingLocation
                     // Feed the matcher the origin + trail so the snapped line starts at the parking

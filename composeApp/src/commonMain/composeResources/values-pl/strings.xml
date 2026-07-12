@@ -535,4 +535,7 @@
     <string name="vehicle_color_yellow">Żółty</string>
     <string name="vehicle_color_gold">Złoty</string>
     <string name="vehicle_color_brown">Brązowy</string>
+    <string name="permissions_reliability_reduced_callout">Telefony takie jak twój ograniczają aplikacje w tle, aby oszczędzać baterię. Przez to Paparcar może nie zauważyć, kiedy odjeżdżasz. Zezwól poniżej na działanie w tle — albo sparuj Bluetooth swojego auta, najbardziej niezawodną opcję.</string>
+    <string name="settings_detection_reliability_reduced">Twój telefon może ograniczać wykrywanie</string>
+    <string name="settings_detection_reliability_reduced_desc">Twój telefon ogranicza aplikacje w tle — Paparcar może przegapić moment, w którym zwalniasz miejsce</string>
 </resources>

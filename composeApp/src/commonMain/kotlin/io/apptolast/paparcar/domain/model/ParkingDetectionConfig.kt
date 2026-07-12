@@ -303,6 +303,13 @@ data class ParkingDetectionConfig(
      *  small on purpose: a slow final maneuver that exceeds it merely skips the freeze and
      *  degrades to the ask-the-user paths — a false negative, per the asymmetric-error rule. */
     val anchorFreezeMaxWalkFixes: Int = 3,
+    /** [DET-ANCHOR-FREEZE-001 F4] Minimum interval between OS re-registrations of a live parked
+     *  fence by the safety-net cure. Re-registering resets the geofencing engine's inside/outside
+     *  state — a blind window where a drive-away loses its EXIT — so it must be rare: the first
+     *  cure per process always runs (force-stop wipes registrations), then this interval. Long
+     *  enough that a parked evening no longer re-opens the window every 15-min tick, short enough
+     *  that a silent OS wipe is cured within the day. */
+    val cureReregisterMinIntervalMs: Long = 6 * 60 * 60 * 1_000L,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
@@ -546,6 +553,9 @@ data class ParkingDetectionConfig(
         }
         require(exitEnterPairWindowMs > 0) {
             "exitEnterPairWindowMs must be > 0, was $exitEnterPairWindowMs"
+        }
+        require(cureReregisterMinIntervalMs > 0) {
+            "cureReregisterMinIntervalMs must be > 0, was $cureReregisterMinIntervalMs"
         }
         require(enterArmStepVetoMs >= 0) {
             "enterArmStepVetoMs must be >= 0 (0 = disabled), was $enterArmStepVetoMs"

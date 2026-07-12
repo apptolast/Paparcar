@@ -4,11 +4,11 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.util.haversineMeters
 
 /**
- * Pure accumulator for the live "breadcrumb" trail drawn while a trip is detected (the navigation-app
+ * Pure accumulator for the live map polyline drawn while a trip is detected (the navigation-app
  * style polyline behind the moving car). Kept OUT of the already-large [HomeViewModel] so the
  * decimation + cap policy is isolated and unit-testable. [TRIP-TRAIL-001]
  */
-object TripTrail {
+object MapTrail {
     /** Skip points closer than this to the previous one — keeps the polyline light without visible gaps.
      *  Lowered from 8 m so slow-speed turns keep more curvature detail for the spline to round.
      *  [ROUTE-SMOOTH-001] */

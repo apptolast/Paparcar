@@ -531,4 +531,7 @@
     <string name="vehicle_color_yellow">Gelb</string>
     <string name="vehicle_color_gold">Gold</string>
     <string name="vehicle_color_brown">Braun</string>
+    <string name="permissions_reliability_reduced_callout">Handys wie deins schränken Apps im Hintergrund ein, um Akku zu sparen. Dadurch kann Paparcar deine Abfahrt verpassen. Erlaube unten die Hintergrundaktivität — oder kopple das Bluetooth deines Autos, die zuverlässigste Option.</string>
+    <string name="settings_detection_reliability_reduced">Dein Handy kann die Erkennung einschränken</string>
+    <string name="settings_detection_reliability_reduced_desc">Dein Handy schränkt Apps im Hintergrund ein — Paparcar könnte den Moment verpassen, in dem du deinen Platz freigibst</string>
 </resources>

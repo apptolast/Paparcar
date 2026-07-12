@@ -60,4 +60,6 @@
     <string name="notif_mark_parking_text">Abbiamo rilevato che ti sei spostato, ma non siamo riusciti a fissare dove è rimasta la tua auto. Segna il parcheggio per non perderlo.</string>
     <string name="notif_mark_parking_action">Segna il posto</string>
     <string name="notif_action_ive_left">Sono uscito</string>
+    <string name="notif_background_kill_title">Il tuo telefono sta bloccando Paparcar</string>
+    <string name="notif_background_kill_text">Il sistema ha sospeso per ore il rilevamento del parcheggio in background. Tocca per aprire l\'app e risolvere in Impostazioni → Rilevamento.</string>
 </resources>

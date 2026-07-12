@@ -60,4 +60,6 @@
     <string name="notif_mark_parking_text">Detetámos que se deslocou, mas não conseguimos fixar onde ficou o seu carro. Marque a vaga para não a perder.</string>
     <string name="notif_mark_parking_action">Marcar a vaga</string>
     <string name="notif_action_ive_left">Já saí</string>
+    <string name="notif_background_kill_title">O teu telemóvel está a bloquear o Paparcar</string>
+    <string name="notif_background_kill_text">O sistema parou a deteção de estacionamento em segundo plano durante horas. Toca para abrir a app e resolver em Definições → Deteção.</string>
 </resources>

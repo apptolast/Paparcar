@@ -531,4 +531,7 @@
     <string name="vehicle_color_yellow">Giallo</string>
     <string name="vehicle_color_gold">Oro</string>
     <string name="vehicle_color_brown">Marrone</string>
+    <string name="permissions_reliability_reduced_callout">I telefoni come il tuo limitano le app in background per risparmiare batteria. Questo può impedire a Paparcar di accorgersi quando vai via con l'auto. Consenti qui sotto l'attività in background — o abbina il Bluetooth della tua auto, l'opzione più affidabile.</string>
+    <string name="settings_detection_reliability_reduced">Il tuo telefono può limitare il rilevamento</string>
+    <string name="settings_detection_reliability_reduced_desc">Il tuo telefono limita le app in background — Paparcar potrebbe non accorgersi di quando liberi il tuo posto</string>
 </resources>

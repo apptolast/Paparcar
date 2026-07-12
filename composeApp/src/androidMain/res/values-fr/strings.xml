@@ -60,4 +60,6 @@
     <string name="notif_mark_parking_text">Nous avons détecté un déplacement, mais nous n\'avons pas pu déterminer où est restée votre voiture. Marquez la place pour ne pas la perdre.</string>
     <string name="notif_mark_parking_action">Marquer ma place</string>
     <string name="notif_action_ive_left">Je suis parti</string>
+    <string name="notif_background_kill_title">Votre téléphone bloque Paparcar</string>
+    <string name="notif_background_kill_text">Le système a suspendu la détection de stationnement en arrière-plan pendant des heures. Touchez pour ouvrir l\'appli et corriger dans Réglages → Détection.</string>
 </resources>

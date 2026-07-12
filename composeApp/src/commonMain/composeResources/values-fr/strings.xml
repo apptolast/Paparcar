@@ -531,4 +531,7 @@
     <string name="vehicle_color_yellow">Jaune</string>
     <string name="vehicle_color_gold">Or</string>
     <string name="vehicle_color_brown">Marron</string>
+    <string name="permissions_reliability_reduced_callout">Les téléphones comme le vôtre limitent les applis en arrière-plan pour économiser la batterie. Paparcar peut alors manquer le moment où vous partez en voiture. Autorisez ci-dessous l'activité en arrière-plan — ou associez le Bluetooth de votre voiture, l'option la plus fiable.</string>
+    <string name="settings_detection_reliability_reduced">Votre téléphone peut limiter la détection</string>
+    <string name="settings_detection_reliability_reduced_desc">Votre téléphone restreint les applis en arrière-plan — Paparcar pourrait manquer le moment où vous libérez votre place</string>
 </resources>

@@ -60,4 +60,6 @@
     <string name="notif_mark_parking_text">We hebben gemerkt dat je je hebt verplaatst, maar konden niet vaststellen waar je auto is gebleven. Markeer de plek zodat je hem niet kwijtraakt.</string>
     <string name="notif_mark_parking_action">Mijn plek markeren</string>
     <string name="notif_action_ive_left">Ik ben weg</string>
+    <string name="notif_background_kill_title">Je telefoon blokkeert Paparcar</string>
+    <string name="notif_background_kill_text">Het systeem heeft de parkeerdetectie urenlang op de achtergrond gepauzeerd. Tik om de app te openen en dit op te lossen in Instellingen → Detectie.</string>
 </resources>

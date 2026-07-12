@@ -40,6 +40,14 @@ sealed class SafetyNetAction {
          *  frozen counter's raw delta of 0 "bounds" the user to the car while they walk away
          *  (field 2026-07-09 12:39, Redmi: phantom backfill at the wake-up fix). */
         val trustedStepsSinceAnchor: Long? = null,
+        /** Whether the wake-up fix is trustworthy enough to BACKFILL the new parking at it:
+         *  the trusted step budget says the user has barely walked since the trip ended (the
+         *  pin lands at most `trustedSteps × stride` from the just-parked car) AND the fix
+         *  carries pin-grade accuracy — a 300 m fix mid-drive planted a phantom pin, field
+         *  2026-07-08 21:43. Decided HERE, in the pure evaluator, not in the worker: this
+         *  go/no-go is exactly the phantom-pin class of decision. `false` → arrival placement
+         *  stays the live coordinator's (or the user's) job. [DET-RECONCILE-001] */
+        val backfillBounded: Boolean = false,
     ) : SafetyNetAction()
 
     /** Far from the parked car, MOVING at driving speed, but WITHOUT a fresh anchor — in a vehicle
@@ -182,6 +190,13 @@ class EvaluateSafetyNetCheckUseCase(
             !config.isBeyondPedestrianReach(distanceMeters, nearAgeMs, radiusMeters, fix.accuracy)
         val trustedStepsSinceAnchor = stepsSinceAnchor.takeUnless { counterFrozenSuspect }
 
+        // Backfill bounding (see [SafetyNetAction.DispatchDeparture.backfillBounded]): trusted
+        // steps within the boarding cap bound the pin error, and the fix must be pin-grade.
+        // Null trusted steps (mute/frozen counter) can never bound a position.
+        val backfillBounded = trustedStepsSinceAnchor != null &&
+            trustedStepsSinceAnchor <= config.backfillMaxSteps &&
+            fix.accuracy <= config.minGpsAccuracyForDriving
+
         val timeFreshAnchor = nearAgeMs != null && nearAgeMs in 0..config.vehicleEnterWindowMs
         // [DET-RECONCILE-001] The anchor's real freshness clock is STEPS, not minutes. What the
         // anchor asserts is "the user was positionally AT the car" — and that assertion only
@@ -213,6 +228,7 @@ class EvaluateSafetyNetCheckUseCase(
                     geofenceId,
                     preconfirmed = false,
                     trustedStepsSinceAnchor = trustedStepsSinceAnchor,
+                    backfillBounded = backfillBounded,
                 )
             } else {
                 SafetyNetAction.PromptStillParked(geofenceId)
@@ -248,6 +264,7 @@ class EvaluateSafetyNetCheckUseCase(
                 geofenceId,
                 preconfirmed = true,
                 tripStartedAtMs = boardingAtMs,
+                backfillBounded = backfillBounded,
             )
         }
 
@@ -281,6 +298,7 @@ class EvaluateSafetyNetCheckUseCase(
                             preconfirmed = true,
                             tripStartedAtMs = lastSeenNearCarAtMs,
                             trustedStepsSinceAnchor = trustedStepsSinceAnchor,
+                            backfillBounded = backfillBounded,
                         )
                     }
                 }
@@ -306,6 +324,7 @@ class EvaluateSafetyNetCheckUseCase(
                         geofenceId,
                         preconfirmed = true,
                         tripStartedAtMs = boardingAtMs,
+                        backfillBounded = backfillBounded,
                     )
                 }
                 if (anchoredToCar && nearAgeMs != null && nearAgeMs > 0) {
@@ -315,6 +334,7 @@ class EvaluateSafetyNetCheckUseCase(
                             geofenceId,
                             preconfirmed = true,
                             tripStartedAtMs = lastSeenNearCarAtMs,
+                            backfillBounded = backfillBounded,
                         )
                     }
                 }
@@ -349,6 +369,21 @@ class EvaluateSafetyNetCheckUseCase(
         }
         return SafetyNetAction.None
     }
+
+    /**
+     * [DET-ANCHOR-FREEZE-001 F4] Pure half of the cure throttle: whether a tick INSIDE the fence
+     * should actually RE-REGISTER it with the OS, or only re-seal the anchor. Every
+     * re-registration resets the geofencing engine's INSIDE/OUTSIDE state — a blind window in
+     * which a drive-away produces no EXIT (field 2026-07-11: a cure landed ~40 s before the
+     * silent 15:06 departure, and every 15-min tick inside re-opened the window). The first cure
+     * after a process start always runs (force-stop/app-update wipe OS registrations — the cure's
+     * founding purpose); after that, at most once per
+     * [ParkingDetectionConfig.cureReregisterMinIntervalMs]. The caller voids its throttle state
+     * when a dismissed false EXIT poisons the fence OUTSIDE, so the next tick re-registers
+     * immediately.
+     */
+    fun shouldReregisterCure(alreadyCuredThisProcess: Boolean, lastCureAtMs: Long, nowMs: Long): Boolean =
+        !alreadyCuredThisProcess || nowMs - lastCureAtMs >= config.cureReregisterMinIntervalMs
 
     private companion object {
         const val KMH_PER_MPS = 3.6f

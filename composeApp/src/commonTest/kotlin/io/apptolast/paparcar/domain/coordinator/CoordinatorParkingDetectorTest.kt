@@ -1397,6 +1397,44 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_save_with_user_reliability_when_user_confirms_during_the_hold() =
+        runTest(UnconfinedTestDispatcher()) {
+            // A "Sí" tapped while the tentative confirm is HELD is the USER-CONFIRMED path: the
+            // save must carry reliabilityUserConfirmed (1.0) and the "user" label, not the 0.9 of
+            // the auto path that opened the hold — the class KDoc promises it, and the repark
+            // guard must never veto a park the user explicitly confirmed. [DET-C-02]
+            var fakeNow = 1_000_000L
+            val holdConfig = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = holdConfig, clock = { fakeNow })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            env.stepDetector.emitSteps(8)
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress → held
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "held, nothing saved yet")
+
+            // 10 s into the hold the user taps "Sí" on the notification.
+            fakeNow += 10_000L
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount)
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                holdConfig.reliabilityUserConfirmed,
+                saved.detectionReliability ?: 0f,
+                /* absoluteTolerance = */ 0.0001f,
+                "a Sí during the hold saves as the USER path (1.0), not the auto reliability [DET-C-02]",
+            )
+        }
+
+    @Test
     fun should_finalize_tentative_confirm_after_hold_when_car_stays_put() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-C-02] A genuine park: egress → tentative confirm → the car stays put → the hold

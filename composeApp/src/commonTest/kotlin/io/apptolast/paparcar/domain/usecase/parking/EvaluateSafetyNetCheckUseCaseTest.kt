@@ -502,6 +502,59 @@ class EvaluateSafetyNetCheckUseCaseTest {
         )
     }
 
+    // ── Backfill bounding + cure throttle: the pure halves of the worker decisions ─
+
+    @Test
+    fun should_boundBackfill_when_trustedStepsWithinCapAndPinGradeFix() {
+        // 10 trusted steps since the seal + a 10 m fix: the pin error is bounded to metres —
+        // the backfill may plant the new parking at the wake-up fix. [DET-RECONCILE-001]
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(true, dispatch.backfillBounded)
+    }
+
+    @Test
+    fun should_notBoundBackfill_when_counterIsMute() {
+        // AR boarding proves the ride, but a mute counter cannot bound WHERE the user stands
+        // relative to the new park — downstream must not plant a pin (phantom-pin class,
+        // field 2026-07-09 12:39). [DET-RIDE-PROOF-001]
+        val action = evaluate(
+            fix = fixAtMeters(576.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 14 * 60_000L,
+            stepsSinceAnchor = null,
+            lastVehicleEnteredAtMs = nowMs - 2 * 60_000L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(false, dispatch.backfillBounded)
+    }
+
+    @Test
+    fun should_notBoundBackfill_when_stepsExceedTheBackfillCap() {
+        // 200 steps still proves the ride (relative + boarding checks pass) but exceeds
+        // backfillMaxSteps: release the old spot, never guess the new position.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 200L,
+        )
+        val dispatch = assertIs<SafetyNetAction.DispatchDeparture>(action)
+        assertEquals(false, dispatch.backfillBounded)
+    }
+
+    @Test
+    fun should_reregisterCure_firstTimePerProcess_thenOnlyPastTheInterval() {
+        // First cure after a process start always runs (force-stop wipes OS registrations);
+        // after that each re-registration opens a blind window, so: throttled within the
+        // interval, allowed once it elapses. [DET-ANCHOR-FREEZE-001 F4]
+        assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs))
+        assertEquals(false, useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs))
+        assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - config.cureReregisterMinIntervalMs, nowMs = nowMs))
+    }
+
     // ── [DET-ANCHOR-FREEZE-001] Ask-when-blind: the app is OPEN and no proof explains "far" ─
 
     @Test

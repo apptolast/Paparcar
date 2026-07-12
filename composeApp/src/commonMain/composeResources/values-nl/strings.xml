@@ -531,4 +531,7 @@
     <string name="vehicle_color_yellow">Geel</string>
     <string name="vehicle_color_gold">Goud</string>
     <string name="vehicle_color_brown">Bruin</string>
+    <string name="permissions_reliability_reduced_callout">Telefoons zoals de jouwe beperken apps op de achtergrond om batterij te sparen. Hierdoor kan Paparcar missen wanneer je wegrijdt. Sta hieronder achtergrondactiviteit toe — of koppel de Bluetooth van je auto, de betrouwbaarste optie.</string>
+    <string name="settings_detection_reliability_reduced">Je telefoon kan de detectie beperken</string>
+    <string name="settings_detection_reliability_reduced_desc">Je telefoon beperkt apps op de achtergrond — Paparcar kan het moment missen waarop je je plek vrijgeeft</string>
 </resources>

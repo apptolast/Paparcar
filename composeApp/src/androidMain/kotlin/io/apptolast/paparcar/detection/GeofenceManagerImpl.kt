@@ -11,6 +11,7 @@ import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
 
@@ -42,6 +43,23 @@ class GeofenceManagerImpl(
 
         geofencingClient.addGeofences(request, buildPendingIntent()).await()
 
+        registerAuxiliaryFences(geofenceId, latitude, longitude, radiusMeters)
+    }
+
+    /**
+     * Best-effort registration of the two auxiliary fences. Only the REAL EXIT fence above
+     * decides the [createGeofence] Result: failing the whole registration because the
+     * return-anchor twin or the diagnostics-only witness was rejected would tell every caller
+     * "geofence creation failed" while the departure trigger is in fact armed. Each failure is
+     * logged; the periodic safety-net cure retries them on the next re-registration.
+     */
+    @SuppressLint("MissingPermission")
+    private suspend fun registerAuxiliaryFences(
+        geofenceId: String,
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Float,
+    ) {
         // [DET-RETURN-ANCHOR-001] Twin ENTER fence over the same region. The typical parking
         // session is park → walk away → return HOURS later → drive off: by then the position
         // anchor has long expired and the EXIT fence's internal state may sit poisoned OUTSIDE
@@ -66,7 +84,8 @@ class GeofenceManagerImpl(
             .addGeofence(enterFence)
             .build()
 
-        geofencingClient.addGeofences(enterRequest, buildEnterPendingIntent()).await()
+        runCatching { geofencingClient.addGeofences(enterRequest, buildEnterPendingIntent()).await() }
+            .onFailure { PaparcarLogger.w(TAG, "⚠ ENTER twin fence registration failed for $geofenceId (${it.message}) — return-anchor re-seal degraded until the next cure") }
 
         // [DET-EXIT-WITNESS-001] Witness EXIT fence: identical region + transition, delivered to
         // a pure-logging broadcast receiver. The main EXIT rides getForegroundService — if the OS
@@ -90,7 +109,8 @@ class GeofenceManagerImpl(
             .addGeofence(witnessFence)
             .build()
 
-        geofencingClient.addGeofences(witnessRequest, buildWitnessPendingIntent()).await()
+        runCatching { geofencingClient.addGeofences(witnessRequest, buildWitnessPendingIntent()).await() }
+            .onFailure { PaparcarLogger.w(TAG, "⚠ witness fence registration failed for $geofenceId (${it.message}) — diagnostics-only, EXIT trigger unaffected") }
     }
 
     override suspend fun removeGeofence(geofenceId: String): Result<Unit> = runCatching {
@@ -156,6 +176,7 @@ class GeofenceManagerImpl(
     }
 
     companion object {
+        private const val TAG = "GeofenceManager"
         private const val REQUEST_CODE = 9100
         private const val REQUEST_CODE_ENTER = 9101
         private const val REQUEST_CODE_WITNESS = 9102

@@ -535,4 +535,7 @@
     <string name="vehicle_color_yellow">Galben</string>
     <string name="vehicle_color_gold">Auriu</string>
     <string name="vehicle_color_brown">Maro</string>
+    <string name="permissions_reliability_reduced_callout">Telefoanele ca al tău restricționează aplicațiile în fundal pentru a economisi bateria. Astfel, Paparcar poate rata momentul în care pleci cu mașina. Permite mai jos activitatea în fundal — sau împerechează Bluetooth-ul mașinii tale, opțiunea cea mai fiabilă.</string>
+    <string name="settings_detection_reliability_reduced">Telefonul tău poate limita detectarea</string>
+    <string name="settings_detection_reliability_reduced_desc">Telefonul tău restricționează aplicațiile în fundal — Paparcar ar putea rata momentul în care îți eliberezi locul</string>
 </resources>

@@ -60,4 +60,6 @@
     <string name="notif_mark_parking_text">Am detectat că te-ai deplasat, dar nu am putut stabili unde a rămas mașina ta. Marchează locul ca să nu îl pierzi.</string>
     <string name="notif_mark_parking_action">Marchează locul</string>
     <string name="notif_action_ive_left">Am plecat</string>
+    <string name="notif_background_kill_title">Telefonul tău blochează Paparcar</string>
+    <string name="notif_background_kill_text">Sistemul a oprit ore întregi detectarea parcării în fundal. Atinge pentru a deschide aplicația și a rezolva din Setări → Detectare.</string>
 </resources>

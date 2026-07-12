@@ -222,13 +222,17 @@ class ParkingSafetyNetWorker(
                     // dozens of times; on 2026-07-11 a cure landed ~40 s before drive-off and the
                     // departure was silent. The GMS registration is therefore throttled: once per
                     // process start (fences are wiped by force-stop/app-update — the case the
-                    // cure exists for), then at most every [CURE_REREGISTER_MIN_INTERVAL_MS],
+                    // cure exists for), then at most every [ParkingDetectionConfig.cureReregisterMinIntervalMs]
                     // plus immediately after a dismissed false EXIT poisons the state OUTSIDE
                     // ([clearCureThrottle]). The ANCHOR write above is NOT throttled — its
                     // freshness is what authorises far+evidence departures.
                     val lastCureAt = prefs.getLong(CURE_KEY_PREFIX + action.geofenceId, 0L)
-                    val mustReregister = curedFencesThisProcess.add(action.geofenceId) ||
-                        now - lastCureAt >= CURE_REREGISTER_MIN_INTERVAL_MS
+                    val firstCureThisProcess = curedFencesThisProcess.add(action.geofenceId)
+                    val mustReregister = evaluateSafetyNetCheck.shouldReregisterCure(
+                        alreadyCuredThisProcess = !firstCureThisProcess,
+                        lastCureAtMs = lastCureAt,
+                        nowMs = now,
+                    )
                     if (!mustReregister) {
                         debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → ancla resellada (cura throttled, hace ${(now - lastCureAt) / 60_000}min)"
                     } else {
@@ -276,26 +280,18 @@ class ParkingSafetyNetWorker(
                         ),
                     )
                     // [DET-RECONCILE-001] Backfill the NEW parking only when its position is
-                    // BOUNDED: the step budget says the user has barely walked since the seal
-                    // (at most stepsSinceAnchor × stride from the just-parked car) AND the wake-up
-                    // fix is precise enough to pin a car with (a 300 m-accuracy fix mid-drive
-                    // planted a phantom pin — field 2026-07-08 21:43). Anything weaker must NOT
-                    // guess a position: arrival placement is the live coordinator's job. Chained
-                    // AFTER the departure so the old session resolves (publish+clear) before the
-                    // confirm replaces the vehicle's active session.
-                    // [DET-RIDE-PROOF-001] Bounding uses the delta the EVALUATOR trusted, never
-                    // the raw reading: a frozen counter's raw 0 "bounds" a user who is walking
-                    // away (field 2026-07-09 12:39, Redmi: phantom pin at the wake-up fix).
-                    val trustedSteps = action.trustedStepsSinceAnchor
-                    val backfillFix = fix.takeIf {
-                        trustedSteps != null && trustedSteps <= config.backfillMaxSteps &&
-                            it.accuracy <= config.minGpsAccuracyForDriving
-                    }
-                    if (action.preconfirmed && backfillFix != null) {
-                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=$trustedSteps acc=${fix.accuracy})")
+                    // BOUNDED — decided by the PURE evaluator ([SafetyNetAction.DispatchDeparture
+                    // .backfillBounded]: trusted step budget within the boarding cap + pin-grade
+                    // fix accuracy), so the phantom-pin class of go/no-go is unit-tested, not
+                    // worker folklore. Anything weaker must NOT guess a position: arrival
+                    // placement is the live coordinator's job. Chained AFTER the departure so the
+                    // old session resolves (publish+clear) before the confirm replaces the
+                    // vehicle's active session.
+                    if (action.preconfirmed && action.backfillBounded) {
+                        PaparcarLogger.d(DIAG, "  → chaining parking backfill at wake-up fix (steps=${action.trustedStepsSinceAnchor} acc=${fix.accuracy})")
                         departureChain.then(
                             ParkingBackfillWorker.buildRequest(
-                                fix = backfillFix,
+                                fix = fix,
                                 vehicleId = session.vehicleId,
                                 reliability = config.reliabilityUnattendedSave,
                             )
@@ -311,7 +307,7 @@ class ParkingSafetyNetWorker(
                     // session, and nobody was listening when the user parked 5 min later.
                     // Background FGS-start may be denied (Android 12+/OEM); then the still-parked
                     // prompt asks the user to place it — a notification beats silence.
-                    val backfillChained = action.preconfirmed && backfillFix != null
+                    val backfillChained = action.preconfirmed && action.backfillBounded
                     if (!backfillChained) {
                         runCatching { manualParkingDetection.start() }
                             .onSuccess { PaparcarLogger.d(DIAG, "  → departure dispatched without backfill — tracking service started for the arrival") }
@@ -597,12 +593,6 @@ class ParkingSafetyNetWorker(
         /** [DET-ANCHOR-FREEZE-001 F4] Last GMS re-registration per fence — the cure throttle's
          *  disk half (the in-process half is [curedFencesThisProcess]). */
         private const val CURE_KEY_PREFIX = "cure_registered_"
-        /** Min interval between GMS re-registrations of a live fence. Every re-registration
-         *  opens a blind window (initial-state evaluation) in which a drive-away loses its EXIT
-         *  — field 2026-07-11, 15:05:45 cure ~40 s before drive-off, departure silent. 6 h still
-         *  cures a silent GMS wipe within the day while a parked-at-home evening no longer
-         *  re-opens the window every 15-min tick. */
-        private const val CURE_REREGISTER_MIN_INTERVAL_MS = 6 * 60 * 60 * 1_000L
         /** Fences already re-registered by THIS process — a process start means force-stop/app
          *  update may have wiped GMS registrations, so the first cure after it always runs. */
         private val curedFencesThisProcess: MutableSet<String> =

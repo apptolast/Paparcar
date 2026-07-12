@@ -533,7 +533,16 @@ class CoordinatorParkingDetector(
                                     DIAG,
                                     "  ✓ hold settled (held=${heldMs}ms, userYes=${state.userConfirmedParking}) — finalizing tentative confirm [DET-C-02]"
                                 )
-                                completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                                // A user "Sí" during the hold is the USER-CONFIRMED path (1.0,
+                                // every guard bypassed), not the auto path that opened the hold —
+                                // the class KDoc promises it and the repark guard must not veto a
+                                // park the user explicitly confirmed. Position stays the pinned
+                                // hold location either way.
+                                completed = if (state.userConfirmedParking) {
+                                    runConfirm(pending.location, config.reliabilityUserConfirmed, pending.vehicleId, "user")
+                                } else {
+                                    runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
+                                }
                                 return@collect
                             }
                             drivingResumed -> {
