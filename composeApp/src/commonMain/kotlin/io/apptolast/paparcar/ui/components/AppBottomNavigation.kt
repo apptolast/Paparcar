@@ -67,8 +67,11 @@ fun AppBottomNavigation(
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = cs.primary,
                         selectedTextColor = cs.primary,
-                        unselectedIconColor = cs.onSurfaceVariant.copy(alpha = UNSELECTED_ICON_ALPHA),
-                        unselectedTextColor = cs.onSurfaceVariant.copy(alpha = UNSELECTED_ICON_ALPHA),
+                        // Full onSurfaceVariant — the previous 0.55 alpha blended to ~2.9:1 on the
+                        // ink surface, below AA. The un-faded token clears 4.5:1 in both themes
+                        // while still reading as "inactive" against the primary tab. [UI-SHEET-003]
+                        unselectedIconColor = cs.onSurfaceVariant,
+                        unselectedTextColor = cs.onSurfaceVariant,
                         indicatorColor = cs.primary.copy(alpha = SELECTED_INDICATOR_ALPHA),
                     ),
                 )
@@ -77,6 +80,5 @@ fun AppBottomNavigation(
     }
 }
 
-private const val UNSELECTED_ICON_ALPHA = 0.55f
 private const val SELECTED_INDICATOR_ALPHA = 0.12f
 private const val LABEL_FONT_SIZE_SP = 11

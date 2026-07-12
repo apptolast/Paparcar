@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Email
@@ -300,6 +301,7 @@ private fun CompactSubmitButton(
 ) {
     PapPrimaryButton(
         label = text,
+        icon = Icons.AutoMirrored.Rounded.Login,
         onClick = onClick,
         isLoading = isLoading,
         enabled = enabled,

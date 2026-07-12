@@ -51,6 +51,9 @@ import kotlin.math.absoluteValue
 @Composable
 internal fun HomeBottomSheet(
     state: HomeState,
+    /** Browse header subject swap: true while the sheet sits beyond peek (expanded browse
+     *  shows the zone counter header instead of the parked car). [UI-SHEET-004] */
+    browseShowsZoneHeader: Boolean,
     containerHeightPx: Float,
     sheetOffsetPx: Animatable<Float, AnimationVector1D>,
     dragSnap: HomeSheetSnap,
@@ -165,16 +168,42 @@ internal fun HomeBottomSheet(
             ) {
                 HomePeekHandle(
                     state = state,
+                    browseShowsZoneHeader = browseShowsZoneHeader,
                     onToggle = onToggle,
                     spotListExpanded = spotListExpanded,
                     onToggleSpotList = onToggleSpotList,
                     onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
                     onRelease = onRelease,
+                    // "Still there?" reinforces reliability and keeps the sheet open —
+                    // the user is likely still heading there. [UI-SHEET-001]
+                    onAcceptSpot = {
+                        state.selectedSpot?.id?.let { id ->
+                            onIntent(HomeIntent.SendSpotSignal(id, accepted = true))
+                        }
+                    },
                     onRejectSpot = {
                         state.selectedSpot?.id?.let { id ->
                             onIntent(HomeIntent.SendSpotSignal(id, accepted = false))
                         }
                         onIntent(HomeIntent.SelectItem(null))
+                    },
+                    // "Delete record" inside the edit-parking sheet — the release dialog's
+                    // delete-only path, aimed at the session BEING EDITED (falls back to the
+                    // selected session for safety). Exits edit mode after. [UI-SHEET-004]
+                    onDeleteParking = {
+                        val target = state.editingParkingId
+                            ?.let { id -> state.activeSessions.firstOrNull { it.id == id } }
+                            ?: state.selectedSession ?: state.userParking
+                        target?.let { p ->
+                            onIntent(
+                                HomeIntent.ReleaseParking(
+                                    lat = p.location.latitude,
+                                    lon = p.location.longitude,
+                                    publishSpot = false,
+                                ),
+                            )
+                        }
+                        onIntent(HomeIntent.ExitAddParkingMode)
                     },
                     onNavigateExternal = onNavigateExternal,
                     onCancelReport = { onIntent(HomeIntent.ExitReportMode) },

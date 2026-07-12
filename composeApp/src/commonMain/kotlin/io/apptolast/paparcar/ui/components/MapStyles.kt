@@ -16,8 +16,7 @@ internal const val LIGHT_MAP_STYLE = """[
   {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#dadada"}]},
   {"featureType":"road.highway","elementType":"labels.text.fill","stylers":[{"color":"#616161"}]},
   {"featureType":"road.local","elementType":"labels.text.fill","stylers":[{"color":"#9e9e9e"}]},
-  {"featureType":"transit.line","elementType":"geometry","stylers":[{"color":"#e5e5e5"}]},
-  {"featureType":"transit.station","elementType":"geometry","stylers":[{"color":"#eeeeee"}]},
+  {"featureType":"transit","stylers":[{"visibility":"off"}]},
   {"featureType":"water","elementType":"geometry","stylers":[{"color":"#c9d8e8"}]},
   {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#9e9e9e"}]}
 ]"""
@@ -41,7 +40,7 @@ internal const val DARK_MAP_STYLE = """[
   {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#3c3c3c"}]},
   {"featureType":"road.highway.controlled_access","elementType":"geometry","stylers":[{"color":"#4e4e4e"}]},
   {"featureType":"road.local","elementType":"labels.text.fill","stylers":[{"color":"#616161"}]},
-  {"featureType":"transit","elementType":"labels.text.fill","stylers":[{"color":"#757575"}]},
+  {"featureType":"transit","stylers":[{"visibility":"off"}]},
   {"featureType":"water","elementType":"geometry","stylers":[{"color":"#000000"}]},
   {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#3d3d3d"}]}
 ]"""

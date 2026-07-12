@@ -58,6 +58,7 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetSpotItemIndex
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.papSheetHeaderBandHeight
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.CenterPinKind
@@ -133,12 +134,6 @@ private val FAB_ABOVE_SHEET_GAP = 12.dp
 private val PEEK_LAYOUT_SNAP_TOLERANCE = 64.dp
 
 
-// Minimum visible sheet height when dragged to its smallest "minimized" state.
-// Matches the natural Browse peek (drag pill + CameraLocationRow with title +
-// secondary line) so the sheet never collapses below the band the user sees
-// in Browse. The Browse peek auto-coerces to this when its measured height is
-// smaller; non-Browse peeks treat it as the drag-down floor. [SHEET-MIN-001]
-private val SHEET_MIN_VISIBLE_HEIGHT = 96.dp
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -450,13 +445,13 @@ private fun HomeContent(
                 }
                 val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
 
-                // Minimized snap point — the drag-down floor for non-Browse states.
-                // Same fixed height for all states so the modal never collapses
-                // below the Browse peek's visible band. For Browse (peekHeightPx ≈
-                // SHEET_MIN_VISIBLE_HEIGHT), this coerces to peekOffsetPx so there
-                // is no extra drag below peek. [SHEET-MIN-001]
-                val sheetMinHeightPx = with(density) { SHEET_MIN_VISIBLE_HEIGHT.toPx() }
-                val minimizedOffsetPx = (containerHeightPx - sheetMinHeightPx)
+                // Minimized snap point — the drag-down "header-only" floor. A design DERIVATION
+                // (font-scale aware, no measurement feedback): every PapSheet header reserves the
+                // same 3-line height, so the band seats deterministically and the cut always lands
+                // under the header. For Browse (header IS the whole peek) this coerces to
+                // peekOffsetPx so there is no extra drag below peek. [SHEET-MIN-001] [UI-SHEET-006]
+                val headerBandPx = with(density) { papSheetHeaderBandHeight().toPx() }
+                val minimizedOffsetPx = (containerHeightPx - headerBandPx)
                     .coerceAtLeast(peekOffsetPx)
 
                 // Content-aware full snap: when ALL list items are visible in the current
@@ -515,6 +510,15 @@ private fun HomeContent(
 
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
                 val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
+
+                // Browse header subject swap: collapsed = your parked car (its OWN static address);
+                // expanded = the zone (camera-following counter header — the car's info lives in its
+                // TUS VEHÍCULOS card). Threshold = halfway to the half anchor. Both sides are the
+                // same PeekState.Browse, so the swap recomposes without an AnimatedContent jump.
+                // [UI-SHEET-004]
+                val sheetBeyondPeek by remember(peekOffsetPx, halfOffsetPx) {
+                    derivedStateOf { sheetOffsetPx.value < (peekOffsetPx + halfOffsetPx) / 2f }
+                }
                 LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
                     // Entering a non-Browse state resets the sheet to peek (full
                     // peek content visible). The user can then drag DOWN to
@@ -523,6 +527,13 @@ private fun HomeContent(
                         state.mode is HomeMode.AddingZone ||
                         state.mode is HomeMode.AddingParking
                     val resetToPeek = isPinning || isParkingSelected
+                    // TEMP diagnostics [SHEETDBG] — remove before merge.
+                    io.apptolast.paparcar.domain.util.PaparcarLogger.d(
+                        "SHEETDBG",
+                        "effect: peekOff=$peekOffsetPx peekH=$peekHeightPx sheet=${sheetOffsetPx.value} " +
+                            "running=${sheetOffsetPx.isRunning} sel=${state.selectedItemId} mode=${state.mode} " +
+                            "resetToPeek=$resetToPeek minOff=$minimizedOffsetPx",
+                    )
                     if (state.selectedItemId == null || resetToPeek) {
                         val correction = kotlin.math.abs(sheetOffsetPx.value - peekOffsetPx)
                         // Snap (not animate) when: small layout correction OR sheet is already at
@@ -532,14 +543,17 @@ private fun HomeContent(
                         // would visibly slide up in slow motion to follow the handle.
                         val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx
                         if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {
+                            io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "-> snapTo($peekOffsetPx)")
                             sheetOffsetPx.snapTo(peekOffsetPx)
                         } else {
+                            io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "-> animateTo($peekOffsetPx)")
                             sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
                         }
                     } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peekOffsetPx) {
                         // Guard isRunning so animateSheetToHalf() (launched on spot/car tap)
                         // is not cancelled by the peekOffsetPx change that occurs when the
                         // peek handle grows to show the selected-item content.
+                        io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "-> else snapTo($peekOffsetPx)")
                         sheetOffsetPx.snapTo(peekOffsetPx)
                     }
                 }
@@ -910,6 +924,7 @@ private fun HomeContent(
                 // ── Bottom sheet ─────────────────────────────────────────────
                 HomeBottomSheet(
                     state = state,
+                    browseShowsZoneHeader = sheetBeyondPeek,
                     containerHeightPx = rawContainerHeightPx,
                     sheetOffsetPx = sheetOffsetPx,
                     dragSnap = dragSnap,
@@ -923,7 +938,11 @@ private fun HomeContent(
                         // bottom-nav divider, with no dp of gap, in every state. Each state keeps its
                         // own natural height (Browse short, SelectedCar taller). The height is whole-px
                         // already, so there's no sub-pixel churn. [BUG-PEEK-DIVIDER-ALIGN]
-                        if (h != peekHeightPx) peekHeightPx = h
+                        if (h != peekHeightPx) {
+                            // TEMP diagnostics [SHEETDBG] — remove before merge.
+                            io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "peekH $peekHeightPx -> $h")
+                            peekHeightPx = h
+                        }
                     },
                     onIntent = onIntent,
                     onParkingClick = { parking ->

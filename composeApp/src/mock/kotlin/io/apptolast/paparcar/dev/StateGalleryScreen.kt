@@ -43,6 +43,7 @@ import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigContent
 import io.apptolast.paparcar.presentation.bluetooth.BluetoothConfigState
 import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.map.components.MonitoringPillContent
@@ -112,7 +113,8 @@ private fun detectionSurface(state: DetectionUiState) {
 private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
 
 @Composable
-private fun peek(state: HomeState) = HomePeekHandle(state = state)
+private fun peek(state: HomeState, showsZoneHeader: Boolean = false) =
+    HomePeekHandle(state = state, browseShowsZoneHeader = showsZoneHeader)
 
 /** Renders the expanded Home sheet (spots list + own-parking card) via homeSheetItems. */
 @Composable
@@ -189,17 +191,41 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Home · peek / sheet",
         listOf(
-            Variant("Peek · spots cerca (POI)", Placement.Surface) {
+            // PapSheet subject rule: parked car → vehicle lead + trailing count-pill. [UI-SHEET-001]
+            Variant("PapSheet · browse coche aparcado + count-pill", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
+            // Expanded browse with a parked car: the header hands over to the ZONE — the car's
+            // info lives in its TUS VEHÍCULOS card below. [UI-SHEET-004]
+            Variant("PapSheet · browse expandido (zona, coche aparcado)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                    showsZoneHeader = true,
+                )
+            },
+            // No parked car → counter lead (green with spots). [UI-SHEET-001]
+            Variant("PapSheet · browse contador verde (sin coche)", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceFuel, nearbySpots = FakeData.nearbySpots))
             },
-            Variant("Peek · dirección simple", Placement.Surface) {
-                peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = FakeData.nearbySpots))
-            },
-            // Empty discovery: the badge reads a calm "Sin plazas cerca", not a dead grey "0". [FOCUS-003]
-            Variant("Peek · sin plazas (vacío)", Placement.Surface) {
+            // 0 spots → amber counter + swipe-up hint. [UI-SHEET-001]
+            Variant("PapSheet · browse contador ámbar 0 + hint", Placement.Surface) {
                 peek(HomeState(cameraAddressAndPlace = FakeData.addressAndPlaceStreet, nearbySpots = emptyList()))
             },
-            Variant("Peek · spot seleccionado", Placement.Surface) {
+            Variant("PapSheet · spot seleccionado (¿Aún está?/Se fue)", Placement.Surface) {
                 peek(
                     HomeState(
                         nearbySpots = FakeData.nearbySpots,
@@ -208,13 +234,31 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            Variant("Peek · plaza propia seleccionada", Placement.Surface) {
+            Variant("PapSheet · parking seleccionado (Me voy + edit menu)", Placement.Surface) {
                 peek(
                     HomeState(
                         activeSessions = listOf(FakeData.activeSession),
                         userGpsPoint = sampleGps,
                         nearbySpots = FakeData.nearbySpots,
                         selectedItemId = FakeData.activeSession.id,
+                    ),
+                )
+            },
+            Variant("PapSheet · add parking (Aparcar aquí)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingParking,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        addingParkingVehicleId = FakeData.vehicleSedan.id,
+                    ),
+                )
+            },
+            Variant("PapSheet · add spot (chips tamaño)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.Reporting,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                     ),
                 )
             },
@@ -325,7 +369,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     ),
                 )
             },
-            Variant("Sheet · sin spots (vacío)") {
+            Variant("Sheet · vacío (dashed + avisar plaza)") {
                 sheet(HomeState(hasCorePermissions = true, nearbySpots = emptyList()))
             },
         ),

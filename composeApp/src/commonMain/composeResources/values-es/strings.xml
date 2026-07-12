@@ -4,6 +4,12 @@
     <string name="home_search_placeholder">Busca una zona, calle…</string>
     <string name="home_stats_free_spots_badge">%1$d libres</string>
     <string name="home_peek_no_spots">Sin plazas cerca</string>
+    <!-- Unidad del contador del PapSheet + pill de plazas libres. [UI-SHEET-001] -->
+    <string name="home_counter_unit_free">libres</string>
+    <plurals name="home_free_count_pill">
+        <item quantity="one">%1$d libre</item>
+        <item quantity="other">%1$d libres</item>
+    </plurals>
     <!-- Header de la sección "Tus vehículos" en el sheet; singular/plural según nº de vehículos. [MULTI-PARKING-001] [HOME-CARDS-001] -->
     <plurals name="home_vehicles_section_header">
         <item quantity="one">Tu vehículo</item>
@@ -32,6 +38,17 @@
     <string name="home_peek_spot_low">Plaza baja</string>
     <string name="home_peek_spot_manual">Plaza manual</string>
     <string name="home_parking_release">Liberar plaza</string>
+    <!-- CTA primario del parking seleccionado — irse ES la acción del loop comunitario. [UI-SHEET-001] -->
+    <string name="home_parking_leave_release">Me voy · Libero mi plaza</string>
+    <!-- Icon-button editar (pin+lápiz) del bloque meta + su menú. [UI-SHEET-001] -->
+    <string name="home_parking_edit_menu_cd">Editar ubicación del aparcamiento</string>
+    <string name="home_parking_menu_delete">Eliminar registro</string>
+    <!-- Modal de modificar aparcamiento (mover primario / eliminar destructivo). [UI-SHEET-004] -->
+    <string name="home_parking_edit_dialog_title">Modificar aparcamiento</string>
+    <string name="home_parking_edit_dialog_body">Mueve el pin al lugar correcto o elimina este registro de aparcamiento.</string>
+    <!-- Par de señales de plaza comunitaria — confirmar que sigue / avisar que se fue. [UI-SHEET-001] -->
+    <string name="home_spot_still_there">¿Aún está?</string>
+    <string name="home_spot_gone">Se fue</string>
     <string name="home_navigate_to_spot">Cómo llegar</string>
     <string name="home_navigate_to_vehicle">Navegar al vehículo</string>
     <string name="home_feed_nearby">Cerca de ti</string>
@@ -39,8 +56,13 @@
         <item quantity="one">%1$d plaza libre cerca de ti</item>
         <item quantity="other">%1$d plazas libres cerca de ti</item>
     </plurals>
-    <string name="home_empty_title">No hay spots cerca ahora</string>
-    <string name="home_empty_subtitle">Sé el primero en reportar uno</string>
+    <string name="home_empty_title">Aún no hay plazas reportadas</string>
+    <string name="home_empty_subtitle">Sé el primero en avisar de una</string>
+    <!-- Header de browse (PapSheet): eyebrow de zona + subtítulo aparcado + hint sin plazas. [UI-SHEET-001] -->
+    <string name="home_browse_eyebrow_zone">Tu zona</string>
+    <string name="home_browse_parked_meta">Aparcado hace %1$s · a %2$s de ti</string>
+    <string name="home_browse_parked_ago">Aparcado hace %1$s</string>
+    <string name="home_browse_hint_swipe_report">Desliza ↑ para avisar de una plaza</string>
     <string name="home_address_unknown">Ubicación desconocida</string>
     <string name="home_release_dialog_title">Liberas la plaza, ¿la compartes?</string>
     <string name="home_release_dialog_message">Cuando avisas, otros conductores reciben la notificación y pueden llegar antes.</string>
@@ -303,6 +325,7 @@
     <string name="home_zone_radius_meters">%1$d m</string>
     <string name="home_header_add_zone">Añadir zona habitual</string>
     <string name="home_header_add_zone_hint">Casa, trabajo, gimnasio\u2026</string>
+    <string name="home_header_add_zone_dismiss_cd">Descartar</string>
 
     <!-- Banner de precisión GPS -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -441,7 +464,7 @@
     <string name="gps_disclaimer_body">La precisión del GPS varía entre 5 y 30 metros según el entorno. Para mejores resultados, usa la app en exteriores con cielo despejado. En interiores o zonas subterráneas la precisión puede reducirse.</string>
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Descartar</string>
-    <string name="home_peek_vehicle_parked_label">%1$s aparcado</string>
+    <string name="home_peek_vehicle_parked_label">%1$s · aparcado</string>
     <string name="bt_config_cd_back">Atrás</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>

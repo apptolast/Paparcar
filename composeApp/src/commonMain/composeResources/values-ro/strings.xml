@@ -4,11 +4,30 @@
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_stats_free_spots_badge">%1$d libere</string>
     <string name="home_peek_no_spots">Niciun loc în apropiere</string>
+    <!-- PapSheet counter lead tile unit + trailing free-count pill. [UI-SHEET-001] -->
+    <string name="home_counter_unit_free">libere</string>
+    <plurals name="home_free_count_pill">
+        <item quantity="one">%1$d liber</item>
+        <item quantity="few">%1$d libere</item>
+        <item quantity="other">%1$d libere</item>
+    </plurals>
     <string name="home_vehicle_chip_badge_active">Activ</string>
     <string name="home_vehicle_chip_status_parked">Parcat · %1$s</string>
     <string name="home_vehicle_chip_status_driving">În mers</string>
     <string name="home_vehicle_chip_status_candidate">Parcare…</string>
     <string name="home_parking_release">Eliberează locul</string>
+    <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
+    <string name="home_parking_leave_release">Plec · Îmi eliberez locul</string>
+    <string name="home_parking_edit_menu_cd">Editează locația parcării</string>
+    <string name="home_parking_menu_delete">Șterge înregistrarea</string>
+    <string name="home_parking_edit_dialog_title">Editează parcarea</string>
+    <string name="home_parking_edit_dialog_body">Mută pinul la locul corect sau șterge această înregistrare.</string>
+    <string name="home_spot_still_there">Mai este?</string>
+    <string name="home_spot_gone">A dispărut</string>
+    <string name="home_browse_eyebrow_zone">Zona ta</string>
+    <string name="home_browse_parked_meta">Parcat acum %1$s · la %2$s de tine</string>
+    <string name="home_browse_parked_ago">Parcat acum %1$s</string>
+    <string name="home_browse_hint_swipe_report">Glisează ↑ pentru a anunța un loc</string>
     <string name="home_navigate_to_spot">Indicații</string>
     <string name="home_navigate_to_vehicle">Navighează către vehicul</string>
     <string name="home_feed_nearby">În apropierea ta</string>
@@ -16,7 +35,7 @@
         <item quantity="one">%1$d loc liber în apropierea ta</item>
         <item quantity="other">%1$d locuri libere în apropierea ta</item>
     </plurals>
-    <string name="home_empty_title">Niciun loc în apropiere</string>
+    <string name="home_empty_title">Niciun loc anunțat încă</string>
     <string name="home_empty_subtitle">Fii primul care raportează unul</string>
     <string name="home_address_unknown">Locație necunoscută</string>
     <string name="home_release_dialog_title">Eliberezi locul?</string>
@@ -312,7 +331,7 @@
     <string name="gps_disclaimer_body">Precizia GPS variază între 5 și 30 de metri în funcție de mediu. Pentru cele mai bune rezultate, utilizați aplicația în aer liber cu cer liber. În interior sau subteran, precizia poate fi redusă.</string>
     <string name="gps_disclaimer_confirm">Am înțeles</string>
     <string name="home_peek_dismiss_cd">Închide</string>
-    <string name="home_peek_vehicle_parked_label">%1$s parcat</string>
+    <string name="home_peek_vehicle_parked_label">%1$s · parcat</string>
     <string name="bt_config_cd_back">Înapoi</string>
 
     <!-- ConfirmationBottomSheet (detectare parcare) -->
@@ -328,6 +347,7 @@
     <!-- CTA pills în cardurile Home -->
     <string name="home_header_add_zone">Adaugă o zonă</string>
     <string name="home_header_add_zone_hint">Acasă, muncă, sală\u2026</string>
+    <string name="home_header_add_zone_dismiss_cd">Renunță</string>
 
     <!-- Sheet section headers + permisiuni -->
     <plurals name="home_vehicles_section_header">

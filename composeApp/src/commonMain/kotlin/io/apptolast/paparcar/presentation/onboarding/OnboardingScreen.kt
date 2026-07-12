@@ -20,8 +20,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -106,6 +108,11 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     stringResource(Res.string.onboarding_cta_next)
                 } else {
                     stringResource(Res.string.onboarding_cta_setup)
+                },
+                icon = if (pagerState.currentPage < PAGE_COUNT - 1) {
+                    Icons.AutoMirrored.Rounded.ArrowForward
+                } else {
+                    Icons.Rounded.Security
                 },
                 onClick = {
                     if (pagerState.currentPage < PAGE_COUNT - 1) {

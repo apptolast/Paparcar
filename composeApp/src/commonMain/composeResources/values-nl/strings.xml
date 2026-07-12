@@ -4,11 +4,29 @@
     <string name="home_search_placeholder">Zoek een gebied, straat…</string>
     <string name="home_stats_free_spots_badge">%1$d vrij</string>
     <string name="home_peek_no_spots">Geen plekken in de buurt</string>
+    <!-- PapSheet counter lead tile unit + trailing free-count pill. [UI-SHEET-001] -->
+    <string name="home_counter_unit_free">vrij</string>
+    <plurals name="home_free_count_pill">
+        <item quantity="one">%1$d vrij</item>
+        <item quantity="other">%1$d vrij</item>
+    </plurals>
     <string name="home_vehicle_chip_badge_active">Actief</string>
     <string name="home_vehicle_chip_status_parked">Geparkeerd · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Onderweg</string>
     <string name="home_vehicle_chip_status_candidate">Parkeren…</string>
     <string name="home_parking_release">Parkeerplaats vrijgeven</string>
+    <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
+    <string name="home_parking_leave_release">Ik vertrek · Ik geef mijn plek vrij</string>
+    <string name="home_parking_edit_menu_cd">Parkeerlocatie bewerken</string>
+    <string name="home_parking_menu_delete">Registratie verwijderen</string>
+    <string name="home_parking_edit_dialog_title">Parkeren bewerken</string>
+    <string name="home_parking_edit_dialog_body">Verplaats de pin naar de juiste plek of verwijder deze registratie.</string>
+    <string name="home_spot_still_there">Nog vrij?</string>
+    <string name="home_spot_gone">Al weg</string>
+    <string name="home_browse_eyebrow_zone">Jouw zone</string>
+    <string name="home_browse_parked_meta">Geparkeerd %1$s geleden · %2$s van jou</string>
+    <string name="home_browse_parked_ago">Geparkeerd %1$s geleden</string>
+    <string name="home_browse_hint_swipe_report">Veeg ↑ om een plek te melden</string>
     <string name="home_navigate_to_spot">Route</string>
     <string name="home_navigate_to_vehicle">Navigeer naar voertuig</string>
     <string name="home_feed_nearby">In uw buurt</string>
@@ -16,7 +34,7 @@
         <item quantity="one">%1$d vrije parkeerplaats in uw buurt</item>
         <item quantity="other">%1$d vrije parkeerplaatsen in uw buurt</item>
     </plurals>
-    <string name="home_empty_title">Geen parkeerplaatsen in de buurt</string>
+    <string name="home_empty_title">Nog geen plekken gemeld</string>
     <string name="home_empty_subtitle">Wees de eerste die er een meldt</string>
     <string name="home_address_unknown">Onbekende locatie</string>
     <string name="home_release_dialog_title">Parkeerplaats vrijgeven?</string>
@@ -312,7 +330,7 @@
     <string name="gps_disclaimer_body">De GPS-nauwkeurigheid varieert tussen 5 en 30 meter afhankelijk van de omgeving. Gebruik de app buiten met vrij zicht op de lucht voor de beste resultaten. Binnen of ondergronds kan de nauwkeurigheid verminderd zijn.</string>
     <string name="gps_disclaimer_confirm">Begrepen</string>
     <string name="home_peek_dismiss_cd">Sluiten</string>
-    <string name="home_peek_vehicle_parked_label">%1$s geparkeerd</string>
+    <string name="home_peek_vehicle_parked_label">%1$s · geparkeerd</string>
     <string name="bt_config_cd_back">Terug</string>
 
     <!-- ConfirmationBottomSheet (parkeerdetectie) -->
@@ -328,6 +346,7 @@
     <!-- CTA pills in Home cards -->
     <string name="home_header_add_zone">Gewone zone toevoegen</string>
     <string name="home_header_add_zone_hint">Thuis, werk, sportschool\u2026</string>
+    <string name="home_header_add_zone_dismiss_cd">Verbergen</string>
 
     <!-- Sheet section headers + permissies -->
     <plurals name="home_vehicles_section_header">

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -19,20 +18,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
+import io.apptolast.paparcar.ui.theme.greenOutline
 
 /**
  * Variant of the universal footer button.
  *
- *  - [Filled]: primary-coloured fill, used for the dominant action in a row
- *    of equally-weighted actions (e.g. "Publish spot").
- *  - [Outlined]: primary-coloured border with transparent fill, used as the
- *    sibling action with the same visual weight as a Filled (e.g. "Walk to
- *    my car" alongside "Release spot").
+ *  - [Filled]: primary-coloured fill — the ONE action that advances the community
+ *    loop in this context (max 1 per sheet/screen).
+ *  - [Outlined]: green-outline border with `primary` text — the sibling action
+ *    that stays relevant but doesn't advance the loop (e.g. "Navigate to my car"
+ *    alongside "I'm leaving").
+ *  - [Tonal]: `surfaceContainerHigh` fill with `onSurface` text — low-emphasis
+ *    companion actions (e.g. the "Still there? / It's gone" signal pair).
  */
-enum class PapFooterButtonStyle { Filled, Outlined }
+enum class PapFooterButtonStyle { Filled, Outlined, Tonal }
 
 /**
  * Universal full-width "footer" action button used inside peek modals,
@@ -45,14 +48,15 @@ enum class PapFooterButtonStyle { Filled, Outlined }
  *     a hero 56dp; tall enough to be the visual anchor of a peek, short
  *     enough that two stacked buttons don't tower over the map below).
  *
- * [PEEK-ACTIONS-001]
+ * [PEEK-ACTIONS-001] [UI-SHEET-001]
  */
 @Composable
 fun PapFooterButton(
     label: String,
     onClick: () -> Unit,
+    // REQUIRED: every Paparcar button carries a leading icon. [UI-SHEET-002]
+    leadingIcon: ImageVector,
     modifier: Modifier = Modifier,
-    leadingIcon: ImageVector? = null,
     style: PapFooterButtonStyle = PapFooterButtonStyle.Filled,
     enabled: Boolean = true,
     isLoading: Boolean = false,
@@ -60,12 +64,11 @@ fun PapFooterButton(
     contentColor: Color? = null,
 ) {
     val cs = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(FOOTER_BUTTON_RADIUS)
+    val shape = PapShapes.chip
     val combinedModifier = modifier
         .fillMaxWidth()
         .height(FOOTER_BUTTON_HEIGHT)
     val safeOnClick: () -> Unit = { if (!isLoading) onClick() }
-    val effectiveContainer = containerColor ?: cs.primary
 
     when (style) {
         PapFooterButtonStyle.Filled -> Button(
@@ -74,7 +77,7 @@ fun PapFooterButton(
             enabled = enabled,
             shape = shape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = effectiveContainer,
+                containerColor = containerColor ?: cs.primary,
                 contentColor = contentColor ?: cs.onPrimary,
             ),
         ) {
@@ -86,9 +89,22 @@ fun PapFooterButton(
             modifier = combinedModifier,
             enabled = enabled,
             shape = shape,
-            border = BorderStroke(OUTLINED_BORDER_WIDTH, effectiveContainer),
+            border = BorderStroke(PapBorders.medium, containerColor ?: greenOutline),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = contentColor ?: effectiveContainer,
+                contentColor = contentColor ?: cs.primary,
+            ),
+        ) {
+            FooterButtonContent(label = label, leadingIcon = leadingIcon, isLoading = isLoading)
+        }
+
+        PapFooterButtonStyle.Tonal -> Button(
+            onClick = safeOnClick,
+            modifier = combinedModifier,
+            enabled = enabled,
+            shape = shape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = containerColor ?: cs.surfaceContainerHigh,
+                contentColor = contentColor ?: cs.onSurface,
             ),
         ) {
             FooterButtonContent(label = label, leadingIcon = leadingIcon, isLoading = isLoading)
@@ -97,7 +113,7 @@ fun PapFooterButton(
 }
 
 @Composable
-private fun FooterButtonContent(label: String, leadingIcon: ImageVector?, isLoading: Boolean) {
+private fun FooterButtonContent(label: String, leadingIcon: ImageVector, isLoading: Boolean) {
     if (isLoading) {
         CircularProgressIndicator(
             modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE),
@@ -105,18 +121,15 @@ private fun FooterButtonContent(label: String, leadingIcon: ImageVector?, isLoad
             color = LocalContentColor.current,
         )
         Spacer(Modifier.width(10.dp))
-    } else if (leadingIcon != null) {
+    } else {
         Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(FOOTER_BUTTON_ICON_SIZE))
         Spacer(Modifier.width(10.dp))
     }
     Text(
         text = label,
         style = PaparcarType.current.cta,
-        fontWeight = FontWeight.Bold,
     )
 }
 
 private val FOOTER_BUTTON_HEIGHT    = 48.dp
-private val FOOTER_BUTTON_RADIUS    = 14.dp
-private val FOOTER_BUTTON_ICON_SIZE = 20.dp
-private val OUTLINED_BORDER_WIDTH   = 1.5.dp
+private val FOOTER_BUTTON_ICON_SIZE = 18.dp

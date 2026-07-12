@@ -1,6 +1,9 @@
 package io.apptolast.paparcar.ui.theme
 
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 // ── Pap brand palette ─────────────────────────────────────────────────────────
 
@@ -18,6 +21,7 @@ val PapInkHighest    = Color(0xFF222C3E)   // surfaceContainerHighest — modals
 // Forest greens — demoted from surface to interactive accents (containers, outlines)
 val PapForest        = Color(0xFF0D1C14)   // legacy — kept for light-theme inverseSurface
 val PapGreenMuted    = Color(0xFF133D28)   // primaryContainer — dark green accent
+val PapGreenOutline  = Color(0xFF226D49)   // secondary-action border — visible but non-neon green
 
 // On-dark text
 val PapNeutralOutline      = Color(0xFF3B4A5E)   // neutral-cool outline for dark surfaces
@@ -63,6 +67,7 @@ val PapAzure         = Color(0xFFECF0F9)   // surfaceContainer — sheet, nav
 // #009F5E → H152°, L31% — electric/vibrant. onPrimary = Color.White in light theme
 // so filled surfaces (buttons, chips, icon circles) use white content on the green fill.
 val PapGreenLight            = Color(0xFF009F5E)
+val PapGreenOutlineLight     = Color(0xFF009F5E)  // secondary-action border — primary green reads as border in light
 val PapGreenContainerLight   = Color(0xFFA8F5D0)
 val PapOnGreenContainerLight = Color(0xFF002819)
 val PapSurfaceLight          = Color(0xFFF0F4FB)  // page background — blue-tinted (H217°)
@@ -81,3 +86,10 @@ val PapOnAmberContainerLight = Color(0xFF3D2A10)
 val PapRedLight       = Color(0xFFBA1A1A)
 val PapBlueLight      = Color(0xFF0057CA)
 val PapBlueContainerLight = Color(0xFFD8E2FF)
+
+/** Theme-aware secondary-action border green — outlined buttons, the sheet edit icon-button.
+ *  Same luminance probe as `SpotStateColors.stateColors()`. [UI-SHEET-001] */
+val greenOutline: Color
+    @Composable get() =
+        if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) PapGreenOutline
+        else PapGreenOutlineLight

@@ -25,7 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
@@ -400,6 +402,43 @@ private fun puckOffsetFromCenterPx(
     val dy = (worldY(puckLat) - worldY(camLat)) * densityScale
     return Offset(dx.toFloat(), dy.toFloat())
 }
+
+/**
+ * Brand user-position dot: green core + light ring + 15% green halo — the "you"
+ * marker in the same palette as the rest of the map. [UI-SHEET-003]
+ */
+@Composable
+private fun UserLocationDot(modifier: Modifier = Modifier) {
+    val cs = MaterialTheme.colorScheme
+    Box(
+        modifier = modifier
+            .size(USER_DOT_HALO_DP.dp)
+            .clip(CircleShape)
+            .background(cs.primary.copy(alpha = USER_DOT_HALO_ALPHA)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(USER_DOT_RING_DP.dp)
+                .clip(CircleShape)
+                .background(Color.White),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(USER_DOT_CORE_DP.dp)
+                    .clip(CircleShape)
+                    .background(cs.primary),
+            )
+        }
+    }
+}
+
+private const val USER_DOT_HALO_DP = 44
+private const val USER_DOT_RING_DP = 16
+private const val USER_DOT_CORE_DP = 12
+private const val USER_DOT_HALO_ALPHA = 0.15f
+private const val USER_DOT_GLIDE_MS = 600
 
 /** Interpolated render pose of the driving puck (geo position + heading). [FOLLOW-001] */
 private data class PuckPose(val latitude: Double, val longitude: Double, val headingDegrees: Float)
@@ -1138,12 +1177,10 @@ fun PaparcarMapView(
             modifier = Modifier.fillMaxSize(),
             cameraPosition = cameraPosition,
             properties = MapProperties(
-                // The MOVING car is now ALWAYS painted by us (centred overlay while following, projected
-                // overlay while panned away), so the native dot would double it. Enable the native dot
-                // only when idle (no trip) or when the car is FROZEN (Candidate) — there it marks the
-                // pedestrian walking away while the parked car stays put as a Marker.
-                // [FOLLOW-001] [PUCK-FLICKER-001] [DET-PHASE-001]
-                isMyLocationEnabled = drivingPuck == null || drivingPuck.phase == DetectionPhase.Candidate,
+                // The native Google blue dot is OFF for good: the user position is painted by us
+                // (brand-green projected overlay below) so the map speaks ONE palette — three
+                // different marker languages (car, blue dot, pin) read as three apps. [UI-SHEET-003]
+                isMyLocationEnabled = false,
                 isTrafficEnabled = false,
                 mapTheme = if (resolvedDark) MapTheme.DARK else MapTheme.LIGHT,
                 mapType = config.mapType,
@@ -1231,6 +1268,42 @@ fun PaparcarMapView(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(backgroundColor),
+            )
+        }
+
+        // ── Brand user-location dot — replaces the native Google blue dot ────
+        // Same Web Mercator projection as the driving puck / trail, so it stays glued to its
+        // coordinate while panning; a Compose overlay (not a Marker) avoids the kmpmaps per-frame
+        // teardown flicker, and the animated lat/lon glides between balanced-location fixes.
+        // Hidden while the driving puck is MOVING (the car IS the user then); visible again in
+        // Candidate, where it marks the pedestrian walking away from the frozen car.
+        // [UI-SHEET-003] [PUCK-FLICKER-001]
+        val showUserDot = userLocation != null &&
+            (drivingPuck == null || drivingPuck.phase == DetectionPhase.Candidate) &&
+            actualCamLat != null && actualCamLon != null && mapLoaded
+        if (showUserDot && userLocation != null) {
+            val dotLat by animateFloatAsState(
+                targetValue = userLocation.latitude.toFloat(),
+                animationSpec = tween(USER_DOT_GLIDE_MS),
+                label = "user_dot_lat",
+            )
+            val dotLon by animateFloatAsState(
+                targetValue = userLocation.longitude.toFloat(),
+                animationSpec = tween(USER_DOT_GLIDE_MS),
+                label = "user_dot_lon",
+            )
+            val off = puckOffsetFromCenterPx(
+                dotLat.toDouble(), dotLon.toDouble(),
+                actualCamLat!!.toDouble(), actualCamLon!!.toDouble(),
+                currentZoom, LocalDensity.current.density,
+            )
+            UserLocationDot(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .graphicsLayer {
+                        translationX = off.x
+                        translationY = off.y
+                    },
             )
         }
 

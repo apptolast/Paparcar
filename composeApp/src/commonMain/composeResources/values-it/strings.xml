@@ -4,11 +4,29 @@
     <string name="home_search_placeholder">Cerca una zona, una via…</string>
     <string name="home_stats_free_spots_badge">%1$d liberi</string>
     <string name="home_peek_no_spots">Nessun posto nelle vicinanze</string>
+    <!-- PapSheet counter lead tile unit + trailing free-count pill. [UI-SHEET-001] -->
+    <string name="home_counter_unit_free">liberi</string>
+    <plurals name="home_free_count_pill">
+        <item quantity="one">%1$d libero</item>
+        <item quantity="other">%1$d liberi</item>
+    </plurals>
     <string name="home_vehicle_chip_badge_active">Attivo</string>
     <string name="home_vehicle_chip_status_parked">Parcheggiato · %1$s</string>
     <string name="home_vehicle_chip_status_driving">Alla guida</string>
     <string name="home_vehicle_chip_status_candidate">In sosta…</string>
     <string name="home_parking_release">Libera posto</string>
+    <!-- PapSheet actions + browse header. [UI-SHEET-001] -->
+    <string name="home_parking_leave_release">Me ne vado · Libero il mio posto</string>
+    <string name="home_parking_edit_menu_cd">Modifica posizione del parcheggio</string>
+    <string name="home_parking_menu_delete">Elimina registro</string>
+    <string name="home_parking_edit_dialog_title">Modifica parcheggio</string>
+    <string name="home_parking_edit_dialog_body">Sposta il pin nel punto giusto o elimina questo registro di parcheggio.</string>
+    <string name="home_spot_still_there">C&#8217;è ancora?</string>
+    <string name="home_spot_gone">Non c&#8217;è più</string>
+    <string name="home_browse_eyebrow_zone">La tua zona</string>
+    <string name="home_browse_parked_meta">Parcheggiato %1$s fa · a %2$s da te</string>
+    <string name="home_browse_parked_ago">Parcheggiato %1$s fa</string>
+    <string name="home_browse_hint_swipe_report">Scorri ↑ per segnalare un posto</string>
     <string name="home_navigate_to_spot">Indicazioni</string>
     <string name="home_navigate_to_vehicle">Naviga al veicolo</string>
     <string name="home_feed_nearby">Vicino a te</string>
@@ -16,7 +34,7 @@
         <item quantity="one">%1$d posto libero vicino a te</item>
         <item quantity="other">%1$d posti liberi vicino a te</item>
     </plurals>
-    <string name="home_empty_title">Nessun posto vicino</string>
+    <string name="home_empty_title">Ancora nessun posto segnalato</string>
     <string name="home_empty_subtitle">Sii il primo a segnalarne uno</string>
     <string name="home_address_unknown">Posizione sconosciuta</string>
     <string name="home_release_dialog_title">Libera il posto?</string>
@@ -312,7 +330,7 @@
     <string name="gps_disclaimer_body">La precisione GPS varia tra 5 e 30 metri in base all\'ambiente. Per risultati ottimali, usa l\'app all\'aperto con visuale libera del cielo. In ambienti chiusi o sotterranei la precisione può ridursi.</string>
     <string name="gps_disclaimer_confirm">Capito</string>
     <string name="home_peek_dismiss_cd">Chiudi</string>
-    <string name="home_peek_vehicle_parked_label">%1$s parcheggiato</string>
+    <string name="home_peek_vehicle_parked_label">%1$s · parcheggiato</string>
     <string name="bt_config_cd_back">Indietro</string>
 
     <!-- ConfirmationBottomSheet (rilevamento parcheggio) -->
@@ -328,6 +346,7 @@
     <!-- Empty/CTA pills nelle card di Home -->
     <string name="home_header_add_zone">Aggiungi zona abituale</string>
     <string name="home_header_add_zone_hint">Casa, lavoro, palestra\u2026</string>
+    <string name="home_header_add_zone_dismiss_cd">Ignora</string>
 
     <!-- Sheet section headers + permessi -->
     <plurals name="home_vehicles_section_header">

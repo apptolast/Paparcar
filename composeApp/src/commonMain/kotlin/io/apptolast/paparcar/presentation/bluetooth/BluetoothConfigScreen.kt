@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.BluetoothDisabled
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -163,6 +165,7 @@ internal fun BluetoothConfigContent(
                 ) {
                     PapFooterButton(
                         label = stringResource(Res.string.bt_config_save),
+                        leadingIcon = Icons.Rounded.Check,
                         onClick = { onIntent(BluetoothConfigIntent.Save) },
                         enabled = state.hasChanges,
                         isLoading = state.isSaving,
@@ -262,6 +265,8 @@ private fun BtOffState(
             textAlign = TextAlign.Center,
         )
         OutlinedButton(onClick = onOpenBtSettings) {
+            Icon(Icons.Rounded.Bluetooth, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
             Text(stringResource(Res.string.bt_config_open_bt_settings), style = PaparcarType.current.cta)
         }
     }

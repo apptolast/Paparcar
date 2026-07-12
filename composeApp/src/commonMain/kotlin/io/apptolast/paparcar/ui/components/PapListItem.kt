@@ -50,6 +50,7 @@ fun PapListItem(
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     subtitleMaxLines: Int = Int.MAX_VALUE,
     overlineColor: Color = MaterialTheme.colorScheme.primary,
+    overlineStyle: TextStyle = PaparcarType.current.badge,
     contentPadding: PaddingValues = PaddingValues(horizontal = ROW_H_PAD_DP.dp, vertical = ROW_V_PAD_DP.dp),
     gap: Dp = ROW_GAP_DP.dp,
 ) {
@@ -63,7 +64,7 @@ fun PapListItem(
             if (overline != null) {
                 Text(
                     text = overline.uppercase(),
-                    style = PaparcarType.current.badge,
+                    style = overlineStyle,
                     color = overlineColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

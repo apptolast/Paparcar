@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.permissions
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -11,14 +12,17 @@ import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.Explore
+import androidx.compose.material.icons.rounded.GpsFixed
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Map
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.RocketLaunch
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Sensors
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -110,6 +114,7 @@ internal fun PermissionsContent(
             body = stringResource(Res.string.permissions_bg_guide_body),
             primaryLabel = stringResource(Res.string.permissions_bg_guide_cta),
             onPrimary = onConfirmBackgroundLocationGuide,
+            primaryLeadingIcon = Icons.Rounded.Settings,
             cancelLabel = stringResource(Res.string.permissions_bg_guide_dismiss),
         )
     }
@@ -125,8 +130,10 @@ internal fun PermissionsContent(
             body = stringResource(Res.string.permissions_skip_dialog_body),
             primaryLabel = stringResource(Res.string.permissions_skip_dialog_activate),
             onPrimary = onDismissSkipDetectionDialog,
+            primaryLeadingIcon = Icons.Rounded.Sensors,
             secondaryLabel = stringResource(Res.string.permissions_skip_dialog_later),
             onSecondary = onContinueWithCore,
+            secondaryLeadingIcon = Icons.Rounded.Schedule,
         )
     }
 
@@ -352,8 +359,15 @@ private fun ColumnScope.PermissionsFooter(
         else -> // PRODUCER pending → the deliberate "activate auto-detection" step
             stringResource(Res.string.permissions_btn_activate_detection) to false
     }
+    val icon = when {
+        state.showSettingsPrompt || coreNeedsSettings -> Icons.Rounded.Settings
+        isCorePending -> Icons.Rounded.LocationOn
+        isGpsPending -> Icons.Rounded.GpsFixed
+        else -> Icons.Rounded.Sensors
+    }
     PapFooterButton(
         label = label,
+        leadingIcon = icon,
         onClick = onRequestPermissions,
         containerColor = if (isAmber) MaterialTheme.colorScheme.secondary else null,
         contentColor = if (isAmber) MaterialTheme.colorScheme.onSecondary else null,
@@ -365,6 +379,13 @@ private fun ColumnScope.PermissionsFooter(
             onClick = onRequestSkipDetection,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            Icon(
+                Icons.Rounded.Schedule,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(6.dp))
             Text(
                 text = stringResource(Res.string.permissions_continue_with_core),
                 // TextButton text → cta (Inter), the app's button convention. [TYPO-AUDIT-001]

@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Close
+import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
@@ -89,12 +91,16 @@ fun PapAlertDialog(
     body: String,
     primaryLabel: String,
     onPrimary: () -> Unit,
+    // REQUIRED: every Paparcar button carries a leading icon. [UI-SHEET-002]
+    primaryLeadingIcon: ImageVector,
     modifier: Modifier = Modifier,
-    primaryLeadingIcon: ImageVector? = null,
     accent: PapDialogAccent = PapDialogAccent.Primary,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
     secondaryLeadingIcon: ImageVector? = null,
+    /** Overrides the SECONDARY action's accent — a destructive companion (red outlined
+     *  "Delete") next to a green primary ("Move"). Null = inherit [accent]. [UI-SHEET-004] */
+    secondaryAccent: PapDialogAccent? = null,
     cancelLabel: String? = null,
     isLoading: Boolean = false,
 ) {
@@ -175,7 +181,7 @@ fun PapAlertDialog(
                         label = secondaryLabel,
                         onClick = onSecondary,
                         leadingIcon = secondaryLeadingIcon,
-                        accentColor = accentColor,
+                        accentColor = (secondaryAccent ?: accent).color(),
                         enabled = !isLoading,
                     )
                 }
@@ -187,6 +193,13 @@ fun PapAlertDialog(
                         enabled = !isLoading,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = CANCEL_ALPHA),
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             text = cancelLabel,
                             style = PaparcarType.current.cta,
@@ -204,7 +217,7 @@ fun PapAlertDialog(
 private fun PrimaryAction(
     label: String,
     onClick: () -> Unit,
-    leadingIcon: ImageVector?,
+    leadingIcon: ImageVector,
     accentColor: Color,
     onAccent: Color,
     isLoading: Boolean,
@@ -215,7 +228,8 @@ private fun PrimaryAction(
         modifier = Modifier
             .fillMaxWidth()
             .height(BUTTON_HEIGHT_DP.dp),
-        shape = RoundedCornerShape(BUTTON_CORNER_DP.dp),
+        // Pill radius — same button silhouette as PapFooterButton. [UI-SHEET-002]
+        shape = PapShapes.chip,
         colors = ButtonDefaults.buttonColors(
             containerColor = accentColor,
             contentColor = onAccent,
@@ -228,11 +242,9 @@ private fun PrimaryAction(
                 color = onAccent,
             )
         } else {
-            if (leadingIcon != null) {
-                Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-            }
-            Text(label, fontWeight = FontWeight.Bold)
+            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(label, style = PaparcarType.current.cta)
         }
     }
 }
@@ -251,18 +263,18 @@ private fun SecondaryAction(
         modifier = Modifier
             .fillMaxWidth()
             .height(BUTTON_HEIGHT_DP.dp),
-        shape = RoundedCornerShape(BUTTON_CORNER_DP.dp),
+        shape = PapShapes.chip,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor),
-        border = BorderStroke(1.5.dp, accentColor),
+        border = BorderStroke(PapBorders.medium, accentColor),
     ) {
         if (leadingIcon != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(label, fontWeight = FontWeight.SemiBold)
+                Text(label, style = PaparcarType.current.cta)
             }
         } else {
-            Text(label, fontWeight = FontWeight.SemiBold)
+            Text(label, style = PaparcarType.current.cta)
         }
     }
 }

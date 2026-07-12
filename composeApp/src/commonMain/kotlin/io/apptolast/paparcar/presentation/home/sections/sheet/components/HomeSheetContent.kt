@@ -288,6 +288,7 @@ private fun LazyListScope.spotsSection(
             }
         filteredSpots.isEmpty() -> item("empty") {
             HomeEmptySpots(
+                onReport = onEnterReportMode,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
@@ -309,7 +310,11 @@ private fun LazyListScope.spotsSection(
         }
     }
 
-    if (state.hasCorePermissions) {
+    // The plain empty state already carries its own "Report a free spot" primary —
+    // don't double the CTA below it. [UI-SHEET-001]
+    val emptyShowsReportCta = !state.isLoading && filteredSpots.isEmpty() &&
+        !(state.sizeFilter != null && state.nearbySpots.isNotEmpty())
+    if (state.hasCorePermissions && !emptyShowsReportCta) {
         item("report_spot_cta") {
             HomeReportSpotCard(
                 onReport = onEnterReportMode,

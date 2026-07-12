@@ -4,6 +4,12 @@
     <string name="home_search_placeholder">Search an area, street…</string>
     <string name="home_stats_free_spots_badge">%1$d free</string>
     <string name="home_peek_no_spots">No spots nearby</string>
+    <!-- PapSheet counter lead tile unit + trailing free-count pill. [UI-SHEET-001] -->
+    <string name="home_counter_unit_free">free</string>
+    <plurals name="home_free_count_pill">
+        <item quantity="one">%1$d free</item>
+        <item quantity="other">%1$d free</item>
+    </plurals>
     <!-- Sheet section header above the per-vehicle rows; singular/plural by vehicle count. [MULTI-PARKING-001] [HOME-CARDS-001] -->
     <plurals name="home_vehicles_section_header">
         <item quantity="one">Your vehicle</item>
@@ -42,6 +48,17 @@
     <string name="home_peek_spot_low">Low spot</string>
     <string name="home_peek_spot_manual">Manual spot</string>
     <string name="home_parking_release">Release spot</string>
+    <!-- Selected-parking primary CTA — leaving IS the community loop action. [UI-SHEET-001] -->
+    <string name="home_parking_leave_release">I&#8217;m leaving · Free my spot</string>
+    <!-- Edit icon-button (pin+pencil) on the selected-parking meta block + its menu. [UI-SHEET-001] -->
+    <string name="home_parking_edit_menu_cd">Edit parking location</string>
+    <string name="home_parking_menu_delete">Delete record</string>
+    <!-- Edit-parking modal (move primary / delete destructive). [UI-SHEET-004] -->
+    <string name="home_parking_edit_dialog_title">Edit parking</string>
+    <string name="home_parking_edit_dialog_body">Move the pin to the right place, or delete this parking record.</string>
+    <!-- Community-spot signal pair — confirm it still exists / report it gone. [UI-SHEET-001] -->
+    <string name="home_spot_still_there">Still there?</string>
+    <string name="home_spot_gone">It&#8217;s gone</string>
     <string name="home_navigate_to_spot">Directions</string>
     <string name="home_navigate_to_vehicle">Navigate to vehicle</string>
     <string name="home_feed_nearby">Near you</string>
@@ -49,8 +66,13 @@
         <item quantity="one">%1$d free spot near you</item>
         <item quantity="other">%1$d free spots near you</item>
     </plurals>
-    <string name="home_empty_title">No spots nearby</string>
+    <string name="home_empty_title">No spots reported yet</string>
     <string name="home_empty_subtitle">Be the first to report one</string>
+    <!-- Browse header (PapSheet): neutral zone eyebrow + parked subtitle + 0-spots hint. [UI-SHEET-001] -->
+    <string name="home_browse_eyebrow_zone">Your zone</string>
+    <string name="home_browse_parked_meta">Parked %1$s ago · %2$s from you</string>
+    <string name="home_browse_parked_ago">Parked %1$s ago</string>
+    <string name="home_browse_hint_swipe_report">Swipe ↑ to report a free spot</string>
     <string name="home_address_unknown">Unknown location</string>
     <string name="home_release_dialog_title">Releasing the spot — share it?</string>
     <string name="home_release_dialog_message">When you notify, other drivers get an alert and can arrive sooner.</string>
@@ -264,6 +286,7 @@
     <string name="home_zone_radius_meters">%1$d m</string>
     <string name="home_header_add_zone">Add habitual zone</string>
     <string name="home_header_add_zone_hint">Home, work, gym\u2026</string>
+    <string name="home_header_add_zone_dismiss_cd">Dismiss</string>
 
     <!-- GPS accuracy banner — shown when signal is weak -->
     <string name="home_gps_accuracy_banner">GPS ±%1$dm</string>
@@ -468,7 +491,7 @@
     <!-- Accessibility content descriptions (QA-006) -->
     <string name="home_peek_dismiss_cd">Dismiss</string>
     <string name="home_peek_car_parked_label">Your car is parked</string>
-    <string name="home_peek_vehicle_parked_label">%1$s is parked</string>
+    <string name="home_peek_vehicle_parked_label">%1$s · parked</string>
     <string name="home_peek_spot_compatible">Fits %1$s</string>
     <string name="bt_config_cd_back">Back</string>
     <!-- Auth screens -->

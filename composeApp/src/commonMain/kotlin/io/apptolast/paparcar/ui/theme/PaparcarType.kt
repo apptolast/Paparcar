@@ -58,6 +58,11 @@ class PaparcarType(
     // ── STRUCTURE · Inter (neutral face — navigation of the layout) ─────────────────────────────
     /** Section header eyebrow — "TUS VEHÍCULOS", "ACTIVIDAD". Uppercased by `PapSectionHeader`. */
     val sectionHeader: TextStyle,
+    /** Sheet-header eyebrow — the small caps line ABOVE a title ("FORD FOCUS · APARCADO",
+     *  "TU ZONA"). Smaller and wider-tracked than [sectionHeader]: it qualifies a title directly
+     *  below it instead of opening a section, and carries a state tint. Uppercased by caller.
+     *  [UI-SHEET-001] */
+    val eyebrow: TextStyle,
     /** Primary CTA / button label. (labelLarge weight-bumped to Bold — the `PapFooterButton` recipe.) */
     val cta: TextStyle,
     /** Small standalone label / chip text (not a data token). (== labelMedium.) */
@@ -82,6 +87,12 @@ class PaparcarType(
     val sizeToken: TextStyle,
     /** Prominent stat readout — "43", "92%". (== statNumber, fixed at 25sp — no per-call overrides.) */
     val statNumber: TextStyle,
+    /** Count digit inside a lead tile — the free-spot number of the sheet-header counter. Between
+     *  [badge] and [statNumber]: big enough to be the tile's subject, small enough for a 46dp box.
+     *  Trimmed line box like [statNumber] so it centres optically. [UI-SHEET-001] */
+    val counter: TextStyle,
+    /** Unit caption under a [counter] digit — "LIBRES". Uppercased by caller. [UI-SHEET-001] */
+    val counterUnit: TextStyle,
     /** Distance / elapsed badge on the map pill — "12 min". (== distanceBadge.) */
     val distance: TextStyle,
     /** Chart axis label — month / day names under the bars. (== chartDayLabel.) */
@@ -142,9 +153,13 @@ fun rememberPaparcarType(): PaparcarType {
             fontFamily = inter, fontWeight = FontWeight.ExtraBold,
             fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 1.0.sp,
         ),
-        cta = TextStyle(
+        eyebrow = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.Bold,
-            fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
+            fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 1.2.sp,
+        ),
+        cta = TextStyle(
+            fontFamily = inter, fontWeight = FontWeight.SemiBold,
+            fontSize = 15.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
         ),
         label = TextStyle(
             fontFamily = inter, fontWeight = FontWeight.Medium,
@@ -188,6 +203,18 @@ fun rememberPaparcarType(): PaparcarType {
                 alignment = LineHeightStyle.Alignment.Center,
                 trim = LineHeightStyle.Trim.Both,
             ),
+        ),
+        counter = TextStyle(
+            fontFamily = barlow, fontWeight = FontWeight.Bold,
+            fontSize = 21.sp, lineHeight = 21.sp, letterSpacing = (-0.3).sp,
+            lineHeightStyle = LineHeightStyle(
+                alignment = LineHeightStyle.Alignment.Center,
+                trim = LineHeightStyle.Trim.Both,
+            ),
+        ),
+        counterUnit = TextStyle(
+            fontFamily = barlow, fontWeight = FontWeight.SemiBold,
+            fontSize = 8.5.sp, lineHeight = 10.sp, letterSpacing = 0.5.sp,
         ),
         distance = TextStyle(
             fontFamily = barlow, fontWeight = FontWeight.SemiBold,

@@ -85,6 +85,7 @@ import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
+import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.presentation.util.driveTimeString
@@ -93,6 +94,7 @@ import io.apptolast.paparcar.presentation.util.walkTimeString
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.PapClearIconButton
 import io.apptolast.paparcar.ui.components.PapSectionHeader
+import io.apptolast.paparcar.ui.components.chips.PaparcarFilterChip
 import io.apptolast.paparcar.ui.components.ReliabilityMeter
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
@@ -112,10 +114,17 @@ import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_c
 import paparcar.composeapp.generated.resources.home_add_parking_helper_primary_edit
 import paparcar.composeapp.generated.resources.home_add_parking_helper_secondary
 import paparcar.composeapp.generated.resources.home_address_unknown
+import paparcar.composeapp.generated.resources.home_browse_eyebrow_zone
+import paparcar.composeapp.generated.resources.home_browse_hint_swipe_report
+import paparcar.composeapp.generated.resources.home_browse_parked_ago
+import paparcar.composeapp.generated.resources.home_browse_parked_meta
 import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
-import paparcar.composeapp.generated.resources.home_parking_release
+import paparcar.composeapp.generated.resources.home_parking_leave_release
+import paparcar.composeapp.generated.resources.home_parking_menu_delete
+import paparcar.composeapp.generated.resources.home_spot_gone
+import paparcar.composeapp.generated.resources.home_spot_still_there
 import paparcar.composeapp.generated.resources.home_peek_car_parked_label
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_hm
 import paparcar.composeapp.generated.resources.home_peek_parking_duration_min
@@ -134,7 +143,6 @@ import paparcar.composeapp.generated.resources.home_peek_spot_incompatible
 import paparcar.composeapp.generated.resources.home_peek_spot_low
 import paparcar.composeapp.generated.resources.home_peek_spot_manual
 import paparcar.composeapp.generated.resources.home_peek_spot_medium
-import paparcar.composeapp.generated.resources.home_peek_spot_occupied
 import paparcar.composeapp.generated.resources.home_peek_spot_reliability_label
 import paparcar.composeapp.generated.resources.home_peek_spot_size_unknown
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
@@ -170,9 +178,13 @@ import kotlin.math.roundToInt
 @Composable
 internal fun HomePeekHandle(
     state: HomeState,
+    /** True while the sheet sits beyond peek — expanded browse swaps to the zone header. [UI-SHEET-004] */
+    browseShowsZoneHeader: Boolean = false,
     onDismiss: () -> Unit = {},
     onRelease: () -> Unit = {},
+    onAcceptSpot: () -> Unit = {},
     onRejectSpot: () -> Unit = {},
+    onDeleteParking: () -> Unit = {},
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit = { _, _, _ -> },
     onCancelReport: () -> Unit = {},
     onConfirmReport: () -> Unit = {},
@@ -215,7 +227,9 @@ internal fun HomePeekHandle(
         if (state.detectionUiState != DetectionUiState.BlockedCore) {
             Box(
                 modifier = Modifier
-                    .padding(top = 10.dp, bottom = 8.dp)
+                    // Glued to the header — no dead air between pill and eyebrow; the header's own
+                    // top padding (12dp) is all the breathing room the peek needs. [UI-SHEET-003]
+                    .padding(top = 8.dp, bottom = 2.dp)
                     .size(width = 32.dp, height = 4.dp)
                     .background(
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
@@ -259,6 +273,7 @@ internal fun HomePeekHandle(
                             onNavigate = {
                                 onNavigateExternal(spot.location.latitude, spot.location.longitude, false)
                             },
+                            onAcceptSpot = onAcceptSpot,
                             onRejectSpot = onRejectSpot,
                             spotListExpanded = spotListExpanded,
                             onToggleSpotList = onToggleSpotList,
@@ -281,6 +296,7 @@ internal fun HomePeekHandle(
                                 onNavigateExternal(parking.location.latitude, parking.location.longitude, true)
                             },
                             onMoveLocation = onMoveParkingLocation,
+                            onDeleteParking = onDeleteParking,
                         )
                     }
                 }
@@ -304,8 +320,14 @@ internal fun HomePeekHandle(
                     isEditing = target.isEditing,
                     onCancel = onCancelAddParking,
                     onConfirm = onConfirmAddParking,
+                    onDelete = onDeleteParking,
                             )
-                PeekState.Browse -> CameraLocationRow(state = state, freeCount = freeCount, onToggle = onToggle)
+                PeekState.Browse -> CameraLocationRow(
+                    state = state,
+                    freeCount = freeCount,
+                    showZoneHeader = browseShowsZoneHeader,
+                    onToggle = onToggle,
+                )
             }
         }
     }
@@ -341,6 +363,7 @@ private fun SpotPeekRow(
     activeVehicle: Vehicle?,
     onDismiss: () -> Unit,
     onNavigate: () -> Unit,
+    onAcceptSpot: () -> Unit,
     onRejectSpot: () -> Unit,
     spotListExpanded: Boolean = false,
     onToggleSpotList: () -> Unit = {},
@@ -364,29 +387,30 @@ private fun SpotPeekRow(
     val ttlMinutes = remainingMinutes(spot.expiresAt, nowMs)
     val spotAgeMin = ageMinutes(spot.location.timestamp, nowMs)
 
-    PeekStateCard(
-        headerLabel = palette.label,
+    PapSheet(
+        lead = PapSheetLead.CommunitySpot,
+        eyebrow = palette.label,
+        // Reliability tint rides the eyebrow, not the lead — the "P" tile stays
+        // the one recognisable community-blue subject. [UI-SHEET-001]
+        eyebrowColor = palette.badgeBg,
         title = title,
-        accentColor = palette.badgeBg,
         onDismiss = onDismiss,
-        leading = { SpotReliabilityBadge(palette) },
-        content = {
+        meta = {
             SpotFitRow(spot = spot, vehicle = activeVehicle)
-            Spacer(Modifier.height(8.dp))
             DistanceRow(distanceM = distM, mode = travelMode, accentColor = palette.badgeBg)
             if (spotAgeMin != null) {
-                Spacer(Modifier.height(8.dp))
                 SpotAgeRow(ageMinutes = spotAgeMin, accentColor = palette.badgeBg)
             }
             if (spot.enRouteCount > 0) {
-                Spacer(Modifier.height(8.dp))
                 SpotEnRouteRow(count = spot.enRouteCount, accentColor = palette.badgeBg)
             }
-            Spacer(Modifier.height(12.dp))
+        },
+        content = {
             FiabilityIndicator(level = reliabilityLevel, expiresInMin = ttlMinutes)
             Spacer(Modifier.height(14.dp))
         },
         actions = {
+            // Primary = get there before it expires — THE community-loop action here.
             PapFooterButton(
                 label = stringResource(Res.string.home_navigate_to_spot),
                 leadingIcon = Icons.Rounded.Navigation,
@@ -395,13 +419,24 @@ private fun SpotPeekRow(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
-            PapFooterButton(
-                label = stringResource(Res.string.home_peek_spot_occupied),
-                leadingIcon = Icons.Rounded.Block,
-                onClick = onRejectSpot,
-                style = PapFooterButtonStyle.Outlined,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // Signal pair — community feedback, low emphasis (tonal twins). "Still there?"
+            // reinforces reliability and keeps the sheet open; "It's gone" rejects + dismisses.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PapFooterButton(
+                    label = stringResource(Res.string.home_spot_still_there),
+                    leadingIcon = Icons.Rounded.CheckCircle,
+                    onClick = onAcceptSpot,
+                    style = PapFooterButtonStyle.Tonal,
+                    modifier = Modifier.weight(1f),
+                )
+                PapFooterButton(
+                    label = stringResource(Res.string.home_spot_gone),
+                    leadingIcon = Icons.Rounded.Block,
+                    onClick = onRejectSpot,
+                    style = PapFooterButtonStyle.Tonal,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             Spacer(Modifier.height(12.dp))
             PapDivider()
             SpotListToggleRow(
@@ -444,31 +479,6 @@ private fun SpotListToggleRow(
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = TOGGLE_ROW_ALPHA),
             modifier = Modifier.size(18.dp).rotate(rotation),
-        )
-    }
-}
-
-/**
- * Spot leading chip — same 44dp rounded-square molde as
- * [PeekHeaderIconChip], but with a "P" letter inside (in [palette.badgeFg])
- * and the chip background tinted by reliability palette.
- */
-@Composable
-private fun SpotReliabilityBadge(
-    palette: SpotPeekPalette,
-) {
-    Box(
-        modifier = Modifier
-            .size(SPOT_BADGE_DP.dp)
-            .clip(CircleShape)
-            .background(palette.badgeBg),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = PaparcarIcons.SpotParkingP,
-            contentDescription = null,
-            tint = palette.badgeFg,
-            modifier = Modifier.size(SPOT_BADGE_ICON_DP.dp),
         )
     }
 }
@@ -648,6 +658,7 @@ private fun ParkingPeekRow(
     onRelease: () -> Unit,
     onWalkToCar: () -> Unit,
     onMoveLocation: () -> Unit,
+    onDeleteParking: () -> Unit,
     stableRank: Int? = null,
 ) {
     val distM = userLocation?.let { (uLat, uLon) ->
@@ -666,7 +677,6 @@ private fun ParkingPeekRow(
         isActive = true,
     )
     val accentColor = io.apptolast.paparcar.ui.components.vehicleBadgeAccent(tone)
-    val onAccentColor = io.apptolast.paparcar.ui.components.vehicleBadgeOnAccent(tone)
     val vehicleName = vehicleSummary(vehicle)
     val headerLabel = if (vehicleName != null) {
         stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
@@ -674,58 +684,41 @@ private fun ParkingPeekRow(
         stringResource(Res.string.home_peek_car_parked_label)
     }
 
-    PeekStateCard(
-        headerLabel = headerLabel,
+    PapSheet(
+        lead = PapSheetLead.Vehicle(
+            carbody = vehicle?.carbodyType,
+            size = vehicle?.sizeCategory,
+            color = vehicle?.color,
+        ),
+        eyebrow = headerLabel,
+        // Green when parked, drive-blue when BT-paired — same tone as its map marker. [DET-READY-001k]
+        eyebrowColor = accentColor,
         title = title,
-        accentColor = accentColor,
         onDismiss = onDismiss,
-        leading = {
-            ParkedVehicleHeaderChip(
-                carbody = vehicle?.carbodyType,
-                size = vehicle?.sizeCategory,
-                color = vehicle?.color,
-            )
-        },
-        content = {
+        meta = {
             DistanceRow(distanceM = distM, mode = TravelMode.WALKING, accentColor = accentColor)
-            Spacer(Modifier.height(8.dp))
             ParkingDurationRow(timestampMs = parking.location.timestamp, accentColor = accentColor)
-            Spacer(Modifier.height(14.dp))
         },
+        // The edit icon-button jumps straight into the add-parking sheet in edit mode —
+        // delete lives THERE as the destructive action. [UI-SHEET-004]
+        metaAction = { PapSheetEditButton(onEdit = onMoveLocation) },
         actions = {
+            // Primary = leaving IS the action that advances the community loop here:
+            // it frees the spot (release dialog: publish / just delete).
+            PapFooterButton(
+                label = stringResource(Res.string.home_parking_leave_release),
+                leadingIcon = Icons.AutoMirrored.Rounded.Logout,
+                onClick = onRelease,
+                style = PapFooterButtonStyle.Filled,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            // Navigate back to the car — relevant but external intent, so secondary.
             PapFooterButton(
                 label = stringResource(Res.string.home_navigate_to_vehicle),
                 leadingIcon = Icons.AutoMirrored.Rounded.DirectionsWalk,
                 onClick = onWalkToCar,
-                style = PapFooterButtonStyle.Filled,
-                containerColor = accentColor,
-                contentColor = onAccentColor,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            // Move is a pin-tweak utility — the lightest of the three (outlined neutral) so it
-            // recedes below the two real actions (navigate / release). [PEEK-ACTIONS-002]
-            PapFooterButton(
-                label = stringResource(Res.string.home_parking_action_move_location),
-                leadingIcon = Icons.Rounded.EditLocationAlt,
-                onClick = onMoveLocation,
                 style = PapFooterButtonStyle.Outlined,
-                containerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = MOVE_OUTLINE_ALPHA),
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            // Releasing the spot is the product's core action — give it strong weight with a solid
-            // neutral fill. inverseSurface flips with the theme (dark in light, light in dark) with
-            // guaranteed-contrast text, so it's prominent yet clearly distinct from the green
-            // primary. Bottom placement is the conventional slot for the "leave" action. [PEEK-ACTIONS-002]
-            PapFooterButton(
-                label = stringResource(Res.string.home_parking_release),
-                leadingIcon = Icons.AutoMirrored.Rounded.Logout,
-                onClick = onRelease,
-                style = PapFooterButtonStyle.Filled,
-                containerColor = MaterialTheme.colorScheme.inverseSurface,
-                contentColor = MaterialTheme.colorScheme.inverseOnSurface,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -758,6 +751,7 @@ private fun AddingParkingPeekRow(
     isEditing: Boolean,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val primaryText = cameraTitleWhileSettling(state)
 
@@ -797,25 +791,21 @@ private fun AddingParkingPeekRow(
     // Show the actual car (carbody glyph) being parked, not a generic DirectionsCar so the user
     // recognises the vehicle. The car stays full-colour/opaque regardless of monitoring state — that
     // state reads on its on-map marker border, not by dimming the glyph here. [INACTIVE-OPAQUE-001]
-    PeekStateCard(
-        headerLabel = headerLabel,
+    PapSheet(
+        lead = PapSheetLead.Vehicle(
+            carbody = targetVehicle?.carbodyType,
+            size = targetVehicle?.sizeCategory,
+            color = targetVehicle?.color,
+        ),
+        eyebrow = headerLabel,
+        eyebrowTone = PapSheetEyebrowTone.Action,
         title = primaryText,
         onDismiss = onCancel,
-        leading = {
-            ParkedVehicleHeaderChip(
-                carbody = targetVehicle?.carbodyType,
-                size = targetVehicle?.sizeCategory,
-                color = targetVehicle?.color,
+        banner = {
+            PapSheetBanner(
+                title = helperPrimary,
+                subtitle = stringResource(Res.string.home_add_parking_helper_secondary),
             )
-        },
-        content = {
-            HelperRow(
-                icon = Icons.Rounded.Info,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                primary = helperPrimary,
-                secondary = stringResource(Res.string.home_add_parking_helper_secondary),
-            )
-            Spacer(Modifier.height(14.dp))
         },
         actions = {
             PapFooterButton(
@@ -828,6 +818,21 @@ private fun AddingParkingPeekRow(
                 isLoading = state.isSavingParking,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (isEditing) {
+                Spacer(Modifier.height(8.dp))
+                // Editing an existing record also offers deleting it — the one
+                // sanctioned destructive red. [UI-SHEET-004]
+                PapFooterButton(
+                    label = stringResource(Res.string.home_parking_menu_delete),
+                    leadingIcon = Icons.Rounded.Delete,
+                    onClick = onDelete,
+                    style = PapFooterButtonStyle.Outlined,
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.error,
+                    enabled = !state.isSavingParking,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
     )
 }
@@ -845,23 +850,23 @@ private fun ReportPeekRow(
 ) {
     val primaryText = cameraTitleWhileSettling(state)
 
-    PeekStateCard(
-        headerLabel = stringResource(Res.string.home_report_header_label),
+    PapSheet(
+        lead = PapSheetLead.Announce,
+        eyebrow = stringResource(Res.string.home_report_header_label),
+        // Manual report = blue, mirroring the manual-spot tint on the map. [UI-SHEET-001]
+        eyebrowTone = PapSheetEyebrowTone.Manual,
         title = primaryText,
         onDismiss = onCancel,
-        leading = { PeekHeaderIconChip(icon = Icons.Rounded.Campaign) },
-        content = {
-            HelperRow(
-                icon = Icons.Rounded.Info,
-                iconTint = MaterialTheme.colorScheme.secondary,
-                primary = stringResource(Res.string.home_report_helper_primary),
-                secondary = stringResource(Res.string.home_report_helper_secondary),
+        banner = {
+            PapSheetBanner(
+                title = stringResource(Res.string.home_report_helper_primary),
+                subtitle = stringResource(Res.string.home_report_helper_secondary),
             )
-            Spacer(Modifier.height(12.dp))
+        },
+        chips = {
             PapSectionHeader(title = stringResource(Res.string.home_report_size_section))
             Spacer(Modifier.height(6.dp))
             SizeChipRow(selected = state.reportingSize, onSelect = onSizeSelected)
-            Spacer(Modifier.height(14.dp))
         },
         actions = {
             PapFooterButton(
@@ -880,37 +885,17 @@ private fun ReportPeekRow(
 @Composable
 private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit) {
     val sizes = VehicleSize.entries
-    val cs = MaterialTheme.colorScheme
 
-    @Composable
-    fun Chip(label: String, isSelected: Boolean, onClick: () -> Unit) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(SIZE_CHIP_RADIUS_DP.dp))
-                .background(
-                    if (isSelected) cs.primary else cs.surfaceContainerHigh,
-                )
-                .clickable { onClick() }
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = label,
-                style = PaparcarType.current.label,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) cs.onPrimary else cs.onSurfaceVariant,
-            )
-        }
-    }
-
+    // One canonical chip for filter bars AND this size selector — selection reads
+    // as tinted container + primary accents, never a solid green fill. [UI-SHEET-001]
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "unknown") {
-            Chip(
+            PaparcarFilterChip(
                 label = stringResource(Res.string.vehicle_size_unknown),
-                isSelected = selected == null,
+                selected = selected == null,
                 onClick = { onSelect(null) },
             )
         }
@@ -924,9 +909,9 @@ private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit
                     VehicleSize.VAN_HIGH    -> Res.string.vehicle_size_van
                 }
             )
-            Chip(
+            PaparcarFilterChip(
                 label = label,
-                isSelected = size == selected,
+                selected = size == selected,
                 onClick = { onSelect(size) },
             )
         }
@@ -955,11 +940,12 @@ private fun AddingZonePeekRow(
         stringResource(Res.string.home_zone_header_label)
     }
     val focusManager = LocalFocusManager.current
-    PeekStateCard(
-        headerLabel = headerLabel,
+    PapSheet(
+        lead = PapSheetLead.GenericIcon(icon = zoneIconFor(state.addingZoneIconKey)),
+        eyebrow = headerLabel,
+        eyebrowTone = PapSheetEyebrowTone.Neutral,
         title = primaryText,
         onDismiss = onCancel,
-        leading = { PeekHeaderIconChip(icon = zoneIconFor(state.addingZoneIconKey)) },
         content = {
             androidx.compose.material3.OutlinedTextField(
                 value = state.addingZoneName,
@@ -1098,55 +1084,6 @@ private fun ZoneIconPickerRow(
     }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// Helper row — icon + primary line + secondary line (used by Report mode)
-// ═════════════════════════════════════════════════════════════════════════════
-
-@Composable
-internal fun HelperRow(
-    icon: ImageVector,
-    primary: String,
-    secondary: String? = null,
-    iconTint: Color = MaterialTheme.colorScheme.primary,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(HELPER_CORNER_DP.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = HELPER_BG_ALPHA))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(18.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = primary,
-                style = PaparcarType.current.caption,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!secondary.isNullOrBlank()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = secondary,
-                    style = PaparcarType.current.label,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = HELPER_SECONDARY_ALPHA),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
 /**
  * Peek-friendly title resolver. Returns place name OR address line, **never**
  * concatenated — the peek/state cards have tight horizontal space and a long
@@ -1200,7 +1137,59 @@ private fun cameraTitleWhileSettling(state: HomeState): String =
 // ═════════════════════════════════════════════════════════════════════════════
 
 @Composable
-private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> Unit = {}) {
+private fun CameraLocationRow(
+    state: HomeState,
+    freeCount: Int,
+    showZoneHeader: Boolean,
+    onToggle: () -> Unit = {},
+) {
+    val parking = state.userParking
+
+    // ── Subject = the parked car (collapsed peek only) ────────────────────────
+    // Title/sub come from THE SESSION — static. The camera must never drag your parked
+    // car around ("one car parked in two places"). Expanded browse hands the header to
+    // the zone below: the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
+    if (parking != null && !showZoneHeader) {
+        val vehicle = state.vehicles.firstOrNull { it.id == parking.vehicleId }
+        val vehicleName = vehicleSummary(vehicle)
+        val eyebrow = if (vehicleName != null) {
+            stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
+        } else {
+            stringResource(Res.string.home_peek_car_parked_label)
+        }
+        val title = peekTitle(
+            placeName = parking.placeInfo?.name,
+            addressLine = parking.address?.displayLine,
+            lat = parking.location.latitude,
+            lon = parking.location.longitude,
+        )
+        val distM = state.userGpsPoint?.let {
+            distanceMeters(it.latitude, it.longitude, parking.location.latitude, parking.location.longitude)
+        }
+        val subtitle = if (parking.location.timestamp > 0L) {
+            val ago = compactRelativeTimeText(parking.location.timestamp)
+            if (distM != null) {
+                stringResource(Res.string.home_browse_parked_meta, ago, distanceString(distM))
+            } else {
+                stringResource(Res.string.home_browse_parked_ago, ago)
+            }
+        } else null
+        PapSheet(
+            lead = PapSheetLead.Vehicle(
+                carbody = vehicle?.carbodyType,
+                size = vehicle?.sizeCategory,
+                color = vehicle?.color,
+            ),
+            eyebrow = eyebrow,
+            eyebrowTone = PapSheetEyebrowTone.Action,
+            title = title,
+            subtitle = subtitle,
+            trailing = if (freeCount > 0) PapSheetTrailing.CountPill(freeCount) else null,
+        )
+        return
+    }
+
+    // ── Subject = the zone (no parked car, or expanded browse) ────────────────
     val info = state.cameraAddressAndPlace
     // Show skeleton when there is no displayable content — covers:
     //  • info still null (initial load before first geocode)
@@ -1211,101 +1200,29 @@ private fun CameraLocationRow(state: HomeState, freeCount: Int, onToggle: () -> 
         PeekLocationSkeleton(onToggle = onToggle)
         return
     }
-
-    // info is non-null and has at least one displayable field from here on.
-    // Shimmer bars are declared unconditionally to satisfy Compose composition rules.
-    val shimmerTransition = rememberInfiniteTransition(label = "addr_shimmer")
-    val shimmerAlpha by shimmerTransition.animateFloat(
-        initialValue = SHIMMER_ALPHA_MIN,
-        targetValue = SHIMMER_ALPHA_MAX,
-        animationSpec = infiniteRepeatable(
-            animation = tween(SHIMMER_DURATION_MS, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "addr_shimmer_alpha",
-    )
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            // 16dp — same grid as the expanded sheet content, so the address doesn't
-            // step sideways when the sheet expands. [HOME-VEH-REFINE-001]
-            .padding(horizontal = BROWSE_ROW_HORIZONTAL_PAD_DP.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            imageVector = info.placeInfo?.category?.icon ?: Icons.Rounded.LocationOn,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(30.dp),
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            val textAlpha = if (state.isCameraGeocoding) shimmerAlpha else 1f
-            Text(
-                text = if (info.placeInfo != null) info.placeInfo.name
-                       else info.displayLine ?: stringResource(Res.string.home_address_unknown),
-                style = PaparcarType.current.cardTitle,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha),
-                maxLines = 1,
-                modifier = Modifier.basicMarquee(),
-            )
-            val secondaryLine = if (info.placeInfo != null) {
-                info.address.displayLine?.takeIf { it != info.placeInfo.name }
-            } else {
-                listOfNotNull(info.address.city, info.address.region)
-                    .joinToString(", ").takeIf { it.isNotEmpty() }
-            }
-            if (secondaryLine != null) {
-                Text(
-                    text = secondaryLine,
-                    style = PaparcarType.current.caption,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SECONDARY_ALPHA * textAlpha),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        // Free-spots badge. With spots → green "N libres" + live dot. With none → a calm, readable
-        // "Sin plazas cerca" chip (NOT a faded grey "0", which read like the app was broken): the map
-        // is still anchored on you, there just aren't spots right now. [FOCUS-003]
-        val hasSpots = freeCount > 0
-        Surface(
-            color = if (hasSpots) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceVariant,
-            shape = RoundedCornerShape(8.dp),
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                if (hasSpots) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                }
-                Text(
-                    // Condensed to save horizontal space. The short count is uppercased ("3 LIBRES");
-                    // the longer empty-state message stays sentence case so it doesn't read as shouty
-                    // or oversized. [HOME-VEH-REFINE-001]
-                    text = if (hasSpots) stringResource(Res.string.home_stats_free_spots_badge, freeCount).uppercase()
-                           else stringResource(Res.string.home_peek_no_spots),
-                    // The count "3 LIBRES" is a data token → Barlow (badge); the empty-state sentence
-                    // "Sin plazas cerca" reads as a phrase → Inter (caption). [TYPO-AUDIT-001]
-                    style = if (hasSpots) PaparcarType.current.badge.copy(fontWeight = FontWeight.Bold)
-                            else PaparcarType.current.caption,
-                    color = if (hasSpots) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-        }
+    val title = if (info.placeInfo != null) info.placeInfo.name
+                else info.displayLine ?: stringResource(Res.string.home_address_unknown)
+    // Secondary address line keeps the three zone variants the same height, so the
+    // resting peek never changes size under the divider. [BUG-PEEK-DIVIDER-ALIGN]
+    val secondaryLine = if (info.placeInfo != null) {
+        info.address.displayLine?.takeIf { it != info.placeInfo.name }
+    } else {
+        listOfNotNull(info.address.city, info.address.region)
+            .joinToString(", ").takeIf { it.isNotEmpty() }
     }
+    PapSheet(
+        lead = PapSheetLead.SpotCounter(freeCount),
+        eyebrow = stringResource(Res.string.home_browse_eyebrow_zone),
+        eyebrowTone = PapSheetEyebrowTone.Neutral,
+        title = title,
+        // Collapsed with 0 spots: the sub is the activation hint; otherwise the address line.
+        subtitle = if (freeCount == 0 && !showZoneHeader) {
+            stringResource(Res.string.home_browse_hint_swipe_report)
+        } else {
+            secondaryLine
+        },
+        trailing = null,
+    )
 }
 
 @Composable
@@ -1368,12 +1285,8 @@ private fun PeekLocationSkeleton(onToggle: () -> Unit = {}) {
 // Tokens shared across peek states
 // ═════════════════════════════════════════════════════════════════════════════
 
-private const val SPOT_BADGE_DP = 44
-private const val SPOT_BADGE_ICON_DP = 30
 private const val ZONE_ICON_CHIP_DP = 40
-private const val SIZE_CHIP_RADIUS_DP = 20
 private const val WALK_DISTANCE_THRESHOLD_M = 400f
-private const val HELPER_CORNER_DP = 10
 private const val META_ICON_DP = 18
 private const val FIABILITY_SEG_HEIGHT_DP = 4
 private const val FIABILITY_EXPIRY_WARN_MIN = 5
@@ -1385,13 +1298,4 @@ private const val META_SEPARATOR = "  ·  "
 
 private const val SECTION_LABEL_ALPHA = 0.55f
 private const val META_VALUE_ALPHA = 0.7f
-private const val HELPER_BG_ALPHA = 0.5f
-private const val SECONDARY_ALPHA = 0.55f
-private const val HELPER_SECONDARY_ALPHA = SECONDARY_ALPHA
 private const val TOGGLE_ROW_ALPHA = 0.55f
-// Border alpha for the outlined "Move location" utility action — a quiet neutral hairline. [PEEK-ACTIONS-002]
-private const val MOVE_OUTLINE_ALPHA = 0.30f
-
-private const val SHIMMER_ALPHA_MIN = 0.10f
-private const val SHIMMER_ALPHA_MAX = 0.80f
-private const val SHIMMER_DURATION_MS = PapMotion.Breathe

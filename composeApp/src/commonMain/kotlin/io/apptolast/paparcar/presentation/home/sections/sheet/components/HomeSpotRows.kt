@@ -32,7 +32,11 @@ import io.apptolast.paparcar.ui.icons.icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,8 +52,11 @@ import io.apptolast.paparcar.presentation.util.locationDisplayText
 import io.apptolast.paparcar.presentation.util.toReliabilityUiState
 import io.apptolast.paparcar.ui.components.EnRouteIndicator
 import io.apptolast.paparcar.ui.components.PapEmptyStateCard
+import io.apptolast.paparcar.ui.components.PapFooterButton
+import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.components.SpotPuckIcon
 import io.apptolast.paparcar.ui.components.TTLIndicator
+import io.apptolast.paparcar.ui.theme.PapBorders
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_empty_subtitle
@@ -246,8 +253,34 @@ private fun SpotReliabilityUiState.palette(): ReliabilityPalette {
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
-    PapEmptyStateCard(modifier = modifier) {
+internal fun HomeEmptySpots(
+    onReport: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Dashed border = "this slot is waiting to be filled" — an invitation, not a card.
+    // "Notify me when there's one" (bell → zone subscription) is deliberately absent:
+    // there is no zone-subscription backend yet. [ZONE-SUBSCRIBE-001] [UI-SHEET-001]
+    val outline = MaterialTheme.colorScheme.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .drawBehind {
+                val strokeW = PapBorders.thin.toPx()
+                drawRoundRect(
+                    color = outline,
+                    cornerRadius = CornerRadius(EMPTY_DASH_CORNER_DP.dp.toPx()),
+                    style = Stroke(
+                        width = strokeW,
+                        pathEffect = PathEffect.dashPathEffect(
+                            floatArrayOf(EMPTY_DASH_ON_DP.dp.toPx(), EMPTY_DASH_OFF_DP.dp.toPx()),
+                        ),
+                    ),
+                )
+            }
+            .padding(horizontal = 16.dp, vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         EmptySpotsIllustration(
             modifier = Modifier.size(EMPTY_ILLUSTRATION_W.dp, EMPTY_ILLUSTRATION_H.dp),
         )
@@ -264,6 +297,14 @@ internal fun HomeEmptySpots(modifier: Modifier = Modifier) {
             stringResource(Res.string.home_empty_subtitle),
             style = PaparcarType.current.caption,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = EMPTY_SUBTITLE_ALPHA),
+        )
+        Spacer(Modifier.height(8.dp))
+        PapFooterButton(
+            label = stringResource(Res.string.home_report_fab_cd),
+            leadingIcon = Icons.Rounded.Campaign,
+            onClick = onReport,
+            style = PapFooterButtonStyle.Filled,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -370,3 +411,7 @@ private const val EMPTY_ICON_ALPHA = 0.25f
 private const val EMPTY_SUBTITLE_ALPHA = 0.5f
 private const val EMPTY_ILLUSTRATION_W = 180
 private const val EMPTY_ILLUSTRATION_H = 154
+// Dashed "waiting slot" border of the empty state — same 14dp tier as cardSmall.
+private const val EMPTY_DASH_CORNER_DP = 14
+private const val EMPTY_DASH_ON_DP = 6
+private const val EMPTY_DASH_OFF_DP = 6

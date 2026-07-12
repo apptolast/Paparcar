@@ -32,6 +32,7 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
@@ -533,6 +534,8 @@ private fun DetectionHealthRow(state: SettingsState, onFix: () -> Unit, onFixRel
                     border = BorderStroke(PapBorders.thin, cs.secondary),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                 ) {
+                    Icon(Icons.Rounded.Build, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.size(6.dp))
                     Text(
                         stringResource(Res.string.settings_detection_fix),
                         style = PaparcarType.current.cta,

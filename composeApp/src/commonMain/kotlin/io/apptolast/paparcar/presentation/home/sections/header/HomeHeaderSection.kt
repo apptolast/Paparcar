@@ -5,6 +5,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,14 +22,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.swmansion.kmpmaps.core.MapType
@@ -47,6 +54,7 @@ import io.apptolast.paparcar.ui.components.GlassSurface
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_header_add_zone
+import paparcar.composeapp.generated.resources.home_header_add_zone_dismiss_cd
 import paparcar.composeapp.generated.resources.home_header_add_zone_hint
 
 @Composable
@@ -158,6 +166,22 @@ private fun HeaderZoneChips(
 
 @Composable
 private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
+    // The two-line invitation must not squat on the map forever: an × collapses it to the
+    // same compact "+" FAB used next to the zone chips. Session-scoped dismissal (no
+    // preference plumbing) — it may reappear on a fresh launch, which is fine for an
+    // invitation. [UI-SHEET-003]
+    var dismissed by rememberSaveable { mutableStateOf(false) }
+    if (dismissed) {
+        MapCircleFab(
+            icon = Icons.Rounded.Add,
+            onClick = onAddZone,
+            contentDescription = stringResource(Res.string.home_header_add_zone),
+            size = ADD_ZONE_CHIP_SIZE_DP.dp,
+            iconSize = CHIP_ICON_DP.dp,
+            modifier = Modifier.padding(start = 14.dp, top = 6.dp),
+        )
+        return
+    }
     GlassSurface(
         shape = RoundedCornerShape(28.dp),
         shadowElevation = MAP_FLOATING_SHADOW_DP.dp,
@@ -196,6 +220,20 @@ private fun HeaderAddZoneChip(onAddZone: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = HINT_ALPHA),
                 )
             }
+            Box(
+                modifier = Modifier
+                    .size(DISMISS_HIT_DP.dp)
+                    .clip(CircleShape)
+                    .clickable { dismissed = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(Res.string.home_header_add_zone_dismiss_cd),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(CHIP_ICON_DP.dp),
+                )
+            }
         }
     }
 }
@@ -205,3 +243,4 @@ private const val CHIP_SHADOW_ROOM_DP = 8
 private const val CHIP_ICON_BOX_DP = 28
 private const val CHIP_ICON_DP = 16
 private const val HINT_ALPHA = 0.5f
+private const val DISMISS_HIT_DP = 28

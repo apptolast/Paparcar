@@ -388,13 +388,13 @@ private fun HomeSpotRowSelectedNoDistanceLightPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HomeEmptySpotsDarkPreview() {
-    PaparcarTheme(darkTheme = true) { Column(Modifier.padding(16.dp)) { HomeEmptySpots() } }
+    PaparcarTheme(darkTheme = true) { Column(Modifier.padding(16.dp)) { HomeEmptySpots(onReport = {}) } }
 }
 
 @Preview(name = "A — HomeEmptySpots (claro)", showBackground = true)
 @Composable
 private fun HomeEmptySpotsLightPreview() {
-    PaparcarTheme(darkTheme = false) { Column(Modifier.padding(16.dp)) { HomeEmptySpots() } }
+    PaparcarTheme(darkTheme = false) { Column(Modifier.padding(16.dp)) { HomeEmptySpots(onReport = {}) } }
 }
 
 // ─── A — PaparcarBottomActionBar ──────────────────────────────────────────────

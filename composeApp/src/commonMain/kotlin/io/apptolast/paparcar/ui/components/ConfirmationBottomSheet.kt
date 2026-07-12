@@ -36,9 +36,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.HelperRow
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.PeekHeaderIconChip
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.PeekStateCard
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheet
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetBanner
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetEyebrowTone
+import io.apptolast.paparcar.presentation.home.sections.sheet.components.PapSheetLead
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -55,9 +56,9 @@ private const val CONFIRMATION_TIMEOUT_SECONDS = 240 // 4 minutes — auto-publi
 /**
  * Modal bottom sheet shown when parking is auto-detected.
  *
- * Uses the shared [PeekStateCard] molde so the visual rhythm matches every
- * other "state" surface in Home (icon chip + green uppercase label + close × +
- * title + content + action footer).
+ * Uses the shared [PapSheet] molde so the visual rhythm matches every
+ * other "state" surface in Home (lead tile + eyebrow + close × + title +
+ * banner + action footer). [UI-SHEET-001]
  *
  * The 4-minute countdown still runs silently and auto-publishes if the user
  * doesn't answer — the timer is intentionally hidden so the sheet doesn't
@@ -96,19 +97,20 @@ fun ConfirmationBottomSheet(
         sheetState = sheetState,
         modifier = modifier,
     ) {
-        PeekStateCard(
-            headerLabel = stringResource(Res.string.confirmation_sheet_title),
+        PapSheet(
+            lead = PapSheetLead.GenericIcon(icon = Icons.Rounded.DirectionsCar),
+            eyebrow = stringResource(Res.string.confirmation_sheet_title),
+            eyebrowTone = PapSheetEyebrowTone.Action,
             title = stringResource(Res.string.confirmation_sheet_question),
             onDismiss = onDismiss,
-            leading = { PeekHeaderIconChip(icon = Icons.Rounded.DirectionsCar) },
             modifier = Modifier.padding(bottom = SHEET_BOTTOM_DP.dp),
-            content = {
-                HelperRow(
+            banner = {
+                PapSheetBanner(
                     icon = Icons.Rounded.LocationOn,
-                    primary = resolvedAddress,
-                    secondary = methodLine,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    title = resolvedAddress,
+                    subtitle = methodLine,
                 )
-                Spacer(Modifier.height(14.dp))
             },
             actions = {
                 PapFooterButton(

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -22,9 +21,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PapBorders
+import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 
-private val CHIP_SHAPE = RoundedCornerShape(18.dp)
+private val CHIP_SHAPE = PapShapes.chip
 private const val DISABLED_BG_ALPHA = 0.5f
 private const val DISABLED_BORDER_ALPHA = 0.3f
 private const val DISABLED_FG_ALPHA = 0.38f
@@ -36,11 +36,11 @@ private const val TRAILING_ICON_ALPHA = 0.5f
  * Paparcar's canonical chip — the single base used for filter chips, zone
  * chips, and any other label-plus-state pill across the app.
  *
- * Selected state uses the primary container fill + outline @ 0.6 alpha (no
- * neon-green border) so it reads as "this is on" without dominating the
- * screen. Unselected uses [PapBorders.DEFAULT_OUTLINE_ALPHA] — the same
- * subtle outline used by ordinary cards — so chips feel like part of the
- * card family.
+ * Selected state uses the primary container fill + `primary` border and text —
+ * "on" reads through tinted CONTAINER + accents, never a solid primary fill
+ * (solid green is reserved for the primary CTA). Unselected uses
+ * [PapBorders.DEFAULT_OUTLINE_ALPHA] — the same subtle outline used by
+ * ordinary cards — so chips feel like part of the card family. [UI-SHEET-001]
  *
  * Optional [trailingIcon] + [onTrailingClick] add a tap-handled icon slot
  * (e.g. `×` for delete on a saved zone chip) without forking the composable.
@@ -65,11 +65,12 @@ fun PaparcarFilterChip(
     }
     val borderColor = when {
         !enabled -> cs.outlineVariant.copy(alpha = DISABLED_BORDER_ALPHA)
+        selected -> cs.primary
         else -> cs.outline.copy(alpha = PapBorders.DEFAULT_OUTLINE_ALPHA)
     }
     val contentColor = when {
         !enabled -> cs.onSurface.copy(alpha = DISABLED_FG_ALPHA)
-        selected -> cs.onPrimaryContainer
+        selected -> cs.primary
         else -> cs.onSurface
     }
 
