@@ -9,9 +9,10 @@ import io.apptolast.paparcar.data.datasource.remote.dto.AddressDto
 import io.apptolast.paparcar.data.datasource.remote.dto.PlaceInfoDto
 import io.apptolast.paparcar.data.datasource.remote.dto.SpotDto
 import io.apptolast.paparcar.data.datasource.remote.dto.ZoneDto
-import io.apptolast.paparcar.data.geohash.geohashQueryRange
+import io.apptolast.paparcar.data.geohash.geohashQueryBounds
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : FirebaseDataSource {
@@ -23,21 +24,23 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
         longitude: Double,
         radiusMeters: Double,
     ): Flow<Map<String, SpotDto>> {
-        // Geohash precision 4 (~39km × 20km cell) guarantees the entire radius is
-        // within one cell regardless of where the center falls inside it. A smaller
-        // precision (e.g. 5 = ~4.9km) would miss spots at cell boundaries for a
-        // 2km radius. Room's bbox filter in SpotRepositoryImpl clips the result to
-        // the actual radius after the write.
-        val (startHash, endHash) = geohashQueryRange(latitude, longitude, queryPrecision = GEOHASH_QUERY_PRECISION)
-        return spotsCollection
-            .where { "geohash" greaterThanOrEqualTo startHash }
-            .where { "geohash" lessThan endHash }
-            .snapshots
-            .map { snapshot ->
-                snapshot.documents
-                    .mapNotNull { doc -> doc.toSpotDto()?.let { doc.id to it } }
-                    .toMap()
-            }
+        // [AUDIT-DATA-002 A11] Query the 3×3 geohash neighbourhood at a precision sized to the
+        // radius, not a single coarse cell. The old single precision-4 cell (~39×20 km) both
+        // MISSED spots just across a cell boundary (a spot 200 m away in the next cell sorts to a
+        // different prefix) and over-downloaded a whole metropolitan area. Each range is a
+        // separate Firestore query (Firestore has no OR-across-ranges); their snapshots are merged
+        // here, and SpotRepositoryImpl's bbox filter still clips to the true radius.
+        val bounds = geohashQueryBounds(latitude, longitude, radiusMeters)
+        val flows = bounds.map { (startHash, endHash) ->
+            spotsCollection
+                .where { "geohash" greaterThanOrEqualTo startHash }
+                .where { "geohash" lessThan endHash }
+                .snapshots
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { doc -> doc.toSpotDto()?.let { doc.id to it } }.toMap()
+                }
+        }
+        return combine(flows) { maps -> maps.fold(emptyMap<String, SpotDto>()) { acc, m -> acc + m } }
     }
 
     override suspend fun reportSpotReleased(spotDto: SpotDto) {
@@ -181,9 +184,7 @@ class FirebaseDataSourceImpl(private val firestore: FirebaseFirestore) : Firebas
 
         const val DEFAULT_SPOT_TYPE = "AUTO_DETECTED"
         const val DEFAULT_ZONE_RADIUS_M = 250f
-
-        // Precision 4 cells are ~39km × 20km — large enough that a 2km radius is
-        // always fully contained in one cell regardless of position within the cell.
-        const val GEOHASH_QUERY_PRECISION = 4
+        // [AUDIT-DATA-002 A11] Geohash query precision is now derived from the radius inside
+        // geohashQueryBounds (3×3 neighbourhood) — no fixed single-cell precision.
     }
 }
