@@ -80,6 +80,7 @@ class ParkingFlowIntegrationTest {
             authRepository = FakeAuthRepository(initialSession = null),
         ),
         userParkingRepository = parkingRepo,
+        geofenceService = FakeGeofenceManager(),
     )
 
     // ── Happy path ────────────────────────────────────────────────────────────

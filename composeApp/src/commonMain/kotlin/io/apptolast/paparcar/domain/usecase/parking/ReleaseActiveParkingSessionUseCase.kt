@@ -6,7 +6,9 @@ import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 
 /**
@@ -25,6 +27,7 @@ import kotlin.time.Clock
 class ReleaseActiveParkingSessionUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val userParkingRepository: UserParkingRepository,
+    private val geofenceService: GeofenceManager,
 ) {
     suspend operator fun invoke(
         lat: Double,
@@ -62,6 +65,21 @@ class ReleaseActiveParkingSessionUseCase(
         // by id leaves other vehicles' active sessions intact. If the caller did
         // not supply a session (legacy / manual delete), nothing to clear locally.
         val sessionId = currentSession?.id ?: return Result.success(Unit)
-        return userParkingRepository.clearActiveParkingSession(sessionId)
+        val clearResult = userParkingRepository.clearActiveParkingSession(sessionId)
+
+        // [DET-SUPERSEDE-001 / Hallazgo A] Freeing the spot ends the session, so its geofence
+        // (EXIT + enter_/witness_ twins, NEVER_EXPIRE) must go too — otherwise it lingers with no
+        // active session and fires a spurious GEOFENCE_EXIT on the next drive-away (leg chino→casa,
+        // field 2026-07-12). Same session-end ⇒ removeGeofence invariant Revert/Departure/Update
+        // already follow. Best-effort: a failed removal is repaired by the orphan-cleanup net.
+        val geofenceId = currentSession.geofenceId ?: sessionId
+        geofenceService.removeGeofence(geofenceId)
+            .onFailure { e -> PaparcarLogger.w(DIAG, "removeGeofence($geofenceId) failed (continuing)", e) }
+
+        return clearResult
+    }
+
+    private companion object {
+        const val DIAG = "PARKDIAG/Release"
     }
 }

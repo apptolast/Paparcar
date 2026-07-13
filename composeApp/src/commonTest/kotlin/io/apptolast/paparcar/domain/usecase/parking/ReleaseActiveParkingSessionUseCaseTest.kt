@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
+import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import kotlinx.coroutines.test.runTest
@@ -27,7 +28,8 @@ class ReleaseActiveParkingSessionUseCaseTest {
         getAddressAndPlace = GetAddressAndPlaceUseCase(FakeAddressAndPlaceRepository()),
         authRepository = FakeAuthRepository(initialSession = null),
     )
-    private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo)
+    private val geofence = FakeGeofenceManager()
+    private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo, geofence)
 
     private val location = GpsPoint(40.416775, -3.703790, 10f, 0L, 0f)
 
@@ -52,6 +54,25 @@ class ReleaseActiveParkingSessionUseCaseTest {
         useCase(40.416775, -3.703790, session())
 
         assertEquals(1, scheduler.scheduleCallCount)
+    }
+
+    // ── Geofence lifecycle [Hallazgo A / DET-SUPERSEDE-001] ────────────────────
+
+    @Test
+    fun `should_removeGeofence_when_releasing_a_session`() = runTest {
+        // Freeing the spot ends the session, so its geofence must go too — otherwise it lingers
+        // (NEVER_EXPIRE) and fires a spurious GEOFENCE_EXIT on the next drive-away (leg chino→casa,
+        // field 2026-07-12). Matches the session-end ⇒ removeGeofence invariant Revert already keeps.
+        useCase(40.0, -3.0, session(id = "my-session-id"))
+
+        assertEquals(listOf("my-session-id"), geofence.removedIds, "release must remove the session's geofence")
+    }
+
+    @Test
+    fun `should_notRemoveGeofence_when_no_session_supplied`() = runTest {
+        useCase(40.0, -3.0, currentSession = null)
+
+        assertTrue(geofence.removedIds.isEmpty(), "no session → nothing to remove")
     }
 
     @Test
