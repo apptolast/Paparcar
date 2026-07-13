@@ -442,14 +442,23 @@ private fun HomeContent(
                 }
                 val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
 
-                // Minimized snap point — the drag-down "header-only" floor. A design DERIVATION
-                // (font-scale aware, no measurement feedback): every PapSheet header reserves the
-                // same 3-line height, so the band seats deterministically and the cut always lands
-                // under the header. For Browse (header IS the whole peek) this coerces to
-                // peekOffsetPx so there is no extra drag below peek. [SHEET-MIN-001] [UI-SHEET-006]
+                // Minimized snap point — the drag-down "header-only" floor for the tall non-Browse peeks
+                // (selected card / pin modes). A design DERIVATION (font-scale aware, no measurement
+                // feedback): every PapSheet header reserves the same 3-line height, so the band seats
+                // deterministically and the cut always lands under the header. [SHEET-MIN-001] [UI-SHEET-006]
+                //
+                // In a PURE Browse peek the header IS the whole peek — there is nothing to collapse below
+                // it, so the floor is exactly peekOffsetPx. The old `coerceAtLeast(peekOffsetPx)` was meant
+                // to achieve this but couldn't: headerBandPx subtracts an 8dp cut clearance, so it lands a
+                // hair ABOVE peek and let the sheet slip ~8dp below the peek. Pin the floor to peek instead.
+                // [SHEET-MIN-001]
                 val headerBandPx = with(density) { papSheetHeaderBandHeight().toPx() }
-                val minimizedOffsetPx = (containerHeightPx - headerBandPx)
-                    .coerceAtLeast(peekOffsetPx)
+                val isPureBrowsePeek = state.mode is HomeMode.Browse && !isParkingSelected && selectedSpotId == null
+                val minimizedOffsetPx = if (isPureBrowsePeek) {
+                    peekOffsetPx
+                } else {
+                    (containerHeightPx - headerBandPx).coerceAtLeast(peekOffsetPx)
+                }
 
                 // Content-aware full snap: when ALL list items are visible in the current
                 // viewport (nothing to scroll) the sheet stops at content height instead of
