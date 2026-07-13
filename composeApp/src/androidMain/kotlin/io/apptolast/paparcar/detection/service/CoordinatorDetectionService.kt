@@ -48,6 +48,7 @@ import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -729,8 +730,35 @@ class CoordinatorDetectionService : LifecycleService() {
         // from a previous trip (manual start). Set after — never before cancelDetectionJob — so a
         // superseded job's finally (which clears on setRunning(false)) can't wipe it. [DEPART-CONSISTENCY-001]
         detectionRuntime.setTrip(trip)
+        // [DET-NEVER-SILENT-001] Persist a durable pending at arm so a process death mid-trip is
+        // recoverable; the heartbeat below keeps it fresh, the finally clears it on any terminal.
+        val armedAt = System.currentTimeMillis()
+        val armId = armedAt.toString()
+        io.apptolast.paparcar.detection.PendingDetectionStore.arm(applicationContext, armId, armedAt, trigger.name)
         detectionJob = lifecycleScope.launch {
             val thisJob = coroutineContext[Job]
+
+            // [DET-NEVER-SILENT-001] Keep the pending's heartbeat fresh while the session is alive and
+            // latch sawDriving once the trip reaches park-evaluation (Candidate). A live long trip
+            // (1 h motorway) never looks dead; the watchdog nudges only stale (process-death) pendings,
+            // and AR_VEHICLE_ENTER only if it actually drove.
+            val heartbeat = launch {
+                launch {
+                    detectionRuntime.phase.collect { phase ->
+                        if (phase == io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate) {
+                            io.apptolast.paparcar.detection.PendingDetectionStore.heartbeat(
+                                applicationContext, armId, System.currentTimeMillis(), sawDriving = true,
+                            )
+                        }
+                    }
+                }
+                while (isActive) {
+                    kotlinx.coroutines.delay(detectionConfig.pendingHeartbeatMs)
+                    io.apptolast.paparcar.detection.PendingDetectionStore.heartbeat(
+                        applicationContext, armId, System.currentTimeMillis(), sawDriving = false,
+                    )
+                }
+            }
 
             // [FIX BUG-SERVICE-108: pull vehicle name inside the detection job rather than in a
             //  parallel lifecycleScope.launch — same lifetime as the coordinator, no leak across
@@ -773,6 +801,12 @@ class CoordinatorDetectionService : LifecycleService() {
                 PaparcarLogger.e(DIAG, "    ✗ detection error", e)
                 notificationPort.showDebug("Detection error: ${e.message}")
             } finally {
+                // [DET-NEVER-SILENT-001] This job reached a terminal (confirm / abort / supersede) →
+                // stop its heartbeat and clear its pending. ONLY a process death skips this finally,
+                // leaving the pending stale for the watchdog. Cleared for superseded jobs too (their
+                // armId is distinct from the replacement's), so a supersede never leaves a false pending.
+                heartbeat.cancel()
+                io.apptolast.paparcar.detection.PendingDetectionStore.clear(applicationContext, armId)
                 // Skip teardown when this job has been superseded by a newer detection job
                 // (START_TRACKING / IN_VEHICLE_ENTER replacement). Stopping here would
                 // destroy the service after the replacement coordinator was just launched,

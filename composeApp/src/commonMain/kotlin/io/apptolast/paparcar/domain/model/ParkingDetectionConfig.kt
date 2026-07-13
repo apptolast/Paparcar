@@ -343,6 +343,15 @@ data class ParkingDetectionConfig(
      *  a process restart carries its ORIGINAL (old) timestamp, so the janitor's post-restart repair is
      *  unaffected. Default 10 min. */
     val cureSkipFreshSessionMs: Long = 10 * 60_000L,
+    /** [DET-NEVER-SILENT-001] Cadence at which a LIVE detection session refreshes its durable pending
+     *  heartbeat. Well below [pendingDetectionDeadMs] so a genuine long trip (a 1 h motorway drive)
+     *  keeps the heartbeat fresh and is never mistaken for a dead process. Default 5 min. */
+    val pendingHeartbeatMs: Long = 5 * 60_000L,
+    /** [DET-NEVER-SILENT-001] A pending detection whose heartbeat is older than this is presumed
+     *  ORPHANED BY PROCESS DEATH (a live session would have refreshed it) — the watchdog fires the
+     *  "where did you park?" nudge and clears it. Above a couple of missed heartbeats and at the
+     *  safety-net worker cadence (15 min) so a slow tick never false-triggers. Default 15 min. */
+    val pendingDetectionDeadMs: Long = 15 * 60_000L,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
