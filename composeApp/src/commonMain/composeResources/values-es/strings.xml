@@ -4,12 +4,8 @@
     <string name="home_search_placeholder">Busca una zona, calle…</string>
     <string name="home_stats_free_spots_badge">%1$d libres</string>
     <string name="home_peek_no_spots">Sin plazas cerca</string>
-    <!-- Unidad del contador del PapSheet + pill de plazas libres. [UI-SHEET-001] -->
+    <!-- Unidad del contador del PapSheet. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">libres</string>
-    <plurals name="home_free_count_pill">
-        <item quantity="one">%1$d libre</item>
-        <item quantity="other">%1$d libres</item>
-    </plurals>
     <!-- Header de la sección "Tus vehículos" en el sheet; singular/plural según nº de vehículos. [MULTI-PARKING-001] [HOME-CARDS-001] -->
     <plurals name="home_vehicles_section_header">
         <item quantity="one">Tu vehículo</item>

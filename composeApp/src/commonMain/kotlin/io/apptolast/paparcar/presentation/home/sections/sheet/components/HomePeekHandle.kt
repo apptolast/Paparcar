@@ -1191,7 +1191,9 @@ private fun CameraLocationRow(
             eyebrowTone = PapSheetEyebrowTone.Action,
             title = title,
             subtitle = subtitle,
-            trailing = if (freeCount > 0) PapSheetTrailing.CountPill(freeCount) else null,
+            // No free-spots pill in the collapsed peek: the count already reads once the sheet is
+            // expanded (spots section header), so a trailing pill here just duplicates it.
+            trailing = null,
         )
         return
     }
@@ -1233,7 +1235,8 @@ private fun CameraLocationRow(
             eyebrowColor = if (isCandidate) MaterialTheme.colorScheme.primary else PapDriveBlue,
             title = title,
             subtitle = secondaryLine,
-            trailing = if (freeCount > 0) PapSheetTrailing.CountPill(freeCount) else null,
+            // No free-spots pill here either — it duplicates the count shown in the expanded sheet.
+            trailing = null,
         )
         return
     }

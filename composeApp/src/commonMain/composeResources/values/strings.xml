@@ -4,12 +4,8 @@
     <string name="home_search_placeholder">Search an area, street…</string>
     <string name="home_stats_free_spots_badge">%1$d free</string>
     <string name="home_peek_no_spots">No spots nearby</string>
-    <!-- PapSheet counter lead tile unit + trailing free-count pill. [UI-SHEET-001] -->
+    <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">free</string>
-    <plurals name="home_free_count_pill">
-        <item quantity="one">%1$d free</item>
-        <item quantity="other">%1$d free</item>
-    </plurals>
     <!-- Sheet section header above the per-vehicle rows; singular/plural by vehicle count. [MULTI-PARKING-001] [HOME-CARDS-001] -->
     <plurals name="home_vehicles_section_header">
         <item quantity="one">Your vehicle</item>

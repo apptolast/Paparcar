@@ -4,14 +4,8 @@
     <string name="home_search_placeholder">Szukaj strefy, ulicy…</string>
     <string name="home_stats_free_spots_badge">%1$d wolnych</string>
     <string name="home_peek_no_spots">Brak miejsc w pobliżu</string>
-    <!-- PapSheet counter lead tile unit + trailing free-count pill. [UI-SHEET-001] -->
+    <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">wolne</string>
-    <plurals name="home_free_count_pill">
-        <item quantity="one">%1$d wolne</item>
-        <item quantity="few">%1$d wolne</item>
-        <item quantity="many">%1$d wolnych</item>
-        <item quantity="other">%1$d wolnych</item>
-    </plurals>
     <string name="home_vehicle_chip_badge_active">Aktywny</string>
     <string name="home_vehicle_chip_status_parked">Zaparkowany · %1$s</string>
     <string name="home_vehicle_chip_status_driving">W trasie</string>

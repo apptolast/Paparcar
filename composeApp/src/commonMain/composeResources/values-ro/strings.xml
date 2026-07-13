@@ -4,13 +4,8 @@
     <string name="home_search_placeholder">Caută o zonă, stradă…</string>
     <string name="home_stats_free_spots_badge">%1$d libere</string>
     <string name="home_peek_no_spots">Niciun loc în apropiere</string>
-    <!-- PapSheet counter lead tile unit + trailing free-count pill. [UI-SHEET-001] -->
+    <!-- PapSheet counter lead tile unit. [UI-SHEET-001] -->
     <string name="home_counter_unit_free">libere</string>
-    <plurals name="home_free_count_pill">
-        <item quantity="one">%1$d liber</item>
-        <item quantity="few">%1$d libere</item>
-        <item quantity="other">%1$d libere</item>
-    </plurals>
     <string name="home_vehicle_chip_badge_active">Activ</string>
     <string name="home_vehicle_chip_status_parked">Parcat · %1$s</string>
     <string name="home_vehicle_chip_status_driving">În mers</string>

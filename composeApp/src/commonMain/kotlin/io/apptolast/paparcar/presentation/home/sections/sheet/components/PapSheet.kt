@@ -53,11 +53,9 @@ import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PapShapes
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.greenOutline
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_counter_unit_free
-import paparcar.composeapp.generated.resources.home_free_count_pill
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
 import paparcar.composeapp.generated.resources.home_parking_edit_dialog_body
 import paparcar.composeapp.generated.resources.home_parking_edit_dialog_title
@@ -133,7 +131,6 @@ internal fun PapSheet(
             leading = { PapSheetLeadTile(lead) },
             trailing = when (trailing) {
                 PapSheetTrailing.Dismiss -> ({ PapSheetDismissButton(onDismiss = onDismiss) })
-                is PapSheetTrailing.CountPill -> ({ PapSheetCountPill(count = trailing.freeCount) })
                 null -> null
             },
         )
@@ -226,10 +223,9 @@ private fun PapSheetEyebrowTone.color(): Color = when (this) {
     PapSheetEyebrowTone.Neutral -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-/** Header trailing: dismiss × in modal states, the free-count pill in browse-with-vehicle. */
+/** Header trailing: dismiss × in modal states, nothing in browse. */
 internal sealed interface PapSheetTrailing {
     data object Dismiss : PapSheetTrailing
-    data class CountPill(val freeCount: Int) : PapSheetTrailing
 }
 
 @Composable
@@ -417,33 +413,6 @@ private fun PapSheetDismissButton(onDismiss: () -> Unit) {
     }
 }
 
-/** Free-count pill — live dot + "N libres" data token. Browse-with-vehicle trailing. */
-@Composable
-private fun PapSheetCountPill(count: Int) {
-    Row(
-        modifier = Modifier
-            .clip(PapShapes.chip)
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(PILL_DOT_DP.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-        )
-        Text(
-            text = pluralStringResource(Res.plurals.home_free_count_pill, count, count).uppercase(),
-            style = PaparcarType.current.badge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-        )
-    }
-}
-
 /** Horizontal content inset of every sheet state — the 16dp sheet grid, so text
  *  doesn't step sideways when the sheet expands. [HOME-VEH-REFINE-001] */
 internal const val PAP_SHEET_HORIZONTAL_PAD_DP = 16
@@ -493,4 +462,3 @@ private const val EDIT_ICON_DP = 18
 private const val BANNER_BADGE_DP = 20
 private const val BANNER_ICON_DP = 13
 private const val BANNER_BADGE_BG_ALPHA = 0.18f
-private const val PILL_DOT_DP = 6
