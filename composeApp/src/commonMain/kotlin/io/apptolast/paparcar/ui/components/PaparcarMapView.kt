@@ -1527,7 +1527,10 @@ private fun rememberCameraAnimationState(
         }
     }
 
-    LaunchedEffect(cameraTarget, followPose != null, userInteracting) {
+    // Keyed on the TARGET (and follow lock), deliberately NOT on userInteracting: releasing a finger
+    // must not re-run the tween toward a stale cameraTarget (the last followed puck position) — that
+    // was re-centring the map on the car after every pan. The tween only fires on a genuine new target.
+    LaunchedEffect(cameraTarget, followPose != null) {
         // Don't run the programmatic tween while locked to the driver (it would fight the lock) or
         // while the user is touching the map (it would yank the camera back mid-gesture).
         if (followPose != null || userInteracting) return@LaunchedEffect
