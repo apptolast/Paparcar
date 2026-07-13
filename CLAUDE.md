@@ -34,31 +34,47 @@ iosMain/     → (futuro) CLLocation, CMMotion, CoreBluetooth, BGTask wrappers
 - Persistencia dual: Room (offline-first local) + Firestore (sync real-time)
 
 ## Detección de aparcamiento — Dual Strategy
-Dos estrategias independientes, NUNCA se mezclan:
+
+> Reescrito 2026-07-13 tras el rediseño DET-SOLID/DET-AR-FIRST/DET-RECONCILE. El detalle vivo
+> está en `docs/detection/PARKING-DETECTION.md` y en los tickets `docs/backlog/det-*.md`.
+
+**Doctrina rectora** (violarla es un bug):
+- *El evento NOMINA, solo el movimiento MEDIDO confirma.* Un EXIT de geocerca o un AR ENTER
+  solo despiertan/arman; ninguno confirma una plaza por sí mismo — hace falta conducción medida
+  en el stream (o pasos/egress inambiguos). Un evento re-entregado (Doze/OEM) nunca coloca un pin.
+- *Fallo asimétrico: mejor falso negativo que falso positivo.* Ante la duda se PREGUNTA (nudge /
+  prompt), nunca se planta una plaza fantasma. La fiabilidad se estampa en cada sesión.
+
+Dos estrategias independientes, **NUNCA se mezclan** (no metas señales BT en el scoring del Coordinator):
 
 ### BluetoothDetectionStrategy (determinista)
-- Escucha BT disconnect → GPS fix → distance check > 30m → auto-confirm
-- Escucha BT connect → DetectDepartureUseCase
-- Sin scoring, sin Activity Recognition — es directo
-- Para usuarios con BT emparejado con su coche
+- BT disconnect del MAC emparejado → fix GPS → alejarse ≥30 m del coche → confirma (fiab alta).
+- Ligada a la MAC del coche (no al modelo): el "Toyota idéntico del vecino" es imposible.
+- Sin scoring, sin Activity Recognition. Es el nivel "automático" (ver DET-TIERS-001).
 
-### CoordinatorDetectionStrategy (probabilístico)
-- Activity Recognition + GPS stream → confidence scoring
-- HIGH (≥0.75) → auto-confirm | MEDIUM (≥0.55) → preguntar usuario | LOW → reset
-- Fallback para usuarios sin BT o con BT del móvil apagado
+### CoordinatorDetectionStrategy (probabilístico) — el "asistido"
+- **Armado**: AR IN_VEHICLE ENTER (carril de decisión `getForegroundService`, AR-first, baja
+  latencia) **o** GEOFENCE_EXIT. La escalera de armado (`EvaluateArEnterArmUseCase`) solo arma si
+  el embarque está atado al PROPIO coche; bus/taxi no arman.
+- **Confirmación** (`EvaluateParkingDecisionUseCase`): pasos+egress, o egress cinemático medido
+  por GPS (contador de pasos mudo), o vehicle-exit+ventana+egress — **todas exigen conducción
+  medida**. El scoring HIGH por sí solo NO auto-confirma; evidencia débil (ENTER-only sin
+  conducción) degrada a prompt.
+- **Posición**: el ancla se BLOQUEA con pasos de egress o se CONGELA al final de la conducción
+  (`ANCHOR-LOCK`/`DET-ANCHOR-FREEZE`), de modo que la caminata del usuario no arrastra el pin.
+- **Red de seguridad** (`ParkingSafetyNetWorker` + `EvaluateSafetyNetCheckUseCase`): worker 15 min
+  + sensor de movimiento reconcilian salidas que el OS no entregó (presupuesto de pasos, conjunción
+  EXIT∧ENTER, física peatonal); nunca liberan por distancia sola.
 
 ### Resolución
-```kotlin
-fun resolveStrategy(vehicle: Vehicle, isBluetoothEnabled: Boolean): ParkingDetectionStrategy {
-    return if (vehicle.bluetoothDeviceId != null && isBluetoothEnabled) {
-        BluetoothDetectionStrategy(vehicle.bluetoothDeviceId)
-    } else {
-        CoordinatorDetectionStrategy()
-    }
-}
-```
+`resolveStrategy(vehicle, isBluetoothEnabled)`: BT emparejado y activo → BluetoothDetectionStrategy;
+si no → CoordinatorDetectionStrategy.
 
-Ambas estrategias convergen en: ConfirmParkingUseCase → Room + Firestore + Geofence + Notification + WorkManager geocoding
+Ambas convergen en: **ConfirmParkingUseCase** → Room + Firestore + Geofence + Notification +
+WorkManager (geocoding). El servicio Android (`CoordinatorDetectionService`) serializa todos los
+triggers en un intake único [DET-INTAKE-001]; la DECISIÓN de cada trigger es un use case puro de
+commonMain (`EvaluateGeofenceExitUseCase`, `EvaluateArEnterArmUseCase`, …), el service solo hace
+I/O + side-effects.
 
 ---
 
