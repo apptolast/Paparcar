@@ -1116,6 +1116,8 @@ fun PaparcarMapView(
         // A real pan pauses follow (centerDrivingPuck → false), handing back to the tween. Touching the
         // map suspends the lock immediately so the first drag isn't fought. [DRIVE-PUCK-NATIVE-001]
         followPose = if (centerDrivingPuck && drivingPuck != null && !userTouchingMap) puckPose else null,
+        // While a finger is down, freeze all programmatic camera moves so nothing fights the gesture.
+        userInteracting = userTouchingMap,
     )
 
     val loadingAlpha by animateFloatAsState(
@@ -1491,6 +1493,7 @@ private fun rememberCameraAnimationState(
     actualCamLon: Float?,
     actualCamZoom: Float,
     followPose: PuckPose? = null,
+    userInteracting: Boolean = false,
 ): CameraPosition {
     // Seed priority: explicit cameraTarget > config.initialCamera > live userLocation > origin.
     val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
@@ -1507,10 +1510,22 @@ private fun rememberCameraAnimationState(
     // a programmatic animation. This ensures animations start from wherever
     // the user left the camera (after dragging/flinging/pinching) without
     // creating a feedback loop that would interrupt the native gesture each frame.
-    LaunchedEffect(cameraTarget, followPose != null) {
-        // While locked to the driver (followPose != null) the camera is driven directly from the
-        // interpolated puck pose below — don't run the programmatic tween, it would fight the lock.
-        if (followPose != null) return@LaunchedEffect
+    // When the user touches the map, sync our Animatables to the real camera and then leave them
+    // static, so the returned cameraPosition stops changing — native pan/zoom get full control with
+    // nothing programmatic fighting them. On the follow→touch transition this also avoids a jump.
+    // [DRIVE-PUCK-NATIVE-001]
+    LaunchedEffect(userInteracting) {
+        if (userInteracting) {
+            actualCamLat?.let { animLat.snapTo(it) }
+            actualCamLon?.let { animLon.snapTo(it) }
+            animZoom.snapTo(actualCamZoom)
+        }
+    }
+
+    LaunchedEffect(cameraTarget, followPose != null, userInteracting) {
+        // Don't run the programmatic tween while locked to the driver (it would fight the lock) or
+        // while the user is touching the map (it would yank the camera back mid-gesture).
+        if (followPose != null || userInteracting) return@LaunchedEffect
         val target = cameraTarget ?: return@LaunchedEffect
         // Sync all three axes to the real camera so the animation never jumps.
         actualCamLat?.let { animLat.snapTo(it) }
@@ -1543,6 +1558,15 @@ private fun rememberCameraAnimationState(
         launch { animLat.animateTo(targetLat, spec) }
         launch { animLon.animateTo(targetLon, spec) }
         targetZoom?.let { launch { animZoom.animateTo(it, spec) } }
+    }
+
+    // While touching: return the static (synced) Animatable value so cameraPosition doesn't change and
+    // native gestures own the camera. Checked BEFORE the follow lock so a touch always wins. [DRIVE-PUCK-NATIVE-001]
+    if (userInteracting) {
+        return CameraPosition(
+            coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
+            zoom = animZoom.value,
+        )
     }
 
     // Driver-follow lock: centre the camera on the puck's interpolated pose every frame (no tween),

@@ -96,31 +96,16 @@ internal fun HomeMapSection(
         onZoneClick = onZoneClick,
         onCameraMove = onCameraMove,
         cameraTarget = cameraTarget,
-        // Observe touches WITHOUT consuming them (Initial pass), so the map still pans, but we can tell
-        // a real gesture apart from a programmatic follow/center move. Pause driver-follow only on an
-        // actual PAN (movement past touch slop) — a stationary TAP must NOT pause it, or the driving
-        // puck would vanish: it only renders while following, and the [PUCK-FLICKER-001] change removed
-        // the moving-marker fallback, so a tap-triggered pause left only the bare native dot.
-        // [FOLLOW-001] [DRIVE-FOLLOW-002]
+        // A finger touching the map disengages driver-follow IMMEDIATELY (any touch, not only a pan past
+        // touch-slop). The driving puck is now a persistent native marker, so pausing follow no longer
+        // makes it vanish — which is what previously forced us to wait for a real pan. Observing on the
+        // Initial pass WITHOUT consuming keeps the map fully pannable. [DRIVE-PUCK-NATIVE-001] [FOLLOW-001]
         modifier = modifier
             .fillMaxWidth()
             .pointerInput(Unit) {
                 awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    val slop = viewConfiguration.touchSlop
-                    var travel = 0f
-                    var last = down.position
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                        val change = event.changes.firstOrNull { it.id == down.id }
-                        if (change == null || !change.pressed) break // released/cancelled = tap, follow untouched
-                        travel += (change.position - last).getDistance()
-                        last = change.position
-                        if (travel > slop) {
-                            onUserMapGesture()
-                            break
-                        }
-                    }
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    onUserMapGesture()
                 }
             },
     )
