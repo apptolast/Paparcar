@@ -27,6 +27,7 @@ import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.MutableDetectionRuntimeState
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateArEnterArmUseCase
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtArbitrationUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtParkUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateDetectionReliabilityUseCase
@@ -93,6 +94,7 @@ val domainModule = module {
     factory { EvaluateSafetyNetCheckUseCase(config = get()) } // [DET-SAFETY-NET-001]
     factory { EvaluateGeofenceExitUseCase(config = get()) } // [AUDIT-A9-KMP-001]
     factory { EvaluateBtParkUseCase(config = get()) } // [DET-AUDIT-002 T2/T3]
+    factory { EvaluateBtArbitrationUseCase() } // [DET-TIERS-001] BT-as-arbiter over the coordinator
     factory { EvaluateArEnterArmUseCase(config = get()) } // [DET-AR-FIRST-001]
     factory {
         ConfirmParkingUseCase(
