@@ -332,6 +332,14 @@ data class ParkingDetectionConfig(
      *  last known position is preserved when the user exits on foot, while being cleared when
      *  the vehicle drives off. Default 2.5 m/s (~9 km/h). */
     val clearBestStopSpeedMps: Float = 2.5f,
+    /** [DET-STEP-SPEED-GATE-001] Speed (m/s) ceiling below which a step counts while the park
+     *  anchor is already set and the device is moving (the egress WALK). Above it the device is
+     *  presumed to be in a moving vehicle, so its "steps" are vibration and must NOT accumulate —
+     *  the in-motion false positive at Avenida de los Mástiles (field 2026-07-12) came from a phone
+     *  bouncing in stop-and-go traffic faking a steps+egress confirm. Set above the brisk egress
+     *  walk seen in the field (2.6 m/s, Camelias 2026-07-10) and below sustained traffic crawl.
+     *  Default 3.0 m/s (~11 km/h). */
+    val egressStepMaxSpeedMps: Float = 3.0f,
     /** GPS horizontal accuracy (meters) at or below which a high-speed fix is trusted as
      *  evidence of genuine driving. On noisy hardware (Redmi Note 11) a single bad fix can
      *  report apparent speed above [clearBestStopSpeedMps] with accuracy in the 50–200 m range;

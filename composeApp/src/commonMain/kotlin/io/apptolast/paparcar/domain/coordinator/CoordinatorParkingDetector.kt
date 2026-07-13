@@ -201,6 +201,11 @@ class CoordinatorParkingDetector(
         // ── SESSION TELEMETRY (BUG-SCOOTER-001) ───────────────────────────────
         val sessionStartMs: Long? = null,
         val maxSpeedMps: Float = 0f,
+        /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. Distinguishes the
+         *  egress WALK (person, ~1.4 m/s) from a stop-and-go TRAFFIC crawl (car): with an anchor
+         *  set, steps only count while this is below driving speed, so a phone bouncing in traffic
+         *  cannot accumulate phantom steps. Field 2026-07-12 (FP Avenida de los Mástiles, in motion). */
+        val lastSpeedMps: Float = 0f,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -408,7 +413,13 @@ class CoordinatorParkingDetector(
                     val updated = _detectionState.updateAndGet { s ->
                         val shouldCount = !s.hasEverReachedDrivingSpeed ||
                             s.stoppedSince != null ||
-                            s.bestStopLocation != null
+                            // [DET-STEP-SPEED-GATE-001] Egress-walk steps (anchor set, GPS moving)
+                            // count ONLY at pedestrian speed. A car crawling in stop-and-go traffic
+                            // keeps the anchor set yet moves at driving speed; without this gate its
+                            // vibration accumulated phantom steps that (a) faked steps+egress and
+                            // (b) poisoned movementOutrunsSteps into holding the anchor mid-route →
+                            // the in-motion false positive at Avenida de los Mástiles (field 2026-07-12).
+                            (s.bestStopLocation != null && s.lastSpeedMps < config.egressStepMaxSpeedMps)
                         if (shouldCount) s.copy(stepCount = s.stepCount + 1) else s
                     }
                     if (!updated.hasEverReachedDrivingSpeed) {
@@ -494,6 +505,9 @@ class CoordinatorParkingDetector(
                             // ("did this session witness driving?") — an indoor Doppler spike with
                             // degraded accuracy must not count as driving. [ANCHOR-LOCK-001]
                             maxSpeedMps = if (location.speed > s.maxSpeedMps && credibleSpeedFix) location.speed else s.maxSpeedMps,
+                            // [DET-STEP-SPEED-GATE-001] Track the last fix speed so the step gate can
+                            // veto phantom steps while the car crawls in traffic (anchor still set).
+                            lastSpeedMps = location.speed,
                         )
                     }
                     PaparcarLogger.d(
