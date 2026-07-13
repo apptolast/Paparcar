@@ -3,6 +3,7 @@ package io.apptolast.paparcar.domain.usecase.detection
 import io.apptolast.paparcar.domain.model.DetectionReliabilityIssue
 import io.apptolast.paparcar.domain.model.DetectionReliabilityLevel
 import io.apptolast.paparcar.domain.model.DetectionReliabilityReport
+import io.apptolast.paparcar.domain.model.DetectionTier
 
 /**
  * Pure evaluator of the detection-reliability level — the SINGLE source of truth that every
@@ -28,6 +29,10 @@ import io.apptolast.paparcar.domain.model.DetectionReliabilityReport
  *
  * Issues list the missing legs whenever the level is not OPTIMAL, so every fix surface renders
  * from the same report instead of re-deriving its own conditions.
+ *
+ * The report also carries the product-facing [DetectionTier] (AUTOMATIC / ASSISTED_PLUS /
+ * ASSISTED) — derived from BT pairing and the battery exemption only, independent of the OEM
+ * axis. [DET-TIERS-001]
  */
 class EvaluateDetectionReliabilityUseCase {
 
@@ -51,6 +56,14 @@ class EvaluateDetectionReliabilityUseCase {
                 if (!isBatteryExemptionGranted) add(DetectionReliabilityIssue.BATTERY_OPTIMIZATION_ACTIVE)
             }
         }
-        return DetectionReliabilityReport(level = level, issues = issues)
+        // Tier is the product promise, on a different axis from level: BT pairing is the only jump
+        // to AUTOMATIC; the battery exemption lifts ASSISTED to ASSISTED_PLUS. OEM aggressiveness
+        // never changes the tier — only the level's sturdiness. [DET-TIERS-001]
+        val tier = when {
+            hasBluetoothPairedVehicle -> DetectionTier.AUTOMATIC
+            isBatteryExemptionGranted -> DetectionTier.ASSISTED_PLUS
+            else -> DetectionTier.ASSISTED
+        }
+        return DetectionReliabilityReport(level = level, tier = tier, issues = issues)
     }
 }
