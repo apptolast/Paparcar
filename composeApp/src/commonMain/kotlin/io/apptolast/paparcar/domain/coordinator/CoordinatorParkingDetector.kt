@@ -1189,16 +1189,23 @@ class CoordinatorParkingDetector(
                 // moves the anchor; a traffic light that matures unfreezes harmlessly when
                 // driving resumes.
                 val anchorStopOfRecord = if (newBestStop !== s.bestStopLocation) startedAt else s.anchorCapturedAtStop
+                // [DET-SHORT-TRIP-FREEZE-001] Rest is proven by TIME (≥ anchorFreezeStopMs) OR by
+                // EVIDENCE (≥ anchorFreezeStableFixes stopped fixes) — a short trip's destination
+                // stop rarely lasts 60 s before the user walks off, but N dense stopped fixes prove
+                // the car came to rest here. The other guards (drive-entered, this-stop) are unchanged.
+                val restProvenByTime = (now - startedAt) >= config.anchorFreezeStopMs
+                val restProvenByFixes = s.stoppedFixes.size >= config.anchorFreezeStableFixes
                 val matured = !s.anchorFrozen && s.hasEverReachedDrivingSpeed &&
                     newBestStop != null && anchorStopOfRecord == startedAt &&
                     s.walkFixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
-                    (now - startedAt) >= config.anchorFreezeStopMs
+                    (restProvenByTime || restProvenByFixes)
                 if (matured) {
+                    val how = if (restProvenByTime) "time=${now - startedAt}ms" else "stableFixes=${s.stoppedFixes.size}"
                     PaparcarLogger.d(
                         DIAG,
-                        "  ⚓ anchor FROZEN — drive-entered stop matured ${now - startedAt}ms " +
-                            "(walkFixes=${s.walkFixesSinceDriving}); only real driving " +
-                            "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001]"
+                        "  ⚓ anchor FROZEN — drive-entered stop matured ($how, " +
+                            "walkFixes=${s.walkFixesSinceDriving}); only real driving " +
+                            "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001][DET-SHORT-TRIP-FREEZE-001]"
                     )
                 }
                 s.copy(

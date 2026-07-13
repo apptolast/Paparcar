@@ -954,6 +954,45 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
+    fun should_freeze_anchor_by_stable_fixes_on_a_short_trip_before_the_60s_timer() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-SHORT-TRIP-FREEZE-001] Field 2026-07-12 (Oppo, Durango→Glorieta ~2 min): the
+            // destination stop never lasted 60 s before the user walked off, so the anchor never
+            // froze and the park was lost. With freeze-by-evidence, N dense stopped fixes (~15 s)
+            // mature the anchor WELL BEFORE anchorFreezeStopMs (60 s); the stepless walk then
+            // confirms kinematically AT the anchor. All timestamps stay under 60 s to prove it is
+            // the EVIDENCE path, not the timer.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            val carLat = 40.001
+            // Stopped fixes at HIGH_ACCURACY cadence: one to open the stop + anchorFreezeStableFixes
+            // more. The freeze fires on the fix whose PRIOR stopped-fix count reaches the threshold.
+            repeat(config.anchorFreezeStableFixes + 1) {
+                nowMs += 5_000L // 5s, 10s, 15s, 20s … all << anchorFreezeStopMs (60s)
+                locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            }
+            // Stepless walk home: quality pedestrian-band fixes away from the (now frozen) anchor.
+            var lat = carLat
+            repeat(config.kinematicEgressMinWalkFixes) {
+                lat += 0.0001
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = 0L, speed = 1.3f))
+            }
+
+            job.cancelAndJoin()
+
+            assertTrue(nowMs < config.anchorFreezeStopMs, "sanity: whole trace stays under the 60 s timer")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "evidence-frozen anchor + kinematic egress must confirm the short trip")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(carLat, saved.location.latitude, 0.00005, "pin at the evidence-frozen anchor")
+        }
+
+    @Test
     fun should_nudge_instead_of_saving_when_unattended_timeout_finds_an_unpinned_anchor() =
         runTest(UnconfinedTestDispatcher()) {
             // Measured driving happened, but no stop matured and no egress steps sealed anything:

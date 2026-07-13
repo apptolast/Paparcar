@@ -295,6 +295,16 @@ data class ParkingDetectionConfig(
      *  park→walk-away gap (78 s in the field trace) and clears harmlessly at traffic lights
      *  because resumed driving unfreezes. */
     val anchorFreezeStopMs: Long = 60_000L,
+    /** [DET-SHORT-TRIP-FREEZE-001] Freeze the anchor by EVIDENCE as well as by time: a drive-entered
+     *  stop that accumulates this many stopped fixes (speed < [stoppedSpeedThresholdMps]) freezes
+     *  WITHOUT waiting the full [anchorFreezeStopMs]. A short trip (Durango→Glorieta, ~2 min, field
+     *  2026-07-12) rarely gives the destination stop 60 s before the user walks off, so the anchor
+     *  never froze and the park was lost. N stable fixes at HIGH_ACCURACY cadence (~5 s) prove the
+     *  car came to rest here in ~15 s. The brief-queue case is protected the same way the time path
+     *  is: a light that freezes unfreezes harmlessly when driving resumes, and confirm still needs
+     *  egress (a walk away), which a queue never produces. Must stay above a single-fix touch-and-go
+     *  (the 1-fix unpinned-anchor invariant). Default 3. */
+    val anchorFreezeStableFixes: Int = 3,
     /** [DET-ANCHOR-FREEZE-001] Maximum pedestrian-band fixes (moving, below a resolved CAR
      *  verdict) tolerated between the last driving movement and a stop for that stop to count as
      *  DRIVE-ENTERED and be allowed to freeze. The freeze asserts "the CAR rests here"; a stop
