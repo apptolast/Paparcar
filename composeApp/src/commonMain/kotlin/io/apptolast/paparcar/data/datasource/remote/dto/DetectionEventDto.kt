@@ -6,7 +6,12 @@ import kotlinx.serialization.Serializable
 /**
  * Header document for a detection session, stored at
  * `diagnostics/{userId}/sessions/{sessionId}`. Written on [DetectionEvent.SessionStarted];
- * [outcome] is patched on [DetectionEvent.SessionEnded]. [DET-LOG-02]
+ * [outcome] and the rollup fields are patched on [DetectionEvent.SessionEnded]. [DET-LOG-02]
+ *
+ * **Device identity** ([deviceModel]/[appVersion]/[osVersion]) is stamped by the logger so a trace
+ * says which phone produced it — no more triangulating by garage/anchor. **Rollup** fields
+ * ([endedAt]…[summary]) are computed by the logger from the drained event stream and let a session
+ * be read at a glance without downloading its whole `events` subcollection. [DIAG-READABLE-001]
  */
 @Serializable
 data class DetectionSessionDto(
@@ -16,6 +21,19 @@ data class DetectionSessionDto(
     val vehicleType: String? = null,
     val outcome: String? = null,
     val evidence: String? = null,
+    // Device identity [DIAG-READABLE-001]
+    val deviceModel: String? = null,
+    val appVersion: String? = null,
+    val osVersion: String? = null,
+    // Per-session rollup, patched on SESSION_ENDED [DIAG-READABLE-001]
+    val endedAt: Long? = null,
+    val maxSpeedKmh: Float? = null,
+    val drivingFixes: Int? = null,
+    val fixCount: Int? = null,
+    val maxStepCount: Int? = null,
+    val finalLat: Double? = null,
+    val finalLon: Double? = null,
+    val summary: String? = null,
 )
 
 /**
