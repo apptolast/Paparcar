@@ -1091,6 +1091,10 @@ fun PaparcarMapView(
         }
     }
 
+    // Interpolated render pose so the driving car glides between GPS fixes instead of stepping. Also
+    // drives the follow camera (below) so the puck marker stays pinned to screen-centre. [FOLLOW-001]
+    val puckPose = rememberInterpolatedPuck(drivingPuck)
+
     val cameraPosition = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
         userLocation = userLocation,
@@ -1098,6 +1102,11 @@ fun PaparcarMapView(
         actualCamLat = actualCamLat,
         actualCamLon = actualCamLon,
         actualCamZoom = currentZoom,
+        // While actively following the driver, lock the camera centre to the SAME interpolated pose
+        // that positions the puck marker, with no tween lag — so the marker sits rock-steady at centre
+        // (what the old centered overlay did) instead of drifting as a lagging camera catches up.
+        // A real pan pauses follow (centerDrivingPuck → false), handing back to the tween. [DRIVE-PUCK-NATIVE-001]
+        followPose = if (centerDrivingPuck && drivingPuck != null) puckPose else null,
     )
 
     val loadingAlpha by animateFloatAsState(
@@ -1157,9 +1166,6 @@ fun PaparcarMapView(
             else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
         }
     }
-
-    // Interpolated render pose so the driving car glides between GPS fixes instead of stepping. [FOLLOW-001]
-    val puckPose = rememberInterpolatedPuck(drivingPuck)
 
     // The driving puck as a single native Marker with a STABLE id (so it repositions in place, never
     // torn down → no flicker) + native rotation (one north-up bitmap turned to the heading, instead of
@@ -1464,6 +1470,7 @@ private fun rememberCameraAnimationState(
     actualCamLat: Float?,
     actualCamLon: Float?,
     actualCamZoom: Float,
+    followPose: PuckPose? = null,
 ): CameraPosition {
     // Seed priority: explicit cameraTarget > config.initialCamera > live userLocation > origin.
     val initCoords = cameraTarget?.let { Coordinates(it.lat, it.lon) }
@@ -1480,7 +1487,10 @@ private fun rememberCameraAnimationState(
     // a programmatic animation. This ensures animations start from wherever
     // the user left the camera (after dragging/flinging/pinching) without
     // creating a feedback loop that would interrupt the native gesture each frame.
-    LaunchedEffect(cameraTarget) {
+    LaunchedEffect(cameraTarget, followPose != null) {
+        // While locked to the driver (followPose != null) the camera is driven directly from the
+        // interpolated puck pose below — don't run the programmatic tween, it would fight the lock.
+        if (followPose != null) return@LaunchedEffect
         val target = cameraTarget ?: return@LaunchedEffect
         // Sync all three axes to the real camera so the animation never jumps.
         actualCamLat?.let { animLat.snapTo(it) }
@@ -1513,6 +1523,16 @@ private fun rememberCameraAnimationState(
         launch { animLat.animateTo(targetLat, spec) }
         launch { animLon.animateTo(targetLon, spec) }
         targetZoom?.let { launch { animZoom.animateTo(it, spec) } }
+    }
+
+    // Driver-follow lock: centre the camera on the puck's interpolated pose every frame (no tween),
+    // keeping the marker pinned to screen-centre with zero lag. Zoom is left at the live value so a
+    // pinch isn't fought. The tween Animatables resync from the real camera on hand-back (above).
+    if (followPose != null) {
+        return CameraPosition(
+            coordinates = Coordinates(followPose.latitude, followPose.longitude),
+            zoom = actualCamZoom,
+        )
     }
 
     return CameraPosition(
