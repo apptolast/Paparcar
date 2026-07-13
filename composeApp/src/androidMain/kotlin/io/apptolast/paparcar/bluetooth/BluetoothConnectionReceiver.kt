@@ -6,8 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.ContextCompat
+import io.apptolast.paparcar.detection.service.CoordinatorDetectionService
+import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.usecase.detection.BtArbitrationEvent
+import io.apptolast.paparcar.domain.usecase.detection.BtArbitrationVerdict
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateBtArbitrationUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +53,10 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
 
     private val vehicleRepository: VehicleRepository by inject()
     private val appPreferences: AppPreferences by inject()
+
+    // [DET-TIERS-001] Bluetooth as deterministic arbiter of the probabilistic coordinator.
+    private val detectionRuntimeState: DetectionRuntimeState by inject()
+    private val evaluateBtArbitration: EvaluateBtArbitrationUseCase by inject()
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
@@ -91,6 +100,34 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                     return@launch
                 }
                 PaparcarLogger.d(TAG, "  matched vehicle=${pairedVehicle.id} — starting BluetoothDetectionService ($eventLabel)")
+
+                // [DET-TIERS-001] Bluetooth arbitration: if a probabilistic coordinator session is
+                // in progress, this deterministic paired-car edge SUPERSEDES it (BT never scores —
+                // it overrides). The pure use case rules; if it's not a no-op, tell the coordinator
+                // service to abort its session so no ladder/prompt/pin survives. The normal BT flow
+                // below is unchanged: disconnect still confirms via the detector, connect re-seals.
+                val verdict = evaluateBtArbitration(
+                    event = if (action == BluetoothDevice.ACTION_ACL_DISCONNECTED) {
+                        BtArbitrationEvent.DISCONNECT
+                    } else {
+                        BtArbitrationEvent.CONNECT
+                    },
+                    coordinatorRunning = detectionRuntimeState.isRunning.value,
+                    coordinatorPhase = detectionRuntimeState.phase.value,
+                    btVehicleId = pairedVehicle.id,
+                    coordinatorVehicleId = detectionRuntimeState.trip.value?.departingVehicleId,
+                )
+                if (verdict != BtArbitrationVerdict.NoOp) {
+                    val reason = verdict::class.simpleName
+                    PaparcarLogger.d(TAG, "  ⚡ BT arbitrates over the coordinator: $reason — signalling abort")
+                    val overrideIntent = Intent(context, CoordinatorDetectionService::class.java).apply {
+                        this.action = CoordinatorDetectionService.ACTION_BT_OVERRIDE
+                        putExtra(CoordinatorDetectionService.EXTRA_BT_OVERRIDE_REASON, reason)
+                    }
+                    // The coordinator FGS is already running (verdict != NoOp ⇒ session live), so a
+                    // plain startService reaches the existing instance's serialized intake.
+                    context.startService(overrideIntent)
+                }
 
                 when (action) {
                     BluetoothDevice.ACTION_ACL_DISCONNECTED -> {

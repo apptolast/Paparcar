@@ -215,6 +215,16 @@ class CoordinatorDetectionService : LifecycleService() {
                 PaparcarLogger.d(DIAG, "  → STOP_TRACKING — cancelling detection")
                 cancelDetectionJob()
             }
+            // [DET-TIERS-001] Bluetooth arbitrated: a paired-car BT edge SUPERSEDES this
+            // probabilistic session (disconnect → the BT path confirms deterministically; connect in
+            // Candidate → the user is back in the car, veto the pending pin). Either way the
+            // coordinator must step aside — abort exactly like STOP so no ladder/prompt/pin survives.
+            // The decision was made by the pure EvaluateBtArbitrationUseCase in the BT receiver; the
+            // service only executes the abort. BT never enters coordinator scoring — it overrides.
+            ACTION_BT_OVERRIDE -> {
+                PaparcarLogger.d(DIAG, "  → BT_OVERRIDE (${intent.getStringExtra(EXTRA_BT_OVERRIDE_REASON)}) — Bluetooth supersedes, aborting session")
+                cancelDetectionJob()
+            }
             // [DET-B-01] Unknown action: we already promoted to satisfy the 5 s window; the
             // epilogue below tears down if idle instead of leaving the FGS notification hanging.
             else -> PaparcarLogger.d(DIAG, "  ⊘ unhandled action=$action [DET-B-01]")
@@ -927,6 +937,10 @@ class CoordinatorDetectionService : LifecycleService() {
 
         const val ACTION_START_TRACKING = "io.apptolast.paparcar.ACTION_START_TRACKING"
         const val ACTION_STOP_TRACKING = "io.apptolast.paparcar.ACTION_STOP_TRACKING"
+        // [DET-TIERS-001] Bluetooth arbitration override: the BT receiver decided a paired-car edge
+        // must supersede the running coordinator session; the service aborts it. Reason is for the log.
+        const val ACTION_BT_OVERRIDE = "io.apptolast.paparcar.ACTION_BT_OVERRIDE"
+        const val EXTRA_BT_OVERRIDE_REASON = "io.apptolast.paparcar.EXTRA_BT_OVERRIDE_REASON"
         // [DET-G-01] Geofence-exit delivered directly to the service via getForegroundService so
         // Play Services grants the privileged FGS start (the same getForegroundService mechanism the
         // AR IN_VEHICLE path used before AR was moved to a plain broadcast — BUG-FGS-001).
