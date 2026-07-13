@@ -19,4 +19,14 @@ class ManualParkingDetectionImpl(private val context: Context) : ManualParkingDe
         }
         ContextCompat.startForegroundService(context, intent)
     }
+
+    // [DET-MANUAL-CANCEL-001] The user marked a park manually → cancel any in-progress coordinator
+    // session so a late auto-confirm cannot overwrite the manual pin. A plain startService (not
+    // foreground) is fine: STOP_TRACKING only cancels the detection job, it never needs to promote.
+    override fun stop() {
+        val intent = Intent(context, CoordinatorDetectionService::class.java).apply {
+            action = CoordinatorDetectionService.ACTION_STOP_TRACKING
+        }
+        context.startService(intent)
+    }
 }

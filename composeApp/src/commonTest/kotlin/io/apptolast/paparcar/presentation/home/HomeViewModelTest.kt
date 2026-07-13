@@ -74,10 +74,12 @@ class HomeViewModelTest {
     private lateinit var activityRecognition: FakeActivityRecognitionManager
     private lateinit var reportScheduler: FakeReportSpotScheduler
     private lateinit var zoneRepo: FakeZoneRepository
+    private lateinit var manualParkingDetection: io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection
     private lateinit var vm: HomeViewModel
 
     private fun buildVm(initialMapType: String = "TERRAIN"): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
+        manualParkingDetection = io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection()
         val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
         val getAddressAndPlace = GetAddressAndPlaceUseCase(repository = addressAndPlaceRepo)
         val searchAddress = SearchAddressUseCase(FakeGeocoderDataSource())
@@ -144,9 +146,7 @@ class HomeViewModelTest {
             mapFocusEventBus = MapFocusEventBus(),
             startAddParkingEventBus = StartAddParkingEventBus(),
             notificationPort = FakeAppNotificationManager(),
-            manualParkingDetection = object : io.apptolast.paparcar.domain.detection.ManualParkingDetection {
-                override fun start() = Unit
-            },
+            manualParkingDetection = manualParkingDetection,
         )
     }
 
@@ -304,6 +304,25 @@ class HomeViewModelTest {
         vm.handleIntent(HomeIntent.ShowParkingConfirmation(location))
         vm.handleIntent(HomeIntent.ConfirmDetectedParking)
         assertNull(vm.state.value.pendingParkingGps)
+    }
+
+    @Test
+    fun `should_cancel_detection_on_ConfirmDetectedParking`() = runTest(testDispatcher) {
+        // [DET-MANUAL-CANCEL-001] Resolving the park by hand ends the trip → the coordinator session
+        // must be torn down so a late auto-confirm cannot overwrite the pin (caso Oppo tras Glorieta).
+        // runTest(testDispatcher) shares the scheduler with setMain so the confirm coroutine settles.
+        vehicleRepo.saveVehicle(
+            io.apptolast.paparcar.domain.model.Vehicle(
+                id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
+                sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+                vehicleType = io.apptolast.paparcar.domain.model.VehicleType.CAR, isActive = true,
+            ),
+        )
+        vm.handleIntent(HomeIntent.ShowParkingConfirmation(location))
+        vm.handleIntent(HomeIntent.ConfirmDetectedParking)
+        advanceUntilIdle()
+        assertEquals(1, parkingRepo.saveNewParkingSessionCallCount, "sanity: the park must save")
+        assertEquals(1, manualParkingDetection.stopCallCount, "manual confirm must cancel detection")
     }
 
     @Test
