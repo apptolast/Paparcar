@@ -36,6 +36,8 @@ import io.apptolast.paparcar.domain.service.GeofenceEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
 import io.apptolast.paparcar.domain.usecase.detection.ArEnterDecision
 import io.apptolast.paparcar.domain.usecase.detection.EvaluateArEnterArmUseCase
+import io.apptolast.paparcar.domain.usecase.detection.EvaluateGeofenceExitUseCase
+import io.apptolast.paparcar.domain.usecase.detection.GeofenceExitLookup
 import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
@@ -74,6 +76,7 @@ class CoordinatorDetectionService : LifecycleService() {
     private val detectionConfig: ParkingDetectionConfig by inject()
     // [DET-AR-FIRST-001] Arm ladder for the AR ENTER decision lane.
     private val evaluateArEnterArm: EvaluateArEnterArmUseCase by inject()
+    private val evaluateGeofenceExit: EvaluateGeofenceExitUseCase by inject() // [AUDIT-A9-KMP-001]
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -318,71 +321,51 @@ class CoordinatorDetectionService : LifecycleService() {
         }
         val triggerLoc = event.triggeringLocation
         val now = System.currentTimeMillis()
-        // 1. Resolve every triggering geofence to its active session; self-clean ORPHANS (a
-        //    geofence with no active session — a re-park without a confirmed departure left it
-        //    registered NEVER_EXPIRE; it fires spurious exits that would arm with nothing to
-        //    release). Root cause is also fixed in ConfirmParkingUseCase. [orphan-geofence]
-        val realExits = mutableListOf<Pair<String, UserParking>>()
-        for (geofence in triggering) {
+        // [AUDIT-A9-KMP-001] The three decisions (orphan-vs-real-vs-skip, active-vehicle
+        // attribution, boundary-vs-stale split) live in the pure EvaluateGeofenceExitUseCase
+        // (commonMain, tested, iOS-reusable). The service does only the I/O + side effects: resolve
+        // each fence against Room here, then execute the returned decision.
+        val lookups = triggering.map { geofence ->
             val id = geofence.requestId
-            val lookup = runCatching { userParkingRepository.getActiveSessionByGeofence(id) }
-            val failure = lookup.exceptionOrNull()
-            if (failure != null) {
-                if (failure is CancellationException) throw failure
-                // A FAILED read is NOT "no session". Collapsing failure into null classified
-                // the LIVE fence as orphan, removed it and discarded the on-time EXIT (field
-                // 2026-07-11 00:38 — the lookup was cancelled mid-flight). Destructive
-                // cleanup is only allowed on a read that finished and answered "none".
-                PaparcarLogger.w(DIAG, "  ⚠ GEOFENCE_EXIT session lookup FAILED geof=$id — skipping, NOT orphan (${failure.message})")
-                continue
-            }
-            val session = lookup.getOrNull()
-            if (session == null) {
-                PaparcarLogger.w(DIAG, "  ✗ GEOFENCE_EXIT orphan geof=$id — removing")
-                if (BuildConfig.DEBUG) {
-                    notificationPort.showDebug("GEOFENCE_EXIT HUÉRFANA geof=${id.take(8)} → limpio, no armo")
+            val result = runCatching { userParkingRepository.getActiveSessionByGeofence(id) }
+            val failure = result.exceptionOrNull()
+            when {
+                // A FAILED read is NOT "no session" — indeterminate, never destructively cleaned
+                // (field 2026-07-11 00:38: a cancelled lookup classified a LIVE fence as orphan).
+                failure is CancellationException -> throw failure
+                failure != null -> {
+                    PaparcarLogger.w(DIAG, "  ⚠ GEOFENCE_EXIT session lookup FAILED geof=$id — skipping, NOT orphan (${failure.message})")
+                    GeofenceExitLookup.LookupFailed(id)
                 }
-                runCatching { geofenceService.removeGeofence(id) }
-                // [DET-SOLID-001] Observability: orphan geofences are invariant violations.
-                runCatching { detectionEventLogger.log(DetectionEvent.OrphanCleaned(sessionId = id, timestampMs = now)) }
-                continue
+                result.getOrNull() == null -> GeofenceExitLookup.NoSession(id)
+                else -> GeofenceExitLookup.Found(id, result.getOrThrow()!!)
             }
-            realExits += id to session
+        }
+        val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
+        val decision = evaluateGeofenceExit(
+            lookups = lookups,
+            activeVehicleId = activeVehicleId,
+            triggerLatitude = triggerLoc?.latitude,
+            triggerLongitude = triggerLoc?.longitude,
+        )
+
+        // Self-clean orphan fences (registered NEVER_EXPIRE by a re-park; fire spurious exits).
+        for (id in decision.orphanGeofenceIds) {
+            PaparcarLogger.w(DIAG, "  ✗ GEOFENCE_EXIT orphan geof=$id — removing")
+            if (BuildConfig.DEBUG) {
+                notificationPort.showDebug("GEOFENCE_EXIT HUÉRFANA geof=${id.take(8)} → limpio, no armo")
+            }
+            runCatching { geofenceService.removeGeofence(id) }
+            runCatching { detectionEventLogger.log(DetectionEvent.OrphanCleaned(sessionId = id, timestampMs = now)) }
         }
 
-        // All triggering geofences were orphans → nothing real happened.
-        if (realExits.isEmpty()) {
+        // Every triggering fence was an orphan or a failed lookup → nothing real happened.
+        if (!decision.hasRealExit) {
             return
         }
 
-        // 2. Decide which vehicle(s) actually departed. With OVERLAPPING geofences the ACTIVE
-        //    vehicle's and an INACTIVE still-parked car's geofences can both fire (their radii
-        //    overlap) — but the inactive car is still parked, so releasing its spot would be a
-        //    false positive. Prefer the active vehicle when its geofence is among those that
-        //    fired; only when it is NOT among them does the user appear to have left with an
-        //    inactive vehicle → release that one. [multi-vehicle overlap]
-        //    FUTURE: richer attribution when only an inactive vehicle's geofence fires.
-        val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
-        val departing = realExits.filter { it.second.vehicleId == activeVehicleId }
-            .ifEmpty { realExits }
-
-        // 3. Delivery-distance split — but BOTH sides run the same machinery. A real
-        //    drive-away is delivered far BY CONSTRUCTION (the car is moving + OEM lag: field
-        //    2026-07-09, Redmi ride home d=657 m) while a walking exit is delivered at the
-        //    boundary — so distance must never decide WHETHER to look, only what the delivery
-        //    is worth on its own: a boundary delivery additionally emits the in-process
-        //    Exited event; a far one is also recorded for the reconcile's conjunction (the
-        //    backstop when the trip ended inside the delivery lag, e.g. ColorOS holding an
-        //    EXIT overnight and delivering it 4 km away — field 2026-07-08 04:16; releasing
-        //    on that alone confirmed the departure of a car that had not moved, which is why
-        //    every release now demands measured movement, not a trusted delivery).
-        //    [DET-EXIT-TRUST-001][DET-RIDE-PROOF-001]
-        val (boundaryExits, staleExits) = departing.partition { (_, session) ->
-            val deliveredAtMeters = triggerLoc?.let {
-                haversineMeters(it.latitude, it.longitude, session.location.latitude, session.location.longitude)
-            }
-            deliveredAtMeters == null || deliveredAtMeters <= detectionConfig.watchdogFarThresholdMeters
-        }
+        val boundaryExits = decision.boundaryDepartures.map { it.geofenceId to it.session }
+        val staleExits = decision.staleDepartures.map { it.geofenceId to it.session }
 
         // 3a. Fast path: dispatch departure (speed-gated release) ONLY for the departing
         //     vehicle(s). Emitting the in-process Exited event only for the departing geofence
