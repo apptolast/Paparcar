@@ -79,6 +79,8 @@ data class DetectionEventDto(
     val evidence: String? = null,
     // OEM background-kill telemetry [OEM-KILL-001]
     val gapMs: Long? = null,
+    // Session supersede [DET-SUPERSEDE-001]
+    val distanceMeters: Double? = null,
 )
 
 /** Canonical wire discriminator for each event subtype. */
@@ -96,6 +98,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.DepartureProcessed -> "DEPARTURE_PROCESSED"
     is DetectionEvent.Reverted -> "REVERTED"
     is DetectionEvent.OrphanCleaned -> "ORPHAN_CLEANED"
+    is DetectionEvent.SessionSuperseded -> "SESSION_SUPERSEDED"
     is DetectionEvent.GeofenceRegistration -> "GEOFENCE_REGISTRATION"
     is DetectionEvent.BackgroundKillSuspected -> "BACKGROUND_KILL_SUSPECTED"
     is DetectionEvent.ForceStopConfirmed -> "FORCE_STOP_CONFIRMED"
@@ -139,6 +142,7 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)
         is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)
         is DetectionEvent.OrphanCleaned -> base
+        is DetectionEvent.SessionSuperseded -> base.copy(distanceMeters = distanceMeters, sessionAgeMs = ageMs)
         is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)
         is DetectionEvent.BackgroundKillSuspected -> base.copy(gapMs = gapMs)
         is DetectionEvent.ForceStopConfirmed -> base
