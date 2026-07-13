@@ -55,8 +55,8 @@ import paparcar.composeapp.generated.resources.home_peek_parked_label
 import paparcar.composeapp.generated.resources.home_vehicle_card_parked_at
 import paparcar.composeapp.generated.resources.home_vehicle_card_parked_meta
 import paparcar.composeapp.generated.resources.home_vehicle_chip_mark_parking
+import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
-import paparcar.composeapp.generated.resources.home_vehicle_chip_status_driving
 import paparcar.composeapp.generated.resources.home_vehicle_chip_unmarked
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 
@@ -139,7 +139,7 @@ internal fun HomeVehicleChip(
                     isDriving -> Text(
                         text = stringResource(
                             if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-                            else Res.string.home_vehicle_chip_status_driving,
+                            else Res.string.home_det_monitoring,
                         ),
                         style = PaparcarType.current.label,
                         fontWeight = FontWeight.SemiBold,
@@ -255,7 +255,7 @@ internal fun HomeVehicleCard(
                         isDriving -> Text(
                             text = stringResource(
                                 if (isCandidate) Res.string.home_vehicle_chip_status_candidate
-                                else Res.string.home_vehicle_chip_status_driving,
+                                else Res.string.home_det_monitoring,
                             ),
                             style = PaparcarType.current.body,
                             fontWeight = FontWeight.SemiBold,
