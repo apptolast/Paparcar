@@ -331,6 +331,7 @@
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Fechar</string>
     <string name="home_peek_vehicle_parked_label">%1$s · estacionado</string>
+    <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Voltar</string>
 
     <!-- ConfirmationBottomSheet (deteção de estacionamento) -->

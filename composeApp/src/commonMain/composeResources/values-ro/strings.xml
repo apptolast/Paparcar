@@ -332,6 +332,7 @@
     <string name="gps_disclaimer_confirm">Am înțeles</string>
     <string name="home_peek_dismiss_cd">Închide</string>
     <string name="home_peek_vehicle_parked_label">%1$s · parcat</string>
+    <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Înapoi</string>
 
     <!-- ConfirmationBottomSheet (detectare parcare) -->

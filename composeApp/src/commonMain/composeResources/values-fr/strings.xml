@@ -331,6 +331,7 @@
     <string name="gps_disclaimer_confirm">Compris</string>
     <string name="home_peek_dismiss_cd">Fermer</string>
     <string name="home_peek_vehicle_parked_label">%1$s · garé</string>
+    <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Retour</string>
 
     <!-- ConfirmationBottomSheet (détection de stationnement) -->

@@ -465,6 +465,7 @@
     <string name="gps_disclaimer_confirm">Entendido</string>
     <string name="home_peek_dismiss_cd">Descartar</string>
     <string name="home_peek_vehicle_parked_label">%1$s · aparcado</string>
+    <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="bt_config_cd_back">Atrás</string>
     <!-- Auth screens -->
     <string name="auth_header_app_name">Paparcar</string>
