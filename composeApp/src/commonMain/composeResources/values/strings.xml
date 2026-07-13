@@ -422,6 +422,15 @@
     <string name="permissions_tier_detection_benefit">To publish your spot when you leave — hands-free</string>
     <string name="permissions_tier_optional_benefit">Only useful with auto-detection on — so it never misses</string>
 
+    <!-- Detection tier status card — the honest promise the user is on right now [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Detection level</string>
+    <string name="permissions_tier_automatic_name">Automatic</string>
+    <string name="permissions_tier_assisted_plus_name">Assisted +</string>
+    <string name="permissions_tier_assisted_name">Assisted</string>
+    <string name="permissions_tier_automatic_promise">Your spot is marked and freed on its own.</string>
+    <string name="permissions_tier_assisted_plus_promise">Almost always hands-free; now and then we\'ll ask you.</string>
+    <string name="permissions_tier_assisted_promise">We detect what your phone allows; when in doubt, we ask you.</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Tell us about your car</string>
     <string name="vehicle_size_explainer_subtitle">We just need one essential detail for the app to work: the size.</string>

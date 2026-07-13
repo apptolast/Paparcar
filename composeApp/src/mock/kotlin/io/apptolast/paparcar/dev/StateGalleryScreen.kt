@@ -55,6 +55,7 @@ import io.apptolast.paparcar.presentation.onboarding.OnboardingScreen
 import io.apptolast.paparcar.presentation.permissions.PermissionsContent
 import io.apptolast.paparcar.presentation.permissions.PermissionsState
 import io.apptolast.paparcar.presentation.preview.FakeData
+import io.apptolast.paparcar.domain.model.DetectionTier
 import io.apptolast.paparcar.domain.permissions.RequiredPermission
 import io.apptolast.paparcar.presentation.settings.SettingsContent
 import io.apptolast.paparcar.presentation.settings.SettingsState
@@ -624,6 +625,42 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         showAutostartCard = true,
                         showOemBatteryCard = true,
                         isReliabilityReduced = true,
+                    ),
+                    onRequestPermissions = {},
+                )
+            },
+            // Cabecera de nivel de detección — la promesa honesta según el setup. [DET-TIERS-001]
+            Variant("Nivel Automático (BT emparejado)") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true, hasBackgroundLocation = true,
+                        hasActivityRecognition = true, hasNotifications = true,
+                        isLocationServicesEnabled = true, hasBluetoothConnect = true,
+                        isBatteryOptimizationExempt = true,
+                        currentTier = DetectionTier.AUTOMATIC,
+                    ),
+                    onRequestPermissions = {},
+                )
+            },
+            Variant("Nivel Asistido + (exención batería)") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true, hasBackgroundLocation = true,
+                        hasActivityRecognition = true, hasNotifications = true,
+                        isLocationServicesEnabled = true,
+                        isBatteryOptimizationExempt = true,
+                        currentTier = DetectionTier.ASSISTED_PLUS,
+                    ),
+                    onRequestPermissions = {},
+                )
+            },
+            Variant("Nivel Asistido (base, sin BT ni exención)") {
+                PermissionsContent(
+                    state = PermissionsState(
+                        hasFineLocation = true, hasBackgroundLocation = true,
+                        hasActivityRecognition = true, hasNotifications = true,
+                        isLocationServicesEnabled = true,
+                        currentTier = DetectionTier.ASSISTED,
                     ),
                     onRequestPermissions = {},
                 )

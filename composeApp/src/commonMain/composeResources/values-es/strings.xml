@@ -398,6 +398,15 @@
     <string name="permissions_tier_detection_benefit">Para publicar tu plaza al salir, sin tocar nada</string>
     <string name="permissions_tier_optional_benefit">Solo útiles con la autodetección activa — para que no falle nunca</string>
 
+    <!-- Tarjeta de nivel de detección — la promesa honesta en la que está el usuario ahora [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Nivel de detección</string>
+    <string name="permissions_tier_automatic_name">Automático</string>
+    <string name="permissions_tier_assisted_plus_name">Asistido +</string>
+    <string name="permissions_tier_assisted_name">Asistido</string>
+    <string name="permissions_tier_automatic_promise">Tu plaza se marca y libera sola.</string>
+    <string name="permissions_tier_assisted_plus_promise">Casi siempre solo; alguna vez te preguntaremos.</string>
+    <string name="permissions_tier_assisted_promise">Detectamos lo que el móvil nos deja; cuando dudemos, te preguntamos.</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Cuéntanos sobre tu coche</string>
     <string name="vehicle_size_explainer_subtitle">Solo necesitamos un dato esencial para que la app funcione: el tamaño.</string>

@@ -201,6 +201,14 @@ internal fun PermissionsContent(
         }
         Spacer(Modifier.height(PaparcarSpacing.xxxl))
 
+        // ── Nivel de detección actual (la promesa honesta) ──────────────────
+        // Sólo cuando la sección de detección es visible: en foco Core-only (GPS apagado) la
+        // detección no puede correr, así que el nivel no aplica. [DET-TIERS-001]
+        if (showProducer) {
+            DetectionTierStatusCard(tier = state.currentTier)
+            Spacer(Modifier.height(PaparcarSpacing.xxl))
+        }
+
         // ── Timeline por tier de beneficio ──────────────────────────────────
         // El nodo se pone verde cuando el tier entero está concedido → progresión de valor.
         if (showEssential) {

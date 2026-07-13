@@ -1,5 +1,7 @@
 package io.apptolast.paparcar.presentation.permissions
 
+import io.apptolast.paparcar.domain.model.DetectionTier
+
 data class PermissionsState(
     val hasFineLocation: Boolean = false,
     val hasBackgroundLocation: Boolean = false,
@@ -30,6 +32,10 @@ data class PermissionsState(
      *  optional tier swaps its generic battery hint for the honest manufacturer-policy callout.
      *  User-level copy only: cause → consequence → remedies, never internals. [DET-RELIABILITY-001] */
     val isReliabilityReduced: Boolean = false,
+    /** The honest detection tier the user is on RIGHT NOW, shown as a status header so they know
+     *  what to expect and what unlocks the next tier. Defaults to the lowest promise until the
+     *  reliability stream emits. [DET-TIERS-001] */
+    val currentTier: DetectionTier = DetectionTier.ASSISTED,
     val showRationale: Boolean = false,
     val showSettingsPrompt: Boolean = false,
     /** Foreground location is denied AND the system will no longer show its dialog (permanently

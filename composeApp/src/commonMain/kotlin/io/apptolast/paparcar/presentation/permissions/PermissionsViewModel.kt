@@ -64,7 +64,12 @@ class PermissionsViewModel(
             observeDetectionReliability()
                 .catch { /* keep the last known value — a dead stream must not kill the screen */ }
                 .collect { report ->
-                    updateState { copy(isReliabilityReduced = report.level == DetectionReliabilityLevel.REDUCED) }
+                    updateState {
+                        copy(
+                            isReliabilityReduced = report.level == DetectionReliabilityLevel.REDUCED,
+                            currentTier = report.tier,
+                        )
+                    }
                 }
         }
     }

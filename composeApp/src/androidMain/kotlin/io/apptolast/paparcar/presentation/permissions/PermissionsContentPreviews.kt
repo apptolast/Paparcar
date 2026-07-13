@@ -3,6 +3,7 @@ package io.apptolast.paparcar.presentation.permissions
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import io.apptolast.paparcar.domain.model.DetectionTier
 import io.apptolast.paparcar.ui.theme.PaparcarTheme
 
 // ── All denied (first-launch state) ──────────────────────────────────────────
@@ -186,5 +187,46 @@ private fun PermissionsAutostartAndBatteryLightPreview() {
             ),
             onRequestPermissions = {},
         )
+    }
+}
+
+// ── Detection tier status header — the honest promise per setup [DET-TIERS-001] ──
+
+private fun tierState(tier: DetectionTier) = PermissionsState(
+    hasFineLocation = true,
+    hasBackgroundLocation = true,
+    hasActivityRecognition = true,
+    hasNotifications = true,
+    isLocationServicesEnabled = true,
+    hasBluetoothConnect = tier == DetectionTier.AUTOMATIC,
+    isBatteryOptimizationExempt = tier != DetectionTier.ASSISTED,
+    currentTier = tier,
+)
+
+@Preview(name = "Permissions — tier Automatic · Light", showBackground = true)
+@Composable
+private fun PermissionsTierAutomaticLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        PermissionsContent(state = tierState(DetectionTier.AUTOMATIC), onRequestPermissions = {})
+    }
+}
+
+@Preview(name = "Permissions — tier Assisted+ · Light", showBackground = true)
+@Composable
+private fun PermissionsTierAssistedPlusLightPreview() {
+    PaparcarTheme(darkTheme = false) {
+        PermissionsContent(state = tierState(DetectionTier.ASSISTED_PLUS), onRequestPermissions = {})
+    }
+}
+
+@Preview(
+    name = "Permissions — tier Assisted · Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun PermissionsTierAssistedDarkPreview() {
+    PaparcarTheme(darkTheme = true) {
+        PermissionsContent(state = tierState(DetectionTier.ASSISTED), onRequestPermissions = {})
     }
 }
