@@ -32,10 +32,11 @@ class EvaluateParkingDecisionUseCaseTest {
         maxSpeedKmh: Float = 60f,
         evidenceLabel: String? = null,
         hasKinematicEgress: Boolean = false,
+        lastSpeedMps: Float = 0f,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
         elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, evidenceLabel,
-        hasKinematicEgress,
+        hasKinematicEgress, lastSpeedMps,
     )
 
     // ── Kinematic egress: GPS-measured walk from the frozen anchor [DET-KINEMATIC-EGRESS-001] ─
@@ -55,6 +56,30 @@ class EvaluateParkingDecisionUseCaseTest {
         val confirmed = assertIs<ParkingDecision.Confirmed>(decision)
         assertEquals("kinematic+egress", confirmed.pathLabel)
         assertEquals(config.reliabilityKinematicEgress, confirmed.reliability, 0.0001f)
+    }
+
+    // ── Rolling veto: never confirm while the car is still moving [DET-STEP-SPEED-GATE-001] ─────
+
+    @Test
+    fun should_confirm_steps_egress_when_user_exits_fast_and_is_stationary_or_walking() {
+        // A user who parks and jumps out in < 25 s must NOT become a false negative: at the moment
+        // steps+egress fires they are stationary or walking away (lastSpeedMps below the pedestrian
+        // ceiling), so the rolling veto does not apply. [caso "usuario rápido"]
+        val stationary = evaluate(input(stepCount = 8, hasEgressDisplacement = true, lastSpeedMps = 0f))
+        assertEquals("steps+egress", assertIs<ParkingDecision.Confirmed>(stationary).pathLabel)
+
+        val walkingAway = evaluate(input(stepCount = 8, hasEgressDisplacement = true, lastSpeedMps = 1.4f))
+        assertEquals("steps+egress", assertIs<ParkingDecision.Confirmed>(walkingAway).pathLabel)
+    }
+
+    @Test
+    fun should_reject_steps_egress_when_car_is_still_rolling_in_traffic() {
+        // FP Avenida de los Mástiles (field 2026-07-12): phantom steps + growing displacement while
+        // the car crawled through traffic. steps+egress is blind to instantaneous speed, so it used
+        // to CONFIRM mid-route. With the last fix above the pedestrian ceiling (4 m/s) the proofs are
+        // present but the car is rolling → decisive Rejected, not a saved pin.
+        val decision = evaluate(input(stepCount = 8, hasEgressDisplacement = true, lastSpeedMps = 4f))
+        assertEquals(ParkingDecision.Rejected, decision)
     }
 
     @Test

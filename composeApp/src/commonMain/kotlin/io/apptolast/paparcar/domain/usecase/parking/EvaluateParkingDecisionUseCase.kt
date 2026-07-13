@@ -54,6 +54,11 @@ data class ParkingDecisionInput(
      *  Only counts when the session itself measured driving (a seeded arm whose stream never saw
      *  the trip must keep asking). */
     val hasKinematicEgress: Boolean = false,
+    /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. The evaluator only ever
+     *  saw `maxSpeedKmh` (session PEAK), so it could confirm steps+egress while the car was still
+     *  ROLLING — the in-motion false positive at Avenida de los Mástiles (field 2026-07-12). No
+     *  path may auto-confirm while this is above the pedestrian ceiling (`egressStepMaxSpeedMps`). */
+    val lastSpeedMps: Float = 0f,
 )
 
 /**
@@ -94,7 +99,15 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             input.sessionDurationMs >= config.mismatchMinSessionDurationMs &&
             input.maxSpeedKmh <= config.mismatchMaxSpeedKmh
 
+        // [DET-STEP-SPEED-GATE-001] The car is still ROLLING at the moment of decision (last fix
+        // above the pedestrian ceiling). steps+egress is blind to instantaneous speed, so a phone
+        // bouncing in stop-and-go traffic faked a confirm mid-route (FP Avenida de los Mástiles,
+        // field 2026-07-12). A genuine park confirms while stationary or walking away — never
+        // while rolling. Vetoes EVERY auto-confirm path; a walking user (< ceiling) is unaffected.
+        val isRolling = input.lastSpeedMps > config.egressStepMaxSpeedMps
+
         val confirmNow = when {
+            isRolling -> false
             isMismatch -> false
             // [DET-C-01] Egress is mandatory for every path.
             !input.hasEgressDisplacement -> false
@@ -141,6 +154,10 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
                     config.reliabilityVehicleExit
                 },
             )
+            // [DET-STEP-SPEED-GATE-001] Proofs present but the car is still rolling → this is a
+            // traffic false positive (FP Avenida de los Mástiles), not a park. Reject the candidate
+            // decisively rather than leave it open to re-confirm on the next moving fix.
+            isRolling && (hasStepsProof || hasKinematicProof) -> ParkingDecision.Rejected
             windowElapsed -> ParkingDecision.Rejected
             else -> ParkingDecision.Inconclusive
         }

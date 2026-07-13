@@ -759,6 +759,7 @@ class CoordinatorParkingDetector(
                                 maxSpeedKmh = state.maxSpeedKmh,
                                 evidenceLabel = currentArmEvidence,
                                 hasKinematicEgress = hasKinematicEgressSignal(state),
+                                lastSpeedMps = state.lastSpeedMps,
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -1031,6 +1032,7 @@ class CoordinatorParkingDetector(
                 maxSpeedKmh = state.maxSpeedKmh,
                 evidenceLabel = currentArmEvidence,
                 hasKinematicEgress = hasKinematicEgressSignal(state),
+                lastSpeedMps = state.lastSpeedMps,
             )
         )
         PaparcarLogger.d(
