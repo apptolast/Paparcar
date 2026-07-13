@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ElevatedButton
@@ -70,7 +71,7 @@ import io.apptolast.paparcar.ui.theme.PaparcarTheme
 /**
  * How a variant should be presented in the viewer.
  * - [FullScreen]: the composable already fills the screen (Settings, History, the expanded sheet…).
- * - [Surface]: a partial Home surface (detection card, peek handle, SpotFit row, monitoring pill).
+ * - [Surface]: a partial Home surface (detection card, peek handle, SpotFit row).
  *   Shown bottom-anchored like Home's sheet by default ("Completa"), with a "Solo" toggle to inspect
  *   the bare composable centered.
  */
@@ -94,7 +95,7 @@ private val sampleProfile = UserProfile(
 )
 
 // Full HomeContent is private + map-bound, so the gallery renders the partial Home surfaces
-// (detection card / peek / SpotFit / monitoring pill) on their own; the viewer hosts them
+// (detection card / peek / SpotFit) on their own; the viewer hosts them
 // bottom-anchored (Placement.Surface) so they read like Home's sheet.
 @Composable
 private fun detectionSurface(state: DetectionUiState) {
@@ -177,8 +178,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
     ScreenGroup(
         "Home · peek / sheet",
         listOf(
-            // PapSheet subject rule: parked car → vehicle lead + trailing count-pill. [UI-SHEET-001]
-            Variant("PapSheet · browse coche aparcado + count-pill", Placement.Surface) {
+            // PapSheet subject rule: parked car → vehicle lead (no trailing free-spots pill; the
+            // count reads in the expanded sheet). [UI-SHEET-001]
+            Variant("PapSheet · browse coche aparcado", Placement.Surface) {
                 peek(
                     HomeState(
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
@@ -720,12 +722,16 @@ private val galleryGroups: List<ScreenGroup> = listOf(
 @Composable
 fun StateGalleryScreen(onBack: () -> Unit) {
     var selected by remember { mutableStateOf<Variant?>(null) }
+    // Hoisted OUT of the `if (selected == null)` branch so the list's scroll offset survives
+    // entering a variant and coming back — otherwise the LazyColumn leaves composition and
+    // restarts at the top.
+    val listState = rememberLazyListState()
 
     if (selected == null) {
         BackHandler(onBack = onBack)
         PaparcarTheme(darkTheme = isSystemInDarkTheme()) {
             Surface(color = MaterialTheme.colorScheme.surface) {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
                     item {
                         Text(
                             "Galería de estados",

@@ -76,7 +76,7 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 //  cámara + badge de spots libres. Diseño implementado en producción.
 //  Componentes: HomeSheetContent · HomeSpotRow · HomeVehicleCard ·
 //               HomePeekHandle · PapSectionHeader ·
-//               HomeEmptySpots · HomePermissionsCard · PaparcarBottomActionBar
+//               HomeEmptySpots · PaparcarBottomActionBar
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─── A — HomePeekHandle ───────────────────────────────────────────────────────
@@ -501,16 +501,6 @@ private fun HomeSheetContentEmptyDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         PreviewSheet(
             state = HomeState(hasCorePermissions = true, nearbySpots = emptyList()),
-        )
-    }
-}
-
-@Preview(name = "A — Sheet: sin permisos (claro)", showBackground = true, heightDp = 400)
-@Composable
-private fun HomeSheetContentNoPermissionsLightPreview() {
-    PaparcarTheme(darkTheme = false) {
-        PreviewSheet(
-            state = HomeState(hasCorePermissions = false, nearbySpots = emptyList()),
         )
     }
 }
