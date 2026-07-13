@@ -232,6 +232,9 @@ class ParkingSafetyNetWorker(
                         alreadyCuredThisProcess = !firstCureThisProcess,
                         lastCureAtMs = lastCureAt,
                         nowMs = now,
+                        // [DET-CURE-FRESH-001] Age of the parked session: a fresh fence (manual pin
+                        // seconds ago) must not re-register and open the blind window before drive-off.
+                        sessionAgeMs = now - session.location.timestamp,
                     )
                     if (!mustReregister) {
                         debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → ancla resellada (cura throttled, hace ${(now - lastCureAt) / 60_000}min)"

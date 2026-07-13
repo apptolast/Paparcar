@@ -335,6 +335,14 @@ data class ParkingDetectionConfig(
      *  enough that a parked evening no longer re-opens the window every 15-min tick, short enough
      *  that a silent OS wipe is cured within the day. */
     val cureReregisterMinIntervalMs: Long = 6 * 60 * 60 * 1_000L,
+    /** [DET-CURE-FRESH-001] A session younger than this never triggers a cure RE-REGISTRATION: a
+     *  fence created seconds ago (a manual pin, or a fresh auto-confirm) is healthy, so re-registering
+     *  it only opens the INSIDE/OUTSIDE blind window exactly when the user is about to drive off. Field
+     *  2026-07-12 (Oppo): a manual park at the Glorieta was marked INSIDE the fence, the onDestroy cure
+     *  re-registered it, and the drive-away to Star Petroleum produced NO EXIT. A session that survived
+     *  a process restart carries its ORIGINAL (old) timestamp, so the janitor's post-restart repair is
+     *  unaffected. Default 10 min. */
+    val cureSkipFreshSessionMs: Long = 10 * 60_000L,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when

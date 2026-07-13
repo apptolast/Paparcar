@@ -550,9 +550,22 @@ class EvaluateSafetyNetCheckUseCaseTest {
         // First cure after a process start always runs (force-stop wipes OS registrations);
         // after that each re-registration opens a blind window, so: throttled within the
         // interval, allowed once it elapses. [DET-ANCHOR-FREEZE-001 F4]
-        assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs))
-        assertEquals(false, useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs))
-        assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - config.cureReregisterMinIntervalMs, nowMs = nowMs))
+        // sessionAgeMs aged past the freshness window so [DET-CURE-FRESH-001] does not intercept.
+        val aged = config.cureSkipFreshSessionMs * 2
+        assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs, sessionAgeMs = aged))
+        assertEquals(false, useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - 1_000L, nowMs = nowMs, sessionAgeMs = aged))
+        assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = true, lastCureAtMs = nowMs - config.cureReregisterMinIntervalMs, nowMs = nowMs, sessionAgeMs = aged))
+    }
+
+    @Test
+    fun should_skip_cure_reregistration_for_a_fresh_session() {
+        // [DET-CURE-FRESH-001] A just-created fence (manual pin at the Glorieta, Oppo 2026-07-12) is
+        // healthy — re-registering it only opens the INSIDE/OUTSIDE blind window right before the
+        // drive-away, so the EXIT is lost. Skip even the first-cure-per-process while fresh; once the
+        // session ages past the window the normal throttle resumes.
+        val fresh = config.cureSkipFreshSessionMs - 1
+        assertEquals(false, useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = 0L, nowMs = nowMs, sessionAgeMs = fresh))
+        assertEquals(true, useCase.shouldReregisterCure(alreadyCuredThisProcess = false, lastCureAtMs = 0L, nowMs = nowMs, sessionAgeMs = config.cureSkipFreshSessionMs))
     }
 
     // ── [DET-ANCHOR-FREEZE-001] Ask-when-blind: the app is OPEN and no proof explains "far" ─

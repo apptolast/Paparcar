@@ -381,9 +381,22 @@ class EvaluateSafetyNetCheckUseCase(
      * [ParkingDetectionConfig.cureReregisterMinIntervalMs]. The caller voids its throttle state
      * when a dismissed false EXIT poisons the fence OUTSIDE, so the next tick re-registers
      * immediately.
+     *
+     * [DET-CURE-FRESH-001] A FRESH session ([sessionAgeMs] < [ParkingDetectionConfig.cureSkipFreshSessionMs])
+     * never re-registers: its fence was created seconds ago and is healthy, so resetting INSIDE/OUTSIDE
+     * would only open the blind window right when the user is about to drive off (Oppo manual park at
+     * the Glorieta, field 2026-07-12). A restart-restored session keeps its original old timestamp, so
+     * the janitor's post-restart repair still runs.
      */
-    fun shouldReregisterCure(alreadyCuredThisProcess: Boolean, lastCureAtMs: Long, nowMs: Long): Boolean =
-        !alreadyCuredThisProcess || nowMs - lastCureAtMs >= config.cureReregisterMinIntervalMs
+    fun shouldReregisterCure(
+        alreadyCuredThisProcess: Boolean,
+        lastCureAtMs: Long,
+        nowMs: Long,
+        sessionAgeMs: Long,
+    ): Boolean = when {
+        sessionAgeMs < config.cureSkipFreshSessionMs -> false
+        else -> !alreadyCuredThisProcess || nowMs - lastCureAtMs >= config.cureReregisterMinIntervalMs
+    }
 
     private companion object {
         const val KMH_PER_MPS = 3.6f
