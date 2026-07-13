@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.VehicleType
+import io.apptolast.paparcar.domain.vehicle.VehicleActiveStatePolicy
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
@@ -274,10 +275,12 @@ class VehicleRegistrationViewModel(
                 // covers bluetoothDeviceId — pairing via BluetoothConfigViewModel only
                 // touches its own field, so the form save must not wipe it.
                 val existing = if (isEditing) vehicleRepository.getVehicleById(userId, vehicleId) else null
-                val shouldBeDefault = when {
-                    isEditing -> existing?.isActive ?: false
-                    else -> !vehicleRepository.hasVehicles(userId)
-                }
+                // [AUDIT-M11-001] Single-active invariant decision lives in the domain policy.
+                val shouldBeDefault = VehicleActiveStatePolicy.shouldBeActiveOnSave(
+                    isEditing = isEditing,
+                    existingIsActive = existing?.isActive ?: false,
+                    userHasVehicles = vehicleRepository.hasVehicles(userId),
+                )
                 val vehicle = Vehicle(
                     id = vehicleId,
                     userId = userId,

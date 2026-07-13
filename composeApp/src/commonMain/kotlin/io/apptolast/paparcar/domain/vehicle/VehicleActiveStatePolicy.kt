@@ -35,4 +35,19 @@ object VehicleActiveStatePolicy {
      * of [remainingIds], or `null` when none remain. Pure.
      */
     fun promotionTarget(remainingIds: List<String>): String? = remainingIds.firstOrNull()
+
+    /**
+     * [AUDIT-M11-001] Whether a vehicle being saved should end up ACTIVE:
+     *  - **editing** an existing vehicle preserves its current active flag ([existingIsActive]);
+     *  - **registering a new** vehicle becomes active only when it is the user's FIRST
+     *    (`!userHasVehicles`) — the single-active invariant means a new car never steals the flag
+     *    from an existing one silently.
+     *
+     * Was inlined in `VehicleRegistrationViewModel` as an untested `when`. Pure and testable here.
+     */
+    fun shouldBeActiveOnSave(
+        isEditing: Boolean,
+        existingIsActive: Boolean,
+        userHasVehicles: Boolean,
+    ): Boolean = if (isEditing) existingIsActive else !userHasVehicles
 }

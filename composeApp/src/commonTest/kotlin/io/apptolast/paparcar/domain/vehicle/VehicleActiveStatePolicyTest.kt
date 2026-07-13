@@ -69,4 +69,22 @@ class VehicleActiveStatePolicyTest {
     fun `promotionTarget is the first remaining id`() {
         assertEquals("v1", VehicleActiveStatePolicy.promotionTarget(listOf("v1", "v2", "v3")))
     }
+
+    // ── shouldBeActiveOnSave [AUDIT-M11-001] ─────────────────────────────────
+
+    @Test
+    fun `new first vehicle becomes active`() {
+        assertEquals(true, VehicleActiveStatePolicy.shouldBeActiveOnSave(isEditing = false, existingIsActive = false, userHasVehicles = false))
+    }
+
+    @Test
+    fun `new vehicle when others exist does not steal active`() {
+        assertEquals(false, VehicleActiveStatePolicy.shouldBeActiveOnSave(isEditing = false, existingIsActive = false, userHasVehicles = true))
+    }
+
+    @Test
+    fun `editing preserves the current active flag`() {
+        assertEquals(true, VehicleActiveStatePolicy.shouldBeActiveOnSave(isEditing = true, existingIsActive = true, userHasVehicles = true))
+        assertEquals(false, VehicleActiveStatePolicy.shouldBeActiveOnSave(isEditing = true, existingIsActive = false, userHasVehicles = true))
+    }
 }

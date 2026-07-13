@@ -14,14 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.isoDayNumber
-import kotlinx.datetime.minus
-import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 class VehiclesViewModel(
     private val vehicleRepository: VehicleRepository,
@@ -62,8 +55,8 @@ class VehiclesViewModel(
                         vId to HistoryState(
                             sessions = vSessions,
                             activeFilter = existingFilter,
-                            filteredSessions = applyHistoryFilter(vSessions, existingFilter, nowMs),
-                            statsData = computeHistoryStats(vSessions, nowMs),
+                            filteredSessions = VehicleHistoryCalculator.filter(vSessions, existingFilter, nowMs),
+                            statsData = VehicleHistoryCalculator.computeStats(vSessions, nowMs),
                         )
                     }
                     copy(
@@ -98,7 +91,7 @@ class VehiclesViewModel(
                 val vehicleId = state.value.currentVehicleId ?: return
                 val currentHistory = state.value.historyCache[vehicleId] ?: return
                 val nowMs = Clock.System.now().toEpochMilliseconds()
-                val filtered = applyHistoryFilter(currentHistory.sessions, intent.filter, nowMs)
+                val filtered = VehicleHistoryCalculator.filter(currentHistory.sessions, intent.filter, nowMs)
                 updateState {
                     val updated = currentHistory.copy(activeFilter = intent.filter, filteredSessions = filtered)
                     copy(historyCache = historyCache + (vehicleId to updated))
@@ -122,86 +115,7 @@ class VehiclesViewModel(
                 }
         }
     }
-
-    private fun applyHistoryFilter(
-        sessions: List<UserParking>,
-        filter: HistoryFilter,
-        nowMs: Long = Clock.System.now().toEpochMilliseconds(),
-    ): List<UserParking> = when (filter) {
-        HistoryFilter.All -> sessions
-        HistoryFilter.ThisWeek -> {
-            val tz = TimeZone.currentSystemDefault()
-            val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
-            val daysFromMonday = nowLocal.date.dayOfWeek.isoDayNumber - 1
-            val weekStartMs = nowLocal.date
-                .minus(daysFromMonday, DateTimeUnit.DAY)
-                .atStartOfDayIn(tz)
-                .toEpochMilliseconds()
-            sessions.filter { it.location.timestamp >= weekStartMs }
-        }
-        HistoryFilter.ThisMonth -> {
-            val tz = TimeZone.currentSystemDefault()
-            val nowLocal = Instant.fromEpochMilliseconds(nowMs).toLocalDateTime(tz)
-            sessions.filter {
-                val dt = Instant.fromEpochMilliseconds(it.location.timestamp).toLocalDateTime(tz)
-                dt.year == nowLocal.year && dt.month == nowLocal.month
-            }
-        }
-        HistoryFilter.Last3Months -> sessions.filter {
-            it.location.timestamp >= nowMs - MONTHS_3_MS
-        }
-    }
-
-    private fun computeHistoryStats(
-        sessions: List<UserParking>,
-        nowMs: Long = Clock.System.now().toEpochMilliseconds(),
-    ): HistoryStatsData? {
-        if (sessions.isEmpty()) return null
-        val ended = sessions.filter { !it.isActive }
-
-        val avgPerWeek: Float? = run {
-            val oldest = ended.minOfOrNull { it.location.timestamp } ?: return@run null
-            val weeks = (nowMs - oldest).toFloat() / WEEK_MS
-            if (weeks < MIN_WEEKS_FOR_AVG) null else ended.size / weeks
-        }
-
-        val peakDay: Int? = run {
-            if (ended.size < MIN_SESSIONS_FOR_PEAK) return@run null
-            val tz = TimeZone.currentSystemDefault()
-            ended
-                .groupBy<UserParking, Int> {
-                    Instant.fromEpochMilliseconds(it.location.timestamp)
-                        .toLocalDateTime(tz).date.dayOfWeek.isoDayNumber
-                }
-                .maxByOrNull { it.value.size }
-                ?.key
-        }
-
-        val topStreet: String? = ended
-            .mapNotNull { it.address?.street?.takeIf { s -> s.isNotBlank() } }
-            .groupBy { it }
-            .maxByOrNull { it.value.size }
-            ?.key
-
-        val avgReliabilityPct: Int? = ended
-            .mapNotNull { it.detectionReliability }
-            .takeIf { it.isNotEmpty() }
-            ?.let { (it.sum() / it.size * PERCENT).toInt() }
-
-        return HistoryStatsData(
-            avgSessionsPerWeek = avgPerWeek,
-            mostActiveDayOfWeek = peakDay,
-            favoriteStreet = topStreet,
-            avgReliabilityPct = avgReliabilityPct,
-        )
-    }
-
     private companion object {
         const val TAG = "VehiclesViewModel"
-        const val WEEK_MS = 7L * 24 * 60 * 60 * 1000
-        const val MONTHS_3_MS = 90L * 24 * 60 * 60 * 1000
-        const val MIN_WEEKS_FOR_AVG = 2f
-        const val MIN_SESSIONS_FOR_PEAK = 5
-        const val PERCENT = 100f
     }
 }
