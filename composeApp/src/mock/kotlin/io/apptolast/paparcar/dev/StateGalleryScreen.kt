@@ -46,7 +46,6 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
-import io.apptolast.paparcar.presentation.home.sections.map.components.MonitoringPillContent
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.SpotFitRow
@@ -162,19 +161,6 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Detección inactiva — flag off o permisos (Inactive)", Placement.Surface) { detectionSurface(DetectionUiState.Inactive) },
             Variant("Sin coche registrado (NoVehicle)", Placement.Surface) { detectionSurface(DetectionUiState.NoVehicle) },
             Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionUiState.AwaitingFirstPark) },
-            Variant("Coordinator corriendo (Monitoring · conduciendo)", Placement.Surface) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    MonitoringPillContent(elapsedLabel = "4 min")
-                }
-            },
-            Variant("Coordinator corriendo (Monitoring · aparcando)", Placement.Surface) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    MonitoringPillContent(
-                        elapsedLabel = "4 min",
-                        phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate,
-                    )
-                }
-            },
         ),
     ),
     ScreenGroup(
