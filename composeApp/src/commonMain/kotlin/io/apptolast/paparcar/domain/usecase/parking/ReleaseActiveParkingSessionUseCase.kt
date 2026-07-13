@@ -7,8 +7,8 @@ import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.service.GeofenceManager
-import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlin.time.Clock
 
 /**
@@ -71,7 +71,8 @@ class ReleaseActiveParkingSessionUseCase(
         // revert and departure already do, but this path left a NEVER_EXPIRE orphan behind on
         // every release — the next crossing cost an FGS start + notification flash before the
         // orphan-cleanup dismissed it. Best-effort: a failed removal is caught later by that
-        // same orphan cleanup, so it must never fail the release.
+        // same orphan cleanup, so it must never fail the release. (P1-6 [Hallazgo A] converged
+        // on the same fix from the 2026-07-12 field test — kept master's version.)
         if (cleared.isSuccess) {
             currentSession.geofenceId?.let { geofenceId ->
                 geofenceService.removeGeofence(geofenceId)

@@ -8,11 +8,13 @@ import io.apptolast.paparcar.data.datasource.remote.dto.toDto
 import io.apptolast.paparcar.data.datasource.remote.dto.toSessionDto
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlin.concurrent.Volatile
+import kotlin.math.roundToInt
 
 /**
  * Firestore-backed [DetectionEventLogger] for field diagnostics. [DET-LOG-02]
@@ -37,11 +39,17 @@ import kotlin.concurrent.Volatile
 class FirestoreDetectionEventLogger(
     private val firestore: FirebaseFirestore,
     private val authRepository: AuthRepository,
+    private val deviceInfo: DeviceInfoProvider,
     scope: CoroutineScope,
 ) : DetectionEventLogger {
 
     private val channel = Channel<DetectionEvent>(capacity = BUFFER_CAPACITY)
     private val cleanupScope = scope
+
+    /** Per-session rollup accumulated from the drained stream, keyed by sessionId. Touched ONLY on
+     *  the single consumer coroutine (the `for (event in channel)` loop) → no synchronization needed.
+     *  Flushed to the header doc on SESSION_ENDED. [DIAG-READABLE-001] */
+    private val rollups = mutableMapOf<String, SessionRollup>()
 
     /** Cached gate value: null until first **successfully** resolved, then the flag from Firestore.
      *  @Volatile so [log] can read it from the producer thread to short-circuit. */
@@ -138,12 +146,89 @@ class FirestoreDetectionEventLogger(
             .collection(COLLECTION_SESSIONS)
             .document(event.sessionId)
 
+        accumulate(event)
         when (event) {
-            is DetectionEvent.SessionStarted -> sessionDoc.set(event.toSessionDto())
-            is DetectionEvent.SessionEnded -> sessionDoc.update(FIELD_OUTCOME to event.outcome)
+            is DetectionEvent.SessionStarted -> sessionDoc.set(
+                // Stamp device identity so a trace says which phone produced it. [DIAG-READABLE-001]
+                event.toSessionDto().copy(
+                    deviceModel = deviceInfo.deviceModel,
+                    appVersion = deviceInfo.appVersion,
+                    osVersion = deviceInfo.osVersion,
+                ),
+            )
+            is DetectionEvent.SessionEnded -> flushSession(sessionDoc, event)
             else -> Unit
         }
         sessionDoc.collection(COLLECTION_EVENTS).add(event.toDto())
+    }
+
+    /** Fold each event into its session's rollup. Runs on the consumer coroutine only. */
+    private fun accumulate(event: DetectionEvent) {
+        when (event) {
+            is DetectionEvent.SessionStarted ->
+                rollups[event.sessionId] = SessionRollup(startedAt = event.timestampMs)
+            is DetectionEvent.LocationFix -> {
+                val r = rollups.getOrPut(event.sessionId) { SessionRollup() }
+                r.fixCount++
+                val kmh = (event.location?.speed ?: 0f) * MS_TO_KMH
+                if (kmh > r.maxSpeedKmh) r.maxSpeedKmh = kmh
+                if (kmh >= DRIVING_SPEED_KMH) r.drivingFixes++
+                event.location?.let { r.finalLat = it.latitude; r.finalLon = it.longitude }
+            }
+            is DetectionEvent.Step -> {
+                val r = rollups.getOrPut(event.sessionId) { SessionRollup() }
+                if (event.stepCount > r.maxStepCount) r.maxStepCount = event.stepCount
+            }
+            else -> Unit
+        }
+    }
+
+    /** Patch the header with the terminal outcome + rollup, and mirror a one-line summary to the
+     *  local log so the same digest shows in logcat. [DIAG-READABLE-001] */
+    private suspend fun flushSession(
+        sessionDoc: dev.gitlive.firebase.firestore.DocumentReference,
+        ended: DetectionEvent.SessionEnded,
+    ) {
+        val r = rollups.remove(ended.sessionId)
+        val summary = buildSummary(ended, r)
+        sessionDoc.update(
+            FIELD_OUTCOME to ended.outcome,
+            FIELD_ENDED_AT to ended.timestampMs,
+            FIELD_MAX_SPEED_KMH to r?.maxSpeedKmh,
+            FIELD_DRIVING_FIXES to r?.drivingFixes,
+            FIELD_FIX_COUNT to r?.fixCount,
+            FIELD_MAX_STEP_COUNT to r?.maxStepCount,
+            FIELD_FINAL_LAT to r?.finalLat,
+            FIELD_FINAL_LON to r?.finalLon,
+            FIELD_SUMMARY to summary,
+        )
+        PaparcarLogger.i(TAG, "session ${ended.sessionId} [${deviceInfo.deviceModel}]: $summary")
+    }
+
+    private fun buildSummary(ended: DetectionEvent.SessionEnded, r: SessionRollup?): String {
+        val parts = mutableListOf(ended.outcome)
+        if (r != null && r.startedAt > 0L) {
+            parts += "${round1((ended.timestampMs - r.startedAt) / 60_000.0)}min"
+        }
+        if (r != null) {
+            parts += "vmax ${r.maxSpeedKmh.roundToInt()}km/h"
+            parts += "drive ${r.drivingFixes}/${r.fixCount}fix"
+            parts += "steps ${r.maxStepCount}"
+            val lat = r.finalLat
+            val lon = r.finalLon
+            if (lat != null && lon != null) parts += "end ${round5(lat)},${round5(lon)}"
+        }
+        return parts.joinToString(" · ")
+    }
+
+    /** Mutable per-session accumulator (consumer-thread confined). */
+    private class SessionRollup(val startedAt: Long = 0L) {
+        var fixCount = 0
+        var maxSpeedKmh = 0f
+        var drivingFixes = 0
+        var maxStepCount = 0
+        var finalLat: Double? = null
+        var finalLon: Double? = null
     }
 
     private companion object {
@@ -155,8 +240,26 @@ class FirestoreDetectionEventLogger(
         const val COLLECTION_EVENTS = "events"
         const val FIELD_OUTCOME = "outcome"
         const val FIELD_STARTED_AT = "startedAt"
+        // Rollup header fields patched on SESSION_ENDED [DIAG-READABLE-001]
+        const val FIELD_ENDED_AT = "endedAt"
+        const val FIELD_MAX_SPEED_KMH = "maxSpeedKmh"
+        const val FIELD_DRIVING_FIXES = "drivingFixes"
+        const val FIELD_FIX_COUNT = "fixCount"
+        const val FIELD_MAX_STEP_COUNT = "maxStepCount"
+        const val FIELD_FINAL_LAT = "finalLat"
+        const val FIELD_FINAL_LON = "finalLon"
+        const val FIELD_SUMMARY = "summary"
         const val BUFFER_CAPACITY = 128
         /** [DIAG-RETENTION-001] Diagnostic sessions older than this are swept on gate resolve. */
         const val RETENTION_DAYS = 7L
+        /** m/s → km/h; a fix at/above [DRIVING_SPEED_KMH] counts as a "driving" fix in the rollup. */
+        const val MS_TO_KMH = 3.6f
+        const val DRIVING_SPEED_KMH = 18f
     }
 }
+
+/** Round to 1 decimal without `String.format` (unavailable in commonMain). */
+private fun round1(v: Double): Double = (v * 10).roundToInt() / 10.0
+
+/** Round a coordinate to 5 decimals (~1 m) for a compact, readable summary. */
+private fun round5(v: Double): Double = (v * 100_000).roundToInt() / 100_000.0

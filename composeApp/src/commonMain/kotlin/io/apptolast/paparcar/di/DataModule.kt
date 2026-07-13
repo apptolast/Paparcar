@@ -48,6 +48,7 @@ val dataModule = module {
         FirestoreDetectionEventLogger(
             firestore = get(),
             authRepository = get(),
+            deviceInfo = get(),
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
         )
     }

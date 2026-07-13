@@ -159,6 +159,18 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
+    /** [DET-SUPERSEDE-001] A running detection session was cancelled and replaced because a new arm
+     *  trigger fired [distanceMeters] from its anchor — beyond the fence, so the running session was
+     *  a zombie relative to the new park (field 2026-07-12, WA YUKI blocked by a spurious fence ~100 m
+     *  away). [ageMs] is how long the superseded session had been running. */
+    data class SessionSuperseded(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val distanceMeters: Double,
+        val ageMs: Long? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** Outcome of registering a geofence for an active session — [success] false means the
      *  session⟺geofence invariant is broken until the janitor's restore pass repairs it. */
     data class GeofenceRegistration(

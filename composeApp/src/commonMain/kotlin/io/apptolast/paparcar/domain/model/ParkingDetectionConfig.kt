@@ -295,6 +295,16 @@ data class ParkingDetectionConfig(
      *  park→walk-away gap (78 s in the field trace) and clears harmlessly at traffic lights
      *  because resumed driving unfreezes. */
     val anchorFreezeStopMs: Long = 60_000L,
+    /** [DET-SHORT-TRIP-FREEZE-001] Freeze the anchor by EVIDENCE as well as by time: a drive-entered
+     *  stop that accumulates this many stopped fixes (speed < [stoppedSpeedThresholdMps]) freezes
+     *  WITHOUT waiting the full [anchorFreezeStopMs]. A short trip (Durango→Glorieta, ~2 min, field
+     *  2026-07-12) rarely gives the destination stop 60 s before the user walks off, so the anchor
+     *  never froze and the park was lost. N stable fixes at HIGH_ACCURACY cadence (~5 s) prove the
+     *  car came to rest here in ~15 s. The brief-queue case is protected the same way the time path
+     *  is: a light that freezes unfreezes harmlessly when driving resumes, and confirm still needs
+     *  egress (a walk away), which a queue never produces. Must stay above a single-fix touch-and-go
+     *  (the 1-fix unpinned-anchor invariant). Default 3. */
+    val anchorFreezeStableFixes: Int = 3,
     /** [DET-ANCHOR-FREEZE-001] Maximum pedestrian-band fixes (moving, below a resolved CAR
      *  verdict) tolerated between the last driving movement and a stop for that stop to count as
      *  DRIVE-ENTERED and be allowed to freeze. The freeze asserts "the CAR rests here"; a stop
@@ -336,6 +346,23 @@ data class ParkingDetectionConfig(
      *  enough that a parked evening no longer re-opens the window every 15-min tick, short enough
      *  that a silent OS wipe is cured within the day. */
     val cureReregisterMinIntervalMs: Long = 6 * 60 * 60 * 1_000L,
+    /** [DET-CURE-FRESH-001] A session younger than this never triggers a cure RE-REGISTRATION: a
+     *  fence created seconds ago (a manual pin, or a fresh auto-confirm) is healthy, so re-registering
+     *  it only opens the INSIDE/OUTSIDE blind window exactly when the user is about to drive off. Field
+     *  2026-07-12 (Oppo): a manual park at the Glorieta was marked INSIDE the fence, the onDestroy cure
+     *  re-registered it, and the drive-away to Star Petroleum produced NO EXIT. A session that survived
+     *  a process restart carries its ORIGINAL (old) timestamp, so the janitor's post-restart repair is
+     *  unaffected. Default 10 min. */
+    val cureSkipFreshSessionMs: Long = 10 * 60_000L,
+    /** [DET-NEVER-SILENT-001] Cadence at which a LIVE detection session refreshes its durable pending
+     *  heartbeat. Well below [pendingDetectionDeadMs] so a genuine long trip (a 1 h motorway drive)
+     *  keeps the heartbeat fresh and is never mistaken for a dead process. Default 5 min. */
+    val pendingHeartbeatMs: Long = 5 * 60_000L,
+    /** [DET-NEVER-SILENT-001] A pending detection whose heartbeat is older than this is presumed
+     *  ORPHANED BY PROCESS DEATH (a live session would have refreshed it) — the watchdog fires the
+     *  "where did you park?" nudge and clears it. Above a couple of missed heartbeats and at the
+     *  safety-net worker cadence (15 min) so a slow tick never false-triggers. Default 15 min. */
+    val pendingDetectionDeadMs: Long = 15 * 60_000L,
 
     // ── CANDIDATE PHASE ────────────────────────────────────────────────────────
     /** Speed (m/s) above which [bestStopLocation] (and the CANDIDATE phase) is cleared when
@@ -343,6 +370,14 @@ data class ParkingDetectionConfig(
      *  last known position is preserved when the user exits on foot, while being cleared when
      *  the vehicle drives off. Default 2.5 m/s (~9 km/h). */
     val clearBestStopSpeedMps: Float = 2.5f,
+    /** [DET-STEP-SPEED-GATE-001] Speed (m/s) ceiling below which a step counts while the park
+     *  anchor is already set and the device is moving (the egress WALK). Above it the device is
+     *  presumed to be in a moving vehicle, so its "steps" are vibration and must NOT accumulate —
+     *  the in-motion false positive at Avenida de los Mástiles (field 2026-07-12) came from a phone
+     *  bouncing in stop-and-go traffic faking a steps+egress confirm. Set above the brisk egress
+     *  walk seen in the field (2.6 m/s, Camelias 2026-07-10) and below sustained traffic crawl.
+     *  Default 3.0 m/s (~11 km/h). */
+    val egressStepMaxSpeedMps: Float = 3.0f,
     /** GPS horizontal accuracy (meters) at or below which a high-speed fix is trusted as
      *  evidence of genuine driving. On noisy hardware (Redmi Note 11) a single bad fix can
      *  report apparent speed above [clearBestStopSpeedMps] with accuracy in the 50–200 m range;

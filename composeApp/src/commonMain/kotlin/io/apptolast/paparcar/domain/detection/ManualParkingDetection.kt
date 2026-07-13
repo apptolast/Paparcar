@@ -12,4 +12,12 @@ package io.apptolast.paparcar.domain.detection
 interface ManualParkingDetection {
     /** Begin tracking the current trip immediately. Safe to call repeatedly (the service is idempotent). */
     fun start()
+
+    /**
+     * Cancel the in-progress tracking session. Called when the user MARKS A PARK MANUALLY — the trip
+     * is over, so any coordinator session still running must not (a) plant a late auto-confirm that
+     * overwrites the user's manual pin, nor (b) leave a transient orphan geofence. Safe to call when
+     * nothing is running (the service no-ops). [DET-MANUAL-CANCEL-001] No-op on iOS.
+     */
+    fun stop()
 }

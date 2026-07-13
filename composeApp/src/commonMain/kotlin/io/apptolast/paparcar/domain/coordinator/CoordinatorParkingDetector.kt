@@ -203,6 +203,11 @@ class CoordinatorParkingDetector(
         // ── SESSION TELEMETRY (BUG-SCOOTER-001) ───────────────────────────────
         val sessionStartMs: Long? = null,
         val maxSpeedMps: Float = 0f,
+        /** [DET-STEP-SPEED-GATE-001] Speed (m/s) of the most recent GPS fix. Distinguishes the
+         *  egress WALK (person, ~1.4 m/s) from a stop-and-go TRAFFIC crawl (car): with an anchor
+         *  set, steps only count while this is below driving speed, so a phone bouncing in traffic
+         *  cannot accumulate phantom steps. Field 2026-07-12 (FP Avenida de los Mástiles, in motion). */
+        val lastSpeedMps: Float = 0f,
     ) {
         /** Returns the most GPS-accurate fix collected at the moment of stopping, or [fallback]. */
         fun bestFix(fallback: GpsPoint): GpsPoint =
@@ -417,7 +422,13 @@ class CoordinatorParkingDetector(
                     val updated = _detectionState.updateAndGet { s ->
                         val shouldCount = !s.hasEverReachedDrivingSpeed ||
                             s.stoppedSince != null ||
-                            s.bestStopLocation != null
+                            // [DET-STEP-SPEED-GATE-001] Egress-walk steps (anchor set, GPS moving)
+                            // count ONLY at pedestrian speed. A car crawling in stop-and-go traffic
+                            // keeps the anchor set yet moves at driving speed; without this gate its
+                            // vibration accumulated phantom steps that (a) faked steps+egress and
+                            // (b) poisoned movementOutrunsSteps into holding the anchor mid-route →
+                            // the in-motion false positive at Avenida de los Mástiles (field 2026-07-12).
+                            (s.bestStopLocation != null && s.lastSpeedMps < config.egressStepMaxSpeedMps)
                         if (shouldCount) s.copy(stepCount = s.stepCount + 1) else s
                     }
                     if (!updated.hasEverReachedDrivingSpeed) {
@@ -537,6 +548,9 @@ class CoordinatorParkingDetector(
                             // ("did this session witness driving?") — an indoor Doppler spike with
                             // degraded accuracy must not count as driving. [ANCHOR-LOCK-001]
                             maxSpeedMps = if (location.speed > s.maxSpeedMps && credibleSpeedFix) location.speed else s.maxSpeedMps,
+                            // [DET-STEP-SPEED-GATE-001] Track the last fix speed so the step gate can
+                            // veto phantom steps while the car crawls in traffic (anchor still set).
+                            lastSpeedMps = location.speed,
                         )
                     }
                     PaparcarLogger.d(
@@ -788,6 +802,7 @@ class CoordinatorParkingDetector(
                                 maxSpeedKmh = state.maxSpeedKmh,
                                 evidenceLabel = currentArmEvidence,
                                 hasKinematicEgress = hasKinematicEgressSignal(state),
+                                lastSpeedMps = state.lastSpeedMps,
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -1076,6 +1091,7 @@ class CoordinatorParkingDetector(
                 maxSpeedKmh = state.maxSpeedKmh,
                 evidenceLabel = currentArmEvidence,
                 hasKinematicEgress = hasKinematicEgressSignal(state),
+                lastSpeedMps = state.lastSpeedMps,
             )
         )
         PaparcarLogger.d(
@@ -1232,16 +1248,23 @@ class CoordinatorParkingDetector(
                 // moves the anchor; a traffic light that matures unfreezes harmlessly when
                 // driving resumes.
                 val anchorStopOfRecord = if (newBestStop !== s.bestStopLocation) startedAt else s.anchorCapturedAtStop
+                // [DET-SHORT-TRIP-FREEZE-001] Rest is proven by TIME (≥ anchorFreezeStopMs) OR by
+                // EVIDENCE (≥ anchorFreezeStableFixes stopped fixes) — a short trip's destination
+                // stop rarely lasts 60 s before the user walks off, but N dense stopped fixes prove
+                // the car came to rest here. The other guards (drive-entered, this-stop) are unchanged.
+                val restProvenByTime = (now - startedAt) >= config.anchorFreezeStopMs
+                val restProvenByFixes = s.stoppedFixes.size >= config.anchorFreezeStableFixes
                 val matured = !s.anchorFrozen && s.hasEverReachedDrivingSpeed &&
                     newBestStop != null && anchorStopOfRecord == startedAt &&
                     s.walkFixesSinceDriving <= config.anchorFreezeMaxWalkFixes &&
-                    (now - startedAt) >= config.anchorFreezeStopMs
+                    (restProvenByTime || restProvenByFixes)
                 if (matured) {
+                    val how = if (restProvenByTime) "time=${now - startedAt}ms" else "stableFixes=${s.stoppedFixes.size}"
                     PaparcarLogger.d(
                         DIAG,
-                        "  ⚓ anchor FROZEN — drive-entered stop matured ${now - startedAt}ms " +
-                            "(walkFixes=${s.walkFixesSinceDriving}); only real driving " +
-                            "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001]"
+                        "  ⚓ anchor FROZEN — drive-entered stop matured ($how, " +
+                            "walkFixes=${s.walkFixesSinceDriving}); only real driving " +
+                            "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001][DET-SHORT-TRIP-FREEZE-001]"
                     )
                 }
                 s.copy(

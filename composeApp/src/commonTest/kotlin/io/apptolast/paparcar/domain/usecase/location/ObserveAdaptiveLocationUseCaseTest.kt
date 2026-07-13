@@ -96,6 +96,35 @@ class ObserveAdaptiveLocationUseCaseTest {
         }
 
     @Test
+    fun `should pin HighAccuracy through the burst window even above the balanced threshold`() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-BURST-001] Short trip (Durango->Glorieta): without the burst the first > 5 m/s fix
+            // drops to BALANCED (30 s) and starves the sample stream. With the burst, HIGH_ACCURACY
+            // is pinned through the window regardless of speed, then adaptive logic resumes.
+            val ds = FakeLocationDataSource()
+            val burst = ObserveAdaptiveLocationUseCase(ds, initialHighAccuracyWindowMs = 10_000L)
+            val collected = mutableListOf<GpsPoint>()
+            val job = launch { burst().collect { collected.add(it) } }
+
+            fun ts(t: Long, speed: Float, lat: Double) =
+                GpsPoint(latitude = lat, longitude = -3.7, accuracy = 10f, timestamp = t, speed = speed)
+
+            // First fix at t=1000, speed 6 (> 5): normally → Balanced, but the burst pins HighAccuracy.
+            ds.emitHighAccuracy(ts(1_000L, 6f, 1.0))
+            // Balanced source emits INSIDE the window → must be ignored (mode still HighAccuracy).
+            ds.emitBalanced(ts(3_000L, 6f, 99.0))
+            ds.emitHighAccuracy(ts(5_000L, 6f, 2.0))
+            // Past the 10 s window, speed still 6 → now allowed to switch to Balanced.
+            ds.emitHighAccuracy(ts(12_000L, 6f, 3.0))
+            ds.emitBalanced(ts(14_000L, 6f, 4.0))
+
+            job.cancelAndJoin()
+            val lats = collected.map { it.latitude }
+            assert(99.0 !in lats) { "balanced emission inside the burst window must be ignored" }
+            assertEquals(listOf(1.0, 2.0, 3.0, 4.0), lats)
+        }
+
+    @Test
     fun `should propagate errors from upstream`() = runTest(UnconfinedTestDispatcher()) {
         var caughtError: Exception? = null
         val job = launch {

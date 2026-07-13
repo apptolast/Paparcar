@@ -491,6 +491,9 @@ class HomeViewModel(
                 .onSuccess { saved ->
                     // [CONFIRM-NO-NOTIF-CLEANUP] notification responsibility moved out of use case.
                     notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+                    // [DET-MANUAL-CANCEL-001] The user resolved the park by hand → the trip is over;
+                    // tear down any coordinator session so it can't overwrite this pin.
+                    manualParkingDetection.stop()
                 }
                 .onFailure { sendEffect(HomeEffect.ShowError(PaparcarError.Parking.SaveFailed)) }
         }
@@ -541,6 +544,9 @@ class HomeViewModel(
                     .onSuccess { saved ->
                         // [CONFIRM-NO-NOTIF-CLEANUP] notification responsibility moved out of use case.
                         notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
+                        // [DET-MANUAL-CANCEL-001] Fresh manual pin → cancel any in-progress detection
+                        // so a late auto-confirm can't overwrite it (leg Oppo tras Glorieta).
+                        manualParkingDetection.stop()
                     }
                     .map { Unit }
             }

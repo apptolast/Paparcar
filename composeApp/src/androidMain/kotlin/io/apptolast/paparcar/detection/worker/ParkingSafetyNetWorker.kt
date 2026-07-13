@@ -22,6 +22,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import io.apptolast.paparcar.BuildConfig
 import io.apptolast.paparcar.detection.SignificantMotionMonitor
+import io.apptolast.paparcar.detection.PendingDetectionStore
 import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
@@ -114,6 +115,11 @@ class ParkingSafetyNetWorker(
         // background execution for that whole window — surface it (telemetry + contextual fix ask).
         detectBackgroundKill(sessions)
         detectConfirmedForceStop(sessions)
+
+        // [DET-NEVER-SILENT-001] Recover a park lost to process death BEFORE the active-session gate:
+        // a session that armed and was killed mid-trip never confirmed, so it has no active session.
+        // A pending whose heartbeat went stale is exactly that — nudge (real trips only) and clear.
+        checkStalePendingDetections()
 
         // [DET-SIGMOTION-001] Mirror the parked-idle state onto the hardware trigger on EVERY
         // tick — this is also what re-arms it after a process kill or after it fired one-shot.
@@ -232,6 +238,9 @@ class ParkingSafetyNetWorker(
                         alreadyCuredThisProcess = !firstCureThisProcess,
                         lastCureAtMs = lastCureAt,
                         nowMs = now,
+                        // [DET-CURE-FRESH-001] Age of the parked session: a fresh fence (manual pin
+                        // seconds ago) must not re-register and open the blind window before drive-off.
+                        sessionAgeMs = now - session.location.timestamp,
                     )
                     if (!mustReregister) {
                         debugLines += "geof=$geofTag d=${distanceM}m DENTRO(r=${action.radiusMeters.toInt()}m) → ancla resellada (cura throttled, hace ${(now - lastCureAt) / 60_000}min)"
@@ -379,6 +388,28 @@ class ParkingSafetyNetWorker(
     /** DEBUG-build breadcrumb of what each safety-net wake-up saw and did. [DET-SAFETY-NET-001] */
     private fun debugNotify(message: String) {
         if (BuildConfig.DEBUG) notificationPort.showDebug(message)
+    }
+
+    /**
+     * [DET-NEVER-SILENT-001] A pending detection whose heartbeat went stale means the OS killed the
+     * process before the session could confirm or abort — a park silently lost. Nudge "where did you
+     * park?" once (only for real trips: GEOFENCE_EXIT / MANUAL always, AR_VEHICLE_ENTER if it drove)
+     * and clear every stale pending so it fires at most once. Clearing on-nudge is the throttle.
+     */
+    private fun checkStalePendingDetections() {
+        val now = System.currentTimeMillis()
+        val stale = PendingDetectionStore.scanStale(appContext, now, config.pendingDetectionDeadMs)
+        if (stale.isEmpty()) return
+        val shouldNudge = stale.any {
+            io.apptolast.paparcar.domain.detection.shouldNudgeForStalePending(it.trigger, it.sawDriving)
+        }
+        if (shouldNudge) {
+            PaparcarLogger.d(DIAG, "▶ [never-silent] ${stale.size} stale pending(s), heartbeat dead → mark-parking nudge")
+            notificationPort.showMarkParkingNudge()
+        } else {
+            PaparcarLogger.d(DIAG, "  [never-silent] ${stale.size} stale pending(s), no drive evidence → clearing silently")
+        }
+        stale.forEach { PendingDetectionStore.clear(appContext, it.armId) }
     }
 
     /**

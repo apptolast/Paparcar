@@ -16,7 +16,9 @@ import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_9_10
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_10_11
 import io.apptolast.paparcar.data.datasource.local.room.MIGRATION_11_12
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
+import io.apptolast.paparcar.diagnostics.IosDeviceInfoProvider
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
+import io.apptolast.paparcar.domain.diagnostics.DeviceInfoProvider
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.geocoder.GeocoderDataSource
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -76,6 +78,9 @@ val iosPlatformModule = module {
 
     // Bluetooth — real iOS implementation (CBCentralManager for state; getBondedDevices is empty by design)
     single<BluetoothScanner> { IosBluetoothScanner() }
+
+    // Diagnostics — device identity stamped into detection traces [DIAG-READABLE-001]
+    single<DeviceInfoProvider> { IosDeviceInfoProvider() }
 }
 
 private fun documentDirectory(): String {

@@ -32,8 +32,19 @@ class FakeStepDetectorSource : StepDetectorSource {
 class FakeManualParkingDetection(
     private val runtime: MutableDetectionRuntimeState? = null,
 ) : ManualParkingDetection {
+    var startCallCount = 0
+        private set
+    var stopCallCount = 0
+        private set
+
     override fun start() {
+        startCallCount++
         runtime?.setRunning(true)
+    }
+
+    override fun stop() {
+        stopCallCount++
+        runtime?.setRunning(false)
     }
 }
 

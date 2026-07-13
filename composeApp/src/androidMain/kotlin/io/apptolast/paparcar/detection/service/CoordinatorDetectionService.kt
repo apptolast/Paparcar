@@ -48,6 +48,7 @@ import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -426,8 +427,40 @@ class CoordinatorDetectionService : LifecycleService() {
                 // the no-movement abort timer and, fed by more bad fixes, spin a restart loop.
                 // Departure was already dispatched above; just don't re-arm. [DET-AR-REARM-001]
                 if (detectionJob?.isActive == true) {
-                    PaparcarLogger.d(DIAG, "  ↻ GEOFENCE_EXIT — coordinator already running; not re-arming")
-                    return
+                    // [DET-SUPERSEDE-001] The blind "already running" drop loses a genuinely DIFFERENT
+                    // next-park: a spurious fence left ~100 m away blocked WA YUKI (field 2026-07-12).
+                    // Supersede when the new geofence's car is beyond its own fence from the running
+                    // anchor; otherwise keep suppressing (same place → don't reset the abort timer,
+                    // [DET-AR-REARM-001]).
+                    val newSession = (boundaryExits + staleExits).firstOrNull()?.second
+                    val runningAnchor = detectionRuntime.trip.value?.departurePoint
+                    val radius = newSession?.let {
+                        detectionConfig.geofenceRadiusFor(it.sizeCategory, it.location.accuracy)
+                    }
+                    val supersede = newSession != null && radius != null &&
+                        io.apptolast.paparcar.domain.detection.shouldSupersedeRunningSession(
+                            newSession.location, runningAnchor, radius,
+                        )
+                    if (!supersede) {
+                        PaparcarLogger.d(DIAG, "  ↻ GEOFENCE_EXIT — coordinator already running (same area); not re-arming [DET-AR-REARM-001]")
+                        return
+                    }
+                    val supersedeDist = haversineMeters(
+                        newSession!!.location.latitude, newSession.location.longitude,
+                        runningAnchor!!.latitude, runningAnchor.longitude,
+                    )
+                    PaparcarLogger.d(DIAG, "  ⤳ GEOFENCE_EXIT ${supersedeDist.toInt()}m from running anchor → superseding zombie session [DET-SUPERSEDE-001]")
+                    runCatching {
+                        detectionEventLogger.log(
+                            DetectionEvent.SessionSuperseded(
+                                sessionId = newSession.geofenceId ?: newSession.id,
+                                timestampMs = now,
+                                distanceMeters = supersedeDist,
+                                ageMs = runningAnchor.timestamp.takeIf { it > 0L }?.let { now - it },
+                            )
+                        )
+                    }
+                    // fall through to cancelDetectionJob() + startParkingDetection() below
                 }
                 // The coordinator arms for far-delivered exits too — the service is ALREADY
                 // alive inside the event's FGS-start exemption window, and this is the only
@@ -538,15 +571,44 @@ class CoordinatorDetectionService : LifecycleService() {
         // pre-arm verifier reads the bus. Idempotent — both lanes stamp the same true time.
         departureEventBus.onVehicleEntered(trueEpochMs)
         if (!guardPermissions("AR_TRANSITION")) return
-        if (detectionJob?.isActive == true) {
-            PaparcarLogger.d(DIAG, "  ↻ AR_TRANSITION — coordinator already running; not re-arming")
-            return
-        }
         val now = System.currentTimeMillis()
         val sessions = runCatching { userParkingRepository.observeActiveSessions().firstOrNull().orEmpty() }
             .getOrElse { emptyList() }
         val activeVehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }.getOrNull()
         val session = sessions.firstOrNull { it.vehicleId == activeVehicleId } ?: sessions.firstOrNull()
+        if (detectionJob?.isActive == true) {
+            // [DET-SUPERSEDE-001] Same policy as handleGeofenceExit: supersede a running session that
+            // is a zombie relative to this ENTER (its car beyond its own fence from the running
+            // anchor); otherwise keep suppressing to avoid a same-place restart loop [DET-AR-REARM-001].
+            val runningAnchor = detectionRuntime.trip.value?.departurePoint
+            val radius = session?.let {
+                detectionConfig.geofenceRadiusFor(it.sizeCategory, it.location.accuracy)
+            }
+            val supersede = session != null && radius != null &&
+                io.apptolast.paparcar.domain.detection.shouldSupersedeRunningSession(
+                    session.location, runningAnchor, radius,
+                )
+            if (!supersede) {
+                PaparcarLogger.d(DIAG, "  ↻ AR_TRANSITION — coordinator already running (same area); not re-arming [DET-AR-REARM-001]")
+                return
+            }
+            val supersedeDist = haversineMeters(
+                session!!.location.latitude, session.location.longitude,
+                runningAnchor!!.latitude, runningAnchor.longitude,
+            )
+            PaparcarLogger.d(DIAG, "  ⤳ AR_TRANSITION ${supersedeDist.toInt()}m from running anchor → superseding zombie session [DET-SUPERSEDE-001]")
+            runCatching {
+                detectionEventLogger.log(
+                    DetectionEvent.SessionSuperseded(
+                        sessionId = session.geofenceId ?: session.id,
+                        timestampMs = now,
+                        distanceMeters = supersedeDist,
+                        ageMs = runningAnchor.timestamp.takeIf { it > 0L }?.let { now - it },
+                    )
+                )
+            }
+            // fall through to the arm ladder below
+        }
         val recentStaleExitRecorded = ParkingSafetyNetWorker.hasRecentStaleExit(
             this@CoordinatorDetectionService,
             nowMs = now,
@@ -668,8 +730,35 @@ class CoordinatorDetectionService : LifecycleService() {
         // from a previous trip (manual start). Set after — never before cancelDetectionJob — so a
         // superseded job's finally (which clears on setRunning(false)) can't wipe it. [DEPART-CONSISTENCY-001]
         detectionRuntime.setTrip(trip)
+        // [DET-NEVER-SILENT-001] Persist a durable pending at arm so a process death mid-trip is
+        // recoverable; the heartbeat below keeps it fresh, the finally clears it on any terminal.
+        val armedAt = System.currentTimeMillis()
+        val armId = armedAt.toString()
+        io.apptolast.paparcar.detection.PendingDetectionStore.arm(applicationContext, armId, armedAt, trigger.name)
         detectionJob = lifecycleScope.launch {
             val thisJob = coroutineContext[Job]
+
+            // [DET-NEVER-SILENT-001] Keep the pending's heartbeat fresh while the session is alive and
+            // latch sawDriving once the trip reaches park-evaluation (Candidate). A live long trip
+            // (1 h motorway) never looks dead; the watchdog nudges only stale (process-death) pendings,
+            // and AR_VEHICLE_ENTER only if it actually drove.
+            val heartbeat = launch {
+                launch {
+                    detectionRuntime.phase.collect { phase ->
+                        if (phase == io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate) {
+                            io.apptolast.paparcar.detection.PendingDetectionStore.heartbeat(
+                                applicationContext, armId, System.currentTimeMillis(), sawDriving = true,
+                            )
+                        }
+                    }
+                }
+                while (isActive) {
+                    kotlinx.coroutines.delay(detectionConfig.pendingHeartbeatMs)
+                    io.apptolast.paparcar.detection.PendingDetectionStore.heartbeat(
+                        applicationContext, armId, System.currentTimeMillis(), sawDriving = false,
+                    )
+                }
+            }
 
             // [FIX BUG-SERVICE-108: pull vehicle name inside the detection job rather than in a
             //  parallel lifecycleScope.launch — same lifetime as the coordinator, no leak across
@@ -712,6 +801,12 @@ class CoordinatorDetectionService : LifecycleService() {
                 PaparcarLogger.e(DIAG, "    ✗ detection error", e)
                 notificationPort.showDebug("Detection error: ${e.message}")
             } finally {
+                // [DET-NEVER-SILENT-001] This job reached a terminal (confirm / abort / supersede) →
+                // stop its heartbeat and clear its pending. ONLY a process death skips this finally,
+                // leaving the pending stale for the watchdog. Cleared for superseded jobs too (their
+                // armId is distinct from the replacement's), so a supersede never leaves a false pending.
+                heartbeat.cancel()
+                io.apptolast.paparcar.detection.PendingDetectionStore.clear(applicationContext, armId)
                 // Skip teardown when this job has been superseded by a newer detection job
                 // (START_TRACKING / IN_VEHICLE_ENTER replacement). Stopping here would
                 // destroy the service after the replacement coordinator was just launched,
