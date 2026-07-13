@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.swmansion.kmpmaps.core.AndroidMapProperties
@@ -1020,6 +1022,12 @@ fun PaparcarMapView(
     var actualCamLat by remember { mutableStateOf<Float?>(null) }
     var actualCamLon by remember { mutableStateOf<Float?>(null) }
 
+    // True while a finger is down on the map. Releases the driver-follow camera lock the instant the
+    // user touches (zero latency), so the FIRST drag pans freely instead of the lock snapping the
+    // camera back to the car — the VM's gesture-based follow-pause has round-trip latency, which is
+    // why it took two drags to break free. [DRIVE-PUCK-NATIVE-001]
+    var userTouchingMap by remember { mutableStateOf(false) }
+
     // ── Camera movement detection (debounced 280ms) ──────────────────────
     var cameraMoving by remember { mutableStateOf(false) }
     LaunchedEffect(actualCamLat, actualCamLon) {
@@ -1105,8 +1113,9 @@ fun PaparcarMapView(
         // While actively following the driver, lock the camera centre to the SAME interpolated pose
         // that positions the puck marker, with no tween lag — so the marker sits rock-steady at centre
         // (what the old centered overlay did) instead of drifting as a lagging camera catches up.
-        // A real pan pauses follow (centerDrivingPuck → false), handing back to the tween. [DRIVE-PUCK-NATIVE-001]
-        followPose = if (centerDrivingPuck && drivingPuck != null) puckPose else null,
+        // A real pan pauses follow (centerDrivingPuck → false), handing back to the tween. Touching the
+        // map suspends the lock immediately so the first drag isn't fought. [DRIVE-PUCK-NATIVE-001]
+        followPose = if (centerDrivingPuck && drivingPuck != null && !userTouchingMap) puckPose else null,
     )
 
     val loadingAlpha by animateFloatAsState(
@@ -1189,7 +1198,18 @@ fun PaparcarMapView(
         )
     }
 
-    Box(modifier = modifier) {
+    Box(
+        modifier = modifier.pointerInput(Unit) {
+            // Observe-only (Initial pass, never consumed) press tracking — the map still pans; we only
+            // learn whether a finger is down so the follow lock can step aside instantly. [DRIVE-PUCK-NATIVE-001]
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    userTouchingMap = event.changes.any { it.pressed }
+                }
+            }
+        },
+    ) {
         Map(
             modifier = Modifier.fillMaxSize(),
             cameraPosition = cameraPosition,
