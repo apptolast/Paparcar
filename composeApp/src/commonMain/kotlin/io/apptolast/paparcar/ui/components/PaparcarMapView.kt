@@ -72,11 +72,7 @@ import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapGreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.ln
-import kotlin.math.pow
-import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -329,6 +325,16 @@ private val PUCK_MARKER_OPTIONS = AndroidMarkerOptions(
     flat = true,
 )
 
+// User-location dot — the "you" marker when not driving. Migrated from a Web Mercator Compose overlay
+// to a native Marker with a stable id: that overlay only existed to dodge the kmpmaps moving-marker
+// flicker the fork now fixes, so the projection is gone. Centred on its coordinate. [DRIVE-PUCK-NATIVE-001]
+private const val MARKER_USER_DOT = "user_location_dot"
+private const val MARKER_USER_DOT_ID = "user-location-dot"
+private val USER_DOT_MARKER_OPTIONS = AndroidMarkerOptions(
+    anchor = GoogleMapsAnchor(0.5f, 0.5f),
+    zIndex = MARKER_Z_INDEX_NORMAL,
+)
+
 // Free-spot markers — one cached bitmap per (reliability tier × visual state).
 // Tier (HIGH/MEDIUM/LOW/MANUAL) is baked into contentId so the rasterized marker
 // colour matches the peek modal badge. [MAP-MARKERS-RELIABILITY-001]
@@ -378,36 +384,6 @@ private fun locationActiveContentId(
     color: io.apptolast.paparcar.domain.model.VehicleColor? = null,
 ): String =
     "$LOCATION_ACTIVE_PREFIX${carbody?.name ?: "def"}_${color?.name ?: "def"}"
-
-/** Google Maps tile size (dp) at zoom 0; the world is [TILE_SIZE_DP]·2^zoom wide. */
-private const val TILE_SIZE_DP = 256.0
-
-/**
- * Screen offset (px, relative to the map centre) at which a geo point sits for the current camera
- * centre + zoom. Web Mercator — the SAME projection the map tiles/polylines use — so a Compose overlay
- * translated by this delta stays glued to its coordinate as the map pans, exactly like the native trail
- * polyline. Lets us paint the driving car ourselves (no kmpmaps Marker → no per-frame teardown flicker)
- * and decouples its visibility from camera-follow. Assumes the map is north-up and flat (no rotation /
- * tilt), which this app never changes. [FOLLOW-001] [PUCK-FLICKER-001]
- *
- * The 256·2^zoom world is in density-independent px, so [densityScale] converts the delta into the
- * physical px that Compose `translation` expects.
- */
-private fun puckOffsetFromCenterPx(
-    puckLat: Double, puckLon: Double,
-    camLat: Double, camLon: Double,
-    zoom: Float, densityScale: Float,
-): Offset {
-    val world = TILE_SIZE_DP * 2.0.pow(zoom.toDouble())
-    fun worldX(lon: Double) = (lon + 180.0) / 360.0 * world
-    fun worldY(lat: Double): Double {
-        val s = sin(lat * PI / 180.0).coerceIn(-0.9999, 0.9999)
-        return (0.5 - ln((1 + s) / (1 - s)) / (4 * PI)) * world
-    }
-    val dx = (worldX(puckLon) - worldX(camLon)) * densityScale
-    val dy = (worldY(puckLat) - worldY(camLat)) * densityScale
-    return Offset(dx.toFloat(), dy.toFloat())
-}
 
 /**
  * Brand user-position dot: green core + light ring + 15% green halo — the "you"
@@ -496,6 +472,28 @@ private fun rememberInterpolatedPuck(puck: DrivingPuck?): PuckPose? {
         lerpDouble(prev.longitude, target.longitude, t),
         lerpAngle(prev.headingDegrees, target.headingDegrees, t),
     )
+}
+
+/**
+ * Glided coordinates for the native user-location dot — animates lat/lon between fixes so the dot
+ * slides instead of stepping, like the old overlay did. Returns null when there's no location (so the
+ * marker is simply absent), and re-seeds at the real position when a location reappears rather than
+ * gliding from null-island. [DRIVE-PUCK-NATIVE-001]
+ */
+@Composable
+private fun rememberGlidedLatLon(point: GpsPoint?): Coordinates? {
+    if (point == null) return null
+    val lat by animateFloatAsState(
+        targetValue = point.latitude.toFloat(),
+        animationSpec = tween(USER_DOT_GLIDE_MS),
+        label = "user_dot_lat",
+    )
+    val lon by animateFloatAsState(
+        targetValue = point.longitude.toFloat(),
+        animationSpec = tween(USER_DOT_GLIDE_MS),
+        label = "user_dot_lon",
+    )
+    return Coordinates(lat.toDouble(), lon.toDouble())
 }
 
 /**
@@ -908,6 +906,10 @@ fun PaparcarMapView(
             put(MARKER_DEPARTURE) { _ ->
                 DepartureDotMarker()
             }
+            // User-location "you" dot — one stable bitmap, no per-fix churn. [DRIVE-PUCK-NATIVE-001]
+            put(MARKER_USER_DOT) { _ ->
+                UserLocationDot()
+            }
             // ── Free-spot bitmaps — 12 cached variants (4 tiers × nrm/dim/sel) ──
             // Each (tier, state) pair gets its own contentId so kmpmaps caches a distinct
             // bitmap and the on-map color matches the peek modal badge. [MAP-MARKERS-RELIABILITY-001]
@@ -1190,19 +1192,37 @@ fun PaparcarMapView(
     // frozen Candidate car), so the car's visibility no longer depends on camera-follow. Appended each
     // recomposition; the fork keeps every other marker's identity stable so only the puck moves.
     // [DRIVE-PUCK-NATIVE-001]
-    val allMarkers = remember(markers, drivingPuck, puckPose) {
-        val puck = drivingPuck ?: return@remember markers
-        val heading = puckPose?.headingDegrees ?: puck.bearingDegrees ?: 0f
-        markers + Marker(
-            coordinates = Coordinates(
-                puckPose?.latitude ?: puck.latitude,
-                puckPose?.longitude ?: puck.longitude,
-            ),
-            title = null,
-            contentId = locationActiveContentId(puck.carbodyType, puck.color),
-            androidMarkerOptions = PUCK_MARKER_OPTIONS.copy(rotation = heading),
-            id = MARKER_PUCK_ID,
-        )
+    // The user-location dot is likewise a native Marker now (was a Web Mercator Compose overlay). Shown
+    // when not driving — or the frozen Candidate car, where it marks the pedestrian walking away. Its
+    // coordinates glide between fixes. [DRIVE-PUCK-NATIVE-001]
+    val userDotCoords = rememberGlidedLatLon(userLocation)
+    val showUserDot = userDotCoords != null &&
+        (drivingPuck == null || drivingPuck.phase == DetectionPhase.Candidate) && mapLoaded
+    val allMarkers = remember(markers, drivingPuck, puckPose, showUserDot, userDotCoords) {
+        var result = markers
+        drivingPuck?.let { puck ->
+            val heading = puckPose?.headingDegrees ?: puck.bearingDegrees ?: 0f
+            result = result + Marker(
+                coordinates = Coordinates(
+                    puckPose?.latitude ?: puck.latitude,
+                    puckPose?.longitude ?: puck.longitude,
+                ),
+                title = null,
+                contentId = locationActiveContentId(puck.carbodyType, puck.color),
+                androidMarkerOptions = PUCK_MARKER_OPTIONS.copy(rotation = heading),
+                id = MARKER_PUCK_ID,
+            )
+        }
+        if (showUserDot && userDotCoords != null) {
+            result = result + Marker(
+                coordinates = userDotCoords,
+                title = null,
+                contentId = MARKER_USER_DOT,
+                androidMarkerOptions = USER_DOT_MARKER_OPTIONS,
+                id = MARKER_USER_DOT_ID,
+            )
+        }
+        result
     }
 
     Box(
@@ -1315,41 +1335,9 @@ fun PaparcarMapView(
             )
         }
 
-        // ── Brand user-location dot — replaces the native Google blue dot ────
-        // Same Web Mercator projection as the driving puck / trail, so it stays glued to its
-        // coordinate while panning; a Compose overlay (not a Marker) avoids the kmpmaps per-frame
-        // teardown flicker, and the animated lat/lon glides between balanced-location fixes.
-        // Hidden while the driving puck is MOVING (the car IS the user then); visible again in
-        // Candidate, where it marks the pedestrian walking away from the frozen car.
-        // [UI-SHEET-003] [PUCK-FLICKER-001]
-        val showUserDot = userLocation != null &&
-            (drivingPuck == null || drivingPuck.phase == DetectionPhase.Candidate) &&
-            actualCamLat != null && actualCamLon != null && mapLoaded
-        if (showUserDot && userLocation != null) {
-            val dotLat by animateFloatAsState(
-                targetValue = userLocation.latitude.toFloat(),
-                animationSpec = tween(USER_DOT_GLIDE_MS),
-                label = "user_dot_lat",
-            )
-            val dotLon by animateFloatAsState(
-                targetValue = userLocation.longitude.toFloat(),
-                animationSpec = tween(USER_DOT_GLIDE_MS),
-                label = "user_dot_lon",
-            )
-            val off = puckOffsetFromCenterPx(
-                dotLat.toDouble(), dotLon.toDouble(),
-                actualCamLat!!.toDouble(), actualCamLon!!.toDouble(),
-                currentZoom, LocalDensity.current.density,
-            )
-            UserLocationDot(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .graphicsLayer {
-                        translationX = off.x
-                        translationY = off.y
-                    },
-            )
-        }
+        // The brand user-location "you" dot is now a native Marker (see [allMarkers] / MARKER_USER_DOT),
+        // not a Web Mercator Compose overlay — the fork's stable-id fix removed the flicker that overlay
+        // worked around. [DRIVE-PUCK-NATIVE-001]
 
         // ── Center indicator: animated pin (pin-drop) OR crosshair ───────────
         // Report / Parking pins are positioned with `mapCenterPinAnchor` so the
@@ -1568,6 +1556,22 @@ private fun rememberCameraAnimationState(
         targetZoom?.let { launch { animZoom.animateTo(it, spec) } }
     }
 
+    // Follow ENGAGE animation: when the lock turns on (loc button re-engages follow) don't snap — glide
+    // from where the camera is now to the LIVE puck over CAMERA_ANIM_MS, then it IS the puck (per-frame
+    // lock, progress = 1). Blending toward the live pose means the camera catches up to the moving car
+    // with no jump at the hand-off. [DRIVE-PUCK-NATIVE-001]
+    val followProgress = remember { Animatable(1f) }
+    var engageLat by remember { mutableStateOf(0f) }
+    var engageLon by remember { mutableStateOf(0f) }
+    LaunchedEffect(followPose != null) {
+        if (followPose != null) {
+            engageLat = actualCamLat ?: animLat.value
+            engageLon = actualCamLon ?: animLon.value
+            followProgress.snapTo(0f)
+            followProgress.animateTo(1f, tween(CAMERA_ANIM_MS, easing = FastOutSlowInEasing))
+        }
+    }
+
     // While touching: return the static (synced) Animatable value so cameraPosition doesn't change and
     // native gestures own the camera. Checked BEFORE the follow lock so a touch always wins. [DRIVE-PUCK-NATIVE-001]
     if (userInteracting) {
@@ -1577,12 +1581,17 @@ private fun rememberCameraAnimationState(
         )
     }
 
-    // Driver-follow lock: centre the camera on the puck's interpolated pose every frame (no tween),
-    // keeping the marker pinned to screen-centre with zero lag. Zoom is left at the live value so a
-    // pinch isn't fought. The tween Animatables resync from the real camera on hand-back (above).
+    // Driver-follow lock: centre the camera on the puck's interpolated pose (zero lag once engaged),
+    // but on engage blend from the camera's prior position to the live puck by [followProgress] so it
+    // glides in instead of snapping. At progress = 1 this is exactly the puck. Zoom is left at the live
+    // value so a pinch isn't fought.
     if (followPose != null) {
+        val t = followProgress.value
         return CameraPosition(
-            coordinates = Coordinates(followPose.latitude, followPose.longitude),
+            coordinates = Coordinates(
+                lerpDouble(engageLat.toDouble(), followPose.latitude, t),
+                lerpDouble(engageLon.toDouble(), followPose.longitude, t),
+            ),
             zoom = actualCamZoom,
         )
     }
