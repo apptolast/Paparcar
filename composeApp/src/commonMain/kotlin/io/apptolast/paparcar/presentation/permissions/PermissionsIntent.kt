@@ -30,6 +30,12 @@ sealed class PermissionsIntent {
      * the user to enable detection afterwards. [DET-READY-001e]
      */
     data object ContinueWithCore : PermissionsIntent()
+    /**
+     * "Continue" — every required permission is granted; enter the app. Unlike [ContinueWithCore]
+     * (which defers the producer tier), this fires once the full required set is complete and the
+     * optional reliability toggles have been offered. [PERM-FOOTER-001]
+     */
+    data object FinishSetup : PermissionsIntent()
     /** "Maybe later" tapped — show the educational "you'll miss auto-detection" dialog first. [DET-TOGGLE-002] */
     data object RequestSkipDetection : PermissionsIntent()
     /** Dismiss the skip-detection dialog and stay on the permissions screen (user chose to activate). */

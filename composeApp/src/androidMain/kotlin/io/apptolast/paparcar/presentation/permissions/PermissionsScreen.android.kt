@@ -194,6 +194,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
         onContinueWithCore = { viewModel.handleIntent(PermissionsIntent.ContinueWithCore) },
         onRequestSkipDetection = { viewModel.handleIntent(PermissionsIntent.RequestSkipDetection) },
         onDismissSkipDetectionDialog = { viewModel.handleIntent(PermissionsIntent.DismissSkipDetectionDialog) },
+        onFinish = { viewModel.handleIntent(PermissionsIntent.FinishSetup) },
         focus = focus,
     )
 }

@@ -52,6 +52,7 @@ actual @Composable fun PermissionsScreen(onPermissionsGranted: () -> Unit, focus
         state = state,
         onRequestPermissions = { viewModel.handleIntent(PermissionsIntent.RequestPermissions) },
         onRequestBluetooth = { viewModel.handleIntent(PermissionsIntent.RequestBluetoothPermission) },
+        onFinish = { viewModel.handleIntent(PermissionsIntent.FinishSetup) },
         focus = focus,
     )
 }

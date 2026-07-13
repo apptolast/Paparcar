@@ -129,6 +129,9 @@
     <!-- DET-READY-001e: CORE-required, PRODUCER-optional onboarding -->
     <string name="permissions_btn_activate_detection">Turn on auto-detection</string>
     <string name="permissions_continue_with_core">Maybe later</string>
+    <!-- PERM-FOOTER-001: required tier complete → optional reliability opt-in + explicit continue -->
+    <string name="permissions_btn_allow_background">Allow background activity</string>
+    <string name="permissions_btn_continue">Continue</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">Skip automatic detection?</string>
     <string name="permissions_skip_dialog_body">Paparcar’s best feature finds and frees your parking spot automatically when you drive off. Without it, you’ll have to do everything by hand.</string>

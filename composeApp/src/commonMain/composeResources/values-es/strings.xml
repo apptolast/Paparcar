@@ -119,6 +119,9 @@
     <!-- DET-READY-001e: onboarding CORE-obligatorio, PRODUCER-opcional -->
     <string name="permissions_btn_activate_detection">Activar detección automática</string>
     <string name="permissions_continue_with_core">Quizás más tarde</string>
+    <!-- PERM-FOOTER-001: tier requerido completo → opt-in fiabilidad opcional + continuar explícito -->
+    <string name="permissions_btn_allow_background">Permitir en segundo plano</string>
+    <string name="permissions_btn_continue">Continuar</string>
     <!-- DET-TOGGLE-002: educational dialog when tapping "Maybe later" -->
     <string name="permissions_skip_dialog_title">¿Saltar la detección automática?</string>
     <string name="permissions_skip_dialog_body">Lo mejor de Paparcar detecta y libera tu plaza sola al salir. Sin esto, tendrás que hacerlo todo a mano.</string>

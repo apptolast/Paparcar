@@ -97,11 +97,24 @@ class PermissionsViewModelTest {
     // ── NavigateToHome effect ─────────────────────────────────────────────────
 
     @Test
-    fun `NavigateToHome emitted when all permissions and GPS are granted`() = runTest {
+    fun `NavigateToHome NOT auto-emitted even when all permissions and GPS are granted`() = runTest {
+        // Departure is now an explicit tap (FinishSetup / ContinueWithCore) so the user gets the
+        // chance to opt into the optional background-reliability toggles first. [PERM-FOOTER-001]
         val vm = viewModel()
 
         vm.effect.test {
             fakePermissions.emit(FakePermissionManager.allGranted())
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `NavigateToHome emitted on FinishSetup`() = runTest {
+        fakePermissions.emit(FakePermissionManager.allGranted())
+        val vm = viewModel()
+
+        vm.effect.test {
+            vm.handleIntent(PermissionsIntent.FinishSetup)
             assertIs<PermissionsEffect.NavigateToHome>(awaitItem())
         }
     }

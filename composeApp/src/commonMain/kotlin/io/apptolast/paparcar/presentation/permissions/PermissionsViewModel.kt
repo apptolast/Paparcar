@@ -51,10 +51,11 @@ class PermissionsViewModel(
                         isBatteryOptimizationExempt = appState.isBatteryOptimizationExempt,
                     )
                 }
-                // Navigate home once the app is fully operational.
-                if (appState.allPermissionsGranted && appState.isLocationServicesEnabled) {
-                    sendEffect(PermissionsEffect.NavigateToHome)
-                }
+                // NOTE: we no longer auto-navigate the moment every required permission is granted.
+                // Doing so yanked the user off the screen before they could opt into the optional
+                // background-reliability toggles (battery/autostart) — the ones that matter most on
+                // Doze-aggressive OEMs. Departure is now an explicit tap: the footer's "Continue"
+                // (FinishSetup) or "Maybe later" (ContinueWithCore). [PERM-FOOTER-001]
             }
         }
         // Single reliability evaluator — REDUCED swaps the optional tier's generic battery hint
@@ -119,6 +120,11 @@ class PermissionsViewModel(
                     sendEffect(PermissionsEffect.NavigateToHome)
                 }
             }
+            PermissionsIntent.FinishSetup ->
+                // "Continue" — every required permission is granted; enter the app. Optional
+                // reliability toggles (battery/autostart) were offered and can still be enabled
+                // later from Settings. [PERM-FOOTER-001]
+                sendEffect(PermissionsEffect.NavigateToHome)
             PermissionsIntent.ConfirmBackgroundLocationGuide -> {
                 updateState { copy(showBackgroundLocationGuide = false) }
                 requestCount++

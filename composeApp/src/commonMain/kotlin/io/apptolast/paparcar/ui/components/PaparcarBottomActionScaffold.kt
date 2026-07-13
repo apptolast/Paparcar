@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 
 /**
@@ -51,17 +52,20 @@ fun PaparcarBottomActionScaffold(
         // contenido pueda pintar a sangre y el footer ancle al borde con su propio padding.
         contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            if (footer != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = horizontalPadding)
-                        .navigationBarsPadding()
-                        .padding(bottom = FOOTER_BOTTOM_PADDING),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
-                    content = footer,
-                )
+            // Always reserve the navigation-bar inset here — even with no footer — so the scrollable
+            // content never renders under the system nav bar (visible e.g. on Redmi's 3-button nav).
+            // The bottomBar's measured height feeds innerPadding.bottom; when there's no footer we
+            // still emit the bare nav-bar spacer so that inset is never zero. [ONB-SCAFFOLD-001]
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (footer != null) Modifier.padding(horizontal = horizontalPadding) else Modifier)
+                    .navigationBarsPadding()
+                    .then(if (footer != null) Modifier.padding(bottom = FOOTER_BOTTOM_PADDING) else Modifier),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs),
+            ) {
+                footer?.invoke(this)
             }
         },
     ) { innerPadding ->
@@ -70,9 +74,13 @@ fun PaparcarBottomActionScaffold(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                // innerPadding.bottom = altura medida del footer (incluye su navigationBarsPadding);
-                // le sumamos el único gap de holgura contenido↔footer.
-                .padding(bottom = innerPadding.calculateBottomPadding() + CONTENT_FOOTER_GAP)
+                // innerPadding.bottom = altura medida del bottomBar (footer + su navigationBarsPadding,
+                // o solo el inset de la barra de navegación si no hay footer); sumamos el único gap de
+                // holgura contenido↔footer, y solo cuando hay footer del que separarse.
+                .padding(
+                    bottom = innerPadding.calculateBottomPadding() +
+                        if (footer != null) CONTENT_FOOTER_GAP else 0.dp,
+                )
                 .statusBarsPadding()
                 .padding(horizontal = horizontalPadding)
                 .then(scrollModifier),

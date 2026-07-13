@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.BatteryFull
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.apptolast.paparcar.isBatteryOptimizationRelevant
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionScaffold
@@ -45,6 +47,8 @@ import paparcar.composeapp.generated.resources.permissions_bg_guide_cta
 import paparcar.composeapp.generated.resources.permissions_bg_guide_dismiss
 import paparcar.composeapp.generated.resources.permissions_bg_guide_title
 import paparcar.composeapp.generated.resources.permissions_btn_activate_detection
+import paparcar.composeapp.generated.resources.permissions_btn_allow_background
+import paparcar.composeapp.generated.resources.permissions_btn_continue
 import paparcar.composeapp.generated.resources.permissions_btn_grant
 import paparcar.composeapp.generated.resources.permissions_btn_location_settings
 import paparcar.composeapp.generated.resources.permissions_btn_settings
@@ -104,6 +108,7 @@ internal fun PermissionsContent(
     onContinueWithCore: () -> Unit = {},
     onRequestSkipDetection: () -> Unit = {},
     onDismissSkipDetectionDialog: () -> Unit = {},
+    onFinish: () -> Unit = {},
     focus: PermissionsFocus = PermissionsFocus.All,
 ) {
     if (state.showBackgroundLocationGuide) {
@@ -145,23 +150,26 @@ internal fun PermissionsContent(
     // "Activate detection" button. [DET-READY-001i]
     val isCorePending = !state.hasFineLocation
     val isGpsPending = !state.isLocationServicesEnabled
-    val isProducerPending = !state.hasBackgroundLocation ||
-        !state.hasActivityRecognition || !state.hasNotifications
-    val showButton = state.showSettingsPrompt || isCorePending || isGpsPending || isProducerPending
+    // Every required tier granted → the screen no longer *blocks* entry; the footer switches from
+    // "grant" actions to the optional reliability toggle + an explicit "Continue". [PERM-FOOTER-001]
+    val requiredComplete = state.hasFineLocation && state.isLocationServicesEnabled &&
+        state.hasBackgroundLocation && state.hasActivityRecognition && state.hasNotifications
 
+    // The footer is ALWAYS present: it either drives the next pending grant or, once everything
+    // required is done, offers the optional background toggle + a "Continue" to enter the app. This
+    // also guarantees the navigation-bar inset is always reserved (no content under the nav bar).
     PaparcarBottomActionScaffold(
-        footer = if (showButton) {
-            {
-                PermissionsFooter(
-                    state = state,
-                    isCorePending = isCorePending,
-                    isGpsPending = isGpsPending,
-                    onRequestPermissions = onRequestPermissions,
-                    onRequestSkipDetection = onRequestSkipDetection,
-                )
-            }
-        } else {
-            null
+        footer = {
+            PermissionsFooter(
+                state = state,
+                isCorePending = isCorePending,
+                isGpsPending = isGpsPending,
+                requiredComplete = requiredComplete,
+                onRequestPermissions = onRequestPermissions,
+                onRequestSkipDetection = onRequestSkipDetection,
+                onRequestBatteryOptimization = onRequestBatteryOptimization,
+                onFinish = onFinish,
+            )
         },
     ) {
         // Header — hero ilustrado de marca (escudo-check) + título + subtítulo, mismo patrón que los
@@ -343,9 +351,51 @@ private fun ColumnScope.PermissionsFooter(
     state: PermissionsState,
     isCorePending: Boolean,
     isGpsPending: Boolean,
+    requiredComplete: Boolean,
     onRequestPermissions: () -> Unit,
     onRequestSkipDetection: () -> Unit,
+    onRequestBatteryOptimization: () -> Unit,
+    onFinish: () -> Unit,
 ) {
+    // Everything required is granted. Surface the optional background-reliability toggle the copy
+    // promises ("permite la actividad en segundo plano aquí abajo") as the emphasised action —
+    // it's the highest-impact opt-in on Doze-aggressive OEMs — with a plain "Continue" underneath
+    // to enter the app. Battery exemption is Android-only, so hide that button on iOS. [PERM-FOOTER-001]
+    if (requiredComplete) {
+        val batteryPending = isBatteryOptimizationRelevant && !state.isBatteryOptimizationExempt
+        if (batteryPending) {
+            PapFooterButton(
+                label = stringResource(Res.string.permissions_btn_allow_background),
+                leadingIcon = Icons.Rounded.BatteryFull,
+                onClick = onRequestBatteryOptimization,
+            )
+            TextButton(
+                onClick = onFinish,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    Icons.Rounded.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = stringResource(Res.string.permissions_btn_continue),
+                    style = PaparcarType.current.cta,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            PapFooterButton(
+                label = stringResource(Res.string.permissions_btn_continue),
+                leadingIcon = Icons.Rounded.ArrowForward,
+                onClick = onFinish,
+            )
+        }
+        return
+    }
+
     // Location permanently denied / revoked → the request dialog would no-op, so jump straight to the
     // amber "open settings" CTA from the first frame. [DET-READY-001m]
     val coreNeedsSettings = isCorePending && state.locationPermanentlyDenied
