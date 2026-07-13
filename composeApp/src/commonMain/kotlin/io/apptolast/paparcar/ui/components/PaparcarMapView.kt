@@ -867,7 +867,12 @@ fun PaparcarMapView(
     // never refreshed reliably. [MAP-MARKERS-DIM-002]
     val customMarkerContent = remember(
         clusterCountByCoords, enRouteBuckets, parkedVehicles, zones,
-        parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive, drivingPuck,
+        parkingVehicleSize, parkingVehicleCarbody, parkingVehicleColor, parkingIsActive,
+        // Key only on the puck's VISUAL identity, not the whole drivingPuck: its handler bitmap depends
+        // solely on carbody/size/colour (heading is native rotation, position is the marker coordinate).
+        // Keying on the full object rebuilt this map every GPS fix (~1 Hz), which re-rasterised the puck
+        // MarkerComposable and flashed a doubled halo — the periodic blue flicker. [DRIVE-PUCK-NATIVE-001]
+        drivingPuck?.carbodyType, drivingPuck?.sizeCategory, drivingPuck?.color,
     ) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = buildMap {
             // ── Fallback single-parking marker (ParkingLocationScreen) ──
