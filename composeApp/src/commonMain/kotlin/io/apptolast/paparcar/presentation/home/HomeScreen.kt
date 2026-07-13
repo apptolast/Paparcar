@@ -47,13 +47,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
-import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
-import io.apptolast.paparcar.presentation.home.sections.map.components.HomeMonitoringPill
-import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
@@ -898,28 +895,9 @@ private fun HomeContent(
                         },
                 )
 
-                // ── "Following your trip" pill — REPLACES the GPS FAB during a trip: anchored bottom-end
-                // where the location FAB sits, and tappable to recentre on the moving car (resume follow).
-                // The report FAB stays at bottom-start, so there's no overlap. Hidden when the sheet
-                // engages; lifts above the sheet with the same offset as the FABs. [FOLLOW-001]
-                HomeMonitoringPill(
-                    visible = state.detectionUiState == DetectionUiState.Monitoring && overlayVisible,
-                    phase = state.drivingPuck?.phase ?: DetectionPhase.Driving,
-                    onClick = onMyLocation,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 14.dp)
-                        .offset {
-                            val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
-                                .coerceAtLeast(0f)
-                            val halfH = (rawContainerHeightPx - halfOffsetPx)
-                                .coerceAtLeast(0f)
-                            // Same clamp as the FAB column so the pill rides the sheet edge up to the
-                            // first expand (half) and doesn't fly off-screen past it. [HOME-SNAP-001]
-                            val base = if (sheetOffsetPx.value >= halfOffsetPx) sheetH else halfH
-                            IntOffset(0, -(base + fabGapPx).roundToInt())
-                        },
-                )
+                // The floating "monitoring" pill was removed: the MyLocation FAB now stays visible during
+                // a trip and re-engages driver-follow, and the live phase (EN RUTA / APARCANDO…) reads in
+                // the sheet eyebrow instead. [DET-STATUS-SHEET-001]
 
                 // ── Bottom sheet ─────────────────────────────────────────────
                 HomeBottomSheet(

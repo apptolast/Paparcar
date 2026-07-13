@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.MapCircleFab
+import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapMotion
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -32,7 +33,11 @@ import paparcar.composeapp.generated.resources.map_cd_my_location
 //   • Coche (only when a parking session is active) → recenters on the spot.
 //   • Midpoint (only when both parking and GPS are known) → fits both in view
 //     so the user can see how to reach the car.
-//   • MyLocation → recenters on the live GPS position.
+//   • MyLocation → recenters on the live GPS position, OR — while detection is
+//     monitoring a trip ([followsCar]) — re-engages driver-follow on the moving
+//     car. It stays visible during the trip (the floating "monitoring" pill was
+//     removed; the live phase now reads in the sheet eyebrow) and tints en-route
+//     blue to signal it follows the car. [DET-STATUS-SHEET-001]
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -44,7 +49,8 @@ internal fun HomeMapFabColumn(
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
     modifier: Modifier = Modifier,
-    showMyLocation: Boolean = true,
+    // True while a trip is being monitored — tapping MyLocation follows the moving car, not GPS.
+    followsCar: Boolean = false,
 ) {
     Column(
         modifier = modifier,
@@ -74,14 +80,14 @@ internal fun HomeMapFabColumn(
                 contentDescription = stringResource(Res.string.map_cd_midpoint),
             )
         }
-        // Hidden during a trip — the "Following your trip" pill takes its place and its recenter role. [FOLLOW-001]
-        if (showMyLocation) {
-            HomeMapFab(
-                icon = Icons.Rounded.MyLocation,
-                onClick = onMyLocation,
-                contentDescription = stringResource(Res.string.map_cd_my_location),
-            )
-        }
+        // Always visible — during a trip it re-engages driver-follow (tinted en-route blue to say so),
+        // otherwise it recenters on GPS. Replaces the old floating "Following your trip" pill. [DET-STATUS-SHEET-001]
+        HomeMapFab(
+            icon = Icons.Rounded.MyLocation,
+            tint = if (followsCar) PapDriveBlue else Color.Unspecified,
+            onClick = onMyLocation,
+            contentDescription = stringResource(Res.string.map_cd_my_location),
+        )
     }
 }
 

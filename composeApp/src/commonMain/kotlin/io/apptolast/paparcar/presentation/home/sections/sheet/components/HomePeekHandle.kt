@@ -100,6 +100,7 @@ import io.apptolast.paparcar.ui.components.PapFooterButton
 import io.apptolast.paparcar.ui.components.PapFooterButtonStyle
 import io.apptolast.paparcar.ui.icons.PaparcarIcons
 import io.apptolast.paparcar.ui.icons.icon
+import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapMotion
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import io.apptolast.paparcar.ui.theme.stateColors
@@ -118,6 +119,7 @@ import paparcar.composeapp.generated.resources.home_browse_eyebrow_zone
 import paparcar.composeapp.generated.resources.home_browse_hint_swipe_report
 import paparcar.composeapp.generated.resources.home_browse_parked_ago
 import paparcar.composeapp.generated.resources.home_browse_parked_meta
+import paparcar.composeapp.generated.resources.home_det_monitoring
 import paparcar.composeapp.generated.resources.home_navigate_to_spot
 import paparcar.composeapp.generated.resources.home_navigate_to_vehicle
 import paparcar.composeapp.generated.resources.home_parking_action_move_location
@@ -146,6 +148,7 @@ import paparcar.composeapp.generated.resources.home_peek_spot_medium
 import paparcar.composeapp.generated.resources.home_peek_spot_reliability_label
 import paparcar.composeapp.generated.resources.home_peek_spot_size_unknown
 import paparcar.composeapp.generated.resources.home_peek_vehicle_parked_label
+import paparcar.composeapp.generated.resources.home_peek_vehicle_status
 import paparcar.composeapp.generated.resources.home_report_confirm_here
 import paparcar.composeapp.generated.resources.home_report_header_label
 import paparcar.composeapp.generated.resources.home_report_helper_primary
@@ -154,6 +157,7 @@ import paparcar.composeapp.generated.resources.home_report_size_section
 import paparcar.composeapp.generated.resources.home_spot_peek_show_list
 import paparcar.composeapp.generated.resources.home_peek_no_spots
 import paparcar.composeapp.generated.resources.home_stats_free_spots_badge
+import paparcar.composeapp.generated.resources.home_vehicle_chip_status_candidate
 import paparcar.composeapp.generated.resources.home_vehicle_fallback_name
 import paparcar.composeapp.generated.resources.home_zone_action_delete
 import paparcar.composeapp.generated.resources.home_zone_action_edit
@@ -1192,7 +1196,49 @@ private fun CameraLocationRow(
         return
     }
 
-    // ── Subject = the zone (no parked car, or expanded browse) ────────────────
+    // ── Subject = the car being driven RIGHT NOW (monitored trip, no session yet) ─
+    // Collapsed peek only. The live phase reads in the eyebrow — EN RUTA while driving,
+    // APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
+    // moving car via the camera geocode. This is where the removed floating "monitoring" pill's
+    // status now lives. [DET-STATUS-SHEET-001]
+    val drivingPuck = state.drivingPuck
+    if (drivingPuck != null && !showZoneHeader) {
+        val vehicle = state.vehicles.firstOrNull { it.id == drivingPuck.vehicleId }
+        val vehicleName = vehicleSummary(vehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
+        val isCandidate = drivingPuck.phase == io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate
+        // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
+        // stays i18n-complete without new per-locale strings. [DET-STATUS-SHEET-001]
+        val phaseWord = stringResource(
+            if (isCandidate) Res.string.home_vehicle_chip_status_candidate
+            else Res.string.home_det_monitoring,
+        )
+        val info = state.cameraAddressAndPlace
+        val title = info?.placeInfo?.name
+            ?: info?.displayLine?.takeIf { it.isNotBlank() }
+            ?: stringResource(Res.string.home_address_unknown)
+        val secondaryLine = if (info?.placeInfo != null) {
+            info.address.displayLine?.takeIf { it != info.placeInfo.name }
+        } else {
+            listOfNotNull(info?.address?.city, info?.address?.region)
+                .joinToString(", ").takeIf { it.isNotEmpty() }
+        }
+        PapSheet(
+            lead = PapSheetLead.Vehicle(
+                carbody = vehicle?.carbodyType,
+                size = vehicle?.sizeCategory,
+                color = vehicle?.color,
+            ),
+            eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord),
+            // En-route blue while driving, brand green once stopping (candidate) — mirrors the map language.
+            eyebrowColor = if (isCandidate) MaterialTheme.colorScheme.primary else PapDriveBlue,
+            title = title,
+            subtitle = secondaryLine,
+            trailing = if (freeCount > 0) PapSheetTrailing.CountPill(freeCount) else null,
+        )
+        return
+    }
+
+    // ── Subject = the zone (no parked car, no live trip, or expanded browse) ──
     val info = state.cameraAddressAndPlace
     // Show skeleton when there is no displayable content — covers:
     //  • info still null (initial load before first geocode)

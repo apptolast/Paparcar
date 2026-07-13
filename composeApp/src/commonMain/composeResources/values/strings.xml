@@ -492,6 +492,9 @@
     <string name="home_peek_dismiss_cd">Dismiss</string>
     <string name="home_peek_car_parked_label">Your car is parked</string>
     <string name="home_peek_vehicle_parked_label">%1$s · parked</string>
+    <!-- Sheet eyebrow "name · live-phase" — composes a vehicle name with a reused phase word
+         (EN RUTA / APARCANDO… / APARCADO). Pure format, locale-independent. [DET-STATUS-SHEET-001] -->
+    <string name="home_peek_vehicle_status">%1$s · %2$s</string>
     <string name="home_peek_spot_compatible">Fits %1$s</string>
     <string name="bt_config_cd_back">Back</string>
     <!-- Auth screens -->

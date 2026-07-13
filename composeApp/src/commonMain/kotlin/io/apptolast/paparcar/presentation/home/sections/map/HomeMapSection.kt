@@ -156,8 +156,8 @@ internal fun HomeMapFabsLayer(
                 userParking = state.userParking,
                 userGpsPoint = state.userGpsPoint,
                 isParkingSelected = state.isParkingSelected,
-                // During a trip the "Following your trip" pill replaces the GPS FAB (and its recenter role). [FOLLOW-001]
-                showMyLocation = state.drivingPuck == null,
+                // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
+                followsCar = state.drivingPuck != null,
                 onMyLocation = onMyLocation,
                 onParkedCar = onParkedCar,
                 onMidpoint = onMidpoint,
