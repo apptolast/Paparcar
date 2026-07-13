@@ -1,6 +1,8 @@
 package io.apptolast.paparcar.presentation.permissions
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -9,12 +11,14 @@ import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.ui.components.PapListItem
+import io.apptolast.paparcar.ui.theme.PaparcarSpacing
 import io.apptolast.paparcar.ui.theme.PaparcarType
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
@@ -56,6 +60,7 @@ internal fun PermissionRow(
     reason: String,
     state: PermissionUiState,
     modifier: Modifier = Modifier,
+    unlocks: String? = null,
     onGrant: (() -> Unit)? = null,
 ) {
     val granted = state == PermissionUiState.Granted
@@ -65,10 +70,32 @@ internal fun PermissionRow(
         label = "perm_row_bg",
     )
 
+    // Which detection tier this action unlocks — a green payoff tag under the reason, shown only
+    // while pending (the check + green row already say "done" once granted). [DET-TIERS-001]
+    val unlockTag = unlocks?.takeIf { !granted }
+
     val rowContent: @Composable () -> Unit = {
         PapListItem(
             title = title,
-            subtitle = reason,
+            // subtitleSlot REPLACES subtitle, so when tagging we stack reason + tag in the slot to
+            // keep both; otherwise the plain reason subtitle.
+            subtitle = if (unlockTag == null) reason else null,
+            subtitleSlot = unlockTag?.let { tag ->
+                {
+                    Column(verticalArrangement = Arrangement.spacedBy(PaparcarSpacing.xs)) {
+                        Text(
+                            text = reason,
+                            style = PaparcarType.current.caption,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = tag,
+                            style = PaparcarType.current.label,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            },
             titleStyle = PaparcarType.current.rowTitle,
             // Leading is a bare glyph (no disc) — green when granted. [ONB-IDENTITY-001 D]
             leading = {

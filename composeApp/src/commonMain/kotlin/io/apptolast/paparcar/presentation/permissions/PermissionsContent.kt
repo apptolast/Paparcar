@@ -71,6 +71,9 @@ import paparcar.composeapp.generated.resources.permissions_perm_battery_oem_hint
 import paparcar.composeapp.generated.resources.permissions_reliability_reduced_callout
 import paparcar.composeapp.generated.resources.permissions_perm_bluetooth
 import paparcar.composeapp.generated.resources.permissions_perm_bluetooth_desc
+import paparcar.composeapp.generated.resources.permissions_tier_assisted_plus_name
+import paparcar.composeapp.generated.resources.permissions_tier_automatic_name
+import paparcar.composeapp.generated.resources.permissions_tier_unlocks
 import paparcar.composeapp.generated.resources.permissions_perm_location
 import paparcar.composeapp.generated.resources.permissions_perm_location_desc
 import paparcar.composeapp.generated.resources.permissions_perm_location_services
@@ -283,6 +286,11 @@ internal fun PermissionsContent(
                     title = stringResource(Res.string.permissions_perm_bluetooth),
                     reason = stringResource(Res.string.permissions_perm_bluetooth_desc),
                     state = optionalState(state.hasBluetoothConnect),
+                    // Pairing car Bluetooth is the single jump to the Automatic tier. [DET-TIERS-001]
+                    unlocks = stringResource(
+                        Res.string.permissions_tier_unlocks,
+                        stringResource(Res.string.permissions_tier_automatic_name),
+                    ),
                     onGrant = onRequestBluetooth,
                 )
                 Spacer(Modifier.height(PaparcarSpacing.md))
@@ -291,6 +299,11 @@ internal fun PermissionsContent(
                     title = stringResource(Res.string.permissions_perm_battery),
                     reason = stringResource(Res.string.permissions_perm_battery_desc),
                     state = optionalState(state.isBatteryOptimizationExempt),
+                    // The battery exemption lifts the bare Assisted tier to Assisted + (fewer prompts).
+                    unlocks = stringResource(
+                        Res.string.permissions_tier_unlocks,
+                        stringResource(Res.string.permissions_tier_assisted_plus_name),
+                    ),
                     onGrant = onRequestBatteryOptimization,
                 )
                 if (!state.isBatteryOptimizationExempt) {

@@ -430,6 +430,8 @@
     <string name="permissions_tier_automatic_promise">Your spot is marked and freed on its own.</string>
     <string name="permissions_tier_assisted_plus_promise">Almost always hands-free; now and then we\'ll ask you.</string>
     <string name="permissions_tier_assisted_promise">We detect what your phone allows; when in doubt, we ask you.</string>
+    <!-- Per-permission payoff tag: which tier this action unlocks. "→ Automatic" / "→ Assisted +" -->
+    <string name="permissions_tier_unlocks">→ %1$s</string>
 
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Tell us about your car</string>
