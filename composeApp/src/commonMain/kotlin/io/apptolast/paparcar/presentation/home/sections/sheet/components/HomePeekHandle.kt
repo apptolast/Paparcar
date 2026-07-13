@@ -397,8 +397,8 @@ private fun SpotPeekRow(
             enRouteCount = spot.enRouteCount,
         ),
         eyebrow = palette.label,
-        // Reliability tint rides the eyebrow, not the lead — the "P" tile stays
-        // the one recognisable community-blue subject. [UI-SHEET-001]
+        // Reliability tint also rides the eyebrow; the lead puck itself now carries the
+        // tier colour/ring, matching the map marker and list row. [HOME-PUCK-001]
         eyebrowColor = palette.badgeBg,
         title = title,
         onDismiss = onDismiss,
