@@ -81,3 +81,14 @@ internal fun HomeState.applyNewSpots(spots: List<Spot>): HomeState {
 /** Wipes every search-related field. Used by SelectSearchResult + ClearSearch. */
 internal fun HomeState.resetSearch(): HomeState =
     copy(searchQuery = "", searchResults = emptyList(), isSearchActive = false, isSearching = false)
+
+/**
+ * The settled pin-mode coordinate, or null when the active mode never captured
+ * one (GPS unavailable on entry and the camera never moved). The single guard
+ * shared by every pin-mode confirm — report / parking / zone. [HOME-ATOMIZE-001 F4]
+ */
+internal fun HomeState.pinCoordinates(): Pair<Double, Double>? {
+    val lat = pinCameraLat ?: return null
+    val lon = pinCameraLon ?: return null
+    return lat to lon
+}

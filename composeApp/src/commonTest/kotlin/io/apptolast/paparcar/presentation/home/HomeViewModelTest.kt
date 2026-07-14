@@ -18,12 +18,15 @@ import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
+import io.apptolast.paparcar.domain.usecase.parking.SaveManualParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.UpdateParkingLocationUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
+import io.apptolast.paparcar.domain.usecase.spot.ReportManualSpotUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
+import io.apptolast.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import io.apptolast.paparcar.fakes.FakeActivityRecognitionManager
 import io.apptolast.paparcar.fakes.FakeDepartureEventBus
@@ -113,17 +116,23 @@ class HomeViewModelTest {
             strategyResolver = ParkingStrategyResolver(vehicleRepo, FakeBluetoothScanner(bluetoothEnabled = false)),
             appPreferences = FakeAppPreferences(),
         )
+        val saveManualParking = SaveManualParkingUseCase(
+            confirmParking = confirmParking,
+            updateParkingLocation = updateParkingLocation,
+            notificationPort = FakeAppNotificationManager(),
+            manualParkingDetection = manualParkingDetection,
+        )
         return HomeViewModel(
             permissionManager = permissions,
             locationDataSource = locationDataSource,
             observeDetectionReadiness = observeDetectionReadiness,
+            reportManualSpot = ReportManualSpotUseCase(reportSpotReleased, vehicleRepo),
             reportSpotReleased = reportSpotReleased,
             activityRecognitionManager = activityRecognition,
             userParkingRepository = parkingRepo,
             releaseSession = releaseSession,
-            confirmParking = confirmParking,
+            saveManualParking = saveManualParking,
             observeParkedVehicles = observeParkedVehicles,
-            updateParkingLocation = updateParkingLocation,
             appPreferences = prefs,
             // Feature controllers — built with the same fakes the VM uses, mirroring the Koin
             // factories in PresentationModule. [HOMEVM-CTRL-002]
@@ -140,11 +149,10 @@ class HomeViewModelTest {
             sendSpotSignal = sendSpotSignal,
             connectivityObserver = connectivity,
             zoneRepository = zoneRepo,
-            saveZone = SaveZoneUseCase(zoneRepo, authRepo),
+            saveOrUpdateZone = SaveOrUpdateZoneUseCase(zoneRepo, SaveZoneUseCase(zoneRepo, authRepo)),
             vehicleRepository = vehicleRepo,
             mapFocusEventBus = MapFocusEventBus(),
             startAddParkingEventBus = StartAddParkingEventBus(),
-            notificationPort = FakeAppNotificationManager(),
             manualParkingDetection = manualParkingDetection,
         )
     }

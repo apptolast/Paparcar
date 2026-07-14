@@ -35,7 +35,9 @@ import io.apptolast.paparcar.domain.usecase.detection.EvaluateFirstParkNudgeUseC
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReliabilityUseCase
 import org.koin.dsl.bind
+import io.apptolast.paparcar.domain.usecase.parking.SaveManualParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
+import io.apptolast.paparcar.domain.usecase.spot.ReportManualSpotUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -44,6 +46,7 @@ import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.event.MapFocusEventBus
 import io.apptolast.paparcar.domain.event.StartAddParkingEventBus
+import io.apptolast.paparcar.domain.usecase.zone.SaveOrUpdateZoneUseCase
 import io.apptolast.paparcar.domain.usecase.zone.SaveZoneUseCase
 import org.koin.dsl.module
 
@@ -66,10 +69,14 @@ val domainModule = module {
     // Spot UseCases
     factory { ObserveNearbySpotsUseCase(get()) }
     factory { ReportSpotReleasedUseCase(reportSpotScheduler = get(), getAddressAndPlace = get(), authRepository = get()) }
+    // Home's manual "avisar plaza libre" policy (id, MANUAL type, carbody fallback). [HOME-ATOMIZE-001 F4]
+    factory { ReportManualSpotUseCase(reportSpotReleased = get(), vehicleRepository = get()) }
     factory { SendSpotSignalUseCase(get()) }
 
     // Zone UseCases
     factory { SaveZoneUseCase(repository = get(), authRepository = get()) }
+    // Home's zone form (create + in-place edit). [HOME-ATOMIZE-001 F4]
+    factory { SaveOrUpdateZoneUseCase(repository = get(), saveZone = get()) }
 
     // Location UseCases
     factory { GetAddressAndPlaceUseCase(repository = get()) }
@@ -173,6 +180,16 @@ val domainModule = module {
     }
 
     factory { ObserveParkedVehiclesUseCase(userParkingRepository = get(), vehicleRepository = get()) }
+
+    // Home's user-confirmed pin: create / move / detected-prompt confirm. [HOME-ATOMIZE-001 F4]
+    factory {
+        SaveManualParkingUseCase(
+            confirmParking = get(),
+            updateParkingLocation = get(),
+            notificationPort = get(),
+            manualParkingDetection = get(),
+        )
+    }
 
     // Strategy Resolution
     factory { ParkingStrategyResolver(get(), get()) }
