@@ -1048,6 +1048,14 @@ fun PaparcarMapView(
             cameraMoving = false
         }
     }
+    // The user is actively AIMING the camera — the ONE signal behind every
+    // "pin floating / crosshair aiming" visual. cameraMoving alone can't see a
+    // drag anymore: actualCamLat/Lon are frozen while a finger is down (the
+    // per-frame updates stuttered the pan [DRIVE-PUCK-NATIVE-001]), so it only
+    // flips once the finger lifts. The touch flag covers press→release with
+    // zero latency; cameraMoving keeps the pin flying through the post-release
+    // fling and programmatic moves until the camera settles.
+    val isAiming = userTouchingMap || cameraMoving
 
     // ── Loading state ────────────────────────────────────────────────────
     val backgroundColor = MaterialTheme.colorScheme.background
@@ -1064,7 +1072,7 @@ fun PaparcarMapView(
     val crosshairScale by animateFloatAsState(
         targetValue = when {
             isAnyItemSelected -> CROSSHAIR_SCALE_HIDDEN   // hide when any item is focused
-            cameraMoving      -> CROSSHAIR_SCALE_AIMING   // enlarge while aiming
+            isAiming          -> CROSSHAIR_SCALE_AIMING   // enlarge while aiming
             else              -> CROSSHAIR_SCALE_NORMAL
         },
         animationSpec = spring(
@@ -1075,7 +1083,7 @@ fun PaparcarMapView(
     )
     // Radar ring: shrinks slightly while aiming so the ring appears to "close in" on the target
     val ringScale by animateFloatAsState(
-        targetValue = if (cameraMoving && !isAnyItemSelected) RING_AIMING_SCALE else 1f,
+        targetValue = if (isAiming && !isAnyItemSelected) RING_AIMING_SCALE else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMediumLow,
@@ -1085,8 +1093,8 @@ fun PaparcarMapView(
     // Pulse ring: fires once when camera settles
     val pulseAlpha = remember { Animatable(0f) }
     val pulseScale = remember { Animatable(1f) }
-    LaunchedEffect(cameraMoving, showLoading) {
-        if (!cameraMoving && actualCamLat != null && !isAnyItemSelected && !showLoading) {
+    LaunchedEffect(isAiming, showLoading) {
+        if (!isAiming && actualCamLat != null && !isAnyItemSelected && !showLoading) {
             pulseAlpha.snapTo(PULSE_INITIAL_ALPHA)
             pulseScale.snapTo(PULSE_INITIAL_SCALE)
             launch { pulseAlpha.animateTo(0f, tween(PULSE_ANIM_MS, easing = FastOutSlowInEasing)) }
@@ -1391,13 +1399,13 @@ fun PaparcarMapView(
         if (pinKind != null) {
             when (pinKind) {
                 CenterPinKind.Report -> ReportCenterPin(
-                    cameraMoving = cameraMoving,
+                    cameraMoving = isAiming,
                     modifier = Modifier
                         .align(Alignment.Center)
                         .mapCenterPinAnchor(),
                 )
                 CenterPinKind.Parking -> ParkingCenterPin(
-                    cameraMoving = cameraMoving,
+                    cameraMoving = isAiming,
                     carbodyType = parkingVehicleCarbody,
                     sizeCategory = parkingVehicleSize,
                     color = parkingVehicleColor,
@@ -1409,7 +1417,7 @@ fun PaparcarMapView(
                 )
                 is CenterPinKind.Zone -> ZoneCenterPin(
                     icon = pinKind.icon,
-                    cameraMoving = cameraMoving,
+                    cameraMoving = isAiming,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
@@ -1501,7 +1509,7 @@ fun PaparcarMapView(
                         center = Offset(cx + SHADOW_OFFSET_X / 2, cy + SHADOW_OFFSET_Y / 2),
                     )
                     // Center dot (tightens to a precision dot while aiming)
-                    val dotRadius = if (cameraMoving) CENTER_DOT_AIMING_RADIUS_DP.dp.toPx()
+                    val dotRadius = if (isAiming) CENTER_DOT_AIMING_RADIUS_DP.dp.toPx()
                         else CENTER_DOT_RADIUS_DP.dp.toPx()
                     drawCircle(color = indicatorColor, radius = dotRadius, center = center)
                 }
