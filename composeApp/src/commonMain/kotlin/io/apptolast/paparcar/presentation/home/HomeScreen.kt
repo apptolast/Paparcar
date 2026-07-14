@@ -55,6 +55,8 @@ import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeBottomSheet
+import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
+import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetFrame
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
 import io.apptolast.paparcar.presentation.home.sections.sheet.SheetTransitionEffects
 import io.apptolast.paparcar.presentation.home.sections.sheet.rememberSheetMotion
@@ -567,16 +569,12 @@ private fun HomeContent(
                 )
 
                 // ── Bottom sheet ─────────────────────────────────────────────
-                HomeSheetSection(
-                    peek = peekSlice,
-                    browse = browseSlice,
-                    state = state,
-                    browseShowsZoneHeader = sheetBeyondPeek,
+                val sheetFrame = HomeSheetFrame(
                     containerHeightPx = rawContainerHeightPx,
                     sheetOffsetPx = sheetOffsetPx,
                     dragSnap = dragSnap,
                     lazyListState = lazyListState,
-                    sheetNestedScroll = motion.nestedScrollConnection,
+                    nestedScroll = motion.nestedScrollConnection,
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
                     onPeekHeightChanged = { h ->
@@ -585,9 +583,16 @@ private fun HomeContent(
                         // bottom-nav divider, with no dp of gap, in every state. [BUG-PEEK-DIVIDER-ALIGN]
                         if (h != peekHeightPx) peekHeightPx = h
                     },
+                )
+                HomeSheetSection(
+                    peek = peekSlice,
+                    browse = browseSlice,
+                    state = state,
+                    frame = sheetFrame,
+                    browseShowsZoneHeader = sheetBeyondPeek,
+                    spotListExpanded = spotListExpanded,
                     onIntent = onIntent,
                     uiController = uiController,
-                    spotListExpanded = spotListExpanded,
                     onToggleSpotList = { spotListExpanded = !spotListExpanded },
                     onRelease = { showReleaseDialog = true },
                     onNavigateExternal = openExternalNav,
@@ -791,27 +796,20 @@ private fun HomeFloatingHeader(
 }
 
 /**
- * The bottom sheet plus the translation of its UI callbacks into intents /
- * camera moves. This is the single place where sheet actions are wired to the
- * VM and the [uiController]. [MULTI-PARKING-001]
+ * The bottom sheet plus the SINGLE translation point of its [HomeSheetAction]
+ * channel: sheet motion, local UI state, camera moves and navigation. Intents
+ * flow through untouched — the sheet emits them directly. [HOME-ATOMIZE-001 F3]
  */
 @Composable
 private fun HomeSheetSection(
     peek: HomePeekSlice,
     browse: HomeBrowseListSlice,
     state: HomeState,
+    frame: HomeSheetFrame,
     browseShowsZoneHeader: Boolean,
-    containerHeightPx: Float,
-    sheetOffsetPx: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
-    dragSnap: HomeSheetSnap,
-    lazyListState: androidx.compose.foundation.lazy.LazyListState,
-    sheetNestedScroll: NestedScrollConnection,
-    bottomContentPadding: Dp,
-    coroutineScope: CoroutineScope,
-    onPeekHeightChanged: (Float) -> Unit,
+    spotListExpanded: Boolean,
     onIntent: (HomeIntent) -> Unit,
     uiController: HomeUiController,
-    spotListExpanded: Boolean,
     onToggleSpotList: () -> Unit,
     onRelease: () -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
@@ -820,79 +818,34 @@ private fun HomeSheetSection(
     onAddVehicle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    HomeBottomSheet(
-        peek = peek,
-        browse = browse,
-        browseShowsZoneHeader = browseShowsZoneHeader,
-        containerHeightPx = containerHeightPx,
-        sheetOffsetPx = sheetOffsetPx,
-        dragSnap = dragSnap,
-        lazyListState = lazyListState,
-        sheetNestedScroll = sheetNestedScroll,
-        bottomContentPadding = bottomContentPadding,
-        coroutineScope = coroutineScope,
-        onPeekHeightChanged = onPeekHeightChanged,
-        onIntent = onIntent,
-        onParkingClick = { parking ->
-            onIntent(HomeIntent.SelectItem(parking.id))
-            uiController.moveCamera(parking.location.latitude, parking.location.longitude)
-        },
-        onParkVehicle = { vehicleId ->
-            // Per-vehicle "Aparcar" pill — enter AddingParking pre-centred on the
-            // user's current GPS and tagged with the chosen vehicleId so
-            // ConfirmParkingUseCase persists the session for that specific car
-            // instead of the default. [MULTI-PARKING-001]
-            onIntent(
-                HomeIntent.EnterAddParkingMode(
-                    initialGps = state.userGpsPoint,
-                    targetVehicleId = vehicleId,
-                ),
-            )
-        },
-        onMoveParkingLocation = {
-            // "Mover ubicación" button on the parking peek — enter AddingParking
-            // pre-centred on the SELECTED session (not just the first active one)
-            // and tagged with its id so the confirm updates the row in place via
-            // UpdateParkingLocationUseCase. [MULTI-PARKING-001]
-            state.selectedSession?.let { parking ->
-                onIntent(
-                    HomeIntent.EnterAddParkingMode(
-                        initialGps = parking.location,
-                        editingParkingId = parking.id,
-                    ),
-                )
-            }
-        },
-        spotListExpanded = spotListExpanded,
-        onToggleSpotList = onToggleSpotList,
-        onSpotSelect = { _, _, spotId -> onIntent(HomeIntent.SelectItem(spotId)) },
-        onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
-        onEnterReportMode = {
-            onIntent(
+    val onAction: (HomeSheetAction) -> Unit = { action ->
+        when (action) {
+            HomeSheetAction.ToggleSheet -> onToggle()
+            HomeSheetAction.ToggleSpotList -> onToggleSpotList()
+            HomeSheetAction.RequestRelease -> onRelease()
+            HomeSheetAction.RequestReportMode -> onIntent(
                 HomeIntent.EnterReportMode(
                     lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
                     lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
-                )
-            )
-        },
-        onRelease = onRelease,
-        onNavigateExternal = onNavigateExternal,
-        onToggle = onToggle,
-        // Detection surface actions (reuses existing nav + AddingParking flow).
-        onDetectionAddVehicle = onAddVehicle,
-        // Only the CORE block still routes here (Inactive uses the unified EnableAutoDetection
-        // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
-        onDetectionOpenPermissions = { onActivateDetection("core") },
-        onDetectionMarkSpot = {
-            val markVehicleId = state.vehicles.firstOrNull { it.isActive }?.id
-                ?: state.vehicles.firstOrNull()?.id
-            onIntent(
-                HomeIntent.EnterAddParkingMode(
-                    initialGps = state.userGpsPoint,
-                    targetVehicleId = markVehicleId,
                 ),
             )
-        },
+            is HomeSheetAction.MoveCamera -> uiController.moveCamera(action.lat, action.lon)
+            is HomeSheetAction.NavigateExternal ->
+                onNavigateExternal(action.lat, action.lon, action.walking)
+            // Only the CORE tier routes here (Inactive uses the unified EnableAutoDetection
+            // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
+            HomeSheetAction.OpenCorePermissions -> onActivateDetection("core")
+            HomeSheetAction.AddVehicle -> onAddVehicle()
+        }
+    }
+    HomeBottomSheet(
+        peek = peek,
+        browse = browse,
+        frame = frame,
+        browseShowsZoneHeader = browseShowsZoneHeader,
+        spotListExpanded = spotListExpanded,
+        onIntent = onIntent,
+        onAction = onAction,
         modifier = modifier,
     )
 }

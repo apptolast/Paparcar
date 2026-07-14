@@ -126,11 +126,7 @@ private fun sheet(state: HomeState) {
         homeSheetItems(
             slice = state.toBrowseListSlice(),
             onIntent = {},
-            onCameraMove = { _, _ -> },
-            onParkingClick = {},
-            onParkVehicle = {},
-            onSpotSelect = { _, _, _ -> },
-            onEnterReportMode = {},
+            onAction = {},
         )
     }
 }
@@ -250,6 +246,16 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                     HomeState(
                         mode = HomeMode.Reporting,
                         cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                    ),
+                )
+            },
+            // Zone form: name field + icon picker + radius slider + privacy toggle. [HOME-ATOMIZE-001 F3]
+            Variant("PapSheet · add zona (formulario)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        mode = HomeMode.AddingZone,
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        addingZoneName = "Casa",
                     ),
                 )
             },

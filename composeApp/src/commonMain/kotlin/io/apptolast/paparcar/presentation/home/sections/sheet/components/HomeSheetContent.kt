@@ -42,7 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.model.Spot
-import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.domain.model.sortRank
@@ -50,6 +49,7 @@ import io.apptolast.paparcar.presentation.home.HomeBrowseListSlice
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.home.model.rendersActionSurface
+import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetAction
 import io.apptolast.paparcar.ui.components.PapSectionHeader
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -83,14 +83,7 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
 internal fun LazyListScope.homeSheetItems(
     slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
-    onCameraMove: (Double, Double) -> Unit,
-    onParkingClick: (UserParking) -> Unit,
-    onParkVehicle: (vehicleId: String) -> Unit,
-    onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
-    onEnterReportMode: () -> Unit,
-    onDetectionAddVehicle: () -> Unit = {},
-    onDetectionOpenPermissions: () -> Unit = {},
-    onDetectionMarkSpot: () -> Unit = {},
+    onAction: (HomeSheetAction) -> Unit,
 ) {
     val selectedSpotId = slice.selectedSpotId
     val isSpotSelected = selectedSpotId != null
@@ -105,9 +98,20 @@ internal fun LazyListScope.homeSheetItems(
         item("detection_surface") {
             HomeDetectionSurface(
                 state = slice.detectionUiState,
-                onAddVehicle = onDetectionAddVehicle,
-                onOpenPermissions = onDetectionOpenPermissions,
-                onMarkSpot = onDetectionMarkSpot,
+                onAddVehicle = { onAction(HomeSheetAction.AddVehicle) },
+                onOpenPermissions = { onAction(HomeSheetAction.OpenCorePermissions) },
+                onMarkSpot = {
+                    // Cold-start "mark my spot" — enters AddingParking for the active
+                    // (or first) vehicle. [DET-TOGGLE-002]
+                    val markVehicleId = vehicleCards.firstOrNull { it.vehicle.isActive }?.vehicle?.id
+                        ?: vehicleCards.firstOrNull()?.vehicle?.id
+                    onIntent(
+                        HomeIntent.EnterAddParkingMode(
+                            initialGps = slice.userGpsPoint,
+                            targetVehicleId = markVehicleId,
+                        ),
+                    )
+                },
                 onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection) }, // [DET-G-01b]
                 onActivateDetection = { onIntent(HomeIntent.EnableAutoDetection) }, // [DET-TOGGLE-001]
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
@@ -128,7 +132,7 @@ internal fun LazyListScope.homeSheetItems(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
-        vehiclesSection(slice, vehicleCards, onParkingClick, onParkVehicle)
+        vehiclesSection(slice, vehicleCards, onIntent, onAction)
     }
 
     // ── 3. Spots (header + filter bar + list + report CTA) ─────────────────
@@ -139,13 +143,11 @@ internal fun LazyListScope.homeSheetItems(
         spotsSection(
             slice = slice,
             onIntent = onIntent,
-            onCameraMove = onCameraMove,
-            onSpotSelect = onSpotSelect,
+            onAction = onAction,
             selectedSpotId = selectedSpotId,
             filteredSpots = filteredSpots,
             showFilterBar = showFilterBar,
             isSpotSelected = isSpotSelected,
-            onEnterReportMode = onEnterReportMode,
         )
     }
 }
@@ -183,8 +185,8 @@ internal fun homeSheetSpotItemIndex(slice: HomeBrowseListSlice, spotId: String):
 private fun LazyListScope.vehiclesSection(
     slice: HomeBrowseListSlice,
     vehicleCards: List<VehicleCard>,
-    onParkingClick: (UserParking) -> Unit,
-    onParkVehicle: (vehicleId: String) -> Unit,
+    onIntent: (HomeIntent) -> Unit,
+    onAction: (HomeSheetAction) -> Unit,
 ) {
     val userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
@@ -202,7 +204,21 @@ private fun LazyListScope.vehiclesSection(
 
     fun cardClick(card: VehicleCard): () -> Unit = {
         val session = card.session
-        if (session != null) onParkingClick(session) else onParkVehicle(card.vehicle.id)
+        if (session != null) {
+            // Row with an active session — select it and fly the camera there.
+            onIntent(HomeIntent.SelectItem(session.id))
+            onAction(HomeSheetAction.MoveCamera(session.location.latitude, session.location.longitude))
+        } else {
+            // "Aparcar" pill — enter AddingParking pre-centred on the user's GPS and
+            // tagged with this vehicleId so ConfirmParkingUseCase persists the session
+            // for that specific car instead of the default. [MULTI-PARKING-001]
+            onIntent(
+                HomeIntent.EnterAddParkingMode(
+                    initialGps = slice.userGpsPoint,
+                    targetVehicleId = card.vehicle.id,
+                ),
+            )
+        }
     }
 
     if (sorted.size == 1) {
@@ -226,7 +242,7 @@ private fun LazyListScope.vehiclesSection(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 items(sorted, key = { it.vehicle.id }) { card ->
-                    val onCardClick = remember(card.session?.id, card.vehicle.id, onParkingClick, onParkVehicle) {
+                    val onCardClick = remember(card.session?.id, card.vehicle.id, onIntent, onAction) {
                         cardClick(card)
                     }
                     HomeVehicleChip(
@@ -244,13 +260,11 @@ private fun LazyListScope.vehiclesSection(
 private fun LazyListScope.spotsSection(
     slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
-    onCameraMove: (Double, Double) -> Unit,
-    onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
+    onAction: (HomeSheetAction) -> Unit,
     selectedSpotId: String?,
     filteredSpots: List<Spot>,
     showFilterBar: Boolean,
     isSpotSelected: Boolean,
-    onEnterReportMode: () -> Unit,
 ) {
     if (!isSpotSelected) {
         item("spots_header") {
@@ -287,7 +301,7 @@ private fun LazyListScope.spotsSection(
             }
         filteredSpots.isEmpty() -> item("empty") {
             HomeEmptySpots(
-                onReport = onEnterReportMode,
+                onReport = { onAction(HomeSheetAction.RequestReportMode) },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
         }
@@ -298,8 +312,8 @@ private fun LazyListScope.spotsSection(
                     userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     isSelected = spot.id == selectedSpotId,
                     onSelect = {
-                        onCameraMove(spot.location.latitude, spot.location.longitude)
-                        onSpotSelect(spot.location.latitude, spot.location.longitude, spot.id)
+                        onAction(HomeSheetAction.MoveCamera(spot.location.latitude, spot.location.longitude))
+                        onIntent(HomeIntent.SelectItem(spot.id))
                     },
                 )
                 if (index < filteredSpots.lastIndex) {
@@ -316,7 +330,7 @@ private fun LazyListScope.spotsSection(
     if (slice.hasCorePermissions && !emptyShowsReportCta) {
         item("report_spot_cta") {
             HomeReportSpotCard(
-                onReport = onEnterReportMode,
+                onReport = { onAction(HomeSheetAction.RequestReportMode) },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
             )
         }

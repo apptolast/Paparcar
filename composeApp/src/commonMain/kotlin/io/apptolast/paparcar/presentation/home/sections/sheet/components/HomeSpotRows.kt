@@ -192,20 +192,20 @@ private fun SpotRowContent(
                     maxLines = 1,
                 )
                 Text(
-                    META_SEPARATOR,
+                    SheetTokens.META_SEPARATOR,
                     style = type.metadata,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
                 )
                 if (distanceM != null) {
                     Text(
                         distanceString(distanceM),
                         style = type.metadata.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_VALUE_ALPHA),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_VALUE_ALPHA),
                     )
                     Text(
-                        META_SEPARATOR,
+                        SheetTokens.META_SEPARATOR,
                         style = type.metadata,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = META_SEPARATOR_ALPHA),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = SheetTokens.META_SEPARATOR_ALPHA),
                     )
                     Text(
                         driveTimeString(distanceM),
@@ -400,9 +400,6 @@ private const val POI_ICON_DP = 15
 private const val POI_ICON_GAP_DP = 5
 private const val SELECTED_ROW_BG_ALPHA = 0.30f
 // Separator between data tokens on the meta line ("FIABLE · 80 m · 1 min").
-private const val META_SEPARATOR = "  ·  "
-private const val META_SEPARATOR_ALPHA = 0.3f
-private const val META_VALUE_ALPHA = 0.6f
 private const val META_MUTED_ALPHA = 0.55f
 private const val PRIMARY_CARD_SUBTITLE_ALPHA = 0.55f
 private const val PRIMARY_CARD_ICON_BOX_DP = 44

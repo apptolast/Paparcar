@@ -427,11 +427,7 @@ private fun PreviewSheet(state: HomeState) {
         homeSheetItems(
             slice = state.toBrowseListSlice(),
             onIntent = {},
-            onCameraMove = { _, _ -> },
-            onParkingClick = {},
-            onParkVehicle = {},
-            onSpotSelect = { _, _, _ -> },
-            onEnterReportMode = {},
+            onAction = {},
         )
     }
 }

@@ -3,31 +3,28 @@ package io.apptolast.paparcar.presentation.home.sections.sheet
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
-import io.apptolast.paparcar.ui.components.PapDivider
-import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.HomeBrowseListSlice
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeMode
@@ -35,64 +32,61 @@ import io.apptolast.paparcar.presentation.home.HomePeekSlice
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
+import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.ui.theme.PapShapes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
+
+/**
+ * The drag/layout plumbing of the sheet, bundled so [HomeBottomSheet]'s signature
+ * stays at the action/data level. Owned by HomeContent (the [sheetOffsetPx]
+ * Animatable is shared with the map, which computes its height from the same
+ * source of truth). [HOME-ATOMIZE-001 F3]
+ */
+@Stable
+internal data class HomeSheetFrame(
+    val containerHeightPx: Float,
+    val sheetOffsetPx: Animatable<Float, AnimationVector1D>,
+    val dragSnap: HomeSheetSnap,
+    val lazyListState: LazyListState,
+    val nestedScroll: NestedScrollConnection,
+    val bottomContentPadding: Dp,
+    val coroutineScope: CoroutineScope,
+    val onPeekHeightChanged: (Float) -> Unit,
+)
 
 /**
  * The bottom Surface that hosts the peek handle (drag affordance) and the
- * scrollable list of sheet items. Owns the drag gesture, the fling snap
- * logic, and the LazyColumn — but does NOT own the [sheetOffsetPx]
- * Animatable itself. That lives in the parent so the map can compute its
- * height from the same source of truth.
+ * scrollable list of sheet items. Owns the drag gesture and the LazyColumn.
  *
- * @param dragSnap controls fling/soft-drag snapping; pass [HomeSheetSnap] from the parent.
+ * Two outbound channels [HOME-ATOMIZE-001 F3]:
+ *  - [onIntent] — plain ViewModel intents, emitted directly by the peek variants
+ *    and list rows.
+ *  - [onAction] — [HomeSheetAction]s that need UI orchestration (sheet motion,
+ *    dialogs, camera, navigation), translated in one place by HomeSheetSection.
  */
 @Composable
 internal fun HomeBottomSheet(
     peek: HomePeekSlice,
     browse: HomeBrowseListSlice,
+    frame: HomeSheetFrame,
     /** Browse header subject swap: true while the sheet sits beyond peek (expanded browse
      *  shows the zone counter header instead of the parked car). [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean,
-    containerHeightPx: Float,
-    sheetOffsetPx: Animatable<Float, AnimationVector1D>,
-    dragSnap: HomeSheetSnap,
-    lazyListState: LazyListState,
-    sheetNestedScroll: NestedScrollConnection,
-    bottomContentPadding: Dp,
-    coroutineScope: CoroutineScope,
-    onPeekHeightChanged: (Float) -> Unit,
-    onIntent: (HomeIntent) -> Unit,
-    /** Tap on a per-vehicle row that already has an active session — selects that session. */
-    onParkingClick: (UserParking) -> Unit,
-    /** Tap on the "Aparcar" pill of a per-vehicle row with no active session — enters AddingParking for that vehicle. */
-    onParkVehicle: (vehicleId: String) -> Unit,
-    /** Tap on the "Mover ubicación" button on the active-parking peek — opens the AddingParking edit flow. */
-    onMoveParkingLocation: () -> Unit,
     spotListExpanded: Boolean,
-    onToggleSpotList: () -> Unit,
-    onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
-    onCameraMove: (lat: Double, lon: Double) -> Unit,
-    onEnterReportMode: () -> Unit,
-    onRelease: () -> Unit,
-    onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
-    onToggle: () -> Unit,
-    /** Detection surface (DET-READY-001h) — add a vehicle. */
-    onDetectionAddVehicle: () -> Unit = {},
-    /** Detection surface — open the permissions flow (CORE or PRODUCER). */
-    onDetectionOpenPermissions: () -> Unit = {},
-    /** Detection surface — cold-start "mark my spot" (enters AddingParking for the active vehicle). */
-    onDetectionMarkSpot: () -> Unit = {},
+    onIntent: (HomeIntent) -> Unit,
+    onAction: (HomeSheetAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val sheetOffsetPx = frame.sheetOffsetPx
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .layout { measurable, constraints ->
                 // Height is read in the layout phase so sheet drag never causes
                 // recomposition of HomeContent — only a re-layout of this node.
-                val heightPx = (containerHeightPx - sheetOffsetPx.value)
+                val heightPx = (frame.containerHeightPx - sheetOffsetPx.value)
                     .coerceAtLeast(0f).roundToInt()
                 val placeable = measurable.measure(
                     constraints.copy(minHeight = 0, maxHeight = heightPx)
@@ -138,7 +132,7 @@ internal fun HomeBottomSheet(
                         // Report the exact natural height → peekOffset = container - peekHeight, so the
                         // header's bottom edge (and its divider) sits flush on the bottom-nav divider.
                         // [BUG-PEEK-DIVIDER-ALIGN]
-                        if (placeable.height > 0) onPeekHeightChanged(placeable.height.toFloat())
+                        if (placeable.height > 0) frame.onPeekHeightChanged(placeable.height.toFloat())
                         val outHeight = placeable.height.coerceAtMost(constraints.maxHeight)
                         layout(placeable.width, outHeight) { placeable.place(0, 0) }
                     }
@@ -146,23 +140,23 @@ internal fun HomeBottomSheet(
                         interactionSource = toggleInteractionSource,
                         indication = null,
                         enabled = !isBlocked,
-                        onClick = onToggle,
+                        onClick = { onAction(HomeSheetAction.ToggleSheet) },
                     )
                     .draggable(
                         orientation = Orientation.Vertical,
                         enabled = !isBlocked,
                         state = rememberDraggableState { delta ->
-                            coroutineScope.launch {
+                            frame.coroutineScope.launch {
                                 sheetOffsetPx.snapTo(
                                     (sheetOffsetPx.value + delta)
-                                        .coerceIn(dragSnap.fullSnapOffsetPx, dragSnap.minimizedOffsetPx),
+                                        .coerceIn(frame.dragSnap.fullSnapOffsetPx, frame.dragSnap.minimizedOffsetPx),
                                 )
                             }
                         },
                         onDragStopped = { velocity ->
-                            coroutineScope.launch {
-                                val target = dragSnap.snapTarget(sheetOffsetPx.value, velocity)
-                                sheetOffsetPx.animateTo(target, dragSnap.snapSpec)
+                            frame.coroutineScope.launch {
+                                val target = frame.dragSnap.snapTarget(sheetOffsetPx.value, velocity)
+                                sheetOffsetPx.animateTo(target, frame.dragSnap.snapSpec)
                             }
                         },
                     ),
@@ -170,56 +164,9 @@ internal fun HomeBottomSheet(
                 HomePeekHandle(
                     slice = peek,
                     browseShowsZoneHeader = browseShowsZoneHeader,
-                    onToggle = onToggle,
                     spotListExpanded = spotListExpanded,
-                    onToggleSpotList = onToggleSpotList,
-                    onDismiss = { onIntent(HomeIntent.SelectItem(null)) },
-                    onRelease = onRelease,
-                    // "Still there?" reinforces reliability and keeps the sheet open —
-                    // the user is likely still heading there. [UI-SHEET-001]
-                    onAcceptSpot = {
-                        peek.selectedSpot?.id?.let { id ->
-                            onIntent(HomeIntent.SendSpotSignal(id, accepted = true))
-                        }
-                    },
-                    onRejectSpot = {
-                        peek.selectedSpot?.id?.let { id ->
-                            onIntent(HomeIntent.SendSpotSignal(id, accepted = false))
-                        }
-                        onIntent(HomeIntent.SelectItem(null))
-                    },
-                    // "Delete record" inside the edit-parking sheet — the release dialog's
-                    // delete-only path, aimed at the session BEING EDITED (falls back to the
-                    // selected session for safety). Exits edit mode after. [UI-SHEET-004]
-                    onDeleteParking = {
-                        val target = peek.editingParkingId
-                            ?.let { id -> peek.activeSessions.firstOrNull { it.id == id } }
-                            ?: peek.selectedSession ?: peek.userParking
-                        target?.let { p ->
-                            onIntent(
-                                HomeIntent.ReleaseParking(
-                                    lat = p.location.latitude,
-                                    lon = p.location.longitude,
-                                    publishSpot = false,
-                                ),
-                            )
-                        }
-                        onIntent(HomeIntent.ExitAddParkingMode)
-                    },
-                    onNavigateExternal = onNavigateExternal,
-                    onCancelReport = { onIntent(HomeIntent.ExitReportMode) },
-                    onConfirmReport = { onIntent(HomeIntent.ConfirmReportSpot) },
-                    onReportSizeSelected = { onIntent(HomeIntent.SetReportingSize(it)) },
-                    onCancelAddZone = { onIntent(HomeIntent.ExitAddZoneMode) },
-                    onConfirmAddZone = { onIntent(HomeIntent.ConfirmAddZone) },
-                    onUpdateZoneName = { onIntent(HomeIntent.UpdateAddingZoneName(it)) },
-                    onUpdateZoneIcon = { onIntent(HomeIntent.UpdateAddingZoneIcon(it)) },
-                    onZoneRadiusChanged = { onIntent(HomeIntent.SetZoneRadius(it)) },
-                    onZoneIsPrivateToggled = { onIntent(HomeIntent.SetZoneIsPrivate(it)) },
-                    onCancelAddParking = { onIntent(HomeIntent.ExitAddParkingMode) },
-                    onConfirmAddParking = { onIntent(HomeIntent.ConfirmAddParking) },
-                    onMoveParkingLocation = onMoveParkingLocation,
-                    onActivateLocation = onDetectionOpenPermissions,
+                    onIntent = onIntent,
+                    onAction = onAction,
                 )
             }
 
@@ -237,29 +184,22 @@ internal fun HomeBottomSheet(
             if (showList) {
                 PapDivider()
                 LazyColumn(
-                    state = lazyListState,
+                    state = frame.lazyListState,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .nestedScroll(sheetNestedScroll),
+                        .nestedScroll(frame.nestedScroll),
                     contentPadding = PaddingValues(
                         top = 4.dp,
                         // Reserve the AppBottomNavigation height so the last
                         // list row stays visible above the global nav bar.
-                        bottom = 16.dp + bottomContentPadding,
+                        bottom = 16.dp + frame.bottomContentPadding,
                     ),
                 ) {
                     homeSheetItems(
                         slice = browse,
                         onIntent = onIntent,
-                        onCameraMove = onCameraMove,
-                        onParkingClick = onParkingClick,
-                        onParkVehicle = onParkVehicle,
-                        onSpotSelect = onSpotSelect,
-                        onEnterReportMode = onEnterReportMode,
-                        onDetectionAddVehicle = onDetectionAddVehicle,
-                        onDetectionOpenPermissions = onDetectionOpenPermissions,
-                        onDetectionMarkSpot = onDetectionMarkSpot,
+                        onAction = onAction,
                     )
                 }
             }
