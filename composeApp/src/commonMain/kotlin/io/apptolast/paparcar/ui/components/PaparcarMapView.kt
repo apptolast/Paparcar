@@ -56,6 +56,7 @@ import com.swmansion.kmpmaps.core.MapProperties
 import com.swmansion.kmpmaps.core.MapTheme
 import com.swmansion.kmpmaps.core.MapType
 import com.swmansion.kmpmaps.core.MapUISettings
+import com.swmansion.kmpmaps.core.LiveMarker
 import com.swmansion.kmpmaps.core.Marker
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.model.CarbodyType
@@ -1160,52 +1161,61 @@ fun PaparcarMapView(
     val userDotCoords = rememberGlidedLatLon(userLocation)
     val showUserDot = userDotCoords != null &&
         (drivingPuck == null || drivingPuck.phase == DetectionPhase.Candidate) && mapLoaded
-    // While a finger is dragging the map, stop feeding the puck's per-frame interpolated pose: otherwise
-    // [allMarkers] is a NEW list every frame, so the kmpmaps marker layer recomposes under the gesture
-    // and the pan stutters ("abrupt, unexpected" movement). Frozen, allMarkers keeps the SAME instance so
-    // the marker layer is untouched and the native pan is smooth; the puck resumes gliding on release.
-    // [DRIVE-PUCK-NATIVE-001]
-    val renderPuckPose = puckPose
-    // The user-dot coordinates that actually key the marker list: null when the dot isn't shown (so its
-    // glide never churns allMarkers while hidden, e.g. while driving), and the raw fix (not the glided
-    // value) while dragging so a pan isn't stuttered by the per-frame glide. [DRIVE-PUCK-NATIVE-001]
+    // User-dot coordinates keyed into the static list: null when hidden (so its glide never churns the
+    // list while driving), raw fix while dragging so a pan isn't stuttered by the per-frame glide.
     val renderUserDot = when {
         !showUserDot -> null
         userTouchingMap -> userLocation?.let { Coordinates(it.latitude, it.longitude) }
         else -> userDotCoords
     }
-    val liveMarkers = remember(markers, drivingPuck, renderPuckPose, renderUserDot) {
-        var result = markers
-        drivingPuck?.let { puck ->
-            val heading = renderPuckPose?.headingDegrees ?: puck.bearingDegrees ?: 0f
-            result = result + Marker(
-                coordinates = Coordinates(
-                    renderPuckPose?.latitude ?: puck.latitude,
-                    renderPuckPose?.longitude ?: puck.longitude,
-                ),
-                title = null,
-                contentId = locationActiveContentId(puck.carbodyType, puck.color),
-                androidMarkerOptions = PUCK_MARKER_OPTIONS.copy(rotation = heading),
-                id = MARKER_PUCK_ID,
-            )
-        }
+    // STATIC markers only (spots, zones, vehicles, user dot). The moving driving puck is NOT here — it is
+    // a LiveMarker (below) whose position updates natively without recomposing the map, so the puck
+    // moving no longer rebuilds this list or stutters pans. [DRIVE-PUCK-NATIVE-001]
+    val staticMarkers = remember(markers, renderUserDot) {
         if (renderUserDot != null) {
-            result = result + Marker(
+            markers + Marker(
                 coordinates = renderUserDot,
                 title = null,
                 contentId = MARKER_USER_DOT,
                 androidMarkerOptions = USER_DOT_MARKER_OPTIONS,
                 id = MARKER_USER_DOT_ID,
             )
+        } else {
+            markers
         }
-        result
     }
-    // Hold the marker list CONSTANT (same instance) while a finger is dragging so the map's marker layer
-    // isn't rebuilt under the gesture — the static-list smoothness the old overlay had. The puck holds
-    // its spot during the drag and the fork resumes gliding it on release. [DRIVE-PUCK-NATIVE-001]
+    // Hold the static list CONSTANT while a finger drags so the marker layer isn't rebuilt under the
+    // gesture — the static-list smoothness the old overlay had. [DRIVE-PUCK-NATIVE-001]
     val heldMarkers = remember { arrayOfNulls<List<Marker>>(1) }
-    if (!userTouchingMap) heldMarkers[0] = liveMarkers
-    val allMarkers = if (userTouchingMap) (heldMarkers[0] ?: liveMarkers) else liveMarkers
+    if (!userTouchingMap) heldMarkers[0] = staticMarkers
+    val allMarkers = if (userTouchingMap) (heldMarkers[0] ?: staticMarkers) else staticMarkers
+
+    // The moving driving puck as a LiveMarker: its position + rotation are observable State the fork
+    // reads in its OWN scope (snapshotFlow) and glides natively — updating them does NOT recompose the
+    // map, so the puck moving at any fix rate never stutters the pan. Updated in a SideEffect so the
+    // write is off the composition read path. The LiveMarker list is stable across position changes
+    // (keyed only on the puck's visual identity). [DRIVE-PUCK-NATIVE-001]
+    val puckPositionState = remember { mutableStateOf(Coordinates(0.0, 0.0)) }
+    val puckRotationState = remember { mutableStateOf(0f) }
+    SideEffect {
+        drivingPuck?.let { puck ->
+            puckPositionState.value = Coordinates(puck.latitude, puck.longitude)
+            puckRotationState.value = puck.bearingDegrees ?: puckRotationState.value
+        }
+    }
+    val puckLiveMarkers = remember(drivingPuck?.carbodyType, drivingPuck?.color) {
+        drivingPuck?.let { puck ->
+            listOf(
+                LiveMarker(
+                    id = MARKER_PUCK_ID,
+                    contentId = locationActiveContentId(puck.carbodyType, puck.color),
+                    position = puckPositionState,
+                    rotation = puckRotationState,
+                    androidMarkerOptions = PUCK_MARKER_OPTIONS,
+                ),
+            )
+        } ?: emptyList()
+    }
 
     Box(
         modifier = modifier.pointerInput(Unit) {
@@ -1254,6 +1264,7 @@ fun PaparcarMapView(
                 ),
             ),
             markers = allMarkers,
+            liveMarkers = puckLiveMarkers,
             circles = zoneCircles,
             polylines = tripPolylines,
             customMarkerContent = customMarkerContent,
