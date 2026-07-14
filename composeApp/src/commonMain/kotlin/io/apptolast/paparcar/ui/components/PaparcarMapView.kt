@@ -1199,14 +1199,28 @@ fun PaparcarMapView(
     val userDotCoords = rememberGlidedLatLon(userLocation)
     val showUserDot = userDotCoords != null &&
         (drivingPuck == null || drivingPuck.phase == DetectionPhase.Candidate) && mapLoaded
-    val allMarkers = remember(markers, drivingPuck, puckPose, showUserDot, userDotCoords) {
+    // While a finger is dragging the map, stop feeding the puck's per-frame interpolated pose: otherwise
+    // [allMarkers] is a NEW list every frame, so the kmpmaps marker layer recomposes under the gesture
+    // and the pan stutters ("abrupt, unexpected" movement). Frozen, allMarkers keeps the SAME instance so
+    // the marker layer is untouched and the native pan is smooth; the puck resumes gliding on release.
+    // [DRIVE-PUCK-NATIVE-001]
+    val renderPuckPose = if (userTouchingMap) null else puckPose
+    // The user-dot coordinates that actually key the marker list: null when the dot isn't shown (so its
+    // glide never churns allMarkers while hidden, e.g. while driving), and the raw fix (not the glided
+    // value) while dragging so a pan isn't stuttered by the per-frame glide. [DRIVE-PUCK-NATIVE-001]
+    val renderUserDot = when {
+        !showUserDot -> null
+        userTouchingMap -> userLocation?.let { Coordinates(it.latitude, it.longitude) }
+        else -> userDotCoords
+    }
+    val allMarkers = remember(markers, drivingPuck, renderPuckPose, renderUserDot) {
         var result = markers
         drivingPuck?.let { puck ->
-            val heading = puckPose?.headingDegrees ?: puck.bearingDegrees ?: 0f
+            val heading = renderPuckPose?.headingDegrees ?: puck.bearingDegrees ?: 0f
             result = result + Marker(
                 coordinates = Coordinates(
-                    puckPose?.latitude ?: puck.latitude,
-                    puckPose?.longitude ?: puck.longitude,
+                    renderPuckPose?.latitude ?: puck.latitude,
+                    renderPuckPose?.longitude ?: puck.longitude,
                 ),
                 title = null,
                 contentId = locationActiveContentId(puck.carbodyType, puck.color),
@@ -1214,9 +1228,9 @@ fun PaparcarMapView(
                 id = MARKER_PUCK_ID,
             )
         }
-        if (showUserDot && userDotCoords != null) {
+        if (renderUserDot != null) {
             result = result + Marker(
-                coordinates = userDotCoords,
+                coordinates = renderUserDot,
                 title = null,
                 contentId = MARKER_USER_DOT,
                 androidMarkerOptions = USER_DOT_MARKER_OPTIONS,
