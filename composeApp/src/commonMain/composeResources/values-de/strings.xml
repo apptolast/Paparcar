@@ -277,6 +277,16 @@
     <string name="permissions_tier_detection_benefit">Um deinen Platz beim Wegfahren automatisch zu teilen</string>
     <string name="permissions_tier_optional_benefit">Nur sinnvoll bei aktiver automatischer Erkennung — damit sie nie aussetzt</string>
 
+    <!-- Erkennungsstufe — das ehrliche Versprechen je nach Einrichtung [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Erkennungsstufe</string>
+    <string name="permissions_tier_automatic_name">Automatisch</string>
+    <string name="permissions_tier_assisted_plus_name">Assistiert +</string>
+    <string name="permissions_tier_assisted_name">Assistiert</string>
+    <string name="permissions_tier_automatic_promise">Dein Platz wird von selbst markiert und freigegeben.</string>
+    <string name="permissions_tier_assisted_plus_promise">Fast immer automatisch; ab und zu fragen wir nach.</string>
+    <string name="permissions_tier_assisted_promise">Wir erkennen, was dein Handy zulässt; im Zweifel fragen wir nach.</string>
+    <string name="permissions_tier_unlocks">→ %1$s</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Erzähl uns von deinem Auto</string>
     <string name="vehicle_size_explainer_subtitle">Wir brauchen nur ein wichtiges Detail, damit die App funktioniert: die Größe.</string>

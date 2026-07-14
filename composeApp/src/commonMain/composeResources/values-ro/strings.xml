@@ -277,6 +277,16 @@
     <string name="permissions_tier_detection_benefit">Pentru a publica locul tău la plecare, fără să atingi nimic</string>
     <string name="permissions_tier_optional_benefit">Utile doar cu detecția automată activă — ca să nu rateze niciodată</string>
 
+    <!-- Nivel de detectare — promisiunea onestă în funcție de configurare [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Nivel de detectare</string>
+    <string name="permissions_tier_automatic_name">Automat</string>
+    <string name="permissions_tier_assisted_plus_name">Asistat +</string>
+    <string name="permissions_tier_assisted_name">Asistat</string>
+    <string name="permissions_tier_automatic_promise">Locul tău este marcat și eliberat singur.</string>
+    <string name="permissions_tier_assisted_plus_promise">Aproape mereu automat; din când în când te întrebăm.</string>
+    <string name="permissions_tier_assisted_promise">Detectăm ce permite telefonul; la nevoie te întrebăm.</string>
+    <string name="permissions_tier_unlocks">→ %1$s</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Spune-ne despre mașina ta</string>
     <string name="vehicle_size_explainer_subtitle">Avem nevoie doar de o informație esențială ca aplicația să funcționeze: dimensiunea.</string>

@@ -277,6 +277,16 @@
     <string name="permissions_tier_detection_benefit">Per pubblicare il tuo posto quando esci, senza fare nulla</string>
     <string name="permissions_tier_optional_benefit">Utili solo con il rilevamento automatico attivo — perché non sbagli mai</string>
 
+    <!-- Livello di rilevamento — la promessa onesta in base alla configurazione [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Livello di rilevamento</string>
+    <string name="permissions_tier_automatic_name">Automatico</string>
+    <string name="permissions_tier_assisted_plus_name">Assistito +</string>
+    <string name="permissions_tier_assisted_name">Assistito</string>
+    <string name="permissions_tier_automatic_promise">Il tuo posto viene segnato e liberato da solo.</string>
+    <string name="permissions_tier_assisted_plus_promise">Quasi sempre in automatico; ogni tanto te lo chiediamo.</string>
+    <string name="permissions_tier_assisted_promise">Rileviamo ciò che il telefono permette; nel dubbio, te lo chiediamo.</string>
+    <string name="permissions_tier_unlocks">→ %1$s</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Parlaci della tua auto</string>
     <string name="vehicle_size_explainer_subtitle">Ci serve solo un dato essenziale per far funzionare l\'app: le dimensioni.</string>

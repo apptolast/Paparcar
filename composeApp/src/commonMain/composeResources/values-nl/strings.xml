@@ -277,6 +277,16 @@
     <string name="permissions_tier_detection_benefit">Om je plek bij vertrek automatisch te delen</string>
     <string name="permissions_tier_optional_benefit">Alleen nuttig met automatische detectie aan — zodat het nooit mist</string>
 
+    <!-- Detectieniveau — de eerlijke belofte op basis van je instellingen [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Detectieniveau</string>
+    <string name="permissions_tier_automatic_name">Automatisch</string>
+    <string name="permissions_tier_assisted_plus_name">Geassisteerd +</string>
+    <string name="permissions_tier_assisted_name">Geassisteerd</string>
+    <string name="permissions_tier_automatic_promise">Je plek wordt vanzelf gemarkeerd en vrijgegeven.</string>
+    <string name="permissions_tier_assisted_plus_promise">Bijna altijd vanzelf; af en toe vragen we het je.</string>
+    <string name="permissions_tier_assisted_promise">We detecteren wat je telefoon toelaat; bij twijfel vragen we het je.</string>
+    <string name="permissions_tier_unlocks">→ %1$s</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Vertel ons over je auto</string>
     <string name="vehicle_size_explainer_subtitle">We hebben maar één essentieel detail nodig om de app te laten werken: de grootte.</string>

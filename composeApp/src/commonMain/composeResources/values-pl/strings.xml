@@ -281,6 +281,16 @@
     <string name="permissions_tier_detection_benefit">Aby udostępnić miejsce po odjeździe — bez dotykania</string>
     <string name="permissions_tier_optional_benefit">Przydatne tylko przy włączonym automatycznym wykrywaniu — by nigdy nie zawiodło</string>
 
+    <!-- Poziom wykrywania — uczciwa obietnica zależna od konfiguracji [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Poziom wykrywania</string>
+    <string name="permissions_tier_automatic_name">Automatyczny</string>
+    <string name="permissions_tier_assisted_plus_name">Wspomagany +</string>
+    <string name="permissions_tier_assisted_name">Wspomagany</string>
+    <string name="permissions_tier_automatic_promise">Twoje miejsce jest automatycznie oznaczane i zwalniane.</string>
+    <string name="permissions_tier_assisted_plus_promise">Prawie zawsze automatycznie; od czasu do czasu zapytamy.</string>
+    <string name="permissions_tier_assisted_promise">Wykrywamy to, na co pozwala telefon; w razie wątpliwości pytamy.</string>
+    <string name="permissions_tier_unlocks">→ %1$s</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Powiedz nam o swoim aucie</string>
     <string name="vehicle_size_explainer_subtitle">Potrzebujemy tylko jednej ważnej informacji, żeby aplikacja działała: rozmiaru.</string>

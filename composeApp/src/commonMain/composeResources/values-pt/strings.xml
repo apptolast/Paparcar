@@ -277,6 +277,16 @@
     <string name="permissions_tier_detection_benefit">Para publicar o teu lugar ao sair, sem tocar em nada</string>
     <string name="permissions_tier_optional_benefit">Só úteis com a deteção automática ativa — para que nunca falhe</string>
 
+    <!-- Nível de deteção — a promessa honesta consoante a configuração [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Nível de deteção</string>
+    <string name="permissions_tier_automatic_name">Automático</string>
+    <string name="permissions_tier_assisted_plus_name">Assistido +</string>
+    <string name="permissions_tier_assisted_name">Assistido</string>
+    <string name="permissions_tier_automatic_promise">O teu lugar é marcado e libertado sozinho.</string>
+    <string name="permissions_tier_assisted_plus_promise">Quase sempre sozinho; de vez em quando perguntamos-te.</string>
+    <string name="permissions_tier_assisted_promise">Detetamos o que o telemóvel permite; na dúvida, perguntamos-te.</string>
+    <string name="permissions_tier_unlocks">→ %1$s</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Conta-nos sobre o teu carro</string>
     <string name="vehicle_size_explainer_subtitle">Só precisamos de uma informação essencial para a app funcionar: o tamanho.</string>

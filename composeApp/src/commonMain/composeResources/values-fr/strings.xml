@@ -277,6 +277,16 @@
     <string name="permissions_tier_detection_benefit">Pour publier votre place en partant, sans rien faire</string>
     <string name="permissions_tier_optional_benefit">Utiles seulement avec la détection automatique activée — pour qu\'elle ne rate jamais</string>
 
+    <!-- Niveau de détection — la promesse honnête selon la configuration [DET-TIERS-001] -->
+    <string name="permissions_tier_status_eyebrow">Niveau de détection</string>
+    <string name="permissions_tier_automatic_name">Automatique</string>
+    <string name="permissions_tier_assisted_plus_name">Assisté +</string>
+    <string name="permissions_tier_assisted_name">Assisté</string>
+    <string name="permissions_tier_automatic_promise">Votre place est marquée et libérée toute seule.</string>
+    <string name="permissions_tier_assisted_plus_promise">Presque toujours automatique ; on vous demande de temps en temps.</string>
+    <string name="permissions_tier_assisted_promise">On détecte ce que votre téléphone permet ; en cas de doute, on vous demande.</string>
+    <string name="permissions_tier_unlocks">→ %1$s</string>
+
     <!-- Vehicle Size Explainer screen -->
     <string name="vehicle_size_explainer_title">Parlez-nous de votre voiture</string>
     <string name="vehicle_size_explainer_subtitle">Nous avons besoin d\'une seule info essentielle pour que l\'app fonctionne : la taille.</string>
