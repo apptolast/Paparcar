@@ -38,7 +38,6 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeShe
 import io.apptolast.paparcar.ui.theme.PapShapes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
 
 /**
  * The bottom Surface that hosts the peek handle (drag affordance) and the
@@ -268,67 +267,8 @@ internal fun HomeBottomSheet(
     }
 }
 
-/**
- * Snap-point bundle for the sheet drag. Centralises the offsets and the
- * fling/soft-drag selection so [HomeBottomSheet] can be called with a single
- * value instead of loose floats.
- *
- * Offset semantics: larger value = sheet top farther from screen top = sheet
- * smaller. So `minimizedOffsetPx >= peekOffsetPx >= halfOffsetPx >= expandedOffsetPx >= fullSnapOffsetPx`.
- *
- * [minimizedOffsetPx] is the extra "drag-down to header-only" snap point used
- * in non-Browse states. In Browse it equals [peekOffsetPx] so the snap logic
- * collapses to the original three-point behaviour. [SHEET-DRAG-001]
- *
- * [expandedOffsetPx] is the primary "desplegado" auto-snap — capped below full
- * so a slice of map + the car marker stay visible. `full` remains a valid snap
- * so a hard manual drag to the very top still rests at full-screen. [HOME-SNAP-001]
- */
-internal data class HomeSheetSnap(
-    val peekOffsetPx: Float,
-    val halfOffsetPx: Float,
-    val expandedOffsetPx: Float,
-    val fullSnapOffsetPx: Float,
-    val minimizedOffsetPx: Float,
-    val snapSpec: androidx.compose.animation.core.AnimationSpec<Float>,
-) {
-    /** Returns the snap target the sheet should animate to after the user releases the drag. */
-    fun snapTarget(current: Float, velocityYPxPerSec: Float): Float = when {
-        velocityYPxPerSec < -FLING_SNAP_VELOCITY -> {
-            // Fling up: minimized → peek, peek → half, half → expanded, expanded → full.
-            when {
-                current > peekOffsetPx -> peekOffsetPx
-                current > halfOffsetPx -> halfOffsetPx
-                current > expandedOffsetPx -> expandedOffsetPx
-                else -> fullSnapOffsetPx
-            }
-        }
-        velocityYPxPerSec > FLING_SNAP_VELOCITY -> {
-            // Fling down: full → expanded, expanded → half, half → peek, peek → minimized.
-            when {
-                current < expandedOffsetPx -> expandedOffsetPx
-                current < halfOffsetPx -> halfOffsetPx
-                current < peekOffsetPx -> peekOffsetPx
-                else -> minimizedOffsetPx
-            }
-        }
-        else -> {
-            // Soft drag: snap to the nearest of minimized / peek / half / expanded / full.
-            val (offset, _) = listOf(
-                fullSnapOffsetPx to (current - fullSnapOffsetPx).absoluteValue,
-                expandedOffsetPx to (current - expandedOffsetPx).absoluteValue,
-                halfOffsetPx to (current - halfOffsetPx).absoluteValue,
-                peekOffsetPx to (current - peekOffsetPx).absoluteValue,
-                minimizedOffsetPx to (current - minimizedOffsetPx).absoluteValue,
-            ).minBy { it.second }
-            offset
-        }
-    }.coerceIn(fullSnapOffsetPx, minimizedOffsetPx)
-}
-
-// Velocity (px/s) required to snap the sheet on fling; below this the sheet
-// stays in place at its closest snap point.
-private const val FLING_SNAP_VELOCITY = 1200f
+// HomeSheetSnap (the drag snap-point bundle) lives in HomeSheetPositioning.kt,
+// next to the geometry it is built from. [HOME-ATOMIZE-001 F2]
 
 private const val SHEET_SHADOW_ELEVATION_DP = 12
 // Matches [AppBottomNavigation]'s top divider alpha so the two hairlines read

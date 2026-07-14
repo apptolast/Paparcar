@@ -2,8 +2,6 @@ package io.apptolast.paparcar.presentation.home
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,6 +23,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -49,22 +48,29 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import io.apptolast.paparcar.domain.error.PaparcarError
+import io.apptolast.paparcar.domain.model.DrivingPuck
+import io.apptolast.paparcar.domain.model.GpsPoint
+import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeBottomSheet
 import io.apptolast.paparcar.presentation.home.sections.sheet.HomeSheetSnap
+import io.apptolast.paparcar.presentation.home.sections.sheet.SheetTransitionEffects
+import io.apptolast.paparcar.presentation.home.sections.sheet.rememberSheetMotion
+import io.apptolast.paparcar.presentation.home.sections.sheet.rememberSheetPositioning
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeReleaseDialog
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetSpotItemIndex
-import io.apptolast.paparcar.presentation.home.sections.sheet.components.papSheetHeaderBandHeight
 import io.apptolast.paparcar.presentation.util.rememberOpenExternalNavigation
 import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.components.CenterPinKind
 import io.apptolast.paparcar.ui.components.ConfirmationBottomSheet
 import io.apptolast.paparcar.ui.components.LocalMapInteracting
 import io.apptolast.paparcar.ui.theme.PapMotion
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -101,21 +107,8 @@ private const val MAP_INTERACTION_IDLE_DELAY_MS = 320L
 // animating to a tapped spot / "my location" / bounds fit.
 private const val PROGRAMMATIC_MOVE_GUARD_MS = 1100L
 
-private val SnapSpec = tween<Float>(durationMillis = 300, easing = FastOutSlowInEasing)
-
-// Sheet top position when fully expanded ("sheet top at screen top").
-private const val FULL_SNAP_OFFSET_PX = 0f
-
-// Primary "desplegado" auto-snap: sheet top sits this fraction of the container
-// down from the top, so the sheet occupies ~58% and a slice of map + the car
-// marker stay visible above it. Full-screen is reachable only by manual drag.
-// [HOME-SNAP-001]
-private const val EXPANDED_MAP_VISIBLE_FRACTION = 0.42f
-
-// Fraction of peek offset at/above which the global bottom nav starts hiding.
-// Remaps raw sheet progress so the nav disappears well before the sheet is
-// fully expanded — responsive feel instead of a linear fade across the drag.
-private const val NAV_HIDE_START = 0.65f
+// Sheet snap geometry, transition effects and the snap spec live in
+// sections/sheet/HomeSheetPositioning.kt. [HOME-ATOMIZE-001 F2]
 
 // Map's bottom edge extends past the sheet top so the rounded top corners
 // sit on opaque map tiles instead of exposing the dark background behind
@@ -124,15 +117,6 @@ private val MAP_BOTTOM_BLEED = 20.dp
 
 // FAB inset above the sheet top edge.
 private val FAB_ABOVE_SHEET_GAP = 12.dp
-
-// When peekOffsetPx changes by less than this amount and the sheet is at rest,
-// snap directly instead of animating — avoids the visible 300ms glide that
-// occurs when the peek handle is first measured and peekHeightPx is corrected
-// from the SheetPeekHeightInitial estimate to the real measured height.
-private val PEEK_LAYOUT_SNAP_TOLERANCE = 64.dp
-
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Root
@@ -252,7 +236,7 @@ private fun HomeContent(
     state: HomeState,
     tripState: State<TripUpdate>,
     onIntent: (HomeIntent) -> Unit,
-    effects: kotlinx.coroutines.flow.SharedFlow<HomeEffect>,
+    effects: SharedFlow<HomeEffect>,
     snackbarHostState: SnackbarHostState,
     navProgressState: MutableFloatState,
     bottomPadding: Dp,
@@ -262,11 +246,7 @@ private fun HomeContent(
     val uiController = rememberHomeUiController()
     // Per-field trip States derived from [tripState]. Held as State and read only in isolated scopes
     // (map, snapshotFlow effects, one-shot lambdas), so a fix never recomposes this content. [DRIVE-PUCK-NATIVE-001]
-    val drivingPuckState = remember(tripState) { derivedStateOf { tripState.value.puck } }
-    val tripTrailState = remember(tripState) { derivedStateOf { tripState.value.trail } }
-    val matchedTrailState = remember(tripState) { derivedStateOf { tripState.value.matchedTrail } }
-    val departurePointState = remember(tripState) { derivedStateOf { tripState.value.departurePoint } }
-    val isDrivingState = remember(tripState) { derivedStateOf { tripState.value.puck != null } }
+    val trip = remember(tripState) { TripRenderStates(tripState) }
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     // Platform-aware launcher for external navigation (Google Maps on Android,
@@ -291,37 +271,8 @@ private fun HomeContent(
     }
     val stableBottomPadding = if (bottomPadding > 0.dp) bottomPadding else lastKnownNavHeight
 
-    // ── Glass interaction tracking ───────────────────────────────────────────
-    // isMapInteracting is the only snapshot state that feeds the glass effect,
-    // and it only flips twice per gesture (true on first real drag frame,
-    // false once MAP_INTERACTION_IDLE_DELAY_MS elapses without new frames).
-    // The idle Job lives in a non-snapshot holder so rapid onCameraMove ticks
-    // never invalidate a composition scope.
-    var isMapInteracting by remember { mutableStateOf(false) }
-    val idleJobHolder = remember { arrayOfNulls<Job>(1) }
-
-    // Clear the programmatic-move flag once the camera animation has settled.
-    // isProgrammaticMove is flipped synchronously by uiController.moveCamera*
-    // before cameraTarget mutates, so this effect runs after the flag is
-    // already true — it only needs to clear it when the animation is done.
-    LaunchedEffect(uiController.cameraTarget?.token) {
-        if (!uiController.isProgrammaticMove) return@LaunchedEffect
-        delay(PROGRAMMATIC_MOVE_GUARD_MS.milliseconds)
-        uiController.clearProgrammaticMove()
-    }
-
-    val onCameraFrame: () -> Unit = remember(coroutineScope, uiController) {
-        {
-            if (!uiController.isProgrammaticMove) {
-                if (!isMapInteracting) isMapInteracting = true
-                idleJobHolder[0]?.cancel()
-                idleJobHolder[0] = coroutineScope.launch {
-                    delay(MAP_INTERACTION_IDLE_DELAY_MS.milliseconds)
-                    isMapInteracting = false
-                }
-            }
-        }
-    }
+    // Glass-on-drag tracking + programmatic-move guard — see [MapInteractionTracker].
+    val mapInteraction = rememberMapInteractionTracker(uiController)
 
     // Per-section slices — pure projections built ONCE per state emission. Each section
     // composable receives only its slice, so unrelated state changes stop recomposing it.
@@ -355,40 +306,14 @@ private fun HomeContent(
         }
     }
 
-    LaunchedEffect(state.userGpsPoint) {
-        val gps = state.userGpsPoint ?: return@LaunchedEffect
-        // Stateful initial focus: frame the parked car (with the user, if close), else centre on the
-        // user so nearby free spots reveal around them. One-shot, inside the controller. [FOCUS-001]
-        uiController.centerInitialFocus(
-            parking = state.userParking?.let { it.location.latitude to it.location.longitude },
-            selectedSpot = state.selectedSpot?.let { it.location.latitude to it.location.longitude },
-            user = gps.latitude to gps.longitude,
-        )
-    }
-
-    // Re-frame the car once if its session loads just after the first GPS fix (common race), unless
-    // the user already panned by hand — the controller enforces those guards. [FOCUS-002]
-    LaunchedEffect(state.userParking?.id) {
-        val parking = state.userParking ?: return@LaunchedEffect
-        uiController.refocusOnParkingArrival(
-            parking = parking.location.latitude to parking.location.longitude,
-            user = state.userGpsPoint?.let { it.latitude to it.longitude },
-        )
-    }
-
-    // Driver-follow: engage when a detected trip starts (the driving puck appears) and disengage when
-    // it ends; while engaged, the camera tracks each puck update without changing the user's zoom.
-    // A manual pan pauses it (handled in the controller), and the map shows a resume FAB. [FOLLOW-001]
-    // Observe the puck via snapshotFlow (in a coroutine) rather than reading it in the composition, so
-    // driver-follow tracking doesn't recompose this screen per fix. [DRIVE-PUCK-NATIVE-001] [FOLLOW-001]
-    LaunchedEffect(uiController) {
-        snapshotFlow { drivingPuckState.value != null }.collect { uiController.setDriverFollowActive(it) }
-    }
-    LaunchedEffect(uiController) {
-        snapshotFlow { drivingPuckState.value }.collect { puck ->
-            puck?.let { uiController.followDriver(it.latitude, it.longitude) }
-        }
-    }
+    // Initial focus, parking re-frame, driver-follow and MoveCameraTo effects —
+    // see [HomeCameraEffects].
+    HomeCameraEffects(
+        uiController = uiController,
+        state = state,
+        drivingPuck = trip.puck,
+        effects = effects,
+    )
 
     LaunchedEffect(selectedSpotId) {
         val spotId = selectedSpotId ?: return@LaunchedEffect
@@ -396,51 +321,20 @@ private fun HomeContent(
         if (idx >= 0) lazyListState.animateScrollToItem(idx)
     }
 
-    // Dedicated collector for camera-move effects (e.g. zone chip tap).
-    // Lives here because uiController is local to this composable.
-    LaunchedEffect(Unit) {
-        effects.collect { effect ->
-            if (effect is HomeEffect.MoveCameraTo) {
-                uiController.moveCamera(effect.lat, effect.lon, zoom = 15f)
-            }
-        }
-    }
-
-    CompositionLocalProvider(LocalMapInteracting provides isMapInteracting) {
+    CompositionLocalProvider(LocalMapInteracting provides mapInteraction.isInteracting) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             contentWindowInsets = WindowInsets(0),
             containerColor = Color.Transparent,
         ) { scaffoldPadding ->
 
-            if (showReleaseDialog) {
-                HomeReleaseDialog(
-                    isLoading = state.isReleasingParking,
-                    onDismiss = { if (!state.isReleasingParking) showReleaseDialog = false },
-                    onPublishSpot = {
-                        state.userParking?.let { p ->
-                            onIntent(
-                                HomeIntent.ReleaseParking(
-                                    lat = p.location.latitude,
-                                    lon = p.location.longitude,
-                                    publishSpot = true,
-                                ),
-                            )
-                        }
-                    },
-                    onDeleteOnly = {
-                        state.userParking?.let { p ->
-                            onIntent(
-                                HomeIntent.ReleaseParking(
-                                    lat = p.location.latitude,
-                                    lon = p.location.longitude,
-                                    publishSpot = false,
-                                ),
-                            )
-                        }
-                    },
-                )
-            }
+            HomeReleaseDialogHost(
+                visible = showReleaseDialog,
+                isReleasing = state.isReleasingParking,
+                userParking = state.userParking,
+                onIntent = onIntent,
+                onDismiss = { showReleaseDialog = false },
+            )
 
             BoxWithConstraints(
                 modifier = Modifier
@@ -468,180 +362,53 @@ private fun HomeContent(
                 var peekHeightPx by remember {
                     mutableFloatStateOf(with(density) { SheetPeekHeightInitial.toPx() })
                 }
-                val peekOffsetPx = (containerHeightPx - peekHeightPx).coerceAtLeast(0f)
 
-                // Minimized snap point — the drag-down "header-only" floor for the tall non-Browse peeks
-                // (selected card / pin modes). A design DERIVATION (font-scale aware, no measurement
-                // feedback): every PapSheet header reserves the same 3-line height, so the band seats
-                // deterministically and the cut always lands under the header. [SHEET-MIN-001] [UI-SHEET-006]
-                //
-                // In a PURE Browse peek the header IS the whole peek — there is nothing to collapse below
-                // it, so the floor is exactly peekOffsetPx. The old `coerceAtLeast(peekOffsetPx)` was meant
-                // to achieve this but couldn't: headerBandPx subtracts an 8dp cut clearance, so it lands a
-                // hair ABOVE peek and let the sheet slip ~8dp below the peek. Pin the floor to peek instead.
-                // [SHEET-MIN-001]
-                val headerBandPx = with(density) { papSheetHeaderBandHeight().toPx() }
+                // The five snap points + chrome threshold, derived in one place —
+                // see HomeSheetPositioning.kt for the geometry. [HOME-ATOMIZE-001 F2]
                 val isPureBrowsePeek = state.mode is HomeMode.Browse && !isParkingSelected && selectedSpotId == null
-                val minimizedOffsetPx = if (isPureBrowsePeek) {
-                    peekOffsetPx
-                } else {
-                    (containerHeightPx - headerBandPx).coerceAtLeast(peekOffsetPx)
-                }
-
-                // Content-aware full snap: when ALL list items are visible in the current
-                // viewport (nothing to scroll) the sheet stops at content height instead of
-                // expanding all the way to the screen top and leaving empty space.
-                // derivedStateOf isolates the layoutInfo reads so they don't retrigger the
-                // whole composition on every scroll frame — only when the boolean flips.
-                val allItemsFit by remember {
-                    derivedStateOf {
-                        lazyListState.layoutInfo.let { info ->
-                            info.totalItemsCount > 0 &&
-                                info.visibleItemsInfo.size >= info.totalItemsCount
-                        }
-                    }
-                }
-                val listNaturalHeightPx by remember {
-                    derivedStateOf {
-                        if (!allItemsFit) 0f
-                        else lazyListState.layoutInfo.let { info ->
-                            info.visibleItemsInfo.sumOf { it.size }.toFloat() +
-                                info.beforeContentPadding + info.afterContentPadding
-                        }
-                    }
-                }
-                val fullSnapOffsetPx = when {
-                    // Pin-positioning modes (Reporting / AddingZone / AddingParking) AND
-                    // vehicle-selected cap the sheet's UPPER extent at peek height because
-                    // the peek handle owns the whole surface — no list to expose above.
-                    // The user can still drag DOWN to minimizedOffsetPx (header-only). [SHEET-DRAG-001]
-                    state.mode !is HomeMode.Browse -> peekOffsetPx
-                    isParkingSelected -> peekOffsetPx
-                    // Spot selected with list hidden: no content below the peek
-                    // card, so the sheet must not expand above peek height.
-                    selectedSpotId != null && !spotListExpanded -> peekOffsetPx
-                    // Browse with all items already visible: stop at content
-                    // height so the sheet doesn't expose empty space above
-                    // the last row when the list is short.
-                    allItemsFit && peekHeightPx > 0f ->
-                        (containerHeightPx - peekHeightPx - listNaturalHeightPx).coerceAtLeast(0f)
-                    else -> FULL_SNAP_OFFSET_PX
-                }
-
-                // Primary "desplegado" auto-snap — capped below full so map + car marker stay
-                // visible. Same coordinate base as peek/full (containerHeightPx = screen − nav) and
-                // coerced into the valid range (never above the content-aware full snap, never below
-                // peek). [HOME-SNAP-001]
-                val expandedOffsetPx = (containerHeightPx * EXPANDED_MAP_VISIBLE_FRACTION)
-                    .coerceIn(fullSnapOffsetPx, peekOffsetPx)
-                // Intermediate anchor — sits between peek and expanded (a genuine half-sheet).
-                val halfOffsetPx = (expandedOffsetPx + peekOffsetPx) / 2f
-                // Floating map chrome (FABs / search / trip pill) stays visible through peek + the
-                // first expand (half) and fades as the sheet crosses toward the deeper "expanded"
-                // anchor (the sheet then covers >½ the screen and would overlap the map). Threshold =
-                // midpoint between half and expanded. [HOME-SNAP-001]
-                val overlayHideThresholdPx = (halfOffsetPx + expandedOffsetPx) / 2f
-
+                val positioning = rememberSheetPositioning(
+                    containerHeightPx = containerHeightPx,
+                    peekHeightPx = peekHeightPx,
+                    lazyListState = lazyListState,
+                    isPureBrowsePeek = isPureBrowsePeek,
+                    // Pin modes / parking selected / spot selected with the list hidden: the peek
+                    // handle owns the whole surface, so the sheet must not expand above peek.
+                    // [SHEET-DRAG-001]
+                    capExpandAtPeek = state.mode !is HomeMode.Browse ||
+                        isParkingSelected ||
+                        (selectedSpotId != null && !spotListExpanded),
+                )
+                val peekOffsetPx = positioning.peekOffsetPx
                 val sheetOffsetPx = remember { Animatable(peekOffsetPx) }
-                val peekSnapTolerancePx = with(density) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
 
                 // Browse header subject swap: collapsed = your parked car (its OWN static address);
                 // expanded = the zone (camera-following counter header — the car's info lives in its
                 // TUS VEHÍCULOS card). Threshold = halfway to the half anchor. Both sides are the
                 // same PeekState.Browse, so the swap recomposes without an AnimatedContent jump.
                 // [UI-SHEET-004]
-                val sheetBeyondPeek by remember(peekOffsetPx, halfOffsetPx) {
-                    derivedStateOf { sheetOffsetPx.value < (peekOffsetPx + halfOffsetPx) / 2f }
-                }
-                LaunchedEffect(peekOffsetPx, state.selectedItemId, state.mode) {
-                    // Entering a non-Browse state resets the sheet to peek (full
-                    // peek content visible). The user can then drag DOWN to
-                    // minimizedOffsetPx for a header-only view. [SHEET-DRAG-001]
-                    val isPinning = state.mode is HomeMode.Reporting ||
-                        state.mode is HomeMode.AddingZone ||
-                        state.mode is HomeMode.AddingParking
-                    val resetToPeek = isPinning || isParkingSelected
-                    // TEMP diagnostics [SHEETDBG] — remove before merge.
-                    io.apptolast.paparcar.domain.util.PaparcarLogger.d(
-                        "SHEETDBG",
-                        "effect: peekOff=$peekOffsetPx peekH=$peekHeightPx sheet=${sheetOffsetPx.value} " +
-                            "running=${sheetOffsetPx.isRunning} sel=${state.selectedItemId} mode=${state.mode} " +
-                            "resetToPeek=$resetToPeek minOff=$minimizedOffsetPx",
-                    )
-                    if (state.selectedItemId == null || resetToPeek) {
-                        val correction = kotlin.math.abs(sheetOffsetPx.value - peekOffsetPx)
-                        // Snap (not animate) when: small layout correction OR sheet is already at
-                        // or below the new peek. The latter covers selection events where the peek
-                        // handle grows (Browse→SelectedParking/Spot), shifting peekOffsetPx upward.
-                        // Without this guard the LaunchedEffect would fire animateTo and the sheet
-                        // would visibly slide up in slow motion to follow the handle.
-                        val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx
-                        if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {
-                            io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "-> snapTo($peekOffsetPx)")
-                            sheetOffsetPx.snapTo(peekOffsetPx)
-                        } else {
-                            io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "-> animateTo($peekOffsetPx)")
-                            sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
-                        }
-                    } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peekOffsetPx) {
-                        // Guard isRunning so animateSheetToHalf() (launched on spot/car tap)
-                        // is not cancelled by the peekOffsetPx change that occurs when the
-                        // peek handle grows to show the selected-item content.
-                        io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "-> else snapTo($peekOffsetPx)")
-                        sheetOffsetPx.snapTo(peekOffsetPx)
-                    }
+                val sheetBeyondPeek by remember(peekOffsetPx, positioning.halfOffsetPx) {
+                    derivedStateOf { sheetOffsetPx.value < (peekOffsetPx + positioning.halfOffsetPx) / 2f }
                 }
 
-                // Keep sheet position in sync with spot list expand/collapse.
-                LaunchedEffect(spotListExpanded) {
-                    if (spotListExpanded) {
-                        // Auto-open the sheet to the capped "expanded" anchor so the list is visible
-                        // immediately while a slice of map stays in view (not full-screen). [HOME-SNAP-001]
-                        sheetOffsetPx.animateTo(expandedOffsetPx, SnapSpec)
-                    } else if (sheetOffsetPx.value < peekOffsetPx) {
-                        // List collapsed while sheet was expanded — snap back to peek.
-                        sheetOffsetPx.animateTo(peekOffsetPx, SnapSpec)
-                    }
-                }
+                // Reset-to-peek, list auto-expand and nav-progress hoisting — see
+                // HomeSheetPositioning.kt. [HOME-ATOMIZE-001 F2]
+                SheetTransitionEffects(
+                    positioning = positioning,
+                    sheetOffsetPx = sheetOffsetPx,
+                    mode = state.mode,
+                    selectedItemId = state.selectedItemId,
+                    isParkingSelected = isParkingSelected,
+                    spotListExpanded = spotListExpanded,
+                    navProgressState = navProgressState,
+                )
 
-                // Hoist sheet progress up to the root so the global bottom nav can
-                // fade + slide with the drag via graphicsLayer. snapshotFlow keeps
-                // this off the composition path — only the layer phase reacts.
-                LaunchedEffect(peekOffsetPx) {
-                    snapshotFlow {
-                        val raw = if (peekOffsetPx > 0f) sheetOffsetPx.value / peekOffsetPx else 1f
-                        ((raw - NAV_HIDE_START) / (1f - NAV_HIDE_START)).coerceIn(0f, 1f)
-                    }.collect { progress -> navProgressState.floatValue = progress }
-                }
-
-                // Instagram-style nested scroll: when the list is scrolled to the very top and
-                // the user drags down, collapse the sheet instead of letting the gesture be wasted.
-                // Upward gestures are never intercepted — they always scroll the list.
-                val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
-                val currentFullSnap = rememberUpdatedState(fullSnapOffsetPx)
-                val sheetNestedScroll = remember {
-                    object : NestedScrollConnection {
-                        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                            val listAtTop = lazyListState.firstVisibleItemIndex == 0 &&
-                                lazyListState.firstVisibleItemScrollOffset == 0
-                            val peek = currentPeekOffset.value
-                            val sheetCanCollapse = sheetOffsetPx.value < peek
-                            if (available.y > 0f && listAtTop && sheetCanCollapse) {
-                                val newOffset = (sheetOffsetPx.value + available.y)
-                                    .coerceIn(currentFullSnap.value, peek)
-                                val consumed = newOffset - sheetOffsetPx.value
-                                coroutineScope.launch { sheetOffsetPx.snapTo(newOffset) }
-                                return Offset(0f, consumed)
-                            }
-                            return Offset.Zero
-                        }
-                    }
-                }
+                // Tap-toggle, programmatic expand and nested-scroll collapse — see [SheetMotion].
+                val motion = rememberSheetMotion(sheetOffsetPx, positioning, lazyListState)
 
                 // Sheet-position gate: only re-runs on the two frames when the
                 // sheet crosses the threshold, not on every drag frame.
-                val sheetAtPeekLevel by remember(overlayHideThresholdPx) {
-                    derivedStateOf { sheetOffsetPx.value >= overlayHideThresholdPx }
+                val sheetAtPeekLevel by remember(positioning.overlayHideThresholdPx) {
+                    derivedStateOf { sheetOffsetPx.value >= positioning.overlayHideThresholdPx }
                 }
                 // Full overlay gate: hidden whenever the sheet is dragged up OR
                 // any item is selected (spot / parking) OR a non-Browse mode is
@@ -661,99 +428,31 @@ private fun HomeContent(
                 val mapBleedPx = with(density) { MAP_BOTTOM_BLEED.toPx() }
                 val fabGapPx = with(density) { FAB_ABOVE_SHEET_GAP.toPx() }
 
-                val dragSnap = remember(peekOffsetPx, halfOffsetPx, expandedOffsetPx, fullSnapOffsetPx, minimizedOffsetPx) {
-                    HomeSheetSnap(
-                        peekOffsetPx = peekOffsetPx,
-                        halfOffsetPx = halfOffsetPx,
-                        expandedOffsetPx = expandedOffsetPx,
-                        fullSnapOffsetPx = fullSnapOffsetPx,
-                        minimizedOffsetPx = minimizedOffsetPx,
-                        snapSpec = SnapSpec,
-                    )
-                }
-
-                // rememberUpdatedState wrappers for floats that change when geometry
-                // changes — used by lambdas that must be stable but always read the
-                // latest snap values at call-time rather than capture-time.
-                val currentExpandedOffset = rememberUpdatedState(expandedOffsetPx)
-                val currentMinimizedOffset = rememberUpdatedState(minimizedOffsetPx)
-                val currentUserParking = rememberUpdatedState(state.userParking)
-                val currentActiveSessions = rememberUpdatedState(state.activeSessions)
-                val currentUserGpsPoint = rememberUpdatedState(state.userGpsPoint)
-
-                // Stable lambda — remember(coroutineScope, sheetOffsetPx) so the
-                // object identity is preserved across recompositions; snap-target
-                // floats are read from rememberUpdatedState at call-time. Auto-snaps to the
-                // capped "expanded" anchor (not full) so map + car marker stay visible. [HOME-SNAP-001]
-                val animateSheetToExpanded: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
-                    {
-                        coroutineScope.launch {
-                            sheetOffsetPx.animateTo(
-                                currentExpandedOffset.value.coerceIn(
-                                    currentFullSnap.value,
-                                    currentPeekOffset.value,
-                                ),
-                                SnapSpec,
-                            )
-                        }
-                    }
-                }
-
-                // Toggles the sheet between peek and the adjacent snap. The
-                // "adjacent" snap depends on the current state:
-                //  - Browse with a list (expanded < peek):  peek ↔ expanded
-                //  - Non-Browse (expanded == peek, no expansion above):  peek ↔ minimized
-                // Tap-from-peek opens straight to the deeper "expanded" anchor — a tap is an
-                // explicit "show me more", so it lands on the detent that reveals the list while a
-                // slice of map stays visible. Half remains a drag-only stop. [SHEET-TAP-001] [HOME-SNAP-001]
-                val toggleSheet: () -> Unit = remember(coroutineScope, sheetOffsetPx) {
-                    {
-                        coroutineScope.launch {
-                            val current = sheetOffsetPx.value
-                            val peek = currentPeekOffset.value
-                            val minimized = currentMinimizedOffset.value
-                            val expanded = currentExpandedOffset.value
-                                .coerceIn(currentFullSnap.value, peek)
-                            val canExpandAbovePeek = expanded < peek - 1f
-                            val canCollapseBelowPeek = minimized > peek + 1f
-                            val target = when {
-                                // Above peek → collapse to peek.
-                                current < peek - 1f -> peek
-                                // Below peek → expand to peek.
-                                current > peek + 1f -> peek
-                                // At peek with an expanded snap available → open it.
-                                canExpandAbovePeek -> expanded
-                                // At peek with no expansion but a minimized snap → collapse.
-                                canCollapseBelowPeek -> minimized
-                                else -> peek
-                            }
-                            sheetOffsetPx.animateTo(target, SnapSpec)
-                        }
-                    }
-                }
+                val dragSnap = remember(positioning) { HomeSheetSnap(positioning) }
 
                 // O(1) spot lookup keyed by nearbySpots reference equality.
                 val spotsById = remember(state.nearbySpots) {
                     state.nearbySpots.associateBy { it.id }
                 }
                 // Stable lambda — only recreated when the spots map changes.
-                val onSpotMarkerClick: (String) -> Unit = remember(spotsById, uiController) {
+                val onSpotMarkerClick: (String) -> Unit = remember(spotsById, uiController, motion) {
                     { spotId ->
                         spotsById[spotId]?.let { spot ->
                             onIntent(HomeIntent.SelectItem(spotId))
                             uiController.moveCamera(spot.location.latitude, spot.location.longitude)
-                            animateSheetToExpanded()
+                            motion.animateToExpanded()
                         }
                     }
                 }
 
                 // Stable lambda — activeSessions read via rememberUpdatedState at call-time.
-                val onMyCarMarkerClick: (sessionId: String) -> Unit = remember(uiController) {
+                val currentActiveSessions = rememberUpdatedState(state.activeSessions)
+                val onMyCarMarkerClick: (sessionId: String) -> Unit = remember(uiController, motion) {
                     { sessionId ->
                         currentActiveSessions.value.firstOrNull { it.id == sessionId }?.let { p ->
                             onIntent(HomeIntent.SelectItem(p.id))
                             uiController.moveCamera(p.location.latitude, p.location.longitude)
-                            animateSheetToExpanded()
+                            motion.animateToExpanded()
                         }
                     }
                 }
@@ -777,11 +476,11 @@ private fun HomeContent(
                 val onZoneClick: (String) -> Unit = remember {
                     { zoneId -> onIntent(HomeIntent.SelectZone(zoneId)) }
                 }
-                val onMapCameraMove: (Double, Double) -> Unit = remember(uiController) {
+                val onMapCameraMove: (Double, Double) -> Unit = remember(uiController, mapInteraction) {
                     { lat, lon ->
                         uiController.onCameraMoved(lat, lon)
                         onIntent(HomeIntent.CameraPositionChanged(lat, lon))
-                        onCameraFrame()
+                        mapInteraction.onCameraFrame()
                     }
                 }
 
@@ -791,10 +490,10 @@ private fun HomeContent(
                 val isAddingZone = state.mode is HomeMode.AddingZone
                 HomeMapSection(
                     slice = mapSlice,
-                    drivingPuck = drivingPuckState,
-                    tripTrail = tripTrailState,
-                    matchedTrail = matchedTrailState,
-                    departurePoint = departurePointState,
+                    drivingPuck = trip.puck,
+                    tripTrail = trip.trail,
+                    matchedTrail = trip.matchedTrail,
+                    departurePoint = trip.departurePoint,
                     selectedSpotId = selectedSpotId,
                     // Per-vehicle: only the matching marker renders selected. [MULTI-PARKING-001]
                     selectedSessionId = state.selectedItemId.takeIf { isParkingSelected },
@@ -825,209 +524,445 @@ private fun HomeContent(
                         },
                 )
 
-                // ── Floating search header + ephemeral Monitoring pill ───────
-                // The detection ACTION surface no longer lives here — it is now a section
-                // inside the bottom sheet, under the address header. Only the transient
-                // "following your trip" pill floats over the map (centred under the search
-                // bar) while a trip is being tracked. The wrapping column owns the status-bar
-                // inset (HomeHeaderSection no longer applies it). [DET-READY-001h]
-                Column(
+                // ── Floating search header ────────────────────────────────────
+                HomeFloatingHeader(
+                    visible = overlayVisible,
+                    slice = headerSlice,
+                    uiController = uiController,
+                    userGpsPoint = state.userGpsPoint,
+                    onIntent = onIntent,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .fillMaxWidth()
                         .statusBarsPadding(),
-                ) {
-                    AnimatedVisibility(
-                        visible = overlayVisible,
-                        enter = fadeIn(PapMotion.medium()),
-                        exit = fadeOut(PapMotion.medium()),
-                    ) {
-                        HomeHeaderSection(
-                            slice = headerSlice,
-                            onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
-                            onSearchResultClick = { result ->
-                                uiController.moveCamera(result.lat, result.lon, zoom = 15f)
-                                onIntent(HomeIntent.SelectSearchResult(result))
-                            },
-                            onSearchClear = { onIntent(HomeIntent.ClearSearch) },
-                            onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
-                            onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
-                            onAddZone = {
-                                onIntent(
-                                    HomeIntent.EnterAddZoneMode(
-                                        lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
-                                        lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
-                                    )
-                                )
-                            },
-                            onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
-                            onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
-                            modifier = Modifier,
-                        )
-                    }
-                }
+                )
 
-                // Stable event lambdas for FABs layer and report button.
-                // GPS and parking are read via rememberUpdatedState at call-time.
-                val onMyLocation: () -> Unit = remember(uiController) {
-                    {
-                        // Mid-trip, "locate me" means the moving car: re-engage driver-follow and snap onto
-                        // the puck (paused earlier by a map gesture). Otherwise recentre on GPS. [FOLLOW-001]
-                        val puck = drivingPuckState.value
-                        if (puck != null) {
-                            uiController.resumeDriverFollow(puck.latitude, puck.longitude)
-                        } else {
-                            currentUserGpsPoint.value?.let {
-                                uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
-                            }
-                        }
-                    }
-                }
-                val onMidpoint: () -> Unit = remember(uiController) {
-                    {
-                        val parking = currentUserParking.value
-                        val gps = currentUserGpsPoint.value
-                        if (parking != null && gps != null) {
-                            uiController.moveCameraToBounds(
-                                lat1 = parking.location.latitude,
-                                lon1 = parking.location.longitude,
-                                lat2 = gps.latitude,
-                                lon2 = gps.longitude,
-                            )
-                        }
-                    }
-                }
                 // ── Right FAB column (utilities) ─────────────────────────────
                 // Bottom positioning is done in the layout phase via Modifier.offset
                 // so dragging never triggers recomposition of this subtree.
-                HomeMapFabsLayer(
+                HomeMapFabsSection(
                     slice = fabsSlice,
                     visible = fabsVisible,
-                    isDriving = isDrivingState.value,
-                    onMyLocation = onMyLocation,
-                    onParkedCar = {
-                        val sessions = state.activeSessions
-                        if (sessions.isNotEmpty()) {
-                            val currentSelected = state.selectedSession
-                            val target = if (currentSelected != null) {
-                                val idx = sessions.indexOfFirst { it.id == currentSelected.id }
-                                sessions[(idx + 1) % sessions.size]
-                            } else {
-                                sessions.first()
-                            }
-                            onMyCarMarkerClick(target.id)
-                        }
-                    },
-                    onMidpoint = onMidpoint,
+                    isDriving = trip.isDriving.value,
+                    drivingPuck = trip.puck,
+                    uiController = uiController,
+                    userParking = state.userParking,
+                    userGpsPoint = state.userGpsPoint,
+                    activeSessions = state.activeSessions,
+                    selectedSession = state.selectedSession,
+                    onMyCarMarkerClick = onMyCarMarkerClick,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset {
                             val sheetH = (rawContainerHeightPx - sheetOffsetPx.value)
                                 .coerceAtLeast(0f)
-                            val halfH = (rawContainerHeightPx - halfOffsetPx)
+                            val halfH = (rawContainerHeightPx - positioning.halfOffsetPx)
                                 .coerceAtLeast(0f)
                             // FABs ride above the sheet edge from peek up to the first expand (half),
                             // where they're still visible; past half they clamp so they don't fly
                             // off-screen while fading out toward the deeper expanded. [HOME-SNAP-001]
-                            val base = if (sheetOffsetPx.value >= halfOffsetPx) sheetH else halfH
+                            val base = if (sheetOffsetPx.value >= positioning.halfOffsetPx) sheetH else halfH
                             IntOffset(0, -(base + fabGapPx).roundToInt())
                         },
                 )
 
-                // The floating "monitoring" pill was removed: the MyLocation FAB now stays visible during
-                // a trip and re-engages driver-follow, and the live phase (EN RUTA / APARCANDO…) reads in
-                // the sheet eyebrow instead. [DET-STATUS-SHEET-001]
-
                 // ── Bottom sheet ─────────────────────────────────────────────
-                HomeBottomSheet(
+                HomeSheetSection(
                     peek = peekSlice,
                     browse = browseSlice,
+                    state = state,
                     browseShowsZoneHeader = sheetBeyondPeek,
                     containerHeightPx = rawContainerHeightPx,
                     sheetOffsetPx = sheetOffsetPx,
                     dragSnap = dragSnap,
                     lazyListState = lazyListState,
-                    sheetNestedScroll = sheetNestedScroll,
+                    sheetNestedScroll = motion.nestedScrollConnection,
                     bottomContentPadding = stableBottomPadding,
                     coroutineScope = coroutineScope,
                     onPeekHeightChanged = { h ->
                         // EXACT per-state height (no hysteresis): peekOffset = container - peekHeight,
                         // so the peek header's bottom edge — and its divider — lands flush on the
-                        // bottom-nav divider, with no dp of gap, in every state. Each state keeps its
-                        // own natural height (Browse short, SelectedCar taller). The height is whole-px
-                        // already, so there's no sub-pixel churn. [BUG-PEEK-DIVIDER-ALIGN]
-                        if (h != peekHeightPx) {
-                            // TEMP diagnostics [SHEETDBG] — remove before merge.
-                            io.apptolast.paparcar.domain.util.PaparcarLogger.d("SHEETDBG", "peekH $peekHeightPx -> $h")
-                            peekHeightPx = h
-                        }
+                        // bottom-nav divider, with no dp of gap, in every state. [BUG-PEEK-DIVIDER-ALIGN]
+                        if (h != peekHeightPx) peekHeightPx = h
                     },
                     onIntent = onIntent,
-                    onParkingClick = { parking ->
-                        onIntent(HomeIntent.SelectItem(parking.id))
-                        uiController.moveCamera(parking.location.latitude, parking.location.longitude)
-                    },
-                    onParkVehicle = { vehicleId ->
-                        // Per-vehicle "Aparcar" pill — enter AddingParking pre-centred
-                        // on the user's current GPS and tagged with the chosen
-                        // vehicleId so ConfirmParkingUseCase persists the session
-                        // for that specific car instead of the default. [MULTI-PARKING-001]
-                        onIntent(
-                            HomeIntent.EnterAddParkingMode(
-                                initialGps = state.userGpsPoint,
-                                targetVehicleId = vehicleId,
-                            ),
-                        )
-                    },
-                    onMoveParkingLocation = {
-                        // "Mover ubicación" button on the parking peek — enter
-                        // AddingParking pre-centred on the SELECTED session
-                        // (not just the first active one) and tagged with its id
-                        // so the confirm updates the row in place via
-                        // UpdateParkingLocationUseCase. [MULTI-PARKING-001]
-                        state.selectedSession?.let { parking ->
-                            onIntent(
-                                HomeIntent.EnterAddParkingMode(
-                                    initialGps = parking.location,
-                                    editingParkingId = parking.id,
-                                ),
-                            )
-                        }
-                    },
+                    uiController = uiController,
                     spotListExpanded = spotListExpanded,
                     onToggleSpotList = { spotListExpanded = !spotListExpanded },
-                    onSpotSelect = { _, _, spotId -> onIntent(HomeIntent.SelectItem(spotId)) },
-                    onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
-                    onEnterReportMode = {
-                        onIntent(
-                            HomeIntent.EnterReportMode(
-                                lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
-                                lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
-                            )
-                        )
-                    },
                     onRelease = { showReleaseDialog = true },
                     onNavigateExternal = openExternalNav,
-                    onToggle = toggleSheet,
-                    // Detection surface actions (reuses existing nav + AddingParking flow).
-                    onDetectionAddVehicle = onAddVehicle,
-                    // Only the CORE block still routes here (Inactive uses the unified EnableAutoDetection
-                    // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
-                    onDetectionOpenPermissions = { onActivateDetection("core") },
-                    onDetectionMarkSpot = {
-                        val markVehicleId = state.vehicles.firstOrNull { it.isActive }?.id
-                            ?: state.vehicles.firstOrNull()?.id
-                        onIntent(
-                            HomeIntent.EnterAddParkingMode(
-                                initialGps = state.userGpsPoint,
-                                targetVehicleId = markVehicleId,
-                            ),
-                        )
-                    },
+                    onToggle = motion.toggle,
+                    onActivateDetection = onActivateDetection,
+                    onAddVehicle = onAddVehicle,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Named sections & effects — the pieces HomeContent orchestrates
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Per-field trip States derived from the tripRender StateFlow — read only in
+ *  isolated scopes so a GPS fix never recomposes HomeContent. [DRIVE-PUCK-NATIVE-001] */
+@Stable
+private class TripRenderStates(tripState: State<TripUpdate>) {
+    val puck: State<DrivingPuck?> = derivedStateOf { tripState.value.puck }
+    val trail: State<List<GpsPoint>> = derivedStateOf { tripState.value.trail }
+    val matchedTrail: State<List<GpsPoint>> = derivedStateOf { tripState.value.matchedTrail }
+    val departurePoint: State<GpsPoint?> = derivedStateOf { tripState.value.departurePoint }
+    val isDriving: State<Boolean> = derivedStateOf { tripState.value.puck != null }
+}
+
+/**
+ * Glass-on-drag tracking: [isInteracting] is the only snapshot state that feeds
+ * the glass effect, and it only flips twice per gesture (true on first real drag
+ * frame, false once [MAP_INTERACTION_IDLE_DELAY_MS] elapses without new frames).
+ * Nothing in composition reads the idle Job, so writing it on rapid onCameraMove
+ * ticks never invalidates a composition scope.
+ */
+@Stable
+private class MapInteractionTracker(
+    private val scope: CoroutineScope,
+    private val uiController: HomeUiController,
+) {
+    var isInteracting by mutableStateOf(false)
+        private set
+    private var idleJob: Job? = null
+
+    val onCameraFrame: () -> Unit = {
+        if (!uiController.isProgrammaticMove) {
+            if (!isInteracting) isInteracting = true
+            idleJob?.cancel()
+            idleJob = scope.launch {
+                delay(MAP_INTERACTION_IDLE_DELAY_MS.milliseconds)
+                isInteracting = false
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberMapInteractionTracker(uiController: HomeUiController): MapInteractionTracker {
+    val scope = rememberCoroutineScope()
+    val tracker = remember(uiController, scope) { MapInteractionTracker(scope, uiController) }
+
+    // Clear the programmatic-move flag once the camera animation has settled.
+    // isProgrammaticMove is flipped synchronously by uiController.moveCamera*
+    // before cameraTarget mutates, so this effect runs after the flag is
+    // already true — it only needs to clear it when the animation is done.
+    LaunchedEffect(uiController.cameraTarget?.token) {
+        if (!uiController.isProgrammaticMove) return@LaunchedEffect
+        delay(PROGRAMMATIC_MOVE_GUARD_MS.milliseconds)
+        uiController.clearProgrammaticMove()
+    }
+    return tracker
+}
+
+/** Camera choreography that belongs to the [uiController]: initial focus, parking
+ *  re-frame, driver-follow and the MoveCameraTo effect collector. No UI. */
+@Composable
+private fun HomeCameraEffects(
+    uiController: HomeUiController,
+    state: HomeState,
+    drivingPuck: State<DrivingPuck?>,
+    effects: SharedFlow<HomeEffect>,
+) {
+    LaunchedEffect(state.userGpsPoint) {
+        val gps = state.userGpsPoint ?: return@LaunchedEffect
+        // Stateful initial focus: frame the parked car (with the user, if close), else centre on the
+        // user so nearby free spots reveal around them. One-shot, inside the controller. [FOCUS-001]
+        uiController.centerInitialFocus(
+            parking = state.userParking?.let { it.location.latitude to it.location.longitude },
+            selectedSpot = state.selectedSpot?.let { it.location.latitude to it.location.longitude },
+            user = gps.latitude to gps.longitude,
+        )
+    }
+
+    // Re-frame the car once if its session loads just after the first GPS fix (common race), unless
+    // the user already panned by hand — the controller enforces those guards. [FOCUS-002]
+    LaunchedEffect(state.userParking?.id) {
+        val parking = state.userParking ?: return@LaunchedEffect
+        uiController.refocusOnParkingArrival(
+            parking = parking.location.latitude to parking.location.longitude,
+            user = state.userGpsPoint?.let { it.latitude to it.longitude },
+        )
+    }
+
+    // Driver-follow: engage when a detected trip starts (the driving puck appears) and disengage when
+    // it ends; while engaged, the camera tracks each puck update without changing the user's zoom.
+    // A manual pan pauses it (handled in the controller), and the map shows a resume FAB. [FOLLOW-001]
+    // Observe the puck via snapshotFlow (in a coroutine) rather than reading it in the composition, so
+    // driver-follow tracking doesn't recompose this screen per fix. [DRIVE-PUCK-NATIVE-001] [FOLLOW-001]
+    LaunchedEffect(uiController) {
+        snapshotFlow { drivingPuck.value != null }.collect { uiController.setDriverFollowActive(it) }
+    }
+    LaunchedEffect(uiController) {
+        snapshotFlow { drivingPuck.value }.collect { puck ->
+            puck?.let { uiController.followDriver(it.latitude, it.longitude) }
+        }
+    }
+
+    // Dedicated collector for camera-move effects (e.g. zone chip tap).
+    // Lives here because uiController is scoped to HomeContent.
+    LaunchedEffect(Unit) {
+        effects.collect { effect ->
+            if (effect is HomeEffect.MoveCameraTo) {
+                uiController.moveCamera(effect.lat, effect.lon, zoom = 15f)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeReleaseDialogHost(
+    visible: Boolean,
+    isReleasing: Boolean,
+    userParking: UserParking?,
+    onIntent: (HomeIntent) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (!visible) return
+    fun release(publishSpot: Boolean) {
+        userParking?.let { p ->
+            onIntent(
+                HomeIntent.ReleaseParking(
+                    lat = p.location.latitude,
+                    lon = p.location.longitude,
+                    publishSpot = publishSpot,
+                ),
+            )
+        }
+    }
+    HomeReleaseDialog(
+        isLoading = isReleasing,
+        onDismiss = { if (!isReleasing) onDismiss() },
+        onPublishSpot = { release(publishSpot = true) },
+        onDeleteOnly = { release(publishSpot = false) },
+    )
+}
+
+/**
+ * Floating search header over the map. The detection ACTION surface no longer
+ * lives here — it is a section inside the bottom sheet, under the address
+ * header. The wrapping column owns the status-bar inset (HomeHeaderSection no
+ * longer applies it). [DET-READY-001h]
+ */
+@Composable
+private fun HomeFloatingHeader(
+    visible: Boolean,
+    slice: HomeHeaderSlice,
+    uiController: HomeUiController,
+    userGpsPoint: GpsPoint?,
+    onIntent: (HomeIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(PapMotion.medium()),
+            exit = fadeOut(PapMotion.medium()),
+        ) {
+            HomeHeaderSection(
+                slice = slice,
+                onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                onSearchResultClick = { result ->
+                    uiController.moveCamera(result.lat, result.lon, zoom = 15f)
+                    onIntent(HomeIntent.SelectSearchResult(result))
+                },
+                onSearchClear = { onIntent(HomeIntent.ClearSearch) },
+                onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
+                onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
+                onAddZone = {
+                    onIntent(
+                        HomeIntent.EnterAddZoneMode(
+                            lat = uiController.cameraLat ?: userGpsPoint?.latitude ?: 0.0,
+                            lon = uiController.cameraLon ?: userGpsPoint?.longitude ?: 0.0,
+                        )
+                    )
+                },
+                onDeleteZone = { id -> onIntent(HomeIntent.DeleteZone(id)) },
+                onEditZone = { id -> onIntent(HomeIntent.EnterEditZoneMode(id)) },
+            )
+        }
+    }
+}
+
+/**
+ * The bottom sheet plus the translation of its UI callbacks into intents /
+ * camera moves. This is the single place where sheet actions are wired to the
+ * VM and the [uiController]. [MULTI-PARKING-001]
+ */
+@Composable
+private fun HomeSheetSection(
+    peek: HomePeekSlice,
+    browse: HomeBrowseListSlice,
+    state: HomeState,
+    browseShowsZoneHeader: Boolean,
+    containerHeightPx: Float,
+    sheetOffsetPx: Animatable<Float, androidx.compose.animation.core.AnimationVector1D>,
+    dragSnap: HomeSheetSnap,
+    lazyListState: androidx.compose.foundation.lazy.LazyListState,
+    sheetNestedScroll: NestedScrollConnection,
+    bottomContentPadding: Dp,
+    coroutineScope: CoroutineScope,
+    onPeekHeightChanged: (Float) -> Unit,
+    onIntent: (HomeIntent) -> Unit,
+    uiController: HomeUiController,
+    spotListExpanded: Boolean,
+    onToggleSpotList: () -> Unit,
+    onRelease: () -> Unit,
+    onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
+    onToggle: () -> Unit,
+    onActivateDetection: (focus: String) -> Unit,
+    onAddVehicle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    HomeBottomSheet(
+        peek = peek,
+        browse = browse,
+        browseShowsZoneHeader = browseShowsZoneHeader,
+        containerHeightPx = containerHeightPx,
+        sheetOffsetPx = sheetOffsetPx,
+        dragSnap = dragSnap,
+        lazyListState = lazyListState,
+        sheetNestedScroll = sheetNestedScroll,
+        bottomContentPadding = bottomContentPadding,
+        coroutineScope = coroutineScope,
+        onPeekHeightChanged = onPeekHeightChanged,
+        onIntent = onIntent,
+        onParkingClick = { parking ->
+            onIntent(HomeIntent.SelectItem(parking.id))
+            uiController.moveCamera(parking.location.latitude, parking.location.longitude)
+        },
+        onParkVehicle = { vehicleId ->
+            // Per-vehicle "Aparcar" pill — enter AddingParking pre-centred on the
+            // user's current GPS and tagged with the chosen vehicleId so
+            // ConfirmParkingUseCase persists the session for that specific car
+            // instead of the default. [MULTI-PARKING-001]
+            onIntent(
+                HomeIntent.EnterAddParkingMode(
+                    initialGps = state.userGpsPoint,
+                    targetVehicleId = vehicleId,
+                ),
+            )
+        },
+        onMoveParkingLocation = {
+            // "Mover ubicación" button on the parking peek — enter AddingParking
+            // pre-centred on the SELECTED session (not just the first active one)
+            // and tagged with its id so the confirm updates the row in place via
+            // UpdateParkingLocationUseCase. [MULTI-PARKING-001]
+            state.selectedSession?.let { parking ->
+                onIntent(
+                    HomeIntent.EnterAddParkingMode(
+                        initialGps = parking.location,
+                        editingParkingId = parking.id,
+                    ),
+                )
+            }
+        },
+        spotListExpanded = spotListExpanded,
+        onToggleSpotList = onToggleSpotList,
+        onSpotSelect = { _, _, spotId -> onIntent(HomeIntent.SelectItem(spotId)) },
+        onCameraMove = { lat, lon -> uiController.moveCamera(lat, lon) },
+        onEnterReportMode = {
+            onIntent(
+                HomeIntent.EnterReportMode(
+                    lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,
+                    lon = uiController.cameraLon ?: state.userGpsPoint?.longitude ?: 0.0,
+                )
+            )
+        },
+        onRelease = onRelease,
+        onNavigateExternal = onNavigateExternal,
+        onToggle = onToggle,
+        // Detection surface actions (reuses existing nav + AddingParking flow).
+        onDetectionAddVehicle = onAddVehicle,
+        // Only the CORE block still routes here (Inactive uses the unified EnableAutoDetection
+        // intent). Focus the permissions screen on the essential tier. [DET-TOGGLE-001]
+        onDetectionOpenPermissions = { onActivateDetection("core") },
+        onDetectionMarkSpot = {
+            val markVehicleId = state.vehicles.firstOrNull { it.isActive }?.id
+                ?: state.vehicles.firstOrNull()?.id
+            onIntent(
+                HomeIntent.EnterAddParkingMode(
+                    initialGps = state.userGpsPoint,
+                    targetVehicleId = markVehicleId,
+                ),
+            )
+        },
+        modifier = modifier,
+    )
+}
+
+/** The right-side camera FAB column plus its actions (locate/car/midpoint). */
+@Composable
+private fun HomeMapFabsSection(
+    slice: HomeFabsSlice,
+    visible: Boolean,
+    isDriving: Boolean,
+    drivingPuck: State<DrivingPuck?>,
+    uiController: HomeUiController,
+    userParking: UserParking?,
+    userGpsPoint: GpsPoint?,
+    activeSessions: List<UserParking>,
+    selectedSession: UserParking?,
+    onMyCarMarkerClick: (sessionId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Stable lambdas — GPS and parking read via rememberUpdatedState at call-time.
+    val currentUserParking = rememberUpdatedState(userParking)
+    val currentUserGpsPoint = rememberUpdatedState(userGpsPoint)
+    val onMyLocation: () -> Unit = remember(uiController) {
+        {
+            // Mid-trip, "locate me" means the moving car: re-engage driver-follow and snap onto
+            // the puck (paused earlier by a map gesture). Otherwise recentre on GPS. [FOLLOW-001]
+            val puck = drivingPuck.value
+            if (puck != null) {
+                uiController.resumeDriverFollow(puck.latitude, puck.longitude)
+            } else {
+                currentUserGpsPoint.value?.let {
+                    uiController.moveCamera(it.latitude, it.longitude, zoom = 16f)
+                }
+            }
+        }
+    }
+    val onMidpoint: () -> Unit = remember(uiController) {
+        {
+            val parking = currentUserParking.value
+            val gps = currentUserGpsPoint.value
+            if (parking != null && gps != null) {
+                uiController.moveCameraToBounds(
+                    lat1 = parking.location.latitude,
+                    lon1 = parking.location.longitude,
+                    lat2 = gps.latitude,
+                    lon2 = gps.longitude,
+                )
+            }
+        }
+    }
+    HomeMapFabsLayer(
+        slice = slice,
+        visible = visible,
+        isDriving = isDriving,
+        onMyLocation = onMyLocation,
+        onParkedCar = {
+            // Cycle through the parked vehicles: no selection → first session,
+            // a selected session → the next one (wraps around). [MULTI-PARKING-001]
+            if (activeSessions.isNotEmpty()) {
+                val target = if (selectedSession != null) {
+                    val idx = activeSessions.indexOfFirst { it.id == selectedSession.id }
+                    activeSessions[(idx + 1) % activeSessions.size]
+                } else {
+                    activeSessions.first()
+                }
+                onMyCarMarkerClick(target.id)
+            }
+        },
+        onMidpoint = onMidpoint,
+        modifier = modifier,
+    )
 }
 

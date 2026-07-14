@@ -15,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.presentation.util.MapCircleFab
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
@@ -59,10 +58,10 @@ internal fun HomeMapFabColumn(
             enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),
             exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {
-            HomeMapFab(
+            MapCircleFab(
                 icon = Icons.Rounded.DirectionsCar,
                 // White by default; brand green only when this vehicle's parking is selected.
-                tint = if (isParkingSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                iconTint = if (isParkingSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
                 onClick = onParkedCar,
                 contentDescription = stringResource(Res.string.map_cd_go_to_car),
             )
@@ -72,7 +71,7 @@ internal fun HomeMapFabColumn(
             enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),
             exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {
-            HomeMapFab(
+            MapCircleFab(
                 icon = Icons.Rounded.Route,
                 onClick = onMidpoint,
                 contentDescription = stringResource(Res.string.map_cd_midpoint),
@@ -80,30 +79,11 @@ internal fun HomeMapFabColumn(
         }
         // Always visible — during a trip it re-engages driver-follow (tinted en-route blue to say so),
         // otherwise it recenters on GPS. Replaces the old floating "Following your trip" pill. [DET-STATUS-SHEET-001]
-        HomeMapFab(
+        MapCircleFab(
             icon = Icons.Rounded.MyLocation,
-            tint = if (followsCar) PapDriveBlue else Color.Unspecified,
+            iconTint = if (followsCar) PapDriveBlue else Color.Unspecified,
             onClick = onMyLocation,
             contentDescription = stringResource(Res.string.map_cd_my_location),
         )
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Reusable circular map FAB
-// ─────────────────────────────────────────────────────────────────────────────
-
-@Composable
-internal fun HomeMapFab(
-    icon: ImageVector,
-    onClick: () -> Unit,
-    tint: Color = Color.Unspecified,
-    containerColor: Color = Color.Unspecified,
-    contentDescription: String? = null,
-) = MapCircleFab(
-    icon = icon,
-    onClick = onClick,
-    iconTint = tint,
-    containerColor = containerColor,
-    contentDescription = contentDescription,
-)
