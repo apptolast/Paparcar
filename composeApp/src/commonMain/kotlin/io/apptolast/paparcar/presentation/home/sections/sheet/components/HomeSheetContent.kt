@@ -189,11 +189,11 @@ private fun LazyListScope.vehiclesSection(
 ) {
     val userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
-    val drivingVehicleId = state.drivingPuck?.vehicleId
+    val drivingVehicleId = state.drivingMeta?.vehicleId
     fun VehicleCard.isDriving() = session == null && vehicle.id == drivingVehicleId
     // The trip stopped and the user appears to be leaving the car — the chip flips to the candidate
     // ("Parking…") treatment. Only meaningful for the driving vehicle. [DET-PHASE-001]
-    val isCandidatePhase = state.drivingPuck?.phase == DetectionPhase.Candidate
+    val isCandidatePhase = state.drivingMeta?.phase == DetectionPhase.Candidate
     // Live state floats first: driving → parked → monitoring config (BT, Active, Inactive).
     val sorted = vehicleCards.sortedWith(
         compareByDescending<VehicleCard> { it.isDriving() }

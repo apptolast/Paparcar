@@ -1203,11 +1203,11 @@ private fun CameraLocationRow(
     // APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
     // moving car via the camera geocode. This is where the removed floating "monitoring" pill's
     // status now lives. [DET-STATUS-SHEET-001]
-    val drivingPuck = state.drivingPuck
-    if (drivingPuck != null && !showZoneHeader) {
-        val vehicle = state.vehicles.firstOrNull { it.id == drivingPuck.vehicleId }
+    val drivingMeta = state.drivingMeta
+    if (drivingMeta != null && !showZoneHeader) {
+        val vehicle = state.vehicles.firstOrNull { it.id == drivingMeta.vehicleId }
         val vehicleName = vehicleSummary(vehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
-        val isCandidate = drivingPuck.phase == io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate
+        val isCandidate = drivingMeta.phase == io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate
         // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
         // stays i18n-complete without new per-locale strings. [DET-STATUS-SHEET-001]
         val phaseWord = stringResource(

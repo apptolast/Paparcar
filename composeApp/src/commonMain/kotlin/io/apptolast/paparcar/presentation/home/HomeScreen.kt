@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -148,6 +149,11 @@ fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateLifecycleAware()
+    // Live trip render data collected SEPARATELY from [state] — it changes at the GPS fix rate and is
+    // NOT in HomeState, so this screen (and the expensive map) don't recompose per fix. We hold the
+    // State objects and derive per-field States; nothing here reads `.value` in the main body, so the
+    // fix-rate updates flow untouched to the map's isolated scopes. [DRIVE-PUCK-NATIVE-001]
+    val tripState = viewModel.tripRender.collectAsStateLifecycleAware()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Pre-resolve strings in Composable scope — cannot use stringResource inside LaunchedEffect.
@@ -217,6 +223,7 @@ fun HomeScreen(
 
     HomeContent(
         state = state,
+        tripState = tripState,
         onIntent = onIntent,
         effects = viewModel.effect,
         snackbarHostState = snackbarHostState,
@@ -243,6 +250,7 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     state: HomeState,
+    tripState: State<TripUpdate>,
     onIntent: (HomeIntent) -> Unit,
     effects: kotlinx.coroutines.flow.SharedFlow<HomeEffect>,
     snackbarHostState: SnackbarHostState,
@@ -252,6 +260,13 @@ private fun HomeContent(
     onAddVehicle: () -> Unit,
 ) {
     val uiController = rememberHomeUiController()
+    // Per-field trip States derived from [tripState]. Held as State and read only in isolated scopes
+    // (map, snapshotFlow effects, one-shot lambdas), so a fix never recomposes this content. [DRIVE-PUCK-NATIVE-001]
+    val drivingPuckState = remember(tripState) { derivedStateOf { tripState.value.puck } }
+    val tripTrailState = remember(tripState) { derivedStateOf { tripState.value.trail } }
+    val matchedTrailState = remember(tripState) { derivedStateOf { tripState.value.matchedTrail } }
+    val departurePointState = remember(tripState) { derivedStateOf { tripState.value.departurePoint } }
+    val isDrivingState = remember(tripState) { derivedStateOf { tripState.value.puck != null } }
     val coroutineScope = rememberCoroutineScope()
     val density = LocalDensity.current
     // Platform-aware launcher for external navigation (Google Maps on Android,
@@ -355,11 +370,15 @@ private fun HomeContent(
     // Driver-follow: engage when a detected trip starts (the driving puck appears) and disengage when
     // it ends; while engaged, the camera tracks each puck update without changing the user's zoom.
     // A manual pan pauses it (handled in the controller), and the map shows a resume FAB. [FOLLOW-001]
-    LaunchedEffect(state.drivingPuck != null) {
-        uiController.setDriverFollowActive(state.drivingPuck != null)
+    // Observe the puck via snapshotFlow (in a coroutine) rather than reading it in the composition, so
+    // driver-follow tracking doesn't recompose this screen per fix. [DRIVE-PUCK-NATIVE-001] [FOLLOW-001]
+    LaunchedEffect(uiController) {
+        snapshotFlow { drivingPuckState.value != null }.collect { uiController.setDriverFollowActive(it) }
     }
-    LaunchedEffect(state.drivingPuck) {
-        state.drivingPuck?.let { uiController.followDriver(it.latitude, it.longitude) }
+    LaunchedEffect(uiController) {
+        snapshotFlow { drivingPuckState.value }.collect { puck ->
+            puck?.let { uiController.followDriver(it.latitude, it.longitude) }
+        }
     }
 
     LaunchedEffect(selectedSpotId) {
@@ -652,7 +671,6 @@ private fun HomeContent(
                 val currentUserParking = rememberUpdatedState(state.userParking)
                 val currentActiveSessions = rememberUpdatedState(state.activeSessions)
                 val currentUserGpsPoint = rememberUpdatedState(state.userGpsPoint)
-                val currentDrivingPuck = rememberUpdatedState(state.drivingPuck)
 
                 // Stable lambda — remember(coroutineScope, sheetOffsetPx) so the
                 // object identity is preserved across recompositions; snap-target
@@ -764,6 +782,10 @@ private fun HomeContent(
                 val isAddingZone = state.mode is HomeMode.AddingZone
                 HomeMapSection(
                     state = state,
+                    drivingPuck = drivingPuckState,
+                    tripTrail = tripTrailState,
+                    matchedTrail = matchedTrailState,
+                    departurePoint = departurePointState,
                     selectedSpotId = selectedSpotId,
                     // Per-vehicle: only the matching marker renders selected. [MULTI-PARKING-001]
                     selectedSessionId = state.selectedItemId.takeIf { isParkingSelected },
@@ -844,7 +866,7 @@ private fun HomeContent(
                     {
                         // Mid-trip, "locate me" means the moving car: re-engage driver-follow and snap onto
                         // the puck (paused earlier by a map gesture). Otherwise recentre on GPS. [FOLLOW-001]
-                        val puck = currentDrivingPuck.value
+                        val puck = drivingPuckState.value
                         if (puck != null) {
                             uiController.resumeDriverFollow(puck.latitude, puck.longitude)
                         } else {
@@ -874,6 +896,7 @@ private fun HomeContent(
                 HomeMapFabsLayer(
                     state = state,
                     visible = fabsVisible,
+                    isDriving = isDrivingState.value,
                     onMyLocation = onMyLocation,
                     onParkedCar = {
                         val sessions = state.activeSessions

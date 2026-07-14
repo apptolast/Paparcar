@@ -46,8 +46,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
@@ -81,6 +84,16 @@ class HomeViewModel(
     private val search: HomeSearchController,
     private val spots: HomeSpotsController,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
+
+    /**
+     * The live trip render data (driving puck + trail) as its OWN StateFlow, deliberately NOT merged
+     * into [HomeState]: it changes at the GPS fix rate (~1 Hz real, faster in mock), and merging it
+     * would recompose the whole Home tree — including the expensive map — on every fix. Consumers
+     * collect this separately and read it only in isolated leaf scopes, so the map isolates the puck's
+     * high-frequency updates. [DRIVE-PUCK-NATIVE-001]
+     */
+    val tripRender: StateFlow<TripUpdate> =
+        trip.updates.stateIn(viewModelScope, SharingStarted.Eagerly, TripUpdate.IDLE)
 
     // ── Private flows ─────────────────────────────────────────────────────────
 
@@ -242,17 +255,14 @@ class HomeViewModel(
             }
             .launchIn(viewModelScope)
 
-        trip.updates
-            .onEach { update ->
-                updateState {
-                    copy(
-                        drivingPuck = update.puck,
-                        tripTrail = update.trail,
-                        matchedTrail = update.matchedTrail,
-                        departurePoint = update.departurePoint,
-                    )
-                }
-            }
+        // trip.updates is NOT merged into HomeState — it's exposed as [tripRender] (see above) so the
+        // fix-rate puck/trail don't recompose the whole Home tree. Only the trip's rarely-changing
+        // METADATA (vehicle + phase) is mirrored into HomeState for the sheet/peek, deduped so a fix that
+        // doesn't change it never recomposes. [DRIVE-PUCK-NATIVE-001]
+        tripRender
+            .map { it.puck?.let { p -> DrivingMeta(p.vehicleId, p.phase) } }
+            .distinctUntilChanged()
+            .onEach { meta -> updateState { copy(drivingMeta = meta) } }
             .launchIn(viewModelScope)
 
         search.updates

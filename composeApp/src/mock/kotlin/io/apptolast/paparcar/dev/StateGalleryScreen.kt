@@ -274,15 +274,9 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         userGpsPoint = sampleGps,
                         vehicles = listOf(FakeData.vehicleSedan),
                         nearbySpots = FakeData.nearbySpots,
-                        drivingPuck = io.apptolast.paparcar.domain.model.DrivingPuck(
-                            latitude = sampleGps.latitude,
-                            longitude = sampleGps.longitude,
-                            bearingDegrees = 42f,
-                            accuracy = 8f,
-                            carbodyType = FakeData.vehicleSedan.carbodyType,
-                            sizeCategory = FakeData.vehicleSedan.sizeCategory,
-                            color = FakeData.vehicleSedan.color,
+                        drivingMeta = io.apptolast.paparcar.presentation.home.DrivingMeta(
                             vehicleId = FakeData.vehicleSedan.id,
+                            phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Driving,
                         ),
                     ),
                 )
@@ -295,14 +289,7 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                         userGpsPoint = sampleGps,
                         vehicles = listOf(FakeData.vehicleSedan),
                         nearbySpots = FakeData.nearbySpots,
-                        drivingPuck = io.apptolast.paparcar.domain.model.DrivingPuck(
-                            latitude = sampleGps.latitude,
-                            longitude = sampleGps.longitude,
-                            bearingDegrees = 42f,
-                            accuracy = 8f,
-                            carbodyType = FakeData.vehicleSedan.carbodyType,
-                            sizeCategory = FakeData.vehicleSedan.sizeCategory,
-                            color = FakeData.vehicleSedan.color,
+                        drivingMeta = io.apptolast.paparcar.presentation.home.DrivingMeta(
                             vehicleId = FakeData.vehicleSedan.id,
                             phase = io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate,
                         ),

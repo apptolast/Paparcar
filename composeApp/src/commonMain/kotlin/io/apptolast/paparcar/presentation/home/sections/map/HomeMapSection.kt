@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import io.apptolast.paparcar.domain.model.DrivingPuck
+import io.apptolast.paparcar.domain.model.GpsPoint
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -34,6 +37,12 @@ import io.apptolast.paparcar.ui.theme.PapMotion
 @Composable
 internal fun HomeMapSection(
     state: HomeState,
+    // Live trip render data as State — passed through to the map's isolated scopes so the fix-rate puck
+    // never recomposes this section or the map. [DRIVE-PUCK-NATIVE-001]
+    drivingPuck: State<DrivingPuck?>,
+    tripTrail: State<List<GpsPoint>>,
+    matchedTrail: State<List<GpsPoint>>,
+    departurePoint: State<GpsPoint?>,
     selectedSpotId: String?,
     selectedSessionId: String?,
     reportMode: Boolean,
@@ -68,10 +77,10 @@ internal fun HomeMapSection(
         ),
         spots = state.nearbySpots,
         userLocation = state.userGpsPoint,
-        drivingPuck = state.drivingPuck,
-        tripTrail = state.tripTrail,
-        matchedTrail = state.matchedTrail,
-        departurePoint = state.departurePoint,
+        drivingPuck = drivingPuck,
+        tripTrail = tripTrail,
+        matchedTrail = matchedTrail,
+        departurePoint = departurePoint,
         centerDrivingPuck = followingDriver,
         parkingLocation = state.userParking?.location,
         parkingVehicleCarbody = addParkingVehicle?.carbodyType,
@@ -121,6 +130,7 @@ internal fun HomeMapSection(
 internal fun HomeMapFabsLayer(
     state: HomeState,
     visible: Boolean,
+    isDriving: Boolean,
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
     onMidpoint: () -> Unit,
@@ -142,7 +152,7 @@ internal fun HomeMapFabsLayer(
                 userGpsPoint = state.userGpsPoint,
                 isParkingSelected = state.isParkingSelected,
                 // During a monitored trip the MyLocation FAB re-engages driver-follow instead of GPS. [DET-STATUS-SHEET-001]
-                followsCar = state.drivingPuck != null,
+                followsCar = isDriving,
                 onMyLocation = onMyLocation,
                 onParkedCar = onParkedCar,
                 onMidpoint = onMidpoint,

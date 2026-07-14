@@ -42,6 +42,14 @@ sealed class HomeMode {
     data object AddingParking : HomeMode()
 }
 
+/** The trip's rarely-changing metadata for the sheet/peek — NOT its fix-rate position (that's in
+ *  [HomeViewModel.tripRender]). [DRIVE-PUCK-NATIVE-001] */
+@Immutable
+data class DrivingMeta(
+    val vehicleId: String?,
+    val phase: io.apptolast.paparcar.domain.detection.DetectionPhase,
+)
+
 @Immutable
 data class HomeState(
 
@@ -59,31 +67,12 @@ data class HomeState(
 
     val userGpsPoint: GpsPoint? = null,
     val userAddressAndPlace: AddressAndPlace? = null,
-    /**
-     * Live driving puck (own car, top-down, heading-rotated) — non-null only while detection is
-     * actively monitoring a trip. Drives the map's location-active marker. [MAP-ICONS-V2]
-     */
-    val drivingPuck: DrivingPuck? = null,
-
-    /**
-     * Breadcrumb of the current trip — the path the car has driven, drawn as a navigation-style
-     * polyline behind the puck. Accumulated while [drivingPuck] is non-null, cleared when the trip
-     * ends. [TRIP-TRAIL-001]
-     */
-    val tripTrail: List<GpsPoint> = emptyList(),
-
-    /**
-     * The trip trail snapped onto OSM streets (free map-matching via Overpass) — non-empty once roads
-     * are fetched and matched. When present the polyline uses this (it follows the road); empty falls
-     * back to the raw [tripTrail] + spline. Includes the departure origin as its first point. [ROUTE-SNAP-001]
-     */
-    val matchedTrail: List<GpsPoint> = emptyList(),
-
-    /**
-     * Where the car departed from — the last parking location, shown faded on the map while a trip is
-     * in progress (you've left it, it's no longer yours). Null outside a trip. [TRIP-TRAIL-001]
-     */
-    val departurePoint: GpsPoint? = null,
+    // The live trip render data (driving puck POSITION + trail) is deliberately NOT here — it changes at
+    // the GPS fix rate and would recompose the whole Home tree. It lives in its own StateFlow,
+    // HomeViewModel.tripRender, collected separately by the map. Only the trip's rarely-changing
+    // METADATA (which vehicle, which phase) lives here — the sheet/peek need it and it's deduped so a
+    // fix that doesn't change it doesn't recompose. Null when no trip. [DRIVE-PUCK-NATIVE-001]
+    val drivingMeta: DrivingMeta? = null,
 
     // ── Community data ────────────────────────────────────────────────────────
 

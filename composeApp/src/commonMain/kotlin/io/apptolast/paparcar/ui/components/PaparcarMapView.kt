@@ -20,8 +20,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +76,7 @@ import io.apptolast.paparcar.presentation.util.zoneIconFor
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapGreen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
@@ -257,6 +261,8 @@ private const val MARKER_MY_CAR_SELECTED = "my_car_selected"
 private const val MARKER_DEPARTURE       = "departure" // trip origin (blue dot) during a trip [DEPART-CONSISTENCY-001]
 // Trip breadcrumb polyline width (screen px in Google Maps). [TRIP-TRAIL-001]
 private const val TRIP_TRAIL_WIDTH = 14f
+/** The trip trail redraws at most this often — a growing trail doesn't recompose the map per fix. */
+private const val TRAIL_SAMPLE_MS = 500L
 // Interpolated points inserted per original span when smoothing the trail. Higher = rounder curves,
 // heavier polyline. [ROUTE-SMOOTH-002]
 private const val TRAIL_SMOOTH_SEGMENTS = 8
@@ -427,6 +433,21 @@ private const val USER_DOT_GLIDE_MS = 600
 /** Interpolated render pose of the driving puck (geo position + heading). [FOLLOW-001] */
 private data class PuckPose(val latitude: Double, val longitude: Double, val headingDegrees: Float)
 
+/** The puck's RARELY-changing visual identity — derived so a fix (position only) never recomposes the
+ *  map. [DRIVE-PUCK-NATIVE-001] */
+private data class PuckMeta(
+    val carbodyType: io.apptolast.paparcar.domain.model.CarbodyType?,
+    val sizeCategory: VehicleSize?,
+    val color: io.apptolast.paparcar.domain.model.VehicleColor?,
+    val phase: DetectionPhase,
+    val vehicleId: String?,
+)
+
+// Stable empty States for callers without live trip data (e.g. ParkingLocationScreen). [DRIVE-PUCK-NATIVE-001]
+private val EMPTY_PUCK_STATE: State<DrivingPuck?> = mutableStateOf(null)
+private val EMPTY_TRAIL_STATE: State<List<GpsPoint>> = mutableStateOf(emptyList())
+private val EMPTY_DEPARTURE_STATE: State<GpsPoint?> = mutableStateOf(null)
+
 private fun lerpDouble(a: Double, b: Double, t: Float): Double = a + (b - a) * t
 
 // The puck's smooth glide between GPS fixes is now done NATIVELY by the kmp-maps fork (it animates the
@@ -559,18 +580,18 @@ fun PaparcarMapView(
     parkingLocation: GpsPoint?,
     modifier: Modifier = Modifier,
     /**
-     * Live driving puck — when non-null the user's own car is drawn top-down at this location,
-     * rotated to the heading, and the native location dot is suppressed. Non-null only while
-     * detection is actively monitoring a trip. [MAP-ICONS-V2]
+     * Live driving puck as OBSERVABLE State — the car's high-frequency position/heading. Passed as
+     * State (not a value) so the map reads it only in isolated scopes (a coroutine for the native puck
+     * glide, a derived snapshot for its rarely-changing metadata), NOT in its main body — otherwise the
+     * whole map recomposes on every GPS fix and stutters pans. [DRIVE-PUCK-NATIVE-001] [MAP-ICONS-V2]
      */
-    drivingPuck: DrivingPuck? = null,
-    /** Breadcrumb of the current trip — drawn as a navigation-style polyline behind the puck. [TRIP-TRAIL-001] */
-    tripTrail: List<GpsPoint> = emptyList(),
-    /** Trip trail snapped onto OSM streets; preferred over [tripTrail] when non-empty (follows the
-     *  road). Already includes the departure origin as its first point. [ROUTE-SNAP-001] */
-    matchedTrail: List<GpsPoint> = emptyList(),
+    drivingPuck: State<DrivingPuck?> = EMPTY_PUCK_STATE,
+    /** Breadcrumb of the current trip (State — read in a derived so it doesn't recompose per fix). */
+    tripTrail: State<List<GpsPoint>> = EMPTY_TRAIL_STATE,
+    /** Trip trail snapped onto OSM streets; preferred over [tripTrail] when non-empty. [ROUTE-SNAP-001] */
+    matchedTrail: State<List<GpsPoint>> = EMPTY_TRAIL_STATE,
     /** Faded "departure" point — where the car left from, shown while a trip runs. [TRIP-TRAIL-001] */
-    departurePoint: GpsPoint? = null,
+    departurePoint: State<GpsPoint?> = EMPTY_DEPARTURE_STATE,
     /**
      * When true (camera is following the trip), the driving puck is drawn as a CENTERED overlay rather
      * than a moving marker. kmpmaps keys markers by hashCode (incl. coordinates), so a marker that moves
@@ -634,6 +655,29 @@ fun PaparcarMapView(
     onMapReady: () -> Unit = {},
 ) {
     val isReadOnly = config.interactionMode == MapInteractionMode.READ_ONLY
+
+
+    // Read the fix-rate puck ONLY in isolated scopes so the map body doesn't recompose per fix:
+    //  · metadata (carbody/size/colour/phase) via a derived snapshot → recomposes only when it changes;
+    //  · position/heading via a coroutine (snapshotFlow) → updates the native puck with NO recomposition;
+    //  · departure point via a derived (changes once per trip).
+    // [DRIVE-PUCK-NATIVE-001]
+    val puckMeta by remember {
+        derivedStateOf {
+            drivingPuck.value?.let { PuckMeta(it.carbodyType, it.sizeCategory, it.color, it.phase, it.vehicleId) }
+        }
+    }
+    val puckPositionState = remember { mutableStateOf(Coordinates(0.0, 0.0)) }
+    val puckRotationState = remember { mutableStateOf(0f) }
+    LaunchedEffect(Unit) {
+        snapshotFlow { drivingPuck.value }.collect { p ->
+            p?.let {
+                puckPositionState.value = Coordinates(it.latitude, it.longitude)
+                it.bearingDegrees?.let { b -> puckRotationState.value = b }
+            }
+        }
+    }
+    val departure by remember { derivedStateOf { departurePoint.value } }
 
     // ── Clustering ───────────────────────────────────────────────────────────
     var currentZoom by remember { mutableStateOf(ZOOM_DEFAULT) }
@@ -699,7 +743,7 @@ fun PaparcarMapView(
     // bitmap by contentId. [MAP-MARKERS-DIM-002]
     val markers = remember(
         clusters, parkingLocation, parkedVehicles, selectedSpotId, selectedSessionId, zones, dimSpots,
-        departurePoint,
+        departure,
     ) {
         buildList {
             // Zone markers — added FIRST (lowest zIndex) so spot/parking markers
@@ -792,7 +836,7 @@ fun PaparcarMapView(
                 }
             }
             // Trip origin — a blue dot where the car left from, under the trail + puck. [DEPART-CONSISTENCY-001]
-            departurePoint?.let { dp ->
+            departure?.let { dp ->
                 add(
                     Marker(
                         coordinates = Coordinates(dp.latitude, dp.longitude),
@@ -830,7 +874,7 @@ fun PaparcarMapView(
         // solely on carbody/size/colour (heading is native rotation, position is the marker coordinate).
         // Keying on the full object rebuilt this map every GPS fix (~1 Hz), which re-rasterised the puck
         // MarkerComposable and flashed a doubled halo — the periodic blue flicker. [DRIVE-PUCK-NATIVE-001]
-        drivingPuck?.carbodyType, drivingPuck?.sizeCategory, drivingPuck?.color,
+        puckMeta,
     ) {
         val baseHandlers: Map<String, @Composable (Marker) -> Unit> = buildMap {
             // ── Fallback single-parking marker (ParkingLocationScreen) ──
@@ -969,14 +1013,14 @@ fun PaparcarMapView(
         // Heading is applied as native marker rotation now (see [PUCK_MARKER_OPTIONS]), so the bitmap
         // is drawn north-up (headingDegrees = 0) and no longer multiplied per heading bucket.
         // [DRIVE-PUCK-NATIVE-001]
-        val drivingHandler: Map<String, @Composable (Marker) -> Unit> = drivingPuck?.let { puck ->
+        val drivingHandler: Map<String, @Composable (Marker) -> Unit> = puckMeta?.let { meta ->
             mapOf(
-                locationActiveContentId(puck.carbodyType, puck.color) to { _: Marker ->
+                locationActiveContentId(meta.carbodyType, meta.color) to { _: Marker ->
                     LocationActiveMarker(
-                        carbody = puck.carbodyType,
-                        size = puck.sizeCategory,
+                        carbody = meta.carbodyType,
+                        size = meta.sizeCategory,
                         headingDegrees = 0f,
-                        color = puck.color,
+                        color = meta.color,
                     )
                 },
             )
@@ -1068,11 +1112,6 @@ fun PaparcarMapView(
 
     // Interpolated render pose so the driving car glides between GPS fixes instead of stepping. Also
     // drives the follow camera (below) so the puck marker stays pinned to screen-centre. [FOLLOW-001]
-    // Raw puck pose (no 60fps Compose interpolation): the fork glides the marker NATIVELY between these
-    // fixes, so reading a per-frame Animatable here — which recomposed the whole map 60×/s and starved
-    // touch input — is gone. [DRIVE-PUCK-NATIVE-001]
-    val puckPose: PuckPose? = drivingPuck?.let { PuckPose(it.latitude, it.longitude, it.bearingDegrees ?: 0f) }
-
     val cameraPosition = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
         userLocation = userLocation,
@@ -1085,7 +1124,13 @@ fun PaparcarMapView(
         // (what the old centered overlay did) instead of drifting as a lagging camera catches up.
         // A real pan pauses follow (centerDrivingPuck → false), handing back to the tween. Touching the
         // map suspends the lock immediately so the first drag isn't fought. [DRIVE-PUCK-NATIVE-001]
-        followPose = if (centerDrivingPuck && drivingPuck != null && !userTouchingMap) puckPose else null,
+        // Read the puck position ONLY when actually following (and not touching) — during a pan this
+        // short-circuits, so the fix-rate position is never read in the body and the pan doesn't stutter.
+        followPose = if (centerDrivingPuck && puckMeta != null && !userTouchingMap) {
+            puckPositionState.value.let { PuckPose(it.latitude, it.longitude, puckRotationState.value) }
+        } else {
+            null
+        },
         // While a finger is down, freeze all programmatic camera moves so nothing fights the gesture.
         userInteracting = userTouchingMap,
     )
@@ -1126,26 +1171,30 @@ fun PaparcarMapView(
 
     // Live trip breadcrumb as a native polyline (en-route blue), rendered below the markers. Prefer the
     // OSM-matched trail (follows the road, includes the origin); otherwise start at the departure point
-    // and trace the raw puck path. [TRIP-TRAIL-001] [ROUTE-SNAP-001]
-    val tripPolylines = remember(tripTrail, departurePoint, matchedTrail) {
-        if (matchedTrail.size >= 2) {
-            // Matched points are dense and already on the road — connect them directly. Do NOT spline:
-            // Catmull-Rom overshoots into loops where consecutive snaps jump between lanes. [ROUTE-SNAP-001]
-            listOf(Polyline(
-                coordinates = matchedTrail.map { Coordinates(it.latitude, it.longitude) },
-                width = TRIP_TRAIL_WIDTH,
-                lineColor = PapDriveBlue,
-            ))
-        } else {
-            // Raw fallback (no roads matched): sparse GPS, so smooth it into a flowing curve so tight
-            // turns read as curves rather than chord polygons. [ROUTE-SMOOTH-002]
-            val coords = buildList {
-                departurePoint?.let { add(Coordinates(it.latitude, it.longitude)) }
-                tripTrail.forEach { add(Coordinates(it.latitude, it.longitude)) }
+    // and trace the raw puck path. Rebuilt off the composition (a coroutine) and SAMPLED to ~2 Hz, so a
+    // growing trail redraws a few times a second instead of on every GPS fix — the map recomposes at most
+    // ~2 Hz from the trail, not per fix, which keeps pans smooth. [DRIVE-PUCK-NATIVE-001] [ROUTE-SNAP-001]
+    val tripPolylines = remember { mutableStateOf<List<Polyline>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        snapshotFlow { Triple(matchedTrail.value, tripTrail.value, departurePoint.value) }
+            .sample(TRAIL_SAMPLE_MS)
+            .collect { (matched, raw, dep) ->
+                tripPolylines.value = if (matched.size >= 2) {
+                    // Matched points are dense and already on the road — connect them directly (no spline).
+                    listOf(Polyline(
+                        coordinates = matched.map { Coordinates(it.latitude, it.longitude) },
+                        width = TRIP_TRAIL_WIDTH,
+                        lineColor = PapDriveBlue,
+                    ))
+                } else {
+                    val coords = buildList {
+                        dep?.let { add(Coordinates(it.latitude, it.longitude)) }
+                        raw.forEach { add(Coordinates(it.latitude, it.longitude)) }
+                    }
+                    if (coords.size < 2) emptyList()
+                    else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
+                }
             }
-            if (coords.size < 2) emptyList()
-            else listOf(Polyline(coordinates = smoothTrail(coords), width = TRIP_TRAIL_WIDTH, lineColor = PapDriveBlue))
-        }
     }
 
     // The driving puck as a single native Marker with a STABLE id (so it repositions in place, never
@@ -1160,7 +1209,7 @@ fun PaparcarMapView(
     // coordinates glide between fixes. [DRIVE-PUCK-NATIVE-001]
     val userDotCoords = rememberGlidedLatLon(userLocation)
     val showUserDot = userDotCoords != null &&
-        (drivingPuck == null || drivingPuck.phase == DetectionPhase.Candidate) && mapLoaded
+        (puckMeta?.phase == null || puckMeta?.phase == DetectionPhase.Candidate) && mapLoaded
     // User-dot coordinates keyed into the static list: null when hidden (so its glide never churns the
     // list while driving), raw fix while dragging so a pan isn't stuttered by the per-frame glide.
     val renderUserDot = when {
@@ -1190,25 +1239,16 @@ fun PaparcarMapView(
     if (!userTouchingMap) heldMarkers[0] = staticMarkers
     val allMarkers = if (userTouchingMap) (heldMarkers[0] ?: staticMarkers) else staticMarkers
 
-    // The moving driving puck as a LiveMarker: its position + rotation are observable State the fork
-    // reads in its OWN scope (snapshotFlow) and glides natively — updating them does NOT recompose the
-    // map, so the puck moving at any fix rate never stutters the pan. Updated in a SideEffect so the
-    // write is off the composition read path. The LiveMarker list is stable across position changes
-    // (keyed only on the puck's visual identity). [DRIVE-PUCK-NATIVE-001]
-    val puckPositionState = remember { mutableStateOf(Coordinates(0.0, 0.0)) }
-    val puckRotationState = remember { mutableStateOf(0f) }
-    SideEffect {
-        drivingPuck?.let { puck ->
-            puckPositionState.value = Coordinates(puck.latitude, puck.longitude)
-            puckRotationState.value = puck.bearingDegrees ?: puckRotationState.value
-        }
-    }
-    val puckLiveMarkers = remember(drivingPuck?.carbodyType, drivingPuck?.color) {
-        drivingPuck?.let { puck ->
+    // The moving driving puck as a LiveMarker: its position/rotation are the observable State the fork
+    // reads in its OWN scope and glides natively — so the puck moving at any fix rate never recomposes
+    // the map. The list is stable across position changes (keyed only on the puck's visual identity, via
+    // [puckMeta]). [DRIVE-PUCK-NATIVE-001]
+    val puckLiveMarkers = remember(puckMeta) {
+        puckMeta?.let { meta ->
             listOf(
                 LiveMarker(
                     id = MARKER_PUCK_ID,
-                    contentId = locationActiveContentId(puck.carbodyType, puck.color),
+                    contentId = locationActiveContentId(meta.carbodyType, meta.color),
                     position = puckPositionState,
                     rotation = puckRotationState,
                     androidMarkerOptions = PUCK_MARKER_OPTIONS,
@@ -1266,7 +1306,7 @@ fun PaparcarMapView(
             markers = allMarkers,
             liveMarkers = puckLiveMarkers,
             circles = zoneCircles,
-            polylines = tripPolylines,
+            polylines = tripPolylines.value,
             customMarkerContent = customMarkerContent,
             onCircleClick = { circle ->
                 // Circles carry no id, so we recover the zone by its centre coords
@@ -1279,10 +1319,17 @@ fun PaparcarMapView(
             onCameraMove = { pos ->
                 // kmp-maps 0.9.1 made CameraPosition.coordinates nullable (it can be absent
                 // briefly mid-gesture); zoom always updates, lat/lon only when coords are present.
-                pos.zoom?.let { currentZoom = it }
+                // While a finger is dragging, DON'T update our camera State: the camera is frozen (we
+                // don't render actualCam then), and updating it would recompose the whole map ~30×/s
+                // under the gesture and stutter the pan. The last value before touch is kept for the
+                // follow anchor / frozen capture. The VM callback still fires so its tracking stays live.
+                // [DRIVE-PUCK-NATIVE-001]
                 pos.coordinates?.let { coords ->
-                    actualCamLat = coords.latitude.toFloat()
-                    actualCamLon = coords.longitude.toFloat()
+                    if (!userTouchingMap) {
+                        pos.zoom?.let { currentZoom = it }
+                        actualCamLat = coords.latitude.toFloat()
+                        actualCamLon = coords.longitude.toFloat()
+                    }
                     if (!isReadOnly) {
                         onCameraMove(coords.latitude, coords.longitude)
                     }
@@ -1366,7 +1413,7 @@ fun PaparcarMapView(
                     modifier = Modifier.align(Alignment.Center),
                 )
             }
-        } else if (drivingPuck == null) {
+        } else if (puckMeta == null) {
             // The centre crosshair marks "the map centre" for picking a location in Browse. During a
             // detected trip the centre IS the moving car (the driving puck), so the crosshair would
             // just sit on top of it — visual noise with no meaning. Hide it while driving. [FOLLOW-001]
