@@ -1174,7 +1174,7 @@ fun PaparcarMapView(
         userTouchingMap -> userLocation?.let { Coordinates(it.latitude, it.longitude) }
         else -> userDotCoords
     }
-    val allMarkers = remember(markers, drivingPuck, renderPuckPose, renderUserDot) {
+    val liveMarkers = remember(markers, drivingPuck, renderPuckPose, renderUserDot) {
         var result = markers
         drivingPuck?.let { puck ->
             val heading = renderPuckPose?.headingDegrees ?: puck.bearingDegrees ?: 0f
@@ -1200,6 +1200,12 @@ fun PaparcarMapView(
         }
         result
     }
+    // Hold the marker list CONSTANT (same instance) while a finger is dragging, so the map's marker
+    // layer isn't rebuilt under the gesture — the static-list smoothness the old overlay had. The puck
+    // holds its spot during the drag and the fork resumes gliding it on release. [DRIVE-PUCK-NATIVE-001]
+    val heldMarkers = remember { arrayOfNulls<List<Marker>>(1) }
+    if (!userTouchingMap) heldMarkers[0] = liveMarkers
+    val allMarkers = if (userTouchingMap) (heldMarkers[0] ?: liveMarkers) else liveMarkers
 
     Box(
         modifier = modifier.pointerInput(Unit) {
