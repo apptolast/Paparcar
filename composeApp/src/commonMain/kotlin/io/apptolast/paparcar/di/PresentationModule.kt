@@ -35,7 +35,6 @@ val presentationModule = module {
             roadNetworkDataSource = getOrNull(),
             vehicleRepository = get(),
             permissionManager = get(),
-            userParkingRepository = get(),
         )
     }
     factory { HomeSearchController(searchAddress = get()) }

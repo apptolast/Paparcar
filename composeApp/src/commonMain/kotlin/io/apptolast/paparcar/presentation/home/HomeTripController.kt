@@ -12,7 +12,6 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.places.RoadNetworkDataSource
 import io.apptolast.paparcar.domain.places.RoadWay
-import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +80,6 @@ class HomeTripController(
     private val roadNetworkDataSource: RoadNetworkDataSource?,
     private val vehicleRepository: VehicleRepository,
     private val permissionManager: PermissionManager,
-    private val userParkingRepository: UserParkingRepository,
     private val tag: String = TAG,
 ) {
 
@@ -94,9 +92,6 @@ class HomeTripController(
     val updates: Flow<TripUpdate> = channelFlow {
         // Latest fleet, for tagging the puck with the departing vehicle's body/colour.
         var vehicles = emptyList<Vehicle>()
-        // Last parking location seen while a session was active — reused as the faded "departure point"
-        // once the car leaves and a trip starts (the session is already gone by then). [TRIP-TRAIL-001]
-        var lastParkingLocation: GpsPoint? = null
         // Last GPS fix seen while the trip was in the Driving phase — the spot the car stopped at. Used to
         // freeze the driving puck in place during the Candidate phase (user walking away from the car) and
         // reset when the trip ends. [DET-PHASE-001]
@@ -114,11 +109,6 @@ class HomeTripController(
 
         launch {
             vehicleRepository.observeVehicles().collect { vehicles = it }
-        }
-        launch {
-            userParkingRepository.observeActiveSessions().collect { sessions ->
-                sessions.firstOrNull()?.let { lastParkingLocation = it.location }
-            }
         }
 
         // ── Map-matching pipeline ─────────────────────────────────────────────────
@@ -227,10 +217,11 @@ class HomeTripController(
                     } else {
                         MapTrail.append(current.trail, GpsPoint(puck.latitude, puck.longitude, puck.accuracy, 0L, 0f))
                     }
-                    val depart = pair.first.departurePoint ?: lastParkingLocation
-                    // Feed the matcher the origin + trail so the snapped line starts at the parking
-                    // spot (also fixes the straight parking→first-fix chord). [ROUTE-SNAP-001]
-                    trailForMatching.value = (listOfNotNull(depart) + newTrail)
+                    // The trip's origin is where detection STARTED taking fixes — the first real driving
+                    // fix — NOT the last parking spot. We don't fabricate a parking→first-fix chord; the
+                    // trail is exactly the measured fixes. [DRIVE-PUCK-NATIVE-001]
+                    val depart = newTrail.firstOrNull()
+                    trailForMatching.value = newTrail
                     current = TripUpdate(puck = puck, trail = newTrail, matchedTrail = current.matchedTrail, departurePoint = depart)
                     send(current)
                 }

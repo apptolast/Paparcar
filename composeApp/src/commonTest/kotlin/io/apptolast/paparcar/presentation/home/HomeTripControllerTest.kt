@@ -8,12 +8,10 @@ import io.apptolast.paparcar.domain.location.UserLocationUi
 import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.fakes.FakeLocationDataSource
 import io.apptolast.paparcar.fakes.FakePermissionManager
-import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +48,6 @@ class HomeTripControllerTest {
     private lateinit var location: FakeLocationDataSource
     private lateinit var permissions: FakePermissionManager
     private lateinit var vehicleRepo: FakeVehicleRepository
-    private lateinit var parkingRepo: FakeUserParkingRepository
     private val readiness = MutableSharedFlow<DetectionReadiness>(extraBufferCapacity = 64)
 
     /** Every emission of the collected updates flow, in order. */
@@ -71,7 +68,6 @@ class HomeTripControllerTest {
         location = FakeLocationDataSource()
         permissions = FakePermissionManager()
         vehicleRepo = FakeVehicleRepository(defaultVehicle = vehicle)
-        parkingRepo = FakeUserParkingRepository()
         updates.clear()
     }
 
@@ -89,7 +85,6 @@ class HomeTripControllerTest {
             roadNetworkDataSource = null,
             vehicleRepository = vehicleRepo,
             permissionManager = permissions,
-            userParkingRepository = parkingRepo,
         )
         scope.launch { controller.updates.collect { updates.add(it) } }
     }
@@ -206,37 +201,36 @@ class HomeTripControllerTest {
         assertEquals(listOf(TripUpdate.IDLE), updates)
     }
 
-    // ── Departure origin resolution [DEPART-CONSISTENCY-001] ─────────────────────
+    // ── Departure origin = where detection started taking fixes [DRIVE-PUCK-NATIVE-001] ──
 
     @Test
-    fun `should_fall_back_to_the_active_session_location_as_departure_when_the_trip_has_none`() = runTest {
-        // The controller observes active sessions itself — the parked location it sees becomes the
-        // departure fallback once the trip starts (replaces the old rememberParkingLocation command).
-        parkingRepo = FakeUserParkingRepository(
-            initialSession = UserParking(id = "p1", location = gps(10.0, 20.0), isActive = true),
-        )
+    fun `should_use_the_first_driving_fix_as_the_departure_origin`() = runTest {
         startController()
 
         // departingVehicleId null also exercises monitoredVehicle() strategy resolution.
         readiness.emit(monitoring(departurePoint = null, departingVehicleId = null))
-        location.emitUi(uiLoc(40.0, -3.0))
+        location.emitUi(uiLoc(40.0, -3.0)) // first fix — this is the origin
+        location.emitUi(uiLoc(41.0, -2.0)) // trip extends; origin must not move
 
         val update = updates.last()
-        assertEquals(gps(10.0, 20.0), update.departurePoint)
+        assertEquals(40.0, update.departurePoint?.latitude)
+        assertEquals(-3.0, update.departurePoint?.longitude)
         assertEquals("veh-1", update.puck?.vehicleId) // resolved via monitoredVehicle (active vehicle)
     }
 
     @Test
-    fun `should_prefer_the_trip_departure_point_over_the_last_session_location`() = runTest {
-        parkingRepo = FakeUserParkingRepository(
-            initialSession = UserParking(id = "p1", location = gps(10.0, 20.0), isActive = true),
-        )
+    fun `should_ignore_the_service_departure_point_and_never_invent_a_parking_chord`() = runTest {
         startController()
-        val tripDeparture = gps(50.0, 60.0)
+        val serviceDeparture = gps(50.0, 60.0) // the parking/geofence origin the service resolved
 
-        readiness.emit(monitoring(departurePoint = tripDeparture))
+        readiness.emit(monitoring(departurePoint = serviceDeparture))
         location.emitUi(uiLoc(40.0, -3.0))
 
-        assertEquals(tripDeparture, updates.last().departurePoint)
+        // Origin is the first measured fix, NOT the service/parking point — and the trail is not
+        // prefixed with a fabricated parking→first-fix segment (just the one measured fix).
+        val update = updates.last()
+        assertEquals(40.0, update.departurePoint?.latitude)
+        assertEquals(-3.0, update.departurePoint?.longitude)
+        assertEquals(1, update.trail.size)
     }
 }

@@ -134,7 +134,6 @@ class HomeViewModelTest {
                 roadNetworkDataSource = null,
                 vehicleRepository = vehicleRepo,
                 permissionManager = permissions,
-                userParkingRepository = parkingRepo,
             ),
             search = HomeSearchController(searchAddress),
             spots = HomeSpotsController(permissions, observeNearbySpots),
