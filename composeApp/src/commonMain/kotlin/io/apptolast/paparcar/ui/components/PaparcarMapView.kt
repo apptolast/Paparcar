@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -1503,25 +1504,39 @@ private fun rememberCameraAnimationState(
     // a programmatic animation. This ensures animations start from wherever
     // the user left the camera (after dragging/flinging/pinching) without
     // creating a feedback loop that would interrupt the native gesture each frame.
-    // When the user touches the map, sync our Animatables to the real camera and then leave them
-    // static, so the returned cameraPosition stops changing — native pan/zoom get full control with
-    // nothing programmatic fighting them. On the follow→touch transition this also avoids a jump.
-    // [DRIVE-PUCK-NATIVE-001]
-    LaunchedEffect(userInteracting) {
-        if (userInteracting) {
-            actualCamLat?.let { animLat.snapTo(it) }
-            actualCamLon?.let { animLon.snapTo(it) }
-            animZoom.snapTo(actualCamZoom)
-        }
+    val following = followPose != null
+
+    // Camera position captured SYNCHRONOUSLY the instant a finger touches the map, held static for the
+    // gesture so nothing programmatic fights the native pan. Synchronous (not via a post-composition
+    // LaunchedEffect) so the first touched frame renders the real position, not a stale flash. The
+    // tracker advances in a SideEffect after composition. [DRIVE-PUCK-NATIVE-001]
+    var frozenLat by remember { mutableStateOf(0f) }
+    var frozenLon by remember { mutableStateOf(0f) }
+    var frozenZoom by remember { mutableStateOf(actualCamZoom) }
+    var prevInteracting by remember { mutableStateOf(false) }
+    if (userInteracting && !prevInteracting) {
+        frozenLat = actualCamLat ?: animLat.value
+        frozenLon = actualCamLon ?: animLon.value
+        frozenZoom = actualCamZoom
+    }
+    SideEffect { prevInteracting = userInteracting }
+
+    // Follow-engage glide progress: 0 = at the camera's current spot on engage, 1 = locked on the puck.
+    // Reset to 0 on disengage so a later re-engage starts from the camera's real position instead of
+    // flashing to the puck for one frame (the loc-button flicker). [DRIVE-PUCK-NATIVE-001]
+    val followProgress = remember { Animatable(0f) }
+    LaunchedEffect(following) {
+        if (following) followProgress.animateTo(1f, tween(CAMERA_ANIM_MS, easing = FastOutSlowInEasing))
+        else followProgress.snapTo(0f)
     }
 
     // Keyed on the TARGET (and follow lock), deliberately NOT on userInteracting: releasing a finger
     // must not re-run the tween toward a stale cameraTarget (the last followed puck position) — that
     // was re-centring the map on the car after every pan. The tween only fires on a genuine new target.
-    LaunchedEffect(cameraTarget, followPose != null) {
+    LaunchedEffect(cameraTarget, following) {
         // Don't run the programmatic tween while locked to the driver (it would fight the lock) or
         // while the user is touching the map (it would yank the camera back mid-gesture).
-        if (followPose != null || userInteracting) return@LaunchedEffect
+        if (following || userInteracting) return@LaunchedEffect
         val target = cameraTarget ?: return@LaunchedEffect
         // Sync all three axes to the real camera so the animation never jumps.
         actualCamLat?.let { animLat.snapTo(it) }
@@ -1556,50 +1571,47 @@ private fun rememberCameraAnimationState(
         targetZoom?.let { launch { animZoom.animateTo(it, spec) } }
     }
 
-    // Follow ENGAGE animation: when the lock turns on (loc button re-engages follow) don't snap — glide
-    // from where the camera is now to the LIVE puck over CAMERA_ANIM_MS, then it IS the puck (per-frame
-    // lock, progress = 1). Blending toward the live pose means the camera catches up to the moving car
-    // with no jump at the hand-off. [DRIVE-PUCK-NATIVE-001]
-    val followProgress = remember { Animatable(1f) }
-    var engageLat by remember { mutableStateOf(0f) }
-    var engageLon by remember { mutableStateOf(0f) }
-    LaunchedEffect(followPose != null) {
-        if (followPose != null) {
-            engageLat = actualCamLat ?: animLat.value
-            engageLon = actualCamLon ?: animLon.value
-            followProgress.snapTo(0f)
-            followProgress.animateTo(1f, tween(CAMERA_ANIM_MS, easing = FastOutSlowInEasing))
-        }
-    }
-
-    // While touching: return the static (synced) Animatable value so cameraPosition doesn't change and
-    // native gestures own the camera. Checked BEFORE the follow lock so a touch always wins. [DRIVE-PUCK-NATIVE-001]
+    // While touching: the frozen position (constant, captured above) so cameraPosition stops changing
+    // and native pan/zoom own the camera. Checked FIRST so a touch always wins. [DRIVE-PUCK-NATIVE-001]
     if (userInteracting) {
         return CameraPosition(
-            coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
-            zoom = animZoom.value,
+            coordinates = Coordinates(frozenLat.toDouble(), frozenLon.toDouble()),
+            zoom = frozenZoom,
         )
     }
 
-    // Driver-follow lock: centre the camera on the puck's interpolated pose (zero lag once engaged),
-    // but on engage blend from the camera's prior position to the live puck by [followProgress] so it
-    // glides in instead of snapping. At progress = 1 this is exactly the puck. Zoom is left at the live
-    // value so a pinch isn't fought.
+    // Driver-follow: glide from the camera's CURRENT (live) position to the live puck by [followProgress]
+    // so engage catches up instead of snapping; at progress = 1 it is exactly the puck each frame (zero-
+    // lag lock). Using the live camera as the anchor means no stale value ever renders. [DRIVE-PUCK-NATIVE-001]
     if (followPose != null) {
         val t = followProgress.value
+        val anchorLat = actualCamLat?.toDouble() ?: followPose.latitude
+        val anchorLon = actualCamLon?.toDouble() ?: followPose.longitude
         return CameraPosition(
             coordinates = Coordinates(
-                lerpDouble(engageLat.toDouble(), followPose.latitude, t),
-                lerpDouble(engageLon.toDouble(), followPose.longitude, t),
+                lerpDouble(anchorLat, followPose.latitude, t),
+                lerpDouble(anchorLon, followPose.longitude, t),
             ),
             zoom = actualCamZoom,
         )
     }
 
-    return CameraPosition(
-        coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
-        zoom = animZoom.value,
-    )
+    // Idle vs programmatic tween: while a tween is running, follow the Animatable that drives it;
+    // otherwise reflect the REAL camera so a prior manual pan isn't yanked back to a stale Animatable.
+    return if (animLat.isRunning || animLon.isRunning || animZoom.isRunning) {
+        CameraPosition(
+            coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
+            zoom = animZoom.value,
+        )
+    } else {
+        CameraPosition(
+            coordinates = Coordinates(
+                (actualCamLat ?: animLat.value).toDouble(),
+                (actualCamLon ?: animLon.value).toDouble(),
+            ),
+            zoom = actualCamZoom,
+        )
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
