@@ -17,6 +17,8 @@ import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
+import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.domain.model.sortRank
 
 /**
  * Per-vehicle row used by the "TUS VEHÍCULOS" section.
@@ -185,9 +187,9 @@ data class HomeState(
     // HomeSlices.kt so they are built once per state emission, not once per read.
     // [HOME-ATOMIZE-001 F1]
 
-    /** First active session — convenience for code that predates multi-parking. [MULTI-PARKING-001] */
+    /** The user's PREFERRED session under multi-parking — see [preferredSession]. [MULTI-PARKING-001] */
     val userParking: UserParking?
-        get() = activeSessions.firstOrNull()
+        get() = preferredSession(activeSessions, vehicles)
 
     /** The session matching [selectedItemId], or null if the selection is a spot. [MULTI-PARKING-001] */
     val selectedSession: UserParking?
@@ -205,4 +207,21 @@ data class HomeState(
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState
         get() = detectionReadiness.toUiState()
+}
+
+/**
+ * The session that stands in for "the user's parking" when nothing is selected —
+ * initial camera focus, Browse peek subject, midpoint FAB, release fallback.
+ * Ranked by the owning vehicle's monitoring status (Bluetooth > Active >
+ * Inactive — the same canonical [sortRank] the vehicle cards sort by), NOT by
+ * list order: an inactive vehicle's session must never outrank the monitored
+ * car's just because it was persisted first. Ties keep session order.
+ */
+internal fun preferredSession(
+    activeSessions: List<UserParking>,
+    vehicles: List<Vehicle>,
+): UserParking? = activeSessions.minByOrNull { session ->
+    vehicles.firstOrNull { it.id == session.vehicleId }
+        ?.monitoringStatus()?.sortRank()
+        ?: Int.MAX_VALUE
 }

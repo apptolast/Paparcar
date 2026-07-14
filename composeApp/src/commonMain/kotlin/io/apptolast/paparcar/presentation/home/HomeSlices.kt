@@ -106,9 +106,9 @@ data class HomePeekSlice(
     val editingParkingId: String?,
     val addingParkingVehicleId: String?,
 ) {
-    /** First active session — convenience mirroring [HomeState.userParking]. */
+    /** The preferred session — same rank-based resolution as [HomeState.userParking]. */
     val userParking: UserParking?
-        get() = activeSessions.firstOrNull()
+        get() = preferredSession(activeSessions, vehicles)
 
     /** The session matching [selectedItemId], or null if the selection is a spot. */
     val selectedSession: UserParking?

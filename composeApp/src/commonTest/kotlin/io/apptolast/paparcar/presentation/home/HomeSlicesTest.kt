@@ -115,6 +115,48 @@ class HomeSlicesTest {
         assertEquals("s1", peek.userParking?.id)
     }
 
+    // ── Preferred session (userParking) — BT > Active > Inactive ─────────────
+
+    @Test
+    fun should_prefer_the_bt_vehicle_session_over_active_and_inactive_ones() {
+        val state = HomeState(
+            vehicles = listOf(
+                vehicle("veh-inactive"),
+                vehicle("veh-active").copy(isActive = true),
+                vehicle("veh-bt").copy(bluetoothDeviceId = "AA:BB"),
+            ),
+            // The inactive vehicle's session comes FIRST in list order — it must not win.
+            activeSessions = listOf(
+                session("s-inactive", "veh-inactive"),
+                session("s-active", "veh-active"),
+                session("s-bt", "veh-bt"),
+            ),
+        )
+        assertEquals("s-bt", state.userParking?.id)
+        assertEquals("s-bt", state.toPeekSlice().userParking?.id)
+    }
+
+    @Test
+    fun should_prefer_the_active_vehicle_session_when_no_bt_session_exists() {
+        val state = HomeState(
+            vehicles = listOf(vehicle("veh-inactive"), vehicle("veh-active").copy(isActive = true)),
+            activeSessions = listOf(
+                session("s-inactive", "veh-inactive"),
+                session("s-active", "veh-active"),
+            ),
+        )
+        assertEquals("s-active", state.userParking?.id)
+    }
+
+    @Test
+    fun should_fall_back_to_first_session_when_ranks_tie() {
+        val state = HomeState(
+            vehicles = listOf(vehicle("veh-a"), vehicle("veh-b")),
+            activeSessions = listOf(session("s-a", "veh-a"), session("s-b", "veh-b")),
+        )
+        assertEquals("s-a", state.userParking?.id)
+    }
+
     // ── Map slice: AddingParking vehicle resolution ───────────────────────────
 
     @Test
