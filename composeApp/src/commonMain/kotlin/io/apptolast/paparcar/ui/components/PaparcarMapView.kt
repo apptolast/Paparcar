@@ -428,52 +428,10 @@ private data class PuckPose(val latitude: Double, val longitude: Double, val hea
 
 private fun lerpDouble(a: Double, b: Double, t: Float): Double = a + (b - a) * t
 
-/** Shortest-path angular lerp so the car turns the short way (e.g. 350°→10° via 0, not backwards). */
-private fun lerpAngle(a: Float, b: Float, t: Float): Float {
-    var d = (b - a) % 360f
-    if (d > 180f) d -= 360f
-    if (d < -180f) d += 360f
-    return a + d * t
-}
-
-/** GPS fixes land ~1/s; glide over roughly that window so motion reads continuous, not stepped. */
-private const val PUCK_INTERP_MS = 1000
-
-/**
- * Smoothly glides the puck between discrete GPS fixes. Each new fix animates a 0→1 progress and the
- * pose is lerp'd from the previously-rendered pose to the new fix, so the car flows continuously
- * (like a transport app) instead of jumping fix-to-fix — including its heading (shortest-path). The
- * car trails real position by up to one fix, the usual trade for smoothness. Returns null when idle.
- * [FOLLOW-001]
- */
-@Composable
-private fun rememberInterpolatedPuck(puck: DrivingPuck?): PuckPose? {
-    if (puck == null) return null
-    val progress = remember { Animatable(1f) }
-    var prev by remember { mutableStateOf(PuckPose(puck.latitude, puck.longitude, puck.bearingDegrees ?: 0f)) }
-    var target by remember { mutableStateOf(PuckPose(puck.latitude, puck.longitude, puck.bearingDegrees ?: 0f)) }
-
-    LaunchedEffect(puck.latitude, puck.longitude, puck.bearingDegrees) {
-        // Restart the glide from wherever we are RIGHT NOW so there's no jump when a fix arrives mid-glide.
-        val t = progress.value
-        prev = PuckPose(
-            lerpDouble(prev.latitude, target.latitude, t),
-            lerpDouble(prev.longitude, target.longitude, t),
-            lerpAngle(prev.headingDegrees, target.headingDegrees, t),
-        )
-        // A null bearing (momentarily stopped) keeps the last heading rather than snapping to north.
-        target = PuckPose(puck.latitude, puck.longitude, puck.bearingDegrees ?: target.headingDegrees)
-        progress.snapTo(0f)
-        progress.animateTo(1f, tween(PUCK_INTERP_MS, easing = LinearEasing))
-    }
-
-    val t = progress.value
-    return PuckPose(
-        lerpDouble(prev.latitude, target.latitude, t),
-        lerpDouble(prev.longitude, target.longitude, t),
-        lerpAngle(prev.headingDegrees, target.headingDegrees, t),
-    )
-}
+// The puck's smooth glide between GPS fixes is now done NATIVELY by the kmp-maps fork (it animates the
+// marker's position off the Compose recomposition path), so Paparcar passes raw fixes — no per-frame
+// Compose interpolation, which used to recompose the whole map 60×/s and starve touch input.
+// [DRIVE-PUCK-NATIVE-001]
 
 /**
  * Glided coordinates for the native user-location dot — animates lat/lon between fixes so the dot
@@ -1109,7 +1067,10 @@ fun PaparcarMapView(
 
     // Interpolated render pose so the driving car glides between GPS fixes instead of stepping. Also
     // drives the follow camera (below) so the puck marker stays pinned to screen-centre. [FOLLOW-001]
-    val puckPose = rememberInterpolatedPuck(drivingPuck)
+    // Raw puck pose (no 60fps Compose interpolation): the fork glides the marker NATIVELY between these
+    // fixes, so reading a per-frame Animatable here — which recomposed the whole map 60×/s and starved
+    // touch input — is gone. [DRIVE-PUCK-NATIVE-001]
+    val puckPose: PuckPose? = drivingPuck?.let { PuckPose(it.latitude, it.longitude, it.bearingDegrees ?: 0f) }
 
     val cameraPosition = rememberCameraAnimationState(
         cameraTarget = cameraTarget,
@@ -1204,7 +1165,7 @@ fun PaparcarMapView(
     // and the pan stutters ("abrupt, unexpected" movement). Frozen, allMarkers keeps the SAME instance so
     // the marker layer is untouched and the native pan is smooth; the puck resumes gliding on release.
     // [DRIVE-PUCK-NATIVE-001]
-    val renderPuckPose = if (userTouchingMap) null else puckPose
+    val renderPuckPose = puckPose
     // The user-dot coordinates that actually key the marker list: null when the dot isn't shown (so its
     // glide never churns allMarkers while hidden, e.g. while driving), and the raw fix (not the glided
     // value) while dragging so a pan isn't stuttered by the per-frame glide. [DRIVE-PUCK-NATIVE-001]

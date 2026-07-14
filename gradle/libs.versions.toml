@@ -69,7 +69,7 @@ google-services = "4.5.0"
 # ── KMP Maps (Software Mansion) ──────────────────────────────────────────────
 # Core: Google Maps en Android + Apple Maps en iOS (sin CocoaPods)
 # Fork local (mavenLocal) con marker de id estable — DRIVE-PUCK-NATIVE-001. Upstream: 0.9.1.
-kmp-maps = "0.9.1-puck2-SNAPSHOT"
+kmp-maps = "0.9.1-puck3-SNAPSHOT"
 
 # ── Logging — Napier ─────────────────────────────────────────────────────────
 napier = "2.7.1"
