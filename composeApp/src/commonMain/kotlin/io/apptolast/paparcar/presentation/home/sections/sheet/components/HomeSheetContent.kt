@@ -46,8 +46,8 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.domain.model.sortRank
+import io.apptolast.paparcar.presentation.home.HomeBrowseListSlice
 import io.apptolast.paparcar.presentation.home.HomeIntent
-import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
 import io.apptolast.paparcar.presentation.home.model.rendersActionSurface
 import io.apptolast.paparcar.ui.components.PapSectionHeader
@@ -81,7 +81,7 @@ import paparcar.composeapp.generated.resources.vehicle_size_van
  * Zone chips have moved to [HomeHeaderSection] (below the search bar).
  */
 internal fun LazyListScope.homeSheetItems(
-    state: HomeState,
+    slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
     onParkingClick: (UserParking) -> Unit,
@@ -92,19 +92,19 @@ internal fun LazyListScope.homeSheetItems(
     onDetectionOpenPermissions: () -> Unit = {},
     onDetectionMarkSpot: () -> Unit = {},
 ) {
-    val selectedSpotId = state.selectedSpot?.id
+    val selectedSpotId = slice.selectedSpotId
     val isSpotSelected = selectedSpotId != null
-    val filteredSpots = state.filteredNearbySpots
-    val vehicleCards = state.vehicleCards
-    val showPersonalBlocks = state.hasCorePermissions && vehicleCards.isNotEmpty()
-    val showFilterBar = state.hasCorePermissions && state.nearbySpots.isNotEmpty()
+    val filteredSpots = slice.filteredSpots
+    val vehicleCards = slice.vehicleCards
+    val showPersonalBlocks = slice.hasCorePermissions && vehicleCards.isNotEmpty()
+    val showFilterBar = slice.hasCorePermissions && slice.hasAnySpots
 
     // ── 0. Detection action surface — under the address header, above vehicles.
     // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index.
-    if (state.detectionUiState.rendersActionSurface && !isSpotSelected) {
+    if (slice.detectionUiState.rendersActionSurface && !isSpotSelected) {
         item("detection_surface") {
             HomeDetectionSurface(
-                state = state.detectionUiState,
+                state = slice.detectionUiState,
                 onAddVehicle = onDetectionAddVehicle,
                 onOpenPermissions = onDetectionOpenPermissions,
                 onMarkSpot = onDetectionMarkSpot,
@@ -128,16 +128,16 @@ internal fun LazyListScope.homeSheetItems(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
             )
         }
-        vehiclesSection(state, vehicleCards, onParkingClick, onParkVehicle)
+        vehiclesSection(slice, vehicleCards, onParkingClick, onParkVehicle)
     }
 
     // ── 3. Spots (header + filter bar + list + report CTA) ─────────────────
     // Hidden entirely without CORE: the nearby feed is meaningless with no location, and the
     // red Blocked·CORE surface above is already the single "turn on location" prompt — no need
     // for the old HomePermissionsCard duplicating it. [DET-READY-001i]
-    if (state.hasCorePermissions) {
+    if (slice.hasCorePermissions) {
         spotsSection(
-            state = state,
+            slice = slice,
             onIntent = onIntent,
             onCameraMove = onCameraMove,
             onSpotSelect = onSpotSelect,
@@ -154,16 +154,15 @@ internal fun LazyListScope.homeSheetItems(
  * Returns the absolute item index of a spot card in the LazyColumn emitted
  * by [homeSheetItems], or -1 if the spot is not part of the current list.
  */
-internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
-    val filteredSpots = state.filteredNearbySpots
+internal fun homeSheetSpotItemIndex(slice: HomeBrowseListSlice, spotId: String): Int {
+    val filteredSpots = slice.filteredSpots
     val spotIdx = filteredSpots.indexOfFirst { it.id == spotId }
     if (spotIdx < 0) return -1
 
-    val vehicleCards = state.vehicleCards
-    val showPersonalBlocks = state.hasCorePermissions && vehicleCards.isNotEmpty()
-    val showFilterBar = state.hasCorePermissions && state.nearbySpots.isNotEmpty()
+    val showPersonalBlocks = slice.hasCorePermissions && slice.vehicleCards.isNotEmpty()
+    val showFilterBar = slice.hasCorePermissions && slice.hasAnySpots
 
-    val isSpotSelected = state.selectedSpot != null
+    val isSpotSelected = slice.selectedSpotId != null
     var base = 1 // offset carried from original layout
     if (!isSpotSelected) {
         if (showPersonalBlocks) {
@@ -182,18 +181,18 @@ internal fun homeSheetSpotItemIndex(state: HomeState, spotId: String): Int {
 // ─────────────────────────────────────────────────────────────────────────────
 
 private fun LazyListScope.vehiclesSection(
-    state: HomeState,
+    slice: HomeBrowseListSlice,
     vehicleCards: List<VehicleCard>,
     onParkingClick: (UserParking) -> Unit,
     onParkVehicle: (vehicleId: String) -> Unit,
 ) {
-    val userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
+    val userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) }
     // The vehicle whose trip is being detected RIGHT NOW (driving, not yet parked). [CHIP-DRIVING-001]
-    val drivingVehicleId = state.drivingMeta?.vehicleId
+    val drivingVehicleId = slice.drivingMeta?.vehicleId
     fun VehicleCard.isDriving() = session == null && vehicle.id == drivingVehicleId
     // The trip stopped and the user appears to be leaving the car — the chip flips to the candidate
     // ("Parking…") treatment. Only meaningful for the driving vehicle. [DET-PHASE-001]
-    val isCandidatePhase = state.drivingMeta?.phase == DetectionPhase.Candidate
+    val isCandidatePhase = slice.drivingMeta?.phase == DetectionPhase.Candidate
     // Live state floats first: driving → parked → monitoring config (BT, Active, Inactive).
     val sorted = vehicleCards.sortedWith(
         compareByDescending<VehicleCard> { it.isDriving() }
@@ -243,7 +242,7 @@ private fun LazyListScope.vehiclesSection(
 }
 
 private fun LazyListScope.spotsSection(
-    state: HomeState,
+    slice: HomeBrowseListSlice,
     onIntent: (HomeIntent) -> Unit,
     onCameraMove: (Double, Double) -> Unit,
     onSpotSelect: (lat: Double, lon: Double, spotId: String) -> Unit,
@@ -268,7 +267,7 @@ private fun LazyListScope.spotsSection(
     if (showFilterBar) {
         item(key = "filter_bar") {
             HomeSizeFilterBar(
-                selectedSize = state.sizeFilter,
+                selectedSize = slice.sizeFilter,
                 onFilterSelect = { size -> onIntent(HomeIntent.SetSizeFilter(size)) },
                 // 16dp — same grid as headers/rows so the bar doesn't step out of the
                 // left edge when the sheet expands. [HOME-VEH-REFINE-001]
@@ -278,8 +277,8 @@ private fun LazyListScope.spotsSection(
     }
 
     when {
-        state.isLoading -> item("skeleton") { SpotsSkeletonList() }
-        filteredSpots.isEmpty() && state.sizeFilter != null && state.nearbySpots.isNotEmpty() ->
+        slice.isLoading -> item("skeleton") { SpotsSkeletonList() }
+        filteredSpots.isEmpty() && slice.sizeFilter != null && slice.hasAnySpots ->
             item("empty_filtered") {
                 HomeEmptyFilteredSpots(
                     onClearFilter = { onIntent(HomeIntent.SetSizeFilter(null)) },
@@ -296,7 +295,7 @@ private fun LazyListScope.spotsSection(
             Column {
                 HomeSpotRow(
                     spot = spot,
-                    userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                    userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                     isSelected = spot.id == selectedSpotId,
                     onSelect = {
                         onCameraMove(spot.location.latitude, spot.location.longitude)
@@ -312,9 +311,9 @@ private fun LazyListScope.spotsSection(
 
     // The plain empty state already carries its own "Report a free spot" primary —
     // don't double the CTA below it. [UI-SHEET-001]
-    val emptyShowsReportCta = !state.isLoading && filteredSpots.isEmpty() &&
-        !(state.sizeFilter != null && state.nearbySpots.isNotEmpty())
-    if (state.hasCorePermissions && !emptyShowsReportCta) {
+    val emptyShowsReportCta = !slice.isLoading && filteredSpots.isEmpty() &&
+        !(slice.sizeFilter != null && slice.hasAnySpots)
+    if (slice.hasCorePermissions && !emptyShowsReportCta) {
         item("report_spot_cta") {
             HomeReportSpotCard(
                 onReport = onEnterReportMode,

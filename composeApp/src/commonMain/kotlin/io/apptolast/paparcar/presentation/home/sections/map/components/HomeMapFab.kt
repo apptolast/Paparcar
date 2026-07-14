@@ -17,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import io.apptolast.paparcar.domain.model.GpsPoint
-import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.presentation.util.MapCircleFab
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
 import io.apptolast.paparcar.ui.theme.PapMotion
@@ -42,8 +40,8 @@ import paparcar.composeapp.generated.resources.map_cd_my_location
 
 @Composable
 internal fun HomeMapFabColumn(
-    userParking: UserParking?,
-    userGpsPoint: GpsPoint?,
+    hasActiveParking: Boolean,
+    hasGpsFix: Boolean,
     isParkingSelected: Boolean,
     onMyLocation: () -> Unit,
     onParkedCar: () -> Unit,
@@ -57,7 +55,7 @@ internal fun HomeMapFabColumn(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         AnimatedVisibility(
-            visible = userParking != null,
+            visible = hasActiveParking,
             enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),
             exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {
@@ -70,7 +68,7 @@ internal fun HomeMapFabColumn(
             )
         }
         AnimatedVisibility(
-            visible = userParking != null && userGpsPoint != null,
+            visible = hasActiveParking && hasGpsFix,
             enter = slideInVertically(PapMotion.medium(), initialOffsetY = { it }) + fadeIn(PapMotion.medium()),
             exit = slideOutVertically(PapMotion.medium(), targetOffsetY = { it }) + fadeOut(PapMotion.medium()),
         ) {

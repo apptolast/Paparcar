@@ -180,14 +180,10 @@ data class HomeState(
 
 ) {
     // ── Computed properties ───────────────────────────────────────────────────
-
-    /**
-     * [nearbySpots] after applying [sizeFilter]. Spots with a null sizeCategory
-     * are always included (preserves legacy data with unknown sizes).
-     */
-    val filteredNearbySpots: List<Spot>
-        get() = if (sizeFilter == null) nearbySpots
-                else nearbySpots.filter { it.sizeCategory == null || it.sizeCategory == sizeFilter }
+    // Only cheap, non-allocating lookups live here. List-materialising projections
+    // (size-filtered spots, vehicle cards) moved to the per-section slices in
+    // HomeSlices.kt so they are built once per state emission, not once per read.
+    // [HOME-ATOMIZE-001 F1]
 
     /** First active session — convenience for code that predates multi-parking. [MULTI-PARKING-001] */
     val userParking: UserParking?
@@ -205,15 +201,6 @@ data class HomeState(
 
     val isParkingSelected: Boolean
         get() = selectedItemId != null && activeSessions.any { it.id == selectedItemId }
-
-    val hasActiveContent: Boolean
-        get() = activeSessions.isNotEmpty() || selectedItemId != null
-
-    /** One entry per registered vehicle, joined to its active session (if any). [MULTI-PARKING-001] */
-    val vehicleCards: List<VehicleCard>
-        get() = vehicles.map { v ->
-            VehicleCard(vehicle = v, session = activeSessions.firstOrNull { it.vehicleId == v.id })
-        }
 
     /** Presentation projection of [detectionReadiness] for the Home detection surface. [DET-READY-001h] */
     val detectionUiState: DetectionUiState

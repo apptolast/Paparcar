@@ -627,7 +627,7 @@ class HomeViewModelTest {
         )
         vm = buildVm()
 
-        val cards = vm.state.value.vehicleCards
+        val cards = vm.state.value.toBrowseListSlice().vehicleCards
         assertEquals(2, cards.size)
         val parkedCard = cards.first { it.vehicle.id == "veh-A" }
         val emptyCard = cards.first { it.vehicle.id == "veh-B" }
@@ -638,7 +638,7 @@ class HomeViewModelTest {
     @Test
     fun `should_emit_empty_vehicleCards_when_no_vehicles_registered`() = runTest {
         // Default FakeVehicleRepository in setUp has no vehicles
-        assertEquals(emptyList(), vm.state.value.vehicleCards)
+        assertEquals(emptyList(), vm.state.value.toBrowseListSlice().vehicleCards)
     }
 
     // ── Release-by-sessionId (multi-parking) ──────────────────────────────────

@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Zone
-import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.HomeHeaderSlice
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeGpsAccuracyBanner
 import io.apptolast.paparcar.presentation.home.sections.header.components.HomeSearchBar
 import io.apptolast.paparcar.presentation.home.sections.header.components.MapTypePicker
@@ -59,7 +59,7 @@ import paparcar.composeapp.generated.resources.home_header_add_zone_hint
 
 @Composable
 internal fun HomeHeaderSection(
-    state: HomeState,
+    slice: HomeHeaderSlice,
     onSearchQueryChanged: (String) -> Unit,
     onSearchResultClick: (SearchResult) -> Unit,
     onSearchClear: () -> Unit,
@@ -84,10 +84,10 @@ internal fun HomeHeaderSection(
             verticalAlignment = Alignment.Top,
         ) {
             HomeSearchBar(
-                query = state.searchQuery,
-                results = state.searchResults,
-                isActive = state.isSearchActive,
-                isSearching = state.isSearching,
+                query = slice.searchQuery,
+                results = slice.searchResults,
+                isActive = slice.isSearchActive,
+                isSearching = slice.isSearching,
                 onQueryChange = onSearchQueryChanged,
                 onResultClick = onSearchResultClick,
                 onClear = onSearchClear,
@@ -95,19 +95,19 @@ internal fun HomeHeaderSection(
             )
             Spacer(Modifier.width(8.dp))
             MapTypePicker(
-                currentType = state.mapType,
+                currentType = slice.mapType,
                 onTypeSelected = onMapTypeSelected,
             )
         }
         AnimatedVisibility(
-            visible = state.hasCorePermissions,
+            visible = slice.hasCorePermissions,
             // Chips hang under the search bar → grow/collapse from the top edge.
             enter = fadeIn(PapMotion.medium()) + expandVertically(PapMotion.medium(), expandFrom = Alignment.Top),
             exit = fadeOut(PapMotion.medium()) + shrinkVertically(PapMotion.medium(), shrinkTowards = Alignment.Top),
         ) {
-            if (state.zones.isNotEmpty()) {
+            if (slice.zones.isNotEmpty()) {
                 HeaderZoneChips(
-                    zones = state.zones,
+                    zones = slice.zones,
                     onSelectZone = onSelectZone,
                     onAddZone = onAddZone,
                     onDeleteZone = onDeleteZone,
@@ -118,7 +118,7 @@ internal fun HomeHeaderSection(
             }
         }
         HomeGpsAccuracyBanner(
-            accuracy = state.userGpsPoint?.accuracy,
+            accuracy = slice.gpsAccuracy,
             modifier = Modifier.padding(start = 14.dp, top = 6.dp),
         )
     }

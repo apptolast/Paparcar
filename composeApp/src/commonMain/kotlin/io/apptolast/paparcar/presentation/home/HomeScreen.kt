@@ -261,7 +261,7 @@ private fun HomeContent(
 ) {
     val uiController = rememberHomeUiController()
     // Per-field trip States derived from [tripState]. Held as State and read only in isolated scopes
-    // (map, snapshotFlow effects, one-shot lambdas), so a fix never recomposes this content. [DRIVE-PUCK-NATIVE-001]
+    // (map, snapshotFlow effects, one-shot lambdas), so a fix never recomposes this content. [DRIVE-PUCK-NATIVE-001]
     val drivingPuckState = remember(tripState) { derivedStateOf { tripState.value.puck } }
     val tripTrailState = remember(tripState) { derivedStateOf { tripState.value.trail } }
     val matchedTrailState = remember(tripState) { derivedStateOf { tripState.value.matchedTrail } }
@@ -323,6 +323,15 @@ private fun HomeContent(
         }
     }
 
+    // Per-section slices — pure projections built ONCE per state emission. Each section
+    // composable receives only its slice, so unrelated state changes stop recomposing it.
+    // HomeContent itself keeps the full state (it is the orchestrator). [HOME-ATOMIZE-001 F1]
+    val headerSlice = remember(state) { state.toHeaderSlice() }
+    val fabsSlice = remember(state) { state.toFabsSlice() }
+    val mapSlice = remember(state) { state.toMapSlice() }
+    val peekSlice = remember(state) { state.toPeekSlice() }
+    val browseSlice = remember(state) { state.toBrowseListSlice() }
+
     val isParkingSelected = state.isParkingSelected
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
     var spotListExpanded by remember(selectedSpotId) { mutableStateOf(false) }
@@ -383,7 +392,7 @@ private fun HomeContent(
 
     LaunchedEffect(selectedSpotId) {
         val spotId = selectedSpotId ?: return@LaunchedEffect
-        val idx = homeSheetSpotItemIndex(state, spotId)
+        val idx = homeSheetSpotItemIndex(browseSlice, spotId)
         if (idx >= 0) lazyListState.animateScrollToItem(idx)
     }
 
@@ -781,7 +790,7 @@ private fun HomeContent(
                 // the layout phase only — dragging never triggers recomposition here.
                 val isAddingZone = state.mode is HomeMode.AddingZone
                 HomeMapSection(
-                    state = state,
+                    slice = mapSlice,
                     drivingPuck = drivingPuckState,
                     tripTrail = tripTrailState,
                     matchedTrail = matchedTrailState,
@@ -801,8 +810,6 @@ private fun HomeContent(
                     followingDriver = uiController.followingDriver,
                     previewZoneLat = if (isAddingZone) uiController.cameraLat else null,
                     previewZoneLon = if (isAddingZone) uiController.cameraLon else null,
-                    previewZoneRadius = state.addingZoneRadius,
-                    previewZoneIsPrivate = state.addingZoneIsPrivate,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .layout { measurable, constraints ->
@@ -836,7 +843,7 @@ private fun HomeContent(
                         exit = fadeOut(PapMotion.medium()),
                     ) {
                         HomeHeaderSection(
-                            state = state,
+                            slice = headerSlice,
                             onSearchQueryChanged = { onIntent(HomeIntent.SearchQueryChanged(it)) },
                             onSearchResultClick = { result ->
                                 uiController.moveCamera(result.lat, result.lon, zoom = 15f)
@@ -894,7 +901,7 @@ private fun HomeContent(
                 // Bottom positioning is done in the layout phase via Modifier.offset
                 // so dragging never triggers recomposition of this subtree.
                 HomeMapFabsLayer(
-                    state = state,
+                    slice = fabsSlice,
                     visible = fabsVisible,
                     isDriving = isDrivingState.value,
                     onMyLocation = onMyLocation,
@@ -933,7 +940,8 @@ private fun HomeContent(
 
                 // ── Bottom sheet ─────────────────────────────────────────────
                 HomeBottomSheet(
-                    state = state,
+                    peek = peekSlice,
+                    browse = browseSlice,
                     browseShowsZoneHeader = sheetBeyondPeek,
                     containerHeightPx = rawContainerHeightPx,
                     sheetOffsetPx = sheetOffsetPx,

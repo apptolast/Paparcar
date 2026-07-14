@@ -28,9 +28,10 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import io.apptolast.paparcar.ui.components.PapDivider
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.presentation.home.HomeBrowseListSlice
 import io.apptolast.paparcar.presentation.home.HomeIntent
 import io.apptolast.paparcar.presentation.home.HomeMode
-import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.HomePeekSlice
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.homeSheetItems
@@ -50,7 +51,8 @@ import kotlin.math.absoluteValue
  */
 @Composable
 internal fun HomeBottomSheet(
-    state: HomeState,
+    peek: HomePeekSlice,
+    browse: HomeBrowseListSlice,
     /** Browse header subject swap: true while the sheet sits beyond peek (expanded browse
      *  shows the zone counter header instead of the parked car). [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean,
@@ -115,7 +117,7 @@ internal fun HomeBottomSheet(
             // helper text reads as a glitch over content. [SHEET-TAP-002]
             // CORE/GPS blocker: the sheet is a static full message — no drag, no toggle, no expand.
             // [DET-READY-001n]
-            val isBlocked = state.detectionUiState == DetectionUiState.BlockedCore
+            val isBlocked = peek.detectionUiState == DetectionUiState.BlockedCore
             val toggleInteractionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
@@ -167,7 +169,7 @@ internal fun HomeBottomSheet(
                     ),
             ) {
                 HomePeekHandle(
-                    state = state,
+                    slice = peek,
                     browseShowsZoneHeader = browseShowsZoneHeader,
                     onToggle = onToggle,
                     spotListExpanded = spotListExpanded,
@@ -177,12 +179,12 @@ internal fun HomeBottomSheet(
                     // "Still there?" reinforces reliability and keeps the sheet open —
                     // the user is likely still heading there. [UI-SHEET-001]
                     onAcceptSpot = {
-                        state.selectedSpot?.id?.let { id ->
+                        peek.selectedSpot?.id?.let { id ->
                             onIntent(HomeIntent.SendSpotSignal(id, accepted = true))
                         }
                     },
                     onRejectSpot = {
-                        state.selectedSpot?.id?.let { id ->
+                        peek.selectedSpot?.id?.let { id ->
                             onIntent(HomeIntent.SendSpotSignal(id, accepted = false))
                         }
                         onIntent(HomeIntent.SelectItem(null))
@@ -191,9 +193,9 @@ internal fun HomeBottomSheet(
                     // delete-only path, aimed at the session BEING EDITED (falls back to the
                     // selected session for safety). Exits edit mode after. [UI-SHEET-004]
                     onDeleteParking = {
-                        val target = state.editingParkingId
-                            ?.let { id -> state.activeSessions.firstOrNull { it.id == id } }
-                            ?: state.selectedSession ?: state.userParking
+                        val target = peek.editingParkingId
+                            ?.let { id -> peek.activeSessions.firstOrNull { it.id == id } }
+                            ?: peek.selectedSession ?: peek.userParking
                         target?.let { p ->
                             onIntent(
                                 HomeIntent.ReleaseParking(
@@ -222,12 +224,12 @@ internal fun HomeBottomSheet(
                 )
             }
 
-            val isSpotSelected = state.selectedSpot != null
+            val isSpotSelected = peek.selectedSpot != null
             // When location/GPS is missing the peek already shows the full blocker — suppress the
             // list (and its divider) so the sheet is just that one message. [DET-READY-001n]
-            val showList = state.detectionUiState != DetectionUiState.BlockedCore &&
-                state.mode is HomeMode.Browse &&
-                !state.isParkingSelected &&
+            val showList = peek.detectionUiState != DetectionUiState.BlockedCore &&
+                peek.mode is HomeMode.Browse &&
+                !peek.isParkingSelected &&
                 (!isSpotSelected || spotListExpanded)
             // The peek→list divider sits at the bottom of the peek header. The header is now stretched
             // to the fixed peek slot, so this divider lands exactly on the bottom-nav top divider at
@@ -249,7 +251,7 @@ internal fun HomeBottomSheet(
                     ),
                 ) {
                     homeSheetItems(
-                        state = state,
+                        slice = browse,
                         onIntent = onIntent,
                         onCameraMove = onCameraMove,
                         onParkingClick = onParkingClick,

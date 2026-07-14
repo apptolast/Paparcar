@@ -18,6 +18,8 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.VehicleCard
+import io.apptolast.paparcar.presentation.home.toBrowseListSlice
+import io.apptolast.paparcar.presentation.home.toPeekSlice
 import io.apptolast.paparcar.presentation.preview.FakeData
 import io.apptolast.paparcar.ui.components.PaparcarBottomActionBar
 import io.apptolast.paparcar.ui.components.PapSectionHeader
@@ -87,10 +89,10 @@ internal fun fakeSpotsVariedFreshness() = listOf(
 private fun HomePeekHandleWithPoiDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         HomePeekHandle(
-            state = HomeState(
+            slice = HomeState(
                 cameraAddressAndPlace = FakeData.addressAndPlaceFuel,
                 nearbySpots = FakeData.nearbySpots,
-            ),
+            ).toPeekSlice(),
         )
     }
 }
@@ -100,10 +102,10 @@ private fun HomePeekHandleWithPoiDarkPreview() {
 private fun HomePeekHandleStreetLightPreview() {
     PaparcarTheme(darkTheme = false) {
         HomePeekHandle(
-            state = HomeState(
+            slice = HomeState(
                 cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
                 nearbySpots = FakeData.nearbySpots,
-            ),
+            ).toPeekSlice(),
         )
     }
 }
@@ -112,19 +114,19 @@ private fun HomePeekHandleStreetLightPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun HomePeekHandleSkeletonDarkPreview() {
-    PaparcarTheme(darkTheme = true) { HomePeekHandle(state = HomeState()) }
+    PaparcarTheme(darkTheme = true) { HomePeekHandle(slice = HomeState().toPeekSlice()) }
 }
 
 @Preview(name = "A — HomePeekHandle: skeleton loading (claro)", showBackground = true)
 @Composable
 private fun HomePeekHandleSkeletonLightPreview() {
-    PaparcarTheme(darkTheme = false) { HomePeekHandle(state = HomeState()) }
+    PaparcarTheme(darkTheme = false) { HomePeekHandle(slice = HomeState().toPeekSlice()) }
 }
 
 @Preview(name = "A — HomePeekHandle: sin dirección, 0 spots (claro)", showBackground = true)
 @Composable
 private fun HomePeekHandleEmptyLightPreview() {
-    PaparcarTheme(darkTheme = false) { HomePeekHandle(state = HomeState()) }
+    PaparcarTheme(darkTheme = false) { HomePeekHandle(slice = HomeState().toPeekSlice()) }
 }
 
 @Preview(name = "A — HomePeekHandle: spot seleccionado (oscuro)", showBackground = true,
@@ -134,11 +136,11 @@ private fun HomePeekHandleSpotSelectedDarkPreview() {
     val spot = FakeData.nearbySpots.first()
     PaparcarTheme(darkTheme = true) {
         HomePeekHandle(
-            state = HomeState(
+            slice = HomeState(
                 nearbySpots = FakeData.nearbySpots,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 selectedItemId = spot.id,
-            ),
+            ).toPeekSlice(),
         )
     }
 }
@@ -149,11 +151,11 @@ private fun HomePeekHandleSpotSelectedLightPreview() {
     val spot = FakeData.nearbySpots[1]
     PaparcarTheme(darkTheme = false) {
         HomePeekHandle(
-            state = HomeState(
+            slice = HomeState(
                 nearbySpots = FakeData.nearbySpots,
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 selectedItemId = spot.id,
-            ),
+            ).toPeekSlice(),
         )
     }
 }
@@ -164,12 +166,12 @@ private fun HomePeekHandleSpotSelectedLightPreview() {
 private fun HomePeekHandleParkingSelectedDarkPreview() {
     PaparcarTheme(darkTheme = true) {
         HomePeekHandle(
-            state = HomeState(
+            slice = HomeState(
                 activeSessions = listOf(FakeData.activeSession),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
                 selectedItemId = FakeData.activeSession.id,
-            ),
+            ).toPeekSlice(),
         )
     }
 }
@@ -179,12 +181,12 @@ private fun HomePeekHandleParkingSelectedDarkPreview() {
 private fun HomePeekHandleParkingSelectedLightPreview() {
     PaparcarTheme(darkTheme = false) {
         HomePeekHandle(
-            state = HomeState(
+            slice = HomeState(
                 activeSessions = listOf(FakeData.activeSessionSupermarket),
                 userGpsPoint = GpsPoint(40.4165, -3.7030, 12f, Clock.System.now().toEpochMilliseconds(), 0f),
                 nearbySpots = FakeData.nearbySpots,
                 selectedItemId = FakeData.activeSessionSupermarket.id,
-            ),
+            ).toPeekSlice(),
         )
     }
 }
@@ -423,7 +425,7 @@ private fun PreviewSheet(state: HomeState) {
     val lazyListState = rememberLazyListState()
     LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize()) {
         homeSheetItems(
-            state = state,
+            slice = state.toBrowseListSlice(),
             onIntent = {},
             onCameraMove = { _, _ -> },
             onParkingClick = {},

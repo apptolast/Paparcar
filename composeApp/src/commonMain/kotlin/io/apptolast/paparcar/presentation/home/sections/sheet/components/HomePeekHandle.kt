@@ -82,7 +82,7 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.HomeMode
-import io.apptolast.paparcar.presentation.home.HomeState
+import io.apptolast.paparcar.presentation.home.HomePeekSlice
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
 import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
@@ -181,7 +181,7 @@ import kotlin.math.roundToInt
 
 @Composable
 internal fun HomePeekHandle(
-    state: HomeState,
+    slice: HomePeekSlice,
     /** True while the sheet sits beyond peek — expanded browse swaps to the zone header. [UI-SHEET-004] */
     browseShowsZoneHeader: Boolean = false,
     onDismiss: () -> Unit = {},
@@ -208,18 +208,18 @@ internal fun HomePeekHandle(
     /** CORE/GPS blocker CTA — opens the permission flow focused on location. [DET-READY-001n] */
     onActivateLocation: () -> Unit = {},
 ) {
-    val freeCount = state.filteredNearbySpots.size
-    val isParkingSelected = state.isParkingSelected
-    val selectedSpot = state.selectedSpot
+    val freeCount = slice.freeCount
+    val isParkingSelected = slice.isParkingSelected
+    val selectedSpot = slice.selectedSpot
     // Under multi-parking pick the *specific* selected session, not just the first active one,
     // so the peek's title, address and actions refer to the vehicle the user actually tapped.
-    val parkingToShow = state.selectedSession
+    val parkingToShow = slice.selectedSession
 
     val peekState: PeekState = when {
-        state.mode is HomeMode.AddingParking ->
-            PeekState.AddingParking(isEditing = state.editingParkingId != null)
-        state.mode is HomeMode.Reporting -> PeekState.Reporting
-        state.mode is HomeMode.AddingZone -> PeekState.AddingZone
+        slice.mode is HomeMode.AddingParking ->
+            PeekState.AddingParking(isEditing = slice.editingParkingId != null)
+        slice.mode is HomeMode.Reporting -> PeekState.Reporting
+        slice.mode is HomeMode.AddingZone -> PeekState.AddingZone
         selectedSpot != null -> PeekState.SelectedSpot(selectedSpot.id)
         parkingToShow != null -> PeekState.SelectedParking(parkingToShow.id)
         else -> PeekState.Browse
@@ -228,7 +228,7 @@ internal fun HomePeekHandle(
     Column(modifier = Modifier.fillMaxWidth()) {
 
         // Drag pill — hidden in the CORE/GPS blocker, where the sheet is static (no drag). [DET-READY-001n]
-        if (state.detectionUiState != DetectionUiState.BlockedCore) {
+        if (slice.detectionUiState != DetectionUiState.BlockedCore) {
             Box(
                 modifier = Modifier
                     // Glued to the header — no dead air between pill and eyebrow; the header's own
@@ -243,7 +243,7 @@ internal fun HomePeekHandle(
             )
         }
 
-        if (state.detectionUiState == DetectionUiState.BlockedCore) {
+        if (slice.detectionUiState == DetectionUiState.BlockedCore) {
             // Consumer Home can't work without location/GPS — take over the sheet with the full
             // blocker instead of a peek + small surface + redundant header. [DET-READY-001n]
             HomeLocationBlockedState(onActivate = onActivateLocation)
@@ -265,14 +265,14 @@ internal fun HomePeekHandle(
         ) { target ->
             when (target) {
                 is PeekState.SelectedSpot -> {
-                    // Resolve live spot from state — PeekState only carries the id so
+                    // Resolve live spot from the slice — PeekState only carries the id so
                     // AnimatedContent doesn't transition on Spot data refresh. [BUG-PEEK-JITTER-001]
-                    val spot = state.nearbySpots.firstOrNull { it.id == target.spotId }
+                    val spot = slice.nearbySpots.firstOrNull { it.id == target.spotId }
                     if (spot != null) {
                         SpotPeekRow(
                             spot = spot,
-                            userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
-                            activeVehicle = state.vehicles.firstOrNull { it.isActive },
+                            userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                            activeVehicle = slice.vehicles.firstOrNull { it.isActive },
                             onDismiss = onDismiss,
                             onNavigate = {
                                 onNavigateExternal(spot.location.latitude, spot.location.longitude, false)
@@ -285,15 +285,15 @@ internal fun HomePeekHandle(
                     }
                 }
                 is PeekState.SelectedParking -> {
-                    val parking = state.activeSessions.firstOrNull { it.id == target.sessionId }
+                    val parking = slice.activeSessions.firstOrNull { it.id == target.sessionId }
                     if (parking != null) {
                         ParkingPeekRow(
                             parking = parking,
-                            vehicle = state.vehicles.firstOrNull { it.id == parking.vehicleId },
-                            stableRank = state.parkedVehicles
+                            vehicle = slice.vehicles.firstOrNull { it.id == parking.vehicleId },
+                            stableRank = slice.parkedVehicles
                                 .firstOrNull { it.vehicleId == parking.vehicleId }
                                 ?.stableRank,
-                            userLocation = state.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
+                            userLocation = slice.userGpsPoint?.let { Pair(it.latitude, it.longitude) },
                             onDismiss = onDismiss,
                             onRelease = onRelease,
                             onWalkToCar = {
@@ -305,13 +305,13 @@ internal fun HomePeekHandle(
                     }
                 }
                 PeekState.Reporting -> ReportPeekRow(
-                    state = state,
+                    slice = slice,
                     onCancel = onCancelReport,
                     onConfirm = onConfirmReport,
                     onSizeSelected = onReportSizeSelected,
                             )
                 PeekState.AddingZone -> AddingZonePeekRow(
-                    state = state,
+                    slice = slice,
                     onCancel = onCancelAddZone,
                     onConfirm = onConfirmAddZone,
                     onNameChange = onUpdateZoneName,
@@ -320,14 +320,14 @@ internal fun HomePeekHandle(
                     onIsPrivateToggled = onZoneIsPrivateToggled,
                             )
                 is PeekState.AddingParking -> AddingParkingPeekRow(
-                    state = state,
+                    slice = slice,
                     isEditing = target.isEditing,
                     onCancel = onCancelAddParking,
                     onConfirm = onConfirmAddParking,
                     onDelete = onDeleteParking,
                             )
                 PeekState.Browse -> CameraLocationRow(
-                    state = state,
+                    slice = slice,
                     freeCount = freeCount,
                     showZoneHeader = browseShowsZoneHeader,
                     onToggle = onToggle,
@@ -345,7 +345,7 @@ internal fun HomePeekHandle(
  * geocoded address arriving late, etc.). Without this discipline the
  * AnimatedContent would transition on every Spot/UserParking refresh and the
  * sheet would visibly thrash. The content lambda re-reads the live object from
- * the captured `HomeState`. [BUG-PEEK-JITTER-001]
+ * the captured peek slice. [BUG-PEEK-JITTER-001]
  */
 private sealed class PeekState {
     data class SelectedSpot(val spotId: String) : PeekState()
@@ -754,25 +754,25 @@ private fun ParkingDurationRow(timestampMs: Long, accentColor: Color) {
 
 @Composable
 private fun AddingParkingPeekRow(
-    state: HomeState,
+    slice: HomePeekSlice,
     isEditing: Boolean,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val primaryText = cameraTitleWhileSettling(state)
+    val primaryText = cameraTitleWhileSettling(slice)
 
     // Resolve which vehicle this AddingParking session is FOR so the header
     // shows e.g. "Toyota Corolla" instead of the generic mode label — the user
     // needs to recognise the car when they hit confirm. [MULTI-PARKING-001]
-    //  - create: state.addingParkingVehicleId set by the row tap
+    //  - create: slice.addingParkingVehicleId set by the row tap
     //  - edit:   editingParkingId → activeSessions → vehicleId
     val targetVehicleId = if (isEditing) {
-        state.activeSessions.firstOrNull { it.id == state.editingParkingId }?.vehicleId
+        slice.activeSessions.firstOrNull { it.id == slice.editingParkingId }?.vehicleId
     } else {
-        state.addingParkingVehicleId
+        slice.addingParkingVehicleId
     }
-    val targetVehicle = targetVehicleId?.let { id -> state.vehicles.firstOrNull { it.id == id } }
+    val targetVehicle = targetVehicleId?.let { id -> slice.vehicles.firstOrNull { it.id == id } }
     val fallbackVehicleName = stringResource(Res.string.home_vehicle_fallback_name)
     val genericHeader = if (isEditing) {
         stringResource(Res.string.home_add_parking_header_label_edit)
@@ -821,8 +821,8 @@ private fun AddingParkingPeekRow(
                               else PaparcarIcons.VehicleCar,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
-                enabled = !state.isSavingParking && !state.isCameraMoving,
-                isLoading = state.isSavingParking,
+                enabled = !slice.isSavingParking && !slice.isCameraMoving,
+                isLoading = slice.isSavingParking,
                 modifier = Modifier.fillMaxWidth(),
             )
             if (isEditing) {
@@ -836,7 +836,7 @@ private fun AddingParkingPeekRow(
                     style = PapFooterButtonStyle.Outlined,
                     containerColor = MaterialTheme.colorScheme.error,
                     contentColor = MaterialTheme.colorScheme.error,
-                    enabled = !state.isSavingParking,
+                    enabled = !slice.isSavingParking,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -850,12 +850,12 @@ private fun AddingParkingPeekRow(
 
 @Composable
 private fun ReportPeekRow(
-    state: HomeState,
+    slice: HomePeekSlice,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
     onSizeSelected: (VehicleSize?) -> Unit,
 ) {
-    val primaryText = cameraTitleWhileSettling(state)
+    val primaryText = cameraTitleWhileSettling(slice)
 
     PapSheet(
         lead = PapSheetLead.Announce,
@@ -873,7 +873,7 @@ private fun ReportPeekRow(
         chips = {
             PapSectionHeader(title = stringResource(Res.string.home_report_size_section))
             Spacer(Modifier.height(6.dp))
-            SizeChipRow(selected = state.reportingSize, onSelect = onSizeSelected)
+            SizeChipRow(selected = slice.reportingSize, onSelect = onSizeSelected)
         },
         actions = {
             PapFooterButton(
@@ -881,8 +881,8 @@ private fun ReportPeekRow(
                 leadingIcon = Icons.Rounded.Campaign,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
-                enabled = !state.isCameraMoving && !state.isReporting,
-                isLoading = state.isReporting,
+                enabled = !slice.isCameraMoving && !slice.isReporting,
+                isLoading = slice.isReporting,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -931,7 +931,7 @@ private fun SizeChipRow(selected: VehicleSize?, onSelect: (VehicleSize?) -> Unit
 
 @Composable
 private fun AddingZonePeekRow(
-    state: HomeState,
+    slice: HomePeekSlice,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
     onNameChange: (String) -> Unit,
@@ -939,23 +939,23 @@ private fun AddingZonePeekRow(
     onRadiusChange: (Float) -> Unit,
     onIsPrivateToggled: (Boolean) -> Unit = {},
 ) {
-    val primaryText = cameraTitleWhileSettling(state)
+    val primaryText = cameraTitleWhileSettling(slice)
 
-    val headerLabel = if (state.editingZoneId != null) {
+    val headerLabel = if (slice.editingZoneId != null) {
         stringResource(Res.string.home_zone_edit_header_label)
     } else {
         stringResource(Res.string.home_zone_header_label)
     }
     val focusManager = LocalFocusManager.current
     PapSheet(
-        lead = PapSheetLead.GenericIcon(icon = zoneIconFor(state.addingZoneIconKey)),
+        lead = PapSheetLead.GenericIcon(icon = zoneIconFor(slice.addingZoneIconKey)),
         eyebrow = headerLabel,
         eyebrowTone = PapSheetEyebrowTone.Neutral,
         title = primaryText,
         onDismiss = onCancel,
         content = {
             androidx.compose.material3.OutlinedTextField(
-                value = state.addingZoneName,
+                value = slice.addingZoneName,
                 onValueChange = onNameChange,
                 placeholder = { Text(stringResource(Res.string.home_zone_name_placeholder)) },
                 singleLine = true,
@@ -966,12 +966,12 @@ private fun AddingZonePeekRow(
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 leadingIcon = {
                     Icon(
-                        imageVector = zoneIconFor(state.addingZoneIconKey),
+                        imageVector = zoneIconFor(slice.addingZoneIconKey),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 },
-                trailingIcon = if (state.addingZoneName.isNotEmpty()) {
+                trailingIcon = if (slice.addingZoneName.isNotEmpty()) {
                     { PapClearIconButton(onClick = { onNameChange("") }) }
                 } else null,
                 modifier = Modifier.fillMaxWidth(),
@@ -980,7 +980,7 @@ private fun AddingZonePeekRow(
             PapSectionHeader(title = stringResource(Res.string.home_zone_icon_section))
             Spacer(Modifier.height(6.dp))
             ZoneIconPickerRow(
-                selectedKey = state.addingZoneIconKey,
+                selectedKey = slice.addingZoneIconKey,
                 onSelect = onIconChange,
             )
             Spacer(Modifier.height(14.dp))
@@ -994,13 +994,13 @@ private fun AddingZonePeekRow(
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 Text(
-                    text = stringResource(Res.string.home_zone_radius_meters, state.addingZoneRadius.roundToInt()),
+                    text = stringResource(Res.string.home_zone_radius_meters, slice.addingZoneRadius.roundToInt()),
                     style = PaparcarType.current.label,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
             Slider(
-                value = state.addingZoneRadius,
+                value = slice.addingZoneRadius,
                 onValueChange = onRadiusChange,
                 valueRange = Zone.MIN_RADIUS_METERS..Zone.MAX_RADIUS_METERS,
                 modifier = Modifier.fillMaxWidth(),
@@ -1034,7 +1034,7 @@ private fun AddingZonePeekRow(
                     }
                 }
                 Switch(
-                    checked = state.addingZoneIsPrivate,
+                    checked = slice.addingZoneIsPrivate,
                     onCheckedChange = onIsPrivateToggled,
                 )
             }
@@ -1046,8 +1046,8 @@ private fun AddingZonePeekRow(
                 leadingIcon = Icons.Rounded.Bookmark,
                 onClick = onConfirm,
                 style = PapFooterButtonStyle.Filled,
-                enabled = state.addingZoneName.isNotBlank() && !state.isSavingZone && !state.isCameraMoving,
-                isLoading = state.isSavingZone,
+                enabled = slice.addingZoneName.isNotBlank() && !slice.isSavingZone && !slice.isCameraMoving,
+                isLoading = slice.isSavingZone,
                 modifier = Modifier.fillMaxWidth(),
             )
         },
@@ -1129,14 +1129,14 @@ internal fun cameraTitleOrFallback(
  * "unknown address" mid-drag.
  */
 @Composable
-private fun cameraTitleWhileSettling(state: HomeState): String =
-    if (state.isCameraMoving || state.isCameraGeocoding) {
-        state.cameraAddressAndPlace?.let { info ->
+private fun cameraTitleWhileSettling(slice: HomePeekSlice): String =
+    if (slice.isCameraMoving || slice.isCameraGeocoding) {
+        slice.cameraAddressAndPlace?.let { info ->
             info.placeInfo?.name?.takeIf { it.isNotBlank() }
                 ?: info.address?.displayLine?.takeIf { it.isNotBlank() }
         } ?: "…"
     } else {
-        cameraTitleOrFallback(state.cameraAddressAndPlace)
+        cameraTitleOrFallback(slice.cameraAddressAndPlace)
     }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1145,19 +1145,19 @@ private fun cameraTitleWhileSettling(state: HomeState): String =
 
 @Composable
 private fun CameraLocationRow(
-    state: HomeState,
+    slice: HomePeekSlice,
     freeCount: Int,
     showZoneHeader: Boolean,
     onToggle: () -> Unit = {},
 ) {
-    val parking = state.userParking
+    val parking = slice.userParking
 
     // ── Subject = the parked car (collapsed peek only) ────────────────────────
     // Title/sub come from THE SESSION — static. The camera must never drag your parked
     // car around ("one car parked in two places"). Expanded browse hands the header to
     // the zone below: the car's info lives in its TUS VEHÍCULOS card. [UI-SHEET-004]
     if (parking != null && !showZoneHeader) {
-        val vehicle = state.vehicles.firstOrNull { it.id == parking.vehicleId }
+        val vehicle = slice.vehicles.firstOrNull { it.id == parking.vehicleId }
         val vehicleName = vehicleSummary(vehicle)
         val eyebrow = if (vehicleName != null) {
             stringResource(Res.string.home_peek_vehicle_parked_label, vehicleName)
@@ -1170,7 +1170,7 @@ private fun CameraLocationRow(
             lat = parking.location.latitude,
             lon = parking.location.longitude,
         )
-        val distM = state.userGpsPoint?.let {
+        val distM = slice.userGpsPoint?.let {
             distanceMeters(it.latitude, it.longitude, parking.location.latitude, parking.location.longitude)
         }
         val subtitle = if (parking.location.timestamp > 0L) {
@@ -1203,9 +1203,9 @@ private fun CameraLocationRow(
     // APARCANDO… once it stops and the detector is confirming a spot — and the address follows the
     // moving car via the camera geocode. This is where the removed floating "monitoring" pill's
     // status now lives. [DET-STATUS-SHEET-001]
-    val drivingMeta = state.drivingMeta
+    val drivingMeta = slice.drivingMeta
     if (drivingMeta != null && !showZoneHeader) {
-        val vehicle = state.vehicles.firstOrNull { it.id == drivingMeta.vehicleId }
+        val vehicle = slice.vehicles.firstOrNull { it.id == drivingMeta.vehicleId }
         val vehicleName = vehicleSummary(vehicle) ?: stringResource(Res.string.home_vehicle_fallback_name)
         val isCandidate = drivingMeta.phase == io.apptolast.paparcar.domain.detection.DetectionPhase.Candidate
         // Reuse the already-translated phase words (same as the old pill / vehicle chip) so the eyebrow
@@ -1214,7 +1214,7 @@ private fun CameraLocationRow(
             if (isCandidate) Res.string.home_vehicle_chip_status_candidate
             else Res.string.home_det_monitoring,
         )
-        val info = state.cameraAddressAndPlace
+        val info = slice.cameraAddressAndPlace
         val title = info?.placeInfo?.name
             ?: info?.displayLine?.takeIf { it.isNotBlank() }
             ?: stringResource(Res.string.home_address_unknown)
@@ -1242,7 +1242,7 @@ private fun CameraLocationRow(
     }
 
     // ── Subject = the zone (no parked car, no live trip, or expanded browse) ──
-    val info = state.cameraAddressAndPlace
+    val info = slice.cameraAddressAndPlace
     // Show skeleton when there is no displayable content — covers:
     //  • info still null (initial load before first geocode)
     //  • geocoding in flight with no previous content

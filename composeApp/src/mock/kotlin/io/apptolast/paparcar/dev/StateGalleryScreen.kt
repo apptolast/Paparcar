@@ -47,6 +47,8 @@ import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.presentation.home.HomeMode
 import io.apptolast.paparcar.presentation.home.HomeState
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
+import io.apptolast.paparcar.presentation.home.toBrowseListSlice
+import io.apptolast.paparcar.presentation.home.toPeekSlice
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomeDetectionSurface
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.HomePeekHandle
 import io.apptolast.paparcar.presentation.home.sections.sheet.components.SpotFitRow
@@ -115,14 +117,14 @@ private val sampleGps = GpsPoint(40.4165, -3.7030, 12f, 0L, 0f)
 
 @Composable
 private fun peek(state: HomeState, showsZoneHeader: Boolean = false) =
-    HomePeekHandle(state = state, browseShowsZoneHeader = showsZoneHeader)
+    HomePeekHandle(slice = state.toPeekSlice(), browseShowsZoneHeader = showsZoneHeader)
 
 /** Renders the expanded Home sheet (spots list + own-parking card) via homeSheetItems. */
 @Composable
 private fun sheet(state: HomeState) {
     LazyColumn(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
         homeSheetItems(
-            state = state,
+            slice = state.toBrowseListSlice(),
             onIntent = {},
             onCameraMove = { _, _ -> },
             onParkingClick = {},
