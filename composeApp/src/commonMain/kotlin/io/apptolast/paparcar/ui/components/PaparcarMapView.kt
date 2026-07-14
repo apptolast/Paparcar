@@ -1200,9 +1200,9 @@ fun PaparcarMapView(
         }
         result
     }
-    // Hold the marker list CONSTANT (same instance) while a finger is dragging, so the map's marker
-    // layer isn't rebuilt under the gesture — the static-list smoothness the old overlay had. The puck
-    // holds its spot during the drag and the fork resumes gliding it on release. [DRIVE-PUCK-NATIVE-001]
+    // Hold the marker list CONSTANT (same instance) while a finger is dragging so the map's marker layer
+    // isn't rebuilt under the gesture — the static-list smoothness the old overlay had. The puck holds
+    // its spot during the drag and the fork resumes gliding it on release. [DRIVE-PUCK-NATIVE-001]
     val heldMarkers = remember { arrayOfNulls<List<Marker>>(1) }
     if (!userTouchingMap) heldMarkers[0] = liveMarkers
     val allMarkers = if (userTouchingMap) (heldMarkers[0] ?: liveMarkers) else liveMarkers
@@ -1502,6 +1502,17 @@ private fun rememberCameraAnimationState(
     }
     SideEffect { prevInteracting = userInteracting }
 
+    // Park the tween Animatables at the frozen touch position so the idle path (which returns them)
+    // yields exactly the same constant value on release — the camera is never forced anywhere, so the
+    // native fling runs free. [DRIVE-PUCK-NATIVE-001]
+    LaunchedEffect(userInteracting) {
+        if (userInteracting) {
+            animLat.snapTo(frozenLat)
+            animLon.snapTo(frozenLon)
+            animZoom.snapTo(frozenZoom)
+        }
+    }
+
     // Follow-engage glide progress: 0 = at the camera's current spot on engage, 1 = locked on the puck.
     // Reset to 0 on disengage so a later re-engage starts from the camera's real position instead of
     // flashing to the puck for one frame (the loc-button flicker). [DRIVE-PUCK-NATIVE-001]
@@ -1577,22 +1588,15 @@ private fun rememberCameraAnimationState(
         )
     }
 
-    // Idle vs programmatic tween: while a tween is running, follow the Animatable that drives it;
-    // otherwise reflect the REAL camera so a prior manual pan isn't yanked back to a stale Animatable.
-    return if (animLat.isRunning || animLon.isRunning || animZoom.isRunning) {
-        CameraPosition(
-            coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
-            zoom = animZoom.value,
-        )
-    } else {
-        CameraPosition(
-            coordinates = Coordinates(
-                (actualCamLat ?: animLat.value).toDouble(),
-                (actualCamLon ?: animLon.value).toDouble(),
-            ),
-            zoom = actualCamZoom,
-        )
-    }
+    // Idle / programmatic tween: return the Animatable. When a tween runs it drives the camera; when
+    // idle it is CONSTANT, so cameraPosition never changes and the fork never issues a move() — the
+    // native pan and its fling run completely free (returning the live actualCam here instead forced a
+    // move() to the release position, which killed the fling: the "release stalls / jumps"). It's parked
+    // at the frozen touch position (synced below), so releasing a drag is seamless. [DRIVE-PUCK-NATIVE-001]
+    return CameraPosition(
+        coordinates = Coordinates(animLat.value.toDouble(), animLon.value.toDouble()),
+        zoom = animZoom.value,
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
