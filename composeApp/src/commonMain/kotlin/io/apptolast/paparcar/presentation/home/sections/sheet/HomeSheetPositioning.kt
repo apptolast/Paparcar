@@ -208,21 +208,54 @@ internal fun SheetTransitionEffects(
     val peekOffsetPx = positioning.peekOffsetPx
     val peekSnapTolerancePx = with(LocalDensity.current) { PEEK_LAYOUT_SNAP_TOLERANCE.toPx() }
 
-    LaunchedEffect(peekOffsetPx, selectedItemId, mode) {
-        // Entering a non-Browse state resets the sheet to peek (full peek content
-        // visible). The user can then drag DOWN to minimized for a header-only
-        // view. [SHEET-DRAG-001]
-        val isPinning = mode is HomeMode.Reporting ||
-            mode is HomeMode.AddingZone ||
-            mode is HomeMode.AddingParking
-        val resetToPeek = isPinning || isParkingSelected
+    val isPinning = mode is HomeMode.Reporting ||
+        mode is HomeMode.AddingZone ||
+        mode is HomeMode.AddingParking
+    val resetToPeek = isPinning || isParkingSelected
+    // Read by the layout-correction effect at fire time — a peek re-measure must
+    // decide with the CURRENT selection/mode, not the ones captured at launch.
+    val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
+    val currentResetToPeek = rememberUpdatedState(resetToPeek)
+    val currentSelectedItemId = rememberUpdatedState(selectedItemId)
+
+    // Intentional reset — a selection or mode CHANGE returns the sheet to peek
+    // (full peek content visible). The user can then drag DOWN to minimized for
+    // a header-only view. [SHEET-DRAG-001]
+    LaunchedEffect(selectedItemId, mode) {
+        val peek = currentPeekOffset.value
         if (selectedItemId == null || resetToPeek) {
-            val correction = (sheetOffsetPx.value - peekOffsetPx).absoluteValue
+            val correction = (sheetOffsetPx.value - peek).absoluteValue
             // Snap (not animate) when: small layout correction OR sheet is already at
             // or below the new peek. The latter covers selection events where the peek
             // handle grows (Browse→SelectedParking/Spot), shifting peekOffsetPx upward.
             // Without this guard the LaunchedEffect would fire animateTo and the sheet
             // would visibly slide up in slow motion to follow the handle.
+            val sheetBelowNewPeek = sheetOffsetPx.value >= peek
+            if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {
+                sheetOffsetPx.snapTo(peek)
+            } else {
+                sheetOffsetPx.animateTo(peek, SheetSnapSpec)
+            }
+        } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peek) {
+            // Guard isRunning so the expand animation launched on spot/car tap is not
+            // cancelled by the peekOffsetPx change that occurs when the peek handle
+            // grows to show the selected-item content.
+            sheetOffsetPx.snapTo(peek)
+        }
+    }
+
+    // Layout correction — a peek RE-MEASURE (Browse subject swap [UI-SHEET-004],
+    // address line count) moves the resting position with the handle, but must
+    // never steal the sheet from a position or animation the user sent above
+    // peek: without the gate, tapping the sheet open re-measures the swapped
+    // header mid-flight and this effect used to cancel the expansion and slide
+    // the sheet straight back down. [BUG-SHEET-TAP-BOUNCE-001]
+    LaunchedEffect(peekOffsetPx) {
+        val reference = if (sheetOffsetPx.isRunning) sheetOffsetPx.targetValue else sheetOffsetPx.value
+        val intentionallyAbovePeek = reference < peekOffsetPx - peekSnapTolerancePx
+        if (intentionallyAbovePeek) return@LaunchedEffect
+        if (currentSelectedItemId.value == null || currentResetToPeek.value) {
+            val correction = (sheetOffsetPx.value - peekOffsetPx).absoluteValue
             val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx
             if (!sheetOffsetPx.isRunning && (correction < peekSnapTolerancePx || sheetBelowNewPeek)) {
                 sheetOffsetPx.snapTo(peekOffsetPx)
@@ -230,9 +263,6 @@ internal fun SheetTransitionEffects(
                 sheetOffsetPx.animateTo(peekOffsetPx, SheetSnapSpec)
             }
         } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peekOffsetPx) {
-            // Guard isRunning so the expand animation launched on spot/car tap is not
-            // cancelled by the peekOffsetPx change that occurs when the peek handle
-            // grows to show the selected-item content.
             sheetOffsetPx.snapTo(peekOffsetPx)
         }
     }
