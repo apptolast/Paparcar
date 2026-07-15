@@ -105,6 +105,10 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
                     "https://photon.komoot.io/api/?q=$encoded&limit=$maxResults&lang=$lang",
                 )
                 val connection = url.openConnection() as HttpURLConnection
+                // Deadline invariant: HttpURLConnection defaults to INFINITE timeouts —
+                // an unanswered request would hang the search forever. [GEOCODE-DEADLINE-001]
+                connection.connectTimeout = SEARCH_CONNECT_TIMEOUT_MS
+                connection.readTimeout = SEARCH_READ_TIMEOUT_MS
                 connection.setRequestProperty("User-Agent", "Paparcar/1.0")
                 val json = connection.inputStream.bufferedReader().readText()
                 connection.disconnect()
@@ -117,6 +121,11 @@ class AndroidGeocoderDataSourceImpl(private val context: Context) : GeocoderData
                 }
             }
         }
+
+    private companion object {
+        const val SEARCH_CONNECT_TIMEOUT_MS = 6_000
+        const val SEARCH_READ_TIMEOUT_MS = 10_000
+    }
 
     private fun Address.toAddressInfo(): AddressInfo = AddressInfo(
         street = listOfNotNull(thoroughfare, subThoroughfare)

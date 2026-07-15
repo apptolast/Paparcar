@@ -16,7 +16,8 @@ class AddressAndPlaceRepositoryImplTest {
 
     private val geocoder = FakeGeocoderDataSource()
     private val places = FakePlacesDataSource()
-    private val repo = AddressAndPlaceRepositoryImpl(FakeLocalAddressAndPlaceDataSource(), geocoder, places)
+    private val local = FakeLocalAddressAndPlaceDataSource()
+    private val repo = AddressAndPlaceRepositoryImpl(local, geocoder, places)
 
     @Test
     fun `should emit address-only in first emission`() = runTest {
@@ -67,6 +68,54 @@ class AddressAndPlaceRepositoryImplTest {
         val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
         assertEquals(1, emissions.size)
+    }
+
+    // ── Deadline + cache purity [GEOCODE-DEADLINE-001] ────────────────────────
+
+    @Test
+    fun `should fall back and cache nothing when phase 1 hangs`() = runTest {
+        geocoder.addressDelayMs = 60_000 // GmsCore listener that never calls back
+        places.placeResult = Result.success(null)
+
+        val emissions = repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        assertNull(emissions.first().address.street)
+        assertEquals(emptyList(), local.puts)
+    }
+
+    @Test
+    fun `should cache nothing when phase 1 fails`() = runTest {
+        geocoder.addressResult = Result.failure(RuntimeException("Geocoder error"))
+        places.placeResult = Result.success(null)
+
+        repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        assertEquals(emptyList(), local.puts)
+    }
+
+    @Test
+    fun `should not seal the cell when the places call fails`() = runTest {
+        geocoder.addressResult = Result.success(AddressInfo("Calle Mayor", "Madrid", null, "ES"))
+        places.placeResult = Result.failure(RuntimeException("Overpass down"))
+
+        repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        // Address is cached unsealed (Phase 2 must retry next visit); nothing sealed.
+        assertEquals(1, local.puts.size)
+        assertEquals(false, local.puts.single().second)
+    }
+
+    @Test
+    fun `should seal the cell when places answers no-POI`() = runTest {
+        geocoder.addressResult = Result.success(AddressInfo("Calle Mayor", "Madrid", null, "ES"))
+        places.placeResult = Result.success(null)
+
+        repo.getAddressAndPlace(40.416775, -3.703790).toList()
+
+        // success(null) is a real answer — the cell seals with placeInfo=null.
+        val sealed = local.puts.last()
+        assertEquals(true, sealed.second)
+        assertNull(sealed.first.placeInfo)
     }
 
     @Test

@@ -61,8 +61,12 @@ class HomeGeocodingController(
     private var scope: CoroutineScope? = null
 
     private var userGeocoderJob: Job? = null
+    private var userGeocoderLat = Double.NaN
+    private var userGeocoderLon = Double.NaN
     private var cameraDebounceJob: Job? = null
     private var cameraGeocoderJob: Job? = null
+    private var cameraRequestLat = Double.NaN
+    private var cameraRequestLon = Double.NaN
 
     /** Hands over the lifecycle the geocode jobs run in (the VM's scope). Call once before use. */
     fun attach(scope: CoroutineScope) {
@@ -70,12 +74,18 @@ class HomeGeocodingController(
     }
 
     /**
-     * Cancel any in-flight user-location geocode and start a fresh one.
+     * Cancel any in-flight user-location geocode and start a fresh one — unless
+     * the in-flight one is already answering (effectively) the same point.
+     * GPS jitter re-asks every fix; without the dedup, a geocode slower than
+     * the fix interval restarts forever and never emits. [GEOCODE-DEADLINE-001]
      * Updates flow to [updates] as Phase 1 / Phase 2 emissions arrive.
      */
     fun geocodeUserLocation(lat: Double, lon: Double) {
         val scope = scope ?: return
+        if (userGeocoderJob?.isActive == true && isSamePoint(lat, lon, userGeocoderLat, userGeocoderLon)) return
         userGeocoderJob?.cancel()
+        userGeocoderLat = lat
+        userGeocoderLon = lon
         userGeocoderJob = scope.launch {
             getAddressAndPlace(lat, lon)
                 .catch { e -> PaparcarLogger.w(tag, "geocodeUserLocation error", e) }
@@ -85,10 +95,16 @@ class HomeGeocodingController(
 
     /**
      * Debounce + Phase-2-survival camera geocoding. See class kdoc for the
-     * exact cancellation policy and shimmer-flag invariants.
+     * exact cancellation policy and shimmer-flag invariants. Re-asking for the
+     * same point while a request is pending or in flight is a no-op — the
+     * first ask's answer is the answer. [GEOCODE-DEADLINE-001]
      */
     fun geocodeCameraLocation(lat: Double, lon: Double) {
         val scope = scope ?: return
+        val requestPendingOrActive = cameraDebounceJob?.isActive == true || cameraGeocoderJob?.isActive == true
+        if (requestPendingOrActive && isSamePoint(lat, lon, cameraRequestLat, cameraRequestLon)) return
+        cameraRequestLat = lat
+        cameraRequestLon = lon
         cameraDebounceJob?.cancel()
         cameraDebounceJob = scope.launch {
             delay(debounceMs)
@@ -117,5 +133,13 @@ class HomeGeocodingController(
         const val TAG = "HomeGeocoding"
         const val DEFAULT_DEBOUNCE_MS = 600L
         const val UPDATES_BUFFER = 64
+
+        /** ~11 m — mirrors the geocoder cache's cell size, so "same point" here
+         *  means "same answer" there. */
+        const val SAME_POINT_EPSILON_DEG = 0.0001
+
+        fun isSamePoint(lat: Double, lon: Double, refLat: Double, refLon: Double): Boolean =
+            kotlin.math.abs(lat - refLat) < SAME_POINT_EPSILON_DEG &&
+                kotlin.math.abs(lon - refLon) < SAME_POINT_EPSILON_DEG
     }
 }
