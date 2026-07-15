@@ -44,3 +44,46 @@ internal const val DARK_MAP_STYLE = """[
   {"featureType":"water","elementType":"geometry","stylers":[{"color":"#000000"}]},
   {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#3d3d3d"}]}
 ]"""
+
+// Driving skin: everything that isn't the road network gets out of the way — POIs and transit
+// off, road hierarchy emphasized (amber highways, the standard map language for "big road"),
+// street-name labels at higher contrast than the brand style. Parks keep their geometry (no
+// label) as orientation landmarks. [MAP-TYPES-001]
+internal const val DRIVING_LIGHT_MAP_STYLE = """[
+  {"elementType":"geometry","stylers":[{"color":"#eceff1"}]},
+  {"elementType":"labels.icon","stylers":[{"visibility":"off"}]},
+  {"elementType":"labels.text.fill","stylers":[{"color":"#37474f"}]},
+  {"elementType":"labels.text.stroke","stylers":[{"color":"#ffffff"}]},
+  {"featureType":"administrative.land_parcel","stylers":[{"visibility":"off"}]},
+  {"featureType":"administrative.neighborhood","stylers":[{"visibility":"off"}]},
+  {"featureType":"poi","stylers":[{"visibility":"off"}]},
+  {"featureType":"poi.park","elementType":"geometry","stylers":[{"visibility":"on"},{"color":"#dde5dd"}]},
+  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#ffffff"}]},
+  {"featureType":"road","elementType":"geometry.stroke","stylers":[{"color":"#cfd8dc"}]},
+  {"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#263238"}]},
+  {"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#fff3d6"}]},
+  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#ffe0a3"}]},
+  {"featureType":"road.highway","elementType":"geometry.stroke","stylers":[{"color":"#e6b96a"}]},
+  {"featureType":"transit","stylers":[{"visibility":"off"}]},
+  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#b7cbde"}]},
+  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#78909c"}]}
+]"""
+
+internal const val DRIVING_DARK_MAP_STYLE = """[
+  {"elementType":"geometry","stylers":[{"color":"#1a1d1f"}]},
+  {"elementType":"labels.icon","stylers":[{"visibility":"off"}]},
+  {"elementType":"labels.text.fill","stylers":[{"color":"#aab4ba"}]},
+  {"elementType":"labels.text.stroke","stylers":[{"color":"#1a1d1f"}]},
+  {"featureType":"administrative.land_parcel","stylers":[{"visibility":"off"}]},
+  {"featureType":"administrative.neighborhood","stylers":[{"visibility":"off"}]},
+  {"featureType":"poi","stylers":[{"visibility":"off"}]},
+  {"featureType":"poi.park","elementType":"geometry","stylers":[{"visibility":"on"},{"color":"#15201a"}]},
+  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#33393d"}]},
+  {"featureType":"road","elementType":"labels.text.fill","stylers":[{"color":"#cfd8dc"}]},
+  {"featureType":"road.arterial","elementType":"geometry","stylers":[{"color":"#41494e"}]},
+  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#5a5137"}]},
+  {"featureType":"road.highway.controlled_access","elementType":"geometry","stylers":[{"color":"#6a5f3e"}]},
+  {"featureType":"transit","stylers":[{"visibility":"off"}]},
+  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#0d1214"}]},
+  {"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#4d5b63"}]}
+]"""

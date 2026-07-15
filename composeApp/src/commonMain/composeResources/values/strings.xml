@@ -503,9 +503,9 @@
     <string name="settings_section_map">Map</string>
     <string name="settings_distance_unit">Imperial units</string>
     <string name="settings_distance_unit_desc">Show distances in miles and feet</string>
-    <string name="settings_map_type_satellite">Satellite</string>
-    <string name="settings_map_type_terrain">Terrain</string>
-    <string name="settings_map_type_hybrid">Hybrid</string>
+    <string name="settings_map_type_main">Main map</string>
+    <string name="settings_map_type_driving">Driving</string>
+    <string name="settings_map_type_aerial">Satellite with streets</string>
     <!-- Home — empty filtered spots feedback -->
     <string name="home_filter_empty_title">No spots for this size</string>
     <string name="home_filter_empty_subtitle">Try a different filter or check back later</string>

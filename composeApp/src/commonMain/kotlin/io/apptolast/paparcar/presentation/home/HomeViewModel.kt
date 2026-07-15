@@ -1,6 +1,5 @@
 package io.apptolast.paparcar.presentation.home
 
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.isDebugBuild
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
@@ -33,6 +32,7 @@ import io.apptolast.paparcar.presentation.base.BaseViewModel
 import io.apptolast.paparcar.presentation.home.model.isDetectionStopped
 import io.apptolast.paparcar.presentation.home.model.isDetectionWorking
 import io.apptolast.paparcar.presentation.home.model.toUiState
+import io.apptolast.paparcar.ui.components.MapSkin
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -115,7 +115,7 @@ class HomeViewModel(
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
-        updateState { copy(mapType = appPreferences.defaultMapType.toMapType()) }
+        updateState { copy(mapSkin = MapSkin.fromPreferenceString(appPreferences.defaultMapType)) }
         geocoder.attach(viewModelScope)
         subscribeControllerUpdates()
         // Repo streams → state slices, one line each ([collectInto] isolates stream errors so the UI
@@ -168,7 +168,7 @@ class HomeViewModel(
             // Map & camera
             is HomeIntent.CameraPositionChanged,
             is HomeIntent.RecenterSpots,
-            is HomeIntent.SetMapType,
+            is HomeIntent.SetMapSkin,
             is HomeIntent.SetMapForeground,
             -> handleMapIntent(intent)
 
@@ -227,7 +227,7 @@ class HomeViewModel(
         when (intent) {
             is HomeIntent.CameraPositionChanged -> onCameraPositionChanged(intent.lat, intent.lon)
             is HomeIntent.RecenterSpots -> onRecenterSpots()
-            is HomeIntent.SetMapType -> setMapType(intent.type)
+            is HomeIntent.SetMapSkin -> setMapSkin(intent.skin)
             is HomeIntent.SetMapForeground -> mapForeground.value = intent.active
             else -> Unit
         }
@@ -263,10 +263,10 @@ class HomeViewModel(
         sendEffect(HomeEffect.MoveCameraTo(gps.latitude, gps.longitude))
     }
 
-    private fun setMapType(type: MapType) {
-        if (state.value.mapType == type) return
-        appPreferences.setDefaultMapType(type.toPreferenceString())
-        updateState { copy(mapType = type) }
+    private fun setMapSkin(skin: MapSkin) {
+        if (state.value.mapSkin == skin) return
+        appPreferences.setDefaultMapType(skin.toPreferenceString())
+        updateState { copy(mapSkin = skin) }
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -850,19 +850,6 @@ class HomeViewModel(
     private fun geocodeUserLocation(lat: Double, lon: Double) = geocoder.geocodeUserLocation(lat, lon)
     private fun geocodeCameraLocation(lat: Double, lon: Double) = geocoder.geocodeCameraLocation(lat, lon)
 
-    private fun String.toMapType(): MapType = when (this) {
-        MAP_TYPE_SATELLITE -> MapType.SATELLITE
-        MAP_TYPE_HYBRID -> MapType.HYBRID
-        MAP_TYPE_TERRAIN -> MapType.TERRAIN
-        else -> MapType.TERRAIN
-    }
-
-    private fun MapType.toPreferenceString(): String = when (this) {
-        MapType.SATELLITE -> MAP_TYPE_SATELLITE
-        MapType.HYBRID -> MAP_TYPE_HYBRID
-        else -> MAP_TYPE_TERRAIN
-    }
-
     // The pure `HomeState → HomeState` transitions of the mode machine (clearedModeFields,
     // applyNewSpots, resetSearch, pinCoordinates) live in HomeStateTransitions.kt, next to
     // the mode↔selection invariant they enforce. [HOMEVM-CTRL-004]
@@ -878,10 +865,5 @@ class HomeViewModel(
         // Priority label stamped on UI-location samples — mirrors the android LocationRequest priority
         // behind observeHighAccuracyLocation(). [UI-LOC-FOREGROUND-001]
         const val LOCATION_PRIORITY_HIGH_ACCURACY = "HIGH_ACCURACY"
-
-        // Map type preference strings
-        const val MAP_TYPE_TERRAIN = "TERRAIN"
-        const val MAP_TYPE_SATELLITE = "SATELLITE"
-        const val MAP_TYPE_HYBRID = "HYBRID"
     }
 }

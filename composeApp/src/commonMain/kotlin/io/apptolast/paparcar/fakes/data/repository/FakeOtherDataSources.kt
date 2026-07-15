@@ -166,7 +166,7 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     override val useImperialUnits: Boolean get() = _useImperialUnits.value
     override fun setUseImperialUnits(enabled: Boolean) { _useImperialUnits.value = enabled }
 
-    private val _defaultMapType = MutableStateFlow("TERRAIN")
+    private val _defaultMapType = MutableStateFlow("BRAND")
     override val defaultMapType: String get() = _defaultMapType.value
     override fun setDefaultMapType(type: String) { _defaultMapType.value = type }
 

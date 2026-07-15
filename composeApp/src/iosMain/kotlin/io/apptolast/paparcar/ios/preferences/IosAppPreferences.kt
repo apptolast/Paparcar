@@ -25,7 +25,7 @@ private const val KEY_THEME_MODE = "theme_mode"
 private const val KEY_USE_IMPERIAL_UNITS = "use_imperial_units"
 private const val KEY_DEFAULT_MAP_TYPE = "default_map_type"
 private const val KEY_SELECTED_LANGUAGE = "selected_language"
-private const val DEFAULT_MAP_TYPE = "TERRAIN"
+private const val DEFAULT_MAP_TYPE = "BRAND"
 private const val LANGUAGE_AUTO = "auto"
 
 /**

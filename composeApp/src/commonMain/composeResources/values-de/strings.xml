@@ -339,9 +339,9 @@
     <string name="settings_section_map">Karte</string>
     <string name="settings_distance_unit">Imperiale Einheiten</string>
     <string name="settings_distance_unit_desc">Entfernungen in Meilen und Fuß anzeigen</string>
-    <string name="settings_map_type_satellite">Satellit</string>
-    <string name="settings_map_type_terrain">Gelände</string>
-    <string name="settings_map_type_hybrid">Hybrid</string>
+    <string name="settings_map_type_main">Hauptkarte</string>
+    <string name="settings_map_type_driving">Fahren</string>
+    <string name="settings_map_type_aerial">Satellit mit Straßen</string>
     <string name="home_filter_empty_title">Keine Plätze für diese Größe</string>
     <string name="home_filter_empty_subtitle">Versuche einen anderen Filter oder komm später wieder</string>
     <string name="home_filter_empty_clear">Filter entfernen</string>

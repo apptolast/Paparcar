@@ -343,9 +343,9 @@
     <string name="settings_section_map">Mapa</string>
     <string name="settings_distance_unit">Jednostki imperialne</string>
     <string name="settings_distance_unit_desc">Pokaż odległości w milach i stopach</string>
-    <string name="settings_map_type_satellite">Satelita</string>
-    <string name="settings_map_type_terrain">Teren</string>
-    <string name="settings_map_type_hybrid">Hybryda</string>
+    <string name="settings_map_type_main">Mapa główna</string>
+    <string name="settings_map_type_driving">Jazda</string>
+    <string name="settings_map_type_aerial">Satelita z ulicami</string>
     <string name="home_filter_empty_title">Brak miejsc dla tego rozmiaru</string>
     <string name="home_filter_empty_subtitle">Spróbuj innego filtru lub wróć później</string>
     <string name="home_filter_empty_clear">Usuń filtr</string>

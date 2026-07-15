@@ -15,9 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Layers
-import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Map
+import androidx.compose.material.icons.rounded.Navigation
 import androidx.compose.material.icons.rounded.SatelliteAlt
-import androidx.compose.material.icons.rounded.Terrain
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,32 +33,32 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.presentation.util.MapCircleFab
+import io.apptolast.paparcar.ui.components.MapSkin
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_cd_map_type
-import paparcar.composeapp.generated.resources.settings_map_type_hybrid
-import paparcar.composeapp.generated.resources.settings_map_type_satellite
-import paparcar.composeapp.generated.resources.settings_map_type_terrain
+import paparcar.composeapp.generated.resources.settings_map_type_aerial
+import paparcar.composeapp.generated.resources.settings_map_type_driving
+import paparcar.composeapp.generated.resources.settings_map_type_main
 
 /**
- * Vertical stack of circular FABs for picking the active map style.
+ * Vertical stack of circular FABs for picking the active map skin.
  *
  * Tapping the trigger (Layers icon) slides the column down into view;
  * tapping again or outside slides it back up. The exit animation completes
  * before the Popup is removed, so the collapse is always visible.
  *
- * Options (in order):
- *  1. Normal   — standard road map        (Map icon)
- *  2. Satellite — raw aerial imagery       (SatelliteAlt icon)
- *  3. Hybrid   — aerial + road labels      (Public/globe icon)
+ * Options (in order): see [MapSkin]. [MAP-TYPES-001]
+ *  1. BRAND   — brand-styled road map          (Map icon)
+ *  2. DRIVING — high-contrast, decluttered     (Navigation icon)
+ *  3. AERIAL  — satellite with street labels   (SatelliteAlt icon)
  */
 @Composable
 internal fun MapTypePicker(
-    currentType: MapType,
-    onTypeSelected: (MapType) -> Unit,
+    currentSkin: MapSkin,
+    onSkinSelected: (MapSkin) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -120,22 +120,22 @@ internal fun MapTypePicker(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         MapTypeStackEntry(
-                            icon = Icons.Rounded.Terrain,
-                            contentDescription = stringResource(Res.string.settings_map_type_terrain),
-                            selected = currentType == MapType.TERRAIN,
-                            onClick = { onTypeSelected(MapType.TERRAIN) },
+                            icon = Icons.Rounded.Map,
+                            contentDescription = stringResource(Res.string.settings_map_type_main),
+                            selected = currentSkin == MapSkin.BRAND,
+                            onClick = { onSkinSelected(MapSkin.BRAND) },
+                        )
+                        MapTypeStackEntry(
+                            icon = Icons.Rounded.Navigation,
+                            contentDescription = stringResource(Res.string.settings_map_type_driving),
+                            selected = currentSkin == MapSkin.DRIVING,
+                            onClick = { onSkinSelected(MapSkin.DRIVING) },
                         )
                         MapTypeStackEntry(
                             icon = Icons.Rounded.SatelliteAlt,
-                            contentDescription = stringResource(Res.string.settings_map_type_satellite),
-                            selected = currentType == MapType.SATELLITE,
-                            onClick = { onTypeSelected(MapType.SATELLITE) },
-                        )
-                        MapTypeStackEntry(
-                            icon = Icons.Rounded.Public,
-                            contentDescription = stringResource(Res.string.settings_map_type_hybrid),
-                            selected = currentType == MapType.HYBRID,
-                            onClick = { onTypeSelected(MapType.HYBRID) },
+                            contentDescription = stringResource(Res.string.settings_map_type_aerial),
+                            selected = currentSkin == MapSkin.AERIAL,
+                            onClick = { onSkinSelected(MapSkin.AERIAL) },
                         )
                     }
                 }

@@ -65,7 +65,7 @@ internal fun HomeMapSection(
 
     PaparcarMapView(
         config = PaparcarMapConfig(
-            mapType = slice.mapType,
+            mapSkin = slice.mapSkin,
             centerPin = centerPin,
         ),
         spots = slice.nearbySpots,

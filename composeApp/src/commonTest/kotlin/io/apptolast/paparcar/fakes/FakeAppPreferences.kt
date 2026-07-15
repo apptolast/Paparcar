@@ -13,7 +13,7 @@ class FakeAppPreferences(
     initialNotifySpot: Boolean = true,
     initialThemeMode: ThemeMode = ThemeMode.SYSTEM,
     initialUseImperialUnits: Boolean = false,
-    initialDefaultMapType: String = "TERRAIN",
+    initialDefaultMapType: String = "BRAND",
     initialSelectedLanguage: String = "auto",
 ) : AppPreferences {
 

@@ -339,9 +339,9 @@
     <string name="settings_section_map">Hartă</string>
     <string name="settings_distance_unit">Unități imperiale</string>
     <string name="settings_distance_unit_desc">Afișează distanțele în mile și picioare</string>
-    <string name="settings_map_type_satellite">Satelit</string>
-    <string name="settings_map_type_terrain">Teren</string>
-    <string name="settings_map_type_hybrid">Hibrid</string>
+    <string name="settings_map_type_main">Hartă principală</string>
+    <string name="settings_map_type_driving">Condus</string>
+    <string name="settings_map_type_aerial">Satelit cu străzi</string>
     <string name="home_filter_empty_title">Niciun loc pentru această dimensiune</string>
     <string name="home_filter_empty_subtitle">Încearcă alt filtru sau revino mai târziu</string>
     <string name="home_filter_empty_clear">Șterge filtrul</string>

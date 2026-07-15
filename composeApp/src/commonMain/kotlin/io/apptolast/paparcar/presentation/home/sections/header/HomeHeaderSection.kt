@@ -38,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.presentation.home.HomeHeaderSlice
@@ -51,6 +50,7 @@ import io.apptolast.paparcar.presentation.home.sections.sheet.components.ZoneChi
 import io.apptolast.paparcar.presentation.util.MAP_FLOATING_SHADOW_DP
 import io.apptolast.paparcar.presentation.util.MapCircleFab
 import io.apptolast.paparcar.ui.components.GlassSurface
+import io.apptolast.paparcar.ui.components.MapSkin
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_header_add_zone
@@ -63,7 +63,7 @@ internal fun HomeHeaderSection(
     onSearchQueryChanged: (String) -> Unit,
     onSearchResultClick: (SearchResult) -> Unit,
     onSearchClear: () -> Unit,
-    onMapTypeSelected: (MapType) -> Unit,
+    onMapSkinSelected: (MapSkin) -> Unit,
     onSelectZone: (String) -> Unit,
     onAddZone: () -> Unit,
     onDeleteZone: (String) -> Unit,
@@ -96,8 +96,8 @@ internal fun HomeHeaderSection(
             )
             Spacer(Modifier.width(8.dp))
             MapTypePicker(
-                currentType = slice.mapType,
-                onTypeSelected = onMapTypeSelected,
+                currentSkin = slice.mapSkin,
+                onSkinSelected = onMapSkinSelected,
             )
         }
         AnimatedVisibility(

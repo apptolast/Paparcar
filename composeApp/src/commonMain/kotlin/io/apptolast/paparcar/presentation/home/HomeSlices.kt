@@ -1,7 +1,7 @@
 package io.apptolast.paparcar.presentation.home
 
 import androidx.compose.runtime.Immutable
-import com.swmansion.kmpmaps.core.MapType
+import io.apptolast.paparcar.ui.components.MapSkin
 import io.apptolast.paparcar.domain.model.AddressAndPlace
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.ParkedVehicleSummary
@@ -37,7 +37,7 @@ data class HomeHeaderSlice(
     val isSearchActive: Boolean,
     val isSearching: Boolean,
     val searchNoResults: Boolean,
-    val mapType: MapType,
+    val mapSkin: MapSkin,
     val hasCorePermissions: Boolean,
     val zones: List<Zone>,
     /** Accuracy of the last GPS fix (metres) — drives the low-accuracy banner. */
@@ -58,7 +58,7 @@ data class HomeFabsSlice(
  *  section stays purely presentational. */
 @Immutable
 data class HomeMapSlice(
-    val mapType: MapType,
+    val mapSkin: MapSkin,
     val nearbySpots: List<Spot>,
     val userGpsPoint: GpsPoint?,
     val parkingLocation: GpsPoint?,
@@ -156,7 +156,7 @@ internal fun HomeState.toHeaderSlice() = HomeHeaderSlice(
     isSearchActive = isSearchActive,
     isSearching = isSearching,
     searchNoResults = searchNoResults,
-    mapType = mapType,
+    mapSkin = mapSkin,
     hasCorePermissions = hasCorePermissions,
     zones = zones,
     gpsAccuracy = userGpsPoint?.accuracy,
@@ -169,7 +169,7 @@ internal fun HomeState.toFabsSlice() = HomeFabsSlice(
 )
 
 internal fun HomeState.toMapSlice() = HomeMapSlice(
-    mapType = mapType,
+    mapSkin = mapSkin,
     nearbySpots = nearbySpots,
     userGpsPoint = userGpsPoint,
     parkingLocation = userParking?.location,

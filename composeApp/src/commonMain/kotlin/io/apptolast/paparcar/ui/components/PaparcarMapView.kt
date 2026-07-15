@@ -57,7 +57,6 @@ import com.swmansion.kmpmaps.core.GoogleMapsMapStyleOptions
 import com.swmansion.kmpmaps.core.Map
 import com.swmansion.kmpmaps.core.MapProperties
 import com.swmansion.kmpmaps.core.MapTheme
-import com.swmansion.kmpmaps.core.MapType
 import com.swmansion.kmpmaps.core.MapUISettings
 import com.swmansion.kmpmaps.core.LiveMarker
 import com.swmansion.kmpmaps.core.Marker
@@ -108,7 +107,8 @@ import kotlin.time.Duration.Companion.milliseconds
  *   inner disc + chosen zone icon (ZoneMarker family).
  * @property initialCamera Seed camera position used on first composition when
  *   no live `userLocation` and no dynamic `cameraTarget` are available.
- * @property mapType Underlying tile style (NORMAL / SATELLITE / TERRAIN).
+ * @property mapSkin User-facing map skin — resolves to base tile type + optional
+ *   JSON style. See [MapSkin]. [MAP-TYPES-001]
  * @property styleMode Selects between LIGHT and DARK Google Maps styles. `AUTO`
  *   resolves from `MaterialTheme.colorScheme.background.luminance()`.
  */
@@ -117,7 +117,7 @@ data class PaparcarMapConfig(
     val showFreeSpotOverlays: Boolean = true,
     val centerPin: CenterPinKind? = null,
     val initialCamera: CameraTarget? = null,
-    val mapType: MapType = MapType.TERRAIN,
+    val mapSkin: MapSkin = MapSkin.BRAND,
     val styleMode: MapStyleMode = MapStyleMode.AUTO,
 )
 
@@ -1290,11 +1290,12 @@ fun PaparcarMapView(
                 isMyLocationEnabled = false,
                 isTrafficEnabled = false,
                 mapTheme = if (resolvedDark) MapTheme.DARK else MapTheme.LIGHT,
-                mapType = config.mapType,
+                mapType = config.mapSkin.mapType,
                 androidMapProperties = AndroidMapProperties(
-                    mapStyleOptions = GoogleMapsMapStyleOptions(
-                        if (resolvedDark) DARK_MAP_STYLE else LIGHT_MAP_STYLE
-                    ),
+                    // Null for AERIAL: JSON styling only applies to the vector (NORMAL) tile
+                    // type, so the hybrid tiles stay native. [MAP-TYPES-001]
+                    mapStyleOptions = config.mapSkin.styleJson(resolvedDark)
+                        ?.let { GoogleMapsMapStyleOptions(it) },
                 ),
             ),
             uiSettings = MapUISettings(

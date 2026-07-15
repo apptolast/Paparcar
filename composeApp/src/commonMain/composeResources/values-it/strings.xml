@@ -339,9 +339,9 @@
     <string name="settings_section_map">Mappa</string>
     <string name="settings_distance_unit">Unità imperiali</string>
     <string name="settings_distance_unit_desc">Mostra le distanze in miglia e piedi</string>
-    <string name="settings_map_type_satellite">Satellite</string>
-    <string name="settings_map_type_terrain">Terreno</string>
-    <string name="settings_map_type_hybrid">Ibrido</string>
+    <string name="settings_map_type_main">Principale</string>
+    <string name="settings_map_type_driving">Guida</string>
+    <string name="settings_map_type_aerial">Satellite con strade</string>
     <string name="home_filter_empty_title">Nessun posto per questa dimensione</string>
     <string name="home_filter_empty_subtitle">Prova un altro filtro o riprova più tardi</string>
     <string name="home_filter_empty_clear">Rimuovi filtro</string>

@@ -54,7 +54,9 @@ interface AppPreferences {
     val useImperialUnits: Boolean
     fun setUseImperialUnits(enabled: Boolean)
 
-    /** Stores map type as a plain string ("TERRAIN" | "SATELLITE" | "HYBRID"). */
+    /** Stores the map skin as a plain string ("BRAND" | "DRIVING" | "AERIAL"). Legacy values
+     *  ("TERRAIN" | "SATELLITE" | "HYBRID") are migrated on read by the presentation layer
+     *  (`MapSkin.fromPreferenceString`). [MAP-TYPES-001] */
     val defaultMapType: String
     fun setDefaultMapType(type: String)
 

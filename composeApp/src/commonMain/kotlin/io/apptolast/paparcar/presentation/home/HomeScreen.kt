@@ -819,7 +819,7 @@ private fun HomeFloatingHeader(
                     onIntent(HomeIntent.SelectSearchResult(result))
                 },
                 onSearchClear = { onIntent(HomeIntent.ClearSearch) },
-                onMapTypeSelected = { onIntent(HomeIntent.SetMapType(it)) },
+                onMapSkinSelected = { onIntent(HomeIntent.SetMapSkin(it)) },
                 onSelectZone = { id -> onIntent(HomeIntent.SelectZone(id)) },
                 onAddZone = {
                     onIntent(

@@ -1,7 +1,6 @@
 package io.apptolast.paparcar.presentation.home
 
 import androidx.compose.runtime.Immutable
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DrivingPuck
@@ -20,6 +19,7 @@ import io.apptolast.paparcar.domain.model.Zone
 import io.apptolast.paparcar.domain.model.ZoneIcon
 import io.apptolast.paparcar.domain.model.monitoringStatus
 import io.apptolast.paparcar.domain.model.sortRank
+import io.apptolast.paparcar.ui.components.MapSkin
 
 /**
  * Per-vehicle row used by the "TUS VEHÍCULOS" section.
@@ -103,7 +103,7 @@ data class HomeState(
 
     // ── Map / camera ──────────────────────────────────────────────────────────
 
-    val mapType: MapType = MapType.TERRAIN,
+    val mapSkin: MapSkin = MapSkin.BRAND,
     /** Geocoded address of the map camera centre (updated as the user pans). */
     val cameraAddressAndPlace: AddressAndPlace? = null,
     /** True while camera geocoding is in flight — drives a skeleton placeholder. */

@@ -3,7 +3,6 @@
 package io.apptolast.paparcar.presentation.home
 
 import app.cash.turbine.test
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.detection.ParkingStrategyResolver
 import io.apptolast.paparcar.domain.detection.StaticDetectionRuntimeState
@@ -46,6 +45,7 @@ import io.apptolast.paparcar.fakes.FakeSpotRepository
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
 import io.apptolast.paparcar.fakes.FakeVehicleRepository
 import io.apptolast.paparcar.fakes.FakeZoneRepository
+import io.apptolast.paparcar.ui.components.MapSkin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -82,7 +82,7 @@ class HomeViewModelTest {
     private lateinit var geocoderFake: FakeGeocoderDataSource
     private lateinit var vm: HomeViewModel
 
-    private fun buildVm(initialMapType: String = "TERRAIN", foreground: Boolean = true): HomeViewModel {
+    private fun buildVm(initialMapType: String = "BRAND", foreground: Boolean = true): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
         manualParkingDetection = io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection()
         val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
@@ -201,17 +201,17 @@ class HomeViewModelTest {
         Dispatchers.resetMain()
     }
 
-    // ── Init — map type from preferences ─────────────────────────────────────
+    // ── Init — map skin from preferences ─────────────────────────────────────
 
     @Test
-    fun `should_apply_terrain_mapType_from_preferences_by_default`() = runTest {
-        assertEquals(MapType.TERRAIN, vm.state.value.mapType)
+    fun `should_apply_brand_mapSkin_from_preferences_by_default`() = runTest {
+        assertEquals(MapSkin.BRAND, vm.state.value.mapSkin)
     }
 
     @Test
-    fun `should_apply_satellite_mapType_from_preferences`() = runTest {
-        val vmSat = buildVm(initialMapType = "SATELLITE")
-        assertEquals(MapType.SATELLITE, vmSat.state.value.mapType)
+    fun `should_apply_driving_mapSkin_from_preferences`() = runTest {
+        val vmDriving = buildVm(initialMapType = "DRIVING")
+        assertEquals(MapSkin.DRIVING, vmDriving.state.value.mapSkin)
     }
 
     // ── Init — permissions + GPS chain ────────────────────────────────────────
@@ -595,31 +595,37 @@ class HomeViewModelTest {
         assertNull(s.editingZoneId)
     }
 
-    // ── SetMapType ────────────────────────────────────────────────────────────
+    // ── SetMapSkin ────────────────────────────────────────────────────────────
 
     @Test
-    fun `should_set_mapType_on_SetMapType`() = runTest {
-        vm.handleIntent(HomeIntent.SetMapType(MapType.SATELLITE))
-        assertEquals(MapType.SATELLITE, vm.state.value.mapType)
+    fun `should_set_mapSkin_on_SetMapSkin`() = runTest {
+        vm.handleIntent(HomeIntent.SetMapSkin(MapSkin.AERIAL))
+        assertEquals(MapSkin.AERIAL, vm.state.value.mapSkin)
     }
 
     @Test
-    fun `should_persist_mapType_to_preferences_on_SetMapType`() = runTest {
-        vm.handleIntent(HomeIntent.SetMapType(MapType.TERRAIN))
-        assertEquals("TERRAIN", prefs.defaultMapType)
+    fun `should_persist_mapSkin_to_preferences_on_SetMapSkin`() = runTest {
+        vm.handleIntent(HomeIntent.SetMapSkin(MapSkin.DRIVING))
+        assertEquals("DRIVING", prefs.defaultMapType)
     }
 
     @Test
-    fun `should_not_update_preferences_when_same_mapType_set`() = runTest {
-        vm.handleIntent(HomeIntent.SetMapType(MapType.TERRAIN))
-        // First SetMapType with same value as init — prefs should remain untouched
-        assertEquals("TERRAIN", prefs.defaultMapType)
+    fun `should_not_update_preferences_when_same_mapSkin_set`() = runTest {
+        vm.handleIntent(HomeIntent.SetMapSkin(MapSkin.BRAND))
+        // First SetMapSkin with same value as init — prefs should remain untouched
+        assertEquals("BRAND", prefs.defaultMapType)
         // Verify by switching and switching back
-        vm.handleIntent(HomeIntent.SetMapType(MapType.SATELLITE))
+        vm.handleIntent(HomeIntent.SetMapSkin(MapSkin.AERIAL))
         val countAfterFirst = prefs.defaultMapType
-        vm.handleIntent(HomeIntent.SetMapType(MapType.SATELLITE))
-        // calling with same type should NOT change the prefs value (no second write)
+        vm.handleIntent(HomeIntent.SetMapSkin(MapSkin.AERIAL))
+        // calling with same skin should NOT change the prefs value (no second write)
         assertEquals(countAfterFirst, prefs.defaultMapType)
+    }
+
+    @Test
+    fun `should_migrate_legacy_mapType_preference_on_init`() = runTest {
+        val legacyVm = buildVm(initialMapType = "SATELLITE")
+        assertEquals(MapSkin.AERIAL, legacyVm.state.value.mapSkin)
     }
 
 

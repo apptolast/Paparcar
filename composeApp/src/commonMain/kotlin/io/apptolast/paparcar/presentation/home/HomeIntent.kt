@@ -1,9 +1,9 @@
 package io.apptolast.paparcar.presentation.home
 
-import com.swmansion.kmpmaps.core.MapType
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SearchResult
 import io.apptolast.paparcar.domain.model.VehicleSize
+import io.apptolast.paparcar.ui.components.MapSkin
 
 sealed class HomeIntent {
 
@@ -12,7 +12,7 @@ sealed class HomeIntent {
     data class CameraPositionChanged(val lat: Double, val lon: Double) : HomeIntent()
     /** Reset the spot query centre to the user's GPS and move the camera there. */
     data object RecenterSpots : HomeIntent()
-    data class SetMapType(val type: MapType) : HomeIntent()
+    data class SetMapSkin(val skin: MapSkin) : HomeIntent()
     /** Map foreground (RESUMED) state — gates the high-accuracy user-location request so it only
      *  runs while the map is on screen (battery bound). [UI-LOC-FOREGROUND-001] */
     data class SetMapForeground(val active: Boolean) : HomeIntent()
