@@ -94,15 +94,15 @@ class AddressAndPlaceRepositoryImplTest {
     }
 
     @Test
-    fun `should not seal the cell when the places call fails`() = runTest {
+    fun `should cache nothing when the places call fails`() = runTest {
         geocoder.addressResult = Result.success(AddressInfo("Calle Mayor", "Madrid", null, "ES"))
         places.placeResult = Result.failure(RuntimeException("Overpass down"))
 
         repo.getAddressAndPlace(40.416775, -3.703790).toList()
 
-        // Address is cached unsealed (Phase 2 must retry next visit); nothing sealed.
-        assertEquals(1, local.puts.size)
-        assertEquals(false, local.puts.single().second)
+        // The seal is the ONLY write point — a failed Phase 2 leaves the cell
+        // untouched so the next visit retries both phases.
+        assertEquals(emptyList(), local.puts)
     }
 
     @Test

@@ -47,15 +47,14 @@ class AddressAndPlaceRepositoryImpl(
 
         // Cache miss — fetch from remote sources, write to local, emit.
 
-        // Phase 1: address (platform geocoder). Written with poiChecked=false so
-        // local.get() won't serve it as a complete hit — Phase 2 must still run.
+        // Phase 1: address (platform geocoder). Not cached yet — local.get() only
+        // serves sealed cells, so an unsealed write would be dead weight AND could
+        // race a concurrent lookup of the same cell (user + camera at app open),
+        // overwriting its freshly sealed row. The single write point is the seal.
         val fetchedAddress: AddressInfo? = withTimeoutOrNull(PHASE1_TIMEOUT_MS) {
             geocoder.getAddress(lat, lon).getOrNull()
         }
         val address = fetchedAddress ?: AddressInfo(null, null, null, null)
-        if (fetchedAddress != null) {
-            local.put(lat, lon, AddressAndPlace(address = address, placeInfo = null), poiChecked = false)
-        }
         emit(AddressAndPlace(address = address, placeInfo = null))
 
         // Phase 2: POI (network, best-effort). Seals the entry with poiChecked=true
