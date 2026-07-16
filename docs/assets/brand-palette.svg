@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Paparcar brand palette · SVG for docs/README.
+  Source of truth: composeApp/src/commonMain/kotlin/io/apptolast/paparcar/ui/theme/Color.kt
+  Text is neutral (#8EA0B4) so the strip reads on both light and dark GitHub themes.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 844 268" width="844" height="268" role="img" aria-label="Paleta de marca Paparcar">
+  <style>
+    .row  { font: 600 13px system-ui, -apple-system, 'Segoe UI', sans-serif; fill: #8EA0B4; letter-spacing: 1.5px; }
+    .name { font: 600 12px system-ui, -apple-system, 'Segoe UI', sans-serif; fill: #8EA0B4; }
+    .hex  { font: 11px ui-monospace, 'Cascadia Mono', Consolas, monospace; fill: #8EA0B4; opacity: 0.8; }
+    .chip { stroke: #8EA0B4; stroke-opacity: 0.35; }
+  </style>
+
+  <text x="2" y="16" class="row">TEMA OSCURO</text>
+  <g transform="translate(0 28)">
+    <rect class="chip" x="2"   y="0" width="104" height="44" rx="10" fill="#25F48C"/>
+    <rect class="chip" x="122" y="0" width="104" height="44" rx="10" fill="#0D1117"/>
+    <rect class="chip" x="242" y="0" width="104" height="44" rx="10" fill="#1A2232"/>
+    <rect class="chip" x="362" y="0" width="104" height="44" rx="10" fill="#F4A825"/>
+    <rect class="chip" x="482" y="0" width="104" height="44" rx="10" fill="#FF5252"/>
+    <rect class="chip" x="602" y="0" width="104" height="44" rx="10" fill="#5B9EFF"/>
+    <rect class="chip" x="722" y="0" width="104" height="44" rx="10" fill="#2F6BFF"/>
+
+    <text x="54"  y="64" text-anchor="middle" class="name">PapGreen</text>
+    <text x="174" y="64" text-anchor="middle" class="name">PapInk</text>
+    <text x="294" y="64" text-anchor="middle" class="name">PapInkHigh</text>
+    <text x="414" y="64" text-anchor="middle" class="name">PapAmber</text>
+    <text x="534" y="64" text-anchor="middle" class="name">PapRed</text>
+    <text x="654" y="64" text-anchor="middle" class="name">PapBlue</text>
+    <text x="774" y="64" text-anchor="middle" class="name">PapDriveBlue</text>
+
+    <text x="54"  y="80" text-anchor="middle" class="hex">#25F48C · primario</text>
+    <text x="174" y="80" text-anchor="middle" class="hex">#0D1117 · superficie</text>
+    <text x="294" y="80" text-anchor="middle" class="hex">#1A2232 · cards</text>
+    <text x="414" y="80" text-anchor="middle" class="hex">#F4A825 · aviso</text>
+    <text x="534" y="80" text-anchor="middle" class="hex">#FF5252 · alerta</text>
+    <text x="654" y="80" text-anchor="middle" class="hex">#5B9EFF · manual</text>
+    <text x="774" y="80" text-anchor="middle" class="hex">#2F6BFF · conducción</text>
+  </g>
+
+  <text x="2" y="160" class="row">TEMA CLARO</text>
+  <g transform="translate(0 172)">
+    <rect class="chip" x="2"   y="0" width="104" height="44" rx="10" fill="#009F5E"/>
+    <rect class="chip" x="122" y="0" width="104" height="44" rx="10" fill="#F0F4FB"/>
+    <rect class="chip" x="242" y="0" width="104" height="44" rx="10" fill="#0E1A2E"/>
+    <rect class="chip" x="362" y="0" width="104" height="44" rx="10" fill="#B56000"/>
+    <rect class="chip" x="482" y="0" width="104" height="44" rx="10" fill="#BA1A1A"/>
+    <rect class="chip" x="602" y="0" width="104" height="44" rx="10" fill="#0057CA"/>
+
+    <text x="54"  y="64" text-anchor="middle" class="name">PapGreenLight</text>
+    <text x="174" y="64" text-anchor="middle" class="name">PapSurfaceLight</text>
+    <text x="294" y="64" text-anchor="middle" class="name">PapOnSurfaceLight</text>
+    <text x="414" y="64" text-anchor="middle" class="name">PapAmberLight</text>
+    <text x="534" y="64" text-anchor="middle" class="name">PapRedLight</text>
+    <text x="654" y="64" text-anchor="middle" class="name">PapBlueLight</text>
+
+    <text x="54"  y="80" text-anchor="middle" class="hex">#009F5E · primario</text>
+    <text x="174" y="80" text-anchor="middle" class="hex">#F0F4FB · fondo</text>
+    <text x="294" y="80" text-anchor="middle" class="hex">#0E1A2E · texto</text>
+    <text x="414" y="80" text-anchor="middle" class="hex">#B56000 · aviso</text>
+    <text x="534" y="80" text-anchor="middle" class="hex">#BA1A1A · alerta</text>
+    <text x="654" y="80" text-anchor="middle" class="hex">#0057CA · manual</text>
+  </g>
+</svg>
