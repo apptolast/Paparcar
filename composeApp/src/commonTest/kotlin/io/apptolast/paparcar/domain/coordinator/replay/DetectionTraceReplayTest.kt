@@ -182,6 +182,106 @@ class DetectionTraceReplayTest {
             )
         }
 
+    @Test
+    fun enamorados_001_frozen_traffic_stop_anchor_currently_confirms_1km_from_the_car() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-ANCHOR-EGRESS-001 — CHARACTERIZATION OF THE BUG, 2026-07-15 field FP]
+            // The anchor freezes at a traffic stop (Camino de los Enamorados), the unfreeze is
+            // starved by the accuracy gate (10.12 m/s @ acc 52.4 fails ≤50 by 2.4 m), and the
+            // genuine egress walk at Camelias — born 1.11 km from the anchor — confirms
+            // kinematic+egress AT THE FROZEN ANCHOR. This test pins today's wrong outcome;
+            // the egress-born-at-anchor ceiling flips it to prompt-no-save.
+            val replayer = DetectionTraceReplayer(TraceEnamorados001.events)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            var arExitEmitted = false
+            replayer.replay(
+                emitFix = { fix ->
+                    // The field AR IN_VEHICLE→EXIT landed at Δ 868 703 (the replayer only carries
+                    // FIX/STEP, so the transition is injected here at its recorded time).
+                    if (!arExitEmitted && fix.timestamp >= TraceEnamorados001.AR_EXIT_AT) {
+                        arExitEmitted = true
+                        env.coordinator.onVehicleExit()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "today the FP saves silently")
+            val saved = env.parkingRepo.getActiveSession()
+            assertTrue(
+                saved != null &&
+                    saved.location.latitude in 36.59205..36.59220 &&
+                    saved.location.longitude in -6.24030..-6.24010,
+                "the pin lands at the FROZEN traffic-stop anchor " +
+                    "(${TraceEnamorados001.FROZEN_ANCHOR_LAT},${TraceEnamorados001.FROZEN_ANCHOR_LON}), " +
+                    "1.11 km from the car — was ${saved?.location?.latitude},${saved?.location?.longitude}",
+            )
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_kinematic+egress", ended.outcome, "field outcome reproduced")
+        }
+
+    @Test
+    fun camelias_hop_001_trip_shorter_than_the_exit_latency_aborts_silently_today() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-HONEST-CLOSE-001 — CHARACTERIZATION, 2026-07-14 field FN] A ~300 m hop whose
+            // fence EXIT was delivered with the trip already over (exitLoc at the NEW spot,
+            // dep=self_observed). The session watches a pedestrian and the false-ENTER guard
+            // kills it at the 8th step — correctly as a session, but SILENTLY: no release of the
+            // stale pin, no prompt, no zone. The honest-close ladder will flip the silence.
+            val replayer = DetectionTraceReplayer(TRACE_CAMELIAS_HOP_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no pin without measured driving — correct")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_false_enter", ended.outcome, "field outcome reproduced")
+            // Today's SILENCE, pinned explicitly — DET-HONEST-CLOSE-001 changes these two.
+            assertEquals(0, env.notification.parkingConfirmationCallCount, "no prompt today")
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "no nudge today")
+        }
+
+    @Test
+    fun late_exit_on_foot_001_walk_away_exit_must_abort_silently_forever() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-HONEST-CLOSE-001 — PERMANENT GUARD, 2026-07-15 field] The fence EXIT was
+            // delivered late while the user was 1.1 km away ON FOOT and at rest; the car had NOT
+            // moved. The silent no-movement abort is CORRECT and must survive the honest-close
+            // ladder: the walk explains the distance (no ride proof), so no release, no zone,
+            // no prompt — a nag here would assert the car is where the pedestrian is
+            // (BUG-WALK-DEPART-001).
+            val replayer = DetectionTraceReplayer(TRACE_LATE_EXIT_ON_FOOT_001)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no pin — the car never moved")
+            assertEquals(0, env.notification.parkingConfirmationCallCount, "no prompt — parked-and-away on foot")
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "no nudge — parked-and-away on foot")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_no_movement", ended.outcome, "field outcome reproduced")
+        }
+
     // ── Env ───────────────────────────────────────────────────────────────────
 
     private class Env(
