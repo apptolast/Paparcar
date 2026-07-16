@@ -14,7 +14,9 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -191,6 +193,17 @@ internal fun rememberSheetPositioning(
 }
 
 /**
+ * True when the sheet's position (or in-flight target) was sent above the peek
+ * anchor it last rested at. Such a position belongs to the user — a layout
+ * correction must not steal it. [BUG-SHEET-TAP-BOUNCE-001]
+ */
+internal fun isIntentionallyAbovePeek(
+    referenceOffsetPx: Float,
+    restingPeekAnchorPx: Float,
+    tolerancePx: Float,
+): Boolean = referenceOffsetPx < restingPeekAnchorPx - tolerancePx
+
+/**
  * The sheet's state-driven transitions, extracted from HomeContent as a
  * no-UI composable: reset-to-peek on selection/mode changes, auto-expand on
  * list toggle, and nav-progress hoisting for the global bottom nav.
@@ -218,6 +231,13 @@ internal fun SheetTransitionEffects(
     val currentResetToPeek = rememberUpdatedState(resetToPeek)
     val currentSelectedItemId = rememberUpdatedState(selectedItemId)
 
+    // The peek anchor the sheet last RESTED at. Only the effects below advance it,
+    // and only when their move COMPLETES — an AnimatedContent re-measure restarts
+    // the correction effect every frame (cancelling the follow mid-flight), and a
+    // cancelled follow skips the assignment, so one gate decision spans the whole
+    // multi-frame re-measure instead of re-judging against each intermediate value.
+    var restingPeekAnchor by remember { mutableFloatStateOf(peekOffsetPx) }
+
     // Intentional reset — a selection or mode CHANGE returns the sheet to peek
     // (full peek content visible). The user can then drag DOWN to minimized for
     // a header-only view. [SHEET-DRAG-001]
@@ -236,24 +256,29 @@ internal fun SheetTransitionEffects(
             } else {
                 sheetOffsetPx.animateTo(peek, SheetSnapSpec)
             }
+            restingPeekAnchor = peek
         } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peek) {
             // Guard isRunning so the expand animation launched on spot/car tap is not
             // cancelled by the peekOffsetPx change that occurs when the peek handle
             // grows to show the selected-item content.
             sheetOffsetPx.snapTo(peek)
+            restingPeekAnchor = peek
         }
     }
 
     // Layout correction — a peek RE-MEASURE (Browse subject swap [UI-SHEET-004],
-    // address line count) moves the resting position with the handle, but must
-    // never steal the sheet from a position or animation the user sent above
-    // peek: without the gate, tapping the sheet open re-measures the swapped
-    // header mid-flight and this effect used to cancel the expansion and slide
-    // the sheet straight back down. [BUG-SHEET-TAP-BOUNCE-001]
+    // address line count, deselection shrinking the handle) moves the resting
+    // position with the handle, but must never steal the sheet from a position or
+    // animation the user sent above peek: without the gate, tapping the sheet open
+    // re-measures the swapped header mid-flight and this effect used to cancel the
+    // expansion and slide the sheet straight back down. [BUG-SHEET-TAP-BOUNCE-001]
+    // The gate judges against [restingPeekAnchor] — the anchor the sheet last
+    // rested at — NOT the previous frame's measure: during an animated shrink the
+    // sheet lags behind the moving peek, and a per-frame anchor would misread that
+    // lag as user intent and strand the sheet above the new peek.
     LaunchedEffect(peekOffsetPx) {
         val reference = if (sheetOffsetPx.isRunning) sheetOffsetPx.targetValue else sheetOffsetPx.value
-        val intentionallyAbovePeek = reference < peekOffsetPx - peekSnapTolerancePx
-        if (intentionallyAbovePeek) return@LaunchedEffect
+        if (isIntentionallyAbovePeek(reference, restingPeekAnchor, peekSnapTolerancePx)) return@LaunchedEffect
         if (currentSelectedItemId.value == null || currentResetToPeek.value) {
             val correction = (sheetOffsetPx.value - peekOffsetPx).absoluteValue
             val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx
@@ -262,8 +287,10 @@ internal fun SheetTransitionEffects(
             } else {
                 sheetOffsetPx.animateTo(peekOffsetPx, SheetSnapSpec)
             }
+            restingPeekAnchor = peekOffsetPx
         } else if (!sheetOffsetPx.isRunning && sheetOffsetPx.value >= peekOffsetPx) {
             sheetOffsetPx.snapTo(peekOffsetPx)
+            restingPeekAnchor = peekOffsetPx
         }
     }
 

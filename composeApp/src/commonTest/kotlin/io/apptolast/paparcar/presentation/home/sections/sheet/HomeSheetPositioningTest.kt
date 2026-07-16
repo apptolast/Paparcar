@@ -120,4 +120,31 @@ class HomeSheetPositioningTest {
         // Overshoot above full on an upward fling still lands on full.
         assertEquals(0f, dragSnap.snapTarget(-50f, -1300f))
     }
+
+    // ── isIntentionallyAbovePeek ──────────────────────────────────────────────
+    // The re-measure gate judges against the anchor the sheet last RESTED at —
+    // not against the moving per-frame measure. [BUG-SHEET-TAP-BOUNCE-001]
+
+    @Test
+    fun should_gate_a_sheet_the_user_sent_above_its_resting_anchor() {
+        // Tap-to-expand in flight (target 840) while resting anchor was 1819:
+        // the expansion belongs to the user — the correction must not steal it.
+        assertEquals(true, isIntentionallyAbovePeek(840f, 1819f, 168f))
+    }
+
+    @Test
+    fun should_follow_the_remeasure_when_the_sheet_was_resting_at_its_anchor() {
+        // Deselecting a tall spot peek: the sheet rests exactly at its anchor
+        // (1221) while the browse peek re-measures shorter — it must follow down.
+        assertEquals(false, isIntentionallyAbovePeek(1221f, 1221f, 168f))
+        // Same when the sheet sits below the anchor (minimized).
+        assertEquals(false, isIntentionallyAbovePeek(2400f, 2251f, 168f))
+    }
+
+    @Test
+    fun should_treat_within_tolerance_wobble_as_resting() {
+        // Sub-tolerance offsets above the anchor are layout noise, not intent.
+        assertEquals(false, isIntentionallyAbovePeek(2100f, 2251f, 168f))
+        assertEquals(true, isIntentionallyAbovePeek(2082f, 2251f, 168f))
+    }
 }
