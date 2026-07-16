@@ -1,0 +1,65 @@
+# VEH-ACTIVE-FENCE-001 — El vehículo activo es la declaración: vallas, armado manual y release por sesión
+
+> **Estado**: ESPECIFICADO — pendiente de rama `feature/VEH-ACTIVE-FENCE-001-active-vehicle-model`.
+> Origen: release fantasma del Chevrolet Beat + 6 FGS espurios (auditoría 2026-07-15).
+> Decidido con el user 2026-07-16. Prioridad: **P1**.
+
+## Problema (evidencia de campo)
+
+- **Release fantasma**: sesión manual del Beat (inactivo, Avda Sanlúcar 34) liberada 60 ms
+  después del tap "Estoy conduciendo" (15-07 18:05:18.853 → .913). Causa:
+  `HomeViewModel.releaseParking` → `target = selectedSession ?: state.userParking`, con
+  `HomeState.userParking = activeSessions.firstOrNull()` [MULTI-PARKING-001]. Con 2 sesiones
+  activas, un release sin selección válida mata la de otro vehículo. Triple fallback gemelo en
+  `HomeBottomSheet.kt:196`. Además los releases no dejan traza en diagnostics.
+- **Ruido de vallas de inactivos**: el EXIT de la valla del Beat armó FGS+notificación (1× ruta 2;
+  + las 5 de la valla zombi de Rosa). El intake no mira de quién es la valla.
+- **Atribución al coche equivocado**: el detector cierra `vehicleId` con
+  `observeActiveVehicle().first()` al primer fix de conducción (`CoordinatorParkingDetector.kt:655`)
+  ignorando qué valla nominó — conducir el inactivo plantaría el pin en el activo.
+
+## Doctrina
+
+El móvil no puede saber físicamente qué coche sin BT has cogido (dos vallas en el mismo garaje
+son concéntricas: la distancia es ruido). Las únicas fuentes de identidad son la MAC Bluetooth y
+**la declaración del usuario** — y "vehículo activo" ES esa declaración. Sin ajustes nuevos ni
+"modo automático" falso: con BT = automático por coche (DET-TIERS); sin BT = el activo decide.
+
+## Diseño
+
+1. **Valla del OS solo para el vehículo activo** (o BT-emparejado, que trae identidad propia).
+   Al confirmar aparcamiento de un inactivo NO se registra valla; al cambiar el activo se
+   intercambian (registrar la del nuevo si tiene sesión, retirar la del saliente). Elegido
+   *no registrar* frente a *filtrar en intake*: el filtro despierta igualmente el FGS con su
+   flash de notificación; no registrar elimina el ruido en origen. La sesión del inactivo
+   conserva pin, TTL y safety-net (que trabaja por sesiones con sus propios despertares y solo
+   libera con prueba de viaje). `CureGeofence` debe saltarse sesiones de inactivos. El janitor
+   barre derivas del swap.
+2. **Armado manual vehicle-scoped**: "Estoy conduciendo" lleva `vehicleId`; si el vehículo es
+   inactivo → se establece activo primero (`VehicleActiveStatePolicy`, invariante un-solo-activo)
+   → swap de vallas → armar. El tap ES la declaración "hoy conduzco este".
+3. **Release por `sessionId` explícito, sin fallback**: la intent de liberar lleva el id de la
+   card pulsada; `null` → no-op + error visible. Eliminar `?: state.userParking` en
+   `releaseParking` y el triple fallback de `HomeBottomSheet.kt:196`.
+4. **Diálogos de consecuencia** (copy causa+consecuencia, sin mecánica interna
+   [feedback_no_internals_in_user_copy]):
+   - Establecer activo en Vehicles → diálogo de confirmación (no inmediato): "detectaremos
+     automáticamente los aparcamientos de este vehículo".
+   - "Liberar plaza" de vehículo ACTIVO → aviso: se inicia la detección del próximo aparcamiento.
+   - "Liberar plaza" de vehículo INACTIVO → mismo aviso + opción de establecerlo activo (liberar
+     es la misma declaración que "estoy conduciendo").
+5. **Telemetría**: evento diagnóstico `Released` (quién, qué sesión, desde dónde) + estampar
+   `outcome` en supersede (gap detectado en la auditoría: sesiones confirmadas con outcome=null).
+
+## Validación
+
+Tests del policy (swap de vallas en cambio de activo, armado manual activa, release sin id =
+no-op) + replay de la secuencia Beat (2 sesiones activas, tap "Estoy conduciendo" → el Beat queda
+INTACTO) + field-test multi-vehículo. Dev Catalog: reflejar en `MockScenario` el caso 2-vehículos
+(1 activo + 1 inactivo, ambos aparcados) y los diálogos nuevos en la galería.
+
+## Criterio de éxito
+
+Con dos coches aparcados: cero FGS espurios de vallas del inactivo, imposible liberar el coche
+equivocado, y conducir el inactivo tras declararlo (tap manual o liberar+activar) atribuye el
+pin al coche correcto.
