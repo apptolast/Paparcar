@@ -311,6 +311,47 @@ class DetectionTraceReplayTest {
         }
 
     @Test
+    fun camelias_oppo_001_mute_step_reposition_confirms_at_the_house_and_rule_a_pins_the_egress_birth() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-ANCHOR-EGRESS-001 Rule A — CHARACTERIZATION][DET-CREDIBLE-DRIVE-001 TARGET]
+            // Ground truth (user + Redmi AR EXIT): the car ended at ~36.597877,-6.250989. The
+            // anchor froze at the HOUSE DOOR ~37 m away because the walk back from the
+            // reposition ran on a MUTE step counter and its GPS recovery swing laundered the
+            // walk odometer (see the fixture KDoc). Two things are pinned here:
+            //  1. DET-C-02 works on real data: the first tentative confirm (pre-reposition stop)
+            //     is DISCARDED by the Δ990 driving fix — this test runs the REAL 2-min hold.
+            //  2. Rule A pins the egress birth (bounded — also at the house: Rule A must not
+            //     pretend to fix a laundered anchor; that flip belongs to DET-CREDIBLE-DRIVE-001,
+            //     which must turn this trace into a prompt).
+            val replayer = DetectionTraceReplayer(TraceCameliasOppo001.events)
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            replayer.replay(
+                emitFix = { locations.emit(it) },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "exactly one save — the errand-stop hold must discard the first")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_steps+egress", ended.outcome, "field outcome reproduced")
+            val saved = env.parkingRepo.getActiveSession()
+            assertTrue(
+                saved != null &&
+                    saved.location.latitude in 36.59755..36.59763 &&
+                    saved.location.longitude in -6.25068..-6.25060,
+                "Rule A must pin the egress BIRTH (36.5976039,-6.2506390), not the in-car stop " +
+                    "cluster (${TraceCameliasOppo001.FIELD_PIN_LAT},${TraceCameliasOppo001.FIELD_PIN_LON}) " +
+                    "— was ${saved?.location?.latitude},${saved?.location?.longitude}. " +
+                    "(Real car ~37 m away at ${TraceCameliasOppo001.REAL_CAR_LAT},${TraceCameliasOppo001.REAL_CAR_LON} " +
+                    "— out of local reach; DET-CREDIBLE-DRIVE-001 must flip this confirm to a prompt.)",
+            )
+        }
+
+    @Test
     fun late_exit_on_foot_001_walk_away_exit_must_abort_silently_forever() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-HONEST-CLOSE-001 — PERMANENT GUARD, 2026-07-15 field] The fence EXIT was
@@ -348,10 +389,12 @@ class DetectionTraceReplayTest {
         val detectionLogger: FakeDetectionEventLogger,
     )
 
-    private fun buildEnv(clock: () -> Long): Env {
-        // confirmHoldMs=0: the replay ends at the confirm moment; the 2-min errand hold is
-        // covered by its own dedicated tests.
-        val config = ParkingDetectionConfig(confirmHoldMs = 0L)
+    private fun buildEnv(
+        clock: () -> Long,
+        // confirmHoldMs=0 by default: most replays end at the confirm moment; traces where the
+        // errand-stop discard is load-bearing (Camelias-Oppo reposition) pass the real config.
+        config: ParkingDetectionConfig = ParkingDetectionConfig(confirmHoldMs = 0L),
+    ): Env {
         val auth = FakeAuthRepository(initialSession = FakeAuthRepository.authenticatedSession(userId = "user-1"))
         val vehicleRepo = FakeVehicleRepository(
             defaultVehicle = Vehicle(id = "v-1", userId = "user-1", sizeCategory = VehicleSize.MEDIUM_SUV),

@@ -340,6 +340,23 @@ data class ParkingDetectionConfig(
      *  floor trades the small-offset FP class (pin one block early, bounded) for zero false
      *  degradations on healthy parks — tune with field telemetry. */
     val egressBirthFloorMeters: Float = 150f,
+    /** [DET-ANCHOR-EGRESS-001 · Rule A] Window (ms) after the recorded egress birth during which
+     *  a better-accuracy fix may sharpen it — the walk has barely moved yet; what varies is fix
+     *  quality. Short on purpose: past it the fixes are the walk, not the door. */
+    val egressBirthWindowMs: Long = 10_000L,
+    /** [DET-ANCHOR-EGRESS-001 · Rule A] Accuracy bar (meters) the egress-birth fix must meet for
+     *  the auto-confirm to PIN at the birth instead of the in-car stop cluster. The birth fix is
+     *  captured seconds after the first step — phone out of the car, open sky — where the stop
+     *  cluster was measured under the car roof (field 2026-07-15, Camelias: the in-car cluster
+     *  converged at claimed acc 3 m INSIDE the house; the walk evidence sat street-side). A
+     *  degraded birth (indoor garage) keeps the stop anchor. */
+    val egressBirthRefineMaxAccuracyMeters: Float = 10f,
+    /** [DET-ANCHOR-EGRESS-001 · Rule A] Steps the user may take past the recorded birth for a
+     *  better-accuracy fix to still count as the SAME birth (sharpening, not walking). Without
+     *  this bound the refinement window slides along a slow walk and the "birth" drifts meters
+     *  into it (caught by the BUG-REPARK-WALK replay: a pedestrian-only stream walked the birth
+     *  10 m off the anchor). 3 steps ≈ 2 m — standing at the car door, not leaving it. */
+    val egressBirthRefineMaxExtraSteps: Int = 3,
 
     // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
     /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
@@ -640,6 +657,15 @@ data class ParkingDetectionConfig(
         require(egressBirthFloorMeters > minEgressDisplacementMeters) {
             "egressBirthFloorMeters ($egressBirthFloorMeters) must be > minEgressDisplacementMeters " +
                 "($minEgressDisplacementMeters) — the ceiling must never undercut the displacement floor"
+        }
+        require(egressBirthWindowMs > 0) {
+            "egressBirthWindowMs must be > 0, was $egressBirthWindowMs"
+        }
+        require(egressBirthRefineMaxAccuracyMeters > 0f) {
+            "egressBirthRefineMaxAccuracyMeters must be > 0, was $egressBirthRefineMaxAccuracyMeters"
+        }
+        require(egressBirthRefineMaxExtraSteps >= 0) {
+            "egressBirthRefineMaxExtraSteps must be >= 0, was $egressBirthRefineMaxExtraSteps"
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"

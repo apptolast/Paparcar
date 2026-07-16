@@ -52,14 +52,35 @@ Guardarraíles:
   aislada nunca corrobora.
 - La tolerancia de coherencia es config (`companion object`/`ParkingDetectionConfig`), no inline.
 
+## Hallazgo añadido 2026-07-16 — el lavado de la banda ambigua (contador mudo)
+
+Traza D2 Camelias ruta-2 (`1784131860665`, fixture `TraceCameliasOppo001`), ground truth del
+user corroborado por el AR EXIT del Redmi: coche real en ~36.597877,-6.250989; pin a 37 m,
+dentro de la casa. Cadena: tras un reposicionamiento real (fix creíble 5,15 m/s), el usuario
+volvió andando a la casa con el contador de pasos MUDO (cero eventos STEP durante la caminata) y
+el columpio de recuperación del GPS dio fixes de 2,5-4,9 m/s (¡ida de 68 m y vuelta en 18 s —
+imposible a pie!). El discriminador persona/coche de la banda ambigua, ciego sin pasos
+("el desplazamiento desborda cero pasos → COCHE"), clasificó la caminata como conducción y
+PUSO A CERO `walkFixesSinceDriving` → la parada en la puerta de casa leyó como drive-entered →
+el ancla CONGELÓ en el peatón. El arrastre-a-casa sobrevive por este agujero.
+
+Cierre requerido en este ticket: **la banda ambigua (2,5-5 m/s) no puede probar COCHE con el
+contador mudo** — un fix ambiguo sin corroboración (ni pasos que comparar, ni desplazamiento
+coherente ida-sin-vuelta) no debe resolver CAR ni poner a cero el odómetro de walk-fixes. La
+trayectoria out-and-back falla la coherencia de desplazamiento por construcción.
+
 ## Validación
 
 Replay: (a) Enamorados `1784131878857` → el ancla se descongela en el tramo 36 km/h/acc52 y el
 pin nace en Camelias; (b) fantasmas 04-07 (2,5-3,6 m/s andando) → siguen sin contar como
 conducción (no cumplen bar de velocidad ni desplazamiento coherente); (c) DET-EXIT-TRUST 08-07
-(acc=100 teleport) → sigue rechazado; (d) trazas sanas → maxSpeed/confirms idénticos o mejores.
+(acc=100 teleport) → sigue rechazado; (d) trazas sanas → maxSpeed/confirms idénticos o mejores;
+(e) `TraceCameliasOppo001` → el freeze en la puerta de casa queda VETADO (odómetro no lavado) y
+la sesión degrada a prompt en vez de confirmar a 37 m del coche (flip del test de caracterización
+`camelias_oppo_001_…`).
 
 ## Criterio de éxito
 
 Nunca más un viaje real perdido por accuracy nominal con velocidad y desplazamiento coherentes;
-cero regresión en los tres incidentes-fantasma fijados.
+cero regresión en los tres incidentes-fantasma fijados; y el pin de Camelias-Oppo deja de nacer
+en la puerta de la casa (prompt, no pin, hasta que un ancla de verdad exista).
