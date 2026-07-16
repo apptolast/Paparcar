@@ -328,6 +328,19 @@ data class ParkingDetectionConfig(
      *  sub-driving-speed car creep can imitate it where steps cannot. Distinct value on purpose
      *  — Firestore forensics can tell the paths apart in the field. */
     val reliabilityKinematicEgress: Float = 0.85f,
+    // ── EGRESS BIRTH CONSISTENCY [DET-ANCHOR-EGRESS-001] ──────────────────────
+    /** Slack (meters) added on top of both accuracy envelopes (anchor + egress-birth fix) when
+     *  checking that the egress walk was BORN at the pinned anchor. Covers the car-door offset
+     *  and the GPS settle between "car at rest" and "first pedestrian evidence". */
+    val egressBirthMarginMeters: Float = 30f,
+    /** Hard floor (meters) below which an egress birth is NEVER read as inconsistent, whatever
+     *  the accuracy envelopes say. Sparse streams (MIUI throttling) can put an honest birth fix
+     *  ~100 m from the anchor with small reported accuracies; a wrong-stop anchor sits hundreds
+     *  of meters to kilometers away (field 2026-07-15, Camino de los Enamorados: 1.11 km). The
+     *  floor trades the small-offset FP class (pin one block early, bounded) for zero false
+     *  degradations on healthy parks — tune with field telemetry. */
+    val egressBirthFloorMeters: Float = 150f,
+
     // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
     /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
      *  Paired with the pedestrian-rate check in `EvaluateBtParkUseCase` so the car's own
@@ -620,6 +633,13 @@ data class ParkingDetectionConfig(
         }
         require(kinematicEgressMinWalkFixes >= 1) {
             "kinematicEgressMinWalkFixes must be >= 1, was $kinematicEgressMinWalkFixes"
+        }
+        require(egressBirthMarginMeters >= 0f) {
+            "egressBirthMarginMeters must be >= 0, was $egressBirthMarginMeters"
+        }
+        require(egressBirthFloorMeters > minEgressDisplacementMeters) {
+            "egressBirthFloorMeters ($egressBirthFloorMeters) must be > minEgressDisplacementMeters " +
+                "($minEgressDisplacementMeters) — the ceiling must never undercut the displacement floor"
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"

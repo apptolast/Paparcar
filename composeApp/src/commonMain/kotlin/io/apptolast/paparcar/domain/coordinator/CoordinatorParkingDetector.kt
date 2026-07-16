@@ -186,6 +186,18 @@ class CoordinatorParkingDetector(
          *  mute-step-counter peer of the step proof. Survives walk pauses (a crossing); only a
          *  resolved CAR movement (which also clears the anchor) resets it. */
         val kinematicEgressFixes: Int = 0,
+        /** [DET-ANCHOR-EGRESS-001] The fix at which the FIRST egress evidence (a counted step or
+         *  a kinematic walk fix) was observed with the anchor PINNED — where the egress walk was
+         *  BORN. A genuine egress is born at the car, so this must sit within the accuracy
+         *  envelopes of [bestStopLocation]; an egress born far away proves the anchor belongs to
+         *  an intermediate stop (field 2026-07-15: frozen at a traffic light 1.11 km before the
+         *  real park, the walk at the destination confirmed kinematic+egress AT the light).
+         *  Cleared with the anchor. */
+        val egressOriginFix: GpsPoint? = null,
+        /** [DET-ANCHOR-EGRESS-001] Steps already counted when [egressOriginFix] was recorded —
+         *  they widen the allowed birth distance (the user may have walked a few steps before
+         *  the first post-pin fix arrived on a sparse stream). */
+        val egressOriginStepCount: Int = 0,
         // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
         val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
@@ -668,7 +680,16 @@ class CoordinatorParkingDetector(
                     // [BUG-COORD-115] precedence: user-confirm always wins.
                     if (state.userConfirmedParking) {
                         PaparcarLogger.d(DIAG, "  ▶ USER-CONFIRMED path — entering confirmParking")
-                        val locationToConfirm = state.bestStopLocation ?: state.bestFix(location)
+                        // [DET-ANCHOR-EGRESS-001] A user "Sí" answers "did you park?", not "is the
+                        // anchor right": when the egress was born away from the pinned anchor, the
+                        // anchor belongs to an intermediate stop — anchor the save at the user's
+                        // current stop instead (they answer near the car; the frozen wrong anchor
+                        // may sit a kilometer out).
+                        val locationToConfirm = if (isEgressBornAtAnchor(state)) {
+                            state.bestStopLocation ?: state.bestFix(location)
+                        } else {
+                            state.bestFix(location)
+                        }
                         completed = runConfirm(
                             location = locationToConfirm,
                             reliability = config.reliabilityUserConfirmed,
@@ -733,6 +754,25 @@ class CoordinatorParkingDetector(
                             sessionOutcome = "aborted_unattended_unpinned_anchor"
                             logDetection { sid ->
                                 DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_UNPINNED_NUDGE", pathLabel = "unattended_timeout", location = location)
+                            }
+                            completed = true
+                            return@collect
+                        }
+                        // [DET-ANCHOR-EGRESS-001] A pinned anchor whose egress was born somewhere
+                        // else is an intermediate-stop anchor (field 2026-07-15: frozen at a
+                        // traffic light 1.11 km before the real park). "Pinned" alone would
+                        // resurrect via this save the exact FP the decision path degraded to a
+                        // prompt — the honest exit is the nudge, never the pin.
+                        if (!isEgressBornAtAnchor(state)) {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⑊ unattended timeout with egress born AWAY from the pinned anchor — no pin; nudging user to mark the spot [DET-ANCHOR-EGRESS-001]"
+                            )
+                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                            notificationPort.showMarkParkingNudge()
+                            sessionOutcome = "aborted_unattended_egress_mismatch"
+                            logDetection { sid ->
+                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_EGRESS_MISMATCH_NUDGE", pathLabel = "unattended_timeout", location = location)
                             }
                             completed = true
                             return@collect
@@ -803,6 +843,7 @@ class CoordinatorParkingDetector(
                                 evidenceLabel = currentArmEvidence,
                                 hasKinematicEgress = hasKinematicEgressSignal(state),
                                 lastSpeedMps = state.lastSpeedMps,
+                                egressBornAtAnchor = isEgressBornAtAnchor(state),
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -1092,6 +1133,7 @@ class CoordinatorParkingDetector(
                 evidenceLabel = currentArmEvidence,
                 hasKinematicEgress = hasKinematicEgressSignal(state),
                 lastSpeedMps = state.lastSpeedMps,
+                egressBornAtAnchor = isEgressBornAtAnchor(state),
             )
         )
         PaparcarLogger.d(
@@ -1203,6 +1245,27 @@ class CoordinatorParkingDetector(
         return d > walkReach
     }
 
+    /** [DET-ANCHOR-EGRESS-001] The egress must be BORN at the anchor — the ceiling the
+     *  displacement gate never had (it only checks a floor, and at 1.11 km from the anchor it is
+     *  trivially satisfied). TRUE while the recorded egress birth ([ParkingDetectionState.egressOriginFix])
+     *  sits within walking-consistency of the pinned anchor: both accuracy envelopes, the steps
+     *  already counted at birth, a fixed margin — or the hard floor, whichever is larger (sparse
+     *  streams can put an honest birth ~100 m out; a wrong-stop anchor sits hundreds of meters to
+     *  kilometers away — field 2026-07-15, Camino de los Enamorados). No anchor or no recorded
+     *  egress → nothing to judge → true. */
+    private fun isEgressBornAtAnchor(s: ParkingDetectionState): Boolean {
+        val anchor = s.bestStopLocation ?: return true
+        val origin = s.egressOriginFix ?: return true
+        val d = io.apptolast.paparcar.domain.util.haversineMeters(
+            anchor.latitude, anchor.longitude,
+            origin.latitude, origin.longitude,
+        )
+        val allowance = anchor.accuracy + origin.accuracy +
+            s.egressOriginStepCount * config.anchorStrideMeters +
+            config.egressBirthMarginMeters
+        return d <= maxOf(allowance, config.egressBirthFloorMeters)
+    }
+
     /**
      * Updates `stoppedSince` / `stoppedFixes` when the vehicle is stopped, or resets
      * them when it starts moving again. Returns the total stopped duration in ms.
@@ -1267,6 +1330,12 @@ class CoordinatorParkingDetector(
                             "(≥${config.minimumTripSpeedMps} m/s) can move it [DET-ANCHOR-FREEZE-001][DET-SHORT-TRIP-FREEZE-001]"
                     )
                 }
+                // [DET-ANCHOR-EGRESS-001] Egress birth, stopped flavour: the first counted step
+                // with the anchor pinned means the user is walking while this fix still reads
+                // stopped — record where that walk began (typically at the car door).
+                val pinnedNow = newBestStop != null &&
+                    (s.anchorFrozen || matured || s.stepCount >= config.anchorLockEgressSteps)
+                val recordEgressBirth = s.egressOriginFix == null && pinnedNow && s.stepCount > 0
                 s.copy(
                     stoppedSince = startedAt,
                     stoppedFixes = if (withinInitialWindow && s.stoppedFixes.size < config.maxStoppedFixes)
@@ -1274,6 +1343,8 @@ class CoordinatorParkingDetector(
                     bestStopLocation = newBestStop,
                     anchorCapturedAtStop = anchorStopOfRecord,
                     anchorFrozen = s.anchorFrozen || matured,
+                    egressOriginFix = if (recordEgressBirth) location else s.egressOriginFix,
+                    egressOriginStepCount = if (recordEgressBirth) s.stepCount else s.egressOriginStepCount,
                     // Reset the reposition counter on every stopped fix. [PARKING-001]
                     consecutiveRepositionFixes = 0,
                 )
@@ -1353,6 +1424,20 @@ class CoordinatorParkingDetector(
                 // the current phase so the response-timeout from a prior prompt still ticks
                 // — that's how BUG-STUCK-SESSION's "walked home" abort fires.
                 val nextPhase = if (effectiveDriving) ConfirmationPhase.Idle else it.phase
+                // [DET-KINEMATIC-EGRESS-001] The egress walk, measured by GPS: quality
+                // pedestrian-band fixes while the anchor is frozen. Cleared with the anchor.
+                val newKinematicEgressFixes = when {
+                    shouldClearBestStop -> 0
+                    it.anchorFrozen &&
+                        location.speed < config.minimumTripSpeedMps &&
+                        location.accuracy <= config.minGpsAccuracyForDriving -> it.kinematicEgressFixes + 1
+                    else -> it.kinematicEgressFixes
+                }
+                // [DET-ANCHOR-EGRESS-001] Egress birth, moving flavour: the first pedestrian-band
+                // evidence (step already counted, or the kinematic walk starting) with the anchor
+                // pinned — where the egress walk was born.
+                val recordEgressBirth = !shouldClearBestStop && it.egressOriginFix == null &&
+                    anchorPinned && (it.stepCount > 0 || newKinematicEgressFixes > 0)
                 it.copy(
                     stoppedSince = null,
                     stoppedFixes = emptyList(),
@@ -1367,14 +1452,16 @@ class CoordinatorParkingDetector(
                     // movement (driving verdict or reposition maneuver) zeroes it; anything else
                     // moving is pedestrian-band and counts.
                     walkFixesSinceDriving = if (effectiveDriving || isRepositionBurst) 0 else it.walkFixesSinceDriving + 1,
-                    // [DET-KINEMATIC-EGRESS-001] The egress walk, measured by GPS: quality
-                    // pedestrian-band fixes while the anchor is frozen. Cleared with the anchor.
-                    kinematicEgressFixes = when {
+                    kinematicEgressFixes = newKinematicEgressFixes,
+                    egressOriginFix = when {
+                        shouldClearBestStop -> null
+                        recordEgressBirth -> location
+                        else -> it.egressOriginFix
+                    },
+                    egressOriginStepCount = when {
                         shouldClearBestStop -> 0
-                        it.anchorFrozen &&
-                            location.speed < config.minimumTripSpeedMps &&
-                            location.accuracy <= config.minGpsAccuracyForDriving -> it.kinematicEgressFixes + 1
-                        else -> it.kinematicEgressFixes
+                        recordEgressBirth -> it.stepCount
+                        else -> it.egressOriginStepCount
                     },
                 )
             }

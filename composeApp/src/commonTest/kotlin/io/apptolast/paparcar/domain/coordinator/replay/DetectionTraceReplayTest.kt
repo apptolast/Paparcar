@@ -183,14 +183,17 @@ class DetectionTraceReplayTest {
         }
 
     @Test
-    fun enamorados_001_frozen_traffic_stop_anchor_currently_confirms_1km_from_the_car() =
+    fun enamorados_001_egress_born_1km_from_the_anchor_prompts_and_a_user_yes_anchors_at_the_car() =
         runTest(UnconfinedTestDispatcher()) {
-            // [DET-ANCHOR-EGRESS-001 — CHARACTERIZATION OF THE BUG, 2026-07-15 field FP]
-            // The anchor freezes at a traffic stop (Camino de los Enamorados), the unfreeze is
-            // starved by the accuracy gate (10.12 m/s @ acc 52.4 fails ≤50 by 2.4 m), and the
-            // genuine egress walk at Camelias — born 1.11 km from the anchor — confirms
-            // kinematic+egress AT THE FROZEN ANCHOR. This test pins today's wrong outcome;
-            // the egress-born-at-anchor ceiling flips it to prompt-no-save.
+            // [DET-ANCHOR-EGRESS-001 — the 2026-07-15 field FP, corrected] The anchor froze at a
+            // traffic stop (Camino de los Enamorados) and the unfreeze was starved by the accuracy
+            // gate; the genuine egress walk at Camelias was born 1.11 km from that anchor. In the
+            // field this confirmed kinematic+egress AT THE FROZEN ANCHOR (pin 1.11 km from the
+            // car). The egress-born-at-anchor ceiling must now:
+            //  1. degrade every auto-confirm to a PROMPT (an egress born elsewhere invalidates
+            //     the anchor, not the park);
+            //  2. on the user's "Sí", anchor the save at the user's CURRENT stop (the doorstep of
+            //     Camelias 22), never at the frozen traffic light.
             val replayer = DetectionTraceReplayer(TraceEnamorados001.events)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
@@ -209,21 +212,74 @@ class DetectionTraceReplayTest {
                 },
                 emitStep = { env.stepDetector.emitSteps(1) },
             )
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "an anchor the egress disowns must never pin silently")
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "the user must be asked exactly once")
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .any { it.outcome == "CONFIRM_DEGRADED_PROMPT" },
+                "the degradation must be visible in diagnostics",
+            )
+
+            // The user answers "Sí" — the save must anchor at Camelias, not the traffic light.
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(GpsPoint(36.5976, -6.2506, accuracy = 8f, timestamp = replayer.nowMs, speed = 0.1f))
             job.cancelAndJoin()
 
-            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "today the FP saves silently")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "user tap completes the save")
             val saved = env.parkingRepo.getActiveSession()
             assertTrue(
                 saved != null &&
-                    saved.location.latitude in 36.59205..36.59220 &&
-                    saved.location.longitude in -6.24030..-6.24010,
-                "the pin lands at the FROZEN traffic-stop anchor " +
-                    "(${TraceEnamorados001.FROZEN_ANCHOR_LAT},${TraceEnamorados001.FROZEN_ANCHOR_LON}), " +
-                    "1.11 km from the car — was ${saved?.location?.latitude},${saved?.location?.longitude}",
+                    saved.location.latitude in 36.5973..36.5978 &&
+                    saved.location.longitude in -6.2508..-6.2504,
+                "park must anchor at the user's stop at Camelias (${TraceEnamorados001.REAL_CAR_LAT}," +
+                    "${TraceEnamorados001.REAL_CAR_LON}), NOT the frozen anchor " +
+                    "(${TraceEnamorados001.FROZEN_ANCHOR_LAT},${TraceEnamorados001.FROZEN_ANCHOR_LON}) " +
+                    "— was ${saved?.location?.latitude},${saved?.location?.longitude}",
             )
+        }
+
+    @Test
+    fun enamorados_001_unattended_timeout_with_disowned_anchor_nudges_instead_of_saving() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-ANCHOR-EGRESS-001] Same trace, user IGNORES the prompt: 16 minutes later the
+            // response-timeout fires. The unattended save trusted "pinned anchor" alone, which
+            // would resurrect the exact FP the decision path degraded — with the egress born away
+            // from the anchor it must nudge ("where did you park?") and abort, never pin.
+            val quietTail = buildList {
+                val lastMs = TraceEnamorados001.events.last().tMs
+                repeat(3) { i ->
+                    add(
+                        TraceEvent(
+                            lastMs + 16 * 60_000L + i * 5_000L, TraceEvent.Kind.FIX,
+                            36.5976479, -6.2506502, 7.5f, 0.09f,
+                        )
+                    )
+                }
+            }
+            val replayer = DetectionTraceReplayer(TraceEnamorados001.events + quietTail)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            var arExitEmitted = false
+            replayer.replay(
+                emitFix = { fix ->
+                    if (!arExitEmitted && fix.timestamp >= TraceEnamorados001.AR_EXIT_AT) {
+                        arExitEmitted = true
+                        env.coordinator.onVehicleExit()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no unattended save at a disowned anchor")
+            assertEquals(1, env.notification.markParkingNudgeCallCount, "the honest exit is the mark-parking nudge")
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("confirmed_kinematic+egress", ended.outcome, "field outcome reproduced")
+            assertEquals("aborted_unattended_egress_mismatch", ended.outcome)
         }
 
     @Test

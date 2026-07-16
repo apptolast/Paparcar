@@ -59,6 +59,13 @@ data class ParkingDecisionInput(
      *  ROLLING — the in-motion false positive at Avenida de los Mástiles (field 2026-07-12). No
      *  path may auto-confirm while this is above the pedestrian ceiling (`egressStepMaxSpeedMps`). */
     val lastSpeedMps: Float = 0f,
+    /** [DET-ANCHOR-EGRESS-001] FALSE when the egress evidence was BORN outside walking-consistency
+     *  of the pinned anchor (see `CoordinatorParkingDetector.isEgressBornAtAnchor`): the walk
+     *  cannot be an egress FROM that anchor, so the anchor belongs to an intermediate stop
+     *  (field 2026-07-15: frozen at a traffic light 1.11 km before the real park, confirmed
+     *  kinematic+egress at the light). The displacement gate only ever had a FLOOR — this is its
+     *  ceiling. Defaults to true for legacy callers. */
+    val egressBornAtAnchor: Boolean = true,
 )
 
 /**
@@ -145,7 +152,11 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             else -> "vehicleExit+window+egress"
         }
         return when {
-            confirmNow && (weakEvidenceOnly || humanPowered) -> ParkingDecision.Prompt(pathLabel)
+            // [DET-ANCHOR-EGRESS-001] An egress born away from the anchor invalidates the anchor,
+            // not the park: every proof may hold and the user probably DID park — just not where
+            // the anchor says. Ask, never pin.
+            confirmNow && (weakEvidenceOnly || humanPowered || !input.egressBornAtAnchor) ->
+                ParkingDecision.Prompt(pathLabel)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,
                 reliability = if (pathLabel == "kinematic+egress") {
