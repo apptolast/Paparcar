@@ -358,6 +358,17 @@ data class ParkingDetectionConfig(
      *  10 m off the anchor). 3 steps ≈ 2 m — standing at the car door, not leaving it. */
     val egressBirthRefineMaxExtraSteps: Int = 3,
 
+    // ── SUSTAINED DEPARTURE (credible drive by displacement) [DET-CREDIBLE-DRIVE-001] ──
+    /** Distance floor (meters) beyond both accuracy envelopes that the position must run from
+     *  the anchor before displacement-corroborated driving is even considered. Set above any
+     *  local GPS pathology observed in the field (recovery swings of ~68 m, oscillation storms) —
+     *  a real drive-away crosses it within seconds. */
+    val sustainedDepartureFloorMeters: Float = 150f,
+    /** Ceiling (m/s) on the average departure rate for it to be believed. A cache-jump teleport
+     *  shortly after a stop claims absurd rates (hundreds of m/s); no urban drive sustains more
+     *  than motorway pace. 55 m/s ≈ 200 km/h. */
+    val sustainedDepartureMaxRateMps: Float = 55f,
+
     // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
     /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
      *  Paired with the pedestrian-rate check in `EvaluateBtParkUseCase` so the car's own
@@ -666,6 +677,12 @@ data class ParkingDetectionConfig(
         }
         require(egressBirthRefineMaxExtraSteps >= 0) {
             "egressBirthRefineMaxExtraSteps must be >= 0, was $egressBirthRefineMaxExtraSteps"
+        }
+        require(sustainedDepartureFloorMeters > 0f) {
+            "sustainedDepartureFloorMeters must be > 0, was $sustainedDepartureFloorMeters"
+        }
+        require(sustainedDepartureMaxRateMps > minimumTripSpeedMps) {
+            "sustainedDepartureMaxRateMps ($sustainedDepartureMaxRateMps) must be > minimumTripSpeedMps ($minimumTripSpeedMps)"
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"

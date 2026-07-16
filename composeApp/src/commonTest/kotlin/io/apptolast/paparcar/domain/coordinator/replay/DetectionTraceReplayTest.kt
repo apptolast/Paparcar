@@ -183,17 +183,16 @@ class DetectionTraceReplayTest {
         }
 
     @Test
-    fun enamorados_001_egress_born_1km_from_the_anchor_prompts_and_a_user_yes_anchors_at_the_car() =
+    fun enamorados_001_sustained_departure_unfreezes_the_traffic_light_and_confirms_at_the_real_arrival() =
         runTest(UnconfinedTestDispatcher()) {
-            // [DET-ANCHOR-EGRESS-001 — the 2026-07-15 field FP, corrected] The anchor froze at a
-            // traffic stop (Camino de los Enamorados) and the unfreeze was starved by the accuracy
-            // gate; the genuine egress walk at Camelias was born 1.11 km from that anchor. In the
-            // field this confirmed kinematic+egress AT THE FROZEN ANCHOR (pin 1.11 km from the
-            // car). The egress-born-at-anchor ceiling must now:
-            //  1. degrade every auto-confirm to a PROMPT (an egress born elsewhere invalidates
-            //     the anchor, not the park);
-            //  2. on the user's "Sí", anchor the save at the user's CURRENT stop (the doorstep of
-            //     Camelias 22), never at the frozen traffic light.
+            // [DET-CREDIBLE-DRIVE-001 — the 2026-07-15 field FP, SOLVED at the root] The anchor
+            // froze at a traffic stop and MIUI starved every later fix of credible accuracy
+            // (10.12 m/s @ acc 52.4 fails ≤50 by 2.4 m) — in the field the pin landed 1.11 km
+            // from the car. Displacement corroboration reads the track instead of the fix: the
+            // position RAN 366 m from the frozen anchor at 13 m/s average — no walk, no ghost.
+            // The anchor unfreezes mid-drive, re-freezes at the REAL arrival (best fix acc 5.7 m,
+            // ~13 m from the user-confirmed car position), and the genuine kinematic egress
+            // confirms THERE. The 1.11 km FP becomes a correct detection.
             val replayer = DetectionTraceReplayer(TraceEnamorados001.events)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
@@ -204,6 +203,50 @@ class DetectionTraceReplayTest {
                 emitFix = { fix ->
                     // The field AR IN_VEHICLE→EXIT landed at Δ 868 703 (the replayer only carries
                     // FIX/STEP, so the transition is injected here at its recorded time).
+                    if (!arExitEmitted && fix.timestamp >= TraceEnamorados001.AR_EXIT_AT) {
+                        arExitEmitted = true
+                        env.coordinator.onVehicleExit()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the real park must save")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("confirmed_kinematic+egress", ended.outcome)
+            val saved = env.parkingRepo.getActiveSession()
+            assertTrue(
+                saved != null &&
+                    saved.location.latitude in 36.59790..36.59806 &&
+                    saved.location.longitude in -6.25100..-6.25085,
+                "park must anchor at the REAL arrival (~36.59799,-6.25093, 13 m from the " +
+                    "user-confirmed car), NOT the frozen traffic light " +
+                    "(${TraceEnamorados001.FROZEN_ANCHOR_LAT},${TraceEnamorados001.FROZEN_ANCHOR_LON}) " +
+                    "— was ${saved?.location?.latitude},${saved?.location?.longitude}",
+            )
+        }
+
+    @Test
+    fun enamorados_001_without_recovery_fixes_the_ceiling_prompts_and_a_user_yes_anchors_at_the_car() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-ANCHOR-EGRESS-001 — the ceiling as LAST line of defence] Worst-case MIUI
+            // variant: the stream never again shows anything above walking pace after the freeze,
+            // so no sustained departure can corroborate and the anchor stays frozen at the
+            // traffic light. The egress walk at Camelias is born 1.11 km from it — the ceiling
+            // must degrade every auto-confirm to a PROMPT, and the user's "Sí" must anchor at
+            // the user's CURRENT stop (the doorstep), never at the light.
+            val replayer = DetectionTraceReplayer(TraceEnamorados001.eventsWithoutRecovery)
+            val env = buildEnv(clock = { replayer.nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
+            val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
+
+            var arExitEmitted = false
+            replayer.replay(
+                emitFix = { fix ->
                     if (!arExitEmitted && fix.timestamp >= TraceEnamorados001.AR_EXIT_AT) {
                         arExitEmitted = true
                         env.coordinator.onVehicleExit()
@@ -247,7 +290,7 @@ class DetectionTraceReplayTest {
             // would resurrect the exact FP the decision path degraded — with the egress born away
             // from the anchor it must nudge ("where did you park?") and abort, never pin.
             val quietTail = buildList {
-                val lastMs = TraceEnamorados001.events.last().tMs
+                val lastMs = TraceEnamorados001.eventsWithoutRecovery.maxOf { it.tMs }
                 repeat(3) { i ->
                     add(
                         TraceEvent(
@@ -257,7 +300,7 @@ class DetectionTraceReplayTest {
                     )
                 }
             }
-            val replayer = DetectionTraceReplayer(TraceEnamorados001.events + quietTail)
+            val replayer = DetectionTraceReplayer(TraceEnamorados001.eventsWithoutRecovery + quietTail)
             val env = buildEnv(clock = { replayer.nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 256)
             val job = launch { env.coordinator.invoke(locations, armEvidence = ArmEvidence.Unverified) }
@@ -311,18 +354,20 @@ class DetectionTraceReplayTest {
         }
 
     @Test
-    fun camelias_oppo_001_mute_step_reposition_confirms_at_the_house_and_rule_a_pins_the_egress_birth() =
+    fun camelias_oppo_001_walk_entered_anchor_prompts_instead_of_pinning_the_house() =
         runTest(UnconfinedTestDispatcher()) {
-            // [DET-ANCHOR-EGRESS-001 Rule A — CHARACTERIZATION][DET-CREDIBLE-DRIVE-001 TARGET]
-            // Ground truth (user + Redmi AR EXIT): the car ended at ~36.597877,-6.250989. The
-            // anchor froze at the HOUSE DOOR ~37 m away because the walk back from the
-            // reposition ran on a MUTE step counter and its GPS recovery swing laundered the
-            // walk odometer (see the fixture KDoc). Two things are pinned here:
-            //  1. DET-C-02 works on real data: the first tentative confirm (pre-reposition stop)
-            //     is DISCARDED by the Δ990 driving fix — this test runs the REAL 2-min hold.
-            //  2. Rule A pins the egress birth (bounded — also at the house: Rule A must not
-            //     pretend to fix a laundered anchor; that flip belongs to DET-CREDIBLE-DRIVE-001,
-            //     which must turn this trace into a prompt).
+            // [DET-CREDIBLE-DRIVE-001 — the 2026-07-15 in-house pin, SOLVED] Ground truth (user +
+            // Redmi AR EXIT): the car ended at ~36.597877,-6.250989; the field pin landed at the
+            // house door 37 m away because the walk back from the reposition ran on a MUTE step
+            // counter and its GPS recovery swing (2.5-4.9 m/s, out 68 m and back in 18 s)
+            // laundered the walk odometer through the ambiguous band. Now:
+            //  1. the mute ambiguous band can no longer prove CAR (the swing stays under the
+            //     sustained-departure floor) → the walk odometer survives → the house stop reads
+            //     WALK-ENTERED → freeze vetoed, anchor tainted;
+            //  2. a walk-entered anchor degrades every auto-confirm to a PROMPT — the honest
+            //     "you parked, but not here" (the true spot was never GPS-measured);
+            //  3. DET-C-02 still discards the first tentative confirm on the Δ990 driving fix
+            //     (this test runs the REAL 2-min hold).
             val replayer = DetectionTraceReplayer(TraceCameliasOppo001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
@@ -334,20 +379,15 @@ class DetectionTraceReplayTest {
             )
             job.cancelAndJoin()
 
-            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "exactly one save — the errand-stop hold must discard the first")
-            val ended = env.detectionLogger.events
-                .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("confirmed_steps+egress", ended.outcome, "field outcome reproduced")
-            val saved = env.parkingRepo.getActiveSession()
+            assertEquals(
+                0, env.parkingRepo.saveNewParkingSessionCallCount,
+                "a walk-entered anchor (house door, 37 m from the car) must never pin silently",
+            )
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "the user must be asked exactly once")
             assertTrue(
-                saved != null &&
-                    saved.location.latitude in 36.59755..36.59763 &&
-                    saved.location.longitude in -6.25068..-6.25060,
-                "Rule A must pin the egress BIRTH (36.5976039,-6.2506390), not the in-car stop " +
-                    "cluster (${TraceCameliasOppo001.FIELD_PIN_LAT},${TraceCameliasOppo001.FIELD_PIN_LON}) " +
-                    "— was ${saved?.location?.latitude},${saved?.location?.longitude}. " +
-                    "(Real car ~37 m away at ${TraceCameliasOppo001.REAL_CAR_LAT},${TraceCameliasOppo001.REAL_CAR_LON} " +
-                    "— out of local reach; DET-CREDIBLE-DRIVE-001 must flip this confirm to a prompt.)",
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .any { it.outcome == "CONFIRM_DEGRADED_PROMPT" },
+                "the degradation must be visible in diagnostics",
             )
         }
 

@@ -33,6 +33,22 @@ object TraceEnamorados001 {
     const val REAL_CAR_LAT = 36.5976
     const val REAL_CAR_LON = -6.2506
 
+    /** [DET-CREDIBLE-DRIVE-001] Worst-case MIUI variant: the four post-freeze recovery fixes
+     *  (Δ 720 701 / 721 667 at 10.12 m/s and Δ 795 000 / 795 057 at 5.62 m/s) are removed —
+     *  those are exactly what sustained departure corroborates — and ONE pedestrian-band fix
+     *  (1.2 m/s, acc 60) is kept at the Δ 720 701 position, standing in for the degraded
+     *  mid-drive sample any real stream delivers. It breaks the stop (so the traffic light and
+     *  the arrival stay SEPARATE stops, as in the field) but can corroborate nothing. With no
+     *  sustained departure the anchor stays frozen at the light and the egress-born-at-anchor
+     *  CEILING is the last line of defence: prompt, never pin. (Without any moving fix at all
+     *  the whole light→arrival span reads as one continuous stop and same-stop refinement walks
+     *  the anchor to the arrival by itself — a different, self-correcting regime.) */
+    val eventsWithoutRecovery: List<TraceEvent> by lazy {
+        val recoveryFixes = setOf(T0 + 720_701L, T0 + 721_667L, T0 + 795_000L, T0 + 795_057L)
+        events.filterNot { it.kind == TraceEvent.Kind.FIX && it.tMs in recoveryFixes } +
+            TraceEvent(T0 + 720_701L, TraceEvent.Kind.FIX, 36.5934918, -6.2439405, 60f, 1.2f)
+    }
+
     val events: List<TraceEvent> = buildList {
         fun fix(dtMs: Long, lat: Double, lon: Double, acc: Float, speed: Float) =
             add(TraceEvent(T0 + dtMs, TraceEvent.Kind.FIX, lat, lon, acc, speed))

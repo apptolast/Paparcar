@@ -66,6 +66,13 @@ data class ParkingDecisionInput(
      *  kinematic+egress at the light). The displacement gate only ever had a FLOOR — this is its
      *  ceiling. Defaults to true for legacy callers. */
     val egressBornAtAnchor: Boolean = true,
+    /** [DET-CREDIBLE-DRIVE-001] TRUE when the anchor was captured at a stop the user WALKED into
+     *  (walk fixes above `anchorFreezeMaxWalkFixes` led to it) — the pedestrian's standing spot,
+     *  not the car's rest. Field 2026-07-15, Camelias-Oppo: a mute step counter let the walk back
+     *  from a reposition read as driving; the anchor bound to the house door 37 m from the car and
+     *  steps+egress confirmed there. All proofs may hold — the user DID park — but not where this
+     *  anchor says: ask, never pin. Defaults to false for legacy callers. */
+    val anchorWalkEntered: Boolean = false,
 )
 
 /**
@@ -152,10 +159,11 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             else -> "vehicleExit+window+egress"
         }
         return when {
-            // [DET-ANCHOR-EGRESS-001] An egress born away from the anchor invalidates the anchor,
-            // not the park: every proof may hold and the user probably DID park — just not where
-            // the anchor says. Ask, never pin.
-            confirmNow && (weakEvidenceOnly || humanPowered || !input.egressBornAtAnchor) ->
+            // [DET-ANCHOR-EGRESS-001][DET-CREDIBLE-DRIVE-001] An egress born away from the anchor,
+            // or an anchor captured at a walk-entered stop, invalidates the ANCHOR, not the park:
+            // every proof may hold and the user probably DID park — just not where the anchor
+            // says. Ask, never pin.
+            confirmNow && (weakEvidenceOnly || humanPowered || !input.egressBornAtAnchor || input.anchorWalkEntered) ->
                 ParkingDecision.Prompt(pathLabel)
             confirmNow -> ParkingDecision.Confirmed(
                 pathLabel = pathLabel,

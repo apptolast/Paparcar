@@ -198,6 +198,14 @@ class CoordinatorParkingDetector(
          *  they widen the allowed birth distance (the user may have walked a few steps before
          *  the first post-pin fix arrived on a sparse stream). */
         val egressOriginStepCount: Int = 0,
+        /** [DET-CREDIBLE-DRIVE-001] Value of [walkFixesSinceDriving] at the moment
+         *  [bestStopLocation] was (re)captured — how much WALKING led into the stop the anchor
+         *  belongs to. Above [ParkingDetectionConfig.anchorFreezeMaxWalkFixes] the anchor is
+         *  WALK-ENTERED: the pedestrian's standing spot, not the car's rest (field 2026-07-15,
+         *  Camelias-Oppo: the walk back from a reposition, step counter mute, ended frozen at
+         *  the house door 37 m from the car). A walk-entered anchor may keep detecting, but no
+         *  auto-confirm may pin it silently — ask instead. */
+        val anchorWalkFixesAtCapture: Int = 0,
         // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
         val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
@@ -777,6 +785,24 @@ class CoordinatorParkingDetector(
                             completed = true
                             return@collect
                         }
+                        // [DET-CREDIBLE-DRIVE-001] A WALK-ENTERED anchor is the pedestrian's
+                        // standing spot, not the car's rest — saving it unattended plants the pin
+                        // wherever the user walked to (field 2026-07-15, Camelias-Oppo: the house
+                        // door, 37 m from the car). Ask instead.
+                        if (state.anchorWalkFixesAtCapture > config.anchorFreezeMaxWalkFixes) {
+                            PaparcarLogger.d(
+                                DIAG,
+                                "  ⑊ unattended timeout with WALK-ENTERED anchor (walkFixesAtCapture=${state.anchorWalkFixesAtCapture}) — no pin; nudging user to mark the spot [DET-CREDIBLE-DRIVE-001]"
+                            )
+                            notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
+                            notificationPort.showMarkParkingNudge()
+                            sessionOutcome = "aborted_unattended_walk_entered_anchor"
+                            logDetection { sid ->
+                                DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_WALK_ENTERED_NUDGE", pathLabel = "unattended_timeout", location = location)
+                            }
+                            completed = true
+                            return@collect
+                        }
                         PaparcarLogger.d(
                             DIAG,
                             "  ⑊ no user response after ${now - promptShownAt}ms (limit=${config.confirmationResponseTimeoutMs}ms) — SAVING unattended at pinned anchor (reliability=${config.reliabilityUnattendedSave}) [DET-RECONCILE-001]"
@@ -844,6 +870,7 @@ class CoordinatorParkingDetector(
                                 hasKinematicEgress = hasKinematicEgressSignal(state),
                                 lastSpeedMps = state.lastSpeedMps,
                                 egressBornAtAnchor = isEgressBornAtAnchor(state),
+                                anchorWalkEntered = state.anchorWalkFixesAtCapture > config.anchorFreezeMaxWalkFixes,
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -1134,6 +1161,7 @@ class CoordinatorParkingDetector(
                 hasKinematicEgress = hasKinematicEgressSignal(state),
                 lastSpeedMps = state.lastSpeedMps,
                 egressBornAtAnchor = isEgressBornAtAnchor(state),
+                anchorWalkEntered = state.anchorWalkFixesAtCapture > config.anchorFreezeMaxWalkFixes,
             )
         )
         PaparcarLogger.d(
@@ -1243,6 +1271,40 @@ class CoordinatorParkingDetector(
         val walkReach = s.stepCount * config.anchorStrideMeters +
             anchor.accuracy + current.accuracy + config.minEgressDisplacementMeters
         return d > walkReach
+    }
+
+    /** [DET-CREDIBLE-DRIVE-001] Displacement-corroborated driving: the position has RUN from the
+     *  anchor at sustained vehicle pace since the anchor's stop began. Believes no single fix —
+     *  not its speed field, not its accuracy: the corroboration is the track itself. Floor sits
+     *  beyond both accuracy envelopes plus a pathology margin (GPS recovery swings reach ~68 m
+     *  and double back — field 2026-07-15, Camelias-Oppo); the rate window
+     *  [minimumTripSpeedMps, sustainedDepartureMaxRateMps] excludes the walk home (≤2 m/s
+     *  average) and the cache teleport (absurd rates). The current fix must itself be moving
+     *  above walking pace — a pedestrian-band fix never carries the verdict, however far the
+     *  anchor sits (that judgment belongs to the egress/ceiling machinery). This is what
+     *  unfreezes the anchor when MIUI starves every individual fix of credible accuracy
+     *  (field 2026-07-15, Enamorados: 10.12 m/s @ acc 52.4 — the 1.11 km FP's root). */
+    private fun isSustainedDepartureFromAnchor(s: ParkingDetectionState, current: GpsPoint, now: Long): Boolean {
+        val anchor = s.bestStopLocation ?: return false
+        val sinceMs = s.anchorCapturedAtStop ?: return false
+        if (current.speed < config.clearBestStopSpeedMps) return false
+        val elapsedSeconds = (now - sinceMs) / 1000.0
+        if (elapsedSeconds <= 0.0) return false
+        val d = io.apptolast.paparcar.domain.util.haversineMeters(
+            anchor.latitude, anchor.longitude,
+            current.latitude, current.longitude,
+        )
+        if (d <= anchor.accuracy + current.accuracy + config.sustainedDepartureFloorMeters) return false
+        val rate = d / elapsedSeconds
+        val sustained = rate >= config.minimumTripSpeedMps && rate <= config.sustainedDepartureMaxRateMps
+        if (sustained) {
+            PaparcarLogger.d(
+                DIAG,
+                "  ⇢ SUSTAINED DEPARTURE — position ran ${d.toInt()} m from the anchor at " +
+                    "${(rate * 10).toInt() / 10.0} m/s avg — credible drive by displacement [DET-CREDIBLE-DRIVE-001]"
+            )
+        }
+        return sustained
     }
 
     /** [DET-ANCHOR-EGRESS-001] The egress must be BORN at the anchor — the ceiling the
@@ -1387,6 +1449,10 @@ class CoordinatorParkingDetector(
                         s.stoppedFixes + location else s.stoppedFixes,
                     bestStopLocation = newBestStop,
                     anchorCapturedAtStop = anchorStopOfRecord,
+                    // [DET-CREDIBLE-DRIVE-001] Stamp how much walking led into the anchor's stop
+                    // the moment it (re)binds to THIS stop — the walk-entered taint reads it.
+                    anchorWalkFixesAtCapture = if (anchorStopOfRecord != s.anchorCapturedAtStop)
+                        s.walkFixesSinceDriving else s.anchorWalkFixesAtCapture,
                     anchorFrozen = s.anchorFrozen || matured,
                     egressOriginFix = if (recordEgressBirth || refineEgressBirth) location else s.egressOriginFix,
                     egressOriginStepCount = if (recordEgressBirth) s.stepCount else s.egressOriginStepCount,
@@ -1424,13 +1490,22 @@ class CoordinatorParkingDetector(
                 // Camelias: 3 steps at the kerb, the walk cleared the true anchor, the pin
                 // re-anchored inside the house). Now the physics decide:
                 //  - real driving speed → CAR, always wins (clears anchor + flushes steps);
+                //  - sustained departure (the position provably RAN from the anchor at vehicle
+                //    pace) → CAR even when no single fix is credible [DET-CREDIBLE-DRIVE-001];
                 //  - pinned anchor (step lock OR end-of-drive freeze) → PERSON below real driving;
+                //  - MUTE counter (zero steps) → the ambiguous band alone can NEVER prove CAR:
+                //    "outruns zero steps" is how the walk back from a reposition laundered the
+                //    walk odometer and froze the anchor at the house door (field 2026-07-15,
+                //    Camelias-Oppo) [DET-CREDIBLE-DRIVE-001];
                 //  - displacement outruns the counted steps → CAR (jam creep with jiggle steps);
                 //  - steps cover the displacement → PERSON: the anchor holds.
                 val outruns = movementOutrunsSteps(it, location)
+                val sustainedDeparture = isSustainedDepartureFromAnchor(it, location, now)
                 val effectiveDriving = when {
                     isRealDrive -> true
+                    sustainedDeparture -> true
                     anchorPinned -> false
+                    it.stepCount == 0 && isDriving -> false
                     it.bestStopLocation != null && isDriving && !outruns -> false
                     else -> isDriving
                 }

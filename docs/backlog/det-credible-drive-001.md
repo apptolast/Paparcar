@@ -1,6 +1,14 @@
 # DET-CREDIBLE-DRIVE-001 — Primitivo "conducción creíble": velocidad+accuracy O velocidad+desplazamiento
 
-> **Estado**: ESPECIFICADO — pendiente de rama `feature/DET-CREDIBLE-DRIVE-001-credible-drive-primitive`.
+> **Estado**: NÚCLEO IMPLEMENTADO 2026-07-16 en la rama `feature/DET-ANCHOR-EGRESS-001-egress-born-at-anchor`
+> (encadenado tras el techo/Regla A por decisión del user). Implementado: salida sostenida desde el
+> ancla (`isSustainedDepartureFromAnchor` — descongela por desplazamiento corroborado), banda
+> ambigua muda no prueba COCHE (el odómetro de caminata sobrevive), taint de ancla walk-entered
+> (`anchorWalkEntered` → Prompt en el evaluador + nudge en el save desatendido). Validado en replay:
+> Enamorados CONFIRMA en la llegada real (~13 m del coche) y Camelias-Oppo degrada a Prompt.
+> DIFERIDO (sin datos de campo que lo pidan aún): tocar `credibleSpeedFix`/maxSpeed,
+> `hasJustReachedSpeed` y `VerifyDepartureEvidenceUseCase`; y el reposition-burst con contador
+> mudo (residual documentado — exige acc≤15 ×3 consecutivos).
 > Origen: FP Enamorados (auditoría 2026-07-15) — el unfreeze se perdió por 2 m de accuracy.
 > Decidido con el user 2026-07-16. Prioridad: **P0**.
 
