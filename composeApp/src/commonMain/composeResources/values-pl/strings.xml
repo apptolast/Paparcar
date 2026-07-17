@@ -352,7 +352,6 @@
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Jesteś offline</string>
     <string name="connectivity_restored_banner">Znowu online</string>
-    <string name="connectivity_action_blocked_offline">Połącz się z internetem, aby to zrobić</string>
 
     <!-- CTA pills w kartach Home -->
     <string name="home_header_add_zone">Dodaj strefę</string>

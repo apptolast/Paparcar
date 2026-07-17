@@ -77,7 +77,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import paparcar.composeapp.generated.resources.Res
-import paparcar.composeapp.generated.resources.connectivity_action_blocked_offline
 import paparcar.composeapp.generated.resources.error_gps_unavailable
 import paparcar.composeapp.generated.resources.error_load_session
 import paparcar.composeapp.generated.resources.error_load_spots
@@ -152,7 +151,6 @@ fun HomeScreen(
     val msgSpotReported = stringResource(Res.string.home_spot_reported)
     val msgTestSpotSent = stringResource(Res.string.home_test_spot_sent)
     val msgSpotSignalSent = stringResource(Res.string.home_spot_signal_sent)
-    val msgOfflineBlocked = stringResource(Res.string.connectivity_action_blocked_offline)
     val msgZoneSaved = stringResource(Res.string.home_zone_saved_message)
     val msgDetectionEnabled = stringResource(Res.string.home_det_enabled_confirm)
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
@@ -176,7 +174,6 @@ fun HomeScreen(
                 HomeEffect.SpotReported -> snackbarHostState.showSnackbar(msgSpotReported)
                 HomeEffect.TestSpotSent -> snackbarHostState.showSnackbar(msgTestSpotSent)
                 HomeEffect.SpotSignalSent -> snackbarHostState.showSnackbar(msgSpotSignalSent)
-                HomeEffect.OfflineActionBlocked -> snackbarHostState.showSnackbar(msgOfflineBlocked)
                 HomeEffect.ZoneSaved -> snackbarHostState.showSnackbar(msgZoneSaved)
                 HomeEffect.DetectionEnabled -> snackbarHostState.showSnackbar(msgDetectionEnabled)
                 // Detection dropped to a stopped state → snackbar with a one-tap re-activation that

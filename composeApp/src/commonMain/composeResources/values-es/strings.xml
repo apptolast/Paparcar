@@ -467,7 +467,6 @@
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Sin conexión</string>
     <string name="connectivity_restored_banner">Conexión restablecida</string>
-    <string name="connectivity_action_blocked_offline">Conéctate a internet para hacer eso</string>
 
     <!-- GPS accuracy disclaimer (QA-008) -->
     <string name="gps_disclaimer_title">Aviso sobre precisión GPS</string>

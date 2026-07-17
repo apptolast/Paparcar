@@ -348,7 +348,6 @@
     <!-- Connectivity banner / snackbar -->
     <string name="connectivity_offline_banner">Ești offline</string>
     <string name="connectivity_restored_banner">Înapoi online</string>
-    <string name="connectivity_action_blocked_offline">Conectează-te la internet pentru a face asta</string>
 
     <!-- CTA pills în cardurile Home -->
     <string name="home_header_add_zone">Adaugă o zonă</string>

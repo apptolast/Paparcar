@@ -364,9 +364,8 @@ class HomeViewModel(
         val current = state.value
         if (current.mode !is HomeMode.AddingParking || current.isSavingParking) return
         val (lat, lon) = current.pinCoordinates() ?: return reportPinMissing()
-        if (connectivityObserver.status.value == ConnectivityStatus.Offline) {
-            sendEffect(HomeEffect.OfflineActionBlocked); return
-        }
+        // No connectivity gate: sessions are local-first (Room now, Firestore mirrored by
+        // the WorkManager sync queue), same as the auto-detection confirm. [OFFLINE-PARK-001]
         updateState { copy(isSavingParking = true) }
         viewModelScope.launch {
             saveManualParking(

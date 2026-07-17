@@ -355,17 +355,26 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_emit_OfflineActionBlocked_on_ConfirmAddParking_when_offline`() = runTest {
+    fun `should_save_parking_locally_on_ConfirmAddParking_when_offline`() = runTest(testDispatcher) {
+        // Offline must NOT block the save — sessions are local-first (Room now, Firestore
+        // mirrored by the WorkManager sync queue), same as the auto-detection confirm.
+        // [OFFLINE-PARK-001]
+        vehicleRepo.saveVehicle(
+            io.apptolast.paparcar.domain.model.Vehicle(
+                id = "v1", userId = "mock_user_001", brand = "Ford", model = "Focus",
+                sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+                vehicleType = io.apptolast.paparcar.domain.model.VehicleType.CAR, isActive = true,
+            ),
+        )
         connectivity.emit(ConnectivityStatus.Offline)
         permissions.emit(FakePermissionManager.allGranted())
         locationDataSource.emitBalanced(location)
 
         vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
-        vm.effect.test {
-            vm.handleIntent(HomeIntent.ConfirmAddParking)
-            assertIs<HomeEffect.OfflineActionBlocked>(awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
+        vm.handleIntent(HomeIntent.ConfirmAddParking)
+
+        assertEquals(1, parkingRepo.saveNewParkingSessionCallCount)
+        assertIs<HomeMode.Browse>(vm.state.value.mode)
     }
 
     // ── ReleaseParking ────────────────────────────────────────────────────────

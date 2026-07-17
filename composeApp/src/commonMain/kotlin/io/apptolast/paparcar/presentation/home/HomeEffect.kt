@@ -12,7 +12,6 @@ sealed class HomeEffect {
     data object TestSpotSent : HomeEffect()
     data object RequestLocationPermission : HomeEffect()
     data object SpotSignalSent : HomeEffect()
-    data object OfflineActionBlocked : HomeEffect()
     /** Move the map camera to (lat, lon). Used by the zone-chip tap flow. */
     data class MoveCameraTo(val lat: Double, val lon: Double) : HomeEffect()
     data object ZoneSaved : HomeEffect()
