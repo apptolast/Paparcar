@@ -206,6 +206,12 @@ class CoordinatorParkingDetector(
          *  the house door 37 m from the car). A walk-entered anchor may keep detecting, but no
          *  auto-confirm may pin it silently — ask instead. */
         val anchorWalkFixesAtCapture: Int = 0,
+        /** [DET-CREDIBLE-DRIVE-001] The last fix that went through stop tracking — the `prev` of
+         *  the fix-to-fix hop that corroborates a mute-counter ambiguous-band fix as CAR (see
+         *  [isCorroboratedVehicleHop]). Deliberately every processed fix, garbage included: a
+         *  degraded stretch's phantom stop is exactly the `prev` the deceleration hop must be
+         *  measured against (field 2026-07-16, Galeote). */
+        val previousFix: GpsPoint? = null,
         // ── REPOSITION DETECTION (PARKING-001) ────────────────────────────────
         val consecutiveRepositionFixes: Int = 0,
         // ── STEP DETECTOR (BUG-GARAGE-COLA-001 + BUG-FALSE-ENTER-WALKING) ─────
@@ -1307,6 +1313,27 @@ class CoordinatorParkingDetector(
         return sustained
     }
 
+    /** [DET-CREDIBLE-DRIVE-001] Displacement corroboration for a MUTE-counter ambiguous-band
+     *  fix: the position provably hopped from the previous fix — beyond BOTH accuracy envelopes
+     *  plus [ParkingDetectionConfig.credibleDriveHopMarginMeters] — at a ground rate no walker
+     *  sustains (≥ [ParkingDetectionConfig.clearBestStopSpeedMps]). Declared Doppler speed is
+     *  what the mute band may not trust; a measured hop is independent evidence. Field-calibrated
+     *  on both sides: the Galeote deceleration passes (23.7 m / 5 s against 9.9 m of joint
+     *  accuracy — the car rolling to the kerb), the Camelias walk-back recovery swing fails every
+     *  hop (its envelopes balloon exactly when it "moves": best case 11.9 m against 14.1 m of
+     *  noise) — so the drag-to-home laundering stays impossible. */
+    private fun isCorroboratedVehicleHop(prev: GpsPoint?, curr: GpsPoint): Boolean {
+        if (prev == null) return false
+        val dtSeconds = (curr.timestamp - prev.timestamp) / 1000.0
+        if (dtSeconds <= 0.0) return false
+        val d = io.apptolast.paparcar.domain.util.haversineMeters(
+            prev.latitude, prev.longitude,
+            curr.latitude, curr.longitude,
+        )
+        if (d <= prev.accuracy + curr.accuracy + config.credibleDriveHopMarginMeters) return false
+        return d / dtSeconds >= config.clearBestStopSpeedMps
+    }
+
     /** [DET-ANCHOR-EGRESS-001] The egress must be BORN at the anchor — the ceiling the
      *  displacement gate never had (it only checks a floor, and at 1.11 km from the anchor it is
      *  trivially satisfied). TRUE while the recorded egress birth ([ParkingDetectionState.egressOriginFix])
@@ -1456,6 +1483,7 @@ class CoordinatorParkingDetector(
                     anchorFrozen = s.anchorFrozen || matured,
                     egressOriginFix = if (recordEgressBirth || refineEgressBirth) location else s.egressOriginFix,
                     egressOriginStepCount = if (recordEgressBirth) s.stepCount else s.egressOriginStepCount,
+                    previousFix = location,
                     // Reset the reposition counter on every stopped fix. [PARKING-001]
                     consecutiveRepositionFixes = 0,
                 )
@@ -1493,21 +1521,37 @@ class CoordinatorParkingDetector(
                 //  - sustained departure (the position provably RAN from the anchor at vehicle
                 //    pace) → CAR even when no single fix is credible [DET-CREDIBLE-DRIVE-001];
                 //  - pinned anchor (step lock OR end-of-drive freeze) → PERSON below real driving;
-                //  - MUTE counter (zero steps) → the ambiguous band alone can NEVER prove CAR:
-                //    "outruns zero steps" is how the walk back from a reposition laundered the
-                //    walk odometer and froze the anchor at the house door (field 2026-07-15,
-                //    Camelias-Oppo) [DET-CREDIBLE-DRIVE-001];
+                //  - MUTE counter (zero steps) → the ambiguous band alone can NEVER prove CAR
+                //    by its DECLARED speed: "outruns zero steps" is how the walk back from a
+                //    reposition laundered the walk odometer and froze the anchor at the house
+                //    door (field 2026-07-15, Camelias-Oppo) [DET-CREDIBLE-DRIVE-001]. But a hop
+                //    the position PROVABLY made (beyond both accuracy envelopes, at vehicle
+                //    ground rate) is independent evidence — without it, the car's own
+                //    deceleration to the kerb reads as a walk-in and falsely taints the true
+                //    anchor (field 2026-07-16, Galeote: 23.7 m in 5 s against 9.9 m of noise,
+                //    counted as pedestrian). A recovery swing never escapes its own ballooning
+                //    envelopes, so the Camelias laundering stays impossible;
                 //  - displacement outruns the counted steps → CAR (jam creep with jiggle steps);
                 //  - steps cover the displacement → PERSON: the anchor holds.
                 val outruns = movementOutrunsSteps(it, location)
                 val sustainedDeparture = isSustainedDepartureFromAnchor(it, location, now)
+                val corroboratedMuteHop = it.stepCount == 0 && isDriving &&
+                    isCorroboratedVehicleHop(it.previousFix, location)
                 val effectiveDriving = when {
                     isRealDrive -> true
                     sustainedDeparture -> true
                     anchorPinned -> false
+                    corroboratedMuteHop -> true
                     it.stepCount == 0 && isDriving -> false
                     it.bestStopLocation != null && isDriving && !outruns -> false
                     else -> isDriving
+                }
+                if (corroboratedMuteHop && !isRealDrive) {
+                    PaparcarLogger.d(
+                        DIAG,
+                        "  ⤳ mute ambiguous fix corroborated as CAR by displacement " +
+                            "(speed=${location.speed} acc=${location.accuracy}) [DET-CREDIBLE-DRIVE-001]"
+                    )
                 }
                 if (anchorPinned && isDriving && !isRealDrive) {
                     val proof = if (isAnchorLocked(it)) "LOCKED (steps=${it.stepCount})" else "FROZEN (end-of-drive stop)"
@@ -1588,6 +1632,7 @@ class CoordinatorParkingDetector(
                         recordEgressBirth -> it.stepCount
                         else -> it.egressOriginStepCount
                     },
+                    previousFix = location,
                 )
             }
             0L

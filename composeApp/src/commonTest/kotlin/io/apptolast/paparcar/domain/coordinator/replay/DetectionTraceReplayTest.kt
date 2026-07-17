@@ -394,13 +394,16 @@ class DetectionTraceReplayTest {
     @Test
     fun galeote_oppo_001_deceleration_must_not_taint_the_anchor_as_walk_entered() =
         runTest(UnconfinedTestDispatcher()) {
-            // [DET-CREDIBLE-DRIVE-001 — CHARACTERIZATION, 2026-07-16 field FN] A textbook drive
-            // and park at Calle Galeote 31; the Redmi in the same car confirmed 13 m away. The
-            // Oppo's mute step counter turned the final DECELERATION (2.82, 2.95, 1.22, 1.03 m/s
-            // rolling to the kerb) into 4 "walk" fixes → anchorWalkFixesAtCapture=4 > 3 → the
-            // CORRECT anchor was tainted walk-entered → prompt, unanswered → nudge, no pin.
-            // Every arrival traverses the pedestrian band — this fixture pins today's false
-            // taint until displacement corroboration lands, then flips to a silent confirm.
+            // [DET-CREDIBLE-DRIVE-001 — the 2026-07-16 field FN, SOLVED] A textbook drive and
+            // park at Calle Galeote 31; the Redmi in the same car confirmed 13 m away, yet the
+            // field build degraded to an unanswered prompt: the Oppo's mute step counter turned
+            // the final DECELERATION (2.82, 2.95, 1.22, 1.03 m/s rolling to the kerb) into 4
+            // "walk" fixes → anchorWalkFixesAtCapture=4 > 3 → the CORRECT anchor was tainted
+            // walk-entered. Every arrival traverses the pedestrian band — displacement
+            // corroboration now reads the hop the position PROVABLY made (23.7 m in 5 s against
+            // 9.9 m of joint accuracy = CAR) and the odometer resets mid-deceleration: only the
+            // 2 true pedestrian-band fixes remain (≤ 3), the anchor stays clean, and the park
+            // confirms silently at the true anchor. Runs the REAL 2-min confirm hold.
             val replayer = DetectionTraceReplayer(TraceGaleoteOppo001.events)
             val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
@@ -425,18 +428,26 @@ class DetectionTraceReplayTest {
             )
             job.cancelAndJoin()
 
-            // ── Field behaviour reproduced (the false negative, pinned) ──────────
-            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "field: no pin")
-            assertEquals(1, env.notification.parkingConfirmationCallCount, "field: prompted once")
-            assertTrue(
-                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
-                    .any { it.outcome == "CONFIRM_DEGRADED_PROMPT" },
-                "field: the degradation is visible in diagnostics",
-            )
-            assertEquals(1, env.notification.markParkingNudgeCallCount, "field: unattended nudge")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the correct park must save silently")
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("aborted_unattended_walk_entered_anchor", ended.outcome, "field outcome reproduced")
+            assertEquals("confirmed_steps+egress", ended.outcome)
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .none { it.outcome == "CONFIRM_DEGRADED_PROMPT" },
+                "no degradation — the anchor is the car's rest, not a walk-in",
+            )
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "no nudge — nothing to ask")
+            val saved = env.parkingRepo.getActiveSession()
+            assertTrue(
+                saved != null &&
+                    saved.location.latitude in 36.60875..36.60895 &&
+                    saved.location.longitude in -6.27838..-6.27818,
+                "park must pin at the true anchor (~${TraceGaleoteOppo001.FIELD_ANCHOR_LAT}," +
+                    "${TraceGaleoteOppo001.FIELD_ANCHOR_LON}, 13 m from the Redmi's confirm at " +
+                    "${TraceGaleoteOppo001.REDMI_PIN_LAT},${TraceGaleoteOppo001.REDMI_PIN_LON}) " +
+                    "— was ${saved?.location?.latitude},${saved?.location?.longitude}",
+            )
         }
 
     @Test

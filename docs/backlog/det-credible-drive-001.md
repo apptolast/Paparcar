@@ -6,6 +6,10 @@
 > ambigua muda no prueba COCHE (el odómetro de caminata sobrevive), taint de ancla walk-entered
 > (`anchorWalkEntered` → Prompt en el evaluador + nudge en el save desatendido). Validado en replay:
 > Enamorados CONFIRMA en la llegada real (~13 m del coche) y Camelias-Oppo degrada a Prompt.
+> **2026-07-17 — corroboración por desplazamiento del salto (el "OR desplazamiento" del primitivo)
+> IMPLEMENTADA** tras el field-test 16-07 (ver hallazgo Galeote abajo): `isCorroboratedVehicleHop`
+> — un fix ambiguo mudo resuelve COCHE si el salto desde el fix anterior supera ambas envolturas
+> de accuracy + `credibleDriveHopMarginMeters` con ritmo de suelo ≥ `clearBestStopSpeedMps`.
 > DIFERIDO (sin datos de campo que lo pidan aún): tocar `credibleSpeedFix`/maxSpeed,
 > `hasJustReachedSpeed` y `VerifyDepartureEvidenceUseCase`; y el reposition-burst con contador
 > mudo (residual documentado — exige acc≤15 ×3 consecutivos).
@@ -76,6 +80,30 @@ Cierre requerido en este ticket: **la banda ambigua (2,5-5 m/s) no puede probar 
 contador mudo** — un fix ambiguo sin corroboración (ni pasos que comparar, ni desplazamiento
 coherente ida-sin-vuelta) no debe resolver CAR ni poner a cero el odómetro de walk-fixes. La
 trayectoria out-and-back falla la coherencia de desplazamiento por construcción.
+
+## Hallazgo añadido 2026-07-17 — la deceleración leída como caminata (falso taint, Galeote)
+
+Field-test 16-07 de la propia rama (D2 sesión `1784231113765`, fixture `TraceGaleoteOppo001`):
+viaje y aparcamiento de libro en Calle Galeote 31; el Redmi en el mismo coche confirmó a 13 m.
+El contador de pasos del Oppo estuvo mudo TODO el viaje (1er STEP 23 s después de parar) y la
+regla de banda-ambigua-muda —correcta para Camelias— contó la **deceleración final del coche**
+(2,82 / 2,95 / 1,22 / 1,03 m/s rodando al bordillo) como 4 fixes de caminata →
+`anchorWalkFixesAtCapture=4 > 3` → el ancla CORRECTA quedó marcada walk-entered → prompt sin
+contestar → nudge, sin pin. *Todo aparcamiento atraviesa la banda peatonal al decelerar* —
+contarla como walk-in es erróneo por construcción si no hay árbitro.
+
+El árbitro es la corroboración por desplazamiento que este ticket ya especificaba, y los datos
+de campo separan los dos casos sin umbrales finos:
+- Galeote (coche decelerando): salto 23,7 m en 5 s con envolturas conjuntas de 9,9 m → COCHE.
+- Camelias (caminata con columpio): las envolturas se hinchan justo cuando "se mueve" — mejor
+  salto 11,9 m contra 14,1 m de ruido; ningún hop escapa. El lavado sigue imposible.
+
+Implementación: `previousFix` en el estado + `isCorroboratedVehicleHop(prev, curr)` (pura,
+config-driven) + eslabón `corroboratedMuteHop → CAR` en la cadena de veredictos, DESPUÉS de
+`anchorPinned` (un ancla clavada/congelada no se toca) y ANTES de la regla muda. Residual
+aceptado y documentado: un corredor con contador mudo, GPS impecable (acc≤6) y 4,5+ m/s
+sostenidos podría corroborar como coche — la conjunción es rara y el coste es el
+comportamiento pre-rama.
 
 ## Validación
 
