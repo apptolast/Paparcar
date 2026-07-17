@@ -25,6 +25,7 @@ import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
+import io.apptolast.paparcar.presentation.util.MapForegroundEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -155,6 +156,11 @@ fun HomeScreen(
     val msgDetectionEnabled = stringResource(Res.string.home_det_enabled_confirm)
     val msgDetectionStopped = stringResource(Res.string.home_det_stopped_msg)
     val msgDetectionStoppedAction = stringResource(Res.string.home_det_stopped_action)
+
+    // Scope the high-accuracy user-location request to when this screen is actually on-screen: under
+    // Compose Navigation the lifecycle owner is Home's back-stack entry, so this is RESUMED only while
+    // Home is the current destination AND the app is foreground. [UI-LOC-FOREGROUND-001]
+    MapForegroundEffect { active -> viewModel.handleIntent(HomeIntent.SetMapForeground(active)) }
 
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->

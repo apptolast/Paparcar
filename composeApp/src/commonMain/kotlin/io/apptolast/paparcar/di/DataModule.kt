@@ -9,6 +9,7 @@ import io.apptolast.paparcar.domain.geocoder.LocalAddressAndPlaceDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSource
 import io.apptolast.paparcar.data.datasource.remote.FirebaseDataSourceImpl
 import io.apptolast.paparcar.data.datasource.remote.FirestoreDetectionEventLogger
+import io.apptolast.paparcar.data.datasource.remote.FirestoreUiLocationLogger
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSource
 import io.apptolast.paparcar.data.datasource.remote.RemoteUserProfileDataSourceImpl
 import io.apptolast.paparcar.data.repository.AddressAndPlaceRepositoryImpl
@@ -25,6 +26,7 @@ import io.apptolast.paparcar.domain.repository.UserProfileRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
+import io.apptolast.paparcar.domain.diagnostics.UiLocationLogger
 import io.apptolast.paparcar.domain.session.LocalSessionCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +48,17 @@ val dataModule = module {
     // are callback-based and don't block the dispatcher thread.
     single<DetectionEventLogger> {
         FirestoreDetectionEventLogger(
+            firestore = get(),
+            authRepository = get(),
+            deviceInfo = get(),
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        )
+    }
+
+    // Consumer map-location diagnostics — local logcat always + gated Firestore mirror at
+    // diagnostics/{userId}/uiLocation, same opt-in flag as detection. Verifies UI-LOC-FOREGROUND-001.
+    single<UiLocationLogger> {
+        FirestoreUiLocationLogger(
             firestore = get(),
             authRepository = get(),
             deviceInfo = get(),

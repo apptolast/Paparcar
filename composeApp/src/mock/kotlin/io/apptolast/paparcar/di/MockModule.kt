@@ -87,6 +87,7 @@ val mockModule = module {
     // Domain factories resolve the telemetry port with get(); the mock stack has no dataModule,
     // so the port must exist here or resolving ConfirmParkingUseCase crashes Home. [MOCKQA-001]
     single<io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger> { io.apptolast.paparcar.domain.diagnostics.NoOpDetectionEventLogger() }
+    single<io.apptolast.paparcar.domain.diagnostics.UiLocationLogger> { io.apptolast.paparcar.domain.diagnostics.NoOpUiLocationLogger() }
     single<ReportSpotScheduler> { FakeReportSpotScheduler() }
     single<io.apptolast.paparcar.domain.detection.ManualParkingDetection> {
         // Same shared runtime, so the Home "I'm driving" CTA starts the sim too. [DRIVE-SIM-001]

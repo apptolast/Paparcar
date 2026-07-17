@@ -78,9 +78,10 @@ class HomeViewModelTest {
     private lateinit var reportScheduler: FakeReportSpotScheduler
     private lateinit var zoneRepo: FakeZoneRepository
     private lateinit var manualParkingDetection: io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection
+    private lateinit var uiLocationLogger: io.apptolast.paparcar.fakes.FakeUiLocationLogger
     private lateinit var vm: HomeViewModel
 
-    private fun buildVm(initialMapType: String = "TERRAIN"): HomeViewModel {
+    private fun buildVm(initialMapType: String = "TERRAIN", foreground: Boolean = true): HomeViewModel {
         prefs = FakeAppPreferences(initialDefaultMapType = initialMapType)
         manualParkingDetection = io.apptolast.paparcar.fakes.data.repository.FakeManualParkingDetection()
         val addressAndPlaceRepo = FakeAddressAndPlaceRepository()
@@ -154,7 +155,12 @@ class HomeViewModelTest {
             mapFocusEventBus = MapFocusEventBus(),
             startAddParkingEventBus = StartAddParkingEventBus(),
             manualParkingDetection = manualParkingDetection,
-        )
+            uiLocationLogger = uiLocationLogger,
+        ).also {
+            // Default test fixture = map on screen, so the high-accuracy request is armed and location
+            // emits reach state. The backgrounded case uses buildVm(foreground = false). [UI-LOC-FOREGROUND-001]
+            if (foreground) it.handleIntent(HomeIntent.SetMapForeground(true))
+        }
     }
 
     @BeforeTest
@@ -170,6 +176,7 @@ class HomeViewModelTest {
         activityRecognition = FakeActivityRecognitionManager()
         reportScheduler = FakeReportSpotScheduler()
         zoneRepo = FakeZoneRepository()
+        uiLocationLogger = io.apptolast.paparcar.fakes.FakeUiLocationLogger()
         vm = buildVm()
     }
 
@@ -207,14 +214,54 @@ class HomeViewModelTest {
     @Test
     fun `should_update_userGpsPoint_when_location_emitted_with_permissions_granted`() = runTest {
         permissions.emit(FakePermissionManager.allGranted())
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
         assertEquals(location, vm.state.value.userGpsPoint)
     }
 
     @Test
     fun `should_not_update_userGpsPoint_when_permissions_denied`() = runTest {
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
         assertNull(vm.state.value.userGpsPoint)
+    }
+
+    // ── Foreground-scoped high-accuracy location [UI-LOC-FOREGROUND-001] ───────
+
+    @Test
+    fun `should_not_subscribe_location_when_map_backgrounded_even_with_permissions`() = runTest {
+        val bgVm = buildVm(foreground = false)
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        // Backgrounded map ⇒ no high-accuracy request armed ⇒ the fix never reaches state.
+        assertNull(bgVm.state.value.userGpsPoint)
+    }
+
+    @Test
+    fun `should_start_subscription_when_map_returns_to_foreground`() = runTest {
+        val bgVm = buildVm(foreground = false)
+        permissions.emit(FakePermissionManager.allGranted())
+        bgVm.handleIntent(HomeIntent.SetMapForeground(true))
+        locationDataSource.emitHighAccuracy(location)
+        assertEquals(location, bgVm.state.value.userGpsPoint)
+    }
+
+    @Test
+    fun `should_log_SUBSCRIBED_then_FIX_samples_when_foreground_and_location_flows`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        val kinds = uiLocationLogger.kinds()
+        assertEquals(io.apptolast.paparcar.domain.diagnostics.UiLocationSample.Kind.SUBSCRIBED, kinds.first())
+        assertTrue(kinds.contains(io.apptolast.paparcar.domain.diagnostics.UiLocationSample.Kind.FIX))
+        val fix = uiLocationLogger.samples.first { it.kind == io.apptolast.paparcar.domain.diagnostics.UiLocationSample.Kind.FIX }
+        assertEquals(location.accuracy, fix.accuracy)
+        assertTrue(fix.foreground)
+    }
+
+    @Test
+    fun `should_log_STOPPED_sample_when_map_goes_to_background`() = runTest {
+        permissions.emit(FakePermissionManager.allGranted())
+        locationDataSource.emitHighAccuracy(location)
+        vm.handleIntent(HomeIntent.SetMapForeground(false))
+        assertTrue(uiLocationLogger.kinds().contains(io.apptolast.paparcar.domain.diagnostics.UiLocationSample.Kind.STOPPED))
     }
 
     @Test
@@ -231,7 +278,7 @@ class HomeViewModelTest {
         spotRepo.spots = listOf(spot)
 
         permissions.emit(FakePermissionManager.allGranted())
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
 
         assertEquals(1, vm.state.value.nearbySpots.size)
         assertEquals("s1", vm.state.value.nearbySpots.first().id)
@@ -248,7 +295,7 @@ class HomeViewModelTest {
         activityRecognition.shouldThrowOnRegister = true
         permissions.emit(FakePermissionManager.allGranted())
         // GPS + spots chain must still work despite AR failure
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
         assertEquals(location, vm.state.value.userGpsPoint)
     }
 
@@ -368,7 +415,7 @@ class HomeViewModelTest {
         )
         connectivity.emit(ConnectivityStatus.Offline)
         permissions.emit(FakePermissionManager.allGranted())
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
 
         vm.handleIntent(HomeIntent.EnterAddParkingMode(initialGps = location))
         vm.handleIntent(HomeIntent.ConfirmAddParking)
@@ -558,7 +605,7 @@ class HomeViewModelTest {
     @Test
     fun `should_trigger_spot_resubscription_on_offline_to_online_reconnect`() = runTest {
         permissions.emit(FakePermissionManager.allGranted())
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
 
         val spot1 = Spot(id = "s1", location = location, reportedBy = "u1", address = null, placeInfo = null)
         spotRepo.spots = listOf(spot1)
@@ -580,7 +627,7 @@ class HomeViewModelTest {
         val spot = Spot(id = "s1", location = location, reportedBy = "u1", address = null, placeInfo = null)
         spotRepo.spots = listOf(spot)
         permissions.emit(FakePermissionManager.allGranted())
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
 
         vm.handleIntent(HomeIntent.SelectItem("s1"))
         assertEquals("s1", vm.state.value.selectedItemId)
@@ -604,7 +651,7 @@ class HomeViewModelTest {
         val spot = Spot(id = "s1", location = location, reportedBy = "u1", address = null, placeInfo = null)
         spotRepo.spots = listOf(spot)
         permissions.emit(FakePermissionManager.allGranted())
-        locationDataSource.emitBalanced(location)
+        locationDataSource.emitHighAccuracy(location)
 
         vm.handleIntent(HomeIntent.SelectItem(session.id))
         spotRepo.spots = emptyList()

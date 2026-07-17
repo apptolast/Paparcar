@@ -6,6 +6,8 @@ import io.apptolast.paparcar.domain.ActivityRecognitionManager
 import io.apptolast.paparcar.domain.connectivity.ConnectivityObserver
 import io.apptolast.paparcar.domain.connectivity.ConnectivityStatus
 import io.apptolast.paparcar.domain.detection.ManualParkingDetection
+import io.apptolast.paparcar.domain.diagnostics.UiLocationLogger
+import io.apptolast.paparcar.domain.diagnostics.UiLocationSample
 import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.location.LocationDataSource
 import io.apptolast.paparcar.domain.permissions.PermissionManager
@@ -32,6 +34,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -41,14 +44,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, ExperimentalTime::class)
 class HomeViewModel(
     private val permissionManager: PermissionManager,
     private val locationDataSource: LocationDataSource,
@@ -76,6 +82,9 @@ class HomeViewModel(
     private val trip: HomeTripController,
     private val search: HomeSearchController,
     private val spots: HomeSpotsController,
+    // Consumer-location observability (local logcat always + gated Firestore mirror). Verifies the
+    // foreground-scoped high-accuracy request actually refreshes the dot. [UI-LOC-FOREGROUND-001]
+    private val uiLocationLogger: UiLocationLogger,
 ) : BaseViewModel<HomeState, HomeIntent, HomeEffect>() {
 
     /**
@@ -89,6 +98,11 @@ class HomeViewModel(
         trip.updates.stateIn(viewModelScope, SharingStarted.Eagerly, TripUpdate.IDLE)
 
     private var cameraSettledJob: Job? = null
+
+    /** Whether the Home map is foreground (RESUMED). Drives [subscribeGpsLocation]: the high-accuracy
+     *  user-location request runs ONLY while true, so a backgrounded map costs no GPS. Starts false;
+     *  the screen flips it via [HomeIntent.SetMapForeground] on resume/pause. [UI-LOC-FOREGROUND-001] */
+    private val mapForeground = MutableStateFlow(false)
 
     // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -126,6 +140,7 @@ class HomeViewModel(
             is HomeIntent.CameraPositionChanged,
             is HomeIntent.RecenterSpots,
             is HomeIntent.SetMapType,
+            is HomeIntent.SetMapForeground,
             -> handleMapIntent(intent)
 
             // Search
@@ -183,6 +198,7 @@ class HomeViewModel(
             is HomeIntent.CameraPositionChanged -> onCameraPositionChanged(intent.lat, intent.lon)
             is HomeIntent.RecenterSpots -> onRecenterSpots()
             is HomeIntent.SetMapType -> setMapType(intent.type)
+            is HomeIntent.SetMapForeground -> mapForeground.value = intent.active
             else -> Unit
         }
     }
@@ -580,11 +596,20 @@ class HomeViewModel(
             }
     }
 
-    /** GPS + geocode pipeline — permissions gate the source; reconnects rebuild it. */
+    /**
+     * GPS + geocode pipeline. The consumer dot rides a **high-accuracy** request scoped to when the
+     * map is foreground: coarse ~30 s balanced fixes made the dot look frozen while the user walked on
+     * battery-aggressive OEMs (it barely moved), so foreground → high accuracy (a fix every few
+     * seconds), background → no request at all (battery). Permissions gate the source; reconnects
+     * rebuild it. Every subscription/fix is instrumented via [uiLocationLogger] (local logcat always +
+     * gated Firestore mirror) so the fix can be verified in the field. [UI-LOC-FOREGROUND-001]
+     */
     private fun subscribeGpsLocation() {
-        combine(permissionManager.permissionState, onlineAgain()) { perm, _ -> perm }
-            .flatMapLatest { perm ->
-                if (perm.hasCorePermissions) locationDataSource.observeBalancedLocation() else emptyFlow()
+        combine(permissionManager.permissionState, mapForeground, onlineAgain()) { perm, foreground, _ ->
+            perm.hasCorePermissions to foreground
+        }
+            .flatMapLatest { (hasCore, foreground) ->
+                if (hasCore && foreground) instrumentedHighAccuracyLocation() else emptyFlow()
             }
             .onStart { updateState { copy(isLoading = true) } }
             .collectSafely("gpsLocation", notify = { e -> PaparcarError.Location.Unknown(e.message ?: "") }) { location ->
@@ -599,6 +624,45 @@ class HomeViewModel(
                 }
             }
     }
+
+    /**
+     * The high-accuracy consumer stream wrapped with observability: a SUBSCRIBED sample when the
+     * request starts, a FIX sample per fix (carrying the inter-fix gap + accuracy — the numbers that
+     * prove the dot now refreshes), and a STOPPED sample when the map backgrounds and the request is
+     * torn down. [UI-LOC-FOREGROUND-001]
+     */
+    private fun instrumentedHighAccuracyLocation(): Flow<io.apptolast.paparcar.domain.model.GpsPoint> {
+        var lastFixMs = 0L
+        return locationDataSource.observeHighAccuracyLocation()
+            .onStart { uiLocationLogger.log(lifecycleSample(UiLocationSample.Kind.SUBSCRIBED)) }
+            .onEach { fix ->
+                val gap = if (lastFixMs == 0L) null else fix.timestamp - lastFixMs
+                lastFixMs = fix.timestamp
+                uiLocationLogger.log(
+                    UiLocationSample(
+                        timestampMs = fix.timestamp,
+                        kind = UiLocationSample.Kind.FIX,
+                        foreground = true,
+                        priority = LOCATION_PRIORITY_HIGH_ACCURACY,
+                        accuracy = fix.accuracy,
+                        sinceLastFixMs = gap,
+                        speed = fix.speed,
+                        latitude = fix.latitude,
+                        longitude = fix.longitude,
+                    ),
+                )
+            }
+            // onCompletion fires when flatMapLatest tears this down (map backgrounded) — the STOPPED
+            // marker that closes the SUBSCRIBED..STOPPED window in the trace.
+            .onCompletion { uiLocationLogger.log(lifecycleSample(UiLocationSample.Kind.STOPPED)) }
+    }
+
+    private fun lifecycleSample(kind: UiLocationSample.Kind) = UiLocationSample(
+        timestampMs = Clock.System.now().toEpochMilliseconds(),
+        kind = kind,
+        foreground = mapForeground.value,
+        priority = LOCATION_PRIORITY_HIGH_ACCURACY,
+    )
 
     /**
      * Emits once at start (regardless of connectivity — GPS works offline) and again on
@@ -725,6 +789,10 @@ class HomeViewModel(
 
         // Timing
         const val CAMERA_SETTLED_MS = 280L
+
+        // Priority label stamped on UI-location samples — mirrors the android LocationRequest priority
+        // behind observeHighAccuracyLocation(). [UI-LOC-FOREGROUND-001]
+        const val LOCATION_PRIORITY_HIGH_ACCURACY = "HIGH_ACCURACY"
 
         // Map type preference strings
         const val MAP_TYPE_TERRAIN = "TERRAIN"
