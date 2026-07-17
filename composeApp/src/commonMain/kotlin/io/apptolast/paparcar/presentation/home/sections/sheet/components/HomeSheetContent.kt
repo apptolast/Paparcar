@@ -96,23 +96,25 @@ internal fun LazyListScope.homeSheetItems(
     // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index.
     if (slice.detectionUiState.rendersActionSurface && !isSpotSelected) {
         item("detection_surface") {
+            // The car both cold-start CTAs are about: the active vehicle, or the first if none is
+            // flagged. "Mark spot" parks it; "I'm driving" declares it active + arms. [VEH-ACTIVE-FENCE-001]
+            val coldStartVehicleId = vehicleCards.firstOrNull { it.vehicle.isActive }?.vehicle?.id
+                ?: vehicleCards.firstOrNull()?.vehicle?.id
             HomeDetectionSurface(
                 state = slice.detectionUiState,
                 onAddVehicle = { onAction(HomeSheetAction.AddVehicle) },
                 onOpenPermissions = { onAction(HomeSheetAction.OpenCorePermissions) },
                 onMarkSpot = {
-                    // Cold-start "mark my spot" — enters AddingParking for the active
-                    // (or first) vehicle. [DET-TOGGLE-002]
-                    val markVehicleId = vehicleCards.firstOrNull { it.vehicle.isActive }?.vehicle?.id
-                        ?: vehicleCards.firstOrNull()?.vehicle?.id
+                    // Cold-start "mark my spot" — enters AddingParking for that vehicle. [DET-TOGGLE-002]
                     onIntent(
                         HomeIntent.EnterAddParkingMode(
                             initialGps = slice.userGpsPoint,
-                            targetVehicleId = markVehicleId,
+                            targetVehicleId = coldStartVehicleId,
                         ),
                     )
                 },
-                onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection) }, // [DET-G-01b]
+                // [DET-G-01b] "I'm driving" declares THIS car and arms detection for it. [VEH-ACTIVE-FENCE-001]
+                onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = coldStartVehicleId)) },
                 onActivateDetection = { onIntent(HomeIntent.EnableAutoDetection) }, // [DET-TOGGLE-001]
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),

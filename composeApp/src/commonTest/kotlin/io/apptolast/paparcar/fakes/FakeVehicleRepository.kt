@@ -56,7 +56,15 @@ class FakeVehicleRepository(
         return Result.success(Unit)
     }
 
-    override suspend fun setActiveVehicle(id: String): Result<Unit> = Result.success(Unit)
+    /** Records every [setActiveVehicle] call, in order — for asserting vehicle-scoped arming. */
+    val setActiveCalls = mutableListOf<String>()
+
+    override suspend fun setActiveVehicle(id: String): Result<Unit> {
+        setActiveCalls += id
+        // Reflect the promotion so observeActiveVehicle() sees the newly declared vehicle.
+        _vehicles.value.firstOrNull { it.id == id }?.let { _defaultVehicle.value = it }
+        return Result.success(Unit)
+    }
 
     override suspend fun updateBluetoothDevice(vehicleId: String, deviceAddress: String?): Result<Unit> = Result.success(Unit)
 

@@ -10,8 +10,13 @@
 >   ReleaseFailed` visible. Fuera el `?: userParking` y las coords de la intent. `RequestRelease`
 >   lleva el id de la card; el host del diálogo usa `releaseTargetSessionId`. Test de regresión del
 >   Beat: `should_noop_and_error_when_releasing_an_unknown_sessionId`. Prod+mock compilan, tests verdes.
-> - ⏳ Pendientes: Pieza 2 (armado manual vehicle-scoped), Pieza 1 (valla solo del activo + swap,
->   `CureGeofence` salta inactivos, atribución por valla nominadora), Pieza 4 (diálogos de
+> - ✅ **Pieza 2 (armado manual vehicle-scoped)** — `StartDrivingDetection(vehicleId)`; la superficie
+>   cold-start pasa el vehículo (resolver activo-o-primero compartido con "Marcar aparcamiento"). El VM
+>   pone ese coche activo (`setActiveVehicle`, idempotente si ya lo es) ANTES de `manualParkingDetection.
+>   start()`, de modo que el pin se atribuye al coche declarado. Tests: declara-inactivo→setActive+arm,
+>   ya-activo→solo-arm. Prod+mock compilan, tests verdes.
+> - ⏳ Pendientes: Pieza 1 (valla solo del activo + swap, `CureGeofence` salta inactivos, atribución
+>   por valla nominadora — **alto riesgo, toca el detector, field-test**), Pieza 4 (diálogos de
 >   consecuencia), Pieza 5 (telemetría `Released` + `outcome` en supersede).
 >
 > **Corrección al spec**: la "triple fallback en `HomeBottomSheet.kt:196`" era referencia obsoleta

@@ -45,9 +45,11 @@ sealed class HomeIntent {
 
     /**
      * Cold-start "I'm driving" — start automatic detection now so it catches where the user parks.
-     * [DET-G-01b]
+     * [vehicleId] is the car the user declares they are driving: if it isn't already the active
+     * vehicle it is made active first, so the parking is attributed to the right car (the active
+     * vehicle IS the declaration). Null only if there is no resolvable vehicle. [DET-G-01b] [VEH-ACTIVE-FENCE-001]
      */
-    data object StartDrivingDetection : HomeIntent()
+    data class StartDrivingDetection(val vehicleId: String?) : HomeIntent()
 
     /** "Activate detection" from the Home banner — flips the Settings auto-detect flag back on
      *  (independent of permissions). [DET-TOGGLE-001] */

@@ -786,6 +786,46 @@ class HomeViewModelTest {
         assertEquals(setOf("session-A", "session-B"), activeAfter)
     }
 
+    // ── StartDrivingDetection — vehicle-scoped manual arming ──────────────────
+
+    @Test
+    fun `should_set_the_declared_vehicle_active_before_arming_when_it_is_inactive`() = runTest {
+        val activeVeh = Vehicle(
+            id = "veh-active", userId = "user-1", brand = "Seat", model = "Leon",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        val inactiveVeh = Vehicle(
+            id = "veh-inactive", userId = "user-1", brand = "Toyota", model = "Corolla",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVeh, extraVehicles = listOf(inactiveVeh))
+        vm = buildVm()
+
+        // Declaring the inactive car makes it active first, then arms. [VEH-ACTIVE-FENCE-001]
+        vm.handleIntent(HomeIntent.StartDrivingDetection(vehicleId = "veh-inactive"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("veh-inactive"), vehicleRepo.setActiveCalls)
+        assertEquals(1, manualParkingDetection.startCallCount)
+    }
+
+    @Test
+    fun `should_arm_without_re-setting_active_when_the_declared_vehicle_is_already_active`() = runTest {
+        val activeVeh = Vehicle(
+            id = "veh-active", userId = "user-1", brand = "Seat", model = "Leon",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVeh)
+        vm = buildVm()
+
+        // Already the active car — no redundant setActive, just arm.
+        vm.handleIntent(HomeIntent.StartDrivingDetection(vehicleId = "veh-active"))
+        advanceUntilIdle()
+
+        assertTrue(vehicleRepo.setActiveCalls.isEmpty())
+        assertEquals(1, manualParkingDetection.startCallCount)
+    }
+
     // ─────────────────────────────────────────────────────────────────────────────
     // [F1] BUG-1..5 + F1-bis regression coverage — added 2026-06-10
     // ─────────────────────────────────────────────────────────────────────────────

@@ -519,7 +519,7 @@ class HomeViewModel(
         when (intent) {
             // [DET-G-01b] "I'm driving" — start tracking now; the readiness flow flips to Monitoring
             // (the ephemeral pill) as the service marks itself running, which is the user's feedback.
-            is HomeIntent.StartDrivingDetection -> manualParkingDetection.start()
+            is HomeIntent.StartDrivingDetection -> startDrivingDetection(intent.vehicleId)
 
             // [DET-TOGGLE-001] Single "activate detection" action: flip the Settings flag on AND, if
             // the producer permissions are still missing, open the permissions screen — so one tap
@@ -534,6 +534,22 @@ class HomeViewModel(
                 }
             }
             else -> Unit
+        }
+    }
+
+    /**
+     * "I'm driving [vehicleId]" — the tap declares which car is being driven. If that car isn't the
+     * active one, make it active first (the single-active invariant lives in the repository), so the
+     * detector attributes the upcoming parking to it instead of whatever ranked active before.
+     * Then arm manual tracking. Setting active is idempotent when it already is. [VEH-ACTIVE-FENCE-001]
+     */
+    private fun startDrivingDetection(vehicleId: String?) {
+        viewModelScope.launch {
+            if (vehicleId != null && vehicleRepository.observeActiveVehicle().first()?.id != vehicleId) {
+                vehicleRepository.setActiveVehicle(vehicleId)
+                    .onFailure { e -> PaparcarLogger.w(TAG, "startDriving: setActiveVehicle($vehicleId) failed", e) }
+            }
+            manualParkingDetection.start()
         }
     }
 
