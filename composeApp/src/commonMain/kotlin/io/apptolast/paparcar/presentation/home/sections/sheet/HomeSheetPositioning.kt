@@ -194,14 +194,23 @@ internal fun rememberSheetPositioning(
 
 /**
  * True when the sheet's position (or in-flight target) was sent above the peek
- * anchor it last rested at. Such a position belongs to the user — a layout
- * correction must not steal it. [BUG-SHEET-TAP-BOUNCE-001]
+ * anchor it last rested at AND the current geometry allows a user position above
+ * peek at all. Such a position belongs to the user — a layout correction must
+ * not steal it. [BUG-SHEET-TAP-BOUNCE-001]
+ *
+ * When expansion is capped at peek ([canExpandAbovePeek] false: pin modes,
+ * parking selected, spot selected with the list hidden) an above-peek reading
+ * can only be the residue of a follow animation that the next re-measure frame
+ * cancelled mid-flight — AnimatedContent re-measures every frame of a peek
+ * transition — never user intent. Gating on it would strand the sheet taller
+ * than its content, with dead space under the peek. [BUG-SHEET-STRANDED-TALL-001]
  */
 internal fun isIntentionallyAbovePeek(
     referenceOffsetPx: Float,
     restingPeekAnchorPx: Float,
     tolerancePx: Float,
-): Boolean = referenceOffsetPx < restingPeekAnchorPx - tolerancePx
+    canExpandAbovePeek: Boolean,
+): Boolean = canExpandAbovePeek && referenceOffsetPx < restingPeekAnchorPx - tolerancePx
 
 /**
  * The sheet's state-driven transitions, extracted from HomeContent as a
@@ -226,10 +235,11 @@ internal fun SheetTransitionEffects(
         mode is HomeMode.AddingParking
     val resetToPeek = isPinning || isParkingSelected
     // Read by the layout-correction effect at fire time — a peek re-measure must
-    // decide with the CURRENT selection/mode, not the ones captured at launch.
+    // decide with the CURRENT selection/mode/geometry, not the ones captured at launch.
     val currentPeekOffset = rememberUpdatedState(peekOffsetPx)
     val currentResetToPeek = rememberUpdatedState(resetToPeek)
     val currentSelectedItemId = rememberUpdatedState(selectedItemId)
+    val currentPositioning = rememberUpdatedState(positioning)
 
     // The peek anchor the sheet last RESTED at. Only the effects below advance it,
     // and only when their move COMPLETES — an AnimatedContent re-measure restarts
@@ -278,7 +288,14 @@ internal fun SheetTransitionEffects(
     // lag as user intent and strand the sheet above the new peek.
     LaunchedEffect(peekOffsetPx) {
         val reference = if (sheetOffsetPx.isRunning) sheetOffsetPx.targetValue else sheetOffsetPx.value
-        if (isIntentionallyAbovePeek(reference, restingPeekAnchor, peekSnapTolerancePx)) return@LaunchedEffect
+        // fullSnap == peek exactly when capExpandAtPeek (the peek owns the surface) —
+        // in that geometry there IS no user position above peek to protect, so the
+        // correction always follows the measure. [BUG-SHEET-STRANDED-TALL-001]
+        val snap = currentPositioning.value
+        val canExpandAbovePeek = snap.fullSnapOffsetPx < snap.peekOffsetPx
+        if (isIntentionallyAbovePeek(reference, restingPeekAnchor, peekSnapTolerancePx, canExpandAbovePeek)) {
+            return@LaunchedEffect
+        }
         if (currentSelectedItemId.value == null || currentResetToPeek.value) {
             val correction = (sheetOffsetPx.value - peekOffsetPx).absoluteValue
             val sheetBelowNewPeek = sheetOffsetPx.value >= peekOffsetPx

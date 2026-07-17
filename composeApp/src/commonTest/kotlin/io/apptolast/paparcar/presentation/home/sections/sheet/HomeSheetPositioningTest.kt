@@ -129,22 +129,32 @@ class HomeSheetPositioningTest {
     fun should_gate_a_sheet_the_user_sent_above_its_resting_anchor() {
         // Tap-to-expand in flight (target 840) while resting anchor was 1819:
         // the expansion belongs to the user — the correction must not steal it.
-        assertEquals(true, isIntentionallyAbovePeek(840f, 1819f, 168f))
+        assertEquals(true, isIntentionallyAbovePeek(840f, 1819f, 168f, canExpandAbovePeek = true))
     }
 
     @Test
     fun should_follow_the_remeasure_when_the_sheet_was_resting_at_its_anchor() {
         // Deselecting a tall spot peek: the sheet rests exactly at its anchor
         // (1221) while the browse peek re-measures shorter — it must follow down.
-        assertEquals(false, isIntentionallyAbovePeek(1221f, 1221f, 168f))
+        assertEquals(false, isIntentionallyAbovePeek(1221f, 1221f, 168f, canExpandAbovePeek = true))
         // Same when the sheet sits below the anchor (minimized).
-        assertEquals(false, isIntentionallyAbovePeek(2400f, 2251f, 168f))
+        assertEquals(false, isIntentionallyAbovePeek(2400f, 2251f, 168f, canExpandAbovePeek = true))
     }
 
     @Test
     fun should_treat_within_tolerance_wobble_as_resting() {
         // Sub-tolerance offsets above the anchor are layout noise, not intent.
-        assertEquals(false, isIntentionallyAbovePeek(2100f, 2251f, 168f))
-        assertEquals(true, isIntentionallyAbovePeek(2082f, 2251f, 168f))
+        assertEquals(false, isIntentionallyAbovePeek(2100f, 2251f, 168f, canExpandAbovePeek = true))
+        assertEquals(true, isIntentionallyAbovePeek(2082f, 2251f, 168f, canExpandAbovePeek = true))
+    }
+
+    @Test
+    fun should_never_gate_when_expansion_is_capped_at_peek() {
+        // Pin modes (AddingParking/Reporting/AddingZone) cap expansion at peek: an
+        // above-peek reading there is the residue of a follow animation cancelled by
+        // the next AnimatedContent re-measure frame, never user intent. Gating on it
+        // used to strand the sheet taller than its content. [BUG-SHEET-STRANDED-TALL-001]
+        assertEquals(false, isIntentionallyAbovePeek(840f, 1819f, 168f, canExpandAbovePeek = false))
+        assertEquals(false, isIntentionallyAbovePeek(2082f, 2251f, 168f, canExpandAbovePeek = false))
     }
 }
