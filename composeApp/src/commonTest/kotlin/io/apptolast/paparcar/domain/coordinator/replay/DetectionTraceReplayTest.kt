@@ -392,6 +392,54 @@ class DetectionTraceReplayTest {
         }
 
     @Test
+    fun galeote_oppo_001_deceleration_must_not_taint_the_anchor_as_walk_entered() =
+        runTest(UnconfinedTestDispatcher()) {
+            // [DET-CREDIBLE-DRIVE-001 — CHARACTERIZATION, 2026-07-16 field FN] A textbook drive
+            // and park at Calle Galeote 31; the Redmi in the same car confirmed 13 m away. The
+            // Oppo's mute step counter turned the final DECELERATION (2.82, 2.95, 1.22, 1.03 m/s
+            // rolling to the kerb) into 4 "walk" fixes → anchorWalkFixesAtCapture=4 > 3 → the
+            // CORRECT anchor was tainted walk-entered → prompt, unanswered → nudge, no pin.
+            // Every arrival traverses the pedestrian band — this fixture pins today's false
+            // taint until displacement corroboration lands, then flips to a silent confirm.
+            val replayer = DetectionTraceReplayer(TraceGaleoteOppo001.events)
+            val env = buildEnv(clock = { replayer.nowMs }, config = ParkingDetectionConfig())
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 700)
+            val job = launch {
+                env.coordinator.invoke(
+                    locations,
+                    armEvidence = ArmEvidence.VerifiedByVehicleEnter(enterToExitMs = 60_000L),
+                )
+            }
+
+            var arExitEmitted = false
+            replayer.replay(
+                emitFix = { fix ->
+                    // The field AR IN_VEHICLE→EXIT landed at Δ 1 323 562 (16 min after the stop).
+                    if (!arExitEmitted && fix.timestamp >= TraceGaleoteOppo001.AR_EXIT_AT) {
+                        arExitEmitted = true
+                        env.coordinator.onVehicleExit()
+                    }
+                    locations.emit(fix)
+                },
+                emitStep = { env.stepDetector.emitSteps(1) },
+            )
+            job.cancelAndJoin()
+
+            // ── Field behaviour reproduced (the false negative, pinned) ──────────
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "field: no pin")
+            assertEquals(1, env.notification.parkingConfirmationCallCount, "field: prompted once")
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .any { it.outcome == "CONFIRM_DEGRADED_PROMPT" },
+                "field: the degradation is visible in diagnostics",
+            )
+            assertEquals(1, env.notification.markParkingNudgeCallCount, "field: unattended nudge")
+            val ended = env.detectionLogger.events
+                .filterIsInstance<DetectionEvent.SessionEnded>().single()
+            assertEquals("aborted_unattended_walk_entered_anchor", ended.outcome, "field outcome reproduced")
+        }
+
+    @Test
     fun late_exit_on_foot_001_walk_away_exit_must_abort_silently_forever() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-HONEST-CLOSE-001 — PERMANENT GUARD, 2026-07-15 field] The fence EXIT was
