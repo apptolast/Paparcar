@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,8 +39,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import io.apptolast.paparcar.presentation.util.collectAsStateLifecycleAware
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.ui.Alignment
@@ -60,6 +63,7 @@ import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.model.monitoringStatus
+import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.chips.PaparcarAddChip
 import io.apptolast.paparcar.ui.theme.PapBorders
 import io.apptolast.paparcar.ui.theme.PaparcarType
@@ -74,6 +78,10 @@ import paparcar.composeapp.generated.resources.my_car_empty_why_link
 import paparcar.composeapp.generated.resources.my_car_no_vehicle
 import paparcar.composeapp.generated.resources.my_car_title
 import paparcar.composeapp.generated.resources.my_car_unnamed_vehicle
+import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_body
+import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_cancel
+import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_cta
+import paparcar.composeapp.generated.resources.vehicle_set_active_confirm_title
 import paparcar.composeapp.generated.resources.vehicle_status_active_cd
 
 /**
@@ -180,6 +188,9 @@ private fun VehiclesPager(
         pageCount = { vehicles.size },
     )
     val scope = rememberCoroutineScope()
+    // The vehicle whose set-active is awaiting confirmation. Non-null shows the consequence dialog;
+    // making a car active is a declaration ("I drive this"), never a silent switch. [VEH-ACTIVE-FENCE-001]
+    var pendingSetActive by remember { mutableStateOf<Vehicle?>(null) }
 
     // Scroll pager when ViewModel changes the selected index (e.g. restore on back-nav).
     // Skip when the pager is already scrolling — the in-progress animateScrollToPage
@@ -241,11 +252,46 @@ private fun VehiclesPager(
                     vehicleWithStats = vehicleWithStats,
                     historyState = pageHistoryState,
                     isSettingActive = state.settingActiveVehicleId == vehicleWithStats.vehicle.id,
+                    onRequestSetActive = { pendingSetActive = vehicleWithStats.vehicle },
                     onIntent = onIntent,
                 )
             }
         }
     }
+
+    pendingSetActive?.let { veh ->
+        SetActiveConfirmDialog(
+            vehicleName = veh.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle)),
+            onConfirm = {
+                onIntent(VehiclesIntent.SetActiveVehicle(veh.id))
+                pendingSetActive = null
+            },
+            onDismiss = { pendingSetActive = null },
+        )
+    }
+}
+
+/**
+ * Consequence confirmation before a vehicle becomes the active one: the active vehicle IS the
+ * user's declaration of what they drive, so we spell out what activating means and never switch
+ * silently. [VEH-ACTIVE-FENCE-001]
+ */
+@Composable
+private fun SetActiveConfirmDialog(
+    vehicleName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    PapAlertDialog(
+        onDismiss = onDismiss,
+        icon = Icons.Rounded.DirectionsCar,
+        title = stringResource(Res.string.vehicle_set_active_confirm_title),
+        body = stringResource(Res.string.vehicle_set_active_confirm_body, vehicleName),
+        primaryLabel = stringResource(Res.string.vehicle_set_active_confirm_cta),
+        primaryLeadingIcon = Icons.Rounded.DirectionsCar,
+        onPrimary = onConfirm,
+        cancelLabel = stringResource(Res.string.vehicle_set_active_confirm_cancel),
+    )
 }
 
 @Composable

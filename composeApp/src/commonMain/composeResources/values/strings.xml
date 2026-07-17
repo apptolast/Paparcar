@@ -363,6 +363,11 @@
     <string name="vehicle_status_active">Active</string>
     <!-- Vehicles ficha — separate bottom-row action to make an inactive vehicle the active one. -->
     <string name="vehicle_set_active_action">Set as active</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">Are you driving this car?</string>
+    <string name="vehicle_set_active_confirm_body">We\'ll automatically detect where you park %1$s.</string>
+    <string name="vehicle_set_active_confirm_cta">Yes, it\'s my car</string>
+    <string name="vehicle_set_active_confirm_cancel">Cancel</string>
     <string name="my_car_unnamed_vehicle">Unnamed vehicle</string>
     <string name="veh_bt_recommendation_title">Improve detection accuracy</string>
     <string name="veh_bt_recommendation_body">Pairing your car\'s Bluetooth lets Paparcar detect when you park much more reliably, even on short trips. You can always set this up later from the vehicle\'s menu.</string>

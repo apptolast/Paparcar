@@ -349,6 +349,11 @@
     <string name="my_car_set_active">Activar</string>
     <string name="vehicle_status_active">Activo</string>
     <string name="vehicle_set_active_action">Establecer como activo</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">¿Vas a conducir este coche?</string>
+    <string name="vehicle_set_active_confirm_body">Detectaremos automáticamente dónde aparcas %1$s.</string>
+    <string name="vehicle_set_active_confirm_cta">Sí, es mi coche</string>
+    <string name="vehicle_set_active_confirm_cancel">Cancelar</string>
     <string name="my_car_unnamed_vehicle">Vehículo sin nombre</string>
     <string name="veh_bt_recommendation_title">Mejora la precisión de detección</string>
     <string name="veh_bt_recommendation_body">Vincular el Bluetooth del coche permite a Paparcar detectar cuándo aparcas con mucha más fiabilidad, incluso en trayectos cortos. Puedes configurarlo más tarde desde el menú del vehículo.</string>

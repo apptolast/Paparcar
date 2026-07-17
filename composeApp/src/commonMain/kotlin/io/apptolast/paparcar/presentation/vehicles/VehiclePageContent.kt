@@ -55,6 +55,7 @@ internal fun VehiclePageContent(
     vehicleWithStats: VehicleWithStats,
     historyState: HistoryState,
     isSettingActive: Boolean,
+    onRequestSetActive: () -> Unit,
     onIntent: (VehiclesIntent) -> Unit,
 ) {
     val vehicleId = vehicleWithStats.vehicle.id
@@ -70,7 +71,9 @@ internal fun VehiclePageContent(
                 vehicleWithStats = vehicleWithStats,
                 reliabilityPct = historyState.statsData?.avgReliabilityPct,
                 isSettingActive = isSettingActive,
-                onSetActive = { onIntent(VehiclesIntent.SetActiveVehicle(vehicleId)) },
+                // Making a vehicle active declares "I drive this" — confirm first (the screen owns
+                // the consequence dialog), never switch silently. [VEH-ACTIVE-FENCE-001]
+                onSetActive = onRequestSetActive,
                 onEdit = { onIntent(VehiclesIntent.EditVehicle(vehicleId)) },
             )
         },
