@@ -169,6 +169,7 @@ fun HomeScreen(
                     val msg = when (effect.error) {
                         is PaparcarError.Location.ProviderDisabled -> msgErrorGpsUnavailable
                         is PaparcarError.Database.WriteError -> msgErrorReleaseParking
+                        is PaparcarError.Parking.ReleaseFailed -> msgErrorReleaseParking
                         is PaparcarError.Network.Unknown -> msgErrorLoadSpots
                         is PaparcarError.Database.Unknown -> msgErrorLoadSession
                         is PaparcarError.Parking.SaveFailed -> msgErrorParkingSaveFailed
@@ -292,6 +293,9 @@ private fun HomeContent(
     val selectedSpotId = state.selectedItemId?.takeIf { !isParkingSelected }
     var spotListExpanded by remember(selectedSpotId) { mutableStateOf(false) }
     var showReleaseDialog by remember { mutableStateOf(false) }
+    // The session the release dialog acts on — set from the peek that opened it, so the release
+    // targets THAT card, never a ranked fallback. [VEH-ACTIVE-FENCE-001]
+    var releaseTargetSessionId by remember { mutableStateOf<String?>(null) }
     val lazyListState = rememberLazyListState()
 
     // Auto-close the release dialog as soon as the in-flight release finishes
@@ -336,7 +340,7 @@ private fun HomeContent(
             HomeReleaseDialogHost(
                 visible = showReleaseDialog,
                 isReleasing = state.isReleasingParking,
-                userParking = state.userParking,
+                sessionId = releaseTargetSessionId,
                 onIntent = onIntent,
                 onDismiss = { showReleaseDialog = false },
             )
@@ -597,7 +601,10 @@ private fun HomeContent(
                     onIntent = onIntent,
                     uiController = uiController,
                     onToggleSpotList = { spotListExpanded = !spotListExpanded },
-                    onRelease = { showReleaseDialog = true },
+                    onRelease = { sessionId ->
+                        releaseTargetSessionId = sessionId
+                        showReleaseDialog = true
+                    },
                     onNavigateExternal = openExternalNav,
                     onToggle = motion.toggle,
                     onActivateDetection = onActivateDetection,
@@ -728,21 +735,15 @@ private fun HomeCameraEffects(
 private fun HomeReleaseDialogHost(
     visible: Boolean,
     isReleasing: Boolean,
-    userParking: UserParking?,
+    sessionId: String?,
     onIntent: (HomeIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    if (!visible) return
+    if (!visible || sessionId == null) return
+    // The id came from the tapped peek. The VM resolves the session by id and derives the
+    // release location from it — no coordinates or ranked fallback here. [VEH-ACTIVE-FENCE-001]
     fun release(publishSpot: Boolean) {
-        userParking?.let { p ->
-            onIntent(
-                HomeIntent.ReleaseParking(
-                    lat = p.location.latitude,
-                    lon = p.location.longitude,
-                    publishSpot = publishSpot,
-                ),
-            )
-        }
+        onIntent(HomeIntent.ReleaseParking(sessionId = sessionId, publishSpot = publishSpot))
     }
     HomeReleaseDialog(
         isLoading = isReleasing,
@@ -814,7 +815,7 @@ private fun HomeSheetSection(
     onIntent: (HomeIntent) -> Unit,
     uiController: HomeUiController,
     onToggleSpotList: () -> Unit,
-    onRelease: () -> Unit,
+    onRelease: (sessionId: String) -> Unit,
     onNavigateExternal: (lat: Double, lon: Double, walking: Boolean) -> Unit,
     onToggle: () -> Unit,
     onActivateDetection: (focus: String) -> Unit,
@@ -825,7 +826,7 @@ private fun HomeSheetSection(
         when (action) {
             HomeSheetAction.ToggleSheet -> onToggle()
             HomeSheetAction.ToggleSpotList -> onToggleSpotList()
-            HomeSheetAction.RequestRelease -> onRelease()
+            is HomeSheetAction.RequestRelease -> onRelease(action.sessionId)
             HomeSheetAction.RequestReportMode -> onIntent(
                 HomeIntent.EnterReportMode(
                     lat = uiController.cameraLat ?: state.userGpsPoint?.latitude ?: 0.0,

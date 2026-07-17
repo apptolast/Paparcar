@@ -56,12 +56,14 @@ sealed class HomeIntent {
     // ── Parking lifecycle ─────────────────────────────────────────────────────
 
     /**
-     * Release the active parking session. [publishSpot] = true also reports
-     * the freed plaza to the community. [PEEK-ACTIONS-001]
+     * Release the parking session identified by [sessionId] — the id of the card the
+     * user tapped, never a ranked fallback. If no active session matches, the release
+     * is a visible no-op (an inactive car's fence must not release the active car's
+     * spot). [publishSpot] = true also reports the freed plaza to the community.
+     * The release location is the session's own parking location. [VEH-ACTIVE-FENCE-001] [PEEK-ACTIONS-001]
      */
     data class ReleaseParking(
-        val lat: Double,
-        val lon: Double,
+        val sessionId: String,
         val publishSpot: Boolean = true,
     ) : HomeIntent()
 

@@ -351,7 +351,7 @@ class HomeViewModel(
             is HomeIntent.ShowParkingConfirmation -> updateState { copy(pendingParkingGps = intent.gps) }
             is HomeIntent.ConfirmDetectedParking -> confirmDetectedParking()
             is HomeIntent.DismissConfirmation -> updateState { copy(pendingParkingGps = null) }
-            is HomeIntent.ReleaseParking -> releaseParking(intent.lat, intent.lon, intent.publishSpot)
+            is HomeIntent.ReleaseParking -> releaseParking(intent.sessionId, intent.publishSpot)
             is HomeIntent.EnterAddParkingMode -> updateState {
                 clearedModeFields().copy(
                     mode = HomeMode.AddingParking,
@@ -402,11 +402,18 @@ class HomeViewModel(
         }
     }
 
-    private fun releaseParking(lat: Double, lon: Double, publishSpot: Boolean) {
-        val target = state.value.selectedSession ?: state.value.userParking
+    private fun releaseParking(sessionId: String, publishSpot: Boolean) {
+        // Resolve the tapped card's session explicitly — no `?: userParking` fallback. With two
+        // active sessions, ranking-first could release the wrong car's spot. [VEH-ACTIVE-FENCE-001]
+        val target = state.value.activeSessions.firstOrNull { it.id == sessionId }
+        if (target == null) {
+            PaparcarLogger.w(TAG, "releaseParking: no active session for id=$sessionId — no-op")
+            sendEffect(HomeEffect.ShowError(PaparcarError.Parking.ReleaseFailed))
+            return
+        }
         updateState { copy(isReleasingParking = true) }
         viewModelScope.launch {
-            releaseSession(lat, lon, target, publishSpot)
+            releaseSession(target.location.latitude, target.location.longitude, target, publishSpot)
                 .onSuccess {
                     updateState { copy(selectedItemId = null, isReleasingParking = false) }
                     if (publishSpot) sendEffect(HomeEffect.SpotReported)

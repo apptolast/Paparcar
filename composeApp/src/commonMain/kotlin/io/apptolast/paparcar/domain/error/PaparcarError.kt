@@ -44,6 +44,10 @@ sealed class PaparcarError : Exception() {
          *  driving. Relocating the parked car on that evidence is more likely a pedestrian false
          *  positive than a real repark — the caller should degrade to a user prompt. [DET-SOLID-001] */
         data object ImplausibleRepark : Parking()
+        /** The tapped session id resolved to no active session (already released, or synced away).
+         *  Releasing is a no-op instead of falling back to whichever session ranks first, which
+         *  could free the wrong car's spot. [VEH-ACTIVE-FENCE-001] */
+        data object ReleaseFailed : Parking()
     }
 
     sealed class Vehicle : PaparcarError() {

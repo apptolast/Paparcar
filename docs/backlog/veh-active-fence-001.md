@@ -1,8 +1,22 @@
 # VEH-ACTIVE-FENCE-001 — El vehículo activo es la declaración: vallas, armado manual y release por sesión
 
-> **Estado**: ESPECIFICADO — pendiente de rama `feature/VEH-ACTIVE-FENCE-001-active-vehicle-model`.
+> **Estado**: EN CURSO en rama `feature/VEH-ACTIVE-FENCE-001-active-vehicle-model`.
 > Origen: release fantasma del Chevrolet Beat + 6 FGS espurios (auditoría 2026-07-15).
 > Decidido con el user 2026-07-16. Prioridad: **P1**.
+>
+> **Progreso**:
+> - ✅ **Pieza 3 (release por `sessionId`)** — `ReleaseParking` lleva `sessionId`; el VM resuelve la
+>   sesión en `activeSessions` y deriva la ubicación de ella; `null` → no-op + `PaparcarError.Parking.
+>   ReleaseFailed` visible. Fuera el `?: userParking` y las coords de la intent. `RequestRelease`
+>   lleva el id de la card; el host del diálogo usa `releaseTargetSessionId`. Test de regresión del
+>   Beat: `should_noop_and_error_when_releasing_an_unknown_sessionId`. Prod+mock compilan, tests verdes.
+> - ⏳ Pendientes: Pieza 2 (armado manual vehicle-scoped), Pieza 1 (valla solo del activo + swap,
+>   `CureGeofence` salta inactivos, atribución por valla nominadora), Pieza 4 (diálogos de
+>   consecuencia), Pieza 5 (telemetría `Released` + `outcome` en supersede).
+>
+> **Corrección al spec**: la "triple fallback en `HomeBottomSheet.kt:196`" era referencia obsoleta
+> (esa línea es padding). La resolución real estaba en `HomeReleaseDialogHost` (`HomeScreen.kt`) +
+> `HomeViewModel.releaseParking`, ambas ya corregidas.
 
 ## Problema (evidencia de campo)
 

@@ -17,8 +17,12 @@ internal sealed interface HomeSheetAction {
     /** "Show list" toggle on the selected-spot peek. */
     data object ToggleSpotList : HomeSheetAction
 
-    /** "Me voy" on the parking peek — open the release dialog (publish / delete-only). */
-    data object RequestRelease : HomeSheetAction
+    /**
+     * "Me voy" on the parking peek — open the release dialog (publish / delete-only)
+     * for [sessionId], the session shown in that peek. The id travels so the release
+     * targets THIS card, not whichever session ranks first. [VEH-ACTIVE-FENCE-001]
+     */
+    data class RequestRelease(val sessionId: String) : HomeSheetAction
 
     /** "Report a free spot" CTA — enter Reporting mode centred on the current camera. */
     data object RequestReportMode : HomeSheetAction

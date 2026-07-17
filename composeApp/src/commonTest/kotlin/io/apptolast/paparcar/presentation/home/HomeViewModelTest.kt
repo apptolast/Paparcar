@@ -428,8 +428,17 @@ class HomeViewModelTest {
 
     @Test
     fun `should_emit_SpotReported_on_ReleaseParking_success`() = runTest {
+        val session = UserParking(
+            id = "session-1",
+            userId = "user-1",
+            vehicleId = "veh-1",
+            location = location,
+            isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
         vm.effect.test {
-            vm.handleIntent(HomeIntent.ReleaseParking(40.0, -3.7))
+            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id))
             assertIs<HomeEffect.SpotReported>(awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
@@ -437,8 +446,17 @@ class HomeViewModelTest {
 
     @Test
     fun `should_clear_selectedItemId_on_ReleaseParking_success`() = runTest {
-        vm.handleIntent(HomeIntent.SelectItem("some-spot"))
-        vm.handleIntent(HomeIntent.ReleaseParking(40.0, -3.7))
+        val session = UserParking(
+            id = "session-1",
+            userId = "user-1",
+            vehicleId = "veh-1",
+            location = location,
+            isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+        vm.handleIntent(HomeIntent.SelectItem(session.id))
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = session.id))
         assertNull(vm.state.value.selectedItemId)
     }
 
@@ -726,9 +744,8 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(sessionA, sessionB))
         vm = buildVm()
 
-        // User taps the second vehicle's row → selectedItemId == sessionB.id
-        vm.handleIntent(HomeIntent.SelectItem(sessionB.id))
-        vm.handleIntent(HomeIntent.ReleaseParking(location.latitude, location.longitude, publishSpot = false))
+        // The peek fires the tapped card's id — release targets THAT session explicitly.
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = sessionB.id, publishSpot = false))
 
         // sessionA must remain active; sessionB cleared.
         val activeAfter = vm.state.value.activeSessions.map { it.id }.toSet()
@@ -736,7 +753,9 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `should_fall_back_to_first_active_session_on_release_when_nothing_selected`() = runTest {
+    fun `should_noop_and_error_when_releasing_an_unknown_sessionId`() = runTest {
+        // Regression for the Beat "release fantasma": with two active sessions, a release whose id
+        // resolves to nothing must NOT fall back to the first-ranked session. [VEH-ACTIVE-FENCE-001]
         val sessionA = UserParking(
             id = "session-A",
             userId = "user-1",
@@ -754,12 +773,17 @@ class HomeViewModelTest {
         parkingRepo = FakeUserParkingRepository(initialSessions = listOf(sessionA, sessionB))
         vm = buildVm()
 
-        assertNull(vm.state.value.selectedItemId)
-        vm.handleIntent(HomeIntent.ReleaseParking(location.latitude, location.longitude, publishSpot = false))
+        vm.effect.test {
+            vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "ghost-session", publishSpot = false))
+            val effect = awaitItem()
+            assertIs<HomeEffect.ShowError>(effect)
+            assertIs<io.apptolast.paparcar.domain.error.PaparcarError.Parking.ReleaseFailed>(effect.error)
+            cancelAndIgnoreRemainingEvents()
+        }
 
+        // Nothing was released — both sessions remain active.
         val activeAfter = vm.state.value.activeSessions.map { it.id }.toSet()
-        // First-emitted session (sessionA) is the legacy fallback target.
-        assertEquals(setOf("session-B"), activeAfter)
+        assertEquals(setOf("session-A", "session-B"), activeAfter)
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

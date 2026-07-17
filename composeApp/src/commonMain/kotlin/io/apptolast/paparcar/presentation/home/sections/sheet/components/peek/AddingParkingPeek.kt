@@ -118,8 +118,7 @@ internal fun AddingParkingPeek(
                         deleteTarget?.let { p ->
                             onIntent(
                                 HomeIntent.ReleaseParking(
-                                    lat = p.location.latitude,
-                                    lon = p.location.longitude,
+                                    sessionId = p.id,
                                     publishSpot = false,
                                 ),
                             )

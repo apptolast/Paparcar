@@ -105,7 +105,7 @@ internal fun ParkingPeek(
             PapFooterButton(
                 label = stringResource(Res.string.home_parking_leave_release),
                 leadingIcon = Icons.AutoMirrored.Rounded.Logout,
-                onClick = { onAction(HomeSheetAction.RequestRelease) },
+                onClick = { onAction(HomeSheetAction.RequestRelease(parking.id)) },
                 style = PapFooterButtonStyle.Filled,
                 modifier = Modifier.fillMaxWidth(),
             )
