@@ -802,6 +802,9 @@ class CoordinatorDetectionService : LifecycleService() {
                 parkingDetectionCoordinator(
                     observeAdaptiveLocation(),
                     armEvidence = armEvidence,
+                    // The nominating fence's vehicle (geofence exit identifies the car). Null for
+                    // manual / AR-armed trips. [VEH-ACTIVE-FENCE-001]
+                    nominatingVehicleId = trip?.departingVehicleId,
                 )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
             } catch (e: CancellationException) {

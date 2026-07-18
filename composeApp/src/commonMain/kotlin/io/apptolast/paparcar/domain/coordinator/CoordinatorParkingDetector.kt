@@ -2,6 +2,7 @@ package io.apptolast.paparcar.domain.coordinator
 
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.detection.DetectionPhaseSink
+import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -328,6 +329,11 @@ class CoordinatorParkingDetector(
          *  [ArmEvidence.Manual] / [ArmEvidence.Unverified] arms keep every anti-walking guard
          *  active: their stream is expected to witness the drive itself. [DET-G-04][DET-SOLID-001] */
         armEvidence: ArmEvidence = ArmEvidence.Manual,
+        /** The vehicle whose geofence exit NOMINATED this trip (the fence that fired identifies the
+         *  car). Preferred over the current active vehicle when locking attribution, so a swap-race
+         *  or a nominated trip with a stale active flag still plants the pin on the right car. Null
+         *  for manual / AR-armed trips with no nominating fence. [VEH-ACTIVE-FENCE-001] */
+        nominatingVehicleId: String? = null,
     ) = coroutineScope {
         val sessionJob = coroutineContext[kotlinx.coroutines.Job]
         val sessionStartMs = clock()
@@ -679,16 +685,29 @@ class CoordinatorParkingDetector(
 
                     // Lock vehicleId on first driving-speed fix. [BUG-NEW-VEHICLE-DEFAULT] [BUG-SHORT-TRIP]
                     if (state.hasEverReachedDrivingSpeed && activeVehicleId == null) {
-                        val v = vehicleRepository.observeActiveVehicle().first()
-                        if (v == null) {
-                            PaparcarLogger.w(DIAG, "  ✗ hasEverReachedDrivingSpeed but no active vehicle — abort session")
+                        val active = vehicleRepository.observeActiveVehicle().first()
+                        // Attribute to the NOMINATING fence's vehicle (the geofence exit that armed
+                        // this trip identifies the car), else the current active vehicle. Stops the
+                        // pin landing on whatever ranked active. [VEH-ACTIVE-FENCE-001]
+                        val resolvedId = VehicleFenceOwnershipPolicy.resolveSessionVehicleId(
+                            nominatingVehicleId = nominatingVehicleId,
+                            activeVehicleId = active?.id,
+                        )
+                        if (resolvedId == null) {
+                            PaparcarLogger.w(DIAG, "  ✗ hasEverReachedDrivingSpeed but no vehicle to attribute — abort session")
                             sessionOutcome = "aborted_no_vehicle"
                             completed = true
                             return@collect
                         }
-                        activeVehicleId = v.id
-                        activeVehicleType = v.vehicleType
-                        PaparcarLogger.d(DIAG, "  ✓ vehicleId locked: $activeVehicleId type=$activeVehicleType")
+                        activeVehicleId = resolvedId
+                        // Vehicle type: the resolved vehicle's. Cheap when it IS the active one; a
+                        // differing nominator is looked up in the user's vehicle list (no userId needed).
+                        activeVehicleType = if (resolvedId == active?.id) {
+                            active.vehicleType
+                        } else {
+                            vehicleRepository.observeVehicles().first().firstOrNull { it.id == resolvedId }?.vehicleType
+                        }
+                        PaparcarLogger.d(DIAG, "  ✓ vehicleId locked: $activeVehicleId type=$activeVehicleType (nominator=$nominatingVehicleId)")
                     }
 
                     // [BUG-COORD-115] precedence: user-confirm always wins.

@@ -60,6 +60,7 @@ class CoordinatorParkingDetectorTest {
     private fun setup(
         config: ParkingDetectionConfig = this.config,
         clock: () -> Long = { Clock.System.now().toEpochMilliseconds() },
+        extraVehicles: List<Vehicle> = emptyList(),
     ): TestEnv {
         val auth = FakeAuthRepository(initialSession = authSession)
         val vehicleRepo = FakeVehicleRepository(
@@ -68,6 +69,7 @@ class CoordinatorParkingDetectorTest {
                 userId = "user-1",
                 sizeCategory = VehicleSize.MEDIUM_SUV,
             ),
+            extraVehicles = extraVehicles,
         )
         val parkingRepo = FakeUserParkingRepository()
         val geofence = FakeGeofenceManager()
@@ -139,6 +141,33 @@ class CoordinatorParkingDetectorTest {
                 "reliability should be the user-confirmed score",
             )
             assertEquals(1, env.geofence.createGeofenceCallCount, "geofence should be registered for the saved session")
+        }
+
+    @Test
+    fun should_attribute_the_park_to_the_nominating_vehicle_not_the_active_one() =
+        runTest(UnconfinedTestDispatcher()) {
+            // The active vehicle is v-1, but a geofence exit nominated v-nominator. The confirmed
+            // park must belong to the NOMINATOR, not whatever ranked active. [VEH-ACTIVE-FENCE-001]
+            val env = setup(
+                extraVehicles = listOf(
+                    Vehicle(id = "v-nominator", userId = "user-1", sizeCategory = VehicleSize.VAN_HIGH),
+                ),
+            )
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations, nominatingVehicleId = "v-nominator") }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f))
+            env.coordinator.onUserConfirmedParking()
+            locations.emit(stationaryFix(lat = 40.002, lon = -3.7))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved, "active session should be persisted")
+            assertEquals("v-nominator", saved.vehicleId, "park must be attributed to the nominating fence's vehicle")
+            // End-to-end proof: ConfirmParking resolved the nominator's vehicle (its VAN size), not v-1's.
+            assertEquals(VehicleSize.VAN_HIGH, saved.sizeCategory)
         }
 
     // ─────────────────────────────────────────────────────────────────────────
