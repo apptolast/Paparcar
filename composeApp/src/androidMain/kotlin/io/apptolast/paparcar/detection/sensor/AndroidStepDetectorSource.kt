@@ -24,13 +24,24 @@ import kotlinx.coroutines.flow.emptyFlow
  * If the device hardware lacks `TYPE_STEP_DETECTOR` (very rare; required by Android 4.4+
  * for devices declaring `android.hardware.sensor.stepdetector`), the flow is empty and the
  * coordinator's timeout-based fallback handles confirmation.
+ *
+ * **Wakeup variant on purpose.** [DET-STEP-SENSOR-REDMI-001] The single-arg `getDefaultSensor`
+ * returns the NON-WAKEUP detector, whose events queue in the sensor-hub FIFO and are dropped when
+ * the AP suspends — which it does with the screen off during the walk from the car, even under a
+ * foreground service (the FGS keeps the process alive but holds no CPU wakelock). Field 2026-07-18
+ * (Redmi, home arrival): a ~40-step egress delivered 2 steps, so the anchor never locked at the
+ * car (needs 8) and drifted to the front door. The WAKEUP detector wakes the AP to deliver each
+ * step, so the egress is counted screen-off — falling back to the non-wakeup variant only if the
+ * device has no wakeup one.
  */
 class AndroidStepDetectorSource(
     context: Context,
 ) : StepDetectorSource {
 
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val stepSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+    private val stepSensor: Sensor? =
+        sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR, /* wakeUp = */ true)
+            ?: sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
 
     override fun steps(): Flow<Unit> {
         val sensor = stepSensor ?: run {
@@ -56,7 +67,7 @@ class AndroidStepDetectorSource(
                 close()
                 return@callbackFlow
             }
-            PaparcarLogger.d(TAG, "▶ step detector listener registered")
+            PaparcarLogger.d(TAG, "▶ step detector listener registered (wakeup=${sensor.isWakeUpSensor})")
             awaitClose {
                 PaparcarLogger.d(TAG, "■ step detector listener unregistered")
                 sensorManager.unregisterListener(listener)
