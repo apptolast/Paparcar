@@ -61,7 +61,12 @@ class EvaluateSafetyNetCheckUseCaseTest {
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
         userPresent: Boolean = false,
-    ) = useCase(session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs, exitDeliveredAtMs, userPresent)
+        vehicleBtGated: Boolean = false,
+        lastBtConnectedAtMs: Long? = null,
+    ) = useCase(
+        session, fix, lastSeenNearCarAtMs, nowMs, stepsSinceAnchor, lastVehicleEnteredAtMs,
+        exitDeliveredAtMs, userPresent, vehicleBtGated, lastBtConnectedAtMs,
+    )
 
     @Test
     fun should_returnNone_when_sessionHasNoGeofence() {
@@ -610,6 +615,95 @@ class EvaluateSafetyNetCheckUseCaseTest {
             lastSeenNearCarAtMs = staleAnchor,
             stepsSinceAnchor = null,
             userPresent = false,
+        )
+        assertEquals(SafetyNetAction.None, action)
+    }
+
+    // ── [DET-BT-IDENTITY-GATE-001] BT identity veto ──────────────────────────────
+
+    @Test
+    fun should_downgradeToPrompt_when_btGatedAndNoBtConnectionSincePark_stepBudget() {
+        // Field 2026-07-18 (Redmi), passenger case: parked the BT car, got picked up NEXT TO it in
+        // another car, drove 986 m. The step budget would release+backfill (own-car logic), but on
+        // a BT vehicle with no BT connection since the park, that ride was ANOTHER car → ask, never
+        // auto-release the real spot.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+            vehicleBtGated = true,
+            lastBtConnectedAtMs = null,
+        )
+        assertIs<SafetyNetAction.PromptStillParked>(action)
+    }
+
+    @Test
+    fun should_downgradeToPrompt_when_btGatedAndBtConnectedBeforeThisPark() {
+        // A BT connection that predates THIS parking is stale identity — it belongs to a previous
+        // life, not this trip. Still a veto.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+            vehicleBtGated = true,
+            lastBtConnectedAtMs = sessionStartMs - 60_000L,
+        )
+        assertIs<SafetyNetAction.PromptStillParked>(action)
+    }
+
+    @Test
+    fun should_dispatch_when_btGatedButBtConnectedSincePark() {
+        // The user got back INTO the BT car (ACL connect after the park) and drove off; the
+        // disconnect broadcast was lost, so the safety net is the backstop. Identity proven — the
+        // step-budget release stands.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+            vehicleBtGated = true,
+            lastBtConnectedAtMs = sessionStartMs + 60_000L,
+        )
+        assertIs<SafetyNetAction.DispatchDeparture>(action)
+    }
+
+    @Test
+    fun should_downgradeToPrompt_when_btGatedAndLiveDrivingSpeed_noBtConnection() {
+        // Caught mid-drive far from the car at driving speed, anchored — normally a live dispatch.
+        // On a BT car with no connection this trip, it's a ride in another vehicle: ask.
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = drivingMps),
+            lastSeenNearCarAtMs = nowMs - 3 * 60 * 60_000L,
+            stepsSinceAnchor = 40L,
+            vehicleBtGated = true,
+            lastBtConnectedAtMs = null,
+        )
+        assertIs<SafetyNetAction.PromptStillParked>(action)
+    }
+
+    @Test
+    fun should_dispatch_when_notBtGated_evenWithoutBtConnection() {
+        // Non-BT vehicle (or BT off): the Coordinator owns identity, the gate is inert — the
+        // step-budget release fires exactly as before. Guards the no-op default.
+        val action = evaluate(
+            fix = fixAtMeters(986.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 13 * 60_000L,
+            stepsSinceAnchor = 10L,
+            vehicleBtGated = false,
+            lastBtConnectedAtMs = null,
+        )
+        assertIs<SafetyNetAction.DispatchDeparture>(action)
+    }
+
+    @Test
+    fun should_stayNone_when_btGatedAndWalkedAwayOnFoot() {
+        // The gate only downgrades a DISPATCH to an ASK — it must NEVER turn a silent
+        // parked-and-away-on-foot into a nag. Walked 2 km to dinner on a BT car: still None.
+        val action = evaluate(
+            fix = fixAtMeters(2_000.0, speedMps = 0f),
+            lastSeenNearCarAtMs = nowMs - 28 * 60_000L,
+            stepsSinceAnchor = 2_600L,
+            vehicleBtGated = true,
+            lastBtConnectedAtMs = null,
         )
         assertEquals(SafetyNetAction.None, action)
     }

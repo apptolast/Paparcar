@@ -128,6 +128,12 @@ class EvaluateSafetyNetCheckUseCase(
      *                            (app-start wake-up) — the one moment a disambiguation question
      *                            costs nothing, because they are already looking at the screen.
      *                            Unlocks the ask-when-blind branch below. [DET-ANCHOR-FREEZE-001]
+     * @param vehicleBtGated      `true` when THIS session's vehicle is BT-paired AND Bluetooth is
+     *                            enabled — i.e. the BLUETOOTH strategy owns its identity. Only then
+     *                            can a missing BT connection veto an auto-release. [DET-BT-IDENTITY-GATE-001]
+     * @param lastBtConnectedAtMs Epoch-ms of the last ACL CONNECT to this vehicle's paired MAC, or
+     *                            null when none / unknown. A connection at or after the session
+     *                            start proves the user got into THIS car. [DET-BT-IDENTITY-GATE-001]
      */
     operator fun invoke(
         session: UserParking,
@@ -138,6 +144,8 @@ class EvaluateSafetyNetCheckUseCase(
         lastVehicleEnteredAtMs: Long? = null,
         exitDeliveredAtMs: Long? = null,
         userPresent: Boolean = false,
+        vehicleBtGated: Boolean = false,
+        lastBtConnectedAtMs: Long? = null,
     ): SafetyNetAction {
         val geofenceId = session.geofenceId ?: return SafetyNetAction.None
 
@@ -150,6 +158,23 @@ class EvaluateSafetyNetCheckUseCase(
         val sessionStartMs = session.location.timestamp
         val boardingAtMs = lastVehicleEnteredAtMs?.takeIf { it >= sessionStartMs }
         val exitAtMs = exitDeliveredAtMs?.takeIf { it >= sessionStartMs }
+
+        // ── BT identity veto [DET-BT-IDENTITY-GATE-001] ─────────────────────────────────────────
+        // When THIS vehicle is BT-paired and Bluetooth is on, the BLUETOOTH strategy owns its
+        // identity: a real drive of it connects to its MAC. So an auto-release the safety net
+        // RECONSTRUCTS (step budget / AR boarding / pedestrian physics / live speed) may only fire
+        // when the BT connected to this car AT OR AFTER it parked. Absent that, the far movement is
+        // a ride in ANOTHER vehicle — boarded next to the parked car (field 2026-07-18, Redmi:
+        // picked up beside the car; the step budget released the real spot and pinned a phantom at
+        // the drop-off). The honest exit is the human prompt, NEVER silence — the parked car must
+        // never be silently lost. Non-BT vehicles and BT-off (Coordinator owns identity) pass
+        // through unchanged (vehicleBtGated defaults to false). This gate is a downgrade only: it
+        // turns a DISPATCH into an ASK, never invents a release. The BT-disconnect path remains the
+        // real auto-release for BT cars; this only governs the safety-net backstop.
+        val btIdentityMissing = vehicleBtGated &&
+            (lastBtConnectedAtMs == null || lastBtConnectedAtMs < sessionStartMs)
+        fun releaseOrAsk(dispatch: SafetyNetAction.DispatchDeparture): SafetyNetAction =
+            if (btIdentityMissing) SafetyNetAction.PromptStillParked(geofenceId) else dispatch
 
         val distanceMeters = haversineMeters(
             fix.latitude,
@@ -224,11 +249,13 @@ class EvaluateSafetyNetCheckUseCase(
             config.isCredibleDrivingSpeed(fix.speed * KMH_PER_MPS, fix.accuracy)
         if (credibleDrivingSpeed) {
             return if (anchoredToCar) {
-                SafetyNetAction.DispatchDeparture(
-                    geofenceId,
-                    preconfirmed = false,
-                    trustedStepsSinceAnchor = trustedStepsSinceAnchor,
-                    backfillBounded = backfillBounded,
+                releaseOrAsk(
+                    SafetyNetAction.DispatchDeparture(
+                        geofenceId,
+                        preconfirmed = false,
+                        trustedStepsSinceAnchor = trustedStepsSinceAnchor,
+                        backfillBounded = backfillBounded,
+                    ),
                 )
             } else {
                 SafetyNetAction.PromptStillParked(geofenceId)
@@ -260,11 +287,13 @@ class EvaluateSafetyNetCheckUseCase(
                 accuracyMeters = fix.accuracy,
             )
         ) {
-            return SafetyNetAction.DispatchDeparture(
-                geofenceId,
-                preconfirmed = true,
-                tripStartedAtMs = boardingAtMs,
-                backfillBounded = backfillBounded,
+            return releaseOrAsk(
+                SafetyNetAction.DispatchDeparture(
+                    geofenceId,
+                    preconfirmed = true,
+                    tripStartedAtMs = boardingAtMs,
+                    backfillBounded = backfillBounded,
+                ),
             )
         }
 
@@ -293,12 +322,14 @@ class EvaluateSafetyNetCheckUseCase(
                     if (trustedStepsSinceAnchor < stepsToWalkHere * config.walkedStepFraction &&
                         trustedStepsSinceAnchor <= config.maxBoardingSteps
                     ) {
-                        return SafetyNetAction.DispatchDeparture(
-                            geofenceId,
-                            preconfirmed = true,
-                            tripStartedAtMs = lastSeenNearCarAtMs,
-                            trustedStepsSinceAnchor = trustedStepsSinceAnchor,
-                            backfillBounded = backfillBounded,
+                        return releaseOrAsk(
+                            SafetyNetAction.DispatchDeparture(
+                                geofenceId,
+                                preconfirmed = true,
+                                tripStartedAtMs = lastSeenNearCarAtMs,
+                                trustedStepsSinceAnchor = trustedStepsSinceAnchor,
+                                backfillBounded = backfillBounded,
+                            ),
                         )
                     }
                 }
@@ -320,21 +351,25 @@ class EvaluateSafetyNetCheckUseCase(
                     boardingAtMs >= lastSeenNearCarAtMs &&
                     (nowMs - boardingAtMs) in 0..config.vehicleEnterWindowMs
                 if (arBoardingAtCar) {
-                    return SafetyNetAction.DispatchDeparture(
-                        geofenceId,
-                        preconfirmed = true,
-                        tripStartedAtMs = boardingAtMs,
-                        backfillBounded = backfillBounded,
+                    return releaseOrAsk(
+                        SafetyNetAction.DispatchDeparture(
+                            geofenceId,
+                            preconfirmed = true,
+                            tripStartedAtMs = boardingAtMs,
+                            backfillBounded = backfillBounded,
+                        ),
                     )
                 }
                 if (anchoredToCar && nearAgeMs != null && nearAgeMs > 0) {
                     val averageSpeedMps = distanceMeters / (nearAgeMs / 1000.0)
                     if (averageSpeedMps > config.maxPedestrianSpeedMps) {
-                        return SafetyNetAction.DispatchDeparture(
-                            geofenceId,
-                            preconfirmed = true,
-                            tripStartedAtMs = lastSeenNearCarAtMs,
-                            backfillBounded = backfillBounded,
+                        return releaseOrAsk(
+                            SafetyNetAction.DispatchDeparture(
+                                geofenceId,
+                                preconfirmed = true,
+                                tripStartedAtMs = lastSeenNearCarAtMs,
+                                backfillBounded = backfillBounded,
+                            ),
                         )
                     }
                 }
