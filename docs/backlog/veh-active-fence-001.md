@@ -28,9 +28,14 @@
 >   `outcome="superseded"` en el `SessionEnded` de la sesión superseída (antes el `finally` guardado
 >   la dejaba sin outcome — gap de la auditoría 15-07): se loguea bajo `thisSessionId`, telemetría
 >   pura sin tocar estado del sucesor. Tests: `should_log_a_Released_event...`. Prod+mock compilan.
-> - ⏳ Pendientes: Pieza 1 (valla solo del activo + swap, `CureGeofence` salta inactivos, atribución
->   por valla nominadora — **alto riesgo, toca el detector, field-test**). + i18n: 7 locales
->   restantes de las strings de Pieza 4.
+> - ✅ **Pieza 1 (vallas solo del activo)** — code-complete (2a-2d), unit-green, **pendiente
+>   field-test** (cambia registro de geocercas + atribución, el núcleo sensible). **2a**
+>   `ConfirmParkingUseCase` no registra valla de inactivo-no-BT. **2b** atribución por nominador
+>   (`invoke(nominatingVehicleId=trip.departingVehicleId)`). **2c** `SwapActiveVehicleFencesUseCase` +
+>   `DeclareActiveVehicleUseCase` (los 3 puntos set-active pasan por aquí). **2d** janitor/restore
+>   saltan inactivos. Núcleo puro `VehicleFenceOwnershipPolicy` + plan en
+>   `veh-active-fence-001-piece1-plan.md`. Invariante final: `sesión activa-o-BT ⟺ valla registrada`.
+> - ⏳ Pendientes: field-test de Pieza 1 + i18n 7 locales restantes de las strings de Pieza 4.
 >
 > **Corrección al spec**: la "triple fallback en `HomeBottomSheet.kt:196`" era referencia obsoleta
 > (esa línea es padding). La resolución real estaba en `HomeReleaseDialogHost` (`HomeScreen.kt`) +
