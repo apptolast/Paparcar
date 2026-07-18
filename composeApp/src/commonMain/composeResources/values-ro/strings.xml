@@ -35,6 +35,9 @@
     <string name="home_address_unknown">Locație necunoscută</string>
     <string name="home_release_dialog_title">Eliberezi locul?</string>
     <string name="home_release_dialog_message">Distribuie locul către șoferii din apropiere sau șterge-l fără să-l distribui.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">Vom începe să detectăm următoarea ta parcare.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s devine mașina ta activă, așa că vom detecta următoarea ta parcare.</string>
     <string name="home_release_dialog_publish">Publică locul</string>
     <string name="home_release_dialog_delete_only">Doar șterge</string>
     <string name="home_release_dialog_cancel">Anulează</string>
@@ -590,6 +593,11 @@
     <string name="settings_detection_setup">Configurează</string>
     <string name="vehicle_bt_cd">Împerechere Bluetooth</string>
     <string name="vehicle_set_active_action">Setează ca activ</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">Conduci această mașină?</string>
+    <string name="vehicle_set_active_confirm_body">Vom detecta automat unde parchezi %1$s.</string>
+    <string name="vehicle_set_active_confirm_cta">Da, e mașina mea</string>
+    <string name="vehicle_set_active_confirm_cancel">Anulează</string>
     <string name="vehicle_status_active">Activ</string>
     <string name="vehicle_status_active_cd">Detectare activă</string>
     <string name="vehicle_status_inactive_cd">Detectare oprită</string>

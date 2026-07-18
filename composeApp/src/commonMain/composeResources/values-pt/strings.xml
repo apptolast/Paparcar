@@ -35,6 +35,9 @@
     <string name="home_address_unknown">Localização desconhecida</string>
     <string name="home_release_dialog_title">Libertar lugar?</string>
     <string name="home_release_dialog_message">Partilha o teu lugar com os condutores próximos, ou apaga-o sem partilhar.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">Vamos começar a detetar o teu próximo estacionamento.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s passa a ser o teu carro ativo, por isso vamos detetar o teu próximo estacionamento.</string>
     <string name="home_release_dialog_publish">Publicar lugar</string>
     <string name="home_release_dialog_delete_only">Apenas apagar</string>
     <string name="home_release_dialog_cancel">Cancelar</string>
@@ -585,6 +588,11 @@
     <string name="settings_detection_setup">Configurar</string>
     <string name="vehicle_bt_cd">Emparelhamento Bluetooth</string>
     <string name="vehicle_set_active_action">Definir como ativo</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">Vais conduzir este carro?</string>
+    <string name="vehicle_set_active_confirm_body">Vamos detetar automaticamente onde estacionas %1$s.</string>
+    <string name="vehicle_set_active_confirm_cta">Sim, é o meu carro</string>
+    <string name="vehicle_set_active_confirm_cancel">Cancelar</string>
     <string name="vehicle_status_active">Ativo</string>
     <string name="vehicle_status_active_cd">Deteção ativa</string>
     <string name="vehicle_status_inactive_cd">Deteção desativada</string>

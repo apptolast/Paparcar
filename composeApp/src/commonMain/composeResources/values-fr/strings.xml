@@ -35,6 +35,9 @@
     <string name="home_address_unknown">Emplacement inconnu</string>
     <string name="home_release_dialog_title">Libérer la place ?</string>
     <string name="home_release_dialog_message">Partagez votre place avec les conducteurs à proximité, ou supprimez-la sans la partager.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">Nous commencerons à détecter votre prochain stationnement.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s devient votre voiture active, nous détecterons donc votre prochain stationnement.</string>
     <string name="home_release_dialog_publish">Publier la place</string>
     <string name="home_release_dialog_delete_only">Supprimer seulement</string>
     <string name="home_release_dialog_cancel">Annuler</string>
@@ -585,6 +588,11 @@
     <string name="settings_detection_setup">Configurer</string>
     <string name="vehicle_bt_cd">Appairage Bluetooth</string>
     <string name="vehicle_set_active_action">Définir comme actif</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">Conduisez-vous cette voiture ?</string>
+    <string name="vehicle_set_active_confirm_body">Nous détecterons automatiquement où vous garez %1$s.</string>
+    <string name="vehicle_set_active_confirm_cta">Oui, c\'est ma voiture</string>
+    <string name="vehicle_set_active_confirm_cancel">Annuler</string>
     <string name="vehicle_status_active">Actif</string>
     <string name="vehicle_status_active_cd">Détection active</string>
     <string name="vehicle_status_inactive_cd">Détection désactivée</string>

@@ -35,6 +35,9 @@
     <string name="home_address_unknown">Unbekannter Standort</string>
     <string name="home_release_dialog_title">Stellplatz freigeben?</string>
     <string name="home_release_dialog_message">Teile deinen Stellplatz mit Fahrern in der Nähe oder lösche ihn, ohne zu teilen.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">Wir beginnen, deinen nächsten Parkvorgang zu erkennen.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s wird dein aktives Auto, also erkennen wir deinen nächsten Parkvorgang.</string>
     <string name="home_release_dialog_publish">Stellplatz teilen</string>
     <string name="home_release_dialog_delete_only">Nur löschen</string>
     <string name="home_release_dialog_cancel">Abbrechen</string>
@@ -585,6 +588,11 @@
     <string name="settings_detection_setup">Einrichten</string>
     <string name="vehicle_bt_cd">Bluetooth-Kopplung</string>
     <string name="vehicle_set_active_action">Als aktiv festlegen</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">Fährst du dieses Auto?</string>
+    <string name="vehicle_set_active_confirm_body">Wir erkennen automatisch, wo du %1$s parkst.</string>
+    <string name="vehicle_set_active_confirm_cta">Ja, das ist mein Auto</string>
+    <string name="vehicle_set_active_confirm_cancel">Abbrechen</string>
     <string name="vehicle_status_active">Aktiv</string>
     <string name="vehicle_status_active_cd">Erkennung aktiv</string>
     <string name="vehicle_status_inactive_cd">Erkennung aus</string>

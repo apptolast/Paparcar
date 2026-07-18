@@ -35,6 +35,9 @@
     <string name="home_address_unknown">Onbekende locatie</string>
     <string name="home_release_dialog_title">Parkeerplaats vrijgeven?</string>
     <string name="home_release_dialog_message">Deel je plek met bestuurders in de buurt, of verwijder hem zonder te delen.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">We beginnen je volgende parkeerplek te detecteren.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s wordt je actieve auto, dus we detecteren je volgende parkeerplek.</string>
     <string name="home_release_dialog_publish">Plek publiceren</string>
     <string name="home_release_dialog_delete_only">Alleen verwijderen</string>
     <string name="home_release_dialog_cancel">Annuleren</string>
@@ -585,6 +588,11 @@
     <string name="settings_detection_setup">Instellen</string>
     <string name="vehicle_bt_cd">Bluetooth-koppeling</string>
     <string name="vehicle_set_active_action">Als actief instellen</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">Rijd je in deze auto?</string>
+    <string name="vehicle_set_active_confirm_body">We detecteren automatisch waar je %1$s parkeert.</string>
+    <string name="vehicle_set_active_confirm_cta">Ja, dit is mijn auto</string>
+    <string name="vehicle_set_active_confirm_cancel">Annuleren</string>
     <string name="vehicle_status_active">Actief</string>
     <string name="vehicle_status_active_cd">Detectie actief</string>
     <string name="vehicle_status_inactive_cd">Detectie uit</string>

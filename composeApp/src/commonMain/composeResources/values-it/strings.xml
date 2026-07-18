@@ -35,6 +35,9 @@
     <string name="home_address_unknown">Posizione sconosciuta</string>
     <string name="home_release_dialog_title">Libera il posto?</string>
     <string name="home_release_dialog_message">Condividi il posto con i conducenti vicini, oppure eliminalo senza condividerlo.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">Inizieremo a rilevare il tuo prossimo parcheggio.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s diventa la tua auto attiva, così rileveremo il tuo prossimo parcheggio.</string>
     <string name="home_release_dialog_publish">Pubblica posto</string>
     <string name="home_release_dialog_delete_only">Solo elimina</string>
     <string name="home_release_dialog_cancel">Annulla</string>
@@ -585,6 +588,11 @@
     <string name="settings_detection_setup">Configura</string>
     <string name="vehicle_bt_cd">Abbinamento Bluetooth</string>
     <string name="vehicle_set_active_action">Imposta come attivo</string>
+    <!-- Vehicles — confirmation before making a vehicle the active one. [VEH-ACTIVE-FENCE-001] -->
+    <string name="vehicle_set_active_confirm_title">Stai guidando quest\'auto?</string>
+    <string name="vehicle_set_active_confirm_body">Rileveremo automaticamente dove parcheggi %1$s.</string>
+    <string name="vehicle_set_active_confirm_cta">Sì, è la mia auto</string>
+    <string name="vehicle_set_active_confirm_cancel">Annulla</string>
     <string name="vehicle_status_active">Attivo</string>
     <string name="vehicle_status_active_cd">Rilevamento attivo</string>
     <string name="vehicle_status_inactive_cd">Rilevamento disattivato</string>
