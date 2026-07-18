@@ -15,9 +15,16 @@
 >   pone ese coche activo (`setActiveVehicle`, idempotente si ya lo es) ANTES de `manualParkingDetection.
 >   start()`, de modo que el pin se atribuye al coche declarado. Tests: declara-inactivo→setActive+arm,
 >   ya-activo→solo-arm. Prod+mock compilan, tests verdes.
+> - ✅ **Pieza 4 (diálogos de consecuencia)** — (a) set-active en Vehículos abre confirmación
+>   (`SetActiveConfirmDialog`, copy "detectaremos dónde aparcas [coche]") en vez de cambiar en
+>   silencio; (b) el diálogo de liberar añade la línea de consecuencia (detección re-arma); (c)
+>   liberar un vehículo INACTIVO lo pone activo automáticamente (liberar = "lo conduzco", decidido
+>   con el user 18-07: auto+copy, sin botón extra) y el copy lo comunica. Strings EN+ES (otros 7
+>   locales = follow-up de paridad i18n). Test: `should_set_the_released_vehicle_active_when_it_was_
+>   inactive`. Prod+mock compilan, tests verdes.
 > - ⏳ Pendientes: Pieza 1 (valla solo del activo + swap, `CureGeofence` salta inactivos, atribución
->   por valla nominadora — **alto riesgo, toca el detector, field-test**), Pieza 4 (diálogos de
->   consecuencia), Pieza 5 (telemetría `Released` + `outcome` en supersede).
+>   por valla nominadora — **alto riesgo, toca el detector, field-test**), Pieza 5 (telemetría
+>   `Released` + `outcome` en supersede). + i18n: 7 locales restantes de las strings de Pieza 4.
 >
 > **Corrección al spec**: la "triple fallback en `HomeBottomSheet.kt:196`" era referencia obsoleta
 > (esa línea es padding). La resolución real estaba en `HomeReleaseDialogHost` (`HomeScreen.kt`) +

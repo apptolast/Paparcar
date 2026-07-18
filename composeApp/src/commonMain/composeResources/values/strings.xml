@@ -72,6 +72,9 @@
     <string name="home_address_unknown">Unknown location</string>
     <string name="home_release_dialog_title">Releasing the spot — share it?</string>
     <string name="home_release_dialog_message">When you notify, other drivers get an alert and can arrive sooner.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">We\'ll start detecting your next parking.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s becomes your active car, so we\'ll detect your next parking.</string>
     <string name="home_release_dialog_publish">Release and notify</string>
     <string name="home_release_dialog_delete_only">Just release</string>
     <string name="home_release_dialog_cancel">Cancel</string>

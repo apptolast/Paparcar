@@ -62,6 +62,9 @@
     <string name="home_address_unknown">Ubicación desconocida</string>
     <string name="home_release_dialog_title">Liberas la plaza, ¿la compartes?</string>
     <string name="home_release_dialog_message">Cuando avisas, otros conductores reciben la notificación y pueden llegar antes.</string>
+    <!-- Consequence line: leaving means detection re-arms for the next parking. [VEH-ACTIVE-FENCE-001] -->
+    <string name="home_release_dialog_detection_active">Empezaremos a detectar tu próximo aparcamiento.</string>
+    <string name="home_release_dialog_detection_inactive">%1$s pasará a ser tu coche activo, así que detectaremos tu próximo aparcamiento.</string>
     <string name="home_release_dialog_publish">Liberar y avisar</string>
     <string name="home_release_dialog_delete_only">Solo liberar</string>
     <string name="home_release_dialog_cancel">Cancelar</string>

@@ -52,6 +52,7 @@ import io.apptolast.paparcar.domain.error.PaparcarError
 import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.UserParking
+import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.presentation.home.sections.header.HomeHeaderSection
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapFabsLayer
 import io.apptolast.paparcar.presentation.home.sections.map.HomeMapSection
@@ -87,6 +88,8 @@ import paparcar.composeapp.generated.resources.error_unknown
 import paparcar.composeapp.generated.resources.home_det_enabled_confirm
 import paparcar.composeapp.generated.resources.home_det_stopped_action
 import paparcar.composeapp.generated.resources.home_det_stopped_msg
+import paparcar.composeapp.generated.resources.home_release_dialog_detection_active
+import paparcar.composeapp.generated.resources.home_release_dialog_detection_inactive
 import paparcar.composeapp.generated.resources.home_spot_reported
 import paparcar.composeapp.generated.resources.home_spot_signal_sent
 import paparcar.composeapp.generated.resources.home_test_spot_sent
@@ -337,10 +340,17 @@ private fun HomeContent(
             containerColor = Color.Transparent,
         ) { scaffoldPadding ->
 
+            // Resolve the release target's vehicle for the consequence copy (name + active state).
+            val releaseVehicle = releaseTargetSessionId
+                ?.let { id -> state.activeSessions.firstOrNull { it.id == id } }
+                ?.vehicleId
+                ?.let { vid -> state.vehicles.firstOrNull { it.id == vid } }
             HomeReleaseDialogHost(
                 visible = showReleaseDialog,
                 isReleasing = state.isReleasingParking,
                 sessionId = releaseTargetSessionId,
+                vehicleName = releaseVehicle?.displayName(fallback = "")?.takeIf { it.isNotBlank() },
+                vehicleIsActive = releaseVehicle?.isActive != false,
                 onIntent = onIntent,
                 onDismiss = { showReleaseDialog = false },
             )
@@ -736,6 +746,8 @@ private fun HomeReleaseDialogHost(
     visible: Boolean,
     isReleasing: Boolean,
     sessionId: String?,
+    vehicleName: String?,
+    vehicleIsActive: Boolean,
     onIntent: (HomeIntent) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -745,11 +757,19 @@ private fun HomeReleaseDialogHost(
     fun release(publishSpot: Boolean) {
         onIntent(HomeIntent.ReleaseParking(sessionId = sessionId, publishSpot = publishSpot))
     }
+    // Leaving re-arms detection. If this car wasn't the active one, releasing IS the declaration
+    // that you drive it (the VM makes it active), so the copy says so. [VEH-ACTIVE-FENCE-001]
+    val detectionNote = if (!vehicleIsActive && vehicleName != null) {
+        stringResource(Res.string.home_release_dialog_detection_inactive, vehicleName)
+    } else {
+        stringResource(Res.string.home_release_dialog_detection_active)
+    }
     HomeReleaseDialog(
         isLoading = isReleasing,
         onDismiss = { if (!isReleasing) onDismiss() },
         onPublishSpot = { release(publishSpot = true) },
         onDeleteOnly = { release(publishSpot = false) },
+        detectionNote = detectionNote,
     )
 }
 

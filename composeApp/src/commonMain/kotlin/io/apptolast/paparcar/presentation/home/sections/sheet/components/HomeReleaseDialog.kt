@@ -26,6 +26,9 @@ internal fun HomeReleaseDialog(
     onDismiss: () -> Unit,
     onPublishSpot: () -> Unit,
     onDeleteOnly: () -> Unit,
+    // Consequence of leaving: detection re-arms. When the car being released wasn't the active one,
+    // releasing IS the declaration that you drive it, so it becomes active. [VEH-ACTIVE-FENCE-001]
+    detectionNote: String,
     isLoading: Boolean = false,
 ) {
     PapAlertDialog(
@@ -33,7 +36,7 @@ internal fun HomeReleaseDialog(
         isLoading = isLoading,
         icon = Icons.Rounded.Campaign,
         title = stringResource(Res.string.home_release_dialog_title),
-        body = stringResource(Res.string.home_release_dialog_message),
+        body = stringResource(Res.string.home_release_dialog_message) + "\n\n" + detectionNote,
         primaryLabel = stringResource(Res.string.home_release_dialog_publish),
         primaryLeadingIcon = Icons.Rounded.Campaign,
         onPrimary = onPublishSpot,

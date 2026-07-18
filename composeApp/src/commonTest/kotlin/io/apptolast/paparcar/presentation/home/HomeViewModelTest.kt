@@ -786,6 +786,31 @@ class HomeViewModelTest {
         assertEquals(setOf("session-A", "session-B"), activeAfter)
     }
 
+    @Test
+    fun `should_set_the_released_vehicle_active_when_it_was_inactive`() = runTest {
+        // Releasing an inactive car's spot IS the declaration that you now drive it. [VEH-ACTIVE-FENCE-001]
+        val activeVeh = Vehicle(
+            id = "veh-active", userId = "user-1", brand = "Seat", model = "Leon",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        val inactiveVeh = Vehicle(
+            id = "veh-inactive", userId = "user-1", brand = "Toyota", model = "Corolla",
+            sizeCategory = io.apptolast.paparcar.domain.model.VehicleSize.MEDIUM_SUV,
+        )
+        vehicleRepo = FakeVehicleRepository(defaultVehicle = activeVeh, extraVehicles = listOf(inactiveVeh))
+        val session = UserParking(
+            id = "session-inactive", userId = "user-1", vehicleId = "veh-inactive",
+            location = location, isActive = true,
+        )
+        parkingRepo = FakeUserParkingRepository(initialSessions = listOf(session))
+        vm = buildVm()
+
+        vm.handleIntent(HomeIntent.ReleaseParking(sessionId = "session-inactive", publishSpot = false))
+        advanceUntilIdle()
+
+        assertEquals(listOf("veh-inactive"), vehicleRepo.setActiveCalls)
+    }
+
     // ── StartDrivingDetection — vehicle-scoped manual arming ──────────────────
 
     @Test

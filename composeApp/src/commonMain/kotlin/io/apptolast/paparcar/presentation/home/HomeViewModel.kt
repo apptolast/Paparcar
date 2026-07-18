@@ -413,6 +413,14 @@ class HomeViewModel(
         }
         updateState { copy(isReleasingParking = true) }
         viewModelScope.launch {
+            // Leaving in this car IS the declaration that you drive it: if it wasn't the active
+            // vehicle, make it active so the next detection attributes correctly (idempotent when it
+            // already is). Same rule as "I'm driving". [VEH-ACTIVE-FENCE-001]
+            val vehicleId = target.vehicleId
+            if (vehicleId != null && vehicleRepository.observeActiveVehicle().first()?.id != vehicleId) {
+                vehicleRepository.setActiveVehicle(vehicleId)
+                    .onFailure { e -> PaparcarLogger.w(TAG, "release: setActiveVehicle($vehicleId) failed", e) }
+            }
             releaseSession(target.location.latitude, target.location.longitude, target, publishSpot)
                 .onSuccess {
                     updateState { copy(selectedItemId = null, isReleasingParking = false) }
