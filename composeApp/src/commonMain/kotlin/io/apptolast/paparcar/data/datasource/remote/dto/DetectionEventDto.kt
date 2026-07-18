@@ -97,6 +97,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.DepartureVerdict -> "DEPARTURE_VERDICT"
     is DetectionEvent.DepartureProcessed -> "DEPARTURE_PROCESSED"
     is DetectionEvent.Reverted -> "REVERTED"
+    is DetectionEvent.Released -> "RELEASED"
     is DetectionEvent.OrphanCleaned -> "ORPHAN_CLEANED"
     is DetectionEvent.SessionSuperseded -> "SESSION_SUPERSEDED"
     is DetectionEvent.GeofenceRegistration -> "GEOFENCE_REGISTRATION"
@@ -141,6 +142,7 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs)
         is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)
         is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)
+        is DetectionEvent.Released -> base.copy(published = published)
         is DetectionEvent.OrphanCleaned -> base
         is DetectionEvent.SessionSuperseded -> base.copy(distanceMeters = distanceMeters, sessionAgeMs = ageMs)
         is DetectionEvent.GeofenceRegistration -> base.copy(success = success, radiusMeters = radiusMeters)

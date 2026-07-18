@@ -22,9 +22,15 @@
 >   con el user 18-07: auto+copy, sin botón extra) y el copy lo comunica. Strings EN+ES (otros 7
 >   locales = follow-up de paridad i18n). Test: `should_set_the_released_vehicle_active_when_it_was_
 >   inactive`. Prod+mock compilan, tests verdes.
+> - ✅ **Pieza 5 (telemetría)** — evento `DetectionEvent.Released` (published + location "desde
+>   dónde"; quién = uid implícito en la ruta; qué sesión = sessionId) logueado en
+>   `ReleaseActiveParkingSessionUseCase` (+DTO `RELEASED`, DI, fakes de test). Y estampado de
+>   `outcome="superseded"` en el `SessionEnded` de la sesión superseída (antes el `finally` guardado
+>   la dejaba sin outcome — gap de la auditoría 15-07): se loguea bajo `thisSessionId`, telemetría
+>   pura sin tocar estado del sucesor. Tests: `should_log_a_Released_event...`. Prod+mock compilan.
 > - ⏳ Pendientes: Pieza 1 (valla solo del activo + swap, `CureGeofence` salta inactivos, atribución
->   por valla nominadora — **alto riesgo, toca el detector, field-test**), Pieza 5 (telemetría
->   `Released` + `outcome` en supersede). + i18n: 7 locales restantes de las strings de Pieza 4.
+>   por valla nominadora — **alto riesgo, toca el detector, field-test**). + i18n: 7 locales
+>   restantes de las strings de Pieza 4.
 >
 > **Corrección al spec**: la "triple fallback en `HomeBottomSheet.kt:196`" era referencia obsoleta
 > (esa línea es padding). La resolución real estaba en `HomeReleaseDialogHost` (`HomeScreen.kt`) +

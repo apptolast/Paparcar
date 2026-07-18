@@ -933,6 +933,11 @@ class CoordinatorParkingDetector(
                     reset()
                 } else {
                     PaparcarLogger.d(DIAG, "  ⊘ session $thisSessionId superseded — leaving the successor's state untouched [DET-AUDIT-002 T8]")
+                    // Stamp the superseded session's terminal outcome under ITS OWN id. The shared-state
+                    // guard above skips the usual SessionEnded to protect the successor, which left
+                    // superseded sessions with no outcome in the trace (audit 2026-07-15 gap). Logging
+                    // under thisSessionId touches no successor state. [VEH-ACTIVE-FENCE-001]
+                    detectionEventLogger.log(DetectionEvent.SessionEnded(thisSessionId, nowMs(), outcome = "superseded"))
                 }
             }
         }

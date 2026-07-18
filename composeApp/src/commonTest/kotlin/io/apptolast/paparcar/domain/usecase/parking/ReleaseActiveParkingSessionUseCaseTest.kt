@@ -6,8 +6,10 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.usecase.location.GetAddressAndPlaceUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.fakes.FakeAuthRepository
 import io.apptolast.paparcar.fakes.FakeAddressAndPlaceRepository
+import io.apptolast.paparcar.fakes.FakeDetectionEventLogger
 import io.apptolast.paparcar.fakes.FakeGeofenceManager
 import io.apptolast.paparcar.fakes.FakeReportSpotScheduler
 import io.apptolast.paparcar.fakes.FakeUserParkingRepository
@@ -29,7 +31,10 @@ class ReleaseActiveParkingSessionUseCaseTest {
         authRepository = FakeAuthRepository(initialSession = null),
     )
     private val geofence = io.apptolast.paparcar.fakes.FakeGeofenceManager()
-    private val useCase = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo, geofence)
+    private val eventLogger = FakeDetectionEventLogger()
+    private val useCase = ReleaseActiveParkingSessionUseCase(
+        reportSpotReleased, parkingRepo, geofence, eventLogger,
+    )
 
     private val location = GpsPoint(40.416775, -3.703790, 10f, 0L, 0f)
 
@@ -48,6 +53,26 @@ class ReleaseActiveParkingSessionUseCaseTest {
         sizeCategory = size,
         geofenceId = geofenceId,
     )
+
+    // ── [VEH-ACTIVE-FENCE-001] Release observability ─────────────────────────
+
+    @Test
+    fun `should_log_a_Released_event_with_publish_flag_and_location`() = runTest {
+        useCase(lat = 40.5, lon = -3.6, currentSession = session(id = "sess-1"), publishSpot = true)
+
+        val released = eventLogger.events.filterIsInstance<DetectionEvent.Released>()
+        assertEquals(1, released.size)
+        assertEquals("sess-1", released.first().sessionId)
+        assertTrue(released.first().published)
+        assertEquals(40.5, released.first().location?.latitude)
+    }
+
+    @Test
+    fun `should_not_log_a_Released_event_when_there_is_no_session`() = runTest {
+        useCase(lat = 40.5, lon = -3.6, currentSession = null, publishSpot = true)
+
+        assertTrue(eventLogger.events.filterIsInstance<DetectionEvent.Released>().isEmpty())
+    }
 
     // ── [DET-AUDIT-002 T5/M4] The release must unregister the session's fence ─
 

@@ -137,7 +137,7 @@ val domainModule = module {
     factory { NotifyParkingConfirmationUseCase(get(), get()) }
 
     // Parking session lifecycle use cases
-    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get()) }
+    factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get()) }
     // [REFACTOR-300] Revert flow for the post-save "No, cancelar" notification action.
     factory {
         RevertParkingUseCase(

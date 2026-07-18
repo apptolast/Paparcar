@@ -90,7 +90,10 @@ class HomeViewModelTest {
         val observeNearbySpots = ObserveNearbySpotsUseCase(spotRepo)
         val sendSpotSignal = SendSpotSignalUseCase(spotRepo)
         val reportSpotReleased = ReportSpotReleasedUseCase(reportScheduler, getAddressAndPlace, FakeAuthRepository(initialSession = null))
-        val releaseSession = ReleaseActiveParkingSessionUseCase(reportSpotReleased, parkingRepo, FakeGeofenceManager())
+        val releaseSession = ReleaseActiveParkingSessionUseCase(
+            reportSpotReleased, parkingRepo, FakeGeofenceManager(),
+            io.apptolast.paparcar.domain.diagnostics.NoOpDetectionEventLogger(),
+        )
         val confirmParking = ConfirmParkingUseCase(
             userParkingRepository = parkingRepo,
             vehicleRepository = vehicleRepo,

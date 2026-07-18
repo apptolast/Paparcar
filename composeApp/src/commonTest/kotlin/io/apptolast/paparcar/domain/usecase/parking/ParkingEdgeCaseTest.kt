@@ -264,5 +264,6 @@ class ParkingEdgeCaseTest {
         ),
         userParkingRepository = repo,
         geofenceService = io.apptolast.paparcar.fakes.FakeGeofenceManager(),
+        detectionEventLogger = io.apptolast.paparcar.domain.diagnostics.NoOpDetectionEventLogger(),
     )
 }

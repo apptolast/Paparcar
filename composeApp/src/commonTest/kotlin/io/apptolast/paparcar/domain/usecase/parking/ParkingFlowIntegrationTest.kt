@@ -81,6 +81,7 @@ class ParkingFlowIntegrationTest {
         ),
         userParkingRepository = parkingRepo,
         geofenceService = io.apptolast.paparcar.fakes.FakeGeofenceManager(),
+        detectionEventLogger = io.apptolast.paparcar.domain.diagnostics.NoOpDetectionEventLogger(),
     )
 
     // ── Happy path ────────────────────────────────────────────────────────────

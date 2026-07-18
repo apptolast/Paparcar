@@ -2,7 +2,10 @@
 
 package io.apptolast.paparcar.domain.usecase.parking
 
+import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
+import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.AddressAndPlace
+import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.SpotType
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -28,6 +31,7 @@ class ReleaseActiveParkingSessionUseCase(
     private val reportSpotReleased: ReportSpotReleasedUseCase,
     private val userParkingRepository: UserParkingRepository,
     private val geofenceService: GeofenceManager,
+    private val detectionEventLogger: DetectionEventLogger,
 ) {
     suspend operator fun invoke(
         lat: Double,
@@ -65,6 +69,19 @@ class ReleaseActiveParkingSessionUseCase(
         // by id leaves other vehicles' active sessions intact. If the caller did
         // not supply a session (legacy / manual delete), nothing to clear locally.
         val sessionId = currentSession?.id ?: return Result.success(Unit)
+
+        // Release observability: who (implicit in the uid-namespaced diagnostics path), which
+        // session, and from where. Fire-and-forget — never blocks or fails the release. [VEH-ACTIVE-FENCE-001]
+        val nowMs = Clock.System.now().toEpochMilliseconds()
+        detectionEventLogger.log(
+            DetectionEvent.Released(
+                sessionId = sessionId,
+                timestampMs = nowMs,
+                published = publishSpot,
+                location = GpsPoint(latitude = lat, longitude = lon, accuracy = 0f, timestamp = nowMs, speed = 0f),
+            ),
+        )
+
         val cleared = userParkingRepository.clearActiveParkingSession(sessionId)
 
         // [DET-AUDIT-002 T5/M4] A manual release must also unregister the session's fences:

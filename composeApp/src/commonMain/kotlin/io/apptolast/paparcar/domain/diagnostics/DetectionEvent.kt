@@ -152,6 +152,16 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
+    /** The user released a parking session. [published] = whether the freed spot was reported to
+     *  the community. WHO is implicit in the uid-namespaced diagnostics path; WHICH session is
+     *  [sessionId]; FROM WHERE is [location]. Closes the release-observability gap. [VEH-ACTIVE-FENCE-001] */
+    data class Released(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val published: Boolean,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
     /** An orphan geofence (registered but with no active session) was detected and removed. */
     data class OrphanCleaned(
         override val sessionId: String,
