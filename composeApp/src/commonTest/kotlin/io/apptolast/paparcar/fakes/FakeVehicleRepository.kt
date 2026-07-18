@@ -11,10 +11,17 @@ class FakeVehicleRepository(
     extraVehicles: List<Vehicle> = emptyList(),
 ) : VehicleRepository {
 
+    // The default vehicle IS the active one (production's getActiveVehicle returns the isActive=1
+    // row), so when a fixture flagged NO vehicle active — older tests that didn't read the flag —
+    // promote the default. Never create a SECOND active: a fixture that deliberately flags an extra
+    // active (to test "active wins over default") keeps its default inactive. [VEH-ACTIVE-FENCE-001]
+    private val activeDefault: Vehicle? =
+        if ((listOfNotNull(defaultVehicle) + extraVehicles).any { it.isActive }) defaultVehicle
+        else defaultVehicle?.copy(isActive = true)
     private val _vehicles = MutableStateFlow<List<Vehicle>>(
-        listOfNotNull(defaultVehicle) + extraVehicles,
+        listOfNotNull(activeDefault) + extraVehicles,
     )
-    private val _defaultVehicle = MutableStateFlow(defaultVehicle)
+    private val _defaultVehicle = MutableStateFlow(activeDefault)
 
     override fun observeVehicles(): Flow<List<Vehicle>> = _vehicles
 
@@ -61,8 +68,8 @@ class FakeVehicleRepository(
 
     override suspend fun setActiveVehicle(id: String): Result<Unit> {
         setActiveCalls += id
-        // Reflect the promotion so observeActiveVehicle() sees the newly declared vehicle.
-        _vehicles.value.firstOrNull { it.id == id }?.let { _defaultVehicle.value = it }
+        // Reflect the promotion so observeActiveVehicle() sees the newly declared (now active) vehicle.
+        _vehicles.value.firstOrNull { it.id == id }?.let { _defaultVehicle.value = it.copy(isActive = true) }
         return Result.success(Unit)
     }
 

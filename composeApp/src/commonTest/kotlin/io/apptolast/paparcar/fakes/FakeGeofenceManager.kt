@@ -11,6 +11,8 @@ class FakeGeofenceManager : GeofenceManager {
     var lastCreatedGeofenceId: String? = null
     var lastCreatedRadiusMeters: Float? = null
     var createResult: Result<Unit> = Result.success(Unit)
+    /** Every registered geofence id, in order — for asserting active-only fence ownership. */
+    val createdIds: MutableList<String> = mutableListOf()
 
     override suspend fun createGeofence(
         geofenceId: String,
@@ -21,6 +23,7 @@ class FakeGeofenceManager : GeofenceManager {
         createGeofenceCallCount++
         lastCreatedGeofenceId = geofenceId
         lastCreatedRadiusMeters = radiusMeters
+        createdIds.add(geofenceId)
         return createResult
     }
 

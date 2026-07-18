@@ -38,7 +38,9 @@ class ConfirmParkingUseCaseTest {
     /** Default vehicle present in every fixture unless a test explicitly overrides — matches
      *  the production invariant (FLOW-001 ensures the user always has a default before the
      *  detection service can fire). [AUTH-001] */
-    private val defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM_SUV)
+    // isActive = true: the default vehicle IS the active one (getActiveVehicle returns the isActive=1
+    // row in production). Fence ownership now reads this flag. [VEH-ACTIVE-FENCE-001]
+    private val defaultVehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.MEDIUM_SUV, isActive = true)
 
     // ── Happy path ────────────────────────────────────────────────────────────
 
@@ -88,6 +90,47 @@ class ConfirmParkingUseCaseTest {
         assertTrue(result.isSuccess)
         assertEquals(0, notification.parkingSpotSavedCallCount)
         assertEquals(0, notification.parkingSavedConfirmCallCount)
+    }
+
+    @Test
+    fun `should not create a geofence when the parked vehicle is inactive`() = runTest {
+        // [VEH-ACTIVE-FENCE-001] An inactive, non-BT vehicle owns no OS fence — its session keeps the
+        // pin/TTL/safety-net, and the fence is (re)registered when the user declares this car active.
+        val repo = FakeUserParkingRepository()
+        val geofence = FakeGeofenceManager()
+        val inactive = Vehicle(id = "v-inactive", userId = "user-42", sizeCategory = VehicleSize.MEDIUM_SUV)
+        val useCase = buildUseCase(
+            repo = repo,
+            geofence = geofence,
+            vehicles = FakeVehicleRepository(defaultVehicle = defaultVehicle, extraVehicles = listOf(inactive)),
+        )
+
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-inactive")
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, repo.saveNewParkingSessionCallCount, "session still saved (pin + TTL kept)")
+        assertEquals(0, geofence.createGeofenceCallCount, "inactive vehicle registers no fence")
+    }
+
+    @Test
+    fun `should create a geofence for a Bluetooth-paired vehicle even when inactive`() = runTest {
+        // The MAC is identity: a paired car is automatic regardless of the active flag. [DET-TIERS-001]
+        val repo = FakeUserParkingRepository()
+        val geofence = FakeGeofenceManager()
+        val paired = Vehicle(
+            id = "v-bt", userId = "user-42", sizeCategory = VehicleSize.MEDIUM_SUV,
+            bluetoothDeviceId = "AA:BB:CC:DD:EE:FF",
+        )
+        val useCase = buildUseCase(
+            repo = repo,
+            geofence = geofence,
+            vehicles = FakeVehicleRepository(defaultVehicle = defaultVehicle, extraVehicles = listOf(paired)),
+        )
+
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-bt")
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, geofence.createGeofenceCallCount)
     }
 
     @Test

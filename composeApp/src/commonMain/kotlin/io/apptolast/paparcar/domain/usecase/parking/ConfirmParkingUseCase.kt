@@ -4,6 +4,7 @@ package io.apptolast.paparcar.domain.usecase.parking
 
 import com.apptolast.customlogin.domain.AuthRepository
 import io.apptolast.paparcar.domain.detection.ArmEvidence
+import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.error.PaparcarError
@@ -227,32 +228,44 @@ class ConfirmParkingUseCase(
         enrichmentScheduler.enqueueEnrichSession(sessionId, gpsPoint.latitude, gpsPoint.longitude)
         PaparcarLogger.d(DIAG, "  ← enrichmentScheduler.schedule AFTER")
 
-        PaparcarLogger.d(DIAG, "  → geofenceService.createGeofence BEFORE")
-        // Invariant: active session ⟺ registered geofence. The save is already durable; a failed
-        // registration must not be silent (the departure would never be detected) — log loud and
-        // schedule the janitor's one-shot restore, which re-registers from the active sessions.
-        val geofenceRadius = config.geofenceRadiusFor(resolvedSizeCategory, gpsPoint.accuracy)
-        geofenceService.createGeofence(
-            geofenceId = sessionId,
-            latitude = gpsPoint.latitude,
-            longitude = gpsPoint.longitude,
-            radiusMeters = geofenceRadius,
-        ).onFailure { e ->
-            PaparcarLogger.e(DIAG, "  ✗ createGeofence FAILED — active session without geofence; scheduling janitor restore [DET-SOLID-001]", e)
-            runCatching { parkingSyncScheduler?.enqueueGeofenceRestore() }
-                .onFailure { se -> PaparcarLogger.e(DIAG, "    ✗ enqueueGeofenceRestore also failed", se) }
-        }.let { result ->
-            detectionEventLogger?.log(
-                DetectionEvent.GeofenceRegistration(
-                    sessionId = sessionId,
-                    timestampMs = gpsPoint.timestamp,
-                    success = result.isSuccess,
-                    radiusMeters = geofenceRadius,
-                    location = gpsPoint,
+        // [VEH-ACTIVE-FENCE-001] Only the active (or BT-paired) vehicle owns an OS geofence. An
+        // inactive non-paired vehicle's session keeps its pin/TTL/safety-net but registers NO fence
+        // — the swap re-creates it when the user declares this car active. Skipping here kills the
+        // spurious-FGS noise (an inactive car's fence waking the FGS) at the source, not after.
+        val ownsFence = VehicleFenceOwnershipPolicy.shouldOwnFence(
+            vehicleIsActive = vehicle.isActive,
+            isBluetoothPaired = vehicle.bluetoothDeviceId != null,
+        )
+        if (!ownsFence) {
+            PaparcarLogger.d(DIAG, "  ⊘ inactive non-BT vehicle → no geofence by design [VEH-ACTIVE-FENCE-001]")
+        } else {
+            PaparcarLogger.d(DIAG, "  → geofenceService.createGeofence BEFORE")
+            // Invariant: active session ⟺ registered geofence. The save is already durable; a failed
+            // registration must not be silent (the departure would never be detected) — log loud and
+            // schedule the janitor's one-shot restore, which re-registers from the active sessions.
+            val geofenceRadius = config.geofenceRadiusFor(resolvedSizeCategory, gpsPoint.accuracy)
+            geofenceService.createGeofence(
+                geofenceId = sessionId,
+                latitude = gpsPoint.latitude,
+                longitude = gpsPoint.longitude,
+                radiusMeters = geofenceRadius,
+            ).onFailure { e ->
+                PaparcarLogger.e(DIAG, "  ✗ createGeofence FAILED — active session without geofence; scheduling janitor restore [DET-SOLID-001]", e)
+                runCatching { parkingSyncScheduler?.enqueueGeofenceRestore() }
+                    .onFailure { se -> PaparcarLogger.e(DIAG, "    ✗ enqueueGeofenceRestore also failed", se) }
+            }.let { result ->
+                detectionEventLogger?.log(
+                    DetectionEvent.GeofenceRegistration(
+                        sessionId = sessionId,
+                        timestampMs = gpsPoint.timestamp,
+                        success = result.isSuccess,
+                        radiusMeters = geofenceRadius,
+                        location = gpsPoint,
+                    )
                 )
-            )
+            }
+            PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
         }
-        PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
 
         // The user has now parked at least once → the cold-start nudge has served its purpose and
         // self-disables for good. [DET-TOGGLE-002]
