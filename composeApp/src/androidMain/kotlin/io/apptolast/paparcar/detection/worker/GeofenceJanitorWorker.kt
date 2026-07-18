@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.apptolast.paparcar.data.datasource.local.room.AppDatabase
+import io.apptolast.paparcar.domain.detection.VehicleFenceOwnershipPolicy
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -73,6 +74,18 @@ class GeofenceJanitorWorker(
         var failures = 0
         activeSessions.forEach { session ->
             val geofenceId = session.geofenceId ?: return@forEach
+            // [VEH-ACTIVE-FENCE-001] Only re-register fences the active (or BT-paired) vehicle owns.
+            // An inactive vehicle's session is deliberately fenceless (confirm skipped it, 2a); the
+            // cure must NOT resurrect it, or the spurious-FGS noise comes back on every janitor run.
+            val vehicle = session.vehicleId?.let {
+                runCatching { db.vehicleDao().getById(it, session.userId) }.getOrNull()
+            }
+            if (vehicle == null ||
+                !VehicleFenceOwnershipPolicy.shouldOwnFence(vehicle.isActive, vehicle.bluetoothDeviceId != null)
+            ) {
+                PaparcarLogger.d(TAG, "  ⊘ skip re-register geof=$geofenceId — vehicle not active/BT [VEH-ACTIVE-FENCE-001]")
+                return@forEach
+            }
             // Re-register with the SAME size/accuracy-aware radius the session was first created with
             // (ConfirmParkingUseCase.geofenceRadiusFor), not the flat default — otherwise a restored
             // geofence drifts to a different exit sensitivity than the original. [SESSION-RESTORE-001]
