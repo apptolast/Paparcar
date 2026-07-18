@@ -112,6 +112,15 @@ class HomeViewModelTest {
             departureEventBus = FakeDepartureEventBus(),
         )
         val observeParkedVehicles = ObserveParkedVehiclesUseCase(parkingRepo, vehicleRepo)
+        val declareActiveVehicle = io.apptolast.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase(
+            vehicleRepository = vehicleRepo,
+            swapFences = io.apptolast.paparcar.domain.usecase.vehicle.SwapActiveVehicleFencesUseCase(
+                userParkingRepository = parkingRepo,
+                vehicleRepository = vehicleRepo,
+                geofenceService = FakeGeofenceManager(),
+                config = ParkingDetectionConfig(),
+            ),
+        )
         val observeDetectionReadiness = ObserveDetectionReadinessUseCase(
             vehicleRepository = vehicleRepo,
             userParkingRepository = parkingRepo,
@@ -137,6 +146,7 @@ class HomeViewModelTest {
             releaseSession = releaseSession,
             saveManualParking = saveManualParking,
             observeParkedVehicles = observeParkedVehicles,
+            declareActiveVehicle = declareActiveVehicle,
             appPreferences = prefs,
             // Feature controllers — built with the same fakes the VM uses, mirroring the Koin
             // factories in PresentationModule. [HOMEVM-CTRL-002]

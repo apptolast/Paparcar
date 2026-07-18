@@ -38,6 +38,8 @@ import org.koin.dsl.bind
 import io.apptolast.paparcar.domain.usecase.parking.SaveManualParkingUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ObserveNearbySpotsUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportManualSpotUseCase
+import io.apptolast.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
+import io.apptolast.paparcar.domain.usecase.vehicle.SwapActiveVehicleFencesUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
@@ -138,6 +140,9 @@ val domainModule = module {
 
     // Parking session lifecycle use cases
     factory { ReleaseActiveParkingSessionUseCase(reportSpotReleased = get(), userParkingRepository = get(), geofenceService = get(), detectionEventLogger = get()) }
+    // [VEH-ACTIVE-FENCE-001 · 2c] Active-vehicle declaration + geofence swap.
+    factory { SwapActiveVehicleFencesUseCase(userParkingRepository = get(), vehicleRepository = get(), geofenceService = get(), config = get()) }
+    factory { DeclareActiveVehicleUseCase(vehicleRepository = get(), swapFences = get()) }
     // [REFACTOR-300] Revert flow for the post-save "No, cancelar" notification action.
     factory {
         RevertParkingUseCase(

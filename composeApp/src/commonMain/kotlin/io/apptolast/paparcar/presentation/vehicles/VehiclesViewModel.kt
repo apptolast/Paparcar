@@ -7,6 +7,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.VehicleWithStats
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.presentation.base.BaseViewModel
 import kotlinx.coroutines.flow.catch
@@ -19,6 +20,8 @@ import kotlin.time.Clock
 class VehiclesViewModel(
     private val vehicleRepository: VehicleRepository,
     private val userParkingRepository: UserParkingRepository,
+    // Declaring the active vehicle also swaps the OS geofences to it. [VEH-ACTIVE-FENCE-001]
+    private val declareActiveVehicle: DeclareActiveVehicleUseCase,
 ) : BaseViewModel<VehiclesState, VehiclesIntent, VehiclesEffect>() {
 
     override fun initState(): VehiclesState = VehiclesState()
@@ -106,7 +109,7 @@ class VehiclesViewModel(
         if (state.value.settingActiveVehicleId != null) return
         updateState { copy(settingActiveVehicleId = vehicleId) }
         viewModelScope.launch {
-            vehicleRepository.setActiveVehicle(vehicleId)
+            declareActiveVehicle(vehicleId)
                 .onSuccess { updateState { copy(settingActiveVehicleId = null) } }
                 .onFailure { e ->
                     PaparcarLogger.e(TAG, "Failed to set default vehicle", e)

@@ -19,6 +19,7 @@ import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessU
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.SaveManualParkingUseCase
+import io.apptolast.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportManualSpotUseCase
 import io.apptolast.paparcar.domain.usecase.spot.ReportSpotReleasedUseCase
 import io.apptolast.paparcar.domain.usecase.spot.SendSpotSignalUseCase
@@ -69,6 +70,8 @@ class HomeViewModel(
     private val releaseSession: ReleaseActiveParkingSessionUseCase,
     private val observeParkedVehicles: ObserveParkedVehiclesUseCase,
     private val vehicleRepository: VehicleRepository,
+    // Declaring the active vehicle also swaps the OS geofences to it. [VEH-ACTIVE-FENCE-001]
+    private val declareActiveVehicle: DeclareActiveVehicleUseCase,
     private val zoneRepository: ZoneRepository,
     private val saveOrUpdateZone: SaveOrUpdateZoneUseCase,
     private val appPreferences: AppPreferences,
@@ -413,13 +416,12 @@ class HomeViewModel(
         }
         updateState { copy(isReleasingParking = true) }
         viewModelScope.launch {
-            // Leaving in this car IS the declaration that you drive it: if it wasn't the active
-            // vehicle, make it active so the next detection attributes correctly (idempotent when it
-            // already is). Same rule as "I'm driving". [VEH-ACTIVE-FENCE-001]
-            val vehicleId = target.vehicleId
-            if (vehicleId != null && vehicleRepository.observeActiveVehicle().first()?.id != vehicleId) {
-                vehicleRepository.setActiveVehicle(vehicleId)
-                    .onFailure { e -> PaparcarLogger.w(TAG, "release: setActiveVehicle($vehicleId) failed", e) }
+            // Leaving in this car IS the declaration that you drive it: declare it active (idempotent
+            // when it already is) so detection + fences follow the right car. Same path as "I'm
+            // driving"; the swap is handled inside DeclareActiveVehicle. [VEH-ACTIVE-FENCE-001]
+            target.vehicleId?.let { vehicleId ->
+                declareActiveVehicle(vehicleId)
+                    .onFailure { e -> PaparcarLogger.w(TAG, "release: declareActiveVehicle($vehicleId) failed", e) }
             }
             releaseSession(target.location.latitude, target.location.longitude, target, publishSpot)
                 .onSuccess {
@@ -553,9 +555,11 @@ class HomeViewModel(
      */
     private fun startDrivingDetection(vehicleId: String?) {
         viewModelScope.launch {
-            if (vehicleId != null && vehicleRepository.observeActiveVehicle().first()?.id != vehicleId) {
-                vehicleRepository.setActiveVehicle(vehicleId)
-                    .onFailure { e -> PaparcarLogger.w(TAG, "startDriving: setActiveVehicle($vehicleId) failed", e) }
+            // Declare the car active (idempotent when it already is) so the parking attributes to it
+            // and its fence is registered; then arm. The swap lives in DeclareActiveVehicle. [VEH-ACTIVE-FENCE-001]
+            vehicleId?.let {
+                declareActiveVehicle(it)
+                    .onFailure { e -> PaparcarLogger.w(TAG, "startDriving: declareActiveVehicle($it) failed", e) }
             }
             manualParkingDetection.start()
         }

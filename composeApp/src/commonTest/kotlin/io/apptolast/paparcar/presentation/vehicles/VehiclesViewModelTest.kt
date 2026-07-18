@@ -50,7 +50,16 @@ class VehiclesViewModelTest {
         Dispatchers.setMain(testDispatcher)
         vehicleRepo = FakeVehicleRepository()
         parkingRepo = FakeUserParkingRepository()
-        vm = VehiclesViewModel(vehicleRepo, parkingRepo)
+        val declareActiveVehicle = io.apptolast.paparcar.domain.usecase.vehicle.DeclareActiveVehicleUseCase(
+            vehicleRepository = vehicleRepo,
+            swapFences = io.apptolast.paparcar.domain.usecase.vehicle.SwapActiveVehicleFencesUseCase(
+                userParkingRepository = parkingRepo,
+                vehicleRepository = vehicleRepo,
+                geofenceService = io.apptolast.paparcar.fakes.FakeGeofenceManager(),
+                config = io.apptolast.paparcar.domain.model.ParkingDetectionConfig(),
+            ),
+        )
+        vm = VehiclesViewModel(vehicleRepo, parkingRepo, declareActiveVehicle)
     }
 
     @AfterTest
