@@ -896,6 +896,7 @@ class CoordinatorParkingDetector(
                                 lastSpeedMps = state.lastSpeedMps,
                                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                                 anchorWalkEntered = state.anchorWalkFixesAtCapture > config.anchorFreezeMaxWalkFixes,
+                                egressExceedsWalkReach = egressExceedsWalkReach(state, location),
                             )
                         )
                         if (decision is ParkingDecision.Confirmed) {
@@ -1195,6 +1196,7 @@ class CoordinatorParkingDetector(
                 lastSpeedMps = state.lastSpeedMps,
                 egressBornAtAnchor = isEgressBornAtAnchor(state),
                 anchorWalkEntered = state.anchorWalkFixesAtCapture > config.anchorFreezeMaxWalkFixes,
+                egressExceedsWalkReach = egressExceedsWalkReach(state, location),
             )
         )
         PaparcarLogger.d(
@@ -1303,6 +1305,27 @@ class CoordinatorParkingDetector(
         )
         val walkReach = s.stepCount * config.anchorStrideMeters +
             anchor.accuracy + current.accuracy + config.minEgressDisplacementMeters
+        return d > walkReach
+    }
+
+    /** [DET-EGRESS-PEDESTRIAN-CEILING-001] The CONFIRM counterpart of [movementOutrunsSteps]: TRUE
+     *  when the current fix sits farther from the park anchor than a pedestrian egress could reach.
+     *  Same physics — `steps × anchorStrideMeters` + both accuracy envelopes — but on a much more
+     *  GENEROUS floor ([ParkingDetectionConfig.egressBirthFloorMeters], not the tight per-fix
+     *  `minEgressDisplacementMeters`): a genuine egress under-logs steps and loses GPS (field trace
+     *  Calle Gavia: 68 m walked on 8 logged steps), so a tight ceiling would strand real parks. Its
+     *  only job is to rule out VEHICLE-scale displacement — the car driving ~500 m off a drop-off /
+     *  pick-up stop while the frozen anchor's steps+egress try to pin a phantom park (field
+     *  2026-07-18, Calle Abeto). `hasEgressDisplacement` is the floor on the egress; this is the
+     *  ceiling. */
+    private fun egressExceedsWalkReach(s: ParkingDetectionState, current: GpsPoint): Boolean {
+        val anchor = s.bestStopLocation ?: return false
+        val d = io.apptolast.paparcar.domain.util.haversineMeters(
+            anchor.latitude, anchor.longitude,
+            current.latitude, current.longitude,
+        )
+        val walkReach = s.stepCount * config.anchorStrideMeters +
+            anchor.accuracy + current.accuracy + config.egressBirthFloorMeters
         return d > walkReach
     }
 

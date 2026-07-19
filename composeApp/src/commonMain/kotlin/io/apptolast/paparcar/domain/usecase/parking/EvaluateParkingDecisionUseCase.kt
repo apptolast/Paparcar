@@ -73,6 +73,20 @@ data class ParkingDecisionInput(
      *  steps+egress confirmed there. All proofs may hold — the user DID park — but not where this
      *  anchor says: ask, never pin. Defaults to false for legacy callers. */
     val anchorWalkEntered: Boolean = false,
+    /** [DET-EGRESS-PEDESTRIAN-CEILING-001] TRUE when the displacement from the anchor exceeds what a
+     *  pedestrian egress could reach (`CoordinatorParkingDetector.egressExceedsWalkReach`: steps ×
+     *  stride + both accuracy envelopes + a generous walk-reach floor): the distance can only have
+     *  been covered by a VEHICLE, not a person on foot. [hasEgressDisplacement] is only a FLOOR
+     *  (d ≥ minEgress); a car driving away from a brief drop-off / pick-up stop satisfies it just as
+     *  well as a pedestrian walking away — the two "independent" proofs (steps, egress) are then both
+     *  producible without anyone leaving the car (field 2026-07-18, Calle Abeto: stopped to pick a
+     *  passenger up, ~26 phantom/incidental steps counted while parked + the car driving ~500 m away
+     *  read as steps+egress → false pin, and the real park after it was lost). This is the pedestrian
+     *  CEILING on the egress floor. The floor is deliberately generous (a real egress under-logs
+     *  steps and loses GPS: field trace Calle Gavia walked 68 m on 8 logged steps) so it only ever
+     *  rules out vehicle-scale distance. Vetoes the step- and window-based paths; the kinematic path
+     *  stands on its own pedestrian-band fixes. Defaults to false for legacy callers. */
+    val egressExceedsWalkReach: Boolean = false,
 )
 
 /**
@@ -89,7 +103,17 @@ data class ParkingDecisionInput(
 class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig) {
 
     operator fun invoke(input: ParkingDecisionInput): ParkingDecision {
-        val hasStepsProof = input.stepCount >= config.minStepsToConfirm && input.hasEgressDisplacement
+        // [DET-EGRESS-PEDESTRIAN-CEILING-001] The egress displacement exceeded a pedestrian's reach
+        // from the anchor → a vehicle covered it, not a walk. hasEgressDisplacement is only a floor;
+        // the car's own departure from a drop-off / pick-up stop clears it. The reach ceiling is
+        // generous (a real egress under-logs steps and loses GPS), so this only invalidates the
+        // egress conjunction for the step- and window-based paths on vehicle-scale distance. The
+        // kinematic path is exempt: it proves egress from pedestrian-BAND fixes, which a departing
+        // car cannot produce, and legitimately carries few or no steps.
+        val egressIsVehicular = input.egressExceedsWalkReach
+
+        val hasStepsProof = input.stepCount >= config.minStepsToConfirm &&
+            input.hasEgressDisplacement && !egressIsVehicular
         val window = if (input.hadVehicleExit)
             config.vehicleExitObservationWindowMs
         else
@@ -125,6 +149,10 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             isMismatch -> false
             // [DET-C-01] Egress is mandatory for every path.
             !input.hasEgressDisplacement -> false
+            // [DET-EGRESS-PEDESTRIAN-CEILING-001] A vehicle-scale displacement is not a pedestrian
+            // egress; it may only confirm through the kinematic path (pedestrian-band fixes), never
+            // the step- or vehicle-exit-window paths.
+            egressIsVehicular && !hasKinematicProof -> false
             hasStepsProof -> true
             hasKinematicProof -> true
             windowElapsed && input.hadVehicleExit -> true
@@ -177,6 +205,13 @@ class EvaluateParkingDecisionUseCase(private val config: ParkingDetectionConfig)
             // traffic false positive (FP Avenida de los Mástiles), not a park. Reject the candidate
             // decisively rather than leave it open to re-confirm on the next moving fix.
             isRolling && (hasStepsProof || hasKinematicProof) -> ParkingDecision.Rejected
+            // [DET-EGRESS-PEDESTRIAN-CEILING-001] Steps reached and the displacement floor cleared,
+            // but the displacement OUTRAN the steps → the car drove off a drop-off / pick-up stop
+            // (FP Calle Abeto, field 2026-07-18). Same class as the rolling FP: reject decisively so
+            // a car merely leaving a brief stop never pins, and re-anchor when it actually parks.
+            egressIsVehicular && !hasKinematicProof &&
+                input.stepCount >= config.minStepsToConfirm && input.hasEgressDisplacement ->
+                ParkingDecision.Rejected
             windowElapsed -> ParkingDecision.Rejected
             else -> ParkingDecision.Inconclusive
         }

@@ -33,10 +33,12 @@ class EvaluateParkingDecisionUseCaseTest {
         evidenceLabel: String? = null,
         hasKinematicEgress: Boolean = false,
         lastSpeedMps: Float = 0f,
+        egressExceedsWalkReach: Boolean = false,
     ) = ParkingDecisionInput(
         stepCount, hasEgressDisplacement, hadVehicleExit,
         elapsedSinceHighMs, vehicleType, sessionDurationMs, maxSpeedKmh, evidenceLabel,
         hasKinematicEgress, lastSpeedMps,
+        egressExceedsWalkReach = egressExceedsWalkReach,
     )
 
     // ── Kinematic egress: GPS-measured walk from the frozen anchor [DET-KINEMATIC-EGRESS-001] ─
@@ -250,6 +252,63 @@ class EvaluateParkingDecisionUseCaseTest {
     fun should_reject_when_steps_present_but_no_egress_and_window_elapsed() {
         // Same Prague inputs, but the (no-exit) 5-min window has now expired → discard the candidate.
         val decision = evaluate(input(stepCount = 8, hasEgressDisplacement = false, elapsedSinceHighMs = slowWindow))
+        assertEquals(ParkingDecision.Rejected, decision)
+    }
+
+    // ── Pedestrian egress ceiling [DET-EGRESS-PEDESTRIAN-CEILING-001] ────────────
+
+    @Test
+    fun should_reject_steps_egress_when_displacement_outran_the_steps() {
+        // FP Calle Abeto (field 2026-07-18): stopped to pick a passenger up. ~26 incidental steps
+        // were counted while parked and the car then drove ~500 m away — a displacement no pedestrian
+        // could cover in those steps. steps+egress would have pinned a phantom park at the stop. The
+        // egress floor is cleared but the ceiling is breached (a vehicle moved, not a person) →
+        // decisive Rejected, and the real park after it is free to anchor.
+        val decision = evaluate(
+            input(stepCount = 26, hasEgressDisplacement = true, lastSpeedMps = 0f, egressExceedsWalkReach = true)
+        )
+        assertEquals(ParkingDecision.Rejected, decision)
+    }
+
+    @Test
+    fun should_confirm_steps_egress_when_displacement_keeps_pace_with_steps() {
+        // Regression guard: a genuine walk-away keeps pace with its own step count (outruns=false),
+        // so the ceiling never touches a real park. Same inputs as the canonical steps+egress confirm.
+        val decision = evaluate(
+            input(stepCount = 26, hasEgressDisplacement = true, lastSpeedMps = 0f, egressExceedsWalkReach = false)
+        )
+        assertEquals("steps+egress", assertIs<ParkingDecision.Confirmed>(decision).pathLabel)
+    }
+
+    @Test
+    fun should_still_confirm_via_kinematics_even_when_displacement_outruns_the_zero_steps() {
+        // The kinematic path proves egress from pedestrian-BAND fixes (a departing car cannot make
+        // them) and legitimately carries ~0 steps, so `outruns` is trivially true for it. The ceiling
+        // must NOT veto it — only the step- and window-based paths.
+        val decision = evaluate(
+            input(
+                stepCount = 0,
+                hasEgressDisplacement = true,
+                hasKinematicEgress = true,
+                maxSpeedKmh = 25f,
+                egressExceedsWalkReach = true,
+            )
+        )
+        assertEquals("kinematic+egress", assertIs<ParkingDecision.Confirmed>(decision).pathLabel)
+    }
+
+    @Test
+    fun should_not_confirm_via_exit_window_when_displacement_is_vehicular() {
+        // The vehicle-exit + window path also leans on the egress floor; a car-scale displacement
+        // must not confirm it either (the car simply drove off a stop). No kinematic proof → blocked.
+        val decision = evaluate(
+            input(
+                hadVehicleExit = true,
+                hasEgressDisplacement = true,
+                elapsedSinceHighMs = exitWindow,
+                egressExceedsWalkReach = true,
+            )
+        )
         assertEquals(ParkingDecision.Rejected, decision)
     }
 
