@@ -149,11 +149,16 @@ class FirestoreDetectionEventLogger(
         accumulate(event)
         when (event) {
             is DetectionEvent.SessionStarted -> sessionDoc.set(
-                // Stamp device identity so a trace says which phone produced it. [DIAG-READABLE-001]
+                // Stamp device identity so a trace says which phone produced it [DIAG-READABLE-001],
+                // plus the background-survival state so a silent death says whether the exemptions
+                // were in place [DET-SESSION-RELIABILITY-STAMP-001].
                 event.toSessionDto().copy(
                     deviceModel = deviceInfo.deviceModel,
                     appVersion = deviceInfo.appVersion,
                     osVersion = deviceInfo.osVersion,
+                    batteryUnrestricted = deviceInfo.isBatteryUnrestricted,
+                    requiresAutostart = deviceInfo.requiresAutostartWhitelist,
+                    requiresOemBatteryFreeze = deviceInfo.requiresOemBatteryFreezeExemption,
                 ),
             )
             is DetectionEvent.SessionEnded -> flushSession(sessionDoc, event)

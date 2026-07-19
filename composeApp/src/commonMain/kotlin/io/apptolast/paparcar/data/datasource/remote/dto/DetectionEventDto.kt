@@ -25,6 +25,11 @@ data class DetectionSessionDto(
     val deviceModel: String? = null,
     val appVersion: String? = null,
     val osVersion: String? = null,
+    // Background-survival state at arm time [DET-SESSION-RELIABILITY-STAMP-001]: says whether a
+    // session that later dies silently had its exemptions in place, instead of leaving us to guess.
+    val batteryUnrestricted: Boolean? = null,
+    val requiresAutostart: Boolean? = null,
+    val requiresOemBatteryFreeze: Boolean? = null,
     // Per-session rollup, patched on SESSION_ENDED [DIAG-READABLE-001]
     val endedAt: Long? = null,
     val maxSpeedKmh: Float? = null,

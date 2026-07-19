@@ -17,4 +17,10 @@ class IosDeviceInfoProvider : DeviceInfoProvider {
             ?: "unknown"
 
     override val osVersion: String = "iOS ${UIDevice.currentDevice.systemVersion}"
+
+    // iOS has no autostart whitelist / OEM freeze daemon and no per-app battery-optimization toggle
+    // the app can read — background survival is governed by BGTask budgets, not these switches.
+    override val isBatteryUnrestricted: Boolean = true
+    override val requiresAutostartWhitelist: Boolean = false
+    override val requiresOemBatteryFreezeExemption: Boolean = false
 }
