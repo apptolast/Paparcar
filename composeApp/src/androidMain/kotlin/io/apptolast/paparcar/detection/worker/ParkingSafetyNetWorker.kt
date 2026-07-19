@@ -27,9 +27,12 @@ import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.diagnostics.DetectionEvent
 import io.apptolast.paparcar.domain.diagnostics.DetectionEventLogger
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
+import io.apptolast.paparcar.bluetooth.BtConnectionStore
+import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
 import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
+import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.sensor.StepCounterSource
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -92,6 +95,9 @@ class ParkingSafetyNetWorker(
     private val stepCounterSource: StepCounterSource by inject()
     private val config: ParkingDetectionConfig by inject()
     private val manualParkingDetection: io.apptolast.paparcar.domain.detection.ManualParkingDetection by inject()
+    // [DET-BT-IDENTITY-GATE-001] Per-session BT-identity inputs for the evaluator's release veto.
+    private val vehicleRepository: VehicleRepository by inject()
+    private val bluetoothScanner: BluetoothScanner by inject()
 
     override suspend fun getForegroundInfo(): ForegroundInfo =
         ForegroundInfo(
@@ -166,6 +172,13 @@ class ParkingSafetyNetWorker(
         // away" from "was driven away" even when the whole trip happened while we slept.
         val cumulativeSteps = runCatching { stepCounterSource.currentCumulativeSteps() }.getOrNull()
 
+        // [DET-BT-IDENTITY-GATE-001] Fleet + BT-adapter state, read once per tick: the release veto
+        // needs, per session, whether its vehicle is BT-paired AND Bluetooth is currently on — the
+        // BLUETOOTH strategy owns that car's identity, so a real drive of it connects to its MAC.
+        val vehicles = runCatching { vehicleRepository.observeVehicles().firstOrNull().orEmpty() }
+            .getOrDefault(emptyList())
+        val btEnabled = runCatching { bluetoothScanner.isBluetoothEnabled() }.getOrDefault(false)
+
         val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         // Drop anchors of geofences that no longer have an active session (departed / reverted).
         pruneStaleAnchors(prefs, sessions.mapNotNullTo(mutableSetOf()) { it.geofenceId })
@@ -178,6 +191,12 @@ class ParkingSafetyNetWorker(
             } else {
                 null
             }
+            // [DET-BT-IDENTITY-GATE-001] Identity inputs for THIS session's vehicle: BT-gated only
+            // when it is BT-paired AND the adapter is on; last connection stamped by the BT receiver.
+            val vehicleBtGated = btEnabled &&
+                session.vehicleId != null &&
+                vehicles.firstOrNull { it.id == session.vehicleId }?.bluetoothDeviceId != null
+            val lastBtConnectedAtMs = session.vehicleId?.let { BtConnectionStore.lastConnectedAt(appContext, it) }
             val action = evaluateSafetyNetCheck(
                 session = session,
                 fix = fix,
@@ -194,6 +213,10 @@ class ParkingSafetyNetWorker(
                 // App-start tick = the user is LOOKING at the app right now — the zero-cost
                 // moment for the ask-when-blind prompt. [DET-ANCHOR-FREEZE-001]
                 userPresent = source == SOURCE_APP_START,
+                // [DET-BT-IDENTITY-GATE-001] BT-owned vehicle with no connection since it parked →
+                // the reconstructed release degrades to the "still parked?" ask, not an auto-release.
+                vehicleBtGated = vehicleBtGated,
+                lastBtConnectedAtMs = lastBtConnectedAtMs,
             )
             val distanceM = haversineMeters(
                 fix.latitude, fix.longitude,

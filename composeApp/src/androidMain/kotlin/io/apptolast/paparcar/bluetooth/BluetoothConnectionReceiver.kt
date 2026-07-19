@@ -139,6 +139,12 @@ class BluetoothConnectionReceiver : BroadcastReceiver(), KoinComponent {
                         ContextCompat.startForegroundService(context, serviceIntent)
                     }
                     BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                        // [DET-BT-IDENTITY-GATE-001] Stamp that the user got into THIS car — the
+                        // identity proof the parked-session safety net reads before it reconstructs
+                        // a departure for a BT-paired vehicle. Disk-backed (survives the process
+                        // kills the net wakes across); keyed by vehicleId, the join the net has.
+                        BtConnectionStore.recordConnected(context, pairedVehicle.id, System.currentTimeMillis())
+
                         // startService (not foreground) — work is instant (cancel + stopSelf).
                         // If the detection Service is already running as FGS, onStartCommand
                         // is called on the existing instance; no 5-second constraint applies.
