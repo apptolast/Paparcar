@@ -101,6 +101,10 @@ fun PapAlertDialog(
     secondaryAccent: PapDialogAccent? = null,
     cancelLabel: String? = null,
     isLoading: Boolean = false,
+    /** Replaces the tinted [icon] hero with a custom composable (e.g. the real vehicle pictogram).
+     *  When set, the hero circle uses a neutral container so a multi-colour glyph reads. [icon] is
+     *  still required as the semantic fallback but is not drawn while this is non-null. */
+    heroContent: (@Composable () -> Unit)? = null,
 ) {
     val accentColor = accent.color()
     val accentContainer = accent.container()
@@ -134,15 +138,22 @@ fun PapAlertDialog(
                     modifier = Modifier
                         .size(ICON_CIRCLE_DP.dp)
                         .clip(CircleShape)
-                        .background(accentContainer),
+                        .background(
+                            if (heroContent != null) MaterialTheme.colorScheme.surfaceContainerHighest
+                            else accentContainer,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = accentColor,
-                        modifier = Modifier.size(28.dp),
-                    )
+                    if (heroContent != null) {
+                        heroContent()
+                    } else {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
                 }
 
                 // ── Title + body ──────────────────────────────────────────

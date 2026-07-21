@@ -58,7 +58,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.absoluteValue
+import io.apptolast.paparcar.domain.model.CarbodyType
 import io.apptolast.paparcar.domain.model.Vehicle
+import io.apptolast.paparcar.domain.model.VehicleColor
 import io.apptolast.paparcar.domain.model.VehicleMonitoringStatus
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.displayName
@@ -262,6 +264,9 @@ private fun VehiclesPager(
     pendingSetActive?.let { veh ->
         SetActiveConfirmDialog(
             vehicleName = veh.displayName(fallback = stringResource(Res.string.my_car_unnamed_vehicle)),
+            carbody = veh.carbodyType,
+            size = veh.sizeCategory,
+            color = veh.color,
             onConfirm = {
                 onIntent(VehiclesIntent.SetActiveVehicle(veh.id))
                 pendingSetActive = null
@@ -279,12 +284,24 @@ private fun VehiclesPager(
 @Composable
 private fun SetActiveConfirmDialog(
     vehicleName: String,
+    carbody: CarbodyType?,
+    size: VehicleSize?,
+    color: VehicleColor?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     PapAlertDialog(
         onDismiss = onDismiss,
+        // The hero shows the actual car being declared active — the icon is the semantic fallback.
         icon = Icons.Rounded.DirectionsCar,
+        heroContent = {
+            io.apptolast.paparcar.ui.components.VehicleGlyph(
+                carbody = carbody,
+                size = size,
+                glyphSize = SET_ACTIVE_HERO_GLYPH_DP.dp,
+                color = color,
+            )
+        },
         title = stringResource(Res.string.vehicle_set_active_confirm_title),
         body = stringResource(Res.string.vehicle_set_active_confirm_body, vehicleName),
         primaryLabel = stringResource(Res.string.vehicle_set_active_confirm_cta),
@@ -293,6 +310,9 @@ private fun SetActiveConfirmDialog(
         cancelLabel = stringResource(Res.string.vehicle_set_active_confirm_cancel),
     )
 }
+
+// Hero pictogram nominal box inside the 56dp dialog icon circle (glyph lays out ~1.5× wide).
+private const val SET_ACTIVE_HERO_GLYPH_DP = 32
 
 @Composable
 private fun VehicleTabRow(
