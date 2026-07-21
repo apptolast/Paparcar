@@ -6,6 +6,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import io.apptolast.paparcar.domain.detection.DetectionRuntimeState
 import io.apptolast.paparcar.domain.model.GpsPoint
 import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
@@ -39,8 +40,26 @@ class ParkingBackfillWorker(
     private val confirmParking: ConfirmParkingUseCase by inject()
     private val vehicleRepository: VehicleRepository by inject()
     private val notificationPort: AppNotificationManager by inject()
+    private val detectionRuntime: DetectionRuntimeState by inject()
 
     override suspend fun doWork(): Result {
+        // [DET-ARRIVAL-DOUBLE-PIN-001] Exactly one pipeline may PLACE the arrival. This chained
+        // worker was scheduled at a safety-net tick when detection was idle — but a live coordinator
+        // session can arm for the SAME arrival in the race window between that decision and this
+        // worker actually running, and it owns the placement at full quality. Field 2026-07-20
+        // (Redmi): between one session ending (02:11:37) and the next arming (02:14:02) the net ran,
+        // dispatched the departure, and chained this backfill; by the time it executed the live
+        // session was already tracking the same park and confirmed it at 02:17 — leaving a phantom
+        // 0.5 pin (Calle Pantoque) 96 m from the real one (Avenida Rosa de los Vientos). The
+        // departure was already dispatched before this chain, so the OLD spot is freed either way;
+        // defer the NEW placement to the live session (or, if it aborts, its mark-parking nudge).
+        // Closes the "BOTH placers" gap the DET-ARRIVAL-HANDOFF-001 invariant left open — it only
+        // guarded against "neither". Mirrors the same isRunning skip the safety-net worker itself
+        // uses before evaluating.
+        if (detectionRuntime.isRunning.value) {
+            PaparcarLogger.d(DIAG, "■ live detection running — deferring arrival placement to it; skipping backfill [DET-ARRIVAL-DOUBLE-PIN-001]")
+            return Result.success()
+        }
         val lat = inputData.getDouble(KEY_LAT, Double.NaN).takeIf { !it.isNaN() } ?: return Result.success()
         val lon = inputData.getDouble(KEY_LON, Double.NaN).takeIf { !it.isNaN() } ?: return Result.success()
         val accuracy = inputData.getFloat(KEY_ACCURACY, 50f)

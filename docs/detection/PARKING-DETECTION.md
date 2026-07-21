@@ -1242,3 +1242,19 @@ The system stopped being a pile of point guards (DET-G-01..05) and became **evid
 4. Board a bus with the car parked (outside the radius) → expect the ENTER stamped but nothing armed, nothing saved.
 5. Reboot with an active park → geofence restored immediately (janitor one-shot).
 6. Upgrade install over Room v10 with an active session → session survives (MIGRATION_10_11).
+
+### DET-ARRIVAL-DOUBLE-PIN-001 — safety-net backfill duplicated the live coordinator's arrival (2026-07-20, Redmi)
+
+**Symptom.** One physical park produced **two** history pins ~96 m apart: `Calle Pantoque 2B` at 02:14 (reliability **0.5**) and `Avenida Rosa de los Vientos 35` at 02:17 (reliability 0.9). The 0.5 pin was a false positive; the 0.9 pin was the real spot.
+
+**Diagnosis (Firestore `diagnostics` + `parkingHistory`).** Two independent pipelines confirmed the SAME arrival:
+- The **live coordinator** (session `…442292`) armed 02:14:02, followed measured egress, and confirmed at the settled anchor (Rosa, 0.9) 02:17.
+- The **15-min safety net** ran in the idle window between the previous session ending (02:11:37) and this one arming (02:14:02) — so `detectionRuntime.isRunning` was `false` at its tick. It saw far-from-old-anchor + a trusted step budget, dispatched the departure, and **chained `ParkingBackfillWorker`**, which placed a 0.5 pin at its coarse wake-up fix (Pantoque).
+
+The safety-net worker already skips its whole check when detection is running (`isRunning` guard), but that guard is evaluated at the *tick*, not when the chained backfill actually *executes*. The live session armed 300 ms later, inside the race window, and the backfill never re-checked before writing.
+
+**Fix.** `ParkingBackfillWorker.doWork()` now re-reads `DetectionRuntimeState.isRunning` at execution time and **defers** (skips the pin) when a live coordinator session is running — the same `isRunning` skip the safety-net worker uses, applied at the actual placement site. The departure was already dispatched before the chain, so the OLD spot is freed regardless; the live session (or, if it aborts, its mark-parking nudge) owns the NEW placement at full quality. This closes the "**BOTH** placers" gap the `DET-ARRIVAL-HANDOFF-001` invariant left open (it only guarded against "neither" — the orphaned arrival).
+
+**Residual (accepted, low-risk).** The reverse ordering — the backfill fully completing *before* the live session arms — would still leave the replaced backfill pin in history when the live confirm runs. It requires the live arm to lag the same movement by more than the chained departure-worker duration, which the field ordering does not exhibit; deferred until data shows it.
+
+**Not a code bug (device-side).** The Oppo false negatives the same night (whole 02:00 trip + the current park missed) were ColorOS OEM kill: sessions stamped `requiresOemBatteryFreeze=true`, `batteryUnrestricted=false`, `strategy=COORDINATOR` (no car BT). Remedy is setup — battery exemption + autostart, and pairing the car Bluetooth (the deterministic revive), not detection logic. The Redmi (`requiresOemBatteryFreeze=false`) survived and caught everything.
