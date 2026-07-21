@@ -224,7 +224,8 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("PapSheet · parking seleccionado (Me voy + edit menu)", Placement.Surface) {
                 peek(
                     HomeState(
-                        activeSessions = listOf(FakeData.activeSession),
+                        vehicles = listOf(FakeData.vehicleSedan),
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
                         userGpsPoint = sampleGps,
                         nearbySpots = FakeData.nearbySpots,
                         selectedItemId = FakeData.activeSession.id,
@@ -260,6 +261,19 @@ private val galleryGroups: List<ScreenGroup> = listOf(
                 )
             },
             Variant("Peek · cargando (skeleton)", Placement.Surface) { peek(HomeState()) },
+            // The session's vehicle hasn't resolved from Room yet (vehicles omitted) → the peek's
+            // vehicle lead breathes a skeleton instead of flashing the generic car for one frame.
+            // [UI-VEHICLE-ICON-SKELETON-001]
+            Variant("Peek · coche resolviéndose (skeleton icono)", Placement.Surface) {
+                peek(
+                    HomeState(
+                        cameraAddressAndPlace = FakeData.addressAndPlaceStreet,
+                        activeSessions = listOf(FakeData.activeSession.copy(vehicleId = FakeData.vehicleSedan.id)),
+                        userGpsPoint = sampleGps,
+                        nearbySpots = FakeData.nearbySpots,
+                    ),
+                )
+            },
             Variant("Sheet · coche + spots") {
                 sheet(
                     HomeState(

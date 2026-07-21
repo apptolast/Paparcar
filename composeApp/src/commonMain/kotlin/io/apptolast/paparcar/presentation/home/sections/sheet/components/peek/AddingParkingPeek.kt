@@ -84,6 +84,7 @@ internal fun AddingParkingPeek(
             carbody = targetVehicle?.carbodyType,
             size = targetVehicle?.sizeCategory,
             color = targetVehicle?.color,
+            loading = targetVehicle == null,
         ),
         eyebrow = headerLabel,
         eyebrowTone = PapSheetEyebrowTone.Action,

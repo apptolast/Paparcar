@@ -46,6 +46,7 @@ import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.ui.components.PapAlertDialog
 import io.apptolast.paparcar.ui.components.PapDialogAccent
 import io.apptolast.paparcar.ui.components.PapListItem
+import io.apptolast.paparcar.ui.components.PapShimmerBox
 import io.apptolast.paparcar.ui.components.SpotPuckIcon
 import io.apptolast.paparcar.ui.components.VehicleGlyph
 import io.apptolast.paparcar.presentation.util.SpotReliabilityUiState
@@ -188,11 +189,14 @@ internal fun PapSheet(
  * (own = surface/green, manual report = green announce, community = blue).
  */
 internal sealed interface PapSheetLead {
-    /** The user's vehicle — full-colour illustration on a quiet surface tile. */
+    /** The user's vehicle — full-colour illustration on a quiet surface tile. [loading] shows a
+     *  skeleton instead of the pictogram while the vehicle is still resolving from Room, so the
+     *  tile never flashes the generic fallback car before the real one arrives. */
     data class Vehicle(
         val carbody: CarbodyType?,
         val size: VehicleSize?,
         val color: VehicleColor? = null,
+        val loading: Boolean = false,
     ) : PapSheetLead
 
     /** Free-spot counter — digit + unit. Green with n>0, amber with 0. */
@@ -233,13 +237,19 @@ private fun PapSheetLeadTile(lead: PapSheetLead) {
     val cs = MaterialTheme.colorScheme
     when (lead) {
         is PapSheetLead.Vehicle -> LeadTileBox(container = cs.surfaceContainerHigh) {
-            // Full-colour brand illustration (level-3) — never tinted. [INACTIVE-OPAQUE-001]
-            VehicleGlyph(
-                carbody = lead.carbody,
-                size = lead.size,
-                glyphSize = LEAD_GLYPH_DP.dp,
-                color = lead.color,
-            )
+            if (lead.loading) {
+                // Vehicle not resolved yet: breathe a placeholder instead of flashing the generic
+                // fallback car (the tile would otherwise show a wrong default for one frame). [UI-VEHICLE-ICON-SKELETON-001]
+                PapShimmerBox(modifier = Modifier.size(LEAD_GLYPH_DP.dp), shape = CircleShape)
+            } else {
+                // Full-colour brand illustration (level-3) — never tinted. [INACTIVE-OPAQUE-001]
+                VehicleGlyph(
+                    carbody = lead.carbody,
+                    size = lead.size,
+                    glyphSize = LEAD_GLYPH_DP.dp,
+                    color = lead.color,
+                )
+            }
         }
 
         is PapSheetLead.SpotCounter -> {

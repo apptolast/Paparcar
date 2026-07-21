@@ -1,12 +1,6 @@
 package io.apptolast.paparcar.presentation.home.sections.sheet.components.peek
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
+import io.apptolast.paparcar.ui.components.PapShimmerBox
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.apptolast.paparcar.domain.detection.DetectionPhase
 import io.apptolast.paparcar.domain.model.AddressAndPlace
@@ -37,7 +30,6 @@ import io.apptolast.paparcar.presentation.util.compactRelativeTimeText
 import io.apptolast.paparcar.presentation.util.distanceMeters
 import io.apptolast.paparcar.presentation.util.distanceString
 import io.apptolast.paparcar.ui.theme.PapDriveBlue
-import io.apptolast.paparcar.ui.theme.PapMotion
 import org.jetbrains.compose.resources.stringResource
 import paparcar.composeapp.generated.resources.Res
 import paparcar.composeapp.generated.resources.home_address_unknown
@@ -108,6 +100,8 @@ internal fun BrowsePeek(
                 carbody = parkingVehicle?.carbodyType,
                 size = parkingVehicle?.sizeCategory,
                 color = parkingVehicle?.color,
+                // Session's vehicle still resolving from Room → skeleton, not the generic fallback car.
+                loading = parkingVehicle == null,
             ),
             eyebrow = eyebrow,
             eyebrowTone = PapSheetEyebrowTone.Action,
@@ -148,6 +142,7 @@ internal fun BrowsePeek(
                 carbody = drivingVehicle?.carbodyType,
                 size = drivingVehicle?.sizeCategory,
                 color = drivingVehicle?.color,
+                loading = drivingVehicle == null,
             ),
             eyebrow = stringResource(Res.string.home_peek_vehicle_status, vehicleName, phaseWord),
             // En-route blue while driving, brand green once stopping (candidate) — mirrors the map language.
@@ -197,18 +192,6 @@ internal fun BrowsePeek(
 
 @Composable
 private fun PeekLocationSkeleton() {
-    val transition = rememberInfiniteTransition(label = "peek_skeleton")
-    val pulseAlpha by transition.animateFloat(
-        initialValue = 0.15f,
-        targetValue = 0.40f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = PapMotion.Breathe, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "skeleton_pulse",
-    )
-    val skeletonColor = MaterialTheme.colorScheme.onSurface
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -217,36 +200,25 @@ private fun PeekLocationSkeleton() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(CircleShape)
-                .background(skeletonColor.copy(alpha = pulseAlpha)),
-        )
+        PapShimmerBox(modifier = Modifier.size(26.dp), shape = CircleShape)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.62f)
-                    .height(14.dp)
-                    .clip(RoundedCornerShape(7.dp))
-                    .background(skeletonColor.copy(alpha = pulseAlpha)),
+            PapShimmerBox(
+                modifier = Modifier.fillMaxWidth(0.62f).height(14.dp),
+                shape = RoundedCornerShape(7.dp),
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.38f)
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(skeletonColor.copy(alpha = pulseAlpha * 0.7f)),
+            PapShimmerBox(
+                modifier = Modifier.fillMaxWidth(0.38f).height(10.dp),
+                shape = RoundedCornerShape(5.dp),
+                alphaScale = 0.7f,
             )
         }
-        Box(
-            modifier = Modifier
-                .size(width = 56.dp, height = 26.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(skeletonColor.copy(alpha = pulseAlpha * 0.7f)),
+        PapShimmerBox(
+            modifier = Modifier.size(width = 56.dp, height = 26.dp),
+            shape = RoundedCornerShape(8.dp),
+            alphaScale = 0.7f,
         )
     }
 }

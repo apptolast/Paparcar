@@ -73,6 +73,7 @@ internal fun ParkingPeek(
             carbody = vehicle?.carbodyType,
             size = vehicle?.sizeCategory,
             color = vehicle?.color,
+            loading = vehicle == null,
         ),
         eyebrow = headerLabel,
         // Green when parked, drive-blue when BT-paired — same tone as its map marker. [DET-READY-001k]
