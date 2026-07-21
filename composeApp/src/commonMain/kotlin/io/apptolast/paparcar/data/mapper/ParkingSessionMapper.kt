@@ -37,6 +37,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     privateZoneId = privateZoneId,
     tripMaxSpeedMps = tripMaxSpeedMps,
     armEvidence = armEvidence,
+    detectionPath = detectionPath,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -85,10 +86,11 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     sizeCategory = sizeCategory?.name,
     carbodyType = carbodyType?.name,
     privateZoneId = privateZoneId,
-    // tripMaxSpeedMps / armEvidence: local-only provenance — round-trips Room but is
-    // deliberately absent from ParkingHistoryDto (never synced). [DET-SOLID-001]
+    // tripMaxSpeedMps: local-only (feeds the repark guard, never synced). armEvidence + detectionPath
+    // ARE synced to Firestore for remote provenance diagnostics. [DET-SOLID-001][DET-PIN-PROVENANCE-001]
     tripMaxSpeedMps = tripMaxSpeedMps,
     armEvidence = armEvidence,
+    detectionPath = detectionPath,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )
@@ -125,6 +127,10 @@ fun UserParking.toParkingHistoryDto(updatedAt: Long = 0L) = ParkingHistoryDto(
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory?.name,
     carbodyType = carbodyType?.name,
+    // Provenance: the ARM trigger + the confirmation PATH that placed this pin — mirrored so a
+    // remote diagnostic can attribute a parking to its trigger. [DET-PIN-PROVENANCE-001]
+    armEvidence = armEvidence,
+    detectionPath = detectionPath,
     updatedAt = updatedAt,
 )
 
@@ -151,6 +157,10 @@ fun ParkingHistoryDto.toEntity() = UserParkingEntity(
     detectionReliability = detectionReliability,
     sizeCategory = sizeCategory,
     carbodyType = carbodyType,
+    // Provenance now round-trips through Firestore (armEvidence + detectionPath); an inbound pin
+    // keeps who/what placed it. tripMaxSpeedMps stays local-only → null here. [DET-PIN-PROVENANCE-001]
+    armEvidence = armEvidence,
+    detectionPath = detectionPath,
     // A row coming FROM Firestore is by definition already synced → pendingSync=false. Its
     // updatedAt carries the remote edit time for the LWW merge. [SYNC-RECONCILE-USERPARKING-001]
     updatedAt = updatedAt,

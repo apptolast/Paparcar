@@ -73,6 +73,9 @@ class ParkingBackfillWorker(
             location = GpsPoint(lat, lon, accuracy, fixTimestampMs, 0f),
             detectionReliability = reliability,
             vehicleId = vehicleId,
+            // [DET-PIN-PROVENANCE-001] Mark this pin as the safety-net's reconstructed backfill (no
+            // live session followed the trip) — the exact class we had to reverse-engineer on 2026-07-20.
+            detectionPath = PATH_SAFETY_NET_BACKFILL,
         )
         result
             .onSuccess { saved ->
@@ -99,6 +102,9 @@ class ParkingBackfillWorker(
     companion object {
         const val TAG = "ParkingBackfillWorker"
         private const val DIAG = "PARKDIAG/Backfill"
+        /** Pin provenance path: the 15-min safety net reconstructed this arrival (no live session
+         *  followed the trip — process was asleep). [DET-PIN-PROVENANCE-001] */
+        private const val PATH_SAFETY_NET_BACKFILL = "safety_net_backfill"
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"
         private const val KEY_ACCURACY = "accuracy"

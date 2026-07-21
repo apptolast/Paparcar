@@ -270,6 +270,63 @@ class ParkingSessionMapperTest {
         assertEquals(0.85f, restored.detectionReliability)
     }
 
+    // ── Pin provenance round-trip (detectionPath + armEvidence) [DET-PIN-PROVENANCE-001] ──
+
+    @Test
+    fun `parking toEntity preserves detectionPath and armEvidence`() {
+        val parking = baseParking.copy(detectionPath = "steps+egress", armEvidence = "verified_enter")
+        val entity = parking.toEntity()
+        assertEquals("steps+egress", entity.detectionPath)
+        assertEquals("verified_enter", entity.armEvidence)
+    }
+
+    @Test
+    fun `entity toDomain preserves detectionPath and armEvidence`() {
+        val entity = baseEntity.copy(detectionPath = "safety_net_backfill", armEvidence = "unverified")
+        val domain = entity.toDomain()
+        assertEquals("safety_net_backfill", domain.detectionPath)
+        assertEquals("unverified", domain.armEvidence)
+    }
+
+    @Test
+    fun `toParkingHistoryDto carries detectionPath and armEvidence to Firestore`() {
+        // Regression: armEvidence used to be deliberately dropped from the DTO (local-only). It is
+        // now mirrored so a remote diagnostic can attribute the pin to its trigger.
+        val parking = baseParking.copy(detectionPath = "bt", armEvidence = "manual")
+        val dto = parking.toParkingHistoryDto()
+        assertEquals("bt", dto.detectionPath)
+        assertEquals("manual", dto.armEvidence)
+    }
+
+    @Test
+    fun `dto toEntity preserves detectionPath and armEvidence`() {
+        val dto = ParkingHistoryDto(
+            id = "s1",
+            latitude = 40.0,
+            longitude = -3.0,
+            detectionPath = "kinematic+egress",
+            armEvidence = "verified_speed",
+        )
+        val entity = dto.toEntity()
+        assertEquals("kinematic+egress", entity.detectionPath)
+        assertEquals("verified_speed", entity.armEvidence)
+    }
+
+    @Test
+    fun `parking round-trips detectionPath and armEvidence through dto and entity`() {
+        // Full Firestore round-trip: domain → dto (write) → entity (read after sync) → domain.
+        val original = baseParking.copy(detectionPath = "safety_net_backfill", armEvidence = "unverified")
+        val restored = original.toParkingHistoryDto().toEntity().toDomain()
+        assertEquals("safety_net_backfill", restored.detectionPath)
+        assertEquals("unverified", restored.armEvidence)
+    }
+
+    @Test
+    fun `legacy pin with no provenance maps to null detectionPath`() {
+        assertNull(baseParking.toParkingHistoryDto().detectionPath)
+        assertNull(baseEntity.toDomain().detectionPath)
+    }
+
     // ── Shared helpers ────────────────────────────────────────────────────────
 
     @Test

@@ -170,6 +170,8 @@ class RemoteUserProfileDataSourceImpl(
                 detectionReliability = runCatching { get<Double?>(FIELD_DETECTION_RELIABILITY)?.toFloat() }.getOrNull(),
                 sizeCategory = get<String?>(FIELD_SIZE_CATEGORY),
                 carbodyType = get<String?>(FIELD_CARBODY_TYPE),
+                armEvidence = runCatching { get<String?>(FIELD_ARM_EVIDENCE) }.getOrNull(),
+                detectionPath = runCatching { get<String?>(FIELD_DETECTION_PATH) }.getOrNull(),
                 updatedAt = getLongCompat(FIELD_UPDATED_AT),
             )
         }.getOrElse { e ->
@@ -220,5 +222,9 @@ class RemoteUserProfileDataSourceImpl(
         const val FIELD_ADDRESS = "address"
         const val FIELD_PLACE_INFO = "placeInfo"
         const val FIELD_DETECTION_RELIABILITY = "detectionReliability"
+        // Pin provenance — the ARM trigger + the confirmation PATH that placed the parking.
+        // [DET-PIN-PROVENANCE-001]
+        const val FIELD_ARM_EVIDENCE = "armEvidence"
+        const val FIELD_DETECTION_PATH = "detectionPath"
     }
 }

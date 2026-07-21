@@ -45,6 +45,12 @@ data class UserParking(
      *  session never reached driving speed is suspect. [DET-SOLID-001] */
     val tripMaxSpeedMps: Float? = null,
     /** Arm-evidence label of the confirming session ("speed", "vehicle_enter", "unverified",
-     *  "manual"). Local-only diagnostics/guard input. [DET-SOLID-001] */
+     *  "manual") — the ARM trigger. Synced to Firestore for remote diagnostics. [DET-SOLID-001] */
     val armEvidence: String? = null,
+    /** Confirmation PATH that placed this pin — the answer to "which trigger put this parking":
+     *  "steps+egress" / "kinematic+egress" / "vehicle-exit" / "unattended_timeout" / "user" (live
+     *  coordinator), "bt", "manual", or "safety_net_backfill" (the 15-min net's reconstructed pin).
+     *  Pairs with [armEvidence] for full provenance; synced to Firestore. Null for legacy rows.
+     *  [DET-PIN-PROVENANCE-001] */
+    val detectionPath: String? = null,
 )

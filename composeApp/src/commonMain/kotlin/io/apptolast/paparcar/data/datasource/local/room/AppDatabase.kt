@@ -25,7 +25,9 @@ import androidx.room.RoomDatabaseConstructor
     // v12: parking_sessions gains updatedAt + pendingSync — Last-Write-Wins inbound-sync columns
     // so a stale remote snapshot can't resurrect an ended session (MIGRATION_11_12).
     // [SYNC-RECONCILE-USERPARKING-001]
-    version = 12,
+    // v13: parking_sessions gains detectionPath — the confirmation path that placed the pin, synced
+    // for remote provenance diagnostics (MIGRATION_12_13). [DET-PIN-PROVENANCE-001]
+    version = 13,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

@@ -132,7 +132,7 @@ class BluetoothParkingDetector(
         }
 
         PaparcarLogger.i(TAG, "User walked ≥${config.btWalkAwayDistanceMeters}m — confirming BT parking for vehicle=$vehicleId")
-        confirmParking(parkingFix, config.reliabilityBluetooth, vehicleId = vehicleId)
+        confirmParking(parkingFix, config.reliabilityBluetooth, vehicleId = vehicleId, detectionPath = PATH_BLUETOOTH)
             .onSuccess { saved ->
                 logRemote(sessionId = saved.id, verdict = "bt_park_confirmed", fix = parkingFix)
                 // Legacy tap-to-open-map notification. [BT-NOTIF-LEGACY-CLEANUP]
@@ -169,6 +169,9 @@ class BluetoothParkingDetector(
         /** PARKDIAG prefix: FileAntilog only persists PARKDIAG-tagged lines. */
         const val TAG = "PARKDIAG/BTDetector"
         const val KMH_PER_MPS = 3.6f
+
+        /** Pin provenance path for the deterministic Bluetooth strategy. [DET-PIN-PROVENANCE-001] */
+        const val PATH_BLUETOOTH = "bt"
 
         /** BT-005: Grace window before acting on disconnect (brief stop / oscillation debounce). */
         const val BT_DISCONNECT_DEBOUNCE_MS = 30_000L

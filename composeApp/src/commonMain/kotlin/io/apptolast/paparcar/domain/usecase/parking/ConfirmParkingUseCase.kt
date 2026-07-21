@@ -78,6 +78,9 @@ class ConfirmParkingUseCase(
         /** Arm-evidence label of the confirming session (see [ArmEvidence] label constants).
          *  Verified labels bypass the repark guard. [DET-SOLID-001] */
         armEvidence: String? = null,
+        /** Confirmation path that placed this pin — which trigger put the parking ("steps+egress",
+         *  "safety_net_backfill", "bt", "manual", …). Persisted + synced for provenance. [DET-PIN-PROVENANCE-001] */
+        detectionPath: String? = null,
     ): Result<UserParking> {
         PaparcarLogger.d(
             DIAG,
@@ -197,6 +200,7 @@ class ConfirmParkingUseCase(
             privateZoneId = matchedPrivateZoneId,
             tripMaxSpeedMps = tripMaxSpeedMps,
             armEvidence = armEvidence,
+            detectionPath = detectionPath,
         )
 
         PaparcarLogger.d(DIAG, "  → saveNewParkingSession BEFORE sessionId=$sessionId")

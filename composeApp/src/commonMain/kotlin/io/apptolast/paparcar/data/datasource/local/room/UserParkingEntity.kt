@@ -36,8 +36,11 @@ data class UserParkingEntity(
     // LOCAL-ONLY (not synced to Firestore) — feeds the repark-plausibility guard. [DET-SOLID-001]
     val tripMaxSpeedMps: Float? = null,
     // Arm evidence label of the confirming session (e.g. "speed", "vehicle_enter", "manual").
-    // LOCAL-ONLY diagnostics/guard input, same precedent as licensePlate. [DET-SOLID-001]
+    // Now synced to Firestore for remote provenance diagnostics. [DET-SOLID-001][DET-PIN-PROVENANCE-001]
     val armEvidence: String? = null,
+    // Confirmation PATH that placed this pin ("steps+egress" / "safety_net_backfill" / "bt" / …) —
+    // which trigger put the parking. Synced to Firestore. Null for legacy rows. [DET-PIN-PROVENANCE-001]
+    val detectionPath: String? = null,
     // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
     // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
     // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]

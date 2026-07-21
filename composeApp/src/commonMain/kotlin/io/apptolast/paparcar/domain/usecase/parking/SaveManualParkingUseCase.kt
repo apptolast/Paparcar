@@ -67,7 +67,15 @@ class SaveManualParkingUseCase(
     ): Result<Unit> = if (editingParkingId != null) {
         updateParkingLocation(editingParkingId, gps).map { }
     } else {
-        confirmParking(gps, USER_CONFIRMED_RELIABILITY, spotType, vehicleId = targetVehicleId)
+        confirmParking(
+            gps,
+            USER_CONFIRMED_RELIABILITY,
+            spotType,
+            vehicleId = targetVehicleId,
+            // [DET-PIN-PROVENANCE-001] Hand-placed pin ("manual") vs the user tapping "Sí" on a
+            // detection prompt ("user") — both are user ground truth, distinguished by spotType.
+            detectionPath = if (spotType == SpotType.MANUAL_REPORT) PATH_MANUAL else PATH_USER,
+        )
             .onSuccess { saved ->
                 notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)
                 manualParkingDetection.stop()
@@ -78,5 +86,8 @@ class SaveManualParkingUseCase(
     private companion object {
         // A pin the user placed/confirmed by hand is ground truth.
         const val USER_CONFIRMED_RELIABILITY = 1.0f
+        // Pin provenance paths. [DET-PIN-PROVENANCE-001]
+        const val PATH_MANUAL = "manual"
+        const val PATH_USER = "user"
     }
 }

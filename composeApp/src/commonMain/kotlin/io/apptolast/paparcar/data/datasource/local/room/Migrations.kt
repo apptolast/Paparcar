@@ -139,3 +139,17 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
+/**
+ * v12 → v13: add detectionPath to parking_sessions — the confirmation path that placed the pin
+ * ("steps+egress" / "safety_net_backfill" / "bt" / "manual" / …), so a diagnostic can attribute a
+ * parking to its trigger without cross-referencing the session log. Additive, non-destructive;
+ * existing rows read null (unknown provenance / pre-provenance pin). [DET-PIN-PROVENANCE-001]
+ */
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN detectionPath TEXT"
+        )
+    }
+}
+

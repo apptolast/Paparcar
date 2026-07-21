@@ -114,6 +114,10 @@ class SaveNewParkingSessionWorker(
         // "size unspecified", and syncFromRemote then overwrote Room's size with null. [VEHICLE-CATEGORIZATION-001]
         private const val KEY_NEW_SESSION_SIZE_CATEGORY = "session_size_category"
         private const val KEY_NEW_SESSION_CARBODY_TYPE = "session_carbody_type"
+        // [DET-PIN-PROVENANCE-001] Pin provenance — the ARM trigger + the confirmation PATH that
+        // placed this parking, carried to Firestore so a remote diagnostic can attribute the pin.
+        private const val KEY_NEW_SESSION_ARM_EVIDENCE = "session_arm_evidence"
+        private const val KEY_NEW_SESSION_DETECTION_PATH = "session_detection_path"
 
         fun buildRequest(
             session: UserParking,
@@ -136,6 +140,9 @@ class SaveNewParkingSessionWorker(
                 // [BUG-SIZE-PARITY] carry the vehicle size/carbody through to Firestore.
                 KEY_NEW_SESSION_SIZE_CATEGORY to session.sizeCategory?.name,
                 KEY_NEW_SESSION_CARBODY_TYPE to session.carbodyType?.name,
+                // [DET-PIN-PROVENANCE-001] carry the pin provenance through to Firestore.
+                KEY_NEW_SESSION_ARM_EVIDENCE to session.armEvidence,
+                KEY_NEW_SESSION_DETECTION_PATH to session.detectionPath,
             )
             return OneTimeWorkRequestBuilder<SaveNewParkingSessionWorker>()
                 .setInputData(data)
@@ -166,6 +173,8 @@ class SaveNewParkingSessionWorker(
                     .takeUnless { it.isNaN() }?.toFloat(),
                 sizeCategory = getString(KEY_NEW_SESSION_SIZE_CATEGORY),
                 carbodyType = getString(KEY_NEW_SESSION_CARBODY_TYPE),
+                armEvidence = getString(KEY_NEW_SESSION_ARM_EVIDENCE),
+                detectionPath = getString(KEY_NEW_SESSION_DETECTION_PATH),
             )
         }
     }

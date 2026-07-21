@@ -1080,6 +1080,9 @@ class CoordinatorParkingDetector(
                 vehicleId = vehicleId,
                 tripMaxSpeedMps = _detectionState.value.maxSpeedMps,
                 armEvidence = currentArmEvidence,
+                // [DET-PIN-PROVENANCE-001] The confirmation path IS the provenance: "steps+egress",
+                // "kinematic+egress", "vehicle-exit", "unattended_timeout", "user".
+                detectionPath = pathLabel,
             )
                 .onSuccess { saved ->
                     // [REFACTOR-300] Replace the prompt notification at the same ID with the

@@ -22,6 +22,7 @@ class UserParkingReconcileTest {
         vehicleId: String? = "veh1",
         tripMaxSpeedMps: Float? = null,
         armEvidence: String? = null,
+        detectionPath: String? = null,
     ) = UserParkingEntity(
         id = id,
         userId = "u1",
@@ -35,6 +36,7 @@ class UserParkingReconcileTest {
         pendingSync = pendingSync,
         tripMaxSpeedMps = tripMaxSpeedMps,
         armEvidence = armEvidence,
+        detectionPath = detectionPath,
     )
 
     @Test
@@ -108,15 +110,19 @@ class UserParkingReconcileTest {
     }
 
     @Test
-    fun `local-only detection provenance survives taking remote`() {
-        // tripMaxSpeedMps + armEvidence are never written to Firestore; a remote-wins merge must not
-        // blank them (they feed the repark-plausibility guard).
-        val local = listOf(s("A", updatedAt = 10, tripMaxSpeedMps = 12.5f, armEvidence = "speed"))
-        val remote = listOf(s("A", updatedAt = 20, tripMaxSpeedMps = null, armEvidence = null))
+    fun `detection provenance survives taking a pre-provenance remote snapshot`() {
+        // tripMaxSpeedMps is local-only; armEvidence + detectionPath now sync but a LEGACY remote
+        // snapshot (written before DET-PIN-PROVENANCE-001) carries them null. A remote-wins merge
+        // against such a snapshot must not blank the local provenance.
+        val local = listOf(
+            s("A", updatedAt = 10, tripMaxSpeedMps = 12.5f, armEvidence = "speed", detectionPath = "steps+egress"),
+        )
+        val remote = listOf(s("A", updatedAt = 20, tripMaxSpeedMps = null, armEvidence = null, detectionPath = null))
 
         val merged = reconcileParkingSessions(local, remote)
 
         assertEquals(12.5f, merged.single().tripMaxSpeedMps)
         assertEquals("speed", merged.single().armEvidence)
+        assertEquals("steps+egress", merged.single().detectionPath)
     }
 }
