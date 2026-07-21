@@ -41,6 +41,11 @@ data class UserParkingEntity(
     // Confirmation PATH that placed this pin ("steps+egress" / "safety_net_backfill" / "bt" / …) —
     // which trigger put the parking. Synced to Firestore. Null for legacy rows. [DET-PIN-PROVENANCE-001]
     val detectionPath: String? = null,
+    // Non-null when this session is an APPROXIMATE ZONE (honest close) rather than an exact point:
+    // the radius (meters) of the area. LOCAL-ONLY (not synced to Firestore) — an unrefined "please
+    // confirm" mark that stays on the device that detected it until the user refines it to an exact
+    // point. [DET-HONEST-CLOSE-001]
+    val zoneRadiusMeters: Float? = null,
     // Epoch-ms of the last LOCAL mutation of this row (save / clear-active / move / enrich). Drives
     // the inbound-sync Last-Write-Wins merge so a stale remote snapshot can't resurrect an ended
     // session or clobber an offline edit. Local is authoritative. [SYNC-RECONCILE-USERPARKING-001]

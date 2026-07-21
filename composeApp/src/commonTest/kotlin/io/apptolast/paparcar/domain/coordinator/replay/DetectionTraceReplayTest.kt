@@ -351,6 +351,16 @@ class DetectionTraceReplayTest {
             // Today's SILENCE, pinned explicitly — DET-HONEST-CLOSE-001 changes these two.
             assertEquals(0, env.notification.parkingConfirmationCallCount, "no prompt today")
             assertEquals(0, env.notification.markParkingNudgeCallCount, "no nudge today")
+            // [DET-HONEST-CLOSE-001] The coordinator SURFACES the abort context so the service can
+            // run the honest-close ladder above it: the terminal outcome and the last fix (near
+            // Camelias, the new spot) survive invoke's reset().
+            assertEquals("aborted_false_enter", env.coordinator.lastSessionOutcome)
+            val abortFix = env.coordinator.lastSessionFix
+            assertTrue(
+                abortFix != null &&
+                    abortFix.latitude in 36.5970..36.5978 && abortFix.longitude in -6.2510..-6.2500,
+                "the abort fix must be surfaced at the new spot (Camelias), was ${abortFix?.latitude},${abortFix?.longitude}",
+            )
         }
 
     @Test

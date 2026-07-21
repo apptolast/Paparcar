@@ -10,9 +10,11 @@ import io.apptolast.paparcar.detection.SignificantMotionMonitor
 import io.apptolast.paparcar.detection.WorkManagerParkingEnrichmentScheduler
 import io.apptolast.paparcar.detection.WorkManagerParkingSyncScheduler
 import io.apptolast.paparcar.detection.WorkManagerReportSpotScheduler
+import io.apptolast.paparcar.detection.sensor.AndroidDetectionStepAnchors
 import io.apptolast.paparcar.detection.sensor.AndroidStepCounterSource
 import io.apptolast.paparcar.detection.sensor.AndroidStepDetectorSource
 import io.apptolast.paparcar.domain.ActivityRecognitionManager
+import io.apptolast.paparcar.domain.sensor.DetectionStepAnchors
 import io.apptolast.paparcar.domain.sensor.StepCounterSource
 import io.apptolast.paparcar.domain.sensor.StepDetectorSource
 import io.apptolast.paparcar.domain.service.DepartureEventBus
@@ -36,6 +38,10 @@ val androidDetectionModule = module {
     // --- Cumulative step counter (Sensor.TYPE_STEP_COUNTER): step budget for the parked-state
     // reconcile; keeps counting in the sensor hub across process death [DET-RECONCILE-001] ---
     single<StepCounterSource> { AndroidStepCounterSource(androidContext()) }
+
+    // --- Confirm-time step-anchor sealer: baseline for the honest-close step budget, available
+    // from the moment of parking (not the safety net's first tick) [DET-HONEST-CLOSE-001] ---
+    single<DetectionStepAnchors> { AndroidDetectionStepAnchors(get(), androidContext()) }
 
     // --- Geofence ---
     single { LocationServices.getGeofencingClient(androidContext()) }

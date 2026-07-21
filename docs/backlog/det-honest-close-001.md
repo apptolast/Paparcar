@@ -1,6 +1,9 @@
 # DET-HONEST-CLOSE-001 — Cierre honesto de sesión (zona aproximada + prompt, nunca silencio)
 
-> **Estado**: ESPECIFICADO — pendiente de rama `feature/DET-HONEST-CLOSE-001-honest-session-close`.
+> **Estado**: ✅ EN MASTER 2026-07-21 (squash de 5 commits → 1, rama+worktree borrados; rebasada sobre
+> VEH-ACTIVE-FENCE + provenance). Room **v13→v14** (`zoneRadiusMeters`; la v13 quedó para `detectionPath`
+> de DET-PIN-PROVENANCE-001). El save de zona estampa `detectionPath = closed_approximate_pin|zone`.
+> `testProdDebugUnitTest` + mock verdes. ⏳ PENDIENTE: device + field-test + UI de la zona aproximada (círculo).
 > Origen: auditoría rutas 2026-07-14/15 (El Puerto). Decidido con el user 2026-07-16.
 > Prioridad: **P0** (junto a DET-ANCHOR-EGRESS-001 y DET-CREDIBLE-DRIVE-001).
 

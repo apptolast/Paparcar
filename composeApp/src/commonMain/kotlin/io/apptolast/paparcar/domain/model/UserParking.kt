@@ -53,4 +53,16 @@ data class UserParking(
      *  Pairs with [armEvidence] for full provenance; synced to Firestore. Null for legacy rows.
      *  [DET-PIN-PROVENANCE-001] */
     val detectionPath: String? = null,
-)
+    /** Non-null when this session is an APPROXIMATE ZONE, not an exact point: the honest-close
+     *  ladder proved the car drove away from its last pin but had no pin-grade anchor at the new
+     *  spot, so the artifact is an AREA of this radius (meters) — rendered as a circle, never a
+     *  deceptively precise pin. Null = exact point (the normal case). Local-only, like an
+     *  unrefined "please confirm" mark: it stays on the device that detected it until the user
+     *  refines it to an exact point (which then syncs normally). [DET-HONEST-CLOSE-001] */
+    val zoneRadiusMeters: Float? = null,
+) {
+    /** True when this session is an approximate AREA rather than an exact point — the single
+     *  source of truth is [zoneRadiusMeters] (an area intrinsically has a radius; a boolean
+     *  alongside it could contradict it). [DET-HONEST-CLOSE-001] */
+    val isApproximate: Boolean get() = zoneRadiusMeters != null
+}

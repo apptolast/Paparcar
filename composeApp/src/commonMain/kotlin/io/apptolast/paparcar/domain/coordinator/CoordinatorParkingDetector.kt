@@ -273,6 +273,21 @@ class CoordinatorParkingDetector(
      *  session. Defaults to "ended"; refined by abort paths and by [runConfirm]. */
     @Volatile private var sessionOutcome: String = "ended"
 
+    /** [DET-HONEST-CLOSE-001] Snapshot of the last processed fix, captured in the finally BEFORE
+     *  [reset] wipes the state, so it survives for the caller to read after [invoke] returns.
+     *  Null between sessions / before the first fix. */
+    @Volatile private var lastFinishedFix: GpsPoint? = null
+
+    /** [DET-HONEST-CLOSE-001] The terminal outcome of the session that just finished — the same
+     *  label the [DetectionEvent.SessionEnded] carried. Read by the detection service after
+     *  [invoke] returns to decide whether to run the honest-close ladder (on `aborted_false_enter`
+     *  / `aborted_no_movement`). Survives across the finally's [reset]. */
+    val lastSessionOutcome: String get() = sessionOutcome
+
+    /** [DET-HONEST-CLOSE-001] Position at the abort moment (last processed fix, or the stop anchor
+     *  fallback), or null when no fix was seen. The honest-close ladder's candidate new spot. */
+    val lastSessionFix: GpsPoint? get() = lastFinishedFix
+
     /** Emits a [DetectionEvent] for the current session, or no-ops if no session is active.
      *  The logger contract guarantees this never throws and never blocks on network. */
     private suspend fun logDetection(build: (sessionId: String) -> DetectionEvent) {
@@ -947,6 +962,11 @@ class CoordinatorParkingDetector(
                         PaparcarLogger.w(DIAG, "  ⚑ session ended with a HELD confirm — finalizing at the pinned location [DET-AUDIT-002 T7]")
                         completed = runConfirm(pending.location, pending.reliability, pending.vehicleId, pending.pathLabel)
                     }
+                    // [DET-HONEST-CLOSE-001] Snapshot the terminal fix BEFORE reset() wipes the
+                    // state — the caller (the detection service) reads it after invoke returns to
+                    // run the honest-close ladder on the two silent aborts. previousFix is the last
+                    // fix processed; bestStopLocation is the stop anchor fallback.
+                    lastFinishedFix = _detectionState.value.previousFix ?: _detectionState.value.bestStopLocation
                     // [DET-LOG-03] Close the diagnostics session before wiping state, then clear the id.
                     logDetection { sid -> DetectionEvent.SessionEnded(sid, nowMs(), sessionOutcome) }
                     currentSessionId = null

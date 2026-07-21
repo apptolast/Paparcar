@@ -13,6 +13,8 @@ import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.EvaluateHonestCloseUseCase
+import io.apptolast.paparcar.domain.usecase.parking.RunHonestCloseUseCase
 import io.apptolast.paparcar.domain.coordinator.CoordinatorParkingDetector
 import io.apptolast.paparcar.domain.usecase.parking.DetectParkingDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateSafetyNetCheckUseCase
@@ -118,6 +120,20 @@ val domainModule = module {
             appPreferences = get(),
             parkingSyncScheduler = get(),
             detectionEventLogger = get(),
+            // Android-only (no iOS impl yet) — getOrNull so other platforms bind null and the
+            // honest-close budget simply stays unsealed there. [DET-HONEST-CLOSE-001]
+            detectionStepAnchors = getOrNull(),
+        )
+    }
+    // [DET-HONEST-CLOSE-001] Honest-close ladder: pure evaluator + orchestration.
+    factory { EvaluateHonestCloseUseCase(config = get()) }
+    factory {
+        RunHonestCloseUseCase(
+            userParkingRepository = get(),
+            confirmParking = get(),
+            notificationPort = get(),
+            evaluateHonestClose = get(),
+            config = get(),
         )
     }
     single {

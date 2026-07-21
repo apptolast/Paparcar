@@ -27,7 +27,9 @@ import androidx.room.RoomDatabaseConstructor
     // [SYNC-RECONCILE-USERPARKING-001]
     // v13: parking_sessions gains detectionPath — the confirmation path that placed the pin, synced
     // for remote provenance diagnostics (MIGRATION_12_13). [DET-PIN-PROVENANCE-001]
-    version = 13,
+    // v14: parking_sessions gains zoneRadiusMeters — the honest-close approximate-zone radius,
+    // local-only, null = exact point (MIGRATION_13_14). [DET-HONEST-CLOSE-001]
+    version = 14,
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 abstract class AppDatabase : RoomDatabase() {

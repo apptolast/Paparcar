@@ -18,6 +18,7 @@ import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
+import io.apptolast.paparcar.domain.sensor.DetectionStepAnchors
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceManager
@@ -55,6 +56,11 @@ class ConfirmParkingUseCase(
     private val parkingSyncScheduler: ParkingSyncScheduler? = null,
     // Optional: diagnostics sink for the geofence-registration outcome. [DET-SOLID-001]
     private val detectionEventLogger: DetectionEventLogger? = null,
+    // Optional: seals the hardware step-counter baseline at confirm time so the honest-close
+    // ladder (and the safety net) can measure the step budget from the moment of parking — a
+    // 2-min hop beats the worker's first tick. Nullable for test doubles / platforms without a
+    // step counter. [DET-HONEST-CLOSE-001]
+    private val detectionStepAnchors: DetectionStepAnchors? = null,
 ) {
 
     /**
@@ -81,6 +87,10 @@ class ConfirmParkingUseCase(
         /** Confirmation path that placed this pin — which trigger put the parking ("steps+egress",
          *  "safety_net_backfill", "bt", "manual", …). Persisted + synced for provenance. [DET-PIN-PROVENANCE-001] */
         detectionPath: String? = null,
+        /** Non-null → this is an APPROXIMATE ZONE (honest close), stamped on the saved session so
+         *  the UI renders an AREA of this radius, not a precise pin. Null = exact point (normal).
+         *  [DET-HONEST-CLOSE-001] */
+        zoneRadiusMeters: Float? = null,
     ): Result<UserParking> {
         PaparcarLogger.d(
             DIAG,
@@ -201,6 +211,7 @@ class ConfirmParkingUseCase(
             tripMaxSpeedMps = tripMaxSpeedMps,
             armEvidence = armEvidence,
             detectionPath = detectionPath,
+            zoneRadiusMeters = zoneRadiusMeters,
         )
 
         PaparcarLogger.d(DIAG, "  → saveNewParkingSession BEFORE sessionId=$sessionId")
@@ -270,6 +281,13 @@ class ConfirmParkingUseCase(
             }
             PaparcarLogger.d(DIAG, "  ← geofenceService.createGeofence AFTER")
         }
+
+        // [DET-HONEST-CLOSE-001] Seal the hardware step-counter baseline for THIS park's fence
+        // (geofenceId == sessionId) so the step budget is measurable from the moment of parking —
+        // the honest-close ladder on a 2-min hop can't wait for the safety net's first tick. Also
+        // benefits the safety net (baseline present immediately). geofenceId == sessionId here.
+        runCatching { detectionStepAnchors?.seal(sessionId) }
+            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ step-anchor seal failed (continuing)", e) }
 
         // The user has now parked at least once → the cold-start nudge has served its purpose and
         // self-disables for good. [DET-TOGGLE-002]

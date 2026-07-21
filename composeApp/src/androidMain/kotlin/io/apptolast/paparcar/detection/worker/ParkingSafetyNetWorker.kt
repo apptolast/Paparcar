@@ -632,14 +632,17 @@ class ParkingSafetyNetWorker(
         private const val PROMPT_KEY_PREFIX = "prompt_"
 
         // [OEM-KILL-001] Heartbeat persistence (must survive process death — SharedPreferences).
-        private const val PREFS_NAME = "parking_safety_net"
+        // [DET-HONEST-CLOSE-001] PREFS_NAME + ANCHOR_STEPS_KEY_PREFIX are `internal` so the
+        // confirm-time step-anchor sealer (AndroidDetectionStepAnchors) writes/reads the SAME slot —
+        // one storage contract, not a duplicated key string.
+        internal const val PREFS_NAME = "parking_safety_net"
         private const val KEY_LAST_ALIVE_AT = "last_alive_at"
         private const val KEY_LAST_ALIVE_ELAPSED = "last_alive_elapsed"
         /** [ANCHOR-PERSIST-001] Per-geofence position anchor keys live in the SAME prefs file. */
         private const val ANCHOR_KEY_PREFIX = "anchor_"
         /** [DET-RECONCILE-001] Cumulative step-counter value stored alongside each anchor.
          *  MUST prune before ANCHOR_KEY_PREFIX checks (it shares the prefix). */
-        private const val ANCHOR_STEPS_KEY_PREFIX = "anchor_steps_"
+        internal const val ANCHOR_STEPS_KEY_PREFIX = "anchor_steps_"
         /** [DET-CONJUNCTION-001] Delivery timestamp of a far-delivered geofence EXIT, keyed by
          *  geofenceId. Disk-backed like the anchor: the conjunction may only be decidable ticks
          *  (or a process death) later. */

@@ -377,6 +377,17 @@ data class ParkingDetectionConfig(
      *  (28.9 m vs 25.4 m at Camelias Δ1041.7) on the walk side. */
     val credibleDriveHopMarginMeters: Float = 10f,
 
+    // ── HONEST CLOSE (session abort ladder) [DET-HONEST-CLOSE-001] ───────────
+    /** Floor (meters) the abort position must be from the stale pin before the honest-close
+     *  ladder treats the gap as a TRIP at all. Below it (plus both accuracy envelopes) the two
+     *  points are the same spot within GPS wobble — a re-arm jitter beside the parked car, not a
+     *  drive-away. Above the step-budget gate AND this floor: the car provably left. */
+    val honestCloseMinTripMeters: Float = 80f,
+    /** Minimum radius (meters) of an approximate ZONE (rung 2). Floors the fix's own accuracy so
+     *  the artifact reads as an AREA, never a deceptively precise dot — the honest "somewhere
+     *  here" the doctrine demands when no pin-grade anchor exists. */
+    val honestCloseMinZoneRadiusMeters: Float = 60f,
+
     // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
     /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
      *  Paired with the pedestrian-rate check in `EvaluateBtParkUseCase` so the car's own
@@ -694,6 +705,12 @@ data class ParkingDetectionConfig(
         }
         require(credibleDriveHopMarginMeters >= 0f) {
             "credibleDriveHopMarginMeters must be >= 0, was $credibleDriveHopMarginMeters"
+        }
+        require(honestCloseMinTripMeters > 0f) {
+            "honestCloseMinTripMeters must be > 0, was $honestCloseMinTripMeters"
+        }
+        require(honestCloseMinZoneRadiusMeters > 0f) {
+            "honestCloseMinZoneRadiusMeters must be > 0, was $honestCloseMinZoneRadiusMeters"
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"

@@ -30,6 +30,7 @@ import io.apptolast.paparcar.domain.model.displayName
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
+import io.apptolast.paparcar.domain.sensor.DetectionStepAnchors
 import io.apptolast.paparcar.domain.service.DepartureEventBus
 import io.apptolast.paparcar.domain.service.GeofenceEvent
 import io.apptolast.paparcar.domain.service.GeofenceEventBus
@@ -42,16 +43,19 @@ import io.apptolast.paparcar.domain.usecase.location.GetOneLocationUseCase
 import io.apptolast.paparcar.domain.usecase.location.ObserveAdaptiveLocationUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ProcessConfirmedDepartureUseCase
 import io.apptolast.paparcar.domain.usecase.parking.RevertParkingUseCase
+import io.apptolast.paparcar.domain.usecase.parking.RunHonestCloseUseCase
 import io.apptolast.paparcar.domain.usecase.parking.VerifyDepartureEvidenceUseCase
 import io.apptolast.paparcar.domain.util.PaparcarLogger
 import io.apptolast.paparcar.domain.util.haversineMeters
 import io.apptolast.paparcar.notification.ForegroundNotificationProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 
 class CoordinatorDetectionService : LifecycleService() {
@@ -78,6 +82,10 @@ class CoordinatorDetectionService : LifecycleService() {
     // [DET-AR-FIRST-001] Arm ladder for the AR ENTER decision lane.
     private val evaluateArEnterArm: EvaluateArEnterArmUseCase by inject()
     private val evaluateGeofenceExit: EvaluateGeofenceExitUseCase by inject() // [AUDIT-A9-KMP-001]
+    // [DET-HONEST-CLOSE-001] Honest close of a silent abort: release the stale pin the car drove
+    // away from + leave an approximate zone/pin + nudge, run at the abort from the live FGS.
+    private val runHonestClose: RunHonestCloseUseCase by inject()
+    private val detectionStepAnchors: DetectionStepAnchors by inject()
 
     // [REFACTOR: extract FGS lifecycle into ForegroundServiceController]
     private val fgs by lazy { ForegroundServiceController(this) }
@@ -704,6 +712,36 @@ class CoordinatorDetectionService : LifecycleService() {
         }
     }
 
+    /**
+     * [DET-HONEST-CLOSE-001] After a SILENT coordinator abort, run the honest-close ladder from the
+     * live FGS: if the car provably drove away from its last pin (step budget since the pin's seal
+     * ≪ the displacement), release the stale pin + leave an approximate mark + nudge — never
+     * deferred to the Doze-held worker. Silent aborts only; confirms and every other outcome are
+     * untouched. `stepsSinceSeal` reads the baseline sealed at the previous park's confirm.
+     */
+    private suspend fun maybeRunHonestClose() {
+        val outcome = parkingDetectionCoordinator.lastSessionOutcome
+        if (outcome != OUTCOME_ABORTED_FALSE_ENTER && outcome != OUTCOME_ABORTED_NO_MOVEMENT) return
+        val abortFix = parkingDetectionCoordinator.lastSessionFix ?: return
+        val vehicleId = runCatching { vehicleRepository.observeActiveVehicle().firstOrNull()?.id }
+            .getOrNull() ?: return
+        val stalePin = runCatching { userParkingRepository.getActiveSessionByVehicle(vehicleId) }.getOrNull()
+        // No active pin (or no fence to key the step baseline) → nothing to release, nothing to prove.
+        val staleGeofence = stalePin?.geofenceId ?: return
+        val steps = runCatching { detectionStepAnchors.stepsSinceSeal(staleGeofence) }.getOrNull()
+        val honestOutcome = runCatching { runHonestClose(vehicleId, abortFix, steps) }
+            .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ honest-close failed (continuing)", e) }
+            .getOrNull()
+        if (honestOutcome != null) {
+            PaparcarLogger.d(
+                DIAG,
+                "  ⑊ honest close: $outcome → $honestOutcome (stalePin released, approximate mark left, nudged) [DET-HONEST-CLOSE-001]"
+            )
+        } else {
+            PaparcarLogger.d(DIAG, "  ⑊ honest close: $outcome stayed silent (walk explains it / no trip proof / mute counter)")
+        }
+    }
+
     /** Cancels the in-flight detection job (if any) and nulls the slot. Main-thread only. */
     private fun cancelDetectionJob() {
         detectionJob?.cancel()
@@ -807,6 +845,11 @@ class CoordinatorDetectionService : LifecycleService() {
                     nominatingVehicleId = trip?.departingVehicleId,
                 )
                 PaparcarLogger.d(DIAG, "    ✓ coordinator returned NORMALLY")
+                // [DET-HONEST-CLOSE-001] A silent abort must not lose a real drive-away: if the car
+                // provably left its last pin, release it + leave an approximate mark + nudge — NOW,
+                // from the live FGS, not deferred to the Doze-held worker. NonCancellable so a
+                // supersede mid-release can't leave the stale pin half-cleared.
+                withContext(NonCancellable) { maybeRunHonestClose() }
             } catch (e: CancellationException) {
                 PaparcarLogger.d(DIAG, "    ✗ detection cancelled: ${e.message}")
                 throw e
@@ -944,6 +987,12 @@ class CoordinatorDetectionService : LifecycleService() {
         // must supersede the running coordinator session; the service aborts it. Reason is for the log.
         const val ACTION_BT_OVERRIDE = "io.apptolast.paparcar.ACTION_BT_OVERRIDE"
         const val EXTRA_BT_OVERRIDE_REASON = "io.apptolast.paparcar.EXTRA_BT_OVERRIDE_REASON"
+
+        // [DET-HONEST-CLOSE-001] Terminal outcome labels that trigger the honest-close ladder —
+        // mirror the coordinator's abort labels (the two SILENT aborts). Kept as named constants,
+        // not inline literals, at the one place the service reads them.
+        private const val OUTCOME_ABORTED_FALSE_ENTER = "aborted_false_enter"
+        private const val OUTCOME_ABORTED_NO_MOVEMENT = "aborted_no_movement"
         // [DET-G-01] Geofence-exit delivered directly to the service via getForegroundService so
         // Play Services grants the privileged FGS start (the same getForegroundService mechanism the
         // AR IN_VEHICLE path used before AR was moved to a plain broadcast — BUG-FGS-001).

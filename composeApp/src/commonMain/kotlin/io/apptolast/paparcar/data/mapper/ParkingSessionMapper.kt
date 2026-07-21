@@ -38,6 +38,7 @@ fun UserParkingEntity.toDomain(): UserParking = UserParking(
     tripMaxSpeedMps = tripMaxSpeedMps,
     armEvidence = armEvidence,
     detectionPath = detectionPath,
+    zoneRadiusMeters = zoneRadiusMeters,
 )
 
 private fun UserParkingEntity.addressOrNull(): AddressInfo? =
@@ -91,6 +92,9 @@ fun UserParking.toEntity(updatedAt: Long = 0, pendingSync: Boolean = false): Use
     tripMaxSpeedMps = tripMaxSpeedMps,
     armEvidence = armEvidence,
     detectionPath = detectionPath,
+    // zoneRadiusMeters: local-only honest-close artifact — round-trips Room, never synced (an
+    // unrefined approximate zone stays on the device that detected it). [DET-HONEST-CLOSE-001]
+    zoneRadiusMeters = zoneRadiusMeters,
     updatedAt = updatedAt,
     pendingSync = pendingSync,
 )

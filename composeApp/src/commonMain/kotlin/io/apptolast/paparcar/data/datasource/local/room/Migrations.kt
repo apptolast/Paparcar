@@ -153,3 +153,16 @@ val MIGRATION_12_13 = object : Migration(12, 13) {
     }
 }
 
+/**
+ * v13 → v14: add zoneRadiusMeters to parking_sessions — the honest-close approximate-zone radius.
+ * Nullable REAL, additive/non-destructive; existing rows read null = exact point (the normal case).
+ * Local-only (never synced), same precedent as tripMaxSpeedMps. [DET-HONEST-CLOSE-001]
+ */
+val MIGRATION_13_14 = object : Migration(13, 14) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL(
+            "ALTER TABLE parking_sessions ADD COLUMN zoneRadiusMeters REAL"
+        )
+    }
+}
+
