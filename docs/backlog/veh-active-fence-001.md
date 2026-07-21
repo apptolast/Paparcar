@@ -1,6 +1,7 @@
 # VEH-ACTIVE-FENCE-001 — El vehículo activo es la declaración: vallas, armado manual y release por sesión
 
-> **Estado**: EN CURSO en rama `feature/VEH-ACTIVE-FENCE-001-active-vehicle-model`.
+> **Estado**: CODE-COMPLETE (5/5 piezas) en rama `feature/VEH-ACTIVE-FENCE-001-active-vehicle-model`.
+> Pendiente: field-test de la Pieza 1 (vallas) + rebase/merge. Ver "Estado de implementación" abajo.
 > Origen: release fantasma del Chevrolet Beat + 6 FGS espurios (auditoría 2026-07-15).
 > Decidido con el user 2026-07-16. Prioridad: **P1**.
 >
@@ -100,3 +101,54 @@ INTACTO) + field-test multi-vehículo. Dev Catalog: reflejar en `MockScenario` e
 Con dos coches aparcados: cero FGS espurios de vallas del inactivo, imposible liberar el coche
 equivocado, y conducir el inactivo tras declararlo (tap manual o liberar+activar) atribuye el
 pin al coche correcto.
+
+## Estado de implementación
+
+**CODE-COMPLETE — 5/5 piezas, 12 commits sobre `master @ 781cb666`, sin merge/push.**
+Re-verificado 2026-07-21: prod debug compila + **900 tests unitarios verdes (0 fallos, 0 skips)**.
+
+Bloque bajo riesgo (commonMain/UI) — **validado en device 18-07**:
+- **Pieza 3** `599464bd` — release por `sessionId` explícito (fuera `?: userParking` + triple fallback).
+- **Pieza 2** `2dd013ea` — "Estoy conduciendo" declara el vehículo activo antes de armar.
+- **Pieza 4** `b32da7a3`+`a78f78e6` — diálogos de consecuencia (set-active, liberar activo/inactivo).
+- **Pieza 5** `d7db9d17` — telemetría: evento `RELEASED` (+`published`) + estampa `outcome="superseded"`.
+- i18n de las 6 strings de Pieza 4 en los 9 locales `214632c6` (FR formal *vous*).
+
+Bloque alto riesgo (Pieza 1, toca el detector) — **code-complete, unit-green, PENDIENTE field-test**:
+- prep `563ddb30` — `VehicleFenceOwnershipPolicy` puro + `veh-active-fence-001-piece1-plan.md`.
+- **2a** `6ffaaa25` — inactivo-no-BT no registra valla al confirmar.
+- **2b** `d46c2770` — atribución por el vehículo NOMINADOR de la valla, no por "el activo".
+- **2c** `4de93a85` — `SwapActiveVehicleFencesUseCase` + `DeclareActiveVehicleUseCase` (único camino set-active).
+- **2d** `85c8adb3` — `GeofenceJanitorWorker` re-registra solo vallas de activos/BT.
+- Invariante final: `sesión activa-o-BT ⟺ valla del OS registrada`.
+
+**Bloqueantes de cierre:**
+1. Field-test Pieza 1 en device (APK 18-07 = tip de rama, ya instalado en Redmi `5f8991cb` + Oppo
+   `LNRCMZ8H6HBITWNJ`). Verificar los 3 tests del guion + telemetría `RELEASED`/`superseded` en
+   pap-26 `diagnostics/WZB7oftWLDY1toGJrDwoRHnnYHx2/sessions/*`.
+2. `master` avanzó 1 commit (`781cb666`→`f6de7697`, UI-LOC-FOREGROUND) → **rebase antes del merge
+   `--ff-only`**, tras pasar el field-test.
+
+### Comandos de cierre (ejecutar TRAS un field-test verde — en Bash, no PowerShell)
+
+Rebase verificado con `git merge-tree` 2026-07-21: **sin conflictos**, aunque toca 5 ficheros de
+Home compartidos (`HomeViewModel/Screen/Intent` + `PresentationModule` + `HomeViewModelTest`), por
+lo que se re-testea después.
+
+```bash
+cd /c/Users/rndev/Documents/AndroidProjects/Paparcar-activefence
+
+# 1. Commitea la actualización de este doc (entra en la rama)
+git add docs/backlog/veh-active-fence-001.md
+git commit -m "docs(backlog): VEH-ACTIVE-FENCE-001 code-complete + re-verify 900 tests green [VEH-ACTIVE-FENCE-001]"
+
+# 2. Rebase sobre el último master
+git fetch origin
+git rebase origin/master           # esperado: limpio; si hay conflicto, parar y avisar
+
+# 3. Re-verificar tras el rebase (toca Home compartido)
+./gradlew :composeApp:testProdDebugUnitTest --console=plain   # esperado: 900 tests verdes
+
+# 4. Merge --ff-only a master + push  → SOLO con aprobación explícita del user
+#    (desde un worktree situado en master)
+```
