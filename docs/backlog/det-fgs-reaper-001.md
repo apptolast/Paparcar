@@ -1,8 +1,10 @@
 # DET-FGS-REAPER-001 — Segar la FGS fantasma + teardown lean del trigger falso
 
-> **Estado**: 🔴 EN CURSO 2026-07-22 (rama `feature/DET-FGS-REAPER-001`). Origen: field-test 2026-07-21
-> (Oppo/ColorOS). Dos frentes complementarios: **F1 reaper** (recuperación, este commit) + **F2 teardown
-> lean** (prevención, auditoría). No toca la lógica de decisión del coordinator.
+> **Estado**: rama `feature/DET-FGS-REAPER-001`. **F1 reaper ✅ commiteado 2026-07-22** (`32550292`,
+> build + 4 tests verdes; ⏳ pendiente device + field-test Oppo). **F2 teardown-lean ✅ AUDITADA
+> 2026-07-23 → cerrada sin cambios** (2 puntos ya cubiertos, 1 —la ventana de 4 min— requiere datos
+> antes de tocar; ver abajo). Origen: field-test 2026-07-21 (Oppo/ColorOS). No toca la lógica de
+> decisión del coordinator.
 
 ## Problema (evidencia de campo, Oppo 2026-07-21)
 
@@ -66,16 +68,36 @@ dismiss(DETECTION_NOTIFICATION_ID)   // solo cuando se cumplen AMBOS candados
 **Latencia:** ≤ 15 min (periódico) en el peor caso vs las ~2 h observadas; los runs expedited
 (sig-motion al moverte) la limpian antes vía el ciclo de vida propio de WorkManager.
 
-## F2 — Teardown lean del trigger falso (prevención) · AUDITORÍA (no en este commit)
+## F2 — Teardown lean del trigger falso (prevención) · AUDITADA 2026-07-23
 
-Reducir la ventana/huella de "FGS-LOCATION colgada" que el SO penaliza:
+**Resultado: F1 era el arreglo real. De los 3 puntos, 2 ya están cubiertos y 1 requiere datos.
+Ningún cambio de código a ciegas — se cierra sin tocar, salvo que datos de campo lo justifiquen.**
 
-- En abort silencioso (`KeepSilent`), soltar FGS + cortar `observeAdaptiveLocation` **antes** del I/O de
-  `maybeRunHonestClose`, no después.
-- Cuestionar la ventana `no_movement` = 4 min (4 min de FGS-LOCATION sobre un trigger falso es lo que
-  más "mal actor" nos hace ver). ¿Se acorta sin arriesgar FN? Medir en el replay harness, no a ciegas.
-- Verificar que `stopForegroundAndSelf` en `false_enter` retira la notificación de verdad (no vetado por
-  `stopSelfResult`).
+1. **`stopForegroundAndSelf` vetado por `stopSelfResult` — NO ES BUG.** `stopForegroundAndSelf(startId)`
+   (`ForegroundServiceController:75`) retira la notificación **solo si el stop se acepta** (`startId` es el
+   más reciente); un veto significa que un comando más nuevo ya re-promovió la FGS y **su** epílogo es el
+   dueño del teardown (BUG-FGS-100 / DET-INTAKE-001). Correcto por diseño. La fantasma de campo NO fue un
+   veto — fue **freeze de proceso** (territorio F1, ya resuelto).
+
+2. **`observeAdaptiveLocation` ya se suelta antes del I/O de honest-close.** Es el Flow que consume el
+   coordinator; al retornar el coordinator el `collect` termina y la suscripción de ubicación se corta
+   — **antes** de `maybeRunHonestClose` (`CoordinatorDetectionService:840-852`). Punto ya resuelto.
+
+3. **La FGS se retiene poco durante honest-close, y en `KeepSilent` (el trigger falso) honest-close NO
+   hace I/O pesada.** `maybeRunHonestClose` (`:722`) en el camino silencioso solo hace lecturas Room
+   (vehículo activo + sesión activa + step baseline) y retorna null **sin** `confirmParking`. Soltar la
+   FGS ANTES de honest-close exigiría `stopSelf` mientras honest-close corre en la coroutine → `onDestroy`
+   cancelaría el job (el `withContext(NonCancellable)` existe justo para evitar que el servicio muera a
+   mitad del release). **Riesgo > beneficio → se deja como está.**
+
+4. **`maxNoMovementMs` = 4 min (`ParkingDetectionConfig:200`) es la palanca real, pero requiere
+   medición.** El misfire **andando** ya se corta rápido (`falseEnterAbortSteps`,
+   `CoordinatorParkingDetector:682` — 12 s en campo 21-jul). Los 4 min solo muerden en el misfire
+   **estacionario** (AR ENTER sentado en el coche parado, 0 pasos, `:694`). Acortarlo cambia FGS-más-corta
+   por riesgo de **falso negativo** en salidas reales con GPS lento de arranque. La nota del propio
+   `PARKING-DETECTION.md` (~L931) ya lo reconoce. **No tocar a ciegas: medir en el replay harness + datos
+   de campo primero.** Prioridad baja — el abort de 4 min self-termina correcto con proceso vivo, y F1 ya
+   cubre el peor caso (el cuelgue de horas).
 
 ## Validación
 
