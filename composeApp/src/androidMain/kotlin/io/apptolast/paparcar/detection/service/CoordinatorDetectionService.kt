@@ -870,15 +870,31 @@ class CoordinatorDetectionService : LifecycleService() {
                 if (detectionJob === thisJob) {
                     // [DET-READY-001c] This job is the current one and is ending → detection idle.
                     detectionRuntime.setRunning(false)
-                    // [DET-INTAKE-001] No direct stop: route through the intake so the teardown
-                    // decision is serialized with command handling. lastStartId is captured NOW —
-                    // an intent delivered after this send makes stopSelfResult mismatch, and that
-                    // newer command's own epilogue takes over the decision.
-                    PaparcarLogger.d(DIAG, "    ■ finally → DetectionEnded(startId=$lastStartId) → intake")
-                    intake.trySend(Command.DetectionEnded(lastStartId))
+                    // [DET-ENDED-VETO-RACE-001] DetectionEnded is NOT sent from here. A send from
+                    // inside the still-active job resumes the intake consumer INLINE within the
+                    // trySend (Main.immediate on the same thread), so stopIfIdle ran while this
+                    // finally was mid-flight, saw detectionJob.isActive == true, and vetoed its own
+                    // teardown — with no later command ever retrying, the FGS stayed glued to a
+                    // live idle process (field 2026-07-23, both devices). The send lives in the
+                    // job's invokeOnCompletion (startParkingDetection), which the runtime invokes
+                    // only once the job is COMPLETE (isActive == false guaranteed).
                 } else {
-                    PaparcarLogger.d(DIAG, "    ■ finally → superseded by newer job, skipping stop")
+                    PaparcarLogger.d(DIAG, "    ■ finally → superseded by newer job; its completion callback skips the stop")
                 }
+            }
+        }
+        // [DET-ENDED-VETO-RACE-001] The teardown request is registered on job COMPLETION, never
+        // sent from the job's own finally: invokeOnCompletion fires only after the job reaches a
+        // terminal state, so when the intake consumer runs stopIfIdle — even resumed inline within
+        // this trySend — detectionJob.isActive is already false and the stop proceeds. The identity
+        // guard preserves the supersede rule ([DETECT-SERVICE-RACE-001]): a replaced job's callback
+        // must not stop the service its replacement is using. A newer intent delivered after the
+        // send still vetoes via stopSelfResult (startId mismatch), exactly as before.
+        val startedJob = detectionJob!!
+        startedJob.invokeOnCompletion {
+            if (detectionJob === startedJob) {
+                PaparcarLogger.d(DIAG, "    ■ job complete → DetectionEnded(startId=$lastStartId) → intake")
+                intake.trySend(Command.DetectionEnded(lastStartId))
             }
         }
     }
