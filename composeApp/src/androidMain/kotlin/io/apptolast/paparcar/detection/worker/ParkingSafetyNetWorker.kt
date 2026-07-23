@@ -125,7 +125,8 @@ class ParkingSafetyNetWorker(
         // [DET-NEVER-SILENT-001] Recover a park lost to process death BEFORE the active-session gate:
         // a session that armed and was killed mid-trip never confirmed, so it has no active session.
         // A pending whose heartbeat went stale is exactly that — nudge (real trips only) and clear.
-        checkStalePendingDetections()
+        // [DET-FGS-REAPER-001] Same signal also reaps the ghost detection FGS notification.
+        checkStalePendingDetections(source)
 
         // [DET-SIGMOTION-001] Mirror the parked-idle state onto the hardware trigger on EVERY
         // tick — this is also what re-arms it after a process kill or after it fired one-shot.
@@ -419,10 +420,27 @@ class ParkingSafetyNetWorker(
      * park?" once (only for real trips: GEOFENCE_EXIT / MANUAL always, AR_VEHICLE_ENTER if it drove)
      * and clear every stale pending so it fires at most once. Clearing on-nudge is the throttle.
      */
-    private fun checkStalePendingDetections() {
+    private fun checkStalePendingDetections(source: String) {
         val now = System.currentTimeMillis()
         val stale = PendingDetectionStore.scanStale(appContext, now, config.pendingDetectionDeadMs)
         if (stale.isEmpty()) return
+
+        // [DET-FGS-REAPER-001] A stale pending means a session armed and its process died before the
+        // service's finally could tear down — EXACTLY when the foreground service leaves its detection
+        // notification glued to a dead/frozen process (ColorOS freezes rather than kills; field
+        // 2026-07-21, Oppo: a false-enter FGS hung ~2 h). This periodic tick is the first CPU the app
+        // reliably gets back, so reap the ghost — never killing a process, only dismissing an orphan
+        // notification. The pure decision's two locks guarantee a LIVE session is never touched.
+        if (io.apptolast.paparcar.domain.detection.shouldReapGhostDetectionFgs(
+                isPeriodicTick = source == SOURCE_PERIODIC,
+                isDetectionRunning = detectionRuntime.isRunning.value,
+                hasStalePending = true, // stale is non-empty here (early-returned above otherwise)
+            )
+        ) {
+            notificationPort.dismiss(AppNotificationManager.DETECTION_NOTIFICATION_ID)
+            PaparcarLogger.d(DIAG, "▶ [fgs-reaper] ${stale.size} stale pending(s), detection idle → reaped ghost FGS notification")
+        }
+
         val shouldNudge = stale.any {
             io.apptolast.paparcar.domain.detection.shouldNudgeForStalePending(it.trigger, it.sawDriving)
         }
