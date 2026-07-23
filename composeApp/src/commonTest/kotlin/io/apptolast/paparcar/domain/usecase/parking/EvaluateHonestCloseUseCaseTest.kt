@@ -13,6 +13,11 @@ import kotlin.test.assertTrue
  * that motivated the ticket are pinned as direct inputs: the Camelias hop (driven → zone) and the
  * D2 return (walked → silent). The gate that separates them is the hardware step budget, never
  * distance alone.
+ *
+ * [DET-STEP-BUDGET-ORIGIN-001] The budget is compared against the displacement measured FROM THE
+ * SEAL POINT (where the body was when the counter was zeroed), never from the pin: sealing happens
+ * at confirm time, mid-egress, so the egress walk is excluded from the count but was included in
+ * the pin distance — the mix that read a walk home as a ride (Glorieta regression below).
  */
 class EvaluateHonestCloseUseCaseTest {
 
@@ -32,12 +37,14 @@ class EvaluateHonestCloseUseCaseTest {
     @Test
     fun should_open_approximate_zone_when_short_hop_is_driven_but_anchor_is_not_pin_grade() {
         // Camelias hop (field 2026-07-14): Melgarejo pin → ~318 m to Camelias, only 23 steps since
-        // the seal (the drive counted none; 23 is the walk around the new spot). 23 ≪ 170 (=40 %
-        // of 318/0.75) → driven. The new spot's urban accuracy (60 m > pin-grade) → ZONE, not pin.
+        // the seal (the drive counted none; 23 is the walk around the new spot). The seal happened
+        // beside the pin, so the displacement since it is the same ~318 m: 23 ≪ 170 (=40 % of
+        // 318/0.75) → driven. The new spot's urban accuracy (60 m > pin-grade) → ZONE, not pin.
         val decision = useCase(
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = 23L,
+            stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
         val zone = assertIs<HonestCloseDecision.ApproximateZone>(decision)
         assertTrue(zone.radiusMeters >= 60f, "the zone must read as an area, not a dot")
@@ -52,17 +59,20 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6054, -6.2727),
             abortFix = fixAt(36.6088, -6.2843, acc = 3f),
             stepsSinceStalePin = 1099L,
+            stepSealPoint = fixAt(36.6054, -6.2727, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, decision, "a walk must never release the pin")
     }
 
     @Test
     fun should_drop_approximate_pin_when_driven_and_a_pin_grade_fix_is_in_hand() {
-        // Trip proven (15 steps ≪ ~300 m) AND a pin-grade fix (acc 8 ≤ 50) → rung 1: a soft point.
+        // Trip proven (15 steps ≪ ~300 m since the seal) AND a pin-grade fix (acc 8 ≤ 50) →
+        // rung 1: a soft point.
         val decision = useCase(
             stalePin = pinAt(36.6000, -6.2500),
             abortFix = fixAt(36.6027, -6.2500, acc = 8f),
             stepsSinceStalePin = 15L,
+            stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
         val pin = assertIs<HonestCloseDecision.ApproximatePin>(decision)
         assertEquals(8f, pin.location.accuracy)
@@ -76,6 +86,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = null,
+            stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, decision)
     }
@@ -88,6 +99,7 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = pinAt(36.6000, -6.2500, acc = 12f),
             abortFix = fixAt(36.60027, -6.2500, acc = 10f),
             stepsSinceStalePin = 3L,
+            stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
         assertEquals(HonestCloseDecision.KeepSilent, decision)
     }
@@ -98,6 +110,44 @@ class EvaluateHonestCloseUseCaseTest {
             stalePin = null,
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = 5L,
+            stepSealPoint = fixAt(36.5974, -6.2505, acc = 8f),
+        )
+        assertEquals(HonestCloseDecision.KeepSilent, decision)
+    }
+
+    // ── [DET-STEP-BUDGET-ORIGIN-001] Same-origin regression ──────────────────────────────────────
+
+    @Test
+    fun should_stay_silent_when_the_seal_happened_mid_egress_and_the_walk_since_it_explains_the_rest() {
+        // Glorieta FP (field 2026-07-22 01:47, Redmi): parked at la Angelita (pin), walked home.
+        // The baseline sealed at CONFIRM time, mid-egress ~160 m from the pin; the remaining ~85 m
+        // walk home cost ~110 steps. Against the PIN distance (~243 m) the old gate demanded 129
+        // steps → 110 < 129 read as "driven" and planted a 0.5 pin INSIDE the user's home,
+        // deposing the real 0.9 park. Against the SEAL distance (~85 m) the walk explains itself
+        // (110 ≥ 45) → silence, the real pin survives.
+        val decision = useCase(
+            stalePin = pinAt(36.6057922, -6.2315528, acc = 5f),
+            abortFix = fixAt(36.6038644, -6.2302701, acc = 15f),
+            stepsSinceStalePin = 110L,
+            stepSealPoint = fixAt(36.604539, -6.230719, acc = 10f),
+        )
+        assertEquals(
+            HonestCloseDecision.KeepSilent,
+            decision,
+            "a walk home after parking must never replace the real pin with one at the walker's position",
+        )
+    }
+
+    @Test
+    fun should_stay_silent_when_the_seal_recorded_no_origin() {
+        // Legacy seal (steps without a position): the budget is not comparable — steps measured
+        // from an unknown point cannot be judged against any displacement. Conservative silence;
+        // the safety net remains the backstop.
+        val decision = useCase(
+            stalePin = pinAt(36.6002, -6.2512),
+            abortFix = fixAt(36.5974, -6.2505, acc = 8f),
+            stepsSinceStalePin = 23L,
+            stepSealPoint = null,
         )
         assertEquals(HonestCloseDecision.KeepSilent, decision)
     }

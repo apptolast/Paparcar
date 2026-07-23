@@ -1104,6 +1104,11 @@ class CoordinatorParkingDetector(
                 // [DET-PIN-PROVENANCE-001] The confirmation path IS the provenance: "steps+egress",
                 // "kinematic+egress", "vehicle-exit", "unattended_timeout", "user".
                 detectionPath = pathLabel,
+                // [DET-STEP-BUDGET-ORIGIN-001] The step baseline seals where the BODY is at
+                // confirm — for an egress confirm that's the latest processed fix (already
+                // 100+ m from the pin), NOT the anchor. Sealing "at the pin" made the walk
+                // home read as a ride (field 2026-07-22, Glorieta).
+                sealPoint = _detectionState.value.previousFix ?: location,
             )
                 .onSuccess { saved ->
                     // [REFACTOR-300] Replace the prompt notification at the same ID with the

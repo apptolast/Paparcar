@@ -91,6 +91,13 @@ class ConfirmParkingUseCase(
          *  the UI renders an AREA of this radius, not a precise pin. Null = exact point (normal).
          *  [DET-HONEST-CLOSE-001] */
         zoneRadiusMeters: Float? = null,
+        /** WHERE the user's body is at confirm time — the origin the step-counter baseline is
+         *  sealed at, deliberately WITHOUT a default so every caller decides: for an egress
+         *  confirm the body is already 100+ m from the pin, and sealing "at the pin" made a later
+         *  walk home read as a ride (field 2026-07-22, Glorieta). Null = caller has no honest
+         *  position → the seal stores no origin and the honest close refuses the verdict
+         *  (conservative silence). [DET-STEP-BUDGET-ORIGIN-001] */
+        sealPoint: GpsPoint?,
     ): Result<UserParking> {
         PaparcarLogger.d(
             DIAG,
@@ -286,7 +293,9 @@ class ConfirmParkingUseCase(
         // (geofenceId == sessionId) so the step budget is measurable from the moment of parking —
         // the honest-close ladder on a 2-min hop can't wait for the safety net's first tick. Also
         // benefits the safety net (baseline present immediately). geofenceId == sessionId here.
-        runCatching { detectionStepAnchors?.seal(sessionId) }
+        // [DET-STEP-BUDGET-ORIGIN-001] The seal records the BODY's position (sealPoint), not the
+        // pin's — the origin any walked-vs-rode displacement must be measured from.
+        runCatching { detectionStepAnchors?.seal(sessionId, sealPoint) }
             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ step-anchor seal failed (continuing)", e) }
 
         // The user has now parked at least once → the cold-start nudge has served its purpose and

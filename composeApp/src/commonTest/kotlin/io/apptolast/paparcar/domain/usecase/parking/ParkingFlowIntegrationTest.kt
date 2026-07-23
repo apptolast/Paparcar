@@ -88,7 +88,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should clear active session after full park-then-release cycle`() = runTest {
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertNotNull(parkingRepo.getActiveSession())
 
@@ -99,7 +99,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should schedule spot report exactly once on release`() = runTest {
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
 
         releaseParking(location.latitude, location.longitude, parkingRepo.getActiveSession())
 
@@ -108,7 +108,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should propagate session ID as spot ID through the full pipeline`() = runTest {
-        val parkResult = confirmParking(location, detectionReliability = 0.9f)
+        val parkResult = confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         assertTrue(parkResult.isSuccess)
         val savedSessionId = parkResult.getOrNull()!!.id
 
@@ -120,7 +120,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should propagate detection reliability from confirm to spot report`() = runTest {
-        confirmParking(location, detectionReliability = 0.85f)
+        confirmParking(location, detectionReliability = 0.85f, sealPoint = null)
         val confirmedSession = parkingRepo.getActiveSession()
 
         releaseParking(location.latitude, location.longitude, confirmedSession)
@@ -130,7 +130,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should propagate sizeCategory resolved at confirm time to spot report`() = runTest {
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         val confirmedSession = parkingRepo.getActiveSession()
 
         releaseParking(location.latitude, location.longitude, confirmedSession)
@@ -140,7 +140,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should propagate spot coordinates to report scheduler`() = runTest {
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         val confirmedSession = parkingRepo.getActiveSession()
 
         releaseParking(location.latitude, location.longitude, confirmedSession)
@@ -151,7 +151,7 @@ class ParkingFlowIntegrationTest {
 
     @Test
     fun `should mark spot as AUTO_DETECTED when confirmed with default type`() = runTest {
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         val confirmedSession = parkingRepo.getActiveSession()
 
         releaseParking(location.latitude, location.longitude, confirmedSession)
@@ -166,7 +166,7 @@ class ParkingFlowIntegrationTest {
         val address = AddressInfo(street = "Calle Mayor", city = "Madrid", region = null, country = "ES")
         addressAndPlaceRepo.addressResult = Result.success(address)
 
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         val confirmedSession = parkingRepo.getActiveSession()
         releaseParking(location.latitude, location.longitude, confirmedSession)
 
@@ -177,7 +177,7 @@ class ParkingFlowIntegrationTest {
     fun `should still schedule spot report when geocoding fails during release`() = runTest {
         addressAndPlaceRepo.addressResult = Result.failure(RuntimeException("Geocoder unavailable"))
 
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         val confirmedSession = parkingRepo.getActiveSession()
         releaseParking(location.latitude, location.longitude, confirmedSession)
 
@@ -207,7 +207,7 @@ class ParkingFlowIntegrationTest {
     fun `should have no active session to release when confirm fails`() = runTest {
         parkingRepo.saveNewParkingSessionResult = Result.failure(RuntimeException("DB error"))
 
-        val confirmResult = confirmParking(location, detectionReliability = 0.9f)
+        val confirmResult = confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         assertTrue(confirmResult.isFailure)
 
         assertNull(parkingRepo.getActiveSession())
@@ -224,7 +224,7 @@ class ParkingFlowIntegrationTest {
     @Test
     fun `confirm should register geofence and enrichment before release is called`() = runTest {
         // [CONFIRM-NO-NOTIF-CLEANUP] notif assertion moved out — the use case no longer posts.
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertEquals(1, geofence.createGeofenceCallCount)
         assertEquals(1, enrichment.scheduleCallCount)
@@ -234,11 +234,11 @@ class ParkingFlowIntegrationTest {
     fun `second confirm replaces the active session`() = runTest {
         val secondLocation = location.copy(latitude = 41.0, longitude = -4.0)
 
-        confirmParking(location, detectionReliability = 0.9f)
+        confirmParking(location, detectionReliability = 0.9f, sealPoint = null)
         val firstSession = parkingRepo.getActiveSession()
         assertNotNull(firstSession)
 
-        confirmParking(secondLocation, detectionReliability = 0.75f)
+        confirmParking(secondLocation, detectionReliability = 0.75f, sealPoint = null)
         val secondSession = parkingRepo.getActiveSession()
         assertNotNull(secondSession)
 

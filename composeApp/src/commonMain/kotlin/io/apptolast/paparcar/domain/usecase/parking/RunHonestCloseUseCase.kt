@@ -38,6 +38,9 @@ class RunHonestCloseUseCase(
      * @param abortFix           Position at the abort moment (the candidate new spot).
      * @param stepsSinceStalePin Hardware cumulative-counter delta since the stale pin was sealed,
      *                           or null when the counter is mute. Computed by the caller.
+     * @param stepSealPoint      WHERE the body was when the step baseline was sealed, or null when
+     *                           the seal has no position — the budget's origin, without which the
+     *                           ladder refuses the walked-vs-rode verdict. [DET-STEP-BUDGET-ORIGIN-001]
      * @return the diagnostics outcome label ([OUTCOME_APPROXIMATE_PIN] / [OUTCOME_APPROXIMATE_ZONE])
      *         when the ladder acted, or null when it stayed silent (the coordinator's own abort
      *         outcome then stands).
@@ -46,13 +49,14 @@ class RunHonestCloseUseCase(
         vehicleId: String,
         abortFix: GpsPoint,
         stepsSinceStalePin: Long?,
+        stepSealPoint: GpsPoint?,
     ): String? {
         val stalePin = userParkingRepository.getActiveSessionByVehicle(vehicleId)
 
         val location: GpsPoint
         val radiusMeters: Float?
         val outcome: String
-        when (val decision = evaluateHonestClose(stalePin, abortFix, stepsSinceStalePin)) {
+        when (val decision = evaluateHonestClose(stalePin, abortFix, stepsSinceStalePin, stepSealPoint)) {
             is HonestCloseDecision.ApproximatePin -> {
                 location = decision.location
                 radiusMeters = null
@@ -74,6 +78,9 @@ class RunHonestCloseUseCase(
             // [DET-PIN-PROVENANCE-001] the honest-close outcome IS this pin's provenance path
             // ("closed_approximate_pin" / "closed_approximate_zone").
             detectionPath = outcome,
+            // The abort fix IS where the body is right now — the honest origin for the new
+            // pin's step baseline. [DET-STEP-BUDGET-ORIGIN-001]
+            sealPoint = abortFix,
         )
         // Save failed → nothing was released or registered; keep the stale pin and stay silent
         // rather than nudge about a mark that does not exist.

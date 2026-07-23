@@ -132,7 +132,15 @@ class BluetoothParkingDetector(
         }
 
         PaparcarLogger.i(TAG, "User walked ≥${config.btWalkAwayDistanceMeters}m — confirming BT parking for vehicle=$vehicleId")
-        confirmParking(parkingFix, config.reliabilityBluetooth, vehicleId = vehicleId, detectionPath = PATH_BLUETOOTH)
+        confirmParking(
+            parkingFix,
+            config.reliabilityBluetooth,
+            vehicleId = vehicleId,
+            detectionPath = PATH_BLUETOOTH,
+            // The fix that settled the walk-away IS where the body is at confirm (≥30 m from the
+            // car already) — the honest origin for the step baseline. [DET-STEP-BUDGET-ORIGIN-001]
+            sealPoint = walkSettled,
+        )
             .onSuccess { saved ->
                 logRemote(sessionId = saved.id, verdict = "bt_park_confirmed", fix = parkingFix)
                 // Legacy tap-to-open-map notification. [BT-NOTIF-LEGACY-CLEANUP]

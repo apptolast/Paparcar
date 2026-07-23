@@ -241,7 +241,11 @@ class ParkingSafetyNetWorker(
                     // When the read fails, CLEAR the zero-point: delta=null falls back to the
                     // pedestrian-physics check, which only needs the time anchor. [DET-RECONCILE-001]
                     if (cumulativeSteps != null) {
-                        writeAnchorSteps(prefs, action.geofenceId, cumulativeSteps)
+                        // The cure fires with the phone provably AT the car, so the fix is the
+                        // honest "where the body was when the counter was read" — stored with the
+                        // zero-point so the honest close can compare same-origin after a cure
+                        // re-seal too. [DET-STEP-BUDGET-ORIGIN-001]
+                        writeAnchorSteps(prefs, action.geofenceId, cumulativeSteps, fix)
                     } else {
                         removeAnchorSteps(prefs, action.geofenceId)
                     }
@@ -560,14 +564,27 @@ class ParkingSafetyNetWorker(
     private fun readAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String): Long? =
         prefs.getLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, -1L).takeIf { it >= 0L }
 
-    private fun writeAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String, steps: Long) {
-        prefs.edit { putLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, steps) }
+    private fun writeAnchorSteps(
+        prefs: android.content.SharedPreferences,
+        geofenceId: String,
+        steps: Long,
+        sealFix: io.apptolast.paparcar.domain.model.GpsPoint,
+    ) {
+        prefs.edit {
+            putLong(ANCHOR_STEPS_KEY_PREFIX + geofenceId, steps)
+            // Zero-point + its position are one seal — same-origin contract shared with
+            // AndroidDetectionStepAnchors. [DET-STEP-BUDGET-ORIGIN-001]
+            putString(ANCHOR_SEAL_POS_KEY_PREFIX + geofenceId, "${sealFix.latitude},${sealFix.longitude}")
+        }
     }
 
     /** Keeps the anchor pair coherent when a cure could not read the counter: a stale zero-point
      *  under a fresh time counts pre-anchor steps into the budget. [DET-RECONCILE-001] */
     private fun removeAnchorSteps(prefs: android.content.SharedPreferences, geofenceId: String) {
-        prefs.edit { remove(ANCHOR_STEPS_KEY_PREFIX + geofenceId) }
+        prefs.edit {
+            remove(ANCHOR_STEPS_KEY_PREFIX + geofenceId)
+            remove(ANCHOR_SEAL_POS_KEY_PREFIX + geofenceId)
+        }
     }
 
     /** When the OS delivered an EXIT for this fence too far away to act on directly
@@ -581,6 +598,7 @@ class ParkingSafetyNetWorker(
     private fun pruneStaleAnchors(prefs: android.content.SharedPreferences, liveGeofenceIds: Set<String>) {
         val stale = prefs.all.keys.filter { key ->
             when {
+                key.startsWith(ANCHOR_SEAL_POS_KEY_PREFIX) -> key.removePrefix(ANCHOR_SEAL_POS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_STEPS_KEY_PREFIX) -> key.removePrefix(ANCHOR_STEPS_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(ANCHOR_KEY_PREFIX) -> key.removePrefix(ANCHOR_KEY_PREFIX) !in liveGeofenceIds
                 key.startsWith(PROMPT_KEY_PREFIX) -> key.removePrefix(PROMPT_KEY_PREFIX) !in liveGeofenceIds
@@ -661,6 +679,10 @@ class ParkingSafetyNetWorker(
         /** [DET-RECONCILE-001] Cumulative step-counter value stored alongside each anchor.
          *  MUST prune before ANCHOR_KEY_PREFIX checks (it shares the prefix). */
         internal const val ANCHOR_STEPS_KEY_PREFIX = "anchor_steps_"
+        /** [DET-STEP-BUDGET-ORIGIN-001] "lat,lon" of the body when the steps zero-point was
+         *  sealed — the origin any walked-vs-rode displacement must be measured from. Written
+         *  atomically with ANCHOR_STEPS; also shares the `anchor_` prefix → prune first. */
+        internal const val ANCHOR_SEAL_POS_KEY_PREFIX = "anchor_seal_pos_"
         /** [DET-CONJUNCTION-001] Delivery timestamp of a far-delivered geofence EXIT, keyed by
          *  geofenceId. Disk-backed like the anchor: the conjunction may only be decidable ticks
          *  (or a process death) later. */

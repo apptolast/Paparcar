@@ -49,7 +49,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess)
         assertEquals(1, repo.saveNewParkingSessionCallCount)
@@ -60,7 +60,7 @@ class ConfirmParkingUseCaseTest {
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(enrichment = enrichment)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess)
         assertEquals(1, enrichment.scheduleCallCount)
@@ -71,7 +71,7 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(geofence = geofence)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess)
         assertEquals(1, geofence.createGeofenceCallCount)
@@ -85,7 +85,7 @@ class ConfirmParkingUseCaseTest {
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(notification = notification)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess)
         assertEquals(0, notification.parkingSpotSavedCallCount)
@@ -105,7 +105,7 @@ class ConfirmParkingUseCaseTest {
             vehicles = FakeVehicleRepository(defaultVehicle = defaultVehicle, extraVehicles = listOf(inactive)),
         )
 
-        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-inactive")
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-inactive", sealPoint = null)
 
         assertTrue(result.isSuccess)
         assertEquals(1, repo.saveNewParkingSessionCallCount, "session still saved (pin + TTL kept)")
@@ -127,7 +127,7 @@ class ConfirmParkingUseCaseTest {
             vehicles = FakeVehicleRepository(defaultVehicle = defaultVehicle, extraVehicles = listOf(paired)),
         )
 
-        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-bt")
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-bt", sealPoint = null)
 
         assertTrue(result.isSuccess)
         assertEquals(1, geofence.createGeofenceCallCount)
@@ -139,7 +139,7 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
@@ -153,7 +153,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
@@ -171,7 +171,7 @@ class ConfirmParkingUseCaseTest {
         val enrichment = FakeParkingEnrichmentScheduler()
         val useCase = buildUseCase(repo = repo, enrichment = enrichment)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
@@ -186,7 +186,7 @@ class ConfirmParkingUseCaseTest {
         val geofence = FakeGeofenceManager()
         val useCase = buildUseCase(repo = repo, geofence = geofence)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
@@ -201,7 +201,7 @@ class ConfirmParkingUseCaseTest {
         val notification = FakeAppNotificationManager()
         val useCase = buildUseCase(repo = repo, notification = notification)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.SaveFailed>(result.exceptionOrNull())
@@ -216,7 +216,7 @@ class ConfirmParkingUseCaseTest {
         val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE_SEDAN)
         val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
 
-        useCase(location, detectionReliability = 0.9f)
+        useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
@@ -229,7 +229,7 @@ class ConfirmParkingUseCaseTest {
         val vehicle = Vehicle(id = "v-1", userId = "user-42", sizeCategory = VehicleSize.LARGE_SEDAN)
         val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(vehicle))
 
-        useCase(location, detectionReliability = 0.9f, sizeCategory = VehicleSize.MOTORCYCLE)
+        useCase(location, detectionReliability = 0.9f, sizeCategory = VehicleSize.MOTORCYCLE, sealPoint = null)
 
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
@@ -244,7 +244,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo, vehicles = FakeVehicleRepository(defaultVehicle = null))
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.NoDefaultVehicle>(result.exceptionOrNull())
@@ -273,7 +273,7 @@ class ConfirmParkingUseCaseTest {
             ),
         )
 
-        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-2")
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-2", sealPoint = null)
 
         assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
@@ -293,7 +293,7 @@ class ConfirmParkingUseCaseTest {
             ),
         )
 
-        useCase(location, detectionReliability = 0.9f, vehicleId = "v-2")
+        useCase(location, detectionReliability = 0.9f, vehicleId = "v-2", sealPoint = null)
 
         val savedSession = repo.getActiveSession()
         assertNotNull(savedSession)
@@ -311,7 +311,7 @@ class ConfirmParkingUseCaseTest {
             vehicles = FakeVehicleRepository(defaultVehicle = defaultVehicle),
         )
 
-        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-missing")
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = "v-missing", sealPoint = null)
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Parking.NoDefaultVehicle>(result.exceptionOrNull())
@@ -325,7 +325,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository()
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.9f, vehicleId = null)
+        val result = useCase(location, detectionReliability = 0.9f, vehicleId = null, sealPoint = null)
 
         assertTrue(result.isSuccess)
         val savedSession = repo.getActiveSession()
@@ -341,7 +341,7 @@ class ConfirmParkingUseCaseTest {
             auth = FakeAuthRepository(initialSession = null),
         )
 
-        val result = noAuthCase(location, detectionReliability = 0.9f)
+        val result = noAuthCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isFailure)
         assertIs<PaparcarError.Auth.NotAuthenticated>(result.exceptionOrNull())
@@ -361,7 +361,7 @@ class ConfirmParkingUseCaseTest {
         )
         val zeroAccuracy = location.copy(accuracy = 0f)
 
-        useCase(zeroAccuracy, detectionReliability = 0.9f)
+        useCase(zeroAccuracy, detectionReliability = 0.9f, sealPoint = null)
 
         assertEquals(config.geofenceRadiusMotoMeters, geofence.lastCreatedRadiusMeters)
     }
@@ -378,7 +378,7 @@ class ConfirmParkingUseCaseTest {
         )
         val zeroAccuracy = location.copy(accuracy = 0f)
 
-        useCase(zeroAccuracy, detectionReliability = 0.9f)
+        useCase(zeroAccuracy, detectionReliability = 0.9f, sealPoint = null)
 
         assertEquals(config.geofenceRadiusVanMeters, geofence.lastCreatedRadiusMeters)
     }
@@ -390,7 +390,7 @@ class ConfirmParkingUseCaseTest {
         val useCase = buildUseCase(geofence = geofence, config = config)
         val locationWith10mAccuracy = location.copy(accuracy = 10f)
 
-        useCase(locationWith10mAccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV)
+        useCase(locationWith10mAccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV, sealPoint = null)
 
         val expected = config.geofenceRadiusMeters + (10f * config.geofenceAccuracyPadFactor)
         assertEquals(expected, geofence.lastCreatedRadiusMeters)
@@ -404,7 +404,7 @@ class ConfirmParkingUseCaseTest {
         // accuracy=100m on a VAN (base 120m) → 120 + 150 = 270m > 200m max
         val highInaccuracy = location.copy(accuracy = 100f)
 
-        useCase(highInaccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.VAN_HIGH)
+        useCase(highInaccuracy, detectionReliability = 0.9f, sizeCategory = VehicleSize.VAN_HIGH, sealPoint = null)
 
         assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
     }
@@ -416,7 +416,7 @@ class ConfirmParkingUseCaseTest {
         val bus = FakeDepartureEventBus(initialTimestamp = System.currentTimeMillis() - 60_000L)
         val useCase = buildUseCase(bus = bus)
 
-        useCase(location, detectionReliability = 0.9f)
+        useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertEquals(1, bus.resetCount)
     }
@@ -429,7 +429,7 @@ class ConfirmParkingUseCaseTest {
         }
         val useCase = buildUseCase(repo = failingRepo, bus = bus)
 
-        useCase(location, detectionReliability = 0.9f)
+        useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertEquals(0, bus.resetCount)
     }
@@ -454,7 +454,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f)
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f, sealPoint = null)
 
         assertIs<PaparcarError.Parking.ImplausibleRepark>(result.exceptionOrNull())
         assertEquals(0, repo.saveNewParkingSessionCallCount)
@@ -465,7 +465,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 8f)
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 8f, sealPoint = null)
 
         assertTrue(result.isSuccess)
     }
@@ -476,7 +476,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = recentActiveSession(lat = location.latitude + 0.01))
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f)
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f, sealPoint = null)
 
         assertTrue(result.isSuccess)
     }
@@ -486,7 +486,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = recentActiveSession(ageMs = 30 * 60_000L))
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f)
+        val result = useCase(location, detectionReliability = 0.9f, tripMaxSpeedMps = 1.2f, sealPoint = null)
 
         assertTrue(result.isSuccess)
     }
@@ -501,6 +501,7 @@ class ConfirmParkingUseCaseTest {
             detectionReliability = 0.9f,
             tripMaxSpeedMps = 1.2f,
             armEvidence = io.apptolast.paparcar.domain.detection.ArmEvidence.LABEL_VERIFIED_SPEED,
+            sealPoint = null,
         )
 
         assertTrue(result.isSuccess)
@@ -511,7 +512,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 1.0f, tripMaxSpeedMps = 1.2f)
+        val result = useCase(location, detectionReliability = 1.0f, tripMaxSpeedMps = 1.2f, sealPoint = null)
 
         assertTrue(result.isSuccess)
     }
@@ -522,7 +523,7 @@ class ConfirmParkingUseCaseTest {
         val repo = FakeUserParkingRepository(initialSession = recentActiveSession())
         val useCase = buildUseCase(repo = repo)
 
-        val result = useCase(location, detectionReliability = 0.95f, tripMaxSpeedMps = null)
+        val result = useCase(location, detectionReliability = 0.95f, tripMaxSpeedMps = null, sealPoint = null)
 
         assertTrue(result.isSuccess)
     }
@@ -535,7 +536,7 @@ class ConfirmParkingUseCaseTest {
         val scheduler = RecordingParkingSyncScheduler()
         val useCase = buildUseCase(geofence = geofence, scheduler = scheduler)
 
-        val result = useCase(location, detectionReliability = 0.9f)
+        val result = useCase(location, detectionReliability = 0.9f, sealPoint = null)
 
         assertTrue(result.isSuccess, "a failed geofence registration must not fail the durable save")
         assertEquals(1, scheduler.geofenceRestoreCount)

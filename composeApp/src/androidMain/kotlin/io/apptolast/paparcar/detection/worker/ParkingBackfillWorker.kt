@@ -76,6 +76,11 @@ class ParkingBackfillWorker(
             // [DET-PIN-PROVENANCE-001] Mark this pin as the safety-net's reconstructed backfill (no
             // live session followed the trip) — the exact class we had to reverse-engineer on 2026-07-20.
             detectionPath = PATH_SAFETY_NET_BACKFILL,
+            // A backfill reconstructs the park after the fact — the body may be anywhere by now,
+            // and this worker carries no fresh fix of its own. No honest origin → seal without
+            // one; the honest close then refuses the walked-vs-rode verdict for this pin until
+            // the safety net's cure re-seals at the car. [DET-STEP-BUDGET-ORIGIN-001]
+            sealPoint = null,
         )
         result
             .onSuccess { saved ->

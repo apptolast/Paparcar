@@ -81,6 +81,8 @@ class RunHonestCloseUseCaseTest {
             vehicleId = "v-1",
             abortFix = GpsPoint(36.5974, -6.2505, accuracy = 60f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 23L,
+            // Sealed beside the Melgarejo pin — same origin as the pin distance. [DET-STEP-BUDGET-ORIGIN-001]
+            stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
         assertEquals(RunHonestCloseUseCase.OUTCOME_APPROXIMATE_ZONE, outcome)
@@ -106,6 +108,7 @@ class RunHonestCloseUseCaseTest {
             vehicleId = "v-1",
             abortFix = GpsPoint(36.6088, -6.2843, accuracy = 3f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 1099L,
+            stepSealPoint = GpsPoint(36.6054, -6.2727, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
         assertNull(outcome, "a walk must never trigger the ladder")
@@ -125,6 +128,7 @@ class RunHonestCloseUseCaseTest {
             vehicleId = "v-1",
             abortFix = GpsPoint(36.6029, -6.2512, accuracy = 8f, timestamp = 1_000L, speed = 0f),
             stepsSinceStalePin = 10L,
+            stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
         assertEquals(RunHonestCloseUseCase.OUTCOME_APPROXIMATE_PIN, outcome)

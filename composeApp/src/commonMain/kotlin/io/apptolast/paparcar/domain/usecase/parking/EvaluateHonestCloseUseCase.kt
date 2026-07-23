@@ -72,11 +72,17 @@ class EvaluateHonestCloseUseCase(
      *                        null when the counter is mute / unknown (caller maps a negative delta
      *                        to null). NOT the session's own step-detector count — that resets per
      *                        session and never saw the drive that preceded the arm.
+     * @param stepSealPoint   WHERE the body was when the step baseline was sealed, or null when
+     *                        the seal recorded no position (legacy seal). The walked-vs-rode
+     *                        budget is only comparable against a displacement measured FROM THIS
+     *                        POINT: the counter zeroed at the seal position, so steps can only
+     *                        explain distance walked from there. [DET-STEP-BUDGET-ORIGIN-001]
      */
     operator fun invoke(
         stalePin: UserParking?,
         abortFix: GpsPoint,
         stepsSinceStalePin: Long?,
+        stepSealPoint: GpsPoint?,
     ): HonestCloseDecision {
         val pin = stalePin ?: return HonestCloseDecision.KeepSilent
 
@@ -86,7 +92,8 @@ class EvaluateHonestCloseUseCase(
         )
 
         // Too close to be a trip: within both accuracy envelopes plus the floor, this is a re-arm
-        // jitter beside the parked car, not a drive-away. Keep the pin, stay silent.
+        // jitter beside the parked car, not a drive-away. Keep the pin, stay silent. (Pin-based on
+        // purpose — this guard asks about the CAR's position, not the walker's.)
         if (distanceMeters <= pin.location.accuracy + abortFix.accuracy + config.honestCloseMinTripMeters) {
             return HonestCloseDecision.KeepSilent
         }
@@ -95,10 +102,23 @@ class EvaluateHonestCloseUseCase(
         // the safety net's mute-counter proofs (AR boarding, pedestrian physics) are the backstop.
         val steps = stepsSinceStalePin ?: return HonestCloseDecision.KeepSilent
 
-        // Trip-proof gate: walking the displacement costs ~distance/stride steps. A delta at or
-        // above walkedStepFraction of that is a WALK (the car never moved) → rung 3. Below it, the
-        // steps cannot account for the distance → the car was driven → rung 1/2.
-        val stepsToWalkHere = distanceMeters / config.strideMeters
+        // [DET-STEP-BUDGET-ORIGIN-001] No seal origin → the budget is not comparable: the counter
+        // was zeroed at an unknown position, so "steps vs distance-from-pin" mixes two origins.
+        // That mix is exactly what read a walk home as a ride and planted a pin inside the user's
+        // home (field 2026-07-22 01:47, Redmi/Glorieta: seal happened mid-egress ~159 m from the
+        // pin, the remaining ~83 m walk cost ~110 steps < the 129 the PIN distance demanded).
+        // Conservative silence; the safety net remains the backstop.
+        val origin = stepSealPoint ?: return HonestCloseDecision.KeepSilent
+
+        // Trip-proof gate, SAME ORIGIN on both sides: walking from the seal point to here costs
+        // ~walkDistance/stride steps. A delta at or above walkedStepFraction of that is a WALK
+        // (the car never moved) → rung 3. Below it, the steps cannot account for the displacement
+        // the body actually made since the seal → the car was driven → rung 1/2.
+        val walkDistanceMeters = haversineMeters(
+            origin.latitude, origin.longitude,
+            abortFix.latitude, abortFix.longitude,
+        )
+        val stepsToWalkHere = walkDistanceMeters / config.strideMeters
         val walkExplainsIt = steps >= stepsToWalkHere * config.walkedStepFraction
         if (walkExplainsIt) return HonestCloseDecision.KeepSilent
 

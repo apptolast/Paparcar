@@ -728,8 +728,12 @@ class CoordinatorDetectionService : LifecycleService() {
         val stalePin = runCatching { userParkingRepository.getActiveSessionByVehicle(vehicleId) }.getOrNull()
         // No active pin (or no fence to key the step baseline) → nothing to release, nothing to prove.
         val staleGeofence = stalePin?.geofenceId ?: return
-        val steps = runCatching { detectionStepAnchors.stepsSinceSeal(staleGeofence) }.getOrNull()
-        val honestOutcome = runCatching { runHonestClose(vehicleId, abortFix, steps) }
+        // [DET-STEP-BUDGET-ORIGIN-001] steps + WHERE their baseline was sealed — the ladder only
+        // compares the budget against a displacement measured from that same origin.
+        val budget = runCatching { detectionStepAnchors.stepsSinceSeal(staleGeofence) }.getOrNull()
+        val honestOutcome = runCatching {
+            runHonestClose(vehicleId, abortFix, budget?.steps, budget?.sealPoint)
+        }
             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ honest-close failed (continuing)", e) }
             .getOrNull()
         if (honestOutcome != null) {

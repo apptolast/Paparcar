@@ -75,6 +75,9 @@ class SaveManualParkingUseCase(
             // [DET-PIN-PROVENANCE-001] Hand-placed pin ("manual") vs the user tapping "Sí" on a
             // detection prompt ("user") — both are user ground truth, distinguished by spotType.
             detectionPath = if (spotType == SpotType.MANUAL_REPORT) PATH_MANUAL else PATH_USER,
+            // A hand-placed pin is marked with the user standing at/near it; the pin doubles as
+            // the body's position within map-drag noise. [DET-STEP-BUDGET-ORIGIN-001]
+            sealPoint = gps,
         )
             .onSuccess { saved ->
                 notificationPort.showParkingSaved(saved.location.latitude, saved.location.longitude)

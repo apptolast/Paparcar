@@ -50,7 +50,7 @@ class ParkingEdgeCaseTest {
         val repo = FakeUserParkingRepository()
         val noGpsLocation = goodLocation.copy(accuracy = 0f)
 
-        buildConfirm(repo = repo)(noGpsLocation, detectionReliability = 0.9f)
+        buildConfirm(repo = repo)(noGpsLocation, detectionReliability = 0.9f, sealPoint = null)
 
         val saved = repo.getActiveSession()
         assertTrue(saved != null)
@@ -62,7 +62,7 @@ class ParkingEdgeCaseTest {
         val geofence = FakeGeofenceManager()
         val noGpsLocation = goodLocation.copy(accuracy = 0f)
 
-        buildConfirm(geofence = geofence)(noGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV)
+        buildConfirm(geofence = geofence)(noGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV, sealPoint = null)
 
         // base + 0 * padFactor = base radius (no padding when accuracy is 0)
         assertEquals(config.geofenceRadiusMeters, geofence.lastCreatedRadiusMeters)
@@ -76,7 +76,7 @@ class ParkingEdgeCaseTest {
         // accuracy=200m on MEDIUM: 80 + 200 * 1.5 = 380m >> max 200m
         val poorGpsLocation = goodLocation.copy(accuracy = 200f)
 
-        buildConfirm(geofence = geofence)(poorGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV)
+        buildConfirm(geofence = geofence)(poorGpsLocation, detectionReliability = 0.9f, sizeCategory = VehicleSize.MEDIUM_SUV, sealPoint = null)
 
         assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
     }
@@ -86,7 +86,7 @@ class ParkingEdgeCaseTest {
         val geofence = FakeGeofenceManager()
         val unknownAccuracy = goodLocation.copy(accuracy = -1f)  // some providers report -1
 
-        buildConfirm(geofence = geofence)(unknownAccuracy, detectionReliability = 0.9f)
+        buildConfirm(geofence = geofence)(unknownAccuracy, detectionReliability = 0.9f, sealPoint = null)
 
         assertEquals(1, geofence.createGeofenceCallCount)
     }
@@ -97,7 +97,7 @@ class ParkingEdgeCaseTest {
     fun `should store MANUAL_REPORT type in saved session`() = runTest {
         val repo = FakeUserParkingRepository()
 
-        buildConfirm(repo = repo)(goodLocation, detectionReliability = 1.0f, spotType = SpotType.MANUAL_REPORT)
+        buildConfirm(repo = repo)(goodLocation, detectionReliability = 1.0f, spotType = SpotType.MANUAL_REPORT, sealPoint = null)
 
         val saved = repo.getActiveSession()
         assertEquals(SpotType.MANUAL_REPORT, saved?.spotType)
@@ -110,7 +110,7 @@ class ParkingEdgeCaseTest {
         val confirm = buildConfirm(repo = repo)
         val release = buildRelease(repo = repo, scheduler = scheduler)
 
-        confirm(goodLocation, detectionReliability = 1.0f, spotType = SpotType.MANUAL_REPORT)
+        confirm(goodLocation, detectionReliability = 1.0f, spotType = SpotType.MANUAL_REPORT, sealPoint = null)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
 
         assertEquals(SpotType.MANUAL_REPORT, scheduler.lastSpotType)
@@ -125,6 +125,7 @@ class ParkingEdgeCaseTest {
         buildConfirm(repo = repo, vehicles = FakeVehicleRepository(defaultVehicle = null))(
             goodLocation,
             detectionReliability = 0.9f,
+            sealPoint = null,
         )
 
         val saved = repo.getActiveSession()
@@ -139,7 +140,7 @@ class ParkingEdgeCaseTest {
         val confirm = buildConfirm(repo = repo, vehicles = FakeVehicleRepository(defaultVehicle = null))
         val release = buildRelease(repo = repo, scheduler = scheduler)
 
-        confirm(goodLocation, detectionReliability = 0.9f)
+        confirm(goodLocation, detectionReliability = 0.9f, sealPoint = null)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
 
         assertNull(scheduler.lastSizeCategory)
@@ -154,7 +155,7 @@ class ParkingEdgeCaseTest {
         val confirm = buildConfirm(repo = repo)
         val release = buildRelease(repo = repo, scheduler = scheduler)
 
-        confirm(goodLocation, detectionReliability = 0.9f)
+        confirm(goodLocation, detectionReliability = 0.9f, sealPoint = null)
         val firstSession = repo.getActiveSession()
 
         // First release
@@ -191,7 +192,7 @@ class ParkingEdgeCaseTest {
         val confirm = buildConfirm(repo = repo)
         val release = buildRelease(repo = repo, scheduler = scheduler, addressAndPlaceRepo = fakeRepo)
 
-        confirm(goodLocation, detectionReliability = 0.9f)
+        confirm(goodLocation, detectionReliability = 0.9f, sealPoint = null)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
 
         assertEquals(1, scheduler.scheduleCallCount)
@@ -207,7 +208,7 @@ class ParkingEdgeCaseTest {
         val confirm = buildConfirm(repo = repo)
         val release = buildRelease(repo = repo, scheduler = scheduler, addressAndPlaceRepo = fakeRepo)
 
-        confirm(goodLocation, detectionReliability = 0.9f)
+        confirm(goodLocation, detectionReliability = 0.9f, sealPoint = null)
         release(goodLocation.latitude, goodLocation.longitude, repo.getActiveSession())
 
         assertEquals(goodLocation.latitude, scheduler.lastLat)
@@ -226,6 +227,7 @@ class ParkingEdgeCaseTest {
         buildConfirm(geofence = geofence, vehicles = FakeVehicleRepository(vehicle))(
             poorAccuracy,
             detectionReliability = 0.9f,
+            sealPoint = null,
         )
 
         assertEquals(config.geofenceMaxRadiusMeters, geofence.lastCreatedRadiusMeters)
