@@ -313,6 +313,26 @@ data class ParkingDetectionConfig(
      *  small on purpose: a slow final maneuver that exceeds it merely skips the freeze and
      *  degrades to the ask-the-user paths — a false negative, per the asymmetric-error rule. */
     val anchorFreezeMaxWalkFixes: Int = 3,
+    /** [DET-CONFIRM-FRESHNESS-001] Moving fixes at ≥ [clearBestStopSpeedMps] whose position sits
+     *  provably outside the anchor's accuracy envelopes, accumulated while the anchor is PINNED
+     *  and the session's step counter is proven ALIVE yet counts NOTHING — after this many, the
+     *  movement is the CAR (a live counter's silence is evidence; a person covering that ground
+     *  produces steps within a couple of fixes). Unfreezes/unlocks the anchor so the real final
+     *  stop re-captures it. Field 2026-07-23, "Bodegas Osborne": the anchor froze at a 27-s
+     *  traffic light and a 160-m parking-search creep at 6–16 km/h (below [minimumTripSpeedMps],
+     *  GPS under-reading in narrow streets) could never move it — the egress walk then confirmed
+     *  kinematic+egress AT the light. A MUTE counter (no step event all session) never trips this:
+     *  the Camelias-Oppo walk-back laundering stays impossible. Any step event resets the run —
+     *  a real egress walk feeds steps within seconds and holds the anchor. */
+    val frozenAnchorSteplessDepartureFixes: Int = 4,
+    /** [DET-CONFIRM-FRESHNESS-001] Upper bound of pedestrian-band fixes a final PARKING MANEUVER
+     *  may spend entering a stop. The walk-entered taint is exempted only for a stop entered with
+     *  ZERO step events on a proven-alive counter AND within this budget: a glide into the spot
+     *  spans a handful of slow fixes (field 2026-07-23 Vista Hermosa: 4–6 over ~30 s), a walk-in
+     *  spans a dozen plus (field 2026-07-15 Camelias-Oppo: ~13–15 — and its counter, alive
+     *  earlier, went MUTE for the walk, so step silence alone cannot be trusted across a long
+     *  stretch). Above the budget the taint stands regardless of step silence. */
+    val maneuverEntryMaxWalkFixes: Int = 8,
     /** [DET-KINEMATIC-EGRESS-001] Consecutive-quality pedestrian-band fixes (moving between
      *  [stoppedSpeedThresholdMps] and [minimumTripSpeedMps], accuracy ≤ [minGpsAccuracyForDriving])
      *  observed AFTER the anchor froze, required to read the movement as the user WALKING away
@@ -671,6 +691,12 @@ data class ParkingDetectionConfig(
         }
         require(anchorFreezeMaxWalkFixes >= 0) {
             "anchorFreezeMaxWalkFixes must be >= 0, was $anchorFreezeMaxWalkFixes"
+        }
+        require(frozenAnchorSteplessDepartureFixes > 0) {
+            "frozenAnchorSteplessDepartureFixes must be > 0, was $frozenAnchorSteplessDepartureFixes"
+        }
+        require(maneuverEntryMaxWalkFixes >= anchorFreezeMaxWalkFixes) {
+            "maneuverEntryMaxWalkFixes ($maneuverEntryMaxWalkFixes) must be >= anchorFreezeMaxWalkFixes ($anchorFreezeMaxWalkFixes)"
         }
         require(exitEnterPairWindowMs > 0) {
             "exitEnterPairWindowMs must be > 0, was $exitEnterPairWindowMs"

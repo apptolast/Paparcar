@@ -1665,6 +1665,226 @@ class CoordinatorParkingDetectorTest {
         }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DET-CONFIRM-FRESHNESS-001: evidence must still be true when the pin is planted
+    // (field 2026-07-23: FP "Bodegas Osborne" traffic light, FP Calle Abeto pick-up,
+    // FN Vista Hermosa maneuver-tainted anchor)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun should_discard_held_confirm_when_position_outran_the_steps_at_settle() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-07-23, Calle Abeto: pick-up stop → incidental steps + a drift fix opened
+            // a tentative confirm → the departure's only rolling fix carried acc 71 m (> the 50 m
+            // trust gate) and GPS then starved for 95 s → the hold settled with the car at ANOTHER
+            // traffic light 570 m away and pinned the pick-up spot. Settle-time re-validation must
+            // read the vehicle-scale displacement and DISCARD, never pin.
+            var fakeNow = 1_000_000L
+            val holdConfig = ParkingDetectionConfig(confirmHoldMs = 120_000L)
+            val env = setup(config = holdConfig, clock = { fakeNow })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 10f)) // drive
+            locations.emit(GpsPoint(40.005, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))  // pick-up stop
+            env.stepDetector.emitSteps(8)                                                      // incidental steps
+            locations.emit(GpsPoint(40.0053, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // egress floor → tentative
+            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "held, not confirmed yet [DET-C-02]")
+
+            // No trustworthy rolling fix ever arrives (departure under degraded GPS); the hold
+            // elapses with the car stopped ~550 m away — far beyond what 8 steps could walk.
+            fakeNow += 120_001L
+            locations.emit(GpsPoint(40.010, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "stale held confirm must be DISCARDED at settle, never pinned [DET-CONFIRM-FRESHNESS-001]",
+            )
+            assertTrue(
+                env.detectionLogger.events.filterIsInstance<DetectionEvent.Decision>()
+                    .any { it.outcome == "HOLD_STALE_DISCARDED" },
+                "the settle-time discard must be visible in forensics",
+            )
+        }
+
+    @Test
+    fun should_reanchor_at_the_real_stop_when_live_counter_creep_leaves_the_frozen_light() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-07-23, "Bodegas Osborne": the anchor froze at a 27-s traffic light and
+            // the parking-search creep (6–16 km/h — below real-driving speed) could never move
+            // it; the egress walk then confirmed AT the light, 160 m from the car. With the step
+            // counter PROVEN ALIVE and silent through the creep, the stepless departure must
+            // unfreeze the anchor so the REAL stop re-captures it and the confirm pins there.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            env.stepDetector.emitStep() // counter proven ALIVE (event gated while moving — count stays 0)
+            val lightLat = 40.001
+            nowMs = 1_000L
+            locations.emit(GpsPoint(lightLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // light stop
+            nowMs += config.anchorFreezeStopMs + 1_000L
+            locations.emit(GpsPoint(lightLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // FROZEN at the light
+            // Parking-search creep: sub-real-driving speed, ZERO steps, every fix provably beyond
+            // the anchor envelope (5 + 10 + 18 = 33 m).
+            var lat = lightLat
+            repeat(config.frozenAnchorSteplessDepartureFixes) {
+                lat += 0.0005 // ~55 m per fix
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = 0L, speed = 3.5f))
+            }
+            val carLat = lat + 0.0005
+            nowMs += 5_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // REAL stop
+            env.stepDetector.emitSteps(8) // egress steps
+            nowMs += 5_000L
+            locations.emit(GpsPoint(carLat + 0.0003, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.3f)) // walk away
+
+            job.cancelAndJoin()
+
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "steps+egress must confirm at the real stop")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(
+                carLat,
+                saved.location.latitude,
+                /* absoluteTolerance = */ 0.00005,
+                "pin at the REAL stop the creep led to, not at the frozen light [DET-CONFIRM-FRESHNESS-001]",
+            )
+        }
+
+    @Test
+    fun should_keep_frozen_anchor_through_fast_stepless_walk_when_counter_is_mute() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Camelias-Oppo protection: same displacement signature as the creep above, but the
+            // counter never fired this session — its silence is NOISE, not evidence. The frozen
+            // anchor must hold and the timeout save must pin the CAR, not the walk's end.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(GpsPoint(40.0, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            val carLat = 40.001
+            nowMs = 1_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            nowMs += config.anchorFreezeStopMs + 1_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // FROZEN
+            // Brisk MUTE walk with the stepless-departure signature (≥ clear speed, beyond envelopes).
+            var lat = carLat
+            repeat(config.frozenAnchorSteplessDepartureFixes) {
+                lat += 0.0005
+                nowMs += 5_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 10f, timestamp = 0L, speed = 3.5f))
+            }
+            val doorLat = lat + 0.0002
+            nowMs += 30_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // stand at the door
+            nowMs += config.slowPathGateMs + 5_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs += config.lowNotifTimeoutMs + 5_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+            nowMs += config.confirmationResponseTimeoutMs + 1_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
+
+            job.cancelAndJoin()
+
+            val saved = env.parkingRepo.getActiveSession()
+            if (saved != null) {
+                assertEquals(
+                    carLat,
+                    saved.location.latitude,
+                    /* absoluteTolerance = */ 0.00005,
+                    "a MUTE counter must never unfreeze the anchor — pin stays at the car [DET-CONFIRM-FRESHNESS-001]",
+                )
+            }
+        }
+
+    @Test
+    fun should_confirm_silently_when_the_parking_maneuver_spent_the_walk_fix_budget() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Field 2026-07-24 01:08, Vista Hermosa (the FN): the slow final maneuver into the
+            // spot (pedestrian-band fixes, ZERO step events, counter proven alive) tainted a
+            // PERFECT anchor as walk-entered → the steps+egress confirm degraded to a 1 AM prompt
+            // and the timeout guard then refused the save. With step corroboration required, a
+            // maneuver-entered anchor must confirm SILENTLY.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            env.stepDetector.emitStep() // counter proven ALIVE pre-drive…
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // …then real driving resets the odometers
+            // Final parking maneuver: pedestrian-band fixes over the walk-fix budget, NO steps.
+            var lat = 40.0025
+            repeat(config.anchorFreezeMaxWalkFixes + 1) {
+                lat += 0.0001
+                nowMs += 3_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 40f, timestamp = 0L, speed = 1.5f))
+            }
+            val carLat = lat + 0.0001
+            nowMs += 3_000L
+            locations.emit(GpsPoint(carLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // park
+            env.stepDetector.emitSteps(8) // egress steps at the car
+            nowMs += 5_000L
+            locations.emit(GpsPoint(carLat + 0.0003, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.3f)) // walk away
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                1,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "maneuver-entered anchor must confirm SILENTLY, not degrade to a prompt [DET-CONFIRM-FRESHNESS-001]",
+            )
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertEquals(carLat, saved.location.latitude, /* absoluteTolerance = */ 0.00005, "pin at the car's rest")
+        }
+
+    @Test
+    fun should_still_taint_walk_entered_anchor_when_step_events_corroborate_the_walk_in() =
+        runTest(UnconfinedTestDispatcher()) {
+            // Regression control for the corroboration: a REAL walk-in on a live counter fires
+            // step events along the way (even while the counting gate ignores them) — the taint
+            // must stand and the confirm must keep degrading to a prompt, never pin silently.
+            var nowMs = 0L
+            val env = setup(clock = { nowMs })
+            val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
+            val job = launch { env.coordinator.invoke(locations) }
+
+            locations.emit(stationaryFix(lat = 40.0, lon = -3.7))
+            locations.emit(GpsPoint(40.002, -3.7, accuracy = 5f, timestamp = 0L, speed = 6f)) // drive
+            // Walk in: pedestrian-band fixes WITH step events between them.
+            var lat = 40.0025
+            repeat(config.anchorFreezeMaxWalkFixes + 1) {
+                lat += 0.0001
+                nowMs += 3_000L
+                locations.emit(GpsPoint(lat, -3.7, accuracy = 40f, timestamp = 0L, speed = 1.5f))
+                env.stepDetector.emitStep()
+            }
+            val doorLat = lat + 0.0001
+            nowMs += 3_000L
+            locations.emit(GpsPoint(doorLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // stand still
+            env.stepDetector.emitSteps(8)
+            nowMs += 5_000L
+            locations.emit(GpsPoint(doorLat + 0.0003, -3.7, accuracy = 5f, timestamp = 0L, speed = 1.3f))
+
+            job.cancelAndJoin()
+
+            assertEquals(
+                0,
+                env.parkingRepo.saveNewParkingSessionCallCount,
+                "a step-corroborated walk-entered anchor must never pin silently [DET-CREDIBLE-DRIVE-001]",
+            )
+        }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
