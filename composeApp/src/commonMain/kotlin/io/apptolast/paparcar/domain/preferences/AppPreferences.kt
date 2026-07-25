@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.domain.preferences
 
+import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import kotlinx.coroutines.flow.Flow
 
 interface AppPreferences {
@@ -31,6 +32,15 @@ interface AppPreferences {
     /** True once the user has had a first parking confirmed — auto-disables the cold-start nudge. */
     val hasConfirmedFirstPark: Boolean
     fun setHasConfirmedFirstPark()
+
+    // ── Pending "where did you leave your car?" nudge. [DET-NUDGE-PERSIST-001] ──
+    /** The unanswered mark-parking nudge, or null. Single slot: a new set replaces the previous
+     *  one (there is only ever one lost car to ask about). Written by the notification adapter at
+     *  the SAME choke point that posts the nudge, so the question survives as app state (field
+     *  2026-07-25: the notification alone was slept through and the session was lost). */
+    fun observePendingParkNudge(): Flow<PendingParkNudge?>
+    fun setPendingParkNudge(nudge: PendingParkNudge)
+    fun clearPendingParkNudge()
 
     val notifyParkingDetected: Boolean
     fun setNotifyParkingDetected(enabled: Boolean)

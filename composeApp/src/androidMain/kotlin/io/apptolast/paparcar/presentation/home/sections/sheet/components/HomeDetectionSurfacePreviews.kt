@@ -43,6 +43,17 @@ private fun Gallery() {
                 allowDrivingDetection = true, // preview shows the full two-CTA cold-start layout
             )
         }
+        // [DET-NUDGE-PERSIST-001] Pending "where did you leave your car?" row.
+        Text("ParkNudge", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        HomeDetectionSurface(
+            state = DetectionUiState.Silent,
+            onAddVehicle = {},
+            onOpenPermissions = {},
+            onMarkSpot = {},
+            onStartDrivingDetection = {},
+            onActivateDetection = {},
+            showParkNudge = true,
+        )
     }
 }
 

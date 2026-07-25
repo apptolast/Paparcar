@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.fakes
 
+import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -49,6 +50,12 @@ class FakeAppPreferences(
     private var _hasConfirmedFirstPark = false
     override val hasConfirmedFirstPark: Boolean get() = _hasConfirmedFirstPark
     override fun setHasConfirmedFirstPark() { _hasConfirmedFirstPark = true }
+
+    // [DET-NUDGE-PERSIST-001]
+    val pendingParkNudge = MutableStateFlow<PendingParkNudge?>(null)
+    override fun observePendingParkNudge(): Flow<PendingParkNudge?> = pendingParkNudge
+    override fun setPendingParkNudge(nudge: PendingParkNudge) { pendingParkNudge.value = nudge }
+    override fun clearPendingParkNudge() { pendingParkNudge.value = null }
 
     private var _notifyParkingDetected = initialNotifyParking
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected

@@ -148,6 +148,7 @@ class HomeViewModelTest {
             observeParkedVehicles = observeParkedVehicles,
             declareActiveVehicle = declareActiveVehicle,
             appPreferences = prefs,
+            clearParkNudge = io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase(prefs, FakeAppNotificationManager()),
             // Feature controllers — built with the same fakes the VM uses, mirroring the Koin
             // factories in PresentationModule. [HOMEVM-CTRL-002]
             geocoder = HomeGeocodingController(getAddressAndPlace),

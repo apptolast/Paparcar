@@ -841,7 +841,7 @@ class CoordinatorParkingDetector(
                                 "  ⑊ unattended timeout WITHOUT measured driving (maxSpeed=${state.maxSpeedMps}m/s < ${config.minimumTripSpeedMps}) — no pin; nudging user to mark the spot [DET-AR-FIRST-001]"
                             )
                             notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge()
+                            notificationPort.showMarkParkingNudge(source = "unattended_no_drive", vehicleId = activeVehicleId)
                             sessionOutcome = "aborted_unattended_no_drive"
                             logDetection { sid ->
                                 DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_NO_DRIVE_NUDGE", pathLabel = "unattended_timeout", location = location)
@@ -862,7 +862,7 @@ class CoordinatorParkingDetector(
                                 "  ⑊ unattended timeout with UNPINNED anchor (frozen=${state.anchorFrozen} steps=${state.stepCount}) — no pin; nudging user to mark the spot [DET-ANCHOR-FREEZE-001]"
                             )
                             notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge()
+                            notificationPort.showMarkParkingNudge(source = "unattended_unpinned_anchor", vehicleId = activeVehicleId)
                             sessionOutcome = "aborted_unattended_unpinned_anchor"
                             logDetection { sid ->
                                 DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_UNPINNED_NUDGE", pathLabel = "unattended_timeout", location = location)
@@ -881,7 +881,7 @@ class CoordinatorParkingDetector(
                                 "  ⑊ unattended timeout with egress born AWAY from the pinned anchor — no pin; nudging user to mark the spot [DET-ANCHOR-EGRESS-001]"
                             )
                             notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge()
+                            notificationPort.showMarkParkingNudge(source = "unattended_egress_mismatch", vehicleId = activeVehicleId)
                             sessionOutcome = "aborted_unattended_egress_mismatch"
                             logDetection { sid ->
                                 DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_EGRESS_MISMATCH_NUDGE", pathLabel = "unattended_timeout", location = location)
@@ -903,7 +903,7 @@ class CoordinatorParkingDetector(
                                 "  ⑊ unattended timeout with WALK-ENTERED anchor (walkFixesAtCapture=${state.anchorWalkFixesAtCapture} stepEventsAtCapture=${state.anchorStepEventsAtCapture}) — no pin; nudging user to mark the spot [DET-CREDIBLE-DRIVE-001]"
                             )
                             notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge()
+                            notificationPort.showMarkParkingNudge(source = "unattended_walk_entered_anchor", vehicleId = activeVehicleId)
                             sessionOutcome = "aborted_unattended_walk_entered_anchor"
                             logDetection { sid ->
                                 DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_WALK_ENTERED_NUDGE", pathLabel = "unattended_timeout", location = location)
@@ -923,7 +923,7 @@ class CoordinatorParkingDetector(
                                 "  ⑊ unattended timeout but the position OUTRAN the steps since the anchor (vehicle-scale displacement) — no pin; nudging user to mark the spot [DET-CONFIRM-FRESHNESS-001]"
                             )
                             notificationPort.dismiss(AppNotificationManager.PARKING_CONFIRMATION_NOTIFICATION_ID)
-                            notificationPort.showMarkParkingNudge()
+                            notificationPort.showMarkParkingNudge(source = "unattended_vehicular_egress", vehicleId = activeVehicleId)
                             sessionOutcome = "aborted_unattended_vehicular_egress"
                             logDetection { sid ->
                                 DetectionEvent.Decision(sid, now, outcome = "UNATTENDED_VEHICULAR_EGRESS_NUDGE", pathLabel = "unattended_timeout", location = location)

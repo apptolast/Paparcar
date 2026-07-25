@@ -40,8 +40,16 @@ open class FakeAppNotificationManager : AppNotificationManager {
     /** [DET-AR-FIRST-001] "Where did you leave your car?" nudge invocations. */
     var markParkingNudgeCallCount = 0
 
-    override fun showMarkParkingNudge() {
+    /** [DET-NUDGE-PERSIST-001] Context of the last nudge ask, for provenance assertions. */
+    var lastMarkParkingNudgeSource: String? = null
+    var lastMarkParkingNudgeVehicleId: String? = null
+    var lastMarkParkingNudgePersistPending: Boolean? = null
+
+    override fun showMarkParkingNudge(source: String?, vehicleId: String?, persistPending: Boolean) {
         markParkingNudgeCallCount++
+        lastMarkParkingNudgeSource = source
+        lastMarkParkingNudgeVehicleId = vehicleId
+        lastMarkParkingNudgePersistPending = persistPending
     }
 
     override fun updateDetectionVehicle(vehicleName: String, notifId: Int) = Unit

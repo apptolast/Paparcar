@@ -302,6 +302,12 @@ class ConfirmParkingUseCase(
         // self-disables for good. [DET-TOGGLE-002]
         appPreferences?.setHasConfirmedFirstPark()
 
+        // A confirmed park ANSWERS any pending "where did you leave your car?" question — every
+        // confirm path (auto, manual, nudge deep-link) resolves the durable record here. The tray
+        // notification is dismissed by Home's reactive janitor / the nudge's own auto-cancel.
+        // [DET-NUDGE-PERSIST-001]
+        appPreferences?.clearPendingParkNudge()
+
         PaparcarLogger.d(DIAG, "■ ConfirmParking.invoke SUCCESS (notif is caller's responsibility)")
         return Result.success(session)
     }

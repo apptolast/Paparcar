@@ -16,6 +16,8 @@ import io.apptolast.paparcar.domain.repository.UserParkingRepository
 import io.apptolast.paparcar.domain.repository.VehicleRepository
 import io.apptolast.paparcar.domain.repository.ZoneRepository
 import io.apptolast.paparcar.domain.usecase.detection.ObserveDetectionReadinessUseCase
+import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
+import io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ObserveParkedVehiclesUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ReleaseActiveParkingSessionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.SaveManualParkingUseCase
@@ -75,6 +77,9 @@ class HomeViewModel(
     private val zoneRepository: ZoneRepository,
     private val saveOrUpdateZone: SaveOrUpdateZoneUseCase,
     private val appPreferences: AppPreferences,
+    // Resolves the pending "where did you leave your car?" nudge (record + tray notification) —
+    // from the banner's explicit dismiss and from the reactive janitor. [DET-NUDGE-PERSIST-001]
+    private val clearParkNudge: ClearParkNudgeUseCase,
     private val mapFocusEventBus: MapFocusEventBus,
     private val startAddParkingEventBus: StartAddParkingEventBus,
     private val manualParkingDetection: ManualParkingDetection,
@@ -127,6 +132,27 @@ class HomeViewModel(
         subscribeMapFocusEvents()
         subscribeStartAddParkingRequests()
         subscribeDetectionReadiness()
+        subscribeParkNudge()
+    }
+
+    /**
+     * [DET-NUDGE-PERSIST-001] The durable "where did you leave your car?" question → state, plus
+     * the reactive janitor: when an active session for the nudged vehicle (re)appears — the
+     * confirm raced the store clear, or a remote sync restored the session — the question answered
+     * itself, so resolve BOTH surfaces (record + tray notification) instead of leaving a ghost.
+     */
+    private fun subscribeParkNudge() {
+        combine(
+            appPreferences.observePendingParkNudge(),
+            userParkingRepository.observeActiveSessions(),
+        ) { nudge, sessions -> nudge to sessions }
+            .collectSafely("pendingParkNudge") { (nudge, sessions) ->
+                if (nudge != null && !shouldShowParkNudgeBanner(nudge, sessions)) {
+                    clearParkNudge()
+                    return@collectSafely
+                }
+                updateState { copy(pendingParkNudge = nudge) }
+            }
     }
 
     override fun initState(): HomeState = HomeState()
@@ -190,6 +216,7 @@ class HomeViewModel(
             // Detection controls
             is HomeIntent.StartDrivingDetection,
             is HomeIntent.EnableAutoDetection,
+            is HomeIntent.DismissParkNudge,
             -> handleDetectionIntent(intent)
         }
     }
@@ -543,6 +570,11 @@ class HomeViewModel(
                     sendEffect(HomeEffect.OpenDetectionPermissions(if (perms.hasCorePermissions) "producer" else "all"))
                 }
             }
+
+            // [DET-NUDGE-PERSIST-001] The user declines to mark — resolve the question everywhere
+            // (durable record + tray notification). The state field clears via the observe flow.
+            is HomeIntent.DismissParkNudge -> clearParkNudge()
+
             else -> Unit
         }
     }

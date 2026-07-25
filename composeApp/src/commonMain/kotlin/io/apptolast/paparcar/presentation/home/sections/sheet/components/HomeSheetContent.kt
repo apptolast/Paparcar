@@ -94,7 +94,8 @@ internal fun LazyListScope.homeSheetItems(
 
     // ── 0. Detection action surface — under the address header, above vehicles.
     // Browse-only (hidden while a spot is selected) so it never shifts the spot-scroll index.
-    if (slice.detectionUiState.rendersActionSurface && !isSpotSelected) {
+    // Also hosts the "where did you leave your car?" row when a nudge is pending. [DET-NUDGE-PERSIST-001]
+    if ((slice.detectionUiState.rendersActionSurface || slice.showParkNudge) && !isSpotSelected) {
         item("detection_surface") {
             // The car both cold-start CTAs are about: the active vehicle, or the first if none is
             // flagged. "Mark spot" parks it; "I'm driving" declares it active + arms. [VEH-ACTIVE-FENCE-001]
@@ -117,6 +118,18 @@ internal fun LazyListScope.homeSheetItems(
                 onStartDrivingDetection = { onIntent(HomeIntent.StartDrivingDetection(vehicleId = coldStartVehicleId)) },
                 onActivateDetection = { onIntent(HomeIntent.EnableAutoDetection) }, // [DET-TOGGLE-001]
                 allowDrivingDetection = true, // show both cold-start CTAs (mark spot + I'm driving)
+                showParkNudge = slice.showParkNudge,
+                onMarkNudgeSpot = {
+                    // Same promise as the notification's "Marcar mi plaza": straight into
+                    // AddingParking for the nudged vehicle. [DET-NUDGE-PERSIST-001]
+                    onIntent(
+                        HomeIntent.EnterAddParkingMode(
+                            initialGps = slice.userGpsPoint,
+                            targetVehicleId = slice.parkNudgeVehicleId ?: coldStartVehicleId,
+                        ),
+                    )
+                },
+                onDismissNudge = { onIntent(HomeIntent.DismissParkNudge) },
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
             )
         }

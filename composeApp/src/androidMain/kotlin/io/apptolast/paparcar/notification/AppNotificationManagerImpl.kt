@@ -11,11 +11,14 @@ import androidx.core.app.NotificationCompat
 import io.apptolast.paparcar.MainActivity
 import io.apptolast.paparcar.R
 import io.apptolast.paparcar.detection.receiver.ParkingConfirmationReceiver
+import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import io.apptolast.paparcar.domain.notification.AppNotificationManager
+import io.apptolast.paparcar.domain.preferences.AppPreferences
 
 class AppNotificationManagerImpl(
     private val context: Context,
     private val notificationManager: NotificationManager,
+    private val appPreferences: AppPreferences,
 ) : AppNotificationManager, ForegroundNotificationProvider {
 
     init {
@@ -240,7 +243,19 @@ class AppNotificationManagerImpl(
         notificationManager.notify(AppNotificationManager.DEBUG_NOTIFICATION_ID, notification)
     }
 
-    override fun showMarkParkingNudge() {
+    override fun showMarkParkingNudge(source: String?, vehicleId: String?, persistPending: Boolean) {
+        // [DET-NUDGE-PERSIST-001] Persist FIRST: the durable copy is what the Home banner renders
+        // when the notification below is slept through (field 2026-07-25). Never let a persist
+        // failure suppress the proven notification ask.
+        if (persistPending) runCatching {
+            appPreferences.setPendingParkNudge(
+                PendingParkNudge(
+                    createdAtMs = System.currentTimeMillis(),
+                    source = source ?: "unknown",
+                    vehicleId = vehicleId,
+                ),
+            )
+        }
         // [DET-AR-FIRST-001] A detection session detected movement but could not place the car
         // (no measured driving) — HIGH-importance ACTION channel: the user is about to lose
         // their parking record if they ignore it. Tap and action both deep-link into manual

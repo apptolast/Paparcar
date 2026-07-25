@@ -124,8 +124,23 @@ interface AppNotificationManager {
      * mark wherever the pedestrian stopped (the living-room pin, field 2026-07-10). Tap and
      * action both deep-link straight into manual add-parking mode. Default no-op for
      * non-Android impls and fakes. [DET-AR-FIRST-001]
+     *
+     * [DET-NUDGE-PERSIST-001] Implementations MUST persist the ask as a durable
+     * [io.apptolast.paparcar.domain.detection.PendingParkNudge] BEFORE posting the notification —
+     * this method is the single choke point every ask path goes through, and the notification
+     * alone does not survive being slept through (field 2026-07-25: nudge posted at 03:11, user
+     * asleep, session lost with no in-app recovery). The Home banner renders the durable copy
+     * until the user answers.
+     *
+     * @param source    Which detection path asked (session outcome / worker source) — diagnostics.
+     * @param vehicleId Vehicle the lost trip belonged to, when the asking path knows it — lets
+     *                  the banner auto-resolve if that vehicle gets a confirmed session again.
+     * @param persistPending False ONLY when the ask already left its own durable trace — the
+     *                  honest close saves an approximate pin/zone BEFORE nudging, so the mark on
+     *                  the map is the surviving question and a pending record would resurface as
+     *                  a ghost "car lost" banner after that session's normal release.
      */
-    fun showMarkParkingNudge() {}
+    fun showMarkParkingNudge(source: String? = null, vehicleId: String? = null, persistPending: Boolean = true) {}
 
     /**
      * Warns that the OS/OEM blocked Paparcar's background execution for hours while a session was

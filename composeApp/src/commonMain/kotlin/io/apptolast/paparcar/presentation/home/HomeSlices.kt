@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import io.apptolast.paparcar.domain.model.Vehicle
 import io.apptolast.paparcar.domain.model.VehicleSize
 import io.apptolast.paparcar.domain.model.Zone
+import io.apptolast.paparcar.domain.detection.shouldShowParkNudgeBanner
 import io.apptolast.paparcar.presentation.home.model.DetectionUiState
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,6 +128,11 @@ data class HomePeekSlice(
 @Immutable
 data class HomeBrowseListSlice(
     val detectionUiState: DetectionUiState,
+    /** Show the "where did you leave your car?" action row — an unanswered nudge with no active
+     *  session resolving it. [DET-NUDGE-PERSIST-001] */
+    val showParkNudge: Boolean,
+    /** Vehicle the pending nudge asks about (pre-targets the mark-spot flow), or null. */
+    val parkNudgeVehicleId: String?,
     val hasCorePermissions: Boolean,
     val isLoading: Boolean,
     val sizeFilter: VehicleSize?,
@@ -202,6 +208,8 @@ internal fun HomeState.toPeekSlice() = HomePeekSlice(
 
 internal fun HomeState.toBrowseListSlice() = HomeBrowseListSlice(
     detectionUiState = detectionUiState,
+    showParkNudge = shouldShowParkNudgeBanner(pendingParkNudge, activeSessions),
+    parkNudgeVehicleId = pendingParkNudge?.vehicleId,
     hasCorePermissions = hasCorePermissions,
     isLoading = isLoading,
     sizeFilter = sizeFilter,

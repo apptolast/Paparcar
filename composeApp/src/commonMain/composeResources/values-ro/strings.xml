@@ -541,6 +541,11 @@
     <string name="home_det_awaiting_sub">Marchează locul și îl supraveghez</string>
     <string name="home_det_awaiting_cta_primary">Marchează locul</string>
     <string name="home_det_awaiting_cta_secondary">Conduc acum</string>
+    <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
+    <string name="home_nudge_title">Unde ți-ai lăsat mașina?</string>
+    <string name="home_nudge_sub">Nu am putut stabili locul tău de parcare. Marchează-l ca să nu-l pierzi.</string>
+    <string name="home_nudge_cta">Marchează locul meu</string>
+    <string name="home_nudge_dismiss">Renunță</string>
     <string name="home_det_monitoring">Pe drum</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->

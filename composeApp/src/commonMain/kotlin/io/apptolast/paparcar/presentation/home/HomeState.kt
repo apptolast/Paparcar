@@ -2,6 +2,7 @@ package io.apptolast.paparcar.presentation.home
 
 import androidx.compose.runtime.Immutable
 import com.swmansion.kmpmaps.core.MapType
+import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import io.apptolast.paparcar.domain.model.DetectionReadiness
 import io.apptolast.paparcar.domain.model.DrivingPuck
 import io.apptolast.paparcar.domain.model.DisabledReason
@@ -126,6 +127,13 @@ data class HomeState(
      * [DET-READY-001g]
      */
     val detectionReadiness: DetectionReadiness = DetectionReadiness.Disabled(DisabledReason.NO_VEHICLE),
+
+    /**
+     * The unanswered "where did you leave your car?" nudge, or null. Rendered as a persistent
+     * action row until the user marks a parking or dismisses it — the notification alone does
+     * not survive being slept through. [DET-NUDGE-PERSIST-001]
+     */
+    val pendingParkNudge: PendingParkNudge? = null,
 
     // ── Mode ──────────────────────────────────────────────────────────────────
 

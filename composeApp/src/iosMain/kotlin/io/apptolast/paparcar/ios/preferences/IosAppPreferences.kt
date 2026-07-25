@@ -1,5 +1,6 @@
 package io.apptolast.paparcar.ios.preferences
 
+import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,9 @@ private const val KEY_AUTO_DETECT_PARKING = "auto_detect_parking"
 private const val KEY_FIRST_PARK_NUDGE_COUNT = "first_park_nudge_count"
 private const val KEY_LAST_FIRST_PARK_NUDGE_AT = "last_first_park_nudge_at"
 private const val KEY_HAS_CONFIRMED_FIRST_PARK = "has_confirmed_first_park"
+private const val KEY_PENDING_NUDGE_CREATED_AT = "pending_park_nudge_created_at"
+private const val KEY_PENDING_NUDGE_SOURCE = "pending_park_nudge_source"
+private const val KEY_PENDING_NUDGE_VEHICLE_ID = "pending_park_nudge_vehicle_id"
 private const val KEY_NOTIFY_PARKING_DETECTED = "notify_parking_detected"
 private const val KEY_NOTIFY_SPOT_FREED = "notify_spot_freed"
 private const val KEY_DARK_MODE_ENABLED = "dark_mode_enabled"
@@ -89,6 +93,39 @@ class IosAppPreferences : AppPreferences {
 
     override fun setHasConfirmedFirstPark() {
         userDefaults.setBool(true, forKey = KEY_HAS_CONFIRMED_FIRST_PARK)
+    }
+
+    // ── Pending mark-parking nudge. [DET-NUDGE-PERSIST-001] ──────────────────
+    // Single-process app: StateFlow seeded from the stored values, updated in the setters
+    // (same pattern as [observeAutoDetectParking]).
+
+    private fun storedPendingParkNudge(): PendingParkNudge? {
+        if (userDefaults.objectForKey(KEY_PENDING_NUDGE_CREATED_AT) == null) return null
+        return PendingParkNudge(
+            createdAtMs = userDefaults.integerForKey(KEY_PENDING_NUDGE_CREATED_AT),
+            source = userDefaults.stringForKey(KEY_PENDING_NUDGE_SOURCE) ?: "",
+            vehicleId = userDefaults.stringForKey(KEY_PENDING_NUDGE_VEHICLE_ID),
+        )
+    }
+
+    private val pendingParkNudgeFlow = MutableStateFlow(storedPendingParkNudge())
+
+    override fun observePendingParkNudge(): Flow<PendingParkNudge?> = pendingParkNudgeFlow.asStateFlow()
+
+    override fun setPendingParkNudge(nudge: PendingParkNudge) {
+        userDefaults.setInteger(nudge.createdAtMs, forKey = KEY_PENDING_NUDGE_CREATED_AT)
+        userDefaults.setObject(nudge.source, forKey = KEY_PENDING_NUDGE_SOURCE)
+        nudge.vehicleId
+            ?.let { userDefaults.setObject(it, forKey = KEY_PENDING_NUDGE_VEHICLE_ID) }
+            ?: userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_VEHICLE_ID)
+        pendingParkNudgeFlow.value = nudge
+    }
+
+    override fun clearPendingParkNudge() {
+        userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_CREATED_AT)
+        userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_SOURCE)
+        userDefaults.removeObjectForKey(KEY_PENDING_NUDGE_VEHICLE_ID)
+        pendingParkNudgeFlow.value = null
     }
 
     override val notifyParkingDetected: Boolean

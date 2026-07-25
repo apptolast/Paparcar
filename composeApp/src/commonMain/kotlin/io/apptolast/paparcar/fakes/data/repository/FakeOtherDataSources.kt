@@ -8,6 +8,7 @@ import io.apptolast.paparcar.domain.places.PlacesDataSource
 import io.apptolast.paparcar.domain.permissions.PermissionManager
 import io.apptolast.paparcar.domain.permissions.AppPermissionState
 import io.apptolast.paparcar.domain.permissions.OemBackgroundReliabilityManager
+import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import io.apptolast.paparcar.domain.bluetooth.BluetoothScanner
@@ -142,6 +143,12 @@ class FakeAppPreferences(private val scenario: MockScenario? = null) : AppPrefer
     private var _hasConfirmedFirstPark = false
     override val hasConfirmedFirstPark: Boolean get() = _hasConfirmedFirstPark
     override fun setHasConfirmedFirstPark() { _hasConfirmedFirstPark = true }
+
+    // [DET-NUDGE-PERSIST-001]
+    private val _pendingParkNudge = MutableStateFlow<PendingParkNudge?>(null)
+    override fun observePendingParkNudge(): kotlinx.coroutines.flow.Flow<PendingParkNudge?> = _pendingParkNudge
+    override fun setPendingParkNudge(nudge: PendingParkNudge) { _pendingParkNudge.value = nudge }
+    override fun clearPendingParkNudge() { _pendingParkNudge.value = null }
 
     private val _notifyParkingDetected = MutableStateFlow(true)
     override val notifyParkingDetected: Boolean get() = _notifyParkingDetected.value

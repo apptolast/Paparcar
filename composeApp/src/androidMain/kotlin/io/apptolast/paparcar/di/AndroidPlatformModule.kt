@@ -73,7 +73,7 @@ val androidPlatformModule = module {
 
     // Notification — single instance implements both contracts
     single { androidContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
-    single { AppNotificationManagerImpl(androidContext(), get()) }
+    single { AppNotificationManagerImpl(androidContext(), get(), get()) }
     single<AppNotificationManager> { get<AppNotificationManagerImpl>() }
     single<ForegroundNotificationProvider> { get<AppNotificationManagerImpl>() }
 

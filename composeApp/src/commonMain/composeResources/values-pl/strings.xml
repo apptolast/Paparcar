@@ -541,6 +541,11 @@
     <string name="home_det_awaiting_sub">Zaznacz miejsce, a ja go przypilnuję</string>
     <string name="home_det_awaiting_cta_primary">Zaznacz miejsce</string>
     <string name="home_det_awaiting_cta_secondary">Jadę</string>
+    <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
+    <string name="home_nudge_title">Gdzie zostawiłeś samochód?</string>
+    <string name="home_nudge_sub">Nie udało się ustalić Twojego miejsca parkowania. Oznacz je, aby go nie stracić.</string>
+    <string name="home_nudge_cta">Oznacz moje miejsce</string>
+    <string name="home_nudge_dismiss">Odrzuć</string>
     <string name="home_det_monitoring">W drodze</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->

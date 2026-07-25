@@ -1315,3 +1315,24 @@ Reap latency ≤ 15 min (periodic) vs the ~2 h observed. Silent by design (respe
 - **Walk-entered taint requires corroboration, with a bounded maneuver exemption.** The taint's inputs are stamped at capture (`anchorStepEventsAtCapture` — raw step EVENTS since driving, not the gated `stepCount` — and `anchorSawStepsAtCapture`). A stop entered with zero step events on an alive counter within `maneuverEntryMaxWalkFixes = 8` pedestrian-band fixes is a parking GLIDE, not a walk-in → no taint → silent confirm. The length cap is load-bearing: the Camelias-Oppo counter was alive earlier and went mute exactly for its ~13-fix walk back, so step silence is only trusted across short stretches (the replay fixture enforces this).
 
 Regression fixtures: 5 new coordinator tests replaying the three field traces plus the Camelias mute-walk and live-counter walk-in controls; full suite green (945).
+
+### DET-NUDGE-PERSIST-001 — the "where did you leave your car?" ask survives as app state (2026-07-25)
+
+**Why (field 2026-07-25, Redmi — session `1784939810210`).** The farmacia→home drive fell entirely
+inside a MIUI freeze. On wake the coordinator did everything right — processed the real EXIT,
+released and published the freed spot, refused to guess the new pin (walk-entered anchor) and
+posted the mark-parking nudge at 03:11 — but the **notification was the only trace of the
+question**. The user slept through it; the next morning Home said "no car parked" with zero
+recovery path. The session was lost not by detection but by an ephemeral ask.
+
+**What.** *Every mark-parking ask exists twice: as the notification AND as a durable
+`PendingParkNudge` the Home banner renders until answered.* The invariant lives in the single
+choke point every ask path already goes through — `AppNotificationManager.showMarkParkingNudge()`
+— whose Android impl persists (slot único in `AppPreferences`, DataStore) BEFORE notifying.
+Resolution from any direction clears both surfaces: any confirmed parking
+(`ConfirmParkingUseCase`), a session for the nudged vehicle reappearing (Home's reactive janitor —
+covers sync restores and confirm/clear races), or the banner's explicit "Descartar"
+(`ClearParkNudgeUseCase` → record + notification 2008). The honest close opts out
+(`persistPending = false`): its approximate pin/zone IS its durable trace, and a pending record
+would resurface as a ghost "car lost" banner after that session's normal release. Detail:
+`docs/backlog/det-nudge-persist-001.md`.

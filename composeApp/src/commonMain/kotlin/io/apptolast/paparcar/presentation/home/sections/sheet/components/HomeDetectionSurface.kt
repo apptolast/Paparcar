@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AddLocationAlt
 import androidx.compose.material.icons.rounded.DirectionsCar
 import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.NotListedLocation
 import androidx.compose.material.icons.rounded.SensorsOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +51,10 @@ import paparcar.composeapp.generated.resources.home_det_novehicle_title
 import paparcar.composeapp.generated.resources.home_det_producer_cta
 import paparcar.composeapp.generated.resources.home_det_producer_sub
 import paparcar.composeapp.generated.resources.home_det_producer_title
+import paparcar.composeapp.generated.resources.home_nudge_cta
+import paparcar.composeapp.generated.resources.home_nudge_dismiss
+import paparcar.composeapp.generated.resources.home_nudge_sub
+import paparcar.composeapp.generated.resources.home_nudge_title
 
 /**
  * The Home **detection action surface** — a single accent-bar row that communicates the
@@ -78,11 +83,34 @@ internal fun HomeDetectionSurface(
      * Coordinator arming (DET-G-01b) exists — there is no infra to honour it yet. [DET-READY-001h]
      */
     allowDrivingDetection: Boolean = false,
+    /**
+     * [DET-NUDGE-PERSIST-001] An unanswered "where did you leave your car?" nudge is pending —
+     * render its row INSTEAD of the regular state row (a lost parking record outranks upsells;
+     * only a CORE permission block, where the app barely works, still wins).
+     */
+    showParkNudge: Boolean = false,
+    onMarkNudgeSpot: () -> Unit = {},
+    onDismissNudge: () -> Unit = {},
 ) {
     val cs = MaterialTheme.colorScheme
     val amber = Tone(cs.secondary, cs.onSecondary, cs.secondaryContainer, cs.onSecondaryContainer, isError = false)
     val error = Tone(cs.error, cs.onError, cs.errorContainer, cs.onErrorContainer, isError = true)
     val info = Tone(cs.tertiary, cs.onTertiary, cs.tertiaryContainer, cs.onTertiaryContainer, isError = false)
+
+    if (showParkNudge && state != DetectionUiState.BlockedCore) {
+        ActionRow(
+            tone = amber,
+            icon = Icons.Rounded.NotListedLocation,
+            title = stringResource(Res.string.home_nudge_title),
+            subtitle = stringResource(Res.string.home_nudge_sub),
+            primaryLabel = stringResource(Res.string.home_nudge_cta),
+            onPrimary = onMarkNudgeSpot,
+            secondaryLabel = stringResource(Res.string.home_nudge_dismiss),
+            onSecondary = onDismissNudge,
+            modifier = modifier,
+        )
+        return
+    }
 
     when (state) {
         DetectionUiState.NoVehicle -> ActionRow(

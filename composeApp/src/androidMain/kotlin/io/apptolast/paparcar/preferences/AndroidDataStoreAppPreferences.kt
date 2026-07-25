@@ -3,6 +3,7 @@ package io.apptolast.paparcar.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.SharedPreferencesMigration
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -10,6 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import io.apptolast.paparcar.domain.detection.PendingParkNudge
 import io.apptolast.paparcar.domain.preferences.AppPreferences
 import io.apptolast.paparcar.domain.preferences.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -105,6 +107,43 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
 
     override fun setHasConfirmedFirstPark() = set(Keys.HAS_CONFIRMED_FIRST_PARK, true)
 
+    // ── Pending mark-parking nudge. [DET-NUDGE-PERSIST-001] ──────────────────
+
+    override fun observePendingParkNudge(): Flow<PendingParkNudge?> =
+        store.data.map { it.toPendingParkNudge() }.distinctUntilChanged()
+
+    override fun setPendingParkNudge(nudge: PendingParkNudge) {
+        snapshot = snapshot.toMutablePreferences().apply { write(nudge) }
+        scope.launch { store.edit { it.write(nudge) } }
+    }
+
+    override fun clearPendingParkNudge() {
+        snapshot = snapshot.toMutablePreferences().apply { write(null) }
+        scope.launch { store.edit { it.write(null) } }
+    }
+
+    private fun Preferences.toPendingParkNudge(): PendingParkNudge? {
+        val createdAt = this[Keys.PENDING_NUDGE_CREATED_AT] ?: return null
+        return PendingParkNudge(
+            createdAtMs = createdAt,
+            source = this[Keys.PENDING_NUDGE_SOURCE] ?: "",
+            vehicleId = this[Keys.PENDING_NUDGE_VEHICLE_ID],
+        )
+    }
+
+    private fun MutablePreferences.write(nudge: PendingParkNudge?) {
+        if (nudge == null) {
+            remove(Keys.PENDING_NUDGE_CREATED_AT)
+            remove(Keys.PENDING_NUDGE_SOURCE)
+            remove(Keys.PENDING_NUDGE_VEHICLE_ID)
+        } else {
+            this[Keys.PENDING_NUDGE_CREATED_AT] = nudge.createdAtMs
+            this[Keys.PENDING_NUDGE_SOURCE] = nudge.source
+            nudge.vehicleId?.let { this[Keys.PENDING_NUDGE_VEHICLE_ID] = it }
+                ?: remove(Keys.PENDING_NUDGE_VEHICLE_ID)
+        }
+    }
+
     // ── Notifications ────────────────────────────────────────────────────────
 
     override val notifyParkingDetected: Boolean
@@ -158,6 +197,9 @@ class AndroidDataStoreAppPreferences(context: Context) : AppPreferences {
         val FIRST_PARK_NUDGE_COUNT  = intPreferencesKey("first_park_nudge_count")
         val LAST_FIRST_PARK_NUDGE_AT = longPreferencesKey("last_first_park_nudge_at")
         val HAS_CONFIRMED_FIRST_PARK = booleanPreferencesKey("has_confirmed_first_park")
+        val PENDING_NUDGE_CREATED_AT = longPreferencesKey("pending_park_nudge_created_at")
+        val PENDING_NUDGE_SOURCE     = stringPreferencesKey("pending_park_nudge_source")
+        val PENDING_NUDGE_VEHICLE_ID = stringPreferencesKey("pending_park_nudge_vehicle_id")
         val NOTIFY_PARKING_DETECTED = booleanPreferencesKey("notify_parking_detected")
         val NOTIFY_SPOT_FREED       = booleanPreferencesKey("notify_spot_freed")
         val THEME_MODE              = stringPreferencesKey("theme_mode")

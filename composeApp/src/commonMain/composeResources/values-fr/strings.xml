@@ -537,6 +537,11 @@
     <string name="home_det_awaiting_sub">Marquez la place, je la surveille</string>
     <string name="home_det_awaiting_cta_primary">Marquer ma place</string>
     <string name="home_det_awaiting_cta_secondary">Je conduis</string>
+    <!-- Pending "where did you leave your car?" nudge row. [DET-NUDGE-PERSIST-001] -->
+    <string name="home_nudge_title">Où avez-vous laissé votre voiture ?</string>
+    <string name="home_nudge_sub">Impossible de fixer votre place. Marquez-la pour ne pas la perdre.</string>
+    <string name="home_nudge_cta">Marquer ma place</string>
+    <string name="home_nudge_dismiss">Ignorer</string>
     <string name="home_det_monitoring">En route</string>
 
     <!-- Permissions screen sections [DET-READY-001i] -->

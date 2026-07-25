@@ -87,8 +87,10 @@ class RunHonestCloseUseCase(
         if (saved.isFailure) return null
 
         // Never silent: ask the user to confirm or refine the approximate mark, from the live
-        // service — the honest half of the contract.
-        notificationPort.showMarkParkingNudge()
+        // service — the honest half of the contract. No pending record: the approximate pin/zone
+        // saved above IS the durable trace of this ask; a pending record would resurface as a
+        // ghost "car lost" banner after that session's normal release. [DET-NUDGE-PERSIST-001]
+        notificationPort.showMarkParkingNudge(source = outcome, vehicleId = vehicleId, persistPending = false)
         return outcome
     }
 

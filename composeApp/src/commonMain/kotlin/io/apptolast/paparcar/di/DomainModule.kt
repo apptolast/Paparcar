@@ -11,6 +11,7 @@ import io.apptolast.paparcar.domain.usecase.location.SearchAddressUseCase
 import io.apptolast.paparcar.domain.usecase.notification.NotifyParkingConfirmationUseCase
 import io.apptolast.paparcar.domain.model.ParkingDetectionConfig
 import io.apptolast.paparcar.domain.usecase.parking.CalculateParkingConfidenceUseCase
+import io.apptolast.paparcar.domain.usecase.parking.ClearParkNudgeUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateParkingDecisionUseCase
 import io.apptolast.paparcar.domain.usecase.parking.ConfirmParkingUseCase
 import io.apptolast.paparcar.domain.usecase.parking.EvaluateHonestCloseUseCase
@@ -101,6 +102,7 @@ val domainModule = module {
             config = get(),
         )
     }
+    factory { ClearParkNudgeUseCase(appPreferences = get(), notificationPort = get()) } // [DET-NUDGE-PERSIST-001]
     factory { VerifyDepartureEvidenceUseCase(departureEventBus = get(), config = get()) } // [DET-G-05]
     factory { EvaluateSafetyNetCheckUseCase(config = get()) } // [DET-SAFETY-NET-001]
     factory { EvaluateGeofenceExitUseCase(config = get()) } // [AUDIT-A9-KMP-001]

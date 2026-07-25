@@ -450,7 +450,7 @@ class ParkingSafetyNetWorker(
         }
         if (shouldNudge) {
             PaparcarLogger.d(DIAG, "▶ [never-silent] ${stale.size} stale pending(s), heartbeat dead → mark-parking nudge")
-            notificationPort.showMarkParkingNudge()
+            notificationPort.showMarkParkingNudge(source = "stale_pending_watchdog")
         } else {
             PaparcarLogger.d(DIAG, "  [never-silent] ${stale.size} stale pending(s), no drive evidence → clearing silently")
         }

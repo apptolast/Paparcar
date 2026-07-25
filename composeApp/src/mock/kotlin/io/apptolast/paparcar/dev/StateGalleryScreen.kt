@@ -101,7 +101,7 @@ private val sampleProfile = UserProfile(
 // (detection card / peek / SpotFit) on their own; the viewer hosts them
 // bottom-anchored (Placement.Surface) so they read like Home's sheet.
 @Composable
-private fun detectionSurface(state: DetectionUiState) {
+private fun detectionSurface(state: DetectionUiState, showParkNudge: Boolean = false) {
     HomeDetectionSurface(
         state = state,
         onAddVehicle = {},
@@ -110,6 +110,7 @@ private fun detectionSurface(state: DetectionUiState) {
         onStartDrivingDetection = {},
         onActivateDetection = {},
         allowDrivingDetection = true,
+        showParkNudge = showParkNudge,
     )
 }
 
@@ -161,6 +162,11 @@ private val galleryGroups: List<ScreenGroup> = listOf(
             Variant("Detección inactiva — flag off o permisos (Inactive)", Placement.Surface) { detectionSurface(DetectionUiState.Inactive) },
             Variant("Sin coche registrado (NoVehicle)", Placement.Surface) { detectionSurface(DetectionUiState.NoVehicle) },
             Variant("Sin aparcar aún (AwaitingFirstPark)", Placement.Surface) { detectionSurface(DetectionUiState.AwaitingFirstPark) },
+            // [DET-NUDGE-PERSIST-001] Nudge pendiente "¿dónde has dejado el coche?" — la fila
+            // sustituye a la del estado normal hasta que el usuario marca plaza o descarta.
+            Variant("Nudge pendiente — ¿dónde has dejado el coche?", Placement.Surface) {
+                detectionSurface(DetectionUiState.Silent, showParkNudge = true)
+            },
         ),
     ),
     ScreenGroup(
