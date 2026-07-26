@@ -6,6 +6,20 @@ import io.apptolast.paparcar.domain.notification.AppNotificationManager
 import io.apptolast.paparcar.domain.repository.UserParkingRepository
 
 /**
+ * What the honest close actually DID, plus the evaluator's full [verdict] so the caller can stamp
+ * the reasoning into the diagnostics trace ("no mute zones" — field 2026-07-25: an approximate pin
+ * appeared with zero remote evidence of why). [DET-FROZEN-COUNTER-001]
+ */
+data class HonestCloseResult(
+    /** [RunHonestCloseUseCase.OUTCOME_APPROXIMATE_PIN] / [RunHonestCloseUseCase.OUTCOME_APPROXIMATE_ZONE]
+     *  when an artifact was saved; null when the ladder stayed silent OR the save failed. */
+    val outcomeLabel: String?,
+    val verdict: HonestCloseVerdict,
+    /** Radius of the saved approximate zone, null for a pin / silence. */
+    val zoneRadiusMeters: Float? = null,
+)
+
+/**
  * Orchestrates the honest close of an aborting detection session. [DET-HONEST-CLOSE-001]
  *
  * Runs the pure ladder ([EvaluateHonestCloseUseCase]) at the abort moment and executes its
@@ -41,22 +55,30 @@ class RunHonestCloseUseCase(
      * @param stepSealPoint      WHERE the body was when the step baseline was sealed, or null when
      *                           the seal has no position — the budget's origin, without which the
      *                           ladder refuses the walked-vs-rode verdict. [DET-STEP-BUDGET-ORIGIN-001]
-     * @return the diagnostics outcome label ([OUTCOME_APPROXIMATE_PIN] / [OUTCOME_APPROXIMATE_ZONE])
-     *         when the ladder acted, or null when it stayed silent (the coordinator's own abort
-     *         outcome then stands).
+     * @param sessionStepEvents  Steps the aborting session's own step DETECTOR counted — the
+     *                           cumulative counter's liveness witness. [DET-FROZEN-COUNTER-001]
+     * @param sessionMaxSpeedMps Max GPS speed (m/s) the aborting session measured — measured
+     *                           driving outranks the step inference. [DET-FROZEN-COUNTER-001]
      */
     suspend operator fun invoke(
         vehicleId: String,
         abortFix: GpsPoint,
         stepsSinceStalePin: Long?,
         stepSealPoint: GpsPoint?,
-    ): String? {
+        sessionStepEvents: Int = 0,
+        sessionMaxSpeedMps: Float = 0f,
+    ): HonestCloseResult {
         val stalePin = userParkingRepository.getActiveSessionByVehicle(vehicleId)
 
+        val verdict = evaluateHonestClose(
+            stalePin, abortFix, stepsSinceStalePin, stepSealPoint,
+            sessionStepEvents = sessionStepEvents,
+            sessionMaxSpeedMps = sessionMaxSpeedMps,
+        )
         val location: GpsPoint
         val radiusMeters: Float?
         val outcome: String
-        when (val decision = evaluateHonestClose(stalePin, abortFix, stepsSinceStalePin, stepSealPoint)) {
+        when (val decision = verdict.decision) {
             is HonestCloseDecision.ApproximatePin -> {
                 location = decision.location
                 radiusMeters = null
@@ -67,7 +89,7 @@ class RunHonestCloseUseCase(
                 radiusMeters = decision.radiusMeters
                 outcome = OUTCOME_APPROXIMATE_ZONE
             }
-            HonestCloseDecision.KeepSilent -> return null
+            HonestCloseDecision.KeepSilent -> return HonestCloseResult(outcomeLabel = null, verdict = verdict)
         }
 
         val saved = confirmParking(
@@ -84,14 +106,14 @@ class RunHonestCloseUseCase(
         )
         // Save failed → nothing was released or registered; keep the stale pin and stay silent
         // rather than nudge about a mark that does not exist.
-        if (saved.isFailure) return null
+        if (saved.isFailure) return HonestCloseResult(outcomeLabel = null, verdict = verdict)
 
         // Never silent: ask the user to confirm or refine the approximate mark, from the live
         // service — the honest half of the contract. No pending record: the approximate pin/zone
         // saved above IS the durable trace of this ask; a pending record would resurface as a
         // ghost "car lost" banner after that session's normal release. [DET-NUDGE-PERSIST-001]
         notificationPort.showMarkParkingNudge(source = outcome, vehicleId = vehicleId, persistPending = false)
-        return outcome
+        return HonestCloseResult(outcomeLabel = outcome, verdict = verdict, zoneRadiusMeters = radiusMeters)
     }
 
     companion object {

@@ -1098,11 +1098,13 @@ class CoordinatorParkingDetectorTest {
         }
 
     @Test
-    fun should_nudge_instead_of_saving_when_unattended_timeout_finds_an_unpinned_anchor() =
+    fun should_save_approximate_zone_when_unattended_timeout_finds_an_unpinned_anchor() =
         runTest(UnconfinedTestDispatcher()) {
             // Measured driving happened, but no stop matured and no egress steps sealed anything:
-            // by timeout the anchor is wherever the body last stood — a guess. With 15 minutes of
-            // doubt the honest move is asking WHERE the car is, not planting the guess.
+            // by timeout the anchor is wherever the body last stood — a guess. [DET-FROZEN-COUNTER-001]
+            // The honest exit keeps the park as an APPROXIMATE ZONE covering the doubt (a real
+            // drive ended near the evidence) instead of losing it to a nudge nobody sees
+            // (field 2026-07-25/26, Redmi: 92 driving fixes, no saved parking).
             var nowMs = 0L
             val env = setup(clock = { nowMs })
             val locations = MutableSharedFlow<GpsPoint>(extraBufferCapacity = 64)
@@ -1116,6 +1118,9 @@ class CoordinatorParkingDetectorTest {
             val homeLat = 40.0018
             nowMs += 60_000L
             locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f)) // home
+            // A LIVE counter (a few steps, below the anchor-lock threshold) — the walk bound that
+            // makes the fallback zone honest. [DET-FROZEN-COUNTER-001]
+            env.stepDetector.emitSteps(3)
             nowMs += config.slowPathGateMs + 5_000L
             locations.emit(GpsPoint(homeLat, -3.7, accuracy = 5f, timestamp = 0L, speed = 0f))
             nowMs += config.lowNotifTimeoutMs + 5_000L
@@ -1126,11 +1131,16 @@ class CoordinatorParkingDetectorTest {
 
             job.cancelAndJoin()
 
-            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "an unpinned anchor must never be planted as a pin")
-            assertEquals(1, env.notification.markParkingNudgeCallCount, "the user must be asked where the car is")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park must be KEPT as a zone, not lost")
+            val saved = env.parkingRepo.getActiveSession()
+            assertNotNull(saved)
+            assertTrue(saved.isApproximate, "an unpinned anchor may only be saved as an AREA, never an exact pin")
+            assertTrue(saved.zoneRadiusMeters!! >= config.honestCloseMinZoneRadiusMeters)
+            assertEquals(config.reliabilityUnattendedSave, saved.detectionReliability, "never community-published")
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved-parking card is the ask — no extra nudge")
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("aborted_unattended_unpinned_anchor", ended.outcome, "[DET-ANCHOR-FREEZE-001]")
+            assertEquals("confirmed_unattended_zone_unpinned_anchor", ended.outcome, "[DET-ANCHOR-FREEZE-001][DET-FROZEN-COUNTER-001]")
         }
 
     @Test
@@ -1876,7 +1886,7 @@ class CoordinatorParkingDetectorTest {
                     carLat,
                     saved.location.latitude,
                     /* absoluteTolerance = */ 0.00005,
-                    "a MUTE counter must never unfreeze the anchor — pin stays at the car [DET-CONFIRM-FRESHNESS-001]",
+                    "a MUTE counter must never anchor the save at the walk's end — the zone centers on the car [DET-CONFIRM-FRESHNESS-001][DET-FROZEN-COUNTER-001]",
                 )
             }
         }

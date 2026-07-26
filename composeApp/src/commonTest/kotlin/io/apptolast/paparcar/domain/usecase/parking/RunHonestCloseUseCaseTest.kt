@@ -85,7 +85,8 @@ class RunHonestCloseUseCaseTest {
             stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
-        assertEquals(RunHonestCloseUseCase.OUTCOME_APPROXIMATE_ZONE, outcome)
+        assertEquals(RunHonestCloseUseCase.OUTCOME_APPROXIMATE_ZONE, outcome.outcomeLabel)
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, outcome.verdict.reason)
         assertNull(
             f.parkingRepo.getActiveSessionByGeofence("melgarejo-fence"),
             "the stale pin the car drove away from must be released",
@@ -111,10 +112,37 @@ class RunHonestCloseUseCaseTest {
             stepSealPoint = GpsPoint(36.6054, -6.2727, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
-        assertNull(outcome, "a walk must never trigger the ladder")
+        assertNull(outcome.outcomeLabel, "a walk must never trigger the ladder")
+        assertEquals(HonestCloseVerdict.REASON_WALK_EXPLAINS, outcome.verdict.reason)
         assertNotNull(
             f.parkingRepo.getActiveSessionByGeofence("rosa-fence"),
             "the stale pin must stay intact — the car is still there",
+        )
+        assertEquals(0, f.notification.markParkingNudgeCallCount, "no nudge on a silent close")
+        assertEquals(0, f.parkingRepo.saveNewParkingSessionCallCount, "nothing saved")
+    }
+
+    @Test
+    fun frozen_counter_stays_fully_silent_and_keeps_the_correct_pin() = runTest {
+        // Jerez restaurant FP (field 2026-07-25 22:29, Redmi): correct Calle Cobre pin, ~150 m
+        // walk to the restaurant, MIUI cumulative counter FROZEN (delta 2) while the session's own
+        // detector counted 8 pedestrian steps. The old ladder read the missing steps as a ride and
+        // planted an approximate pin inside the restaurant, deposing the correct pin. The liveness
+        // cross-check must keep the ladder silent. [DET-FROZEN-COUNTER-001]
+        val f = Fixture(stalePinLat = 36.69944, stalePinLon = -6.10992, staleGeofence = "cobre-fence")
+        val outcome = f.useCase(
+            vehicleId = "v-1",
+            abortFix = GpsPoint(36.70078, -6.10972, accuracy = 10f, timestamp = 1_000L, speed = 0f),
+            stepsSinceStalePin = 2L,
+            stepSealPoint = GpsPoint(36.69944, -6.10992, accuracy = 10f, timestamp = 0L, speed = 0f),
+            sessionStepEvents = 8,
+        )
+
+        assertNull(outcome.outcomeLabel, "a frozen counter must never testify a ride")
+        assertEquals(HonestCloseVerdict.REASON_FROZEN_COUNTER, outcome.verdict.reason)
+        assertNotNull(
+            f.parkingRepo.getActiveSessionByGeofence("cobre-fence"),
+            "the correct pin must survive — the car is still at Calle Cobre",
         )
         assertEquals(0, f.notification.markParkingNudgeCallCount, "no nudge on a silent close")
         assertEquals(0, f.parkingRepo.saveNewParkingSessionCallCount, "nothing saved")
@@ -131,7 +159,7 @@ class RunHonestCloseUseCaseTest {
             stepSealPoint = GpsPoint(36.6002, -6.2512, accuracy = 10f, timestamp = 0L, speed = 0f),
         )
 
-        assertEquals(RunHonestCloseUseCase.OUTCOME_APPROXIMATE_PIN, outcome)
+        assertEquals(RunHonestCloseUseCase.OUTCOME_APPROXIMATE_PIN, outcome.outcomeLabel)
         assertEquals(1, f.notification.markParkingNudgeCallCount)
         val saved = f.parkingRepo.getActiveSession()
         assertNotNull(saved)

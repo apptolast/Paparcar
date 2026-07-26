@@ -86,6 +86,11 @@ data class DetectionEventDto(
     val gapMs: Long? = null,
     // Session supersede [DET-SUPERSEDE-001]
     val distanceMeters: Double? = null,
+    // Honest-close forensics [DET-FROZEN-COUNTER-001]
+    val reason: String? = null,
+    val walkDistanceMeters: Double? = null,
+    val stepsDelta: Long? = null,
+    val requiredSteps: Int? = null,
 )
 
 /** Canonical wire discriminator for each event subtype. */
@@ -99,6 +104,7 @@ fun DetectionEvent.typeName(): String = when (this) {
     is DetectionEvent.Step -> "STEP"
     is DetectionEvent.Candidate -> "CANDIDATE"
     is DetectionEvent.Decision -> "DECISION"
+    is DetectionEvent.HonestClose -> "HONEST_CLOSE"
     is DetectionEvent.DepartureVerdict -> "DEPARTURE_VERDICT"
     is DetectionEvent.DepartureProcessed -> "DEPARTURE_PROCESSED"
     is DetectionEvent.Reverted -> "REVERTED"
@@ -143,7 +149,18 @@ fun DetectionEvent.toDto(): DetectionEventDto {
         is DetectionEvent.LocationFix -> base.copy(stoppedDurationMs = stoppedDurationMs)
         is DetectionEvent.Step -> base.copy(stepCount = stepCount, stopped = stopped)
         is DetectionEvent.Candidate -> base.copy(action = action, phase = phase)
-        is DetectionEvent.Decision -> base.copy(outcome = outcome, pathLabel = pathLabel, confidence = confidence)
+        is DetectionEvent.Decision -> base.copy(outcome = outcome, pathLabel = pathLabel, confidence = confidence, distanceMeters = distanceMeters, radiusMeters = radiusMeters)
+        is DetectionEvent.HonestClose -> base.copy(
+            verdict = verdict,
+            reason = reason,
+            distanceMeters = distanceMeters,
+            walkDistanceMeters = walkDistanceMeters,
+            stepsDelta = stepsDelta,
+            requiredSteps = requiredSteps,
+            stepCount = sessionStepEvents,
+            speedKmh = sessionMaxSpeedKmh,
+            radiusMeters = radiusMeters,
+        )
         is DetectionEvent.DepartureVerdict -> base.copy(verdict = verdict, source = source, attempt = attempt, speedKmh = speedKmh, enterAgeMs = enterAgeMs)
         is DetectionEvent.DepartureProcessed -> base.copy(published = published, sessionCleared = sessionCleared)
         is DetectionEvent.Reverted -> base.copy(sessionAgeMs = sessionAgeMs)

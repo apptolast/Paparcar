@@ -106,13 +106,45 @@ sealed interface DetectionEvent {
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 
-    /** A confirmation [outcome] with the [pathLabel] that produced it and the output [confidence]. */
+    /** A confirmation [outcome] with the [pathLabel] that produced it and the output [confidence].
+     *  [distanceMeters]/[radiusMeters] carry the guard's numbers when the outcome is a spatial
+     *  judgement (egress-mismatch distance, saved zone radius) — the field forensics that used to
+     *  live only in logcat. [DET-FROZEN-COUNTER-001] */
     data class Decision(
         override val sessionId: String,
         override val timestampMs: Long,
         val outcome: String,
         val pathLabel: String?,
         val confidence: Float? = null,
+        val distanceMeters: Double? = null,
+        val radiusMeters: Float? = null,
+        override val location: GpsPoint? = null,
+    ) : DetectionEvent
+
+    /** [DET-FROZEN-COUNTER-001] The honest-close ladder ran after a silent abort: its [verdict]
+     *  ("closed_approximate_pin" / "closed_approximate_zone" / "silent"), the [reason] behind it
+     *  (trip_proven / walk_explains / frozen_counter / mute_counter / …), and every number the
+     *  decision weighed. One event per evaluated abort, logged under the aborted session's id —
+     *  an approximate pin can never again appear in the field with no remote trace of why. */
+    data class HonestClose(
+        override val sessionId: String,
+        override val timestampMs: Long,
+        val verdict: String,
+        val reason: String,
+        /** Stale pin → abort fix, meters. */
+        val distanceMeters: Double? = null,
+        /** Step-seal origin → abort fix, meters (displacement the body actually made). */
+        val walkDistanceMeters: Double? = null,
+        /** Cumulative-counter delta since the stale pin's seal (null = mute). */
+        val stepsDelta: Long? = null,
+        /** Steps the walk budget demanded before calling the displacement "walked". */
+        val requiredSteps: Int? = null,
+        /** Steps the aborting session's own detector counted — the liveness witness. */
+        val sessionStepEvents: Int? = null,
+        /** Max speed (km/h) the aborting session measured. */
+        val sessionMaxSpeedKmh: Float? = null,
+        /** Radius of the saved approximate zone, when the verdict opened one. */
+        val radiusMeters: Float? = null,
         override val location: GpsPoint? = null,
     ) : DetectionEvent
 

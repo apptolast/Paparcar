@@ -1355,3 +1355,47 @@ stale-lane arm). Same outcome label, honest-close and tooling untouched; boundar
 keep the full budget. Accepted residual: an unverified real far exit landing during a ≥75-s stop
 aborts the live session early — the departure worker's speed-sampled retries and the reconcile
 backfill still cover the release and the arrival pin. Detail: `docs/backlog/det-zombie-probe-001.md`.
+
+### DET-FROZEN-COUNTER-001 — a step budget is only evidence while its counter is provably ALIVE; an unattended timeout keeps the park as a bounded zone (2026-07-26)
+
+**Why (field 2026-07-25/26, Jerez — 1 FP + 1 FN in one dinner, full forensics in
+`docs/backlog/det-frozen-counter-001.md`).**
+1. **FP restaurante (Redmi 22:29, `closed_approximate_pin` Avenida JMC).** After a correct
+   `steps+egress` pin at Calle Cobre, the 150-m walk to the restaurant tripped the own-fence EXIT;
+   the session aborted `false_enter` correctly (8 detector steps, 0 driving fixes) — and the
+   honest close then "proved" a ride because the MIUI **cumulative counter was FROZEN in
+   background** (delta ≈ 0, non-zero cached value → passes the mute-only guard) and planted an
+   approximate pin inside the restaurant, deposing the 6-minute-old correct pin. The Oppo beside
+   it, counter alive, stayed correctly silent — the differential proof.
+2. **FN vuelta a casa (Redmi 00:17–00:50, `aborted_unattended_egress_mismatch`).** 92 driving
+   fixes, prompt at ~00:35 unanswered, and at the 15-min timeout the egress-mismatch guard
+   degraded to a nudge nobody saw: departure released the old spots and NOTHING was saved — the
+   user's car ended pinless after a fully-measured 33-min drive.
+
+**What — one invariant, plus a bounded-zone fallback and full trace visibility.**
+- ***The trip-proof step budget is only admissible while the counter is provably alive.***
+  `EvaluateHonestCloseUseCase` now receives the aborting session's own evidence: its step-DETECTOR
+  count is the liveness witness (a live cumulative delta can never be below what the detector saw
+  in a shorter window → below it = FROZEN → treated as mute → silence), and measured driving
+  speed outranks the inference outright (defensively unreachable today, decisive for future
+  callers). The evaluator returns a `HonestCloseVerdict` — decision + reason + every number.
+- ***An unattended timeout may only refuse the exact pin, not the park — when the doubt is
+  BOUNDABLE it saves an approximate ZONE (reliability 0.5, never community-facing) instead of
+  nudge-only.*** `unpinned_anchor` (live counter: radius bounds the walk via steps × stride),
+  `egress_mismatch` (radius covers birth↔anchor; center follows counter liveness — live → egress
+  birth, mute → frozen anchor), `walk_entered_anchor` (live counter: walked-in bound). Unbounded
+  cases (mute-counter unpinned/walk-entered, `vehicular_egress`, `unattended_no_drive`) keep the
+  nudge-only exit — a zone that cannot promise to contain the car is a lie. Radius ∈
+  [`honestCloseMinZoneRadiusMeters`, `unattendedZoneMaxRadiusMeters` 250 m]. Outcomes:
+  `confirmed_unattended_zone_<reason>`, provenance `detectionPath = unattended_zone_<reason>`.
+- ***No mute zones in the trace.*** New `HONEST_CLOSE` diagnostics event (verdict, reason,
+  pin-distance, walk-distance, steps delta/required, session steps, session vmax, zone radius)
+  logged under the aborted session's id; `PROMPT_SHOWN` Decision at BOTH prompt lanes (the 00:35
+  prompt was invisible in forensics); `Decision` events carry `distanceMeters`/`radiusMeters` for
+  the spatial guards. DTO columns are additive/nullable (wire-tolerant).
+
+Regression fixtures: frozen-counter (restaurant) + liveness-absent control + measured-driving in
+the evaluator; frozen-counter orchestration in `RunHonestCloseUseCaseTest`; unpinned-zone and
+egress-mismatch-zone (Enamorados replay) + mute-walk control in the coordinator suite. Full suite
+green (954). ⏳ Pending: device field-test; the approximate-zone circle UI remains pending from
+DET-HONEST-CLOSE-001.

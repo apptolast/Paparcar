@@ -31,6 +31,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -283,12 +284,16 @@ class DetectionTraceReplayTest {
         }
 
     @Test
-    fun enamorados_001_unattended_timeout_with_disowned_anchor_nudges_instead_of_saving() =
+    fun enamorados_001_unattended_timeout_with_disowned_anchor_saves_zone_at_the_egress_birth() =
         runTest(UnconfinedTestDispatcher()) {
             // [DET-ANCHOR-EGRESS-001] Same trace, user IGNORES the prompt: 16 minutes later the
             // response-timeout fires. The unattended save trusted "pinned anchor" alone, which
-            // would resurrect the exact FP the decision path degraded — with the egress born away
-            // from the anchor it must nudge ("where did you park?") and abort, never pin.
+            // would resurrect the exact FP the decision path degraded — the anchor (a traffic
+            // light 1.11 km back) must never be pinned. [DET-FROZEN-COUNTER-001] But the trip WAS
+            // measured and the egress BIRTH is where the walking began — the car. The honest exit
+            // keeps the park as an approximate ZONE centered there (radius capped) instead of
+            // losing it to a nudge nobody sees (field 2026-07-25/26, Redmi: this exact guard
+            // turned a fully-measured 33-min drive home into a lost parking).
             val quietTail = buildList {
                 val lastMs = TraceEnamorados001.eventsWithoutRecovery.maxOf { it.tMs }
                 repeat(3) { i ->
@@ -318,11 +323,17 @@ class DetectionTraceReplayTest {
             )
             job.cancelAndJoin()
 
-            assertEquals(0, env.parkingRepo.saveNewParkingSessionCallCount, "no unattended save at a disowned anchor")
-            assertEquals(1, env.notification.markParkingNudgeCallCount, "the honest exit is the mark-parking nudge")
+            assertEquals(1, env.parkingRepo.saveNewParkingSessionCallCount, "the park must be KEPT as a zone, not lost")
+            val saved = assertNotNull(env.parkingRepo.getActiveSession())
+            assertTrue(saved.isApproximate, "a disowned anchor may only yield an AREA, never an exact pin")
+            assertTrue(
+                saved.location.latitude != TraceEnamorados001.FROZEN_ANCHOR_LAT,
+                "the zone must center on the egress birth, never the disowned anchor",
+            )
+            assertEquals(0, env.notification.markParkingNudgeCallCount, "the saved-parking card is the ask — no extra nudge")
             val ended = env.detectionLogger.events
                 .filterIsInstance<DetectionEvent.SessionEnded>().single()
-            assertEquals("aborted_unattended_egress_mismatch", ended.outcome)
+            assertEquals("confirmed_unattended_zone_egress_mismatch", ended.outcome)
         }
 
     @Test

@@ -6,6 +6,7 @@ import io.apptolast.paparcar.domain.model.UserParking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -18,6 +19,10 @@ import kotlin.test.assertTrue
  * SEAL POINT (where the body was when the counter was zeroed), never from the pin: sealing happens
  * at confirm time, mid-egress, so the egress walk is excluded from the count but was included in
  * the pin distance — the mix that read a walk home as a ride (Glorieta regression below).
+ *
+ * [DET-FROZEN-COUNTER-001] The budget's authority depends on the counter being ALIVE. The Jerez
+ * restaurant regression pins the frozen-counter case: the session's own step detector is the
+ * liveness witness, and a cumulative delta below it proves the counter frozen → silence.
  */
 class EvaluateHonestCloseUseCaseTest {
 
@@ -40,14 +45,16 @@ class EvaluateHonestCloseUseCaseTest {
         // the seal (the drive counted none; 23 is the walk around the new spot). The seal happened
         // beside the pin, so the displacement since it is the same ~318 m: 23 ≪ 170 (=40 % of
         // 318/0.75) → driven. The new spot's urban accuracy (60 m > pin-grade) → ZONE, not pin.
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = 23L,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
-        val zone = assertIs<HonestCloseDecision.ApproximateZone>(decision)
+        val zone = assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
         assertTrue(zone.radiusMeters >= 60f, "the zone must read as an area, not a dot")
+        assertEquals(HonestCloseVerdict.REASON_TRIP_PROVEN, verdict.reason)
+        assertNotNull(verdict.requiredSteps, "the trace must carry the budget the walk failed")
     }
 
     @Test
@@ -55,26 +62,27 @@ class EvaluateHonestCloseUseCaseTest {
         // D2 return (field 2026-07-15): the user WALKED ~1.1 km from the still-parked car; the
         // stale exit was delivered at rest at the destination. The hardware counter recorded the
         // whole walk (~1099 steps ≥ 589 = 40 % of 1104/0.75) → the car never moved → silence.
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = pinAt(36.6054, -6.2727),
             abortFix = fixAt(36.6088, -6.2843, acc = 3f),
             stepsSinceStalePin = 1099L,
             stepSealPoint = fixAt(36.6054, -6.2727, acc = 10f),
         )
-        assertEquals(HonestCloseDecision.KeepSilent, decision, "a walk must never release the pin")
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision, "a walk must never release the pin")
+        assertEquals(HonestCloseVerdict.REASON_WALK_EXPLAINS, verdict.reason)
     }
 
     @Test
     fun should_drop_approximate_pin_when_driven_and_a_pin_grade_fix_is_in_hand() {
         // Trip proven (15 steps ≪ ~300 m since the seal) AND a pin-grade fix (acc 8 ≤ 50) →
         // rung 1: a soft point.
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = pinAt(36.6000, -6.2500),
             abortFix = fixAt(36.6027, -6.2500, acc = 8f),
             stepsSinceStalePin = 15L,
             stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
-        val pin = assertIs<HonestCloseDecision.ApproximatePin>(decision)
+        val pin = assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
         assertEquals(8f, pin.location.accuracy)
     }
 
@@ -82,37 +90,40 @@ class EvaluateHonestCloseUseCaseTest {
     fun should_stay_silent_when_the_counter_is_mute() {
         // Same driven geometry as the hop, but a MUTE counter cannot prove a ride OR rule out a
         // long walk → conservative silence; the safety net's mute-counter proofs are the backstop.
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 60f),
             stepsSinceStalePin = null,
             stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
         )
-        assertEquals(HonestCloseDecision.KeepSilent, decision)
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_MUTE_COUNTER, verdict.reason)
     }
 
     @Test
     fun should_stay_silent_when_the_displacement_is_gps_wobble_beside_the_car() {
         // ~30 m from the stale pin — within both accuracy envelopes plus the trip floor. A re-arm
         // jitter beside the parked car, not a drive-away.
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = pinAt(36.6000, -6.2500, acc = 12f),
             abortFix = fixAt(36.60027, -6.2500, acc = 10f),
             stepsSinceStalePin = 3L,
             stepSealPoint = fixAt(36.6000, -6.2500, acc = 10f),
         )
-        assertEquals(HonestCloseDecision.KeepSilent, decision)
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_TOO_CLOSE, verdict.reason)
     }
 
     @Test
     fun should_stay_silent_when_there_is_no_stale_pin_to_reason_about() {
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = null,
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = 5L,
             stepSealPoint = fixAt(36.5974, -6.2505, acc = 8f),
         )
-        assertEquals(HonestCloseDecision.KeepSilent, decision)
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_NO_STALE_PIN, verdict.reason)
     }
 
     // ── [DET-STEP-BUDGET-ORIGIN-001] Same-origin regression ──────────────────────────────────────
@@ -125,7 +136,7 @@ class EvaluateHonestCloseUseCaseTest {
         // steps → 110 < 129 read as "driven" and planted a 0.5 pin INSIDE the user's home,
         // deposing the real 0.9 park. Against the SEAL distance (~85 m) the walk explains itself
         // (110 ≥ 45) → silence, the real pin survives.
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = pinAt(36.6057922, -6.2315528, acc = 5f),
             abortFix = fixAt(36.6038644, -6.2302701, acc = 15f),
             stepsSinceStalePin = 110L,
@@ -133,7 +144,7 @@ class EvaluateHonestCloseUseCaseTest {
         )
         assertEquals(
             HonestCloseDecision.KeepSilent,
-            decision,
+            verdict.decision,
             "a walk home after parking must never replace the real pin with one at the walker's position",
         )
     }
@@ -143,12 +154,68 @@ class EvaluateHonestCloseUseCaseTest {
         // Legacy seal (steps without a position): the budget is not comparable — steps measured
         // from an unknown point cannot be judged against any displacement. Conservative silence;
         // the safety net remains the backstop.
-        val decision = useCase(
+        val verdict = useCase(
             stalePin = pinAt(36.6002, -6.2512),
             abortFix = fixAt(36.5974, -6.2505, acc = 8f),
             stepsSinceStalePin = 23L,
             stepSealPoint = null,
         )
-        assertEquals(HonestCloseDecision.KeepSilent, decision)
+        assertEquals(HonestCloseDecision.KeepSilent, verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_NO_SEAL_ORIGIN, verdict.reason)
+    }
+
+    // ── [DET-FROZEN-COUNTER-001] Counter-liveness regression ─────────────────────────────────────
+
+    @Test
+    fun should_stay_silent_when_the_cumulative_counter_is_provably_frozen() {
+        // Jerez restaurant FP (field 2026-07-25 22:29, Redmi): Calle Cobre pin sealed at confirm,
+        // user WALKED ~150 m to the restaurant. The MIUI cumulative counter froze in background —
+        // delta 2 over a walk the session's own step DETECTOR witnessed (8 pedestrian steps before
+        // the false-ENTER abort). A live cumulative delta can never be below the in-session
+        // detector count → frozen → silence. The old gate read "2 ≪ 80 required" as a ride and
+        // planted an approximate pin inside the restaurant, deposing the correct 6-minute-old pin.
+        val verdict = useCase(
+            stalePin = pinAt(36.69944, -6.10992, acc = 10f),
+            abortFix = fixAt(36.70078, -6.10972, acc = 10f),
+            stepsSinceStalePin = 2L,
+            stepSealPoint = fixAt(36.69944, -6.10992, acc = 10f),
+            sessionStepEvents = 8,
+        )
+        assertEquals(
+            HonestCloseDecision.KeepSilent,
+            verdict.decision,
+            "a frozen cumulative counter must never testify a ride",
+        )
+        assertEquals(HonestCloseVerdict.REASON_FROZEN_COUNTER, verdict.reason)
+    }
+
+    @Test
+    fun should_still_prove_the_trip_when_the_session_saw_no_steps_and_the_counter_agrees() {
+        // Liveness witness absent (sessionStepEvents = 0 — e.g. a no-movement abort where nobody
+        // walked): the cross-check must stay out of the way and the Camelias budget still decides.
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512),
+            abortFix = fixAt(36.5974, -6.2505, acc = 60f),
+            stepsSinceStalePin = 23L,
+            stepSealPoint = fixAt(36.6002, -6.2512, acc = 10f),
+            sessionStepEvents = 0,
+        )
+        assertIs<HonestCloseDecision.ApproximateZone>(verdict.decision)
+    }
+
+    @Test
+    fun should_prove_the_trip_directly_when_the_session_itself_measured_driving() {
+        // Measured movement outranks every inference: a session that reached driving speed proves
+        // the ride with no step budget at all (defensive today — the two triggering aborts never
+        // carry driving speed — decisive for any future caller that does).
+        val verdict = useCase(
+            stalePin = pinAt(36.6002, -6.2512),
+            abortFix = fixAt(36.5974, -6.2505, acc = 8f),
+            stepsSinceStalePin = null,
+            stepSealPoint = null,
+            sessionMaxSpeedMps = 9f,
+        )
+        assertIs<HonestCloseDecision.ApproximatePin>(verdict.decision)
+        assertEquals(HonestCloseVerdict.REASON_SESSION_MEASURED_DRIVING, verdict.reason)
     }
 }

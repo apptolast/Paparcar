@@ -734,18 +734,57 @@ class CoordinatorDetectionService : LifecycleService() {
         // [DET-STEP-BUDGET-ORIGIN-001] steps + WHERE their baseline was sealed — the ladder only
         // compares the budget against a displacement measured from that same origin.
         val budget = runCatching { detectionStepAnchors.stepsSinceSeal(staleGeofence) }.getOrNull()
-        val honestOutcome = runCatching {
-            runHonestClose(vehicleId, abortFix, budget?.steps, budget?.sealPoint)
+        // [DET-FROZEN-COUNTER-001] The aborting session's own testimony: its step-DETECTOR count
+        // witnesses the cumulative counter's liveness (a live cumulative delta can never be below
+        // it), and measured speed outranks the step inference outright. Field 2026-07-25 22:29,
+        // Redmi: without the witness, a frozen MIUI counter read a 150 m walk to a restaurant as
+        // a ride and the ladder planted an approximate pin over the correct 6-minute-old one.
+        val sessionStepEvents = parkingDetectionCoordinator.lastSessionStepEvents
+        val sessionMaxSpeedMps = parkingDetectionCoordinator.lastSessionMaxSpeedMps
+        val result = runCatching {
+            runHonestClose(
+                vehicleId, abortFix, budget?.steps, budget?.sealPoint,
+                sessionStepEvents = sessionStepEvents,
+                sessionMaxSpeedMps = sessionMaxSpeedMps,
+            )
         }
             .onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ honest-close failed (continuing)", e) }
-            .getOrNull()
-        if (honestOutcome != null) {
+            .getOrNull() ?: return
+        val verdict = result.verdict
+        if (result.outcomeLabel != null) {
             PaparcarLogger.d(
                 DIAG,
-                "  ⑊ honest close: $outcome → $honestOutcome (stalePin released, approximate mark left, nudged) [DET-HONEST-CLOSE-001]"
+                "  ⑊ honest close: $outcome → ${result.outcomeLabel} (${verdict.reason}; pinDist=${verdict.pinDistanceMeters?.toInt()}m steps=${verdict.stepsDelta}/${verdict.requiredSteps}) [DET-HONEST-CLOSE-001]"
             )
         } else {
-            PaparcarLogger.d(DIAG, "  ⑊ honest close: $outcome stayed silent (walk explains it / no trip proof / mute counter)")
+            PaparcarLogger.d(
+                DIAG,
+                "  ⑊ honest close: $outcome stayed silent (${verdict.reason}; pinDist=${verdict.pinDistanceMeters?.toInt()}m steps=${verdict.stepsDelta}/${verdict.requiredSteps} sessionSteps=$sessionStepEvents)"
+            )
+        }
+        // [DET-FROZEN-COUNTER-001] Stamp the full reasoning into the aborted session's remote
+        // trace — an approximate pin/zone (or a silence) must never again be unexplainable from
+        // Firestore alone. Logged under the finished session's own id.
+        val sessionId = parkingDetectionCoordinator.lastSessionId
+        if (sessionId != null) {
+            runCatching {
+                detectionEventLogger.log(
+                    DetectionEvent.HonestClose(
+                        sessionId = sessionId,
+                        timestampMs = System.currentTimeMillis(),
+                        verdict = result.outcomeLabel ?: "silent",
+                        reason = verdict.reason,
+                        distanceMeters = verdict.pinDistanceMeters,
+                        walkDistanceMeters = verdict.walkDistanceMeters,
+                        stepsDelta = verdict.stepsDelta,
+                        requiredSteps = verdict.requiredSteps,
+                        sessionStepEvents = sessionStepEvents,
+                        sessionMaxSpeedKmh = sessionMaxSpeedMps * 3.6f,
+                        radiusMeters = result.zoneRadiusMeters,
+                        location = abortFix,
+                    ),
+                )
+            }.onFailure { e -> PaparcarLogger.w(DIAG, "  ⚠ honest-close trace log failed: ${e.message}") }
         }
     }
 

@@ -421,6 +421,12 @@ data class ParkingDetectionConfig(
      *  the artifact reads as an AREA, never a deceptively precise dot — the honest "somewhere
      *  here" the doctrine demands when no pin-grade anchor exists. */
     val honestCloseMinZoneRadiusMeters: Float = 60f,
+    /** [DET-FROZEN-COUNTER-001] Ceiling (meters) on the radius of an unattended-timeout
+     *  approximate zone. The radius grows to cover the distance between the two evidence points
+     *  the guard disagreed about (anchor vs egress birth / current fix); past this ceiling the
+     *  "zone" would paint half a neighbourhood and stop meaning anything — the honest artifact
+     *  is still saved at the cap, and the saved-parking card is the ask-to-refine. */
+    val unattendedZoneMaxRadiusMeters: Float = 250f,
 
     // ── BLUETOOTH PATH [DET-AUDIT-002 T2/T4] ─────────────────────────────────
     /** Distance the user must WALK from the BT parking candidate before it auto-confirms.
@@ -754,6 +760,9 @@ data class ParkingDetectionConfig(
         }
         require(honestCloseMinZoneRadiusMeters > 0f) {
             "honestCloseMinZoneRadiusMeters must be > 0, was $honestCloseMinZoneRadiusMeters"
+        }
+        require(unattendedZoneMaxRadiusMeters >= honestCloseMinZoneRadiusMeters) {
+            "unattendedZoneMaxRadiusMeters must be >= honestCloseMinZoneRadiusMeters, was $unattendedZoneMaxRadiusMeters"
         }
         require(btWalkAwayDistanceMeters > 0f) {
             "btWalkAwayDistanceMeters must be > 0, was $btWalkAwayDistanceMeters"
